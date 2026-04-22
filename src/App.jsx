@@ -118,10 +118,14 @@ export default function InventoryApp() {
 
   useEffect(() => {
     const initAuth = async () => {
-      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-        await signInWithCustomToken(auth, __initial_auth_token);
-      } else {
-        await signInAnonymously(auth);
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (err) {
+        console.error("Auth error:", err);
       }
     };
     initAuth();
@@ -396,8 +400,9 @@ export default function InventoryApp() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-12 w-full">
+      {/* Header - ขยายเต็มจอ */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm w-full">
-        <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 h-16 flex items-center justify-between">
+        <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="bg-blue-600 p-1.5 sm:p-2 rounded-lg text-white">
               <Icons.Package />
@@ -407,17 +412,19 @@ export default function InventoryApp() {
               <p className="hidden sm:block text-xs text-slate-500">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
             </div>
           </div>
+          
+          {/* ปุ่มด้านบน ย่อเป็นไอคอนในมือถือ */}
           <div className="flex items-center gap-1 sm:gap-2">
             {isAuthenticated ? (
               <>
                 <button onClick={exportToCSV} className="bg-emerald-600 hover:bg-emerald-700 transition-colors text-white p-2 sm:px-3 sm:py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm" title="ส่งออก Sheet">
-                  <Icons.Download /> <span className="hidden md:inline">ส่งออก</span>
+                  <Icons.Download /> <span className="hidden sm:inline">ส่งออก</span>
                 </button>
                 <button onClick={() => setIsRoomManagerOpen(true)} className="bg-white hover:bg-slate-50 text-slate-700 transition-colors p-2 sm:px-3 sm:py-2 rounded-lg text-sm font-medium flex items-center gap-2 border border-slate-200 shadow-sm" title="ตั้งค่าห้องประชุม">
-                  <Icons.Settings /> <span className="hidden md:inline">ตั้งค่าห้อง</span>
+                  <Icons.Settings /> <span className="hidden sm:inline">ตั้งค่าห้อง</span>
                 </button>
                 <button onClick={() => handleOpenForm()} className="bg-blue-600 hover:bg-blue-700 transition-colors text-white p-2 sm:px-4 sm:py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm" title="เพิ่มอุปกรณ์">
-                  <Icons.Plus /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span>
+                  <Icons.Plus /> <span className="hidden md:inline">เพิ่มอุปกรณ์</span>
                 </button>
                 <div className="w-px h-6 bg-slate-200 mx-1"></div>
                 <button onClick={handleLogout} className="text-slate-500 hover:text-rose-600 transition-colors p-2 sm:px-3 sm:py-2 rounded-lg text-sm font-medium flex items-center gap-2 bg-slate-100 hover:bg-rose-50" title="ออกจากระบบ">
@@ -433,8 +440,8 @@ export default function InventoryApp() {
         </div>
       </header>
 
-      {}
-      <main className="w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 mt-6 sm:mt-8 space-y-6">
+      {/* Main Content - ขยายเต็มจอ */}
+      <main className="w-full px-4 sm:px-6 lg:px-8 mt-6 sm:mt-8 space-y-6">
         
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400">
@@ -443,8 +450,9 @@ export default function InventoryApp() {
           </div>
         ) : (
           <>
+            {/* Stats Dashboard */}
             <div className="space-y-4">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 {[
                   { label: 'อุปกรณ์ทั้งหมด', value: stats.total, color: 'text-blue-600' },
                   { label: 'พร้อมใช้งาน', value: stats.available, color: 'text-emerald-600' },
@@ -458,7 +466,7 @@ export default function InventoryApp() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 {Object.values(stats.equipmentStats).map((eq, idx) => (
                   <div key={idx} className="bg-white border border-slate-100 rounded-xl p-3 sm:p-4 shadow-sm flex flex-col justify-between">
                     <div className="flex justify-between items-start mb-2">
@@ -490,9 +498,9 @@ export default function InventoryApp() {
               </div>
             </div>
 
-            {}
-            <div className="flex flex-col md:flex-row gap-3 sm:gap-4 justify-between bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-100">
-              <div className="relative w-full md:w-96">
+            {/* Filter & Search */}
+            <div className="flex flex-col md:flex-row gap-3 sm:gap-4 justify-between bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-100 w-full">
+              <div className="relative w-full md:w-1/3">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <Icons.Search />
                 </div>
@@ -503,7 +511,7 @@ export default function InventoryApp() {
                 />
               </div>
               
-              <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar w-full md:w-auto">
+              <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar w-full md:w-2/3 md:justify-end">
                 <button onClick={() => setSelectedCategory('all')} className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>ทั้งหมด</button>
                 {CATEGORIES.map(cat => (
                   <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === cat.id ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
@@ -513,8 +521,9 @@ export default function InventoryApp() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="overflow-x-auto w-full">
+            {/* Table Layout - ปรับให้เลื่อนแนวนอนบนมือถือได้ */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden w-full">
+              <div className="overflow-x-auto w-full pb-2">
                 <table className="w-full text-left border-collapse min-w-[800px]">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-xs sm:text-sm font-medium text-slate-500 whitespace-nowrap">
@@ -579,6 +588,7 @@ export default function InventoryApp() {
       </main>
 
       {}
+      {/* --- Modals --- */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up">
@@ -629,7 +639,6 @@ export default function InventoryApp() {
         </div>
       )}
 
-      {}
       {isRoomManagerOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up flex flex-col max-h-[80vh]">
@@ -698,7 +707,6 @@ export default function InventoryApp() {
         </div>
       )}
 
-      {}
       {isBorrowOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up">
@@ -754,7 +762,7 @@ export default function InventoryApp() {
             </div>
             <div className="p-4 sm:p-5 overflow-y-auto flex-1">
               {currentItem?.history && currentItem.history.length > 0 ? (
-                <div className="border border-slate-200 rounded-xl overflow-x-auto hide-scrollbar">
+                <div className="border border-slate-200 rounded-xl overflow-x-auto hide-scrollbar w-full">
                   <table className="w-full text-left text-xs sm:text-sm min-w-[500px]">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
                       <tr><th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">ผู้ยืม</th><th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">วันที่ยืม</th><th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">กำหนดคืน</th><th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">สถานะ/วันคืนจริง</th></tr>
@@ -779,7 +787,6 @@ export default function InventoryApp() {
         </div>
       )}
 
-      {}
       {isLoginModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up">
