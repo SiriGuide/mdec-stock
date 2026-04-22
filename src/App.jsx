@@ -388,7 +388,7 @@ export default function App() {
           { label: 'กล้อง', data: stats.cameras },
           { label: 'เลนส์', data: stats.lenses },
           { label: 'ไมโครโฟน', data: stats.mics },
-          { label: 'ชุดลำโพง', data: stats.speakers },
+          { label: 'ลำโพง', data: stats.speakers },
           { label: 'ถ่าน/แบต', data: stats.batteries }
         ].map(c => (
           <div key={c.label} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col">
