@@ -22,8 +22,8 @@ const ADMIN_PIN = 'mdec8203';
 const Icons = {
   Plus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
   Search: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
-  Edit: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
-  Trash: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
+  Edit: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
+  Trash: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
   Package: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>,
   Alert: () => <svg className="w-12 h-12 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
   Settings: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
@@ -56,7 +56,8 @@ export default function App() {
   const [items, setItems] = useState([]);
   const [settingsOptions, setSettingsOptions] = useState({
     categories: ['กล้อง', 'เลนส์', 'ไมโครโฟน', 'ชุดลำโพง', 'ถ่าน/แบต', 'สายไฟ', 'อื่นๆ'],
-    locations: ['ตู้ A1', 'ห้องเก็บของ 2', 'ห้องประชุม 1', 'อื่นๆ']
+    locations: ['ตู้ A1', 'ห้องเก็บของ 2', 'ห้องประชุม 1', 'อื่นๆ'],
+    staff: ['แอดมิน', 'อื่นๆ']
   });
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,13 +77,15 @@ export default function App() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   
   const [showBorrow, setShowBorrow] = useState(null);
-  const [borrowData, setBorrowData] = useState({ borrower: '', borrowDate: '', returnDate: '', staff: '' });
+  const [borrowData, setBorrowData] = useState({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '' });
+  
   const [showReturn, setShowReturn] = useState(null);
-  const [returnData, setReturnData] = useState({ staff: '' });
+  const [returnData, setReturnData] = useState({ staff: '', newStaff: '' });
+  
   const [showHistory, setShowHistory] = useState(null);
 
   const [showSettings, setShowSettings] = useState(false);
-  const [settingsTab, setSettingsTab] = useState('categories'); // categories | locations
+  const [settingsTab, setSettingsTab] = useState('categories'); // categories | locations | staff
   const [newSettingItem, setNewSettingItem] = useState('');
   const [editingSettingItem, setEditingSettingItem] = useState(null);
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
@@ -104,7 +107,10 @@ export default function App() {
 
         const unsubscribeSettings = onSnapshot(doc(db, "mdec_stock", "shared_data", "settings", "global"), (docSnap) => {
           if (docSnap.exists()) {
-            setSettingsOptions(docSnap.data());
+            const data = docSnap.data();
+            // ป้องกันข้อมูลเก่าที่ยังไม่มีอาร์เรย์ staff
+            if (!data.staff) data.staff = ['แอดมิน', 'อื่นๆ'];
+            setSettingsOptions(data);
           } else {
             setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), settingsOptions);
           }
@@ -154,6 +160,7 @@ export default function App() {
     return result;
   }, [items, searchTerm, filterDept, filterCategory, filterStatus, sortConfig]);
 
+  // 1. สรุปภาพรวมหลัก (ทั้งหมด, ว่าง, ใช้งาน, ยืม, ซ่อม)
   const stats = useMemo(() => {
     const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
     items.forEach(item => {
@@ -167,6 +174,7 @@ export default function App() {
     return s;
   }, [items]);
 
+  // 2. สรุปแยกตามหมวดหมู่แบบไดนามิก (ดึงจาก Settings)
   const categoryStats = useMemo(() => {
     const catData = {};
     settingsOptions.categories.filter(c => c !== 'อื่นๆ').forEach(cat => {
@@ -176,7 +184,6 @@ export default function App() {
     items.forEach(item => {
       const qty = Number(item.quantity) || 1;
       const cat = item.category;
-      // เช็คหมวดหมู่เป๊ะๆ
       if (cat && catData[cat]) {
         catData[cat].total += qty;
         if (item.status === 'available') {
@@ -243,26 +250,46 @@ export default function App() {
 
   const handleBorrow = async () => {
     if (!borrowData.borrower || !borrowData.staff) return;
+    
+    let finalStaff = borrowData.staff;
+    if (borrowData.staff === 'อื่นๆ' && borrowData.newStaff.trim()) {
+      finalStaff = borrowData.newStaff.trim();
+      const updatedStaff = [...new Set([...(settingsOptions.staff || []).filter(c => c !== 'อื่นๆ'), finalStaff, 'อื่นๆ'])];
+      const newSettings = { ...settingsOptions, staff: updatedStaff };
+      setSettingsOptions(newSettings);
+      await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
+    }
+
     const item = items.find(i => i.id === showBorrow);
-    const newHistory = [...(item.history || []), { type: 'borrow', date: new Date().toISOString(), borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: borrowData.staff }];
+    const newHistory = [...(item.history || []), { type: 'borrow', date: new Date().toISOString(), borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff }];
     await setDoc(doc(db, "mdec_stock", "shared_data", "items", showBorrow), { status: 'borrowed', currentBorrower: borrowData.borrower, expectedReturn: borrowData.returnDate, history: newHistory }, { merge: true });
     setShowBorrow(null);
-    setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '' });
+    setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '' });
   };
 
   const handleReturn = async () => {
     if (!returnData.staff) return;
+
+    let finalStaff = returnData.staff;
+    if (returnData.staff === 'อื่นๆ' && returnData.newStaff.trim()) {
+      finalStaff = returnData.newStaff.trim();
+      const updatedStaff = [...new Set([...(settingsOptions.staff || []).filter(c => c !== 'อื่นๆ'), finalStaff, 'อื่นๆ'])];
+      const newSettings = { ...settingsOptions, staff: updatedStaff };
+      setSettingsOptions(newSettings);
+      await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
+    }
+
     const item = items.find(i => i.id === showReturn);
-    const newHistory = [...(item.history || []), { type: 'return', date: new Date().toISOString(), staffIn: returnData.staff }];
+    const newHistory = [...(item.history || []), { type: 'return', date: new Date().toISOString(), staffIn: finalStaff }];
     await setDoc(doc(db, "mdec_stock", "shared_data", "items", showReturn), { status: 'available', currentBorrower: null, expectedReturn: null, history: newHistory }, { merge: true });
     setShowReturn(null);
-    setReturnData({ staff: '' });
+    setReturnData({ staff: '', newStaff: '' });
   };
 
   const handleSaveSetting = async () => {
     if (!newSettingItem.trim()) return;
     const key = settingsTab;
-    let newOptions = [...settingsOptions[key]];
+    let newOptions = [...(settingsOptions[key] || [])];
     let oldName = null;
     let newName = newSettingItem.trim();
 
@@ -279,7 +306,8 @@ export default function App() {
     setSettingsOptions(updatedSettings);
     await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), updatedSettings);
 
-    if (oldName && oldName !== newName) {
+    // Auto-update items if category or location name changed
+    if (oldName && oldName !== newName && (key === 'categories' || key === 'locations')) {
       items.forEach(async (item) => {
         let updateData = {};
         if (key === 'categories' && item.category === oldName) updateData.category = newName;
@@ -492,8 +520,8 @@ export default function App() {
                       {/* ปุ่มจัดการอื่นๆ: เฉพาะแอดมินเท่านั้น */}
                       {isAdmin && (
                         <>
-                          {item.status === 'available' && <button onClick={() => { setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
-                          {isBorrowed && <button onClick={() => { setReturnData({ staff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
+                          {item.status === 'available' && <button onClick={() => { setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
+                          {isBorrowed && <button onClick={() => { setReturnData({ staff: '', newStaff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
                           <button onClick={() => { setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
                           <button onClick={() => setShowDeleteConfirm(item.id)} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
                         </>
@@ -511,18 +539,19 @@ export default function App() {
       {showSettings && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="flex border-b border-slate-100">
-              <button onClick={() => {setSettingsTab('categories'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 py-4 font-bold text-lg ${settingsTab === 'categories' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>หมวดหมู่อุปกรณ์</button>
-              <button onClick={() => {setSettingsTab('locations'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 py-4 font-bold text-lg ${settingsTab === 'locations' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>สถานที่จัดเก็บ</button>
+            <div className="flex border-b border-slate-100 overflow-x-auto custom-scrollbar">
+              <button onClick={() => {setSettingsTab('categories'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg ${settingsTab === 'categories' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>หมวดหมู่</button>
+              <button onClick={() => {setSettingsTab('locations'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg ${settingsTab === 'locations' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>สถานที่</button>
+              <button onClick={() => {setSettingsTab('staff'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg ${settingsTab === 'staff' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>เจ้าหน้าที่</button>
             </div>
             <div className="p-6">
               <div className="flex gap-2 mb-6">
-                <input type="text" className="flex-1 px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none text-lg" placeholder={`พิมพ์${settingsTab === 'categories' ? 'หมวดหมู่' : 'สถานที่'}ใหม่...`} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} />
+                <input type="text" className="flex-1 px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none text-lg" placeholder={`พิมพ์${settingsTab === 'categories' ? 'หมวดหมู่' : settingsTab === 'locations' ? 'สถานที่' : 'ชื่อเจ้าหน้าที่'}ใหม่...`} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} />
                 <button onClick={handleSaveSetting} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-lg">{editingSettingItem !== null ? 'บันทึกแก้ไข' : 'เพิ่ม'}</button>
                 {editingSettingItem !== null && <button onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className="px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl"><Icons.X /></button>}
               </div>
               <div className="max-h-60 overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2">
-                {settingsOptions[settingsTab].filter(c => c !== 'อื่นๆ').map((item, index) => (
+                {(settingsOptions[settingsTab] || []).filter(c => c !== 'อื่นๆ').map((item, index) => (
                   <div key={index} className="flex justify-between items-center p-4 bg-slate-50 border border-slate-100 rounded-xl group hover:bg-slate-100 transition-colors">
                     <span className="font-bold text-slate-700 text-lg">{item}</span>
                     <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
@@ -647,9 +676,17 @@ export default function App() {
             <h3 className="text-2xl font-black text-slate-800 mb-6 text-center">บันทึกการให้ยืม</h3>
             <div className="space-y-4 mb-8">
               <div>
-                <label className="block text-base sm:text-lg font-bold text-slate-700 mb-2">ชื่อผู้ทำรายการให้ยืม (จนท.) <span className="text-rose-500">*</span></label>
-                <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-500 outline-none text-lg" placeholder="ชื่อเจ้าหน้าที่ศูนย์ฯ..." value={borrowData.staff} onChange={e => setBorrowData({...borrowData, staff: e.target.value})} />
+                <label className="block text-base sm:text-lg font-bold text-slate-700 mb-2">ผู้ให้ยืม (จนท.) <span className="text-rose-500">*</span></label>
+                <select className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-500 outline-none text-lg text-slate-700" value={borrowData.staff} onChange={e => setBorrowData({...borrowData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : borrowData.newStaff})}>
+                  <option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>
+                  {(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
+              {borrowData.staff === 'อื่นๆ' && (
+                <div>
+                  <input type="text" autoFocus className="w-full px-4 py-3 bg-purple-50 border border-purple-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-500 outline-none text-lg text-purple-800" placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่..." value={borrowData.newStaff} onChange={e => setBorrowData({...borrowData, newStaff: e.target.value})} />
+                </div>
+              )}
               <hr className="border-slate-100 my-4" />
               <div>
                 <label className="block text-base sm:text-lg font-bold text-slate-700 mb-2">ชื่อผู้ยืม <span className="text-rose-500">*</span></label>
@@ -674,9 +711,19 @@ export default function App() {
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center">
             <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.CheckCircle /></div>
             <h3 className="text-2xl font-black text-slate-800 mb-6">บันทึกรับคืนอุปกรณ์</h3>
-            <div className="text-left mb-8">
-              <label className="block text-base sm:text-lg font-bold text-slate-700 mb-2">ชื่อผู้ทำรายการรับคืน (จนท.) <span className="text-rose-500">*</span></label>
-              <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-emerald-500 outline-none text-lg" placeholder="ชื่อเจ้าหน้าที่ศูนย์ฯ..." value={returnData.staff} onChange={e => setReturnData({staff: e.target.value})} />
+            <div className="text-left mb-8 space-y-4">
+              <div>
+                <label className="block text-base sm:text-lg font-bold text-slate-700 mb-2">ผู้รับคืน (จนท.) <span className="text-rose-500">*</span></label>
+                <select className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-emerald-500 outline-none text-lg text-slate-700" value={returnData.staff} onChange={e => setReturnData({...returnData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : returnData.newStaff})}>
+                  <option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>
+                  {(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              {returnData.staff === 'อื่นๆ' && (
+                <div>
+                  <input type="text" autoFocus className="w-full px-4 py-3 bg-emerald-50 border border-emerald-300 rounded-xl font-bold focus:ring-2 focus:ring-emerald-500 outline-none text-lg text-emerald-800" placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่..." value={returnData.newStaff} onChange={e => setReturnData({...returnData, newStaff: e.target.value})} />
+                </div>
+              )}
             </div>
             <div className="flex gap-3">
               <button onClick={() => setShowReturn(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
@@ -723,7 +770,7 @@ export default function App() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
             <div className="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.Trash /></div>
-            <h3 className="text-2xl font-black text-slate-800 mb-2">ยืนยันการลบ?</h3>
+            <h3 className="text-2xl font-black text-slate-800 mb-2">ลบอุปกรณ์?</h3>
             <p className="text-slate-500 mb-8 text-lg">ข้อมูลนี้จะถูกลบถาวร ไม่สามารถกู้คืนได้</p>
             <div className="flex gap-3">
               <button onClick={() => setShowDeleteConfirm(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
