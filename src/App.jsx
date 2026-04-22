@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "firebase/firestore";
 
-// ⚠️ นำค่า Firebase Config ของคุณมาใส่ตรงนี้ 
+// ⚠️ นำค่า Firebase Config ของคุณมาใส่ตรงนี้ (แทนที่คำว่า "ใส่_..._ของคุณที่นี่")
 const myFirebaseConfig = {
   apiKey: "AIzaSyA0IFm6icc-QG4ZC2WiuhRa2YquISGH9FM",
   authDomain: "mdec-stock-app.firebaseapp.com",
@@ -280,6 +280,7 @@ export default function App() {
     setSettingsOptions(updatedSettings);
     await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), updatedSettings);
 
+    // Auto-update items if name changed
     if (oldName && oldName !== newName) {
       items.forEach(async (item) => {
         let updateData = {};
@@ -462,12 +463,12 @@ export default function App() {
               <Th label="ฝ่ายที่รับผิดชอบ" columnKey="department" />
               <Th label="สถานที่ / ห้อง" columnKey="location" />
               <Th label="สถานะ" columnKey="status" />
-              {isAdmin && <th className="px-4 py-4 text-center font-bold text-slate-700">จัดการ</th>}
+              <th className="px-4 py-4 text-center font-bold text-slate-700">ประวัติ / จัดการ</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filteredItems.length === 0 ? (
-              <tr><td colSpan={isAdmin ? 6 : 5} className="px-4 py-12 text-center text-slate-400 font-bold text-lg">ไม่พบข้อมูลที่ค้นหา</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400 font-bold text-lg">ไม่พบข้อมูลที่ค้นหา</td></tr>
             ) : filteredItems.map((item) => {
               const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
               const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
@@ -487,17 +488,22 @@ export default function App() {
                   <td className="px-4 py-4"><span className={`inline-block px-3 py-1.5 rounded-lg text-sm font-bold ${deptInfo.color}`}>{deptInfo.label}</span></td>
                   <td className="px-4 py-4 font-bold text-slate-600">{item.location || '-'}</td>
                   <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold border ${statusInfo.color}`}><div className={`w-2 h-2 rounded-full currentColor`}></div>{statusInfo.label}</span></td>
-                  {isAdmin && (
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        {item.status === 'available' && <button onClick={() => { setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
-                        {isBorrowed && <button onClick={() => { setReturnData({ staff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
-                        <button onClick={() => setShowHistory(item.id)} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white flex items-center justify-center transition-colors" title="ประวัติ"><Icons.History /></button>
-                        <button onClick={() => { setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
-                        <button onClick={() => setShowDeleteConfirm(item.id)} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
-                      </div>
-                    </td>
-                  )}
+                  <td className="px-4 py-4">
+                    <div className="flex items-center justify-center gap-2">
+                      {/* ปุ่มดูประวัติ ทุกคนเห็นได้ */}
+                      <button onClick={() => setShowHistory(item.id)} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white flex items-center justify-center transition-colors" title="ประวัติ"><Icons.History /></button>
+                      
+                      {/* ปุ่มจัดการ เฉพาะ Admin */}
+                      {isAdmin && (
+                        <>
+                          {item.status === 'available' && <button onClick={() => { setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
+                          {isBorrowed && <button onClick={() => { setReturnData({ staff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
+                          <button onClick={() => { setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
+                          <button onClick={() => setShowDeleteConfirm(item.id)} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
+                        </>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               );
             })}
