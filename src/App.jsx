@@ -44,6 +44,7 @@ const DEPARTMENTS = [
   { id: 'วิดีโอ', label: 'ฝ่ายวิดีโอ', color: 'bg-indigo-100 text-indigo-700' },
   { id: 'เครื่องเสียง', label: 'ฝ่ายอุปกรณ์เครื่องเสียง', color: 'bg-cyan-100 text-cyan-700' },
   { id: 'ห้องประชุม', label: 'ห้องประชุม', color: 'bg-sky-100 text-sky-700' },
+  { id: 'ob-live', label: 'OB-LIVE', color: 'bg-violet-100 text-violet-700' },
 ];
 
 const STATUSES = [
