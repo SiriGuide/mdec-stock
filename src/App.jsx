@@ -3,8 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from 'firebase/firestore';
 
-// ⚠️ นำค่า Firebase Config ของคุณมาใส่ตรงนี้ (แทนที่คำว่า "ใส่_..._ของคุณที่นี่")
-// ค่าเหล่านี้เอามาจากหน้า Firebase Console (ดูคู่มือข้อ 1.5)
+// ⚠️ อย่าลืมนำค่า Firebase Config ของคุณ มาใส่ตรงนี้เหมือนเดิมนะครับ
 const myFirebaseConfig = {
   apiKey: "AIzaSyA0IFm6icc-QG4ZC2WiuhRa2YquISGH9FM",
   authDomain: "mdec-stock-app.firebaseapp.com",
@@ -14,12 +13,10 @@ const myFirebaseConfig = {
   appId: "1:283888438624:web:6cfe60c58d94dc00fda205"
 };
 
-// โค้ดส่วนนี้เพื่อให้ระบบยังทดสอบในหน้านี้ได้ แต่ถ้าเอาไปใช้งานข้างนอกมันจะดึง myFirebaseConfig ไปใช้
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : myFirebaseConfig;
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 const Icons = {
   Plus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
@@ -87,22 +84,17 @@ export default function InventoryApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   
-  // Base Modals
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isRoomManagerOpen, setIsRoomManagerOpen] = useState(false);
-  
-  // Borrow/Return Modals
   const [isBorrowOpen, setIsBorrowOpen] = useState(false);
   const [isReturnOpen, setIsReturnOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
-  // Current Selections
   const [currentItem, setCurrentItem] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [itemToReturn, setItemToReturn] = useState(null);
 
-  // Form States
   const [formData, setFormData] = useState({
     name: '', serialNumber: '', category: 'ภาพนิ่ง', location: '', status: 'available'
   });
@@ -111,7 +103,6 @@ export default function InventoryApp() {
     borrowerName: '', borrowDate: '', returnDate: ''
   });
 
-  // Room Manager State
   const [roomInputValue, setRoomInputValue] = useState('');
   const [editingRoomOriginal, setEditingRoomOriginal] = useState(null);
   const [roomToDelete, setRoomToDelete] = useState(null);
@@ -140,7 +131,8 @@ export default function InventoryApp() {
   useEffect(() => {
     if (!user) return;
 
-    const itemsRef = collection(db, 'artifacts', appId, 'users', user.uid, 'items');
+    // 🔥 แกไขเป็น 'mdec_stock' แทน user.uid เพื่อให้เป็นถังข้อมูลรวมของทีม
+    const itemsRef = collection(db, 'mdec_stock', 'shared_data', 'items');
     const unsubscribeItems = onSnapshot(itemsRef, (snapshot) => {
       const fetchedItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setItems(fetchedItems.sort((a, b) => b.lastUpdated.localeCompare(a.lastUpdated)));
@@ -150,7 +142,7 @@ export default function InventoryApp() {
       setIsLoading(false);
     });
 
-    const settingsRef = collection(db, 'artifacts', appId, 'users', user.uid, 'settings');
+    const settingsRef = collection(db, 'mdec_stock', 'shared_data', 'settings');
     const unsubscribeSettings = onSnapshot(settingsRef, (snapshot) => {
       let fetchedRooms = INITIAL_MEETING_ROOMS;
       snapshot.docs.forEach(doc => {
@@ -191,25 +183,17 @@ export default function InventoryApp() {
       const borrower = item.currentBorrow?.borrowerName || '';
       const borrowDate = item.currentBorrow?.borrowDate || '';
       const returnDate = item.currentBorrow?.returnDate || '';
-      
       const statusLabel = STATUSES.find(s => s.id === item.status)?.label || item.status;
       const categoryLabel = CATEGORIES.find(c => c.id === item.category)?.label || item.category;
 
       const values = [
-        item.serialNumber || '',
-        `"${item.name}"`,
-        categoryLabel,
-        `"${item.location}"`,
-        statusLabel,
-        item.lastUpdated,
-        `"${borrower}"`,
-        borrowDate,
-        returnDate
+        item.serialNumber || '', `"${item.name}"`, categoryLabel, `"${item.location}"`,
+        statusLabel, item.lastUpdated, `"${borrower}"`, borrowDate, returnDate
       ];
       csvRows.push(values.join(','));
     });
 
-    const csvContent = '\uFEFF' + csvRows.join('\n'); // Add BOM for Excel/Sheets UTF-8 compatibility
+    const csvContent = '\uFEFF' + csvRows.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -269,7 +253,6 @@ export default function InventoryApp() {
     });
 
     const total = items.length;
-    // Calculate available differently if needed, here we group 'available' and 'in-use' (in studio) as non-borrowed/non-broken
     const available = items.filter(i => i.status === 'available' || i.status === 'in-use').length; 
     return { total, available, borrowed, maintenance, byCategory, equipmentStats };
   }, [items]);
@@ -289,7 +272,7 @@ export default function InventoryApp() {
     e.preventDefault();
     const dateStr = new Date().toISOString().split('T')[0];
     const itemId = currentItem ? currentItem.id : Date.now().toString();
-    const itemRef = doc(db, 'artifacts', appId, 'users', user.uid, 'items', itemId);
+    const itemRef = doc(db, 'mdec_stock', 'shared_data', 'items', itemId);
     
     if (currentItem) {
       await setDoc(itemRef, { ...currentItem, ...formData, lastUpdated: dateStr });
@@ -307,13 +290,12 @@ export default function InventoryApp() {
 
   const handleDelete = async () => {
     if (itemToDelete) {
-      await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'items', itemToDelete.id));
+      await deleteDoc(doc(db, 'mdec_stock', 'shared_data', 'items', itemToDelete.id));
       setIsDeleteOpen(false);
       setItemToDelete(null);
     }
   };
 
-  // Room Manager Handlers
   const handleSaveRoom = async (e) => {
     e.preventDefault();
     setRoomError('');
@@ -331,7 +313,7 @@ export default function InventoryApp() {
       
       items.forEach(async (item) => {
         if (item.category === 'ห้องประชุม' && item.location === editingRoomOriginal) {
-          await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'items', item.id), { ...item, location: trimmedVal });
+          await setDoc(doc(db, 'mdec_stock', 'shared_data', 'items', item.id), { ...item, location: trimmedVal });
         }
       });
     } else {
@@ -342,7 +324,7 @@ export default function InventoryApp() {
       newRooms = [...meetingRooms, trimmedVal];
     }
     
-    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'meetingRooms'), { rooms: newRooms });
+    await setDoc(doc(db, 'mdec_stock', 'shared_data', 'settings', 'meetingRooms'), { rooms: newRooms });
     setRoomInputValue('');
     setEditingRoomOriginal(null);
   };
@@ -352,11 +334,11 @@ export default function InventoryApp() {
   const confirmDeleteRoom = async () => {
     if (roomToDelete) {
       const newRooms = meetingRooms.filter(r => r !== roomToDelete);
-      await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'meetingRooms'), { rooms: newRooms });
+      await setDoc(doc(db, 'mdec_stock', 'shared_data', 'settings', 'meetingRooms'), { rooms: newRooms });
       
       items.forEach(async (item) => {
         if (item.category === 'ห้องประชุม' && item.location === roomToDelete) {
-           await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'items', item.id), { ...item, location: '' });
+           await setDoc(doc(db, 'mdec_stock', 'shared_data', 'items', item.id), { ...item, location: '' });
         }
       });
       setRoomToDelete(null);
@@ -374,21 +356,16 @@ export default function InventoryApp() {
     e.preventDefault();
     const newBorrowId = Date.now().toString();
     const newBorrowRecord = {
-      id: newBorrowId,
-      borrowerName: borrowData.borrowerName,
-      borrowDate: borrowData.borrowDate,
-      returnDate: borrowData.returnDate,
-      actualReturnDate: null
+      id: newBorrowId, borrowerName: borrowData.borrowerName,
+      borrowDate: borrowData.borrowDate, returnDate: borrowData.returnDate, actualReturnDate: null
     };
 
     const updatedItem = {
-      ...currentItem,
-      status: 'borrowed',
-      currentBorrow: newBorrowRecord,
+      ...currentItem, status: 'borrowed', currentBorrow: newBorrowRecord,
       history: [newBorrowRecord, ...(currentItem.history || [])]
     };
 
-    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'items', currentItem.id), updatedItem);
+    await setDoc(doc(db, 'mdec_stock', 'shared_data', 'items', currentItem.id), updatedItem);
     setIsBorrowOpen(false);
   };
 
@@ -404,13 +381,10 @@ export default function InventoryApp() {
     );
     
     const updatedItem = {
-      ...itemToReturn,
-      status: 'available',
-      currentBorrow: null,
-      history: updatedHistory
+      ...itemToReturn, status: 'available', currentBorrow: null, history: updatedHistory
     };
 
-    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'items', itemToReturn.id), updatedItem);
+    await setDoc(doc(db, 'mdec_stock', 'shared_data', 'items', itemToReturn.id), updatedItem);
     setIsReturnOpen(false);
     setItemToReturn(null);
   };
@@ -436,39 +410,22 @@ export default function InventoryApp() {
           <div className="flex items-center gap-2">
             {isAuthenticated ? (
               <>
-                <button 
-                  onClick={exportToCSV}
-                  className="bg-emerald-600 hover:bg-emerald-700 transition-colors text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm shadow-emerald-200"
-                  title="ส่งออกข้อมูลเป็น CSV เพื่อนำไปเปิดใน Google Sheets"
-                >
+                <button onClick={exportToCSV} className="bg-emerald-600 hover:bg-emerald-700 transition-colors text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm shadow-emerald-200" title="ส่งออกข้อมูลเป็น CSV เพื่อนำไปเปิดใน Google Sheets">
                   <Icons.Download /> <span className="hidden sm:inline">ส่งออก Sheet</span>
                 </button>
-                <button 
-                  onClick={() => setIsRoomManagerOpen(true)}
-                  className="bg-white hover:bg-slate-50 text-slate-700 transition-colors px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border border-slate-200 shadow-sm"
-                >
+                <button onClick={() => setIsRoomManagerOpen(true)} className="bg-white hover:bg-slate-50 text-slate-700 transition-colors px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border border-slate-200 shadow-sm">
                   <Icons.Settings /> <span className="hidden sm:inline">ตั้งค่าห้องประชุม</span>
                 </button>
-                <button 
-                  onClick={() => handleOpenForm()}
-                  className="bg-blue-600 hover:bg-blue-700 transition-colors text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm shadow-blue-200"
-                >
+                <button onClick={() => handleOpenForm()} className="bg-blue-600 hover:bg-blue-700 transition-colors text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm shadow-blue-200">
                   <Icons.Plus /> เพิ่มอุปกรณ์
                 </button>
                 <div className="w-px h-6 bg-slate-200 mx-1"></div>
-                <button 
-                  onClick={handleLogout}
-                  className="text-slate-500 hover:text-rose-600 transition-colors px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 bg-slate-100 hover:bg-rose-50"
-                  title="ออกจากระบบ"
-                >
+                <button onClick={handleLogout} className="text-slate-500 hover:text-rose-600 transition-colors px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 bg-slate-100 hover:bg-rose-50" title="ออกจากระบบ">
                   <Icons.Unlock /> ออกจากระบบ
                 </button>
               </>
             ) : (
-              <button 
-                onClick={() => setIsLoginModalOpen(true)}
-                className="bg-slate-800 hover:bg-slate-900 transition-colors text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm"
-              >
+              <button onClick={() => setIsLoginModalOpen(true)} className="bg-slate-800 hover:bg-slate-900 transition-colors text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm">
                 <Icons.Lock /> เข้าสู่ระบบเพื่อจัดการ
               </button>
             )}
@@ -500,7 +457,6 @@ export default function InventoryApp() {
                 ))}
               </div>
 
-              {/* สรุปยอดอุปกรณ์หลัก */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {Object.values(stats.equipmentStats).map((eq, idx) => (
                   <div key={idx} className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex flex-col justify-between">
@@ -521,241 +477,164 @@ export default function InventoryApp() {
                 ))}
               </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {CATEGORIES.map((cat) => (
-              <div key={cat.id} className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-slate-500 mb-0.5">{cat.label}</p>
-                  <p className={`text-xl font-bold ${cat.textColor}`}>{stats.byCategory[cat.id] || 0} <span className="text-xs font-normal text-slate-400">รายการ</span></p>
-                </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {CATEGORIES.map((cat) => (
+                  <div key={cat.id} className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 mb-0.5">{cat.label}</p>
+                      <p className={`text-xl font-bold ${cat.textColor}`}>{stats.byCategory[cat.id] || 0} <span className="text-xs font-normal text-slate-400">รายการ</span></p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-4 justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-          <div className="relative w-full sm:w-96">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-              <Icons.Search />
             </div>
-            <input
-              type="text"
-              placeholder="ค้นหาชื่ออุปกรณ์, รหัส, ห้องประชุม..."
-              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-all"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          
-          <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
-            <button 
-              onClick={() => setSelectedCategory('all')}
-              className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-            >
-              ทั้งหมด
-            </button>
-            {CATEGORIES.map(cat => (
-              <button 
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === cat.id ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-        </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-sm font-medium text-slate-500">
-                  <th className="p-4 pl-6 font-medium">ชื่ออุปกรณ์ / รหัส</th>
-                  <th className="p-4 font-medium">หมวดหมู่</th>
-                  <th className="p-4 font-medium">สถานที่ / ห้องประชุม</th>
-                  <th className="p-4 font-medium">สถานะ</th>
-                  <th className="p-4 pr-6 font-medium text-right">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredItems.length > 0 ? (
-                  filteredItems.map(item => (
-                    <tr key={item.id} className="hover:bg-blue-50/50 transition-colors group">
-                      <td className="p-4 pl-6">
-                        <p className="font-semibold text-slate-800">{item.name}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          {item.serialNumber && <span className="font-medium text-slate-500">S.N.: {item.serialNumber} • </span>}
-                          อัปเดต: {item.lastUpdated}
-                        </p>
-                      </td>
-                      <td className="p-4">
-                        <CategoryBadge categoryId={item.category} />
-                      </td>
-                      <td className="p-4 text-sm text-slate-600">
-                        {item.location || '-'}
-                      </td>
-                      <td className="p-4">
-                        <StatusBadge statusId={item.status} />
-                        {item.status === 'borrowed' && item.currentBorrow && (
-                          <div className="mt-2 text-[11px] leading-relaxed text-slate-600 bg-purple-50/80 px-2.5 py-1.5 rounded-lg border border-purple-100 w-max max-w-[200px]">
-                            <p><span className="font-medium text-purple-700">ผู้ยืม:</span> {item.currentBorrow.borrowerName}</p>
-                            <p><span className="font-medium text-purple-700">ถึง:</span> {item.currentBorrow.returnDate}</p>
-                          </div>
-                        )}
-                      </td>
-                      <td className="p-4 pr-6 text-right">
-                        <div className="flex justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => handleOpenHistory(item)} className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg" title="ประวัติการยืม">
-                            <Icons.History />
-                          </button>
-                          
-                          {isAuthenticated && (
-                            <>
-                              <div className="w-px h-5 bg-slate-200 my-auto mx-1"></div>
-                              {item.status !== 'borrowed' && item.status !== 'maintenance' && (
-                                <button onClick={() => handleOpenBorrow(item)} className="p-1.5 text-purple-600 hover:bg-purple-100 rounded-lg flex items-center gap-1" title="ทำรายการให้ยืม">
-                                  <Icons.UserPlus />
-                                </button>
-                              )}
-                              {item.status === 'borrowed' && (
-                                <button onClick={() => handleOpenReturn(item)} className="p-1.5 text-emerald-600 hover:bg-emerald-100 rounded-lg flex items-center gap-1" title="รับคืนอุปกรณ์">
-                                  <Icons.CheckCircle />
-                                </button>
-                              )}
-                              <button onClick={() => handleOpenForm(item)} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg" title="แก้ไขข้อมูล">
-                                <Icons.Edit />
-                              </button>
-                              <button onClick={() => confirmDelete(item)} className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg" title="ลบข้อมูล">
-                                <Icons.Trash />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
+            <div className="flex flex-col sm:flex-row gap-4 justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+              <div className="relative w-full sm:w-96">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <Icons.Search />
+                </div>
+                <input
+                  type="text" placeholder="ค้นหาชื่ออุปกรณ์, รหัส, ห้องประชุม..."
+                  className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-all"
+                  value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              
+              <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
+                <button onClick={() => setSelectedCategory('all')} className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>ทั้งหมด</button>
+                {CATEGORIES.map(cat => (
+                  <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === cat.id ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-sm font-medium text-slate-500">
+                      <th className="p-4 pl-6 font-medium">ชื่ออุปกรณ์ / รหัส</th>
+                      <th className="p-4 font-medium">หมวดหมู่</th>
+                      <th className="p-4 font-medium">สถานที่ / ห้องประชุม</th>
+                      <th className="p-4 font-medium">สถานะ</th>
+                      <th className="p-4 pr-6 font-medium text-right">จัดการ</th>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5" className="p-8 text-center text-slate-500">
-                      ไม่พบข้อมูลที่ค้นหา
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        </>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredItems.length > 0 ? (
+                      filteredItems.map(item => (
+                        <tr key={item.id} className="hover:bg-blue-50/50 transition-colors group">
+                          <td className="p-4 pl-6">
+                            <p className="font-semibold text-slate-800">{item.name}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              {item.serialNumber && <span className="font-medium text-slate-500">S.N.: {item.serialNumber} • </span>}
+                              อัปเดต: {item.lastUpdated}
+                            </p>
+                          </td>
+                          <td className="p-4"><CategoryBadge categoryId={item.category} /></td>
+                          <td className="p-4 text-sm text-slate-600">{item.location || '-'}</td>
+                          <td className="p-4">
+                            <StatusBadge statusId={item.status} />
+                            {item.status === 'borrowed' && item.currentBorrow && (
+                              <div className="mt-2 text-[11px] leading-relaxed text-slate-600 bg-purple-50/80 px-2.5 py-1.5 rounded-lg border border-purple-100 w-max max-w-[200px]">
+                                <p><span className="font-medium text-purple-700">ผู้ยืม:</span> {item.currentBorrow.borrowerName}</p>
+                                <p><span className="font-medium text-purple-700">ถึง:</span> {item.currentBorrow.returnDate}</p>
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-4 pr-6 text-right">
+                            <div className="flex justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => handleOpenHistory(item)} className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg" title="ประวัติการยืม"><Icons.History /></button>
+                              {isAuthenticated && (
+                                <>
+                                  <div className="w-px h-5 bg-slate-200 my-auto mx-1"></div>
+                                  {item.status !== 'borrowed' && item.status !== 'maintenance' && (
+                                    <button onClick={() => handleOpenBorrow(item)} className="p-1.5 text-purple-600 hover:bg-purple-100 rounded-lg flex items-center gap-1" title="ทำรายการให้ยืม"><Icons.UserPlus /></button>
+                                  )}
+                                  {item.status === 'borrowed' && (
+                                    <button onClick={() => handleOpenReturn(item)} className="p-1.5 text-emerald-600 hover:bg-emerald-100 rounded-lg flex items-center gap-1" title="รับคืนอุปกรณ์"><Icons.CheckCircle /></button>
+                                  )}
+                                  <button onClick={() => handleOpenForm(item)} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg" title="แก้ไขข้อมูล"><Icons.Edit /></button>
+                                  <button onClick={() => confirmDelete(item)} className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg" title="ลบข้อมูล"><Icons.Trash /></button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan="5" className="p-8 text-center text-slate-500">ไม่พบข้อมูลที่ค้นหา</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
       </main>
 
+      {/* --- MODALS (Form, Room Manager, Borrow, Return, History, Login) --- */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h2 className="text-lg font-bold text-slate-800">
-                {currentItem ? 'แก้ไขข้อมูลอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}
-              </h2>
-              <button onClick={() => setIsFormOpen(false)} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg border border-slate-200">
-                <Icons.X />
-              </button>
+              <h2 className="text-lg font-bold text-slate-800">{currentItem ? 'แก้ไขข้อมูลอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}</h2>
+              <button onClick={() => setIsFormOpen(false)} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg border border-slate-200"><Icons.X /></button>
             </div>
-            
             <form onSubmit={handleSaveItem} className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">ชื่ออุปกรณ์</label>
-                <input required type="text" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                  value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="เช่น กล้อง Sony A7IV" />
+                <input required type="text" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="เช่น กล้อง Sony A7IV" />
               </div>
-              
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">หมวดหมู่</label>
-                  <select className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white"
-                    value={formData.category} onChange={e => setFormData({...formData, category: e.target.value, location: e.target.value === 'ห้องประชุม' ? meetingRooms[0] || '' : ''})}>
+                  <select className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value, location: e.target.value === 'ห้องประชุม' ? meetingRooms[0] || '' : ''})}>
                     {CATEGORIES.map(cat => <option key={cat.id} value={cat.id}>{cat.label}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">รหัสอุปกรณ์ (S.N.)</label>
-                  <input required type="text" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                    value={formData.serialNumber || ''} onChange={e => setFormData({...formData, serialNumber: e.target.value})} placeholder="เช่น CAM-001" />
+                  <input required type="text" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.serialNumber || ''} onChange={e => setFormData({...formData, serialNumber: e.target.value})} placeholder="เช่น CAM-001" />
                 </div>
               </div>
-
               <div>
-                <div className="flex justify-between items-end mb-1">
-                  <label className="block text-sm font-medium text-slate-700">
-                    {formData.category === 'ห้องประชุม' ? 'เลือกห้องประชุม' : 'สถานที่จัดเก็บ'}
-                  </label>
-                </div>
-                
+                <label className="block text-sm font-medium text-slate-700 mb-1">{formData.category === 'ห้องประชุม' ? 'เลือกห้องประชุม' : 'สถานที่จัดเก็บ'}</label>
                 {formData.category === 'ห้องประชุม' ? (
-                  <select 
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white"
-                    value={formData.location} 
-                    onChange={e => setFormData({...formData, location: e.target.value})}
-                    required
-                  >
+                  <select className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} required>
                     <option value="" disabled>-- เลือกห้องประชุม --</option>
-                    {meetingRooms.map(room => (
-                      <option key={room} value={room}>{room}</option>
-                    ))}
+                    {meetingRooms.map(room => <option key={room} value={room}>{room}</option>)}
                   </select>
                 ) : (
-                  <input 
-                    type="text" 
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                    value={formData.location} 
-                    onChange={e => setFormData({...formData, location: e.target.value})} 
-                    placeholder="เช่น ตู้ A1, ห้องเก็บของ 2" 
-                  />
+                  <input type="text" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="เช่น ตู้ A1, ห้องเก็บของ 2" />
                 )}
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">สถานะ</label>
-                <select 
-                  className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white disabled:bg-slate-50 disabled:text-slate-400"
-                  value={formData.status} 
-                  onChange={e => setFormData({...formData, status: e.target.value})}
-                  disabled={currentItem?.status === 'borrowed'}
-                >
+                <select className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white disabled:bg-slate-50 disabled:text-slate-400" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} disabled={currentItem?.status === 'borrowed'}>
                   {STATUSES.map(stat => <option key={stat.id} value={stat.id}>{stat.label}</option>)}
                 </select>
-                {currentItem?.status === 'borrowed' && (
-                  <p className="text-xs text-slate-500 mt-1">* กรุณากดปุ่ม "รับคืน" ที่หน้าตารางเพื่อเปลี่ยนสถานะนี้</p>
-                )}
+                {currentItem?.status === 'borrowed' && <p className="text-xs text-slate-500 mt-1">* กรุณากดปุ่ม "รับคืน" ที่หน้าตารางเพื่อเปลี่ยนสถานะนี้</p>}
               </div>
-
               <div className="pt-4 mt-2 border-t border-slate-100 flex gap-3">
-                <button type="button" onClick={() => setIsFormOpen(false)} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
-                  ยกเลิก
-                </button>
-                <button type="submit" className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-md shadow-blue-200">
-                  บันทึกข้อมูล
-                </button>
+                <button type="button" onClick={() => setIsFormOpen(false)} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">ยกเลิก</button>
+                <button type="submit" className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-md shadow-blue-200">บันทึกข้อมูล</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Room Manager Modal */}
       {isRoomManagerOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up flex flex-col max-h-[80vh]">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
-              <div>
-                <h2 className="text-lg font-bold text-slate-800">ตั้งค่าห้องประชุม</h2>
-                <p className="text-xs text-slate-500">เพิ่ม ลบ หรือแก้ไขรายชื่อห้องประชุมในระบบ</p>
-              </div>
-              <button onClick={() => setIsRoomManagerOpen(false)} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg border border-slate-200">
-                <Icons.X />
-              </button>
+              <div><h2 className="text-lg font-bold text-slate-800">ตั้งค่าห้องประชุม</h2><p className="text-xs text-slate-500">เพิ่ม ลบ หรือแก้ไขรายชื่อห้องประชุมในระบบ</p></div>
+              <button onClick={() => setIsRoomManagerOpen(false)} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg border border-slate-200"><Icons.X /></button>
             </div>
-            
             <div className="p-5 overflow-y-auto flex-1">
               <ul className="space-y-2 mb-6">
                 {meetingRooms.length > 0 ? (
@@ -763,12 +642,8 @@ export default function InventoryApp() {
                     <li key={room} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl group hover:border-blue-200 transition-colors">
                       <span className="text-sm font-medium text-slate-700">{room}</span>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => {setRoomInputValue(room); setEditingRoomOriginal(room);}} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg">
-                          <Icons.Edit />
-                        </button>
-                        <button onClick={() => requestDeleteRoom(room)} className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg">
-                          <Icons.Trash />
-                        </button>
+                        <button onClick={() => {setRoomInputValue(room); setEditingRoomOriginal(room);}} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg"><Icons.Edit /></button>
+                        <button onClick={() => requestDeleteRoom(room)} className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg"><Icons.Trash /></button>
                       </div>
                     </li>
                   ))
@@ -776,28 +651,14 @@ export default function InventoryApp() {
                   <li className="text-center p-4 text-sm text-slate-500 border border-dashed border-slate-200 rounded-xl">ไม่มีรายชื่อห้องประชุม</li>
                 )}
               </ul>
-
               <div className="border-t border-slate-100 pt-4">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  {editingRoomOriginal ? 'แก้ไขชื่อห้องประชุม' : 'เพิ่มห้องประชุมใหม่'}
-                </label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">{editingRoomOriginal ? 'แก้ไขชื่อห้องประชุม' : 'เพิ่มห้องประชุมใหม่'}</label>
                 <form onSubmit={handleSaveRoom} className="flex flex-col gap-2">
                   <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      placeholder="พิมพ์ชื่อห้อง..."
-                      className={`flex-1 px-4 py-2 text-sm border ${roomError ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-200 focus:ring-blue-500'} rounded-xl focus:ring-2 outline-none`}
-                      value={roomInputValue}
-                      onChange={e => { setRoomInputValue(e.target.value); setRoomError(''); }}
-                    />
+                    <input type="text" placeholder="พิมพ์ชื่อห้อง..." className={`flex-1 px-4 py-2 text-sm border ${roomError ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-200 focus:ring-blue-500'} rounded-xl focus:ring-2 outline-none`} value={roomInputValue} onChange={e => { setRoomInputValue(e.target.value); setRoomError(''); }} />
                     {editingRoomOriginal ? (
-                      <>
-                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700">บันทึก</button>
-                        <button type="button" onClick={() => {setEditingRoomOriginal(null); setRoomInputValue(''); setRoomError('');}} className="px-3 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-xl hover:bg-slate-200">ยกเลิก</button>
-                      </>
-                    ) : (
-                      <button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 whitespace-nowrap">เพิ่ม</button>
-                    )}
+                      <><button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700">บันทึก</button><button type="button" onClick={() => {setEditingRoomOriginal(null); setRoomInputValue(''); setRoomError('');}} className="px-3 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-xl hover:bg-slate-200">ยกเลิก</button></>
+                    ) : (<button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 whitespace-nowrap">เพิ่ม</button>)}
                   </div>
                   {roomError && <p className="text-xs text-rose-500 mt-1">{roomError}</p>}
                 </form>
@@ -807,7 +668,6 @@ export default function InventoryApp() {
         </div>
       )}
 
-      {/* Basic Modals for Delete */}
       {isDeleteOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[80] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up p-6 text-center">
@@ -840,31 +700,22 @@ export default function InventoryApp() {
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <div>
-                <h2 className="text-lg font-bold text-slate-800">ทำรายการให้ยืม</h2>
-                <p className="text-xs text-slate-500">{currentItem?.name} (S.N. {currentItem?.serialNumber})</p>
-              </div>
-              <button onClick={() => setIsBorrowOpen(false)} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg border border-slate-200">
-                <Icons.X />
-              </button>
+              <div><h2 className="text-lg font-bold text-slate-800">ทำรายการให้ยืม</h2><p className="text-xs text-slate-500">{currentItem?.name}</p></div>
+              <button onClick={() => setIsBorrowOpen(false)} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg border border-slate-200"><Icons.X /></button>
             </div>
-            
             <form onSubmit={handleSaveBorrow} className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อผู้ยืม</label>
-                <input required type="text" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm"
-                  value={borrowData.borrowerName} onChange={e => setBorrowData({...borrowData, borrowerName: e.target.value})} placeholder="เช่น นายสมคิด เรียนดี" />
+                <input required type="text" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" value={borrowData.borrowerName} onChange={e => setBorrowData({...borrowData, borrowerName: e.target.value})} placeholder="เช่น นายสมคิด เรียนดี" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">วันที่ยืม</label>
-                  <input required type="date" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm"
-                    value={borrowData.borrowDate} onChange={e => setBorrowData({...borrowData, borrowDate: e.target.value})} />
+                  <input required type="date" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" value={borrowData.borrowDate} onChange={e => setBorrowData({...borrowData, borrowDate: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">กำหนดคืน</label>
-                  <input required type="date" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm"
-                    value={borrowData.returnDate} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} />
+                  <input required type="date" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" value={borrowData.returnDate} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} />
                 </div>
               </div>
               <div className="pt-4 mt-2 border-t border-slate-100 flex gap-3">
@@ -895,43 +746,22 @@ export default function InventoryApp() {
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[80vh]">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
-              <div>
-                <h2 className="text-lg font-bold text-slate-800">ประวัติการยืม-คืน</h2>
-                <p className="text-xs text-slate-500">{currentItem?.name} (S.N. {currentItem?.serialNumber})</p>
-              </div>
-              <button onClick={() => setIsHistoryOpen(false)} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg border border-slate-200">
-                <Icons.X />
-              </button>
+              <div><h2 className="text-lg font-bold text-slate-800">ประวัติการยืม-คืน</h2><p className="text-xs text-slate-500">{currentItem?.name}</p></div>
+              <button onClick={() => setIsHistoryOpen(false)} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg border border-slate-200"><Icons.X /></button>
             </div>
-            
             <div className="p-5 overflow-y-auto flex-1">
               {currentItem?.history && currentItem.history.length > 0 ? (
                 <div className="border border-slate-200 rounded-xl overflow-hidden">
                   <table className="w-full text-left text-sm">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
-                      <tr>
-                        <th className="px-4 py-3 font-medium">ผู้ยืม</th>
-                        <th className="px-4 py-3 font-medium">วันที่ยืม</th>
-                        <th className="px-4 py-3 font-medium">กำหนดคืน</th>
-                        <th className="px-4 py-3 font-medium">สถานะ/วันคืนจริง</th>
-                      </tr>
+                      <tr><th className="px-4 py-3 font-medium">ผู้ยืม</th><th className="px-4 py-3 font-medium">วันที่ยืม</th><th className="px-4 py-3 font-medium">กำหนดคืน</th><th className="px-4 py-3 font-medium">สถานะ/วันคืนจริง</th></tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {currentItem.history.map((record, idx) => (
                         <tr key={idx} className="hover:bg-slate-50">
-                          <td className="px-4 py-3 font-medium text-slate-700">{record.borrowerName}</td>
-                          <td className="px-4 py-3 text-slate-600">{record.borrowDate}</td>
-                          <td className="px-4 py-3 text-slate-600">{record.returnDate}</td>
+                          <td className="px-4 py-3 font-medium text-slate-700">{record.borrowerName}</td><td className="px-4 py-3 text-slate-600">{record.borrowDate}</td><td className="px-4 py-3 text-slate-600">{record.returnDate}</td>
                           <td className="px-4 py-3">
-                            {record.actualReturnDate ? (
-                              <span className="text-emerald-600 text-xs font-medium bg-emerald-50 px-2 py-1 rounded-md">
-                                คืนแล้ว ({record.actualReturnDate})
-                              </span>
-                            ) : (
-                              <span className="text-purple-600 text-xs font-medium bg-purple-50 px-2 py-1 rounded-md">
-                                กำลังยืมอยู่
-                              </span>
-                            )}
+                            {record.actualReturnDate ? (<span className="text-emerald-600 text-xs font-medium bg-emerald-50 px-2 py-1 rounded-md">คืนแล้ว ({record.actualReturnDate})</span>) : (<span className="text-purple-600 text-xs font-medium bg-purple-50 px-2 py-1 rounded-md">กำลังยืมอยู่</span>)}
                           </td>
                         </tr>
                       ))}
@@ -939,12 +769,7 @@ export default function InventoryApp() {
                   </table>
                 </div>
               ) : (
-                <div className="text-center p-8 border border-dashed border-slate-200 rounded-xl">
-                  <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Icons.History />
-                  </div>
-                  <p className="text-slate-500 text-sm">ยังไม่มีประวัติการยืมอุปกรณ์ชิ้นนี้</p>
-                </div>
+                <div className="text-center p-8 border border-dashed border-slate-200 rounded-xl"><div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3"><Icons.History /></div><p className="text-slate-500 text-sm">ยังไม่มีประวัติการยืมอุปกรณ์ชิ้นนี้</p></div>
               )}
             </div>
           </div>
@@ -955,36 +780,16 @@ export default function InventoryApp() {
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <div className="flex items-center gap-2 text-slate-800">
-                <div className="bg-slate-800 text-white p-1.5 rounded-lg"><Icons.Lock /></div>
-                <h2 className="text-lg font-bold">เข้าสู่ระบบ</h2>
-              </div>
-              <button onClick={() => {setIsLoginModalOpen(false); setLoginError(''); setPinInput('');}} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg border border-slate-200">
-                <Icons.X />
-              </button>
+              <div className="flex items-center gap-2 text-slate-800"><div className="bg-slate-800 text-white p-1.5 rounded-lg"><Icons.Lock /></div><h2 className="text-lg font-bold">เข้าสู่ระบบ</h2></div>
+              <button onClick={() => {setIsLoginModalOpen(false); setLoginError(''); setPinInput('');}} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg border border-slate-200"><Icons.X /></button>
             </div>
-            
             <form onSubmit={handleLogin} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2 text-center">กรุณาใส่รหัสผ่านเพื่อจัดการข้อมูล</label>
-                <input 
-                  autoFocus
-                  required 
-                  type="password" 
-                  className={`w-full p-3 border ${loginError ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-slate-800'} rounded-xl focus:ring-2 outline-none text-center tracking-widest text-lg font-bold`}
-                  value={pinInput} 
-                  onChange={e => {setPinInput(e.target.value); setLoginError('');}} 
-                  placeholder="••••••••" 
-                  maxLength={8}
-                />
+                <input autoFocus required type="password" className={`w-full p-3 border ${loginError ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-slate-800'} rounded-xl focus:ring-2 outline-none text-center tracking-widest text-lg font-bold`} value={pinInput} onChange={e => {setPinInput(e.target.value); setLoginError('');}} placeholder="••••••••" maxLength={8} />
                 {loginError && <p className="text-rose-500 text-sm mt-2 text-center font-medium">{loginError}</p>}
               </div>
-              
-              <div className="pt-2">
-                <button type="submit" className="w-full px-4 py-3 rounded-xl text-sm font-bold text-white bg-slate-800 hover:bg-slate-900 transition-colors shadow-md">
-                  ยืนยันการเข้าสู่ระบบ
-                </button>
-              </div>
+              <div className="pt-2"><button type="submit" className="w-full px-4 py-3 rounded-xl text-sm font-bold text-white bg-slate-800 hover:bg-slate-900 transition-colors shadow-md">ยืนยันการเข้าสู่ระบบ</button></div>
             </form>
           </div>
         </div>
@@ -993,13 +798,8 @@ export default function InventoryApp() {
       <style dangerouslySetInnerHTML={{__html: `
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-up {
-          animation: fadeInUp 0.2s ease-out forwards;
-        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in-up { animation: fadeInUp 0.2s ease-out forwards; }
       `}} />
     </div>
   );
