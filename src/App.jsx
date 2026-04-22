@@ -137,7 +137,9 @@ export default function App() {
     try {
       const itemData = {
         name: formData.name.trim(), sn: formData.sn.trim(), department: formData.department,
-        category: formData.category, location: formData.location, status: formData.status, 
+        category: formData.category === 'other' ? '' : formData.category, 
+        location: formData.location === 'other' ? '' : formData.location, 
+        status: formData.status, 
         quantity: Number(formData.quantity) || 1, lastUpdated: new Date().toISOString()
       };
       if (formData.id) {
@@ -446,13 +448,13 @@ export default function App() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">หมวดหมู่อุปกรณ์</label>
-                    <select className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white font-bold text-base mb-2" value={categories.includes(formData.category) ? formData.category : (formData.category ? 'other' : '')} onChange={(e) => setFormData({...formData, category: e.target.value === 'other' ? '' : e.target.value})}>
+                    <select className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white font-bold text-base mb-2" value={categories.includes(formData.category) ? formData.category : (formData.category === '' ? '' : 'other')} onChange={(e) => setFormData({...formData, category: e.target.value})}>
                       <option value="">-- เลือกหมวดหมู่ --</option>
                       {categories.map(c => <option key={c} value={c}>{c}</option>)}
                       <option value="other" className="font-black text-blue-600">+ เพิ่มหมวดหมู่ใหม่...</option>
                     </select>
                     {(!categories.includes(formData.category) && formData.category !== '') || (categories.length === 0) ? (
-                       <input autoFocus placeholder="พิมพ์หมวดหมู่ใหม่..." className="w-full px-4 py-3 border border-blue-400 bg-blue-50 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-base" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} />
+                       <input autoFocus placeholder="พิมพ์หมวดหมู่ใหม่..." className="w-full px-4 py-3 border border-blue-400 bg-blue-50 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-base" value={formData.category === 'other' ? '' : formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} />
                     ) : null}
                   </div>
                   <div><label className="block text-sm font-bold text-slate-700 mb-2">รหัส S.N. (ถ้ามี)</label><input className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-base" value={formData.sn} onChange={(e) => setFormData({...formData, sn: e.target.value})} placeholder="เช่น CAM-001" /></div>
@@ -460,14 +462,14 @@ export default function App() {
 
                 <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">สถานที่จัดเก็บ / ห้อง</label>
-                    <select className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white font-bold text-base mb-2" value={locations.includes(formData.location) || rooms.includes(formData.location) ? formData.location : (formData.location ? 'other' : '')} onChange={(e) => setFormData({...formData, location: e.target.value === 'other' ? '' : e.target.value})}>
+                    <select className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white font-bold text-base mb-2" value={(locations.includes(formData.location) || rooms.includes(formData.location)) ? formData.location : (formData.location === '' ? '' : 'other')} onChange={(e) => setFormData({...formData, location: e.target.value})}>
                       <option value="">-- เลือกสถานที่ --</option>
                       {locations.length > 0 && <optgroup label="สถานที่จัดเก็บ">{locations.map(l => <option key={l} value={l}>{l}</option>)}</optgroup>}
                       {rooms.length > 0 && <optgroup label="ห้องประชุม">{rooms.map(r => <option key={r} value={r}>{r}</option>)}</optgroup>}
                       <option value="other" className="font-black text-blue-600">+ พิมพ์ระบุเอง...</option>
                     </select>
                     {(!locations.includes(formData.location) && !rooms.includes(formData.location) && formData.location !== '') || (locations.length === 0 && rooms.length === 0) ? (
-                       <input autoFocus placeholder="พิมพ์สถานที่ใหม่..." className="w-full px-4 py-3 border border-blue-400 bg-blue-50 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-base" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} />
+                       <input autoFocus placeholder="พิมพ์สถานที่ใหม่..." className="w-full px-4 py-3 border border-blue-400 bg-blue-50 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-base" value={formData.location === 'other' ? '' : formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} />
                     ) : null}
                 </div>
 
