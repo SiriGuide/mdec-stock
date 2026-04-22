@@ -397,7 +397,6 @@ export default function InventoryApp() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-12 w-full">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm w-full">
-        {/* ปรับให้ขยายเต็มจอด้วย w-full และเว้นระยะขอบซ้ายขวาให้สวยงาม */}
         <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="bg-blue-600 p-1.5 sm:p-2 rounded-lg text-white">
@@ -412,7 +411,7 @@ export default function InventoryApp() {
             {isAuthenticated ? (
               <>
                 <button onClick={exportToCSV} className="bg-emerald-600 hover:bg-emerald-700 transition-colors text-white p-2 sm:px-3 sm:py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm" title="ส่งออก Sheet">
-                  <Icons.Download /> <span className="hidden md:inline">ส่งออก Sheet</span>
+                  <Icons.Download /> <span className="hidden md:inline">ส่งออก</span>
                 </button>
                 <button onClick={() => setIsRoomManagerOpen(true)} className="bg-white hover:bg-slate-50 text-slate-700 transition-colors p-2 sm:px-3 sm:py-2 rounded-lg text-sm font-medium flex items-center gap-2 border border-slate-200 shadow-sm" title="ตั้งค่าห้องประชุม">
                   <Icons.Settings /> <span className="hidden md:inline">ตั้งค่าห้อง</span>
@@ -422,7 +421,7 @@ export default function InventoryApp() {
                 </button>
                 <div className="w-px h-6 bg-slate-200 mx-1"></div>
                 <button onClick={handleLogout} className="text-slate-500 hover:text-rose-600 transition-colors p-2 sm:px-3 sm:py-2 rounded-lg text-sm font-medium flex items-center gap-2 bg-slate-100 hover:bg-rose-50" title="ออกจากระบบ">
-                  <Icons.Unlock /> <span className="hidden sm:inline">ออกจากระบบ</span>
+                  <Icons.Unlock /> <span className="hidden sm:inline">ออก</span>
                 </button>
               </>
             ) : (
@@ -434,7 +433,7 @@ export default function InventoryApp() {
         </div>
       </header>
 
-      {/* ปรับส่วนเนื้อหาหลักให้ขยายเต็มความกว้าง */}
+      {}
       <main className="w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 mt-6 sm:mt-8 space-y-6">
         
         {isLoading ? (
@@ -445,7 +444,6 @@ export default function InventoryApp() {
         ) : (
           <>
             <div className="space-y-4">
-              {/* แดชบอร์ดแถว 1: สรุปภาพรวม */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {[
                   { label: 'อุปกรณ์ทั้งหมด', value: stats.total, color: 'text-blue-600' },
@@ -460,7 +458,6 @@ export default function InventoryApp() {
                 ))}
               </div>
 
-              {/* แดชบอร์ดแถว 2: แยกประเภทอุปกรณ์สำคัญ */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {Object.values(stats.equipmentStats).map((eq, idx) => (
                   <div key={idx} className="bg-white border border-slate-100 rounded-xl p-3 sm:p-4 shadow-sm flex flex-col justify-between">
@@ -481,7 +478,6 @@ export default function InventoryApp() {
                 ))}
               </div>
 
-              {/* แดชบอร์ดแถว 3: แยกตามหมวดหมู่ */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {CATEGORIES.map((cat) => (
                   <div key={cat.id} className="bg-white border border-slate-100 rounded-xl p-3 sm:p-4 shadow-sm flex items-center justify-between">
@@ -494,7 +490,7 @@ export default function InventoryApp() {
               </div>
             </div>
 
-            {/* แถบเครื่องมือ ค้นหาและตัวกรอง */}
+            {}
             <div className="flex flex-col md:flex-row gap-3 sm:gap-4 justify-between bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-100">
               <div className="relative w-full md:w-96">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -517,7 +513,6 @@ export default function InventoryApp() {
               </div>
             </div>
 
-            {/* ตารางแสดงผล */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
               <div className="overflow-x-auto w-full">
                 <table className="w-full text-left border-collapse min-w-[800px]">
@@ -583,7 +578,7 @@ export default function InventoryApp() {
         )}
       </main>
 
-      {/* --- MODALS (ยังคงทำงานได้ปกติและปรับขนาดให้พอดีหน้าจอมือถือ) --- */}
+      {}
       {isFormOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up">
@@ -634,6 +629,7 @@ export default function InventoryApp() {
         </div>
       )}
 
+      {}
       {isRoomManagerOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up flex flex-col max-h-[80vh]">
@@ -702,6 +698,7 @@ export default function InventoryApp() {
         </div>
       )}
 
+      {}
       {isBorrowOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up">
@@ -782,6 +779,7 @@ export default function InventoryApp() {
         </div>
       )}
 
+      {}
       {isLoginModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up">
