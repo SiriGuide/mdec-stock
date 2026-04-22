@@ -247,19 +247,23 @@ export default function App() {
       if (item.status === 'maintenance') s.maintenance += qty;
       if (s.dept[item.department] !== undefined) s.dept[item.department] += qty;
 
-      const nameLower = item.name.toLowerCase();
-      const catLower = (item.category || '').toLowerCase();
+      // ดึงชื่อหมวดหมู่มาเช็คแบบเป๊ะๆ (ตัดช่องว่างทิ้ง)
+      const cat = (item.category || '').trim();
       
-      const checkCat = (key, keywords) => {
-        if (keywords.some(kw => nameLower.includes(kw) || catLower.includes(kw))) {
-          s.categories[key].t += qty; if (item.status === 'available') s.categories[key].a += qty;
+      // ฟังก์ชันสำหรับเช็คคำให้ตรงกับหมวดหมู่เท่านั้น (ไม่เอาชื่ออุปกรณ์มาปน)
+      const checkExactCat = (key, exactWords) => {
+        if (exactWords.includes(cat)) {
+          s.categories[key].t += qty; 
+          if (item.status === 'available') s.categories[key].a += qty;
         }
       };
-      checkCat('cam', ['กล้อง', 'cam']);
-      checkCat('lens', ['เลนส์', 'lens']);
-      checkCat('mic', ['ไมค์', 'mic']);
-      checkCat('speaker', ['ลำโพง', 'speak']);
-      checkCat('battery', ['ถ่าน', 'แบต', 'batt']);
+
+      // ถ้าระบุหมวดหมู่ตรงกับคำในวงเล็บเหล่านี้ ตัวเลขในกล่องสรุปถึงจะเพิ่มขึ้น
+      checkExactCat('cam', ['กล้อง', 'กล้องถ่ายภาพ', 'กล้องวิดีโอ', 'Camera']);
+      checkExactCat('lens', ['เลนส์', 'Lens']);
+      checkExactCat('mic', ['ไมโครโฟน', 'ไมค์', 'Microphone']);
+      checkExactCat('speaker', ['ชุดลำโพง', 'ลำโพง', 'Speaker']);
+      checkExactCat('battery', ['ถ่าน/แบต', 'ถ่าน', 'แบตเตอรี่', 'แบต', 'ถ่านชาร์จ', 'Battery']);
     });
     return s;
   }, [items]);
