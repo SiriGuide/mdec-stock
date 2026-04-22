@@ -71,7 +71,7 @@ export default function App() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
+  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
   
   const [showForm, setShowForm] = useState(false);
   const [showBorrowModal, setShowBorrowModal] = useState(false);
@@ -95,6 +95,14 @@ export default function App() {
   const [borrowData, setBorrowData] = useState({ borrowerName: '', expectedReturnDate: '', lenderName: '' });
   const [returnData, setReturnData] = useState({ returnerName: '' }); 
   const [selectedItem, setSelectedItem] = useState(null);
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
 
   useEffect(() => {
     let unsubscribeItems, unsubscribeCats, unsubscribeRooms, unsubscribeLocs;
@@ -243,17 +251,25 @@ export default function App() {
     });
 
     result.sort((a, b) => {
-      if (sortBy === 'name') return a.name.localeCompare(b.name, 'th');
-      if (sortBy === 'status') {
+      let aValue = a[sortConfig.key] || '';
+      let bValue = b[sortConfig.key] || '';
+
+      if (sortConfig.key === 'status') {
         const statusOrder = { 'available': 1, 'in-use': 2, 'borrowed': 3, 'maintenance': 4 };
-        return (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
+        aValue = statusOrder[a.status] || 99;
+        bValue = statusOrder[b.status] || 99;
+      } else {
+        aValue = aValue.toString().toLowerCase();
+        bValue = bValue.toString().toLowerCase();
       }
-      if (sortBy === 'category') return (a.category || '').localeCompare(b.category || '', 'th');
+
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
 
     return result;
-  }, [items, searchTerm, filterDept, sortBy]);
+  }, [items, searchTerm, filterDept, sortConfig]);
 
   const stats = useMemo(() => {
     const s = { total: 0, available: 0, borrowed: 0, maintenance: 0, dept: {}, categories: { cam: {t:0,a:0}, lens: {t:0,a:0}, mic: {t:0,a:0}, speaker: {t:0,a:0}, battery: {t:0,a:0} } };
@@ -363,12 +379,6 @@ export default function App() {
             <input type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
 
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full xl:w-auto px-5 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm shrink-0">
-            <option value="name">จัดเรียง: ชื่ออุปกรณ์ (ก-ฮ)</option>
-            <option value="status">จัดเรียง: ตามสถานะ</option>
-            <option value="category">จัดเรียง: ตามหมวดหมู่</option>
-          </select>
-
           <div className="flex gap-2 overflow-x-auto w-full pb-2 xl:pb-0 custom-scrollbar">
             <button onClick={() => setFilterDept('all')} className={`whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all ${filterDept === 'all' ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>ทั้งหมด</button>
             {DEPARTMENTS.map(d => (
@@ -386,10 +396,10 @@ export default function App() {
             <table className="w-full text-left border-collapse min-w-[1000px]">
               <thead>
                 <tr className="bg-slate-200 border-b-2 border-slate-300">
-                  <th className="p-5 sm:p-6 text-lg font-black text-slate-800 w-1/3">ชื่ออุปกรณ์ / รหัส</th>
-                  <th className="p-5 sm:p-6 text-lg font-black text-slate-800">หมวดหมู่</th>
-                  <th className="p-5 sm:p-6 text-lg font-black text-slate-800">สถานที่ / ห้องประชุม</th>
-                  <th className="p-5 sm:p-6 text-lg font-black text-slate-800">สถานะ</th>
+                  <th onClick={() => handleSort('name')} className="p-5 sm:p-6 text-lg font-black text-slate-800 w-1/3 cursor-pointer hover:bg-slate-300 transition-colors select-none group">ชื่ออุปกรณ์ / รหัส <span className="text-blue-600 ml-1">{sortConfig.key === 'name' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : <span className="text-slate-400 opacity-0 group-hover:opacity-100">↕</span>}</span></th>
+                  <th onClick={() => handleSort('category')} className="p-5 sm:p-6 text-lg font-black text-slate-800 cursor-pointer hover:bg-slate-300 transition-colors select-none group">หมวดหมู่ <span className="text-blue-600 ml-1">{sortConfig.key === 'category' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : <span className="text-slate-400 opacity-0 group-hover:opacity-100">↕</span>}</span></th>
+                  <th onClick={() => handleSort('location')} className="p-5 sm:p-6 text-lg font-black text-slate-800 cursor-pointer hover:bg-slate-300 transition-colors select-none group">สถานที่ / ห้องประชุม <span className="text-blue-600 ml-1">{sortConfig.key === 'location' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : <span className="text-slate-400 opacity-0 group-hover:opacity-100">↕</span>}</span></th>
+                  <th onClick={() => handleSort('status')} className="p-5 sm:p-6 text-lg font-black text-slate-800 cursor-pointer hover:bg-slate-300 transition-colors select-none group">สถานะ <span className="text-blue-600 ml-1">{sortConfig.key === 'status' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : <span className="text-slate-400 opacity-0 group-hover:opacity-100">↕</span>}</span></th>
                   <th className="p-5 sm:p-6 text-lg font-black text-slate-800 text-center">จัดการ</th>
                 </tr>
               </thead>
