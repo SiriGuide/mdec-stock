@@ -56,7 +56,7 @@ export default function App() {
   const [items, setItems] = useState([]);
   const [settingsOptions, setSettingsOptions] = useState({
     categories: ['กล้อง', 'เลนส์', 'ไมโครโฟน', 'ชุดลำโพง', 'ถ่าน/แบต', 'สายไฟ', 'อื่นๆ'],
-    locations: ['ตู้ A1', 'ห้องเก็บของ 2', 'ห้องประชุม 1']
+    locations: ['ตู้ A1', 'ห้องเก็บของ 2', 'ห้องประชุม 1', 'อื่นๆ']
   });
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -154,24 +154,45 @@ export default function App() {
     return result;
   }, [items, searchTerm, filterDept, filterCategory, filterStatus, sortConfig]);
 
+  // 1. สรุปภาพรวมหลัก (ทั้งหมด, ว่าง, ยืม, ซ่อม)
   const stats = useMemo(() => {
-    const s = { all: 0, available: 0, borrowed: 0, maintenance: 0, cameras: {t:0, a:0}, lenses: {t:0, a:0}, mics: {t:0, a:0}, speakers: {t:0, a:0}, batteries: {t:0, a:0} };
+    const s = { all: 0, available: 0, borrowed: 0, maintenance: 0 };
     items.forEach(item => {
       const qty = Number(item.quantity) || 1;
       s.all += qty;
       if (item.status === 'available') s.available += qty;
       if (item.status === 'borrowed') s.borrowed += qty;
       if (item.status === 'maintenance') s.maintenance += qty;
-
-      const cat = item.category || '';
-      if (cat.includes('กล้อง')) { s.cameras.t += qty; if (item.status === 'available') s.cameras.a += qty; }
-      if (cat.includes('เลนส์')) { s.lenses.t += qty; if (item.status === 'available') s.lenses.a += qty; }
-      if (cat.includes('ไมโครโฟน') || cat.includes('ไมค์')) { s.mics.t += qty; if (item.status === 'available') s.mics.a += qty; }
-      if (cat.includes('ลำโพง')) { s.speakers.t += qty; if (item.status === 'available') s.speakers.a += qty; }
-      if (cat.includes('ถ่าน') || cat.includes('แบต')) { s.batteries.t += qty; if (item.status === 'available') s.batteries.a += qty; }
     });
     return s;
   }, [items]);
+
+  // 2. สรุปแยกตามหมวดหมู่แบบไดนามิก (ดึงจาก Settings)
+  const categoryStats = useMemo(() => {
+    const catData = {};
+    
+    // สร้างตระกร้ารอรับข้อมูลสำหรับทุกหมวดหมู่ (ยกเว้น 'อื่นๆ')
+    settingsOptions.categories.filter(c => c !== 'อื่นๆ').forEach(cat => {
+      catData[cat] = { total: 0, available: 0 };
+    });
+
+    // วนลูปนับอุปกรณ์ทีละชิ้น
+    items.forEach(item => {
+      const qty = Number(item.quantity) || 1;
+      const cat = item.category;
+      
+      // ถ้าระบุหมวดหมู่ตรงกับตะกร้าที่เรามี ให้นับเพิ่ม
+      if (cat && catData[cat]) {
+        catData[cat].total += qty;
+        if (item.status === 'available') {
+          catData[cat].available += qty;
+        }
+      }
+    });
+
+    // แปลงข้อมูลให้อยู่ในรูปแบบ Array เพื่อนำไปแสดงผล
+    return Object.entries(catData).map(([label, data]) => ({ label, data }));
+  }, [items, settingsOptions.categories]);
 
   const handleSort = (key) => {
     setSortConfig(prev => ({
@@ -323,7 +344,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans p-4 sm:p-8">
       {firebaseError && (
-        <div className="max-w-7xl mx-auto mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl shadow-md flex items-start gap-4">
+        <div className="w-full mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl shadow-md flex items-start gap-4">
           <Icons.Alert />
           <div>
             <h3 className="font-bold text-lg">ฐานข้อมูลถูกระงับ (Firebase Permission Error)</h3>
@@ -333,20 +354,20 @@ export default function App() {
       )}
 
       {/* Header */}
-      <div className="max-w-full mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+      <div className="w-full flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white p-6 rounded-2xl shadow-md border border-slate-200">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg"><Icons.Package /></div>
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">MDEC-Stock</h1>
-            <p className="text-slate-500 font-medium">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">MDEC-Stock</h1>
+            <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
         </div>
-        <div className="flex gap-3">
-          {isAdmin && <button onClick={exportToCSV} className="flex items-center gap-2 px-5 py-3 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 font-bold rounded-xl transition-colors"><Icons.Download /><span className="hidden sm:inline">ส่งออก Sheet</span></button>}
+        <div className="flex flex-wrap justify-center gap-3 w-full md:w-auto">
+          {isAdmin && <button onClick={exportToCSV} className="flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 font-bold rounded-xl transition-colors flex"><Icons.Download /><span className="hidden sm:inline">ส่งออก Sheet</span></button>}
           {isAdmin && (
-            <div className="relative group z-10">
-              <button className="flex items-center gap-2 px-5 py-3 bg-slate-100 text-slate-700 hover:bg-slate-200 font-bold rounded-xl transition-colors">
-                <Icons.Settings /><span className="hidden sm:inline">ตั้งค่าระบบ</span>
+            <div className="relative group z-10 flex-1 md:flex-none">
+              <button className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-slate-100 text-slate-700 hover:bg-slate-200 font-bold rounded-xl transition-colors">
+                <Icons.Settings /><span>ตั้งค่า</span>
               </button>
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden hidden group-hover:block">
                 <button onClick={() => { setSettingsTab('categories'); setShowSettings(true); }} className="w-full text-left px-4 py-3 hover:bg-slate-50 font-bold text-slate-700 border-b border-slate-100">จัดการหมวดหมู่</button>
@@ -355,16 +376,16 @@ export default function App() {
             </div>
           )}
           {isAdmin ? (
-            <button onClick={() => setIsAdmin(false)} className="flex items-center gap-2 px-5 py-3 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold rounded-xl transition-colors"><Icons.Unlock /><span className="hidden sm:inline">ออกจากระบบ</span></button>
+            <button onClick={() => setIsAdmin(false)} className="flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold rounded-xl transition-colors flex"><Icons.Unlock /><span className="hidden sm:inline">ออกจากระบบ</span></button>
           ) : (
-            <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 px-5 py-3 bg-slate-800 text-white hover:bg-slate-700 font-bold rounded-xl transition-colors shadow-md"><Icons.Lock /><span className="hidden sm:inline">เข้าสู่ระบบจัดการ</span></button>
+            <button onClick={() => setShowLogin(true)} className="flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 bg-slate-800 text-white hover:bg-slate-700 font-bold rounded-xl transition-colors shadow-md flex"><Icons.Lock /><span className="hidden sm:inline">เข้าสู่ระบบจัดการ</span></button>
           )}
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="max-w-full mx-auto grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-        <div className="bg-white p-5 rounded-2xl shadow-md border-t-4 border-slate-200 flex flex-col items-center justify-center text-center">
+      {/* Main Stats Grid */}
+      <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+        <div className="bg-white p-5 rounded-2xl shadow-md border-t-4 border-blue-500 flex flex-col items-center justify-center text-center">
           <span className="text-slate-500 font-bold text-sm sm:text-base mb-1">อุปกรณ์ทั้งหมด</span>
           <span className="text-4xl sm:text-5xl font-black text-blue-600">{stats.all}</span>
         </div>
@@ -382,44 +403,38 @@ export default function App() {
         </div>
       </div>
 
-      {/* Sub Stats */}
-      <div className="max-w-full mx-auto grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
-        {[
-          { label: 'กล้อง', data: stats.cameras },
-          { label: 'เลนส์', data: stats.lenses },
-          { label: 'ไมโครโฟน', data: stats.mics },
-          { label: 'ลำโพง', data: stats.speakers },
-          { label: 'ถ่าน/แบต', data: stats.batteries }
-        ].map(c => (
+      {/* Sub Stats - โหลดกล่องสรุปยอดตามจำนวนหมวดหมู่ที่มีในระบบแบบอัตโนมัติ */}
+      <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-8">
+        {categoryStats.map(c => (
           <div key={c.label} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col">
             <div className="flex justify-between items-center mb-2">
-              <span className="font-bold text-slate-600 text-sm">{c.label}</span>
-              <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">พร้อมใช้</span>
+              <span className="font-bold text-slate-600 text-sm truncate pr-2" title={c.label}>{c.label}</span>
+              <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md shrink-0">พร้อมใช้</span>
             </div>
             <div className="flex justify-between items-baseline mb-2">
-              <div><span className="text-2xl font-black text-slate-800">{c.data.t}</span><span className="text-xs text-slate-400 ml-1">ชิ้น</span></div>
-              <span className="text-xl font-bold text-emerald-500">{c.data.a}</span>
+              <div><span className="text-2xl font-black text-slate-800">{c.data.total}</span><span className="text-xs text-slate-400 ml-1">ชิ้น</span></div>
+              <span className="text-xl font-bold text-emerald-500">{c.data.available}</span>
             </div>
-            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${c.data.t === 0 ? 0 : (c.data.a / c.data.t) * 100}%` }}></div></div>
+            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${c.data.total === 0 ? 0 : (c.data.available / c.data.total) * 100}%` }}></div></div>
           </div>
         ))}
       </div>
 
       {/* Filters & Search */}
-      <div className="max-w-full mx-auto flex flex-col gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-md border border-slate-200 mb-6">
+      <div className="w-full flex flex-col gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-md border border-slate-200 mb-6">
         <div className="flex flex-col xl:flex-row gap-4 items-center w-full">
           <div className="relative flex-1 w-full">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400"><Icons.Search /></div>
-            <input type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <input type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-base sm:text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           
           <div className="flex gap-3 w-full xl:w-auto">
-            <select className="flex-1 xl:flex-none px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+            <select className="flex-1 xl:flex-none px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-base sm:text-lg font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
               <option value="all">หมวดหมู่ทั้งหมด</option>
               {settingsOptions.categories.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             
-            <select className="flex-1 xl:flex-none px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+            <select className="flex-1 xl:flex-none px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-base sm:text-lg font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
               <option value="all">สถานะทั้งหมด</option>
               {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
@@ -431,21 +446,21 @@ export default function App() {
         </div>
 
         <div className="flex gap-2 overflow-x-auto w-full pb-2 custom-scrollbar">
-          <button onClick={() => setFilterDept('all')} className={`whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all ${filterDept === 'all' ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>ทั้งหมด</button>
+          <button onClick={() => setFilterDept('all')} className={`whitespace-nowrap px-6 py-4 rounded-xl font-bold text-base sm:text-lg transition-all ${filterDept === 'all' ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>ทั้งหมด</button>
           {DEPARTMENTS.map(d => (
-            <button key={d.id} onClick={() => setFilterDept(d.id)} className={`whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all ${filterDept === d.id ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>{d.label}</button>
+            <button key={d.id} onClick={() => setFilterDept(d.id)} className={`whitespace-nowrap px-6 py-4 rounded-xl font-bold text-base sm:text-lg transition-all ${filterDept === d.id ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>{d.label}</button>
           ))}
         </div>
       </div>
 
       {/* Table / List */}
-      <div className="max-w-full mx-auto bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[800px]">
+      <div className="w-full bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
-            <tr className="bg-slate-200 border-b border-slate-300 text-base">
+            <tr className="bg-slate-200 border-b border-slate-300 text-base sm:text-lg">
               <Th label="ชื่ออุปกรณ์ / รหัส" columnKey="name" />
-              <Th label="ฝ่ายที่รับผิดชอบ" columnKey="department" />
               <Th label="หมวดหมู่" columnKey="category" />
+              <Th label="ฝ่ายที่รับผิดชอบ" columnKey="department" />
               <Th label="สถานที่ / ห้อง" columnKey="location" />
               <Th label="สถานะ" columnKey="status" />
               {isAdmin && <th className="px-4 py-4 text-center font-bold text-slate-700">จัดการ</th>}
@@ -460,17 +475,17 @@ export default function App() {
               const isBorrowed = item.status === 'borrowed';
               const qty = Number(item.quantity) || 1;
               return (
-                <tr key={item.id} className="hover:bg-slate-50 transition-colors text-base">
+                <tr key={item.id} className="hover:bg-slate-50 transition-colors text-base sm:text-lg">
                   <td className="px-4 py-4">
                     <div className="font-bold text-slate-800 text-lg flex items-center gap-2">
                       {item.name} 
-                      {qty > 1 && <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-md">x{qty}</span>}
+                      {qty > 1 && <span className="bg-blue-100 text-blue-700 text-sm px-2 py-1 rounded-md">x{qty}</span>}
                     </div>
-                    {item.sn && <div className="text-sm text-slate-500 mt-1 font-mono">S.N.: {item.sn}</div>}
+                    {item.sn && <div className="text-sm sm:text-base text-slate-500 mt-1 font-mono">S.N.: {item.sn}</div>}
                     {isBorrowed && <div className="text-sm mt-2 p-2 bg-purple-50 rounded-lg border border-purple-100 inline-block"><span className="font-bold text-purple-700">ผู้ยืม: {item.currentBorrower}</span> <span className="text-purple-400 mx-1">|</span> <span className="text-slate-500">คืน: {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</span></div>}
                   </td>
-                  <td className="px-4 py-4"><span className={`inline-block px-3 py-1.5 rounded-lg text-sm font-bold ${deptInfo.color}`}>{deptInfo.label}</span></td>
                   <td className="px-4 py-4 font-bold text-slate-600">{item.category || '-'}</td>
+                  <td className="px-4 py-4"><span className={`inline-block px-3 py-1.5 rounded-lg text-sm font-bold ${deptInfo.color}`}>{deptInfo.label}</span></td>
                   <td className="px-4 py-4 font-bold text-slate-600">{item.location || '-'}</td>
                   <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold border ${statusInfo.color}`}><div className={`w-2 h-2 rounded-full currentColor`}></div>{statusInfo.label}</span></td>
                   {isAdmin && (
@@ -563,56 +578,56 @@ export default function App() {
             </div>
             <div className="space-y-5">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">ชื่ออุปกรณ์ <span className="text-rose-500">*</span></label>
-                <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none text-base" placeholder="เช่น กล้อง Sony A7IV" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                <label className="block text-sm sm:text-base font-bold text-slate-700 mb-2">ชื่ออุปกรณ์ <span className="text-rose-500">*</span></label>
+                <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none text-base sm:text-lg" placeholder="เช่น กล้อง Sony A7IV" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">ฝ่ายที่รับผิดชอบ</label>
-                  <select className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none text-base" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})}>
+                  <label className="block text-sm sm:text-base font-bold text-slate-700 mb-2">ฝ่ายที่รับผิดชอบ</label>
+                  <select className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none text-base sm:text-lg" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})}>
                     {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">จำนวนชิ้น</label>
-                  <input type="number" min="1" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none text-base" value={formData.quantity} onChange={e => setFormData({...formData, quantity: e.target.value})} />
+                  <label className="block text-sm sm:text-base font-bold text-slate-700 mb-2">จำนวนชิ้น</label>
+                  <input type="number" min="1" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none text-base sm:text-lg" value={formData.quantity} onChange={e => setFormData({...formData, quantity: e.target.value})} />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">หมวดหมู่อุปกรณ์</label>
-                  <select className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none text-base" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+                  <label className="block text-sm sm:text-base font-bold text-slate-700 mb-2">หมวดหมู่อุปกรณ์</label>
+                  <select className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none text-base sm:text-lg" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value, newCategory: ''})}>
                     <option value="" disabled>-- เลือกหมวดหมู่ --</option>
                     {settingsOptions.categories.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">รหัส S.N. (ถ้ามี)</label>
-                  <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none text-base" placeholder="เช่น CAM-001" value={formData.sn} onChange={e => setFormData({...formData, sn: e.target.value})} />
+                  <label className="block text-sm sm:text-base font-bold text-slate-700 mb-2">รหัส S.N. (ถ้ามี)</label>
+                  <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none text-base sm:text-lg" placeholder="เช่น CAM-001" value={formData.sn} onChange={e => setFormData({...formData, sn: e.target.value})} />
                 </div>
               </div>
               {formData.category === 'อื่นๆ' && (
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">ระบุหมวดหมู่ใหม่</label>
-                  <input type="text" autoFocus className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none text-base" placeholder="พิมพ์ชื่อหมวดหมู่..." value={formData.newCategory} onChange={e => setFormData({...formData, newCategory: e.target.value})} />
+                  <label className="block text-sm sm:text-base font-bold text-slate-700 mb-2">ระบุหมวดหมู่ใหม่</label>
+                  <input type="text" autoFocus className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none text-base sm:text-lg" placeholder="พิมพ์ชื่อหมวดหมู่..." value={formData.newCategory} onChange={e => setFormData({...formData, newCategory: e.target.value})} />
                 </div>
               )}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">สถานที่จัดเก็บ / ห้อง</label>
-                <select className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none text-base" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})}>
+                <label className="block text-sm sm:text-base font-bold text-slate-700 mb-2">สถานที่จัดเก็บ / ห้อง</label>
+                <select className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none text-base sm:text-lg" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value, newLocation: ''})}>
                   <option value="" disabled>-- เลือกสถานที่ --</option>
                   {settingsOptions.locations.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               {formData.location === 'อื่นๆ' && (
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">ระบุสถานที่ใหม่</label>
-                  <input type="text" autoFocus className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none text-base" placeholder="พิมพ์ชื่อสถานที่..." value={formData.newLocation} onChange={e => setFormData({...formData, newLocation: e.target.value})} />
+                  <label className="block text-sm sm:text-base font-bold text-slate-700 mb-2">ระบุสถานที่ใหม่</label>
+                  <input type="text" autoFocus className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none text-base sm:text-lg" placeholder="พิมพ์ชื่อสถานที่..." value={formData.newLocation} onChange={e => setFormData({...formData, newLocation: e.target.value})} />
                 </div>
               )}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">สถานะ</label>
-                <select className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none text-base" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
+                <label className="block text-sm sm:text-base font-bold text-slate-700 mb-2">สถานะ</label>
+                <select className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none text-base sm:text-lg" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
                   {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                 </select>
               </div>
@@ -632,17 +647,17 @@ export default function App() {
             <h3 className="text-2xl font-black text-slate-800 mb-6 text-center">บันทึกการให้ยืม</h3>
             <div className="space-y-4 mb-8">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">ชื่อผู้ทำรายการให้ยืม (จนท.) <span className="text-rose-500">*</span></label>
-                <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-500 outline-none" placeholder="ชื่อพนักงาน..." value={borrowData.staff} onChange={e => setBorrowData({...borrowData, staff: e.target.value})} />
+                <label className="block text-sm sm:text-base font-bold text-slate-700 mb-2">ชื่อผู้ทำรายการให้ยืม (จนท.) <span className="text-rose-500">*</span></label>
+                <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-500 outline-none text-base sm:text-lg" placeholder="ชื่อพนักงาน..." value={borrowData.staff} onChange={e => setBorrowData({...borrowData, staff: e.target.value})} />
               </div>
               <hr className="border-slate-100" />
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">ชื่อผู้ยืม <span className="text-rose-500">*</span></label>
-                <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-500 outline-none" placeholder="ชื่อ-สกุล หรือ แผนก" value={borrowData.borrower} onChange={e => setBorrowData({...borrowData, borrower: e.target.value})} />
+                <label className="block text-sm sm:text-base font-bold text-slate-700 mb-2">ชื่อผู้ยืม <span className="text-rose-500">*</span></label>
+                <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-500 outline-none text-base sm:text-lg" placeholder="ชื่อ-สกุล หรือ แผนก" value={borrowData.borrower} onChange={e => setBorrowData({...borrowData, borrower: e.target.value})} />
               </div>
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">กำหนดคืน</label>
-                <input type="date" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-purple-500 outline-none" value={borrowData.returnDate} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} />
+                <label className="block text-sm sm:text-base font-bold text-slate-700 mb-2">กำหนดคืน</label>
+                <input type="date" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-purple-500 outline-none text-base sm:text-lg" value={borrowData.returnDate} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} />
               </div>
             </div>
             <div className="flex gap-3">
@@ -660,8 +675,8 @@ export default function App() {
             <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.CheckCircle /></div>
             <h3 className="text-2xl font-black text-slate-800 mb-6">บันทึกรับคืนอุปกรณ์</h3>
             <div className="text-left mb-8">
-              <label className="block text-sm font-bold text-slate-700 mb-2">ชื่อผู้ทำรายการรับคืน (จนท.) <span className="text-rose-500">*</span></label>
-              <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="ชื่อพนักงาน..." value={returnData.staff} onChange={e => setReturnData({staff: e.target.value})} />
+              <label className="block text-sm sm:text-base font-bold text-slate-700 mb-2">ชื่อผู้ทำรายการรับคืน (จนท.) <span className="text-rose-500">*</span></label>
+              <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-emerald-500 outline-none text-base sm:text-lg" placeholder="ชื่อพนักงาน..." value={returnData.staff} onChange={e => setReturnData({staff: e.target.value})} />
             </div>
             <div className="flex gap-3">
               <button onClick={() => setShowReturn(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
