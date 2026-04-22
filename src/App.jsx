@@ -38,6 +38,7 @@ const Icons = {
   Folder: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>,
   History: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
   List: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>,
+  MapPin: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.242-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
   ChevronDown: () => <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
 };
 
@@ -51,6 +52,7 @@ const DEPARTMENTS = [
 
 const DEFAULT_CATEGORIES = ['กล้อง', 'เลนส์', 'ไมโครโฟน', 'ชุดลำโพง', 'สายสัญญาณ', 'ไฟสตูดิโอ'];
 const DEFAULT_ROOMS = ['ห้องประชุม 1', 'ห้องประชุม 2', 'ห้องประชุม 3'];
+const DEFAULT_LOCATIONS = ['ตู้เก็บของ 1', 'ตู้เก็บของ 2', 'ห้องสตูดิโอ'];
 
 const STATUSES = [
   { id: 'available', label: 'พร้อมใช้งาน', color: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
@@ -63,6 +65,7 @@ export default function App() {
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [rooms, setRooms] = useState(DEFAULT_ROOMS);
+  const [locations, setLocations] = useState(DEFAULT_LOCATIONS);
   
   const [isLoading, setIsLoading] = useState(true);
   const [firebaseError, setFirebaseError] = useState(false);
@@ -77,6 +80,7 @@ export default function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showRoomModal, setShowRoomModal] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   
   // Settings Dropdown
@@ -100,17 +104,20 @@ export default function App() {
     category: '',
     customCategory: '',
     location: '',
+    customLocation: '',
     status: 'available'
   });
 
   // Settings Forms
   const [newCategory, setNewCategory] = useState('');
   const [newRoom, setNewRoom] = useState('');
+  const [newLocation, setNewLocation] = useState('');
 
   useEffect(() => {
     let unsubscribeItems;
     let unsubscribeCategories;
     let unsubscribeRooms;
+    let unsubscribeLocations;
 
     const initializeData = async () => {
       try {
@@ -145,6 +152,14 @@ export default function App() {
           }
         });
 
+        // Listen to Locations
+        const locRef = collection(db, 'mdec_stock', 'shared_data', 'locations');
+        unsubscribeLocations = onSnapshot(locRef, (snapshot) => {
+          if (!snapshot.empty) {
+            setLocations(snapshot.docs.map(doc => doc.data().name));
+          }
+        });
+
       } catch (error) {
         console.error("Auth Error:", error);
         setFirebaseError(true);
@@ -166,6 +181,7 @@ export default function App() {
       if (unsubscribeItems) unsubscribeItems();
       if (unsubscribeCategories) unsubscribeCategories();
       if (unsubscribeRooms) unsubscribeRooms();
+      if (unsubscribeLocations) unsubscribeLocations();
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
@@ -198,13 +214,22 @@ export default function App() {
       }
     }
 
+    let finalLocation = formData.location;
+    if (formData.department !== 'ห้องประชุม' && formData.location === 'อื่นๆ' && formData.customLocation?.trim() !== '') {
+      finalLocation = formData.customLocation.trim();
+      if (!locations.includes(finalLocation)) {
+        const newLocRef = doc(collection(db, 'mdec_stock', 'shared_data', 'locations'));
+        await setDoc(newLocRef, { name: finalLocation });
+      }
+    }
+
     try {
       const itemData = {
         name: formData.name,
         sn: formData.sn,
         department: formData.department,
         category: finalCategory,
-        location: formData.department === 'ห้องประชุม' ? formData.location : formData.location,
+        location: finalLocation,
         status: formData.status,
         updatedAt: Date.now(),
       };
@@ -218,7 +243,7 @@ export default function App() {
 
       setShowAddModal(false);
       setEditingItem(null);
-      setFormData({ name: '', sn: '', department: 'ฝ่ายภาพนิ่ง', category: '', customCategory: '', location: '', status: 'available' });
+      setFormData({ name: '', sn: '', department: 'ฝ่ายภาพนิ่ง', category: '', customCategory: '', location: '', customLocation: '', status: 'available' });
     } catch (error) {
       console.error("Error saving item:", error);
       alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
@@ -308,6 +333,16 @@ export default function App() {
       const newRef = doc(collection(db, 'mdec_stock', 'shared_data', 'rooms'));
       await setDoc(newRef, { name: newRoom.trim() });
       setNewRoom('');
+    } catch (error) { console.error(error); }
+  };
+
+  const addLocation = async (e) => {
+    e.preventDefault();
+    if (!newLocation.trim() || locations.includes(newLocation.trim())) return;
+    try {
+      const newRef = doc(collection(db, 'mdec_stock', 'shared_data', 'locations'));
+      await setDoc(newRef, { name: newLocation.trim() });
+      setNewLocation('');
     } catch (error) { console.error(error); }
   };
 
@@ -416,6 +451,12 @@ export default function App() {
                           className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-3 transition-colors"
                         >
                           <span className="text-slate-400"><Icons.Folder /></span> หมวดหมู่อุปกรณ์
+                        </button>
+                        <button 
+                          onClick={() => { setShowLocationModal(true); setShowSettingsMenu(false); }}
+                          className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-3 transition-colors"
+                        >
+                          <span className="text-slate-400"><Icons.MapPin /></span> สถานที่จัดเก็บ
                         </button>
                         <button 
                           onClick={() => { setShowRoomModal(true); setShowSettingsMenu(false); }}
@@ -547,7 +588,7 @@ export default function App() {
               <button 
                 onClick={() => {
                   setEditingItem(null);
-                  setFormData({ name: '', sn: '', department: 'ฝ่ายภาพนิ่ง', category: categories[0] || '', customCategory: '', location: '', status: 'available' });
+                  setFormData({ name: '', sn: '', department: 'ฝ่ายภาพนิ่ง', category: categories[0] || '', customCategory: '', location: locations[0] || '', customLocation: '', status: 'available' });
                   setShowAddModal(true);
                 }}
                 className="w-full sm:w-auto px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition-all"
@@ -631,8 +672,17 @@ export default function App() {
                                 )}
                                 <button 
                                   onClick={() => {
+                                    const isRoomDept = item.department === 'ห้องประชุม';
+                                    const locationList = isRoomDept ? rooms : locations;
+                                    const isKnownLoc = locationList.includes(item.location);
+                                    
                                     setEditingItem(item);
-                                    setFormData({ ...item, customCategory: '' });
+                                    setFormData({ 
+                                      ...item, 
+                                      customCategory: '',
+                                      location: isKnownLoc ? item.location : 'อื่นๆ',
+                                      customLocation: isKnownLoc ? '' : item.location
+                                    });
                                     setShowAddModal(true);
                                   }}
                                   className="p-2 text-slate-400 hover:text-blue-700 hover:bg-blue-100 rounded-lg transition-colors" title="แก้ไข"
@@ -681,7 +731,7 @@ export default function App() {
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1.5 text-blue-700">1. ฝ่าย (เจ้าของ)</label>
-                    <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium shadow-sm" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value, location: e.target.value === 'ห้องประชุม' ? rooms[0] : ''})}>
+                    <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium shadow-sm" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value, location: e.target.value === 'ห้องประชุม' ? (rooms[0] || '') : (locations[0] || ''), customLocation: ''})}>
                       {DEPARTMENTS.filter(d => d.id !== 'ทั้งหมด').map(d => (
                         <option key={d.id} value={d.id}>{d.label}</option>
                       ))}
@@ -711,13 +761,26 @@ export default function App() {
                   <label className="block text-sm font-bold text-slate-700 mb-1.5">สถานที่จัดเก็บ / ห้องประชุม</label>
                   {formData.department === 'ห้องประชุม' ? (
                     <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium shadow-sm" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})}>
-                      <option value="">เลือกห้องประชุม</option>
+                      <option value="" disabled>เลือกห้องประชุม</option>
                       {rooms.map(room => (
                         <option key={room} value={room}>{room}</option>
                       ))}
                     </select>
                   ) : (
-                    <input type="text" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-medium shadow-sm" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="เช่น ตู้ A1, ห้องเก็บของ 2" />
+                    <>
+                      <select className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium shadow-sm" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})}>
+                        <option value="" disabled>เลือกสถานที่จัดเก็บ</option>
+                        {locations.map(loc => (
+                          <option key={loc} value={loc}>{loc}</option>
+                        ))}
+                        <option value="อื่นๆ" className="font-bold text-blue-600">-- อื่นๆ (พิมพ์ระบุเอง) --</option>
+                      </select>
+                      {formData.location === 'อื่นๆ' && (
+                        <div className="pt-2 animate-fade-in">
+                          <input required type="text" className="w-full px-4 py-2.5 border-2 border-blue-400 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-blue-50 font-medium" value={formData.customLocation || ''} onChange={e => setFormData({...formData, customLocation: e.target.value})} placeholder="เช่น ตู้ A1, ชั้น 2..." />
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -766,24 +829,24 @@ export default function App() {
         </div>
       )}
 
-      {/* 3. Modal จัดการห้องประชุม */}
-      {showRoomModal && (
+      {/* 4. Modal จัดการสถานที่จัดเก็บ */}
+      {showLocationModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-              <h3 className="text-lg font-extrabold text-slate-800 flex items-center gap-2"><Icons.List /> ตั้งค่าห้องประชุม</h3>
-              <button onClick={() => setShowRoomModal(false)} className="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 rounded-full p-1 transition-colors">✕</button>
+              <h3 className="text-lg font-extrabold text-slate-800 flex items-center gap-2"><Icons.MapPin /> ตั้งค่าสถานที่จัดเก็บ</h3>
+              <button onClick={() => setShowLocationModal(false)} className="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 rounded-full p-1 transition-colors">✕</button>
             </div>
             <div className="p-6 bg-white">
-              <form onSubmit={addRoom} className="flex gap-2 mb-5">
-                <input type="text" required value={newRoom} onChange={e => setNewRoom(e.target.value)} placeholder="ชื่อห้องใหม่..." className="flex-1 px-4 py-2.5 border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium" />
+              <form onSubmit={addLocation} className="flex gap-2 mb-5">
+                <input type="text" required value={newLocation} onChange={e => setNewLocation(e.target.value)} placeholder="สถานที่ใหม่..." className="flex-1 px-4 py-2.5 border border-slate-300 rounded-xl text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-medium" />
                 <button type="submit" className="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-sm">เพิ่ม</button>
               </form>
               <div className="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                {rooms.map(room => (
-                  <div key={room} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors">
-                    <span className="text-sm font-bold text-slate-700">{room}</span>
-                    <button onClick={() => alert("ระบบลบห้องกำลังอัปเดต")} className="text-rose-500 hover:text-rose-700 hover:bg-rose-100 p-1.5 rounded-lg transition-colors"><Icons.Trash /></button>
+                {locations.map(loc => (
+                  <div key={loc} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors">
+                    <span className="text-sm font-bold text-slate-700">{loc}</span>
+                    <button onClick={() => alert("ระบบลบสถานที่กำลังอัปเดต")} className="text-rose-500 hover:text-rose-700 hover:bg-rose-100 p-1.5 rounded-lg transition-colors"><Icons.Trash /></button>
                   </div>
                 ))}
               </div>
@@ -792,7 +855,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 4. Login Modal */}
+      {/* 5. Login Modal */}
       {showLoginModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl w-full max-w-xs shadow-2xl overflow-hidden">
