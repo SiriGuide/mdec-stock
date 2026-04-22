@@ -32,7 +32,8 @@ const Icons = {
   CheckCircle: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
   Unlock: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>,
   Lock: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
-  Download: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+  Download: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>,
+  Menu: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
 };
 
 const CATEGORIES = [
@@ -61,7 +62,7 @@ const INITIAL_MEETING_ROOMS = [
 const StatusBadge = ({ statusId }) => {
   const status = STATUSES.find(s => s.id === statusId) || STATUSES[0];
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${status.color}`}>
+    <span className={`px-2 py-1 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium border ${status.color}`}>
       {status.label}
     </span>
   );
@@ -70,7 +71,7 @@ const StatusBadge = ({ statusId }) => {
 const CategoryBadge = ({ categoryId }) => {
   const category = CATEGORIES.find(c => c.id === categoryId) || CATEGORIES[0];
   return (
-    <span className={`px-2.5 py-1 rounded-md text-xs font-medium inline-block w-max ${category.color}`}>
+    <span className={`px-2 py-1 sm:px-2.5 sm:py-1 rounded-md text-[10px] sm:text-xs font-medium inline-block w-max ${category.color}`}>
       {category.label}
     </span>
   );
@@ -131,7 +132,6 @@ export default function InventoryApp() {
   useEffect(() => {
     if (!user) return;
 
-    // 🔥 แกไขเป็น 'mdec_stock' แทน user.uid เพื่อให้เป็นถังข้อมูลรวมของทีม
     const itemsRef = collection(db, 'mdec_stock', 'shared_data', 'items');
     const unsubscribeItems = onSnapshot(itemsRef, (snapshot) => {
       const fetchedItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -395,170 +395,177 @@ export default function InventoryApp() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-12">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg text-white">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-12 w-full">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm w-full">
+        {/* ปรับให้ขยายเต็มจอด้วย w-full และเว้นระยะขอบซ้ายขวาให้สวยงาม */}
+        <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="bg-blue-600 p-1.5 sm:p-2 rounded-lg text-white">
               <Icons.Package />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900 leading-tight">MDEC-Stock</h1>
-              <p className="text-xs text-slate-500">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight tracking-tight">MDEC-Stock</h1>
+              <p className="hidden sm:block text-xs text-slate-500">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {isAuthenticated ? (
               <>
-                <button onClick={exportToCSV} className="bg-emerald-600 hover:bg-emerald-700 transition-colors text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm shadow-emerald-200" title="ส่งออกข้อมูลเป็น CSV เพื่อนำไปเปิดใน Google Sheets">
-                  <Icons.Download /> <span className="hidden sm:inline">ส่งออก Sheet</span>
+                <button onClick={exportToCSV} className="bg-emerald-600 hover:bg-emerald-700 transition-colors text-white p-2 sm:px-3 sm:py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm" title="ส่งออก Sheet">
+                  <Icons.Download /> <span className="hidden md:inline">ส่งออก Sheet</span>
                 </button>
-                <button onClick={() => setIsRoomManagerOpen(true)} className="bg-white hover:bg-slate-50 text-slate-700 transition-colors px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border border-slate-200 shadow-sm">
-                  <Icons.Settings /> <span className="hidden sm:inline">ตั้งค่าห้องประชุม</span>
+                <button onClick={() => setIsRoomManagerOpen(true)} className="bg-white hover:bg-slate-50 text-slate-700 transition-colors p-2 sm:px-3 sm:py-2 rounded-lg text-sm font-medium flex items-center gap-2 border border-slate-200 shadow-sm" title="ตั้งค่าห้องประชุม">
+                  <Icons.Settings /> <span className="hidden md:inline">ตั้งค่าห้อง</span>
                 </button>
-                <button onClick={() => handleOpenForm()} className="bg-blue-600 hover:bg-blue-700 transition-colors text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm shadow-blue-200">
-                  <Icons.Plus /> เพิ่มอุปกรณ์
+                <button onClick={() => handleOpenForm()} className="bg-blue-600 hover:bg-blue-700 transition-colors text-white p-2 sm:px-4 sm:py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm" title="เพิ่มอุปกรณ์">
+                  <Icons.Plus /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span>
                 </button>
                 <div className="w-px h-6 bg-slate-200 mx-1"></div>
-                <button onClick={handleLogout} className="text-slate-500 hover:text-rose-600 transition-colors px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 bg-slate-100 hover:bg-rose-50" title="ออกจากระบบ">
-                  <Icons.Unlock /> ออกจากระบบ
+                <button onClick={handleLogout} className="text-slate-500 hover:text-rose-600 transition-colors p-2 sm:px-3 sm:py-2 rounded-lg text-sm font-medium flex items-center gap-2 bg-slate-100 hover:bg-rose-50" title="ออกจากระบบ">
+                  <Icons.Unlock /> <span className="hidden sm:inline">ออกจากระบบ</span>
                 </button>
               </>
             ) : (
-              <button onClick={() => setIsLoginModalOpen(true)} className="bg-slate-800 hover:bg-slate-900 transition-colors text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm">
-                <Icons.Lock /> เข้าสู่ระบบเพื่อจัดการ
+              <button onClick={() => setIsLoginModalOpen(true)} className="bg-slate-800 hover:bg-slate-900 transition-colors text-white p-2 sm:px-4 sm:py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm" title="เข้าสู่ระบบ">
+                <Icons.Lock /> <span className="hidden sm:inline">เข้าสู่ระบบเพื่อจัดการ</span>
               </button>
             )}
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-6">
+      {/* ปรับส่วนเนื้อหาหลักให้ขยายเต็มความกว้าง */}
+      <main className="w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 mt-6 sm:mt-8 space-y-6">
         
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400">
              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-             <p className="font-medium text-slate-500">กำลังเชื่อมต่อฐานข้อมูลคลาวด์...</p>
+             <p className="font-medium text-slate-500">กำลังเชื่อมต่อข้อมูล...</p>
           </div>
         ) : (
           <>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* แดชบอร์ดแถว 1: สรุปภาพรวม */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {[
                   { label: 'อุปกรณ์ทั้งหมด', value: stats.total, color: 'text-blue-600' },
                   { label: 'พร้อมใช้งาน', value: stats.available, color: 'text-emerald-600' },
                   { label: 'กำลังถูกยืม', value: stats.borrowed, color: 'text-purple-600' },
                   { label: 'ส่งซ่อม/ชำรุด', value: stats.maintenance, color: 'text-rose-600' }
                 ].map((stat, idx) => (
-                  <div key={idx} className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex flex-col justify-between">
-                    <p className="text-sm font-medium text-slate-500 mb-2">{stat.label}</p>
-                    <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
+                  <div key={idx} className="bg-white border border-slate-100 rounded-xl p-3 sm:p-4 shadow-sm flex flex-col justify-between">
+                    <p className="text-[11px] sm:text-sm font-medium text-slate-500 mb-1 sm:mb-2">{stat.label}</p>
+                    <p className={`text-2xl sm:text-3xl font-bold ${stat.color}`}>{stat.value}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* แดชบอร์ดแถว 2: แยกประเภทอุปกรณ์สำคัญ */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {Object.values(stats.equipmentStats).map((eq, idx) => (
-                  <div key={idx} className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex flex-col justify-between">
+                  <div key={idx} className="bg-white border border-slate-100 rounded-xl p-3 sm:p-4 shadow-sm flex flex-col justify-between">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <p className="text-sm font-medium text-slate-700">{eq.label}</p>
-                        <p className="text-2xl font-bold text-slate-800">{eq.total} <span className="text-xs font-normal text-slate-500">{eq.unit}</span></p>
+                        <p className="text-[11px] sm:text-sm font-medium text-slate-700">{eq.label}</p>
+                        <p className="text-xl sm:text-2xl font-bold text-slate-800">{eq.total} <span className="text-[10px] sm:text-xs font-normal text-slate-500">{eq.unit}</span></p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[11px] font-medium text-emerald-600 mb-0.5">พร้อมใช้งาน</p>
-                        <p className="text-xl font-bold text-emerald-600">{eq.available} <span className="text-xs font-normal text-emerald-600/70">{eq.unit}</span></p>
+                        <p className="text-[10px] sm:text-[11px] font-medium text-emerald-600 mb-0.5">พร้อมใช้งาน</p>
+                        <p className="text-lg sm:text-xl font-bold text-emerald-600">{eq.available} <span className="text-[10px] sm:text-xs font-normal text-emerald-600/70">{eq.unit}</span></p>
                       </div>
                     </div>
-                    <div className="w-full bg-slate-100 h-1.5 mt-3 rounded-full overflow-hidden">
+                    <div className="w-full bg-slate-100 h-1 sm:h-1.5 mt-2 sm:mt-3 rounded-full overflow-hidden">
                       <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: eq.total > 0 ? `${(eq.available/eq.total)*100}%` : '0%' }}></div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* แดชบอร์ดแถว 3: แยกตามหมวดหมู่ */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {CATEGORIES.map((cat) => (
-                  <div key={cat.id} className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex items-center justify-between">
+                  <div key={cat.id} className="bg-white border border-slate-100 rounded-xl p-3 sm:p-4 shadow-sm flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-medium text-slate-500 mb-0.5">{cat.label}</p>
-                      <p className={`text-xl font-bold ${cat.textColor}`}>{stats.byCategory[cat.id] || 0} <span className="text-xs font-normal text-slate-400">รายการ</span></p>
+                      <p className="text-[11px] sm:text-xs font-medium text-slate-500 mb-0.5">{cat.label}</p>
+                      <p className={`text-lg sm:text-xl font-bold ${cat.textColor}`}>{stats.byCategory[cat.id] || 0} <span className="text-[10px] sm:text-xs font-normal text-slate-400">รายการ</span></p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-              <div className="relative w-full sm:w-96">
+            {/* แถบเครื่องมือ ค้นหาและตัวกรอง */}
+            <div className="flex flex-col md:flex-row gap-3 sm:gap-4 justify-between bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-100">
+              <div className="relative w-full md:w-96">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <Icons.Search />
                 </div>
                 <input
-                  type="text" placeholder="ค้นหาชื่ออุปกรณ์, รหัส, ห้องประชุม..."
+                  type="text" placeholder="ค้นหาชื่อ, รหัส, สถานที่..."
                   className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-all"
                   value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
               
-              <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
-                <button onClick={() => setSelectedCategory('all')} className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>ทั้งหมด</button>
+              <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar w-full md:w-auto">
+                <button onClick={() => setSelectedCategory('all')} className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>ทั้งหมด</button>
                 {CATEGORIES.map(cat => (
-                  <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === cat.id ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                  <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === cat.id ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                     {cat.label}
                   </button>
                 ))}
               </div>
             </div>
 
+            {/* ตารางแสดงผล */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+              <div className="overflow-x-auto w-full">
+                <table className="w-full text-left border-collapse min-w-[800px]">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-sm font-medium text-slate-500">
-                      <th className="p-4 pl-6 font-medium">ชื่ออุปกรณ์ / รหัส</th>
-                      <th className="p-4 font-medium">หมวดหมู่</th>
-                      <th className="p-4 font-medium">สถานที่ / ห้องประชุม</th>
-                      <th className="p-4 font-medium">สถานะ</th>
-                      <th className="p-4 pr-6 font-medium text-right">จัดการ</th>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-xs sm:text-sm font-medium text-slate-500 whitespace-nowrap">
+                      <th className="p-3 sm:p-4 pl-4 sm:pl-6 font-medium">ชื่ออุปกรณ์ / รหัส</th>
+                      <th className="p-3 sm:p-4 font-medium">หมวดหมู่</th>
+                      <th className="p-3 sm:p-4 font-medium">สถานที่ / ห้องประชุม</th>
+                      <th className="p-3 sm:p-4 font-medium">สถานะ</th>
+                      <th className="p-3 sm:p-4 pr-4 sm:pr-6 font-medium text-right">จัดการ</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filteredItems.length > 0 ? (
                       filteredItems.map(item => (
                         <tr key={item.id} className="hover:bg-blue-50/50 transition-colors group">
-                          <td className="p-4 pl-6">
-                            <p className="font-semibold text-slate-800">{item.name}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">
+                          <td className="p-3 sm:p-4 pl-4 sm:pl-6">
+                            <p className="text-sm sm:text-base font-semibold text-slate-800">{item.name}</p>
+                            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
                               {item.serialNumber && <span className="font-medium text-slate-500">S.N.: {item.serialNumber} • </span>}
                               อัปเดต: {item.lastUpdated}
                             </p>
                           </td>
-                          <td className="p-4"><CategoryBadge categoryId={item.category} /></td>
-                          <td className="p-4 text-sm text-slate-600">{item.location || '-'}</td>
-                          <td className="p-4">
+                          <td className="p-3 sm:p-4"><CategoryBadge categoryId={item.category} /></td>
+                          <td className="p-3 sm:p-4 text-xs sm:text-sm text-slate-600 truncate max-w-[200px]">{item.location || '-'}</td>
+                          <td className="p-3 sm:p-4">
                             <StatusBadge statusId={item.status} />
                             {item.status === 'borrowed' && item.currentBorrow && (
-                              <div className="mt-2 text-[11px] leading-relaxed text-slate-600 bg-purple-50/80 px-2.5 py-1.5 rounded-lg border border-purple-100 w-max max-w-[200px]">
+                              <div className="mt-1.5 sm:mt-2 text-[10px] sm:text-[11px] leading-relaxed text-slate-600 bg-purple-50/80 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border border-purple-100 w-max max-w-[180px] sm:max-w-[200px]">
                                 <p><span className="font-medium text-purple-700">ผู้ยืม:</span> {item.currentBorrow.borrowerName}</p>
                                 <p><span className="font-medium text-purple-700">ถึง:</span> {item.currentBorrow.returnDate}</p>
                               </div>
                             )}
                           </td>
-                          <td className="p-4 pr-6 text-right">
-                            <div className="flex justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => handleOpenHistory(item)} className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg" title="ประวัติการยืม"><Icons.History /></button>
+                          <td className="p-3 sm:p-4 pr-4 sm:pr-6 text-right">
+                            <div className="flex justify-end gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => handleOpenHistory(item)} className="p-1 sm:p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg" title="ประวัติการยืม"><Icons.History /></button>
                               {isAuthenticated && (
                                 <>
-                                  <div className="w-px h-5 bg-slate-200 my-auto mx-1"></div>
+                                  <div className="w-px h-5 bg-slate-200 my-auto mx-0.5 sm:mx-1"></div>
                                   {item.status !== 'borrowed' && item.status !== 'maintenance' && (
-                                    <button onClick={() => handleOpenBorrow(item)} className="p-1.5 text-purple-600 hover:bg-purple-100 rounded-lg flex items-center gap-1" title="ทำรายการให้ยืม"><Icons.UserPlus /></button>
+                                    <button onClick={() => handleOpenBorrow(item)} className="p-1 sm:p-1.5 text-purple-600 hover:bg-purple-100 rounded-lg flex items-center gap-1" title="ทำรายการให้ยืม"><Icons.UserPlus /></button>
                                   )}
                                   {item.status === 'borrowed' && (
-                                    <button onClick={() => handleOpenReturn(item)} className="p-1.5 text-emerald-600 hover:bg-emerald-100 rounded-lg flex items-center gap-1" title="รับคืนอุปกรณ์"><Icons.CheckCircle /></button>
+                                    <button onClick={() => handleOpenReturn(item)} className="p-1 sm:p-1.5 text-emerald-600 hover:bg-emerald-100 rounded-lg flex items-center gap-1" title="รับคืนอุปกรณ์"><Icons.CheckCircle /></button>
                                   )}
-                                  <button onClick={() => handleOpenForm(item)} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg" title="แก้ไขข้อมูล"><Icons.Edit /></button>
-                                  <button onClick={() => confirmDelete(item)} className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg" title="ลบข้อมูล"><Icons.Trash /></button>
+                                  <button onClick={() => handleOpenForm(item)} className="p-1 sm:p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg" title="แก้ไขข้อมูล"><Icons.Edit /></button>
+                                  <button onClick={() => confirmDelete(item)} className="p-1 sm:p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg" title="ลบข้อมูล"><Icons.Trash /></button>
                                 </>
                               )}
                             </div>
@@ -566,7 +573,7 @@ export default function InventoryApp() {
                         </tr>
                       ))
                     ) : (
-                      <tr><td colSpan="5" className="p-8 text-center text-slate-500">ไม่พบข้อมูลที่ค้นหา</td></tr>
+                      <tr><td colSpan="5" className="p-8 text-center text-slate-500 text-sm">ไม่พบข้อมูลที่ค้นหา</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -576,52 +583,51 @@ export default function InventoryApp() {
         )}
       </main>
 
-      {/* --- MODALS (Form, Room Manager, Borrow, Return, History, Login) --- */}
+      {/* --- MODALS (ยังคงทำงานได้ปกติและปรับขนาดให้พอดีหน้าจอมือถือ) --- */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h2 className="text-lg font-bold text-slate-800">{currentItem ? 'แก้ไขข้อมูลอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}</h2>
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <h2 className="text-base sm:text-lg font-bold text-slate-800">{currentItem ? 'แก้ไขข้อมูลอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}</h2>
               <button onClick={() => setIsFormOpen(false)} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg border border-slate-200"><Icons.X /></button>
             </div>
-            <form onSubmit={handleSaveItem} className="p-5 space-y-4">
+            <form onSubmit={handleSaveItem} className="p-4 sm:p-5 space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">ชื่ออุปกรณ์</label>
-                <input required type="text" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="เช่น กล้อง Sony A7IV" />
+                <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">ชื่ออุปกรณ์</label>
+                <input required type="text" className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="เช่น กล้อง Sony A7IV" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">หมวดหมู่</label>
-                  <select className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value, location: e.target.value === 'ห้องประชุม' ? meetingRooms[0] || '' : ''})}>
+                  <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">หมวดหมู่</label>
+                  <select className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value, location: e.target.value === 'ห้องประชุม' ? meetingRooms[0] || '' : ''})}>
                     {CATEGORIES.map(cat => <option key={cat.id} value={cat.id}>{cat.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">รหัสอุปกรณ์ (S.N.)</label>
-                  <input required type="text" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.serialNumber || ''} onChange={e => setFormData({...formData, serialNumber: e.target.value})} placeholder="เช่น CAM-001" />
+                  <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">รหัส S.N.</label>
+                  <input required type="text" className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.serialNumber || ''} onChange={e => setFormData({...formData, serialNumber: e.target.value})} placeholder="เช่น CAM-001" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">{formData.category === 'ห้องประชุม' ? 'เลือกห้องประชุม' : 'สถานที่จัดเก็บ'}</label>
+                <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">{formData.category === 'ห้องประชุม' ? 'เลือกห้องประชุม' : 'สถานที่จัดเก็บ'}</label>
                 {formData.category === 'ห้องประชุม' ? (
-                  <select className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} required>
+                  <select className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} required>
                     <option value="" disabled>-- เลือกห้องประชุม --</option>
                     {meetingRooms.map(room => <option key={room} value={room}>{room}</option>)}
                   </select>
                 ) : (
-                  <input type="text" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="เช่น ตู้ A1, ห้องเก็บของ 2" />
+                  <input type="text" className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="เช่น ตู้ A1, ห้องเก็บของ 2" />
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">สถานะ</label>
-                <select className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white disabled:bg-slate-50 disabled:text-slate-400" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} disabled={currentItem?.status === 'borrowed'}>
+                <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">สถานะ</label>
+                <select className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white disabled:bg-slate-50 disabled:text-slate-400" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} disabled={currentItem?.status === 'borrowed'}>
                   {STATUSES.map(stat => <option key={stat.id} value={stat.id}>{stat.label}</option>)}
                 </select>
-                {currentItem?.status === 'borrowed' && <p className="text-xs text-slate-500 mt-1">* กรุณากดปุ่ม "รับคืน" ที่หน้าตารางเพื่อเปลี่ยนสถานะนี้</p>}
               </div>
-              <div className="pt-4 mt-2 border-t border-slate-100 flex gap-3">
-                <button type="button" onClick={() => setIsFormOpen(false)} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">ยกเลิก</button>
-                <button type="submit" className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-md shadow-blue-200">บันทึกข้อมูล</button>
+              <div className="pt-3 sm:pt-4 mt-2 border-t border-slate-100 flex gap-2 sm:gap-3">
+                <button type="button" onClick={() => setIsFormOpen(false)} className="flex-1 px-4 py-2 sm:py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">ยกเลิก</button>
+                <button type="submit" className="flex-1 px-4 py-2 sm:py-2.5 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-md shadow-blue-200">บันทึกข้อมูล</button>
               </div>
             </form>
           </div>
@@ -631,17 +637,17 @@ export default function InventoryApp() {
       {isRoomManagerOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up flex flex-col max-h-[80vh]">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
-              <div><h2 className="text-lg font-bold text-slate-800">ตั้งค่าห้องประชุม</h2><p className="text-xs text-slate-500">เพิ่ม ลบ หรือแก้ไขรายชื่อห้องประชุมในระบบ</p></div>
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
+              <div><h2 className="text-base sm:text-lg font-bold text-slate-800">ตั้งค่าห้องประชุม</h2><p className="text-[10px] sm:text-xs text-slate-500">จัดการรายชื่อห้องประชุมในระบบ</p></div>
               <button onClick={() => setIsRoomManagerOpen(false)} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg border border-slate-200"><Icons.X /></button>
             </div>
-            <div className="p-5 overflow-y-auto flex-1">
-              <ul className="space-y-2 mb-6">
+            <div className="p-4 sm:p-5 overflow-y-auto flex-1">
+              <ul className="space-y-2 mb-4 sm:mb-6">
                 {meetingRooms.length > 0 ? (
                   meetingRooms.map(room => (
-                    <li key={room} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl group hover:border-blue-200 transition-colors">
-                      <span className="text-sm font-medium text-slate-700">{room}</span>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <li key={room} className="flex items-center justify-between p-2 sm:p-3 bg-slate-50 border border-slate-100 rounded-xl group hover:border-blue-200 transition-colors">
+                      <span className="text-xs sm:text-sm font-medium text-slate-700 truncate mr-2">{room}</span>
+                      <div className="flex gap-1">
                         <button onClick={() => {setRoomInputValue(room); setEditingRoomOriginal(room);}} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg"><Icons.Edit /></button>
                         <button onClick={() => requestDeleteRoom(room)} className="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg"><Icons.Trash /></button>
                       </div>
@@ -652,12 +658,12 @@ export default function InventoryApp() {
                 )}
               </ul>
               <div className="border-t border-slate-100 pt-4">
-                <label className="block text-sm font-medium text-slate-700 mb-2">{editingRoomOriginal ? 'แก้ไขชื่อห้องประชุม' : 'เพิ่มห้องประชุมใหม่'}</label>
+                <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-2">{editingRoomOriginal ? 'แก้ไขชื่อห้อง' : 'เพิ่มห้องใหม่'}</label>
                 <form onSubmit={handleSaveRoom} className="flex flex-col gap-2">
                   <div className="flex gap-2">
-                    <input type="text" placeholder="พิมพ์ชื่อห้อง..." className={`flex-1 px-4 py-2 text-sm border ${roomError ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-200 focus:ring-blue-500'} rounded-xl focus:ring-2 outline-none`} value={roomInputValue} onChange={e => { setRoomInputValue(e.target.value); setRoomError(''); }} />
+                    <input type="text" placeholder="พิมพ์ชื่อห้อง..." className={`flex-1 px-3 py-2 text-sm border ${roomError ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-200 focus:ring-blue-500'} rounded-xl focus:ring-2 outline-none`} value={roomInputValue} onChange={e => { setRoomInputValue(e.target.value); setRoomError(''); }} />
                     {editingRoomOriginal ? (
-                      <><button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700">บันทึก</button><button type="button" onClick={() => {setEditingRoomOriginal(null); setRoomInputValue(''); setRoomError('');}} className="px-3 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-xl hover:bg-slate-200">ยกเลิก</button></>
+                      <><button type="submit" className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700">บันทึก</button><button type="button" onClick={() => {setEditingRoomOriginal(null); setRoomInputValue(''); setRoomError('');}} className="px-2 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-xl hover:bg-slate-200">ยกเลิก</button></>
                     ) : (<button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 whitespace-nowrap">เพิ่ม</button>)}
                   </div>
                   {roomError && <p className="text-xs text-rose-500 mt-1">{roomError}</p>}
@@ -670,13 +676,13 @@ export default function InventoryApp() {
 
       {isDeleteOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[80] p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up p-6 text-center">
-            <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-500"><Icons.Alert /></div>
-            <h3 className="text-lg font-bold text-slate-800 mb-2">ยืนยันการลบอุปกรณ์?</h3>
-            <p className="text-sm text-slate-500 mb-6">ลบ "{itemToDelete?.name}" หรือไม่? <br/>การกระทำนี้ไม่สามารถย้อนกลับได้</p>
-            <div className="flex gap-3 justify-center">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up p-5 sm:p-6 text-center">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-500"><Icons.Alert /></div>
+            <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-2">ยืนยันการลบ?</h3>
+            <p className="text-xs sm:text-sm text-slate-500 mb-6">ลบ "{itemToDelete?.name}" หรือไม่? <br/>ไม่สามารถย้อนกลับได้</p>
+            <div className="flex gap-2 sm:gap-3 justify-center">
               <button onClick={() => setIsDeleteOpen(false)} className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200">ยกเลิก</button>
-              <button onClick={handleDelete} className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-rose-500 hover:bg-rose-600">ยืนยันการลบ</button>
+              <button onClick={handleDelete} className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-rose-500 hover:bg-rose-600">ยืนยันลบ</button>
             </div>
           </div>
         </div>
@@ -684,13 +690,13 @@ export default function InventoryApp() {
 
       {roomToDelete && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up p-6 text-center">
-            <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-500"><Icons.Alert /></div>
-            <h3 className="text-lg font-bold text-slate-800 mb-2">ยืนยันการลบห้องประชุม?</h3>
-            <p className="text-sm text-slate-500 mb-6">คุณต้องการลบ "{roomToDelete}" ใช่หรือไม่?</p>
-            <div className="flex gap-3 justify-center">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up p-5 sm:p-6 text-center">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-500"><Icons.Alert /></div>
+            <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-2">ลบห้องประชุม?</h3>
+            <p className="text-xs sm:text-sm text-slate-500 mb-6">ลบห้อง "{roomToDelete}" หรือไม่?</p>
+            <div className="flex gap-2 sm:gap-3 justify-center">
               <button onClick={() => setRoomToDelete(null)} className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200">ยกเลิก</button>
-              <button onClick={confirmDeleteRoom} className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-rose-500 hover:bg-rose-600">ยืนยันการลบ</button>
+              <button onClick={confirmDeleteRoom} className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-rose-500 hover:bg-rose-600">ยืนยันลบ</button>
             </div>
           </div>
         </div>
@@ -699,28 +705,28 @@ export default function InventoryApp() {
       {isBorrowOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <div><h2 className="text-lg font-bold text-slate-800">ทำรายการให้ยืม</h2><p className="text-xs text-slate-500">{currentItem?.name}</p></div>
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div><h2 className="text-base sm:text-lg font-bold text-slate-800">ทำรายการให้ยืม</h2><p className="text-[10px] sm:text-xs text-slate-500 truncate max-w-[200px]">{currentItem?.name}</p></div>
               <button onClick={() => setIsBorrowOpen(false)} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg border border-slate-200"><Icons.X /></button>
             </div>
-            <form onSubmit={handleSaveBorrow} className="p-5 space-y-4">
+            <form onSubmit={handleSaveBorrow} className="p-4 sm:p-5 space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">ชื่อผู้ยืม</label>
-                <input required type="text" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" value={borrowData.borrowerName} onChange={e => setBorrowData({...borrowData, borrowerName: e.target.value})} placeholder="เช่น นายสมคิด เรียนดี" />
+                <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">ชื่อผู้ยืม</label>
+                <input required type="text" className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" value={borrowData.borrowerName} onChange={e => setBorrowData({...borrowData, borrowerName: e.target.value})} placeholder="เช่น นายสมคิด เรียนดี" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">วันที่ยืม</label>
-                  <input required type="date" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" value={borrowData.borrowDate} onChange={e => setBorrowData({...borrowData, borrowDate: e.target.value})} />
+                  <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">วันที่ยืม</label>
+                  <input required type="date" className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" value={borrowData.borrowDate} onChange={e => setBorrowData({...borrowData, borrowDate: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">กำหนดคืน</label>
-                  <input required type="date" className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" value={borrowData.returnDate} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} />
+                  <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">กำหนดคืน</label>
+                  <input required type="date" className="w-full p-2 sm:p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm" value={borrowData.returnDate} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} />
                 </div>
               </div>
-              <div className="pt-4 mt-2 border-t border-slate-100 flex gap-3">
-                <button type="button" onClick={() => setIsBorrowOpen(false)} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200">ยกเลิก</button>
-                <button type="submit" className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 shadow-md shadow-purple-200">บันทึกการยืม</button>
+              <div className="pt-3 sm:pt-4 mt-2 border-t border-slate-100 flex gap-2 sm:gap-3">
+                <button type="button" onClick={() => setIsBorrowOpen(false)} className="flex-1 px-3 py-2 sm:py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200">ยกเลิก</button>
+                <button type="submit" className="flex-1 px-3 py-2 sm:py-2.5 rounded-xl text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 shadow-md shadow-purple-200">บันทึกยืม</button>
               </div>
             </form>
           </div>
@@ -729,12 +735,12 @@ export default function InventoryApp() {
 
       {isReturnOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[80] p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up p-6 text-center">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500"><Icons.CheckCircle /></div>
-            <h3 className="text-lg font-bold text-slate-800 mb-2">ยืนยันการรับคืนอุปกรณ์</h3>
-            <p className="text-sm text-slate-500 mb-2">รับคืน "{itemToReturn?.name}"</p>
-            <p className="text-xs text-slate-400 mb-6 bg-slate-50 p-2 rounded-lg">จากผู้ยืม: {itemToReturn?.currentBorrow?.borrowerName}</p>
-            <div className="flex gap-3 justify-center">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up p-5 sm:p-6 text-center">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500"><Icons.CheckCircle /></div>
+            <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-1 sm:mb-2">รับคืนอุปกรณ์</h3>
+            <p className="text-xs sm:text-sm text-slate-500 mb-2 truncate px-4">"{itemToReturn?.name}"</p>
+            <p className="text-[10px] sm:text-xs text-slate-400 mb-5 sm:mb-6 bg-slate-50 p-2 rounded-lg">จากผู้ยืม: {itemToReturn?.currentBorrow?.borrowerName}</p>
+            <div className="flex gap-2 sm:gap-3 justify-center">
               <button onClick={() => setIsReturnOpen(false)} className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200">ยกเลิก</button>
               <button onClick={handleConfirmReturn} className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 shadow-md shadow-emerald-200">ยืนยันรับคืน</button>
             </div>
@@ -744,24 +750,24 @@ export default function InventoryApp() {
 
       {isHistoryOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[80vh]">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
-              <div><h2 className="text-lg font-bold text-slate-800">ประวัติการยืม-คืน</h2><p className="text-xs text-slate-500">{currentItem?.name}</p></div>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[85vh]">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
+              <div><h2 className="text-base sm:text-lg font-bold text-slate-800">ประวัติการยืม-คืน</h2><p className="text-[10px] sm:text-xs text-slate-500 truncate max-w-[200px] sm:max-w-[400px]">{currentItem?.name}</p></div>
               <button onClick={() => setIsHistoryOpen(false)} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg border border-slate-200"><Icons.X /></button>
             </div>
-            <div className="p-5 overflow-y-auto flex-1">
+            <div className="p-4 sm:p-5 overflow-y-auto flex-1">
               {currentItem?.history && currentItem.history.length > 0 ? (
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <table className="w-full text-left text-sm">
+                <div className="border border-slate-200 rounded-xl overflow-x-auto hide-scrollbar">
+                  <table className="w-full text-left text-xs sm:text-sm min-w-[500px]">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
-                      <tr><th className="px-4 py-3 font-medium">ผู้ยืม</th><th className="px-4 py-3 font-medium">วันที่ยืม</th><th className="px-4 py-3 font-medium">กำหนดคืน</th><th className="px-4 py-3 font-medium">สถานะ/วันคืนจริง</th></tr>
+                      <tr><th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">ผู้ยืม</th><th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">วันที่ยืม</th><th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">กำหนดคืน</th><th className="px-3 sm:px-4 py-2 sm:py-3 font-medium">สถานะ/วันคืนจริง</th></tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {currentItem.history.map((record, idx) => (
                         <tr key={idx} className="hover:bg-slate-50">
-                          <td className="px-4 py-3 font-medium text-slate-700">{record.borrowerName}</td><td className="px-4 py-3 text-slate-600">{record.borrowDate}</td><td className="px-4 py-3 text-slate-600">{record.returnDate}</td>
-                          <td className="px-4 py-3">
-                            {record.actualReturnDate ? (<span className="text-emerald-600 text-xs font-medium bg-emerald-50 px-2 py-1 rounded-md">คืนแล้ว ({record.actualReturnDate})</span>) : (<span className="text-purple-600 text-xs font-medium bg-purple-50 px-2 py-1 rounded-md">กำลังยืมอยู่</span>)}
+                          <td className="px-3 sm:px-4 py-2 sm:py-3 font-medium text-slate-700">{record.borrowerName}</td><td className="px-3 sm:px-4 py-2 sm:py-3 text-slate-600">{record.borrowDate}</td><td className="px-3 sm:px-4 py-2 sm:py-3 text-slate-600">{record.returnDate}</td>
+                          <td className="px-3 sm:px-4 py-2 sm:py-3">
+                            {record.actualReturnDate ? (<span className="text-emerald-600 text-[10px] sm:text-xs font-medium bg-emerald-50 px-2 py-1 rounded-md">คืนแล้ว ({record.actualReturnDate})</span>) : (<span className="text-purple-600 text-[10px] sm:text-xs font-medium bg-purple-50 px-2 py-1 rounded-md">กำลังยืม</span>)}
                           </td>
                         </tr>
                       ))}
@@ -769,7 +775,7 @@ export default function InventoryApp() {
                   </table>
                 </div>
               ) : (
-                <div className="text-center p-8 border border-dashed border-slate-200 rounded-xl"><div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3"><Icons.History /></div><p className="text-slate-500 text-sm">ยังไม่มีประวัติการยืมอุปกรณ์ชิ้นนี้</p></div>
+                <div className="text-center p-6 sm:p-8 border border-dashed border-slate-200 rounded-xl"><div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3"><Icons.History /></div><p className="text-slate-500 text-xs sm:text-sm">ยังไม่มีประวัติการยืมอุปกรณ์ชิ้นนี้</p></div>
               )}
             </div>
           </div>
@@ -779,17 +785,17 @@ export default function InventoryApp() {
       {isLoginModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <div className="flex items-center gap-2 text-slate-800"><div className="bg-slate-800 text-white p-1.5 rounded-lg"><Icons.Lock /></div><h2 className="text-lg font-bold">เข้าสู่ระบบ</h2></div>
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div className="flex items-center gap-2 text-slate-800"><div className="bg-slate-800 text-white p-1 sm:p-1.5 rounded-lg"><Icons.Lock /></div><h2 className="text-base sm:text-lg font-bold">เข้าสู่ระบบ</h2></div>
               <button onClick={() => {setIsLoginModalOpen(false); setLoginError(''); setPinInput('');}} className="text-slate-400 hover:text-slate-600 bg-white p-1 rounded-lg border border-slate-200"><Icons.X /></button>
             </div>
-            <form onSubmit={handleLogin} className="p-6 space-y-4">
+            <form onSubmit={handleLogin} className="p-5 sm:p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2 text-center">กรุณาใส่รหัสผ่านเพื่อจัดการข้อมูล</label>
-                <input autoFocus required type="password" className={`w-full p-3 border ${loginError ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-slate-800'} rounded-xl focus:ring-2 outline-none text-center tracking-widest text-lg font-bold`} value={pinInput} onChange={e => {setPinInput(e.target.value); setLoginError('');}} placeholder="••••••••" maxLength={8} />
-                {loginError && <p className="text-rose-500 text-sm mt-2 text-center font-medium">{loginError}</p>}
+                <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-2 text-center">กรุณาใส่รหัสผ่านเพื่อจัดการข้อมูล</label>
+                <input autoFocus required type="password" className={`w-full p-2.5 sm:p-3 border ${loginError ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-slate-800'} rounded-xl focus:ring-2 outline-none text-center tracking-widest text-base sm:text-lg font-bold`} value={pinInput} onChange={e => {setPinInput(e.target.value); setLoginError('');}} placeholder="••••••••" maxLength={8} />
+                {loginError && <p className="text-rose-500 text-[11px] sm:text-sm mt-2 text-center font-medium">{loginError}</p>}
               </div>
-              <div className="pt-2"><button type="submit" className="w-full px-4 py-3 rounded-xl text-sm font-bold text-white bg-slate-800 hover:bg-slate-900 transition-colors shadow-md">ยืนยันการเข้าสู่ระบบ</button></div>
+              <div className="pt-1 sm:pt-2"><button type="submit" className="w-full px-4 py-2.5 sm:py-3 rounded-xl text-sm font-bold text-white bg-slate-800 hover:bg-slate-900 transition-colors shadow-md">ยืนยัน</button></div>
             </form>
           </div>
         </div>
