@@ -71,8 +71,8 @@ export default function App() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState('all');
+  const [sortBy, setSortBy] = useState('name');
   
-  // Modals state
   const [showForm, setShowForm] = useState(false);
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -81,22 +81,19 @@ export default function App() {
   const [showRoomModal, setShowRoomModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   
-  // Input states for new settings
   const [newCategory, setNewCategory] = useState('');
   const [newRoom, setNewRoom] = useState('');
   const [newLocation, setNewLocation] = useState('');
   
-  // Settings Edit/Delete State
   const [editSettingState, setEditSettingState] = useState({ collection: '', oldName: '', newName: '' });
   const [deleteSettingState, setDeleteSettingState] = useState({ collection: '', name: '' });
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
 
-  // Forms
   const [formData, setFormData] = useState({
     id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', location: '', status: 'available', quantity: 1
   });
   const [borrowData, setBorrowData] = useState({ borrowerName: '', expectedReturnDate: '', lenderName: '' });
-  const [returnData, setReturnData] = useState({ returnerName: '' }); // For receiving back
+  const [returnData, setReturnData] = useState({ returnerName: '' }); 
   const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
@@ -192,7 +189,6 @@ export default function App() {
   const addRoom = async (e) => { e.preventDefault(); if (newRoom.trim() && !rooms.includes(newRoom.trim())) { await setDoc(doc(collection(db, 'mdec_stock', 'shared_data', 'rooms')), { name: newRoom.trim() }); setNewRoom(''); } };
   const addLocation = async (e) => { e.preventDefault(); if (newLocation.trim() && !locations.includes(newLocation.trim())) { await setDoc(doc(collection(db, 'mdec_stock', 'shared_data', 'locations')), { name: newLocation.trim() }); setNewLocation(''); } };
 
-  // อัปเดตชื่อใน Settings และแก้ไขในอุปกรณ์ทั้งหมดที่ใช้อยู่ให้อัตโนมัติ!
   const handleUpdateSetting = async (collectionName, oldName, newName) => {
     if (!newName.trim() || oldName === newName) { setEditSettingState({ collection: '', oldName: '', newName: '' }); return; }
     try {
@@ -224,18 +220,40 @@ export default function App() {
   };
 
   const exportToCSV = () => {
-    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่จัดเก็บ', 'สถานะ', 'จำนวน', 'ผู้ยืมปัจจุบัน'];
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers.join(',') + '\n' + items.map(i => 
-      `"${i.name}","${i.sn || '-'}","${i.department}","${i.category}","${i.location}","${STATUSES.find(s=>s.id===i.status)?.label}","${i.quantity||1}","${i.currentBorrower || '-'}"`
-    ).join('\n');
-    const encodedUri = encodeURI(csvContent); const link = document.createElement("a"); link.setAttribute("href", encodedUri); link.setAttribute("download", `mdec_stock_${new Date().toISOString().split('T')[0]}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    if (items.length === 0) return;
+    const headers = ['ชื่ออุปกรณ์', 'S.N.', 'หมวดหมู่', 'ฝ่ายที่รับผิดชอบ', 'สถานที่/ห้อง', 'สถานะ', 'จำนวนชิ้น'];
+    const rows = items.map(i => [
+      `"${i.name}"`, `"${i.sn || '-'}"`, `"${i.category || '-'}"`, `"${DEPARTMENTS.find(d=>d.id===i.department)?.label || '-'}"`, `"${i.location || '-'}"`, `"${STATUSES.find(s=>s.id===i.status)?.label || '-'}"`, i.quantity
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `mdec_stock_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const filteredItems = useMemo(() => items.filter(item => {
-    const matchSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || (item.sn && item.sn.toLowerCase().includes(searchTerm.toLowerCase())) || item.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchDept = filterDept === 'all' || item.department === filterDept;
-    return matchSearch && matchDept;
-  }), [items, searchTerm, filterDept]);
+  const filteredItems = useMemo(() => {
+    let result = items.filter(item => {
+      const matchSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || (item.sn && item.sn.toLowerCase().includes(searchTerm.toLowerCase())) || item.location.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchDept = filterDept === 'all' || item.department === filterDept;
+      return matchSearch && matchDept;
+    });
+
+    result.sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name, 'th');
+      if (sortBy === 'status') {
+        const statusOrder = { 'available': 1, 'in-use': 2, 'borrowed': 3, 'maintenance': 4 };
+        return (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
+      }
+      if (sortBy === 'category') return (a.category || '').localeCompare(b.category || '', 'th');
+      return 0;
+    });
+
+    return result;
+  }, [items, searchTerm, filterDept, sortBy]);
 
   const stats = useMemo(() => {
     const s = { total: 0, available: 0, borrowed: 0, maintenance: 0, dept: {}, categories: { cam: {t:0,a:0}, lens: {t:0,a:0}, mic: {t:0,a:0}, speaker: {t:0,a:0}, battery: {t:0,a:0} } };
@@ -248,10 +266,8 @@ export default function App() {
       if (item.status === 'maintenance') s.maintenance += qty;
       if (s.dept[item.department] !== undefined) s.dept[item.department] += qty;
 
-      // ดึงชื่อหมวดหมู่มาเช็คแบบเป๊ะๆ (ตัดช่องว่างทิ้ง)
       const cat = (item.category || '').trim();
       
-      // ฟังก์ชันสำหรับเช็คคำให้ตรงกับหมวดหมู่เท่านั้น (ไม่เอาชื่ออุปกรณ์มาปน)
       const checkExactCat = (key, exactWords) => {
         if (exactWords.includes(cat)) {
           s.categories[key].t += qty; 
@@ -259,7 +275,6 @@ export default function App() {
         }
       };
 
-      // ถ้าระบุหมวดหมู่ตรงกับคำในวงเล็บเหล่านี้ ตัวเลขในกล่องสรุปถึงจะเพิ่มขึ้น
       checkExactCat('cam', ['กล้อง', 'กล้องถ่ายภาพ', 'กล้องวิดีโอ', 'Camera']);
       checkExactCat('lens', ['เลนส์', 'Lens']);
       checkExactCat('mic', ['ไมโครโฟน', 'ไมค์', 'Microphone']);
@@ -274,8 +289,7 @@ export default function App() {
       <div className="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full text-center border-t-4 border-rose-500">
         <div className="mx-auto flex justify-center mb-6"><Icons.Alert /></div>
         <h2 className="text-2xl font-black text-slate-800 mb-4">เข้าถึงฐานข้อมูลไม่ได้</h2>
-        <p className="text-lg text-slate-600 mb-6 font-medium">โปรดตั้งค่า Rules ใน Firebase ของคุณให้เป็น:<br/><code className="bg-slate-100 p-3 rounded-lg block mt-3 text-left text-sm text-rose-600">allow read, write: if true;</code></p>
-        <p className="text-slate-500 text-sm">ดูวิธีแก้ไขได้ในแชท AI ครับ</p>
+        <p className="text-lg text-slate-600 mb-6 font-medium">โปรดตั้งค่า Rules ใน Firebase ให้เป็น <code className="bg-slate-100 px-2 py-1 rounded text-rose-600">allow read, write: if true;</code></p>
       </div>
     </div>
   );
@@ -286,26 +300,26 @@ export default function App() {
       <nav className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-30">
         <div className="w-full px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-md"><Icons.Package /></div>
-            <div><h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 leading-none">MDEC-Stock</h1><p className="text-sm font-bold text-slate-500">ศูนย์มัลติมีเดีย</p></div>
+            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-md"><Icons.Package /></div>
+            <div><h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 leading-none">MDEC-Stock</h1><p className="text-base font-bold text-slate-500">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p></div>
           </div>
           <div className="flex gap-2">
             {!isAdmin ? (
-              <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition-colors shadow-sm text-sm sm:text-base"><Icons.Lock /><span className="hidden sm:inline">เข้าสู่ระบบจัดการ</span></button>
+              <button onClick={() => setShowLogin(true)} className="flex items-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition-colors shadow-sm text-base"><Icons.Lock /><span className="hidden sm:inline">เข้าสู่ระบบเพื่อจัดการ</span></button>
             ) : (
               <>
-                <button onClick={exportToCSV} className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 font-bold rounded-xl transition-colors text-sm sm:text-base" title="ส่งออก Excel"><Icons.Download /><span className="hidden sm:inline">ส่งออก</span></button>
+                <button onClick={exportToCSV} className="flex items-center gap-2 px-4 py-3 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 font-bold rounded-xl transition-colors text-base" title="ส่งออก Excel"><Icons.Download /><span className="hidden sm:inline">ส่งออก</span></button>
                 <div className="relative">
-                  <button onClick={() => setShowSettingsDropdown(!showSettingsDropdown)} className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 font-bold rounded-xl transition-colors text-sm sm:text-base"><Icons.Settings /><span className="hidden sm:inline">ตั้งค่า</span><Icons.MoreVertical/></button>
+                  <button onClick={() => setShowSettingsDropdown(!showSettingsDropdown)} className="flex items-center gap-2 px-4 py-3 bg-slate-200 text-slate-800 hover:bg-slate-300 font-bold rounded-xl transition-colors text-base"><Icons.Settings /><span className="hidden sm:inline">ตั้งค่า</span><Icons.MoreVertical/></button>
                   {showSettingsDropdown && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50">
-                      <button onClick={() => {setShowCategoryModal(true); setShowSettingsDropdown(false);}} className="w-full text-left px-4 py-3 hover:bg-slate-50 font-bold text-slate-700 text-base border-b border-slate-100 flex items-center gap-2"><Icons.Folder/> จัดการหมวดหมู่</button>
-                      <button onClick={() => {setShowRoomModal(true); setShowSettingsDropdown(false);}} className="w-full text-left px-4 py-3 hover:bg-slate-50 font-bold text-slate-700 text-base border-b border-slate-100 flex items-center gap-2"><Icons.List/> จัดการห้องประชุม</button>
-                      <button onClick={() => {setShowLocationModal(true); setShowSettingsDropdown(false);}} className="w-full text-left px-4 py-3 hover:bg-slate-50 font-bold text-slate-700 text-base flex items-center gap-2"><Icons.MapPin/> จัดการสถานที่</button>
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50">
+                      <button onClick={() => {setShowCategoryModal(true); setShowSettingsDropdown(false);}} className="w-full text-left px-5 py-3.5 hover:bg-slate-50 font-bold text-slate-700 text-base border-b border-slate-100 flex items-center gap-3"><Icons.Folder/> จัดการหมวดหมู่</button>
+                      <button onClick={() => {setShowRoomModal(true); setShowSettingsDropdown(false);}} className="w-full text-left px-5 py-3.5 hover:bg-slate-50 font-bold text-slate-700 text-base border-b border-slate-100 flex items-center gap-3"><Icons.List/> จัดการห้องประชุม</button>
+                      <button onClick={() => {setShowLocationModal(true); setShowSettingsDropdown(false);}} className="w-full text-left px-5 py-3.5 hover:bg-slate-50 font-bold text-slate-700 text-base flex items-center gap-3"><Icons.MapPin/> จัดการสถานที่จัดเก็บ</button>
                     </div>
                   )}
                 </div>
-                <button onClick={handleLogout} className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl transition-colors text-sm sm:text-base" title="ออกจากระบบ"><Icons.Unlock /><span className="hidden sm:inline">ออก</span></button>
+                <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-3 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-xl transition-colors text-base" title="ออกจากระบบ"><Icons.Unlock /><span className="hidden sm:inline">ออก</span></button>
               </>
             )}
           </div>
@@ -317,10 +331,10 @@ export default function App() {
         
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-md flex flex-col justify-between border-t-4 border-t-blue-500"><p className="text-sm sm:text-base font-bold text-slate-500 mb-2">อุปกรณ์ทั้งหมด</p><p className="text-3xl sm:text-4xl font-black text-blue-600">{stats.total}</p></div>
-          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-md flex flex-col justify-between border-t-4 border-t-emerald-500"><p className="text-sm sm:text-base font-bold text-slate-500 mb-2">พร้อมใช้งาน</p><p className="text-3xl sm:text-4xl font-black text-emerald-600">{stats.available}</p></div>
-          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-md flex flex-col justify-between border-t-4 border-t-purple-500"><p className="text-sm sm:text-base font-bold text-slate-500 mb-2">กำลังถูกยืม</p><p className="text-3xl sm:text-4xl font-black text-purple-600">{stats.borrowed}</p></div>
-          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-md flex flex-col justify-between border-t-4 border-t-rose-500"><p className="text-sm sm:text-base font-bold text-slate-500 mb-2">ส่งซ่อม/ชำรุด</p><p className="text-3xl sm:text-4xl font-black text-rose-600">{stats.maintenance}</p></div>
+          <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-md flex flex-col justify-between border-t-8 border-t-blue-500"><p className="text-base sm:text-lg font-bold text-slate-500 mb-2">อุปกรณ์ทั้งหมด</p><p className="text-4xl sm:text-5xl font-black text-blue-600">{stats.total}</p></div>
+          <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-md flex flex-col justify-between border-t-8 border-t-emerald-500"><p className="text-base sm:text-lg font-bold text-slate-500 mb-2">พร้อมใช้งาน</p><p className="text-4xl sm:text-5xl font-black text-emerald-600">{stats.available}</p></div>
+          <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-md flex flex-col justify-between border-t-8 border-t-purple-500"><p className="text-base sm:text-lg font-bold text-slate-500 mb-2">กำลังถูกยืม</p><p className="text-4xl sm:text-5xl font-black text-purple-600">{stats.borrowed}</p></div>
+          <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-md flex flex-col justify-between border-t-8 border-t-rose-500"><p className="text-base sm:text-lg font-bold text-slate-500 mb-2">ส่งซ่อม/ชำรุด</p><p className="text-4xl sm:text-5xl font-black text-rose-600">{stats.maintenance}</p></div>
         </div>
 
         {/* Sub Stats Grid */}
@@ -332,80 +346,87 @@ export default function App() {
             { label: 'ชุดลำโพง', ...stats.categories.speaker },
             { label: 'ถ่าน/แบต', ...stats.categories.battery }
           ].map(c => (
-            <div key={c.label} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
-              <div className="flex justify-between items-end mb-2">
-                <div><p className="text-sm font-bold text-slate-500">{c.label}</p><p className="text-2xl font-black text-slate-800">{c.t} <span className="text-sm font-bold text-slate-400">ชิ้น</span></p></div>
-                <div className="text-right"><p className="text-xs font-bold text-emerald-600">พร้อมใช้</p><p className="text-lg font-black text-emerald-600">{c.a}</p></div>
+            <div key={c.label} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+              <div className="flex justify-between items-end mb-3">
+                <div><p className="text-base font-bold text-slate-500">{c.label}</p><p className="text-3xl font-black text-slate-800">{c.t} <span className="text-base font-bold text-slate-400">ชิ้น</span></p></div>
+                <div className="text-right"><p className="text-sm font-bold text-emerald-600">พร้อมใช้</p><p className="text-2xl font-black text-emerald-600">{c.a}</p></div>
               </div>
-              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${c.t === 0 ? 0 : (c.a / c.t) * 100}%` }}></div></div>
+              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${c.t === 0 ? 0 : (c.a / c.t) * 100}%` }}></div></div>
             </div>
           ))}
         </div>
 
         {/* Filters & Search */}
-        <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 sm:p-5 rounded-2xl shadow-md border border-slate-200">
-          <div className="relative w-full md:max-w-md">
+        <div className="flex flex-col xl:flex-row gap-4 items-center bg-white p-5 sm:p-6 rounded-2xl shadow-md border border-slate-200">
+          <div className="relative w-full xl:max-w-md">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400"><Icons.Search /></div>
-            <input type="text" className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <input type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
-          <div className="flex gap-2 overflow-x-auto w-full pb-2 md:pb-0 custom-scrollbar">
-            <button onClick={() => setFilterDept('all')} className={`whitespace-nowrap px-5 py-3 rounded-xl font-bold text-base transition-all ${filterDept === 'all' ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'}`}>ทั้งหมด</button>
+
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full xl:w-auto px-5 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm shrink-0">
+            <option value="name">จัดเรียง: ชื่ออุปกรณ์ (ก-ฮ)</option>
+            <option value="status">จัดเรียง: ตามสถานะ</option>
+            <option value="category">จัดเรียง: ตามหมวดหมู่</option>
+          </select>
+
+          <div className="flex gap-2 overflow-x-auto w-full pb-2 xl:pb-0 custom-scrollbar">
+            <button onClick={() => setFilterDept('all')} className={`whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all ${filterDept === 'all' ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>ทั้งหมด</button>
             {DEPARTMENTS.map(d => (
-              <button key={d.id} onClick={() => setFilterDept(d.id)} className={`whitespace-nowrap px-5 py-3 rounded-xl font-bold text-base transition-all ${filterDept === d.id ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'}`}>{d.label}</button>
+              <button key={d.id} onClick={() => setFilterDept(d.id)} className={`whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all ${filterDept === d.id ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>{d.label}</button>
             ))}
           </div>
           {isAdmin && (
-            <button onClick={() => { setFormData({ id: '', name: '', sn: '', department: filterDept === 'all' ? 'ภาพนิ่ง' : filterDept, category: categories[0]||'', location: '', status: 'available', quantity: 1 }); setShowForm(true); }} className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md transition-colors text-base whitespace-nowrap"><Icons.Plus /> เพิ่มอุปกรณ์</button>
+            <button onClick={() => { setFormData({ id: '', name: '', sn: '', department: filterDept === 'all' ? 'ภาพนิ่ง' : filterDept, category: categories[0]||'', location: '', status: 'available', quantity: 1 }); setShowForm(true); }} className="w-full xl:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap"><Icons.Plus /> เพิ่มอุปกรณ์</button>
           )}
         </div>
 
         {/* Table / List */}
         <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[800px]">
+            <table className="w-full text-left border-collapse min-w-[1000px]">
               <thead>
-                <tr className="bg-slate-200/70 border-b border-slate-300">
-                  <th className="p-4 sm:p-5 text-base font-black text-slate-700">ชื่ออุปกรณ์ / รหัส</th>
-                  <th className="p-4 sm:p-5 text-base font-black text-slate-700">หมวดหมู่</th>
-                  <th className="p-4 sm:p-5 text-base font-black text-slate-700">สถานที่ / ห้องประชุม</th>
-                  <th className="p-4 sm:p-5 text-base font-black text-slate-700">สถานะ</th>
-                  <th className="p-4 sm:p-5 text-base font-black text-slate-700 text-center">จัดการ</th>
+                <tr className="bg-slate-200 border-b-2 border-slate-300">
+                  <th className="p-5 sm:p-6 text-lg font-black text-slate-800 w-1/3">ชื่ออุปกรณ์ / รหัส</th>
+                  <th className="p-5 sm:p-6 text-lg font-black text-slate-800">หมวดหมู่</th>
+                  <th className="p-5 sm:p-6 text-lg font-black text-slate-800">สถานที่ / ห้องประชุม</th>
+                  <th className="p-5 sm:p-6 text-lg font-black text-slate-800">สถานะ</th>
+                  <th className="p-5 sm:p-6 text-lg font-black text-slate-800 text-center">จัดการ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredItems.length === 0 ? (
-                  <tr><td colSpan="5" className="p-10 text-center text-slate-400 font-bold text-lg">ไม่พบข้อมูลที่ค้นหา</td></tr>
+                  <tr><td colSpan="5" className="p-12 text-center text-slate-400 font-bold text-xl">ไม่พบข้อมูลที่ค้นหา</td></tr>
                 ) : (
                   filteredItems.map(item => {
                     const status = STATUSES.find(s => s.id === item.status);
                     const dept = DEPARTMENTS.find(d => d.id === item.department);
                     return (
                       <tr key={item.id} className="hover:bg-slate-50 transition-colors group">
-                        <td className="p-4 sm:p-5">
-                          <p className="font-black text-lg text-slate-800 flex items-center gap-2">{item.name} {item.quantity > 1 && <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-md">x{item.quantity}</span>}</p>
-                          <div className="flex gap-2 items-center mt-1"><span className="text-sm font-bold text-slate-500">S.N.: {item.sn || '-'}</span></div>
+                        <td className="p-5 sm:p-6">
+                          <p className="font-black text-xl text-slate-800 flex items-center gap-3">{item.name} {item.quantity > 1 && <span className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-lg">x{item.quantity}</span>}</p>
+                          <div className="flex gap-2 items-center mt-2"><span className="text-base font-bold text-slate-500">S.N.: {item.sn || '-'}</span></div>
                         </td>
-                        <td className="p-4 sm:p-5">
-                          {dept && <span className={`inline-block px-3 py-1 rounded-lg text-sm font-bold mb-1 ${dept.color}`}>{dept.label}</span>}
-                          {item.category && <p className="text-base font-bold text-slate-600">{item.category}</p>}
+                        <td className="p-5 sm:p-6">
+                          {dept && <span className={`inline-block px-3 py-1.5 rounded-lg text-sm font-black mb-2 ${dept.color}`}>{dept.label}</span>}
+                          {item.category && <p className="text-lg font-bold text-slate-700">{item.category}</p>}
                         </td>
-                        <td className="p-4 sm:p-5 text-base font-bold text-slate-600">{item.location || '-'}</td>
-                        <td className="p-4 sm:p-5">
-                          <span className={`px-4 py-1.5 rounded-xl text-sm font-black border ${status?.color}`}>{status?.label}</span>
+                        <td className="p-5 sm:p-6 text-lg font-bold text-slate-700">{item.location || '-'}</td>
+                        <td className="p-5 sm:p-6">
+                          <span className={`px-4 py-2 rounded-xl text-base font-black border ${status?.color}`}>{status?.label}</span>
                           {item.status === 'borrowed' && (
-                            <div className="mt-2 bg-purple-50 p-2.5 rounded-lg border border-purple-100 text-xs font-bold text-purple-800">
-                              <p>ผู้ยืม: <span className="text-purple-600">{item.currentBorrower}</span></p>
+                            <div className="mt-3 bg-purple-50 p-3 rounded-xl border border-purple-200 text-sm font-bold text-purple-900">
+                              <p>ผู้ยืม: <span className="text-purple-700">{item.currentBorrower}</span></p>
                               <p>คืน: {item.expectedReturn}</p>
                             </div>
                           )}
                         </td>
-                        <td className="p-4 sm:p-5">
-                          <div className="flex justify-center gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                            {isAdmin && item.status === 'available' && <button onClick={() => { setSelectedItem(item); setShowBorrowModal(true); }} className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl font-bold transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
-                            {isAdmin && item.status === 'borrowed' && <button onClick={() => { setSelectedItem(item); setShowReturnModal(true); }} className="p-2.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl font-bold transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
-                            <button onClick={() => setShowHistoryModal(item)} className="p-2.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-xl transition-colors" title="ประวัติ"><Icons.History /></button>
-                            {isAdmin && <button onClick={() => { setFormData({ ...item }); setShowForm(true); }} className="p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors" title="แก้ไข"><Icons.Edit /></button>}
-                            {isAdmin && <button onClick={() => handleDelete(item.id)} className="p-2.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl transition-colors" title="ลบ"><Icons.Trash /></button>}
+                        <td className="p-5 sm:p-6">
+                          <div className="flex justify-center gap-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                            {isAdmin && item.status === 'available' && <button onClick={() => { setSelectedItem(item); setShowBorrowModal(true); }} className="p-3 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl font-bold transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
+                            {isAdmin && item.status === 'borrowed' && <button onClick={() => { setSelectedItem(item); setShowReturnModal(true); }} className="p-3 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-bold transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
+                            <button onClick={() => setShowHistoryModal(item)} className="p-3 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl transition-colors" title="ประวัติ"><Icons.History /></button>
+                            {isAdmin && <button onClick={() => { setFormData({ ...item }); setShowForm(true); }} className="p-3 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl transition-colors" title="แก้ไข"><Icons.Edit /></button>}
+                            {isAdmin && <button onClick={() => handleDelete(item.id)} className="p-3 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl transition-colors" title="ลบ"><Icons.Trash /></button>}
                           </div>
                         </td>
                       </tr>
@@ -418,137 +439,133 @@ export default function App() {
         </div>
       </main>
 
-      {/* Login Modal */}
+      {}
       {showLogin && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-8 text-center">
-            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-700"><Icons.Lock /></div>
+            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-700"><Icons.Lock /></div>
             <h3 className="font-black text-2xl mb-6 text-slate-800">เข้าสู่ระบบผู้ดูแล</h3>
             <form onSubmit={handleLogin}>
-              <input type="password" required maxLength="8" className="w-full text-center tracking-widest px-4 py-4 border-2 border-slate-200 bg-slate-50 text-xl font-black rounded-xl mb-4 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all" placeholder="••••••••" value={pinInput} onChange={(e) => setPinInput(e.target.value)} />
-              {loginError && <p className="text-rose-500 text-sm font-bold mb-4">{loginError}</p>}
+              <input type="password" required maxLength="8" className="w-full text-center tracking-widest px-5 py-4 border-2 border-slate-300 bg-slate-50 text-2xl font-black rounded-xl mb-4 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all" placeholder="••••••••" value={pinInput} onChange={(e) => setPinInput(e.target.value)} />
+              {loginError && <p className="text-rose-500 text-base font-bold mb-4">{loginError}</p>}
               <div className="flex gap-3">
-                <button type="button" onClick={() => setShowLogin(false)} className="flex-1 py-3.5 border border-slate-300 rounded-xl font-bold hover:bg-slate-50 text-base">ยกเลิก</button>
-                <button type="submit" className="flex-1 py-3.5 bg-slate-800 text-white rounded-xl font-black shadow-md hover:bg-slate-900 text-base">เข้าสู่ระบบ</button>
+                <button type="button" onClick={() => setShowLogin(false)} className="flex-1 py-4 border border-slate-300 rounded-xl font-bold hover:bg-slate-50 text-lg">ยกเลิก</button>
+                <button type="submit" className="flex-1 py-4 bg-slate-800 text-white rounded-xl font-black shadow-md hover:bg-slate-900 text-lg">เข้าสู่ระบบ</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Item Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-6 py-5 border-b border-slate-200 bg-slate-50 flex justify-between items-center"><h3 className="text-xl font-black text-slate-800">{formData.id ? 'แก้ไขข้อมูลอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}</h3><button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-700 p-1"><Icons.X /></button></div>
-            <div className="p-6 overflow-y-auto custom-scrollbar">
-              <form id="itemForm" onSubmit={handleSubmit} className="space-y-5">
-                <div><label className="block text-sm font-bold text-slate-700 mb-2">ชื่ออุปกรณ์ <span className="text-rose-500">*</span></label><input required className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-base" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="เช่น กล้อง Sony A7IV" /></div>
+          <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-8 py-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center"><h3 className="text-2xl font-black text-slate-800">{formData.id ? 'แก้ไขข้อมูลอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}</h3><button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-700 p-2"><Icons.X /></button></div>
+            <div className="p-8 overflow-y-auto custom-scrollbar">
+              <form id="itemForm" onSubmit={handleSubmit} className="space-y-6">
+                <div><label className="block text-base font-bold text-slate-700 mb-2">ชื่ออุปกรณ์ <span className="text-rose-500">*</span></label><input required className="w-full px-5 py-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-lg" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="เช่น กล้อง Sony A7IV" /></div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div><label className="block text-sm font-bold text-slate-700 mb-2">ฝ่ายที่รับผิดชอบ</label><select className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white font-bold text-base" value={formData.department} onChange={(e) => setFormData({...formData, department: e.target.value})}>{DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}</select></div>
-                  <div><label className="block text-sm font-bold text-slate-700 mb-2">จำนวนชิ้น</label><input type="number" min="1" required className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-base bg-white" value={formData.quantity} onChange={(e) => setFormData({...formData, quantity: e.target.value})} /></div>
+                <div className="grid grid-cols-2 gap-5">
+                  <div><label className="block text-base font-bold text-slate-700 mb-2">ฝ่ายที่รับผิดชอบ</label><select className="w-full px-5 py-4 border border-slate-300 rounded-xl bg-white font-bold text-lg" value={formData.department} onChange={(e) => setFormData({...formData, department: e.target.value})}>{DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}</select></div>
+                  <div><label className="block text-base font-bold text-slate-700 mb-2">จำนวนชิ้น</label><input type="number" min="1" required className="w-full px-5 py-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-lg bg-white" value={formData.quantity} onChange={(e) => setFormData({...formData, quantity: e.target.value})} /></div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">หมวดหมู่อุปกรณ์</label>
-                    <select className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white font-bold text-base mb-2" value={categories.includes(formData.category) ? formData.category : (formData.category === '' ? '' : 'other')} onChange={(e) => setFormData({...formData, category: e.target.value})}>
+                    <label className="block text-base font-bold text-slate-700 mb-2">หมวดหมู่อุปกรณ์</label>
+                    <select className="w-full px-5 py-4 border border-slate-300 rounded-xl bg-white font-bold text-lg mb-2" value={categories.includes(formData.category) ? formData.category : (formData.category === '' ? '' : 'other')} onChange={(e) => setFormData({...formData, category: e.target.value})}>
                       <option value="">-- เลือกหมวดหมู่ --</option>
                       {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                      <option value="other" className="font-black text-blue-600">+ เพิ่มหมวดหมู่ใหม่...</option>
+                      <option value="other" className="font-black text-blue-600">+ เพิ่มหมวดหมู่ใหม่ / พิมพ์ระบุเอง...</option>
                     </select>
-                    {(!categories.includes(formData.category) && formData.category !== '') || (categories.length === 0) ? (
-                       <input autoFocus placeholder="พิมพ์หมวดหมู่ใหม่..." className="w-full px-4 py-3 border border-blue-400 bg-blue-50 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-base" value={formData.category === 'other' ? '' : formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} />
+                    {(!categories.includes(formData.category) && formData.category !== '') || formData.category === 'other' ? (
+                       <input autoFocus placeholder="พิมพ์หมวดหมู่ใหม่..." className="w-full px-5 py-4 border border-blue-400 bg-blue-50 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-lg" value={formData.category === 'other' ? '' : formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} />
                     ) : null}
                   </div>
-                  <div><label className="block text-sm font-bold text-slate-700 mb-2">รหัส S.N. (ถ้ามี)</label><input className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-base" value={formData.sn} onChange={(e) => setFormData({...formData, sn: e.target.value})} placeholder="เช่น CAM-001" /></div>
+                  <div><label className="block text-base font-bold text-slate-700 mb-2">รหัส S.N. (ถ้ามี)</label><input className="w-full px-5 py-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-lg" value={formData.sn} onChange={(e) => setFormData({...formData, sn: e.target.value})} placeholder="เช่น CAM-001 (เว้นว่างได้)" /></div>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">สถานที่จัดเก็บ / ห้อง</label>
-                    <select className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white font-bold text-base mb-2" value={(locations.includes(formData.location) || rooms.includes(formData.location)) ? formData.location : (formData.location === '' ? '' : 'other')} onChange={(e) => setFormData({...formData, location: e.target.value})}>
+                    <label className="block text-base font-bold text-slate-700 mb-2">สถานที่จัดเก็บ / ห้อง</label>
+                    <select className="w-full px-5 py-4 border border-slate-300 rounded-xl bg-white font-bold text-lg mb-2" value={(locations.includes(formData.location) || rooms.includes(formData.location)) ? formData.location : (formData.location === '' ? '' : 'other')} onChange={(e) => setFormData({...formData, location: e.target.value})}>
                       <option value="">-- เลือกสถานที่ --</option>
                       {locations.length > 0 && <optgroup label="สถานที่จัดเก็บ">{locations.map(l => <option key={l} value={l}>{l}</option>)}</optgroup>}
                       {rooms.length > 0 && <optgroup label="ห้องประชุม">{rooms.map(r => <option key={r} value={r}>{r}</option>)}</optgroup>}
-                      <option value="other" className="font-black text-blue-600">+ พิมพ์ระบุเอง...</option>
+                      <option value="other" className="font-black text-blue-600">+ เพิ่มสถานที่ใหม่ / พิมพ์ระบุเอง...</option>
                     </select>
-                    {(!locations.includes(formData.location) && !rooms.includes(formData.location) && formData.location !== '') || (locations.length === 0 && rooms.length === 0) ? (
-                       <input autoFocus placeholder="พิมพ์สถานที่ใหม่..." className="w-full px-4 py-3 border border-blue-400 bg-blue-50 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-base" value={formData.location === 'other' ? '' : formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} />
+                    {(!locations.includes(formData.location) && !rooms.includes(formData.location) && formData.location !== '') || formData.location === 'other' ? (
+                       <input autoFocus placeholder="พิมพ์สถานที่ใหม่..." className="w-full px-5 py-4 border border-blue-400 bg-blue-50 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-lg" value={formData.location === 'other' ? '' : formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} />
                     ) : null}
                 </div>
 
-                <div><label className="block text-sm font-bold text-slate-700 mb-2">สถานะ</label><select className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-white font-bold text-base" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>{STATUSES.map(s => <option key={s.id} value={s.id} disabled={s.id==='borrowed'}>{s.label}</option>)}</select></div>
+                <div><label className="block text-base font-bold text-slate-700 mb-2">สถานะ</label><select className="w-full px-5 py-4 border border-slate-300 rounded-xl bg-white font-bold text-lg" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>{STATUSES.map(s => <option key={s.id} value={s.id} disabled={s.id==='borrowed'}>{s.label}</option>)}</select></div>
               </form>
             </div>
-            <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
-              <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3.5 border border-slate-300 rounded-xl font-bold hover:bg-white text-base">ยกเลิก</button>
-              <button type="submit" form="itemForm" className="flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-black shadow-md hover:bg-blue-700 text-base">บันทึกข้อมูล</button>
+            <div className="p-8 border-t border-slate-200 bg-slate-50 flex gap-4">
+              <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-4 border border-slate-300 rounded-xl font-bold hover:bg-white text-lg">ยกเลิก</button>
+              <button type="submit" form="itemForm" className="flex-1 py-4 bg-blue-600 text-white rounded-xl font-black shadow-md hover:bg-blue-700 text-lg">บันทึกข้อมูล</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Borrow Modal */}
       {showBorrowModal && selectedItem && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-8">
-            <h3 className="font-black text-2xl mb-2 text-slate-800">ทำรายการให้ยืม</h3>
-            <p className="text-slate-500 font-bold mb-6 text-base">อุปกรณ์: <span className="text-blue-600">{selectedItem.name}</span></p>
-            <form onSubmit={handleBorrow} className="space-y-5">
-              <div><label className="block text-sm font-bold text-slate-700 mb-2">ชื่อผู้ยืม <span className="text-rose-500">*</span></label><input required className="w-full px-4 py-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 font-bold text-base" value={borrowData.borrowerName} onChange={e=>setBorrowData({...borrowData, borrowerName: e.target.value})} placeholder="ชื่อ-สกุล หรือ แผนก" /></div>
-              <div><label className="block text-sm font-bold text-slate-700 mb-2">กำหนดคืน</label><input type="date" required className="w-full px-4 py-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 font-bold text-base" value={borrowData.expectedReturnDate} onChange={e=>setBorrowData({...borrowData, expectedReturnDate: e.target.value})} /></div>
-              <div className="pt-4 border-t border-slate-100"><label className="block text-sm font-bold text-slate-700 mb-2">เจ้าหน้าที่ผู้ทำรายการ (ผู้ให้ยืม) <span className="text-rose-500">*</span></label><input required className="w-full px-4 py-3 border border-indigo-200 bg-indigo-50 rounded-xl outline-none focus:border-indigo-500 font-bold text-base text-indigo-800" value={borrowData.lenderName} onChange={e=>setBorrowData({...borrowData, lenderName: e.target.value})} placeholder="ชื่อเจ้าหน้าที่" /></div>
-              <div className="flex gap-3 mt-8">
-                <button type="button" onClick={()=>setShowBorrowModal(false)} className="flex-1 py-3.5 border border-slate-300 rounded-xl font-bold text-base">ยกเลิก</button>
-                <button type="submit" className="flex-1 py-3.5 bg-indigo-600 text-white rounded-xl font-black shadow-md text-base">บันทึกการยืม</button>
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-8">
+            <h3 className="font-black text-3xl mb-3 text-slate-800">ทำรายการให้ยืม</h3>
+            <p className="text-slate-500 font-bold mb-8 text-lg">อุปกรณ์: <span className="text-blue-600">{selectedItem.name}</span></p>
+            <form onSubmit={handleBorrow} className="space-y-6">
+              <div><label className="block text-base font-bold text-slate-700 mb-2">ชื่อผู้ยืม <span className="text-rose-500">*</span></label><input required className="w-full px-5 py-4 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 font-bold text-lg" value={borrowData.borrowerName} onChange={e=>setBorrowData({...borrowData, borrowerName: e.target.value})} placeholder="ชื่อ-สกุล หรือ แผนก" /></div>
+              <div><label className="block text-base font-bold text-slate-700 mb-2">กำหนดคืน</label><input type="date" required className="w-full px-5 py-4 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 font-bold text-lg" value={borrowData.expectedReturnDate} onChange={e=>setBorrowData({...borrowData, expectedReturnDate: e.target.value})} /></div>
+              <div className="pt-5 border-t border-slate-200"><label className="block text-base font-bold text-slate-700 mb-2">เจ้าหน้าที่ผู้ทำรายการ (ผู้ให้ยืม) <span className="text-rose-500">*</span></label><input required className="w-full px-5 py-4 border border-indigo-300 bg-indigo-50 rounded-xl outline-none focus:border-indigo-500 font-bold text-lg text-indigo-900" value={borrowData.lenderName} onChange={e=>setBorrowData({...borrowData, lenderName: e.target.value})} placeholder="ชื่อเจ้าหน้าที่" /></div>
+              <div className="flex gap-4 mt-8">
+                <button type="button" onClick={()=>setShowBorrowModal(false)} className="flex-1 py-4 border border-slate-300 rounded-xl font-bold text-lg">ยกเลิก</button>
+                <button type="submit" className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-black shadow-md text-lg">บันทึกการยืม</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Return Modal */}
       {showReturnModal && selectedItem && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-8">
-            <h3 className="font-black text-2xl mb-2 text-slate-800">รับคืนอุปกรณ์</h3>
-            <p className="text-slate-500 font-bold mb-6 text-base">รับคืน <span className="text-blue-600">{selectedItem.name}</span> จาก <span className="text-purple-600">{selectedItem.currentBorrower}</span></p>
-            <form onSubmit={handleReturn} className="space-y-5">
-              <div><label className="block text-sm font-bold text-slate-700 mb-2">เจ้าหน้าที่ผู้รับคืน <span className="text-rose-500">*</span></label><input required autoFocus className="w-full px-4 py-3 border border-emerald-300 bg-emerald-50 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-base text-emerald-800" value={returnData.returnerName} onChange={e=>setReturnData({returnerName: e.target.value})} placeholder="ชื่อเจ้าหน้าที่ผู้ตรวจรับ" /></div>
-              <div className="flex gap-3 mt-8">
-                <button type="button" onClick={()=>setShowReturnModal(false)} className="flex-1 py-3.5 border border-slate-300 rounded-xl font-bold text-base">ยกเลิก</button>
-                <button type="submit" className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black shadow-md text-base transition-colors">ยืนยันรับคืน</button>
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-8">
+            <h3 className="font-black text-3xl mb-3 text-slate-800">รับคืนอุปกรณ์</h3>
+            <p className="text-slate-500 font-bold mb-8 text-lg">รับคืน <span className="text-blue-600">{selectedItem.name}</span> จาก <span className="text-purple-600">{selectedItem.currentBorrower}</span></p>
+            <form onSubmit={handleReturn} className="space-y-6">
+              <div><label className="block text-base font-bold text-slate-700 mb-2">เจ้าหน้าที่ผู้รับคืน <span className="text-rose-500">*</span></label><input required autoFocus className="w-full px-5 py-4 border border-emerald-300 bg-emerald-50 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-lg text-emerald-900" value={returnData.returnerName} onChange={e=>setReturnData({returnerName: e.target.value})} placeholder="ชื่อเจ้าหน้าที่ผู้ตรวจรับ" /></div>
+              <div className="flex gap-4 mt-8">
+                <button type="button" onClick={()=>setShowReturnModal(false)} className="flex-1 py-4 border border-slate-300 rounded-xl font-bold text-lg">ยกเลิก</button>
+                <button type="submit" className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black shadow-md text-lg transition-colors">ยืนยันรับคืน</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* History Modal */}
       {showHistoryModal && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-            <div className="px-6 py-5 border-b border-slate-200 bg-slate-50 flex justify-between items-center"><h3 className="text-xl font-black text-slate-800">ประวัติการยืม-คืน</h3><button onClick={() => setShowHistoryModal(null)} className="text-slate-400 hover:text-slate-700"><Icons.X /></button></div>
-            <div className="p-6 overflow-y-auto">
-              <p className="font-bold text-blue-600 text-lg mb-6">{showHistoryModal.name}</p>
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="px-8 py-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center"><h3 className="text-2xl font-black text-slate-800">ประวัติการยืม-คืน</h3><button onClick={() => setShowHistoryModal(null)} className="text-slate-400 hover:text-slate-700"><Icons.X /></button></div>
+            <div className="p-8 overflow-y-auto">
+              <p className="font-black text-blue-600 text-xl mb-8">{showHistoryModal.name}</p>
               {!showHistoryModal.history || showHistoryModal.history.length === 0 ? (
-                <p className="text-slate-400 font-bold text-center py-8 text-base">ไม่มีประวัติการยืม-คืน</p>
+                <p className="text-slate-400 font-bold text-center py-12 text-lg">ไม่มีประวัติการยืม-คืน</p>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-5">
                   {[...showHistoryModal.history].reverse().map((h, i) => (
-                    <div key={i} className={`p-4 rounded-xl border-l-4 font-bold text-base ${h.type === 'borrow' ? 'bg-indigo-50 border-indigo-500' : 'bg-emerald-50 border-emerald-500'}`}>
-                      <div className="flex justify-between items-start mb-2">
-                        <span className={`px-2.5 py-1 rounded-md text-xs font-black ${h.type === 'borrow' ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'}`}>{h.type === 'borrow' ? 'ยืมออก' : 'รับคืน'}</span>
-                        <span className="text-sm text-slate-500">{new Date(h.date).toLocaleDateString('th-TH', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+                    <div key={i} className={`p-5 rounded-xl border-l-8 font-bold text-lg ${h.type === 'borrow' ? 'bg-indigo-50 border-indigo-500' : 'bg-emerald-50 border-emerald-500'}`}>
+                      <div className="flex justify-between items-start mb-3">
+                        <span className={`px-3 py-1.5 rounded-lg text-sm font-black ${h.type === 'borrow' ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'}`}>{h.type === 'borrow' ? 'ยืมออก' : 'รับคืน'}</span>
+                        <span className="text-base text-slate-500">{new Date(h.date).toLocaleDateString('th-TH', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
                       </div>
                       {h.type === 'borrow' ? (
                         <>
-                          <p className="text-slate-700 mt-2">ผู้ยืม: <span className="text-indigo-700">{h.borrower}</span></p>
-                          <p className="text-slate-500 text-sm mt-1">ผู้ปล่อยยืม(จนท.): {h.lender || '-'}</p>
+                          <p className="text-slate-800 mt-3 text-lg">ผู้ยืม: <span className="text-indigo-700 font-black">{h.borrower}</span></p>
+                          <p className="text-slate-500 text-base mt-2">ผู้ปล่อยยืม(จนท.): {h.lender || '-'}</p>
                         </>
                       ) : (
-                        <p className="text-slate-700 mt-2">ผู้รับคืน(จนท.): <span className="text-emerald-700">{h.returnReceiver || '-'}</span></p>
+                        <p className="text-slate-800 mt-3 text-lg">ผู้รับคืน(จนท.): <span className="text-emerald-700 font-black">{h.returnReceiver || '-'}</span></p>
                       )}
                     </div>
                   ))}
@@ -559,32 +576,31 @@ export default function App() {
         </div>
       )}
 
-      {/* Settings Modals (Category, Room, Location) with Edit/Delete inline */}
       {[
         { show: showCategoryModal, close: ()=>setShowCategoryModal(false), title: 'ตั้งค่าหมวดหมู่อุปกรณ์', icon: <Icons.Folder/>, val: newCategory, setVal: setNewCategory, add: addCategory, list: categories, collectionName: 'categories' },
         { show: showRoomModal, close: ()=>setShowRoomModal(false), title: 'ตั้งค่าห้องประชุม', icon: <Icons.List/>, val: newRoom, setVal: setNewRoom, add: addRoom, list: rooms, collectionName: 'rooms' },
         { show: showLocationModal, close: ()=>setShowLocationModal(false), title: 'ตั้งค่าสถานที่จัดเก็บ', icon: <Icons.MapPin/>, val: newLocation, setVal: setNewLocation, add: addLocation, list: locations, collectionName: 'locations' }
       ].map(modal => modal.show && (
         <div key={modal.title} className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-            <div className="px-8 py-5 border-b border-slate-200 bg-slate-50 flex justify-between items-center"><h3 className="text-lg font-black text-slate-800 flex items-center gap-3"><span className="text-blue-600">{modal.icon}</span>{modal.title}</h3><button onClick={modal.close} className="text-slate-400 hover:text-slate-700 bg-white rounded-full p-1.5 shadow-sm border border-slate-200"><Icons.Plus className="rotate-45" /></button></div>
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+            <div className="px-8 py-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center"><h3 className="text-xl font-black text-slate-800 flex items-center gap-3"><span className="text-blue-600">{modal.icon}</span>{modal.title}</h3><button onClick={modal.close} className="text-slate-400 hover:text-slate-700 bg-white rounded-full p-2 shadow-sm border border-slate-200"><Icons.Plus className="rotate-45" /></button></div>
             <div className="p-8">
-              <form onSubmit={modal.add} className="flex gap-3 mb-6"><input required value={modal.val} onChange={e=>modal.setVal(e.target.value)} className="flex-1 px-5 py-3 border border-slate-300 bg-slate-50 text-base font-bold rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="เพิ่มรายการใหม่..."/><button className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md text-base transition-colors">เพิ่ม</button></form>
-              <div className="max-h-64 overflow-y-auto space-y-3 custom-scrollbar pr-2">
+              <form onSubmit={modal.add} className="flex gap-3 mb-8"><input required value={modal.val} onChange={e=>modal.setVal(e.target.value)} className="flex-1 px-5 py-4 border border-slate-300 bg-slate-50 text-lg font-bold rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="เพิ่มรายการใหม่..."/><button className="px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md text-lg transition-colors">เพิ่ม</button></form>
+              <div className="max-h-72 overflow-y-auto space-y-3 custom-scrollbar pr-2">
                 {modal.list.map(l => (
-                  <div key={l} className="p-3 bg-white rounded-xl border border-slate-200 font-bold text-base text-slate-700 shadow-sm flex justify-between items-center group">
+                  <div key={l} className="p-4 bg-white rounded-xl border border-slate-200 font-bold text-lg text-slate-800 shadow-sm flex justify-between items-center group">
                     {editSettingState.collection === modal.collectionName && editSettingState.oldName === l ? (
                       <div className="flex w-full gap-2 items-center">
-                        <input autoFocus className="flex-1 px-3 py-2 border border-blue-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold bg-blue-50" value={editSettingState.newName} onChange={(e) => setEditSettingState({...editSettingState, newName: e.target.value})} />
-                        <button onClick={() => handleUpdateSetting(modal.collectionName, l, editSettingState.newName)} className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors shadow-sm">บันทึก</button>
-                        <button onClick={() => setEditSettingState({collection: '', oldName: '', newName: ''})} className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-sm transition-colors">ยกเลิก</button>
+                        <input autoFocus className="flex-1 px-4 py-3 border border-blue-400 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-base font-bold bg-blue-50" value={editSettingState.newName} onChange={(e) => setEditSettingState({...editSettingState, newName: e.target.value})} />
+                        <button onClick={() => handleUpdateSetting(modal.collectionName, l, editSettingState.newName)} className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-base transition-colors shadow-sm">บันทึก</button>
+                        <button onClick={() => setEditSettingState({collection: '', oldName: '', newName: ''})} className="px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-base transition-colors">ยกเลิก</button>
                       </div>
                     ) : (
                       <>
                         <span className="pl-2">{l}</span>
                         <div className="flex gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => setEditSettingState({collection: modal.collectionName, oldName: l, newName: l})} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Icons.Edit /></button>
-                          <button onClick={() => setDeleteSettingState({collection: modal.collectionName, name: l})} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"><Icons.Trash /></button>
+                          <button onClick={() => setEditSettingState({collection: modal.collectionName, oldName: l, newName: l})} className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Icons.Edit /></button>
+                          <button onClick={() => setDeleteSettingState({collection: modal.collectionName, name: l})} className="p-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"><Icons.Trash /></button>
                         </div>
                       </>
                     )}
@@ -596,21 +612,19 @@ export default function App() {
         </div>
       ))}
 
-      {/* Confirmation Modal สำหรับลบตัวเลือกตั้งค่า */}
       {deleteSettingState.name && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-8 text-center">
-            <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-600 shadow-inner"><Icons.Trash/></div>
-            <h3 className="font-black text-2xl mb-3 text-slate-800">ยืนยันการลบ?</h3>
-            <p className="text-base font-bold text-slate-600 mb-8 bg-slate-50 p-4 rounded-xl border border-slate-200">ลบ <span className="text-rose-600">"{deleteSettingState.name}"</span> ออกจากตัวเลือก</p>
-            <div className="flex gap-3">
-              <button onClick={()=>setDeleteSettingState({collection: '', name: ''})} className="flex-1 py-3.5 border border-slate-300 rounded-xl font-bold hover:bg-slate-50 text-base transition-colors">ยกเลิก</button>
-              <button onClick={handleDeleteSettingConfirm} className="flex-1 py-3.5 bg-rose-600 text-white rounded-xl font-black shadow-md hover:bg-rose-700 text-base transition-colors">ยืนยันการลบ</button>
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-8 text-center">
+            <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-600 shadow-inner"><Icons.Trash/></div>
+            <h3 className="font-black text-3xl mb-4 text-slate-800">ยืนยันการลบ?</h3>
+            <p className="text-lg font-bold text-slate-600 mb-8 bg-slate-50 p-5 rounded-xl border border-slate-200">ลบ <span className="text-rose-600">"{deleteSettingState.name}"</span> ออกจากตัวเลือก</p>
+            <div className="flex gap-4">
+              <button onClick={()=>setDeleteSettingState({collection: '', name: ''})} className="flex-1 py-4 border border-slate-300 rounded-xl font-bold hover:bg-slate-50 text-lg transition-colors">ยกเลิก</button>
+              <button onClick={handleDeleteSettingConfirm} className="flex-1 py-4 bg-rose-600 text-white rounded-xl font-black shadow-md hover:bg-rose-700 text-lg transition-colors">ยืนยันการลบ</button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
