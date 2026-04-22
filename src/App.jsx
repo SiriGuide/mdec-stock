@@ -86,7 +86,10 @@ export default function App() {
   // Borrow/Return Modals
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [borrowItem, setBorrowItem] = useState(null);
-  const [borrowForm, setBorrowForm] = useState({ name: '', expectedReturnDate: '' });
+  const [borrowForm, setBorrowForm] = useState({ name: '', expectedReturnDate: '', issuer: '' });
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returnItem, setReturnItem] = useState(null);
+  const [returnForm, setReturnForm] = useState({ receiver: '' });
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyItem, setHistoryItem] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -243,13 +246,15 @@ export default function App() {
 
   const handleBorrow = async (e) => {
     e.preventDefault();
-    if (!borrowForm.name || !borrowItem) return;
+    if (!borrowForm.name || !borrowItem || !borrowForm.issuer) return;
 
     const borrowRecord = {
       borrower: borrowForm.name,
+      issuer: borrowForm.issuer,
       borrowDate: Date.now(),
       expectedReturnDate: new Date(borrowForm.expectedReturnDate).getTime(),
       returnDate: null,
+      receiver: null,
       status: 'borrowed'
     };
 
@@ -267,18 +272,22 @@ export default function App() {
       }, { merge: true });
 
       setShowBorrowModal(false);
-      setBorrowForm({ name: '', expectedReturnDate: '' });
+      setBorrowForm({ name: '', expectedReturnDate: '', issuer: '' });
       setBorrowItem(null);
     } catch (error) {}
   };
 
-  const handleReturn = async (item) => {
+  const handleReturn = async (e) => {
+    e.preventDefault();
+    if (!returnForm.receiver || !returnItem) return;
+
     try {
-      const itemRef = doc(db, 'mdec_stock', 'shared_data', 'items', item.id);
-      const history = [...(item.history || [])];
+      const itemRef = doc(db, 'mdec_stock', 'shared_data', 'items', returnItem.id);
+      const history = [...(returnItem.history || [])];
       if (history.length > 0 && history[history.length - 1].status === 'borrowed') {
         history[history.length - 1].returnDate = Date.now();
         history[history.length - 1].status = 'returned';
+        history[history.length - 1].receiver = returnForm.receiver;
       }
 
       await setDoc(itemRef, {
@@ -289,6 +298,10 @@ export default function App() {
         history: history,
         updatedAt: Date.now()
       }, { merge: true });
+
+      setShowReturnModal(false);
+      setReturnForm({ receiver: '' });
+      setReturnItem(null);
     } catch (error) {}
   };
 
@@ -570,7 +583,7 @@ export default function App() {
                             {isLoggedIn && (
                               <>
                                 {item.status === 'available' && <button onClick={() => { setBorrowItem(item); setShowBorrowModal(true); }} className="p-2 text-slate-400 hover:text-purple-700 hover:bg-purple-100 rounded-lg"><Icons.UserPlus /></button>}
-                                {item.status === 'borrowed' && <button onClick={() => handleReturn(item)} className="p-2 text-slate-400 hover:text-emerald-700 hover:bg-emerald-100 rounded-lg"><Icons.CheckCircle /></button>}
+                                {item.status === 'borrowed' && <button onClick={() => { setReturnItem(item); setShowReturnModal(true); }} className="p-2 text-slate-400 hover:text-emerald-700 hover:bg-emerald-100 rounded-lg"><Icons.CheckCircle /></button>}
                                 <button onClick={() => {
                                     const isKnownCat = categories.includes(item.category);
                                     const locList = item.department === 'ห้องประชุม' ? rooms : locations;
@@ -709,11 +722,56 @@ export default function App() {
       )}
 
       {showBorrowModal && borrowItem && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"><div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6"><h3 className="text-xl font-extrabold mb-4 border-b pb-3">บันทึกการยืม</h3><div className="bg-purple-50 p-4 rounded-xl border border-purple-200 mb-5"><p className="font-extrabold text-purple-900">{borrowItem.name}</p></div><form onSubmit={handleBorrow} className="space-y-4"><div><label className="block text-sm font-bold mb-1">ชื่อผู้ยืม</label><input required className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-purple-500" value={borrowForm.name} onChange={e=>setBorrowForm({...borrowForm, name: e.target.value})}/></div><div><label className="block text-sm font-bold mb-1">กำหนดคืน</label><input required type="date" className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-purple-500" value={borrowForm.expectedReturnDate} onChange={e=>setBorrowForm({...borrowForm, expectedReturnDate: e.target.value})}/></div><div className="flex gap-2 pt-2"><button type="button" onClick={()=>setShowBorrowModal(false)} className="flex-1 py-3 border rounded-xl font-bold hover:bg-slate-50">ยกเลิก</button><button type="submit" className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-bold">บันทึก</button></div></form></div></div>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6">
+            <h3 className="text-xl font-extrabold mb-4 border-b pb-3">บันทึกการยืม</h3>
+            <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 mb-5"><p className="font-extrabold text-purple-900">{borrowItem.name}</p></div>
+            <form onSubmit={handleBorrow} className="space-y-4">
+              <div><label className="block text-sm font-bold mb-1">ชื่อผู้ยืม</label><input required className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-purple-500" value={borrowForm.name} onChange={e=>setBorrowForm({...borrowForm, name: e.target.value})} placeholder="ชื่อผู้มารับของ"/></div>
+              <div><label className="block text-sm font-bold mb-1">ผู้ทำรายการให้ยืม (จนท.)</label><input required className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-purple-500" value={borrowForm.issuer} onChange={e=>setBorrowForm({...borrowForm, issuer: e.target.value})} placeholder="ชื่อเจ้าหน้าที่ศูนย์ฯ"/></div>
+              <div><label className="block text-sm font-bold mb-1">กำหนดคืน</label><input required type="date" className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-purple-500" value={borrowForm.expectedReturnDate} onChange={e=>setBorrowForm({...borrowForm, expectedReturnDate: e.target.value})}/></div>
+              <div className="flex gap-2 pt-2"><button type="button" onClick={()=>setShowBorrowModal(false)} className="flex-1 py-3 border rounded-xl font-bold hover:bg-slate-50">ยกเลิก</button><button type="submit" className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-bold">บันทึก</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showReturnModal && returnItem && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6">
+            <h3 className="text-xl font-extrabold mb-4 border-b pb-3 text-emerald-700">บันทึกการรับคืน</h3>
+            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 mb-5"><p className="font-extrabold text-emerald-900">{returnItem.name}</p></div>
+            <form onSubmit={handleReturn} className="space-y-4">
+              <div><label className="block text-sm font-bold mb-1">ผู้ทำรายการรับคืน (จนท.)</label><input required className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500" value={returnForm.receiver} onChange={e=>setReturnForm({...returnForm, receiver: e.target.value})} placeholder="ชื่อเจ้าหน้าที่ศูนย์ฯ"/></div>
+              <div className="flex gap-2 pt-2"><button type="button" onClick={()=>setShowReturnModal(false)} className="flex-1 py-3 border rounded-xl font-bold hover:bg-slate-50">ยกเลิก</button><button type="submit" className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700">ยืนยันรับคืน</button></div>
+            </form>
+          </div>
+        </div>
       )}
 
       {showHistoryModal && historyItem && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"><div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[80vh]"><div className="px-6 py-4 border-b bg-slate-50 flex justify-between"><div><h3 className="font-extrabold">ประวัติการยืม-คืน</h3><p className="text-sm text-slate-500">{historyItem.name}</p></div><button onClick={()=>setShowHistoryModal(false)}>✕</button></div><div className="p-6 overflow-y-auto">{!historyItem.history || historyItem.history.length === 0 ? <p className="text-center text-slate-500 py-4">ไม่พบประวัติการยืม</p> : <div className="space-y-4">{historyItem.history.slice().reverse().map((r,i)=><div key={i} className="bg-slate-50 p-4 rounded-xl border"><div className="flex justify-between border-b pb-2 mb-2"><span className="font-bold">{r.borrower}</span><span className="text-xs font-bold">{r.status==='returned'?'คืนแล้ว':'กำลังยืม'}</span></div><div className="text-xs grid grid-cols-2 gap-2"><p>ยืม: {new Date(r.borrowDate).toLocaleDateString()}</p><p>กำหนด: {new Date(r.expectedReturnDate).toLocaleDateString()}</p>{r.returnDate&&<p className="col-span-2 text-emerald-700 font-bold">รับคืนเมื่อ: {new Date(r.returnDate).toLocaleDateString()}</p>}</div></div>)}</div>}</div></div></div>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[80vh]">
+            <div className="px-6 py-4 border-b bg-slate-50 flex justify-between"><div><h3 className="font-extrabold">ประวัติการยืม-คืน</h3><p className="text-sm text-slate-500">{historyItem.name}</p></div><button onClick={()=>setShowHistoryModal(false)}>✕</button></div>
+            <div className="p-6 overflow-y-auto">
+              {!historyItem.history || historyItem.history.length === 0 ? <p className="text-center text-slate-500 py-4">ไม่พบประวัติการยืม</p> : 
+              <div className="space-y-4">
+                {historyItem.history.slice().reverse().map((r,i)=>(
+                  <div key={i} className="bg-slate-50 p-4 rounded-xl border">
+                    <div className="flex justify-between border-b pb-2 mb-2"><span className="font-bold">ผู้ยืม: {r.borrower}</span><span className="text-xs font-bold">{r.status==='returned'?'คืนแล้ว':'กำลังยืม'}</span></div>
+                    <div className="text-xs grid grid-cols-2 gap-y-2 gap-x-1">
+                      <p>ยืม: {new Date(r.borrowDate).toLocaleDateString()}</p>
+                      <p>กำหนด: {new Date(r.expectedReturnDate).toLocaleDateString()}</p>
+                      <p className="text-purple-700 font-semibold">ผู้ให้ยืม: {r.issuer || '-'}</p>
+                      {r.returnDate && <p className="text-emerald-700 font-bold">รับคืนเมื่อ: {new Date(r.returnDate).toLocaleDateString()}</p>}
+                      {r.receiver && <p className="text-emerald-700 font-bold">ผู้รับคืน: {r.receiver}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>}
+            </div>
+          </div>
+        </div>
       )}
 
       {showDeleteModal && itemToDelete && (
