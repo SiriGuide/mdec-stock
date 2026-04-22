@@ -154,13 +154,14 @@ export default function App() {
     return result;
   }, [items, searchTerm, filterDept, filterCategory, filterStatus, sortConfig]);
 
-  // 1. สรุปภาพรวมหลัก (ทั้งหมด, ว่าง, ยืม, ซ่อม)
+  // 1. สรุปภาพรวมหลัก (ทั้งหมด, ว่าง, ใช้งาน, ยืม, ซ่อม)
   const stats = useMemo(() => {
-    const s = { all: 0, available: 0, borrowed: 0, maintenance: 0 };
+    const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
     items.forEach(item => {
       const qty = Number(item.quantity) || 1;
       s.all += qty;
       if (item.status === 'available') s.available += qty;
+      if (item.status === 'in-use') s.inUse += qty;
       if (item.status === 'borrowed') s.borrowed += qty;
       if (item.status === 'maintenance') s.maintenance += qty;
     });
@@ -170,18 +171,13 @@ export default function App() {
   // 2. สรุปแยกตามหมวดหมู่แบบไดนามิก (ดึงจาก Settings)
   const categoryStats = useMemo(() => {
     const catData = {};
-    
-    // สร้างตระกร้ารอรับข้อมูลสำหรับทุกหมวดหมู่ (ยกเว้น 'อื่นๆ')
     settingsOptions.categories.filter(c => c !== 'อื่นๆ').forEach(cat => {
       catData[cat] = { total: 0, available: 0 };
     });
 
-    // วนลูปนับอุปกรณ์ทีละชิ้น
     items.forEach(item => {
       const qty = Number(item.quantity) || 1;
       const cat = item.category;
-      
-      // ถ้าระบุหมวดหมู่ตรงกับตะกร้าที่เรามี ให้นับเพิ่ม
       if (cat && catData[cat]) {
         catData[cat].total += qty;
         if (item.status === 'available') {
@@ -190,7 +186,6 @@ export default function App() {
       }
     });
 
-    // แปลงข้อมูลให้อยู่ในรูปแบบ Array เพื่อนำไปแสดงผล
     return Object.entries(catData).map(([label, data]) => ({ label, data }));
   }, [items, settingsOptions.categories]);
 
@@ -384,7 +379,7 @@ export default function App() {
       </div>
 
       {/* Main Stats Grid */}
-      <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-8">
         <div className="bg-white p-5 rounded-2xl shadow-md border-t-4 border-blue-500 flex flex-col items-center justify-center text-center">
           <span className="text-slate-500 font-bold text-sm sm:text-base mb-1">อุปกรณ์ทั้งหมด</span>
           <span className="text-4xl sm:text-5xl font-black text-blue-600">{stats.all}</span>
@@ -392,6 +387,10 @@ export default function App() {
         <div className="bg-white p-5 rounded-2xl shadow-md border-t-4 border-emerald-400 flex flex-col items-center justify-center text-center">
           <span className="text-slate-500 font-bold text-sm sm:text-base mb-1">พร้อมใช้งาน</span>
           <span className="text-4xl sm:text-5xl font-black text-emerald-500">{stats.available}</span>
+        </div>
+        <div className="bg-white p-5 rounded-2xl shadow-md border-t-4 border-amber-400 flex flex-col items-center justify-center text-center">
+          <span className="text-slate-500 font-bold text-sm sm:text-base mb-1">กำลังใช้งาน</span>
+          <span className="text-4xl sm:text-5xl font-black text-amber-500">{stats.inUse}</span>
         </div>
         <div className="bg-white p-5 rounded-2xl shadow-md border-t-4 border-purple-400 flex flex-col items-center justify-center text-center">
           <span className="text-slate-500 font-bold text-sm sm:text-base mb-1">กำลังถูกยืม</span>
@@ -403,7 +402,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* Sub Stats - โหลดกล่องสรุปยอดตามจำนวนหมวดหมู่ที่มีในระบบแบบอัตโนมัติ */}
+      {/* Sub Stats - Dynamic Categories */}
       <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-8">
         {categoryStats.map(c => (
           <div key={c.label} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col">
@@ -506,7 +505,6 @@ export default function App() {
         </table>
       </div>
 
-      {}
       {/* Settings Modal */}
       {showSettings && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -596,7 +594,7 @@ export default function App() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm sm:text-base font-bold text-slate-700 mb-2">หมวดหมู่อุปกรณ์</label>
-                  <select className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none text-base sm:text-lg" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value, newCategory: ''})}>
+                  <select className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none text-base sm:text-lg" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value, newCategory: e.target.value === 'อื่นๆ' ? formData.newCategory : ''})}>
                     <option value="" disabled>-- เลือกหมวดหมู่ --</option>
                     {settingsOptions.categories.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -614,7 +612,7 @@ export default function App() {
               )}
               <div>
                 <label className="block text-sm sm:text-base font-bold text-slate-700 mb-2">สถานที่จัดเก็บ / ห้อง</label>
-                <select className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none text-base sm:text-lg" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value, newLocation: ''})}>
+                <select className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none text-base sm:text-lg" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value, newLocation: e.target.value === 'อื่นๆ' ? formData.newLocation : ''})}>
                   <option value="" disabled>-- เลือกสถานที่ --</option>
                   {settingsOptions.locations.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
