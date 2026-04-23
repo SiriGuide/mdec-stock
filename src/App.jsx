@@ -19,14 +19,13 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const ADMIN_PIN = 'mdec8203';
 
-// 🛠️ เพิ่มไอคอนสำหรับปุ่มหมวดหมู่ฝ่ายต่างๆ
 const Icons = {
   Plus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
   Search: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
   Edit: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
   Trash: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
   Package: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>,
-  Alert: () => <svg className="w-12 h-12 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
+  Alert: () => <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
   Settings: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
   X: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>,
   History: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
@@ -51,7 +50,6 @@ const STATUSES = [
   { id: 'maintenance', label: 'ส่งซ่อม/ชำรุด', color: 'bg-rose-100 text-rose-700 border-rose-200' }
 ];
 
-// 🛠️ ผูกชื่อไอคอนเข้ากับแต่ละฝ่าย พร้อมระบุสีของไอคอน
 const DEPARTMENTS = [
   { id: 'ภาพนิ่ง', label: 'ฝ่ายภาพนิ่ง', color: 'bg-blue-100 text-blue-700', iconName: 'Camera', iconColor: 'text-blue-500' },
   { id: 'วิดีโอ', label: 'ฝ่ายวิดีโอ', color: 'bg-indigo-100 text-indigo-700', iconName: 'VideoCamera', iconColor: 'text-indigo-500' },
@@ -87,10 +85,11 @@ export default function App() {
   const [itemToDelete, setItemToDelete] = useState(null); 
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
   
-  const [showBorrow, setShowBorrow] = useState(null);
+  // 🛠️ ปรับเปลี่ยน Modal ให้รองรับการเลือกแบบหลายรายการ (Batch Array)
+  const [borrowTargetIds, setBorrowTargetIds] = useState([]);
   const [borrowData, setBorrowData] = useState({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '' });
   
-  const [showReturn, setShowReturn] = useState(null);
+  const [returnTargetIds, setReturnTargetIds] = useState([]);
   const [returnData, setReturnData] = useState({ staff: '', newStaff: '' });
   
   const [showHistory, setShowHistory] = useState(null);
@@ -99,6 +98,9 @@ export default function App() {
   const [settingsTab, setSettingsTab] = useState('categories');
   const [newSettingItem, setNewSettingItem] = useState('');
   const [editingSettingItem, setEditingSettingItem] = useState(null);
+
+  // 🛠️ State สำหรับจัดการรายการที่ติ๊ก Checkbox
+  const [selectedItems, setSelectedItems] = useState([]);
 
   useEffect(() => {
     signInAnonymously(auth).catch(() => setFirebaseError(true));
@@ -164,6 +166,13 @@ export default function App() {
     return result;
   }, [items, searchTerm, filterDept, filterCategory, filterStatus]);
 
+  // 🛠️ คำนวณเวลาเพื่อหาของที่เลยกำหนดคืน (Overdue)
+  const todayMs = new Date().setHours(0,0,0,0);
+  const overdueItems = items.filter(item => {
+    if (item.status !== 'borrowed' || !item.expectedReturn) return false;
+    return new Date(item.expectedReturn).getTime() < todayMs;
+  });
+
   const stats = useMemo(() => {
     const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
     items.forEach(item => {
@@ -205,7 +214,6 @@ export default function App() {
   const handleSave = async () => {
     if (!formData.name.trim()) return;
 
-    // ตรวจสอบ S.N. ซ้ำ
     const snInput = formData.sn.trim();
     if (snInput) {
       const isDuplicate = items.some(item => 
@@ -268,8 +276,9 @@ export default function App() {
     }
   };
 
+  // 🛠️ ปรับฟังก์ชันยืม ให้รองรับการยืมหลายชิ้น (Batch Borrow)
   const handleBorrow = async () => {
-    if (!borrowData.borrower || !borrowData.staff) return;
+    if (!borrowData.borrower || !borrowData.staff || borrowTargetIds.length === 0) return;
     let finalStaff = borrowData.staff;
     if (borrowData.staff === 'อื่นๆ' && borrowData.newStaff.trim()) {
       finalStaff = borrowData.newStaff.trim();
@@ -278,15 +287,30 @@ export default function App() {
       setSettingsOptions(newSettings);
       await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
     }
-    const item = items.find(i => i.id === showBorrow);
-    const newHistory = [...(item.history || []), { type: 'borrow', date: new Date().toISOString(), borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff }];
-    await setDoc(doc(db, "mdec_stock", "shared_data", "items", showBorrow), { status: 'borrowed', currentBorrower: borrowData.borrower, expectedReturn: borrowData.returnDate, history: newHistory }, { merge: true });
-    setShowBorrow(null);
-    setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '' });
+    
+    const newHistoryEntry = { type: 'borrow', date: new Date().toISOString(), borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff };
+
+    try {
+      const promises = borrowTargetIds.map(id => {
+        const item = items.find(i => i.id === id);
+        if (!item) return Promise.resolve();
+        const newHistory = [...(item.history || []), newHistoryEntry];
+        return setDoc(doc(db, "mdec_stock", "shared_data", "items", id), { status: 'borrowed', currentBorrower: borrowData.borrower, expectedReturn: borrowData.returnDate, history: newHistory }, { merge: true });
+      });
+      await Promise.all(promises);
+      
+      setBorrowTargetIds([]);
+      setSelectedItems([]); // เคลียร์ Checkbox หลังยืมเสร็จ
+      setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '' });
+    } catch (error) {
+      console.error(error);
+      alert("เกิดข้อผิดพลาดในการทำรายการยืม");
+    }
   };
 
+  // 🛠️ ปรับฟังก์ชันคืน ให้รองรับการคืนหลายชิ้น (Batch Return)
   const handleReturn = async () => {
-    if (!returnData.staff) return;
+    if (!returnData.staff || returnTargetIds.length === 0) return;
     let finalStaff = returnData.staff;
     if (returnData.staff === 'อื่นๆ' && returnData.newStaff.trim()) {
       finalStaff = returnData.newStaff.trim();
@@ -295,11 +319,25 @@ export default function App() {
       setSettingsOptions(newSettings);
       await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
     }
-    const item = items.find(i => i.id === showReturn);
-    const newHistory = [...(item.history || []), { type: 'return', date: new Date().toISOString(), staffIn: finalStaff }];
-    await setDoc(doc(db, "mdec_stock", "shared_data", "items", showReturn), { status: 'available', currentBorrower: null, expectedReturn: null, history: newHistory }, { merge: true });
-    setShowReturn(null);
-    setReturnData({ staff: '', newStaff: '' });
+    
+    const newHistoryEntry = { type: 'return', date: new Date().toISOString(), staffIn: finalStaff };
+
+    try {
+      const promises = returnTargetIds.map(id => {
+        const item = items.find(i => i.id === id);
+        if (!item) return Promise.resolve();
+        const newHistory = [...(item.history || []), newHistoryEntry];
+        return setDoc(doc(db, "mdec_stock", "shared_data", "items", id), { status: 'available', currentBorrower: null, expectedReturn: null, history: newHistory }, { merge: true });
+      });
+      await Promise.all(promises);
+
+      setReturnTargetIds([]);
+      setSelectedItems([]); // เคลียร์ Checkbox หลังคืนเสร็จ
+      setReturnData({ staff: '', newStaff: '' });
+    } catch (error) {
+      console.error(error);
+      alert("เกิดข้อผิดพลาดในการรับคืน");
+    }
   };
 
   const handleSaveSetting = async () => {
@@ -380,11 +418,27 @@ export default function App() {
 
   const handleLogout = () => {
     setIsAdmin(false);
+    setSelectedItems([]); // เคลียร์ตัวเลือกเผื่อล็อกเอาท์
     try { localStorage.removeItem('mdec_admin'); } catch(e) {}
   };
 
+  // 🛠️ Handler สำหรับปุ่มเครื่องมือแบบกลุ่ม (ลอยอยู่ด้านล่าง)
+  const handleOpenBatchBorrow = () => {
+    const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
+    if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมให้ยืมในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้งาน")');
+    setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' });
+    setBorrowTargetIds(validIds);
+  };
+
+  const handleOpenBatchReturn = () => {
+    const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'borrowed');
+    if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่สามารถคืนได้ในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "กำลังถูกยืม")');
+    setReturnData({ staff: '', newStaff: '' });
+    setReturnTargetIds(validIds);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 font-sans p-4 sm:p-8">
+    <div className="min-h-screen bg-slate-100 text-slate-800 font-sans p-4 sm:p-8 pb-32">
       {firebaseError && (
         <div className="w-full mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl shadow-md flex items-start gap-4">
           <Icons.Alert />
@@ -402,7 +456,7 @@ export default function App() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v12.2 Icons</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v13.0 Pro</span>
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -428,6 +482,17 @@ export default function App() {
         </div>
       </div>
 
+      {/* 🛠️ ระบบแจ้งเตือนของเลยกำหนดคืน (แสดงแถบสีแดงกระพริบ) */}
+      {overdueItems.length > 0 && (
+        <div className="w-full mb-8 bg-rose-100 border-l-4 border-rose-500 text-rose-800 p-5 rounded-r-2xl shadow-md flex items-start gap-4 animate-[pulse_2s_ease-in-out_infinite]">
+          <div className="text-rose-500"><Icons.Alert /></div>
+          <div>
+            <h3 className="font-black text-xl mb-1">⚠️ แจ้งเตือน: มีอุปกรณ์เลยกำหนดคืน {overdueItems.length} รายการ!</h3>
+            <p className="text-rose-600 font-medium">โปรดตรวจสอบรายการที่มีแถบสีแดงในตาราง หรือทวงถามผู้ยืม</p>
+          </div>
+        </div>
+      )}
+
       {/* Main Stats Grid */}
       <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-8">
         <div className="bg-white p-5 rounded-2xl shadow-md border-t-4 border-blue-500 flex flex-col items-center justify-center text-center">
@@ -450,23 +515,6 @@ export default function App() {
           <span className="text-slate-500 font-bold text-sm sm:text-base mb-1">ส่งซ่อม/ชำรุด</span>
           <span className="text-4xl sm:text-5xl font-black text-rose-500">{stats.maintenance}</span>
         </div>
-      </div>
-
-      {/* Sub Stats - Dynamic Categories */}
-      <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-8">
-        {categoryStats.map(c => (
-          <div key={c.label} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col">
-            <div className="flex justify-between items-center mb-2">
-              <span className="font-bold text-slate-600 text-base sm:text-lg truncate pr-2" title={c.label}>{c.label}</span>
-              <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md shrink-0">พร้อมใช้</span>
-            </div>
-            <div className="flex justify-between items-baseline mb-2">
-              <div><span className="text-3xl font-black text-slate-800">{c.data.total}</span><span className="text-sm font-bold text-slate-400 ml-1">ชิ้น</span></div>
-              <span className="text-2xl font-bold text-emerald-500">{c.data.available}</span>
-            </div>
-            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${c.data.total === 0 ? 0 : (c.data.available / c.data.total) * 100}%` }}></div></div>
-          </div>
-        ))}
       </div>
 
       {/* Filters & Search */}
@@ -493,7 +541,6 @@ export default function App() {
           )}
         </div>
 
-        {/* 🛠️ ปรับปุ่มให้แสดงไอคอนพร้อมสีสัน */}
         <div className="flex gap-2 overflow-x-auto w-full pb-2 custom-scrollbar">
           <button type="button" onClick={() => setFilterDept('all')} className={`flex items-center justify-center gap-2 whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all ${filterDept === 'all' ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>
             ทั้งหมด <Icons.ViewGrid className={filterDept === 'all' ? 'text-slate-300' : 'text-slate-400'} />
@@ -515,6 +562,20 @@ export default function App() {
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr className="bg-slate-200 border-b border-slate-300 text-lg">
+                {/* 🛠️ เพิ่มคอลัมน์ Checkbox สำหรับ Admin */}
+                {isAdmin && (
+                  <th className="px-4 py-4 text-center w-14">
+                    <input 
+                      type="checkbox" 
+                      className="w-5 h-5 rounded cursor-pointer accent-blue-600" 
+                      onChange={(e) => {
+                        if(e.target.checked) setSelectedItems(filteredItems.map(i => i.id));
+                        else setSelectedItems([]);
+                      }}
+                      checked={selectedItems.length > 0 && selectedItems.length === filteredItems.length}
+                    />
+                  </th>
+                )}
                 <th className="px-4 py-4 text-left font-bold text-slate-700">ชื่ออุปกรณ์ / รหัส</th>
                 <th className="px-4 py-4 text-left font-bold text-slate-700">หมวดหมู่</th>
                 <th className="px-4 py-4 text-left font-bold text-slate-700">ฝ่ายที่รับผิดชอบ</th>
@@ -525,22 +586,52 @@ export default function App() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredItems.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400 font-bold text-xl">ไม่พบข้อมูลที่ค้นหา</td></tr>
+                <tr><td colSpan={isAdmin ? 7 : 6} className="px-4 py-12 text-center text-slate-400 font-bold text-xl">ไม่พบข้อมูลที่ค้นหา</td></tr>
               ) : filteredItems.map((item, index) => {
                 const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
                 const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
                 const isBorrowed = item.status === 'borrowed';
                 const qty = Number(item.quantity) || 1;
                 
+                // 🛠️ เช็คว่าเป็นของเลยกำหนดคืนหรือไม่
+                const isOverdue = isBorrowed && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
+                const rowBg = isOverdue ? 'bg-rose-50 hover:bg-rose-100' : 'hover:bg-slate-50';
+                const rowBorder = isOverdue ? 'border-l-4 border-l-rose-500' : '';
+                
                 return (
-                  <tr key={`${item.id}_${index}`} className="group hover:bg-slate-50 transition-colors text-lg">
+                  <tr key={`${item.id}_${index}`} className={`group transition-colors text-lg ${rowBg} ${rowBorder}`}>
+                    
+                    {/* 🛠️ Checkbox เลือกอุปกรณ์ (คลิกแล้วเพิ่มลงตะกร้า) */}
+                    {isAdmin && (
+                      <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input 
+                          type="checkbox" 
+                          className="w-5 h-5 rounded cursor-pointer accent-blue-600"
+                          checked={selectedItems.includes(item.id)}
+                          onChange={() => {
+                            setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
+                          }}
+                        />
+                      </td>
+                    )}
+
                     <td className="px-4 py-4">
-                      <div className="font-bold text-slate-800 text-xl flex items-center gap-2">
+                      <div className="font-bold text-slate-800 text-xl flex items-center gap-2 flex-wrap">
                         {item.name} 
                         {qty > 1 && <span className="bg-blue-100 text-blue-700 text-base px-2 py-1 rounded-md">x{qty}</span>}
+                        {/* 🛠️ ป้ายเตือนเลยกำหนดคืนท้ายชื่อ */}
+                        {isOverdue && <span className="bg-rose-500 text-white text-xs px-2 py-1 rounded-md font-bold shadow-sm">เลยกำหนดคืน!</span>}
                       </div>
                       {item.sn && <div className="text-base text-slate-500 mt-1 font-mono">S.N.: {item.sn}</div>}
-                      {isBorrowed && <div className="text-base mt-2 p-2 bg-purple-50 rounded-lg border border-purple-100 inline-block"><span className="font-bold text-purple-700">ผู้ยืม: {item.currentBorrower}</span> <span className="text-purple-400 mx-1">|</span> <span className="text-slate-500">คืน: {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</span></div>}
+                      {isBorrowed && (
+                        <div className={`text-base mt-2 p-2 rounded-lg border inline-block ${isOverdue ? 'bg-rose-100 border-rose-200' : 'bg-purple-50 border-purple-100'}`}>
+                          <span className={`font-bold ${isOverdue ? 'text-rose-700' : 'text-purple-700'}`}>ผู้ยืม: {item.currentBorrower}</span> 
+                          <span className={`${isOverdue ? 'text-rose-300' : 'text-purple-300'} mx-1`}>|</span> 
+                          <span className={`${isOverdue ? 'text-rose-600 font-bold' : 'text-slate-500'}`}>
+                            คืน: {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}
+                          </span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-4 font-bold text-slate-600">{item.category || '-'}</td>
                     <td className="px-4 py-4"><span className={`inline-block px-3 py-1.5 rounded-lg text-base font-bold ${deptInfo.color}`}>{deptInfo.label}</span></td>
@@ -553,10 +644,10 @@ export default function App() {
                         
                         {isAdmin && (
                           <>
-                            {item.status === 'available' && <button type="button" onClick={(e) => { e.stopPropagation(); setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
-                            {isBorrowed && <button type="button" onClick={(e) => { e.stopPropagation(); setReturnData({ staff: '', newStaff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
+                            {/* 🛠️ เปลี่ยนให้ปุ่มส่ง ID เป็น Array */}
+                            {item.status === 'available' && <button type="button" onClick={(e) => { e.stopPropagation(); setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setBorrowTargetIds([item.id]); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
+                            {isBorrowed && <button type="button" onClick={(e) => { e.stopPropagation(); setReturnData({ staff: '', newStaff: '' }); setReturnTargetIds([item.id]); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
                             <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
-                            
                             <button type="button" onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
                           </>
                         )}
@@ -569,6 +660,21 @@ export default function App() {
           </table>
         </div>
       </div>
+
+      {/* 🛠️ Floating Action Bar (สำหรับยืม/คืนทีละหลายรายการ) */}
+      {isAdmin && selectedItems.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-md border border-slate-700 text-white px-6 py-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex items-center gap-4 sm:gap-8 z-40 w-[90%] max-w-xl justify-between animate-[slideUp_0.3s_ease-out]">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-500 text-white font-black w-8 h-8 rounded-full flex items-center justify-center shadow-inner">{selectedItems.length}</div>
+            <span className="font-bold text-lg hidden sm:inline">รายการที่เลือก</span>
+          </div>
+          <div className="flex gap-2 sm:gap-3">
+            <button onClick={handleOpenBatchBorrow} className="px-4 sm:px-6 py-2.5 bg-purple-500 hover:bg-purple-600 rounded-xl font-bold transition-colors shadow-md">ยืมออก</button>
+            <button onClick={handleOpenBatchReturn} className="px-4 sm:px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 rounded-xl font-bold transition-colors shadow-md">รับคืน</button>
+            <button onClick={() => setSelectedItems([])} className="px-3 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold transition-colors"><Icons.X /></button>
+          </div>
+        </div>
+      )}
 
       {/* Settings Modal */}
       {showSettings && (
@@ -705,11 +811,11 @@ export default function App() {
         </div>
       )}
 
-      {/* Borrow Modal */}
-      {showBorrow && (
+      {/* 🛠️ ปรับแก้ Borrow Modal ให้แสดงจำนวนถ้ายืมหลายชิ้น */}
+      {borrowTargetIds.length > 0 && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl">
-            <h3 className="text-2xl font-black text-slate-800 mb-6 text-center">บันทึกการให้ยืม</h3>
+            <h3 className="text-2xl font-black text-slate-800 mb-6 text-center">บันทึกการให้ยืม {borrowTargetIds.length > 1 ? `(${borrowTargetIds.length} ชิ้น)` : ''}</h3>
             <div className="space-y-4 mb-8">
               <div>
                 <label className="block text-base sm:text-lg font-bold text-slate-700 mb-2">ผู้ให้ยืม (จนท.) <span className="text-rose-500">*</span></label>
@@ -734,19 +840,19 @@ export default function App() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button type="button" onClick={() => setShowBorrow(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
+              <button type="button" onClick={() => setBorrowTargetIds([])} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
               <button type="button" onClick={handleBorrow} disabled={!borrowData.borrower || !borrowData.staff} className="flex-1 py-4 bg-purple-600 disabled:bg-purple-300 text-white font-bold rounded-xl shadow-lg shadow-purple-200 text-lg transition-colors">ยืนยัน</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Return Modal */}
-      {showReturn && (
+      {/* 🛠️ ปรับแก้ Return Modal ให้แสดงจำนวนถ้าคืนหลายชิ้น */}
+      {returnTargetIds.length > 0 && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center">
             <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.CheckCircle /></div>
-            <h3 className="text-2xl font-black text-slate-800 mb-6">บันทึกรับคืนอุปกรณ์</h3>
+            <h3 className="text-2xl font-black text-slate-800 mb-6">บันทึกรับคืนอุปกรณ์ {returnTargetIds.length > 1 ? `(${returnTargetIds.length} ชิ้น)` : ''}</h3>
             <div className="text-left mb-8 space-y-4">
               <div>
                 <label className="block text-base sm:text-lg font-bold text-slate-700 mb-2">ผู้รับคืน (จนท.) <span className="text-rose-500">*</span></label>
@@ -762,7 +868,7 @@ export default function App() {
               )}
             </div>
             <div className="flex gap-3">
-              <button type="button" onClick={() => setShowReturn(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
+              <button type="button" onClick={() => setReturnTargetIds([])} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
               <button type="button" onClick={handleReturn} disabled={!returnData.staff} className="flex-1 py-4 bg-emerald-600 disabled:bg-emerald-300 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 text-lg transition-colors">รับคืน</button>
             </div>
           </div>
@@ -801,7 +907,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 🛠️ Modal 2: ยืนยันการลบอุปกรณ์ในตารางหลัก */}
+      {/* Modal ยืนยันการลบอุปกรณ์ในตารางหลัก */}
       {itemToDelete && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
@@ -818,7 +924,13 @@ export default function App() {
           </div>
         </div>
       )}
-
+      
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes slideUp {
+          from { transform: translate(-50%, 100%); opacity: 0; }
+          to { transform: translate(-50%, 0); opacity: 1; }
+        }
+      `}} />
     </div>
   );
 }
