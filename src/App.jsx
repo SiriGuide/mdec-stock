@@ -412,7 +412,7 @@ export default function App() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v3.1</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v3.2</span>
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -532,7 +532,6 @@ export default function App() {
               const isBorrowed = item.status === 'borrowed';
               const qty = Number(item.quantity) || 1;
               
-              // 🛠️ ล็อกรหัส Key ให้เป็นค่าจาก Database โดยตรง ห้ามพึ่งพาลำดับเด็ดขาด
               return (
                 <tr key={item.id} className="hover:bg-slate-50 transition-colors text-lg">
                   <td className="px-4 py-4">
