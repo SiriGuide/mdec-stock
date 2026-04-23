@@ -62,13 +62,10 @@ export default function App() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState('all');
-  
-  // 🛠️ คืนชีพปุ่ม Filter และ Sort เพื่อความสะดวก (ระบบใหม่เสถียร 100%)
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
 
-  // ระบบจำการล็อกอิน ให้ใช้งานสะดวกไม่ต้องพิมพ์รหัสบ่อย
   const [isAdmin, setIsAdmin] = useState(() => {
     try { return localStorage.getItem('mdec_admin') === 'true'; } 
     catch (e) { return false; }
@@ -80,7 +77,7 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1 });
   
-  const [itemToDelete, setItemToDelete] = useState(null); // 🛠️ แก้ปัญหาปุ่มลบรวน โดยเก็บข้อมูลทั้งก้อนเพื่อให้ชัวร์ว่าลบถูกตัว
+  const [itemToDelete, setItemToDelete] = useState(null); 
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
   
   const [showBorrow, setShowBorrow] = useState(null);
@@ -145,7 +142,6 @@ export default function App() {
       return matchSearch && matchDept && matchCategory && matchStatus;
     });
 
-    // 🛠️ อัปเกรดการจัดเรียง (Sort) ให้ฉลาดขึ้น: รู้จักตัวเลขในข้อความ (Numeric Sort) และอ่านไทย-อังกฤษแม่นยำ
     result.sort((a, b) => {
       let aVal = a[sortConfig.key] ?? '';
       let bVal = b[sortConfig.key] ?? '';
@@ -166,7 +162,6 @@ export default function App() {
       const strA = String(aVal);
       const strB = String(bVal);
 
-      // ใช้ localeCompare พร้อม numeric: true เพื่อให้เรียง "12" ขึ้นก่อน "15" ได้อย่างถูกต้อง
       return sortConfig.direction === 'asc' 
         ? strA.localeCompare(strB, 'th', { numeric: true, sensitivity: 'base' }) 
         : strB.localeCompare(strA, 'th', { numeric: true, sensitivity: 'base' });
@@ -257,14 +252,13 @@ export default function App() {
     setShowForm(false);
   };
 
-  // 🛠️ ลบไอเทมที่เลือกไว้ได้อย่างแม่นยำ 100%
   const handleDeleteItem = async () => {
-    if (itemToDelete) {
+    if (itemToDelete && itemToDelete.id) {
       try {
         await deleteDoc(doc(db, "mdec_stock", "shared_data", "items", itemToDelete.id));
       } catch (error) {
         console.error("Error deleting item:", error);
-        alert("เกิดข้อผิดพลาดในการลบข้อมูล กรุณาลองใหม่");
+        alert("เกิดข้อผิดพลาดในการลบข้อมูล: อาจเป็นเพราะฐานข้อมูลหมดอายุ (กรุณาดูวิธีแก้ที่คู่มือ)");
       } finally {
         setItemToDelete(null);
       }
@@ -391,7 +385,6 @@ export default function App() {
     return <span className="text-blue-600 ml-1">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
   };
 
-  // 🛠️ คืนชีพการจัดเรียงข้อมูลเมื่อกดที่หัวตาราง
   const Th = ({ label, columnKey, className }) => (
     <th 
       className={`px-4 py-4 text-left font-bold text-slate-700 cursor-pointer hover:bg-slate-300 transition-colors group select-none ${className || ''}`} 
@@ -422,7 +415,7 @@ export default function App() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v7.0 Ultimate</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v8.0 Fix</span>
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -532,22 +525,20 @@ export default function App() {
                 <Th label="ฝ่ายที่รับผิดชอบ" columnKey="department" />
                 <Th label="สถานที่ / ห้อง" columnKey="location" />
                 <Th label="สถานะ" columnKey="status" />
-                {/* 🛠️ ล็อกปุ่มจัดการให้ติดหนึบขวาสุดเสมอ ป้องกันปุ่มหายตกขอบจอ */}
                 <th className="px-4 py-4 text-center font-bold text-slate-700 sticky right-0 bg-slate-200 shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-20">ประวัติ / จัดการ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredItems.length === 0 ? (
                 <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400 font-bold text-xl">ไม่พบข้อมูลที่ค้นหา</td></tr>
-              ) : filteredItems.map((item) => {
+              ) : filteredItems.map((item, index) => {
                 const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
                 const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
                 const isBorrowed = item.status === 'borrowed';
                 const qty = Number(item.quantity) || 1;
                 
-                // 🛠️ ล็อก ID แถวให้ตายตัว 100% ไม่มีทางที่ข้อมูลจะสลับบรรทัดกันอีก
                 return (
-                  <tr key={item.id} className="group hover:bg-slate-50 transition-colors text-lg">
+                  <tr key={`${item.id}_${index}`} className="group hover:bg-slate-50 transition-colors text-lg">
                     <td className="px-4 py-4">
                       <div className="font-bold text-slate-800 text-xl flex items-center gap-2">
                         {item.name} 
@@ -561,7 +552,6 @@ export default function App() {
                     <td className="px-4 py-4 font-bold text-slate-600">{item.location || '-'}</td>
                     <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-base font-bold border ${statusInfo.color}`}><div className={`w-2 h-2 rounded-full currentColor`}></div>{statusInfo.label}</span></td>
                     
-                    {/* 🛠️ ล็อกปุ่มจัดการให้ติดหนึบขวาสุดเสมอ */}
                     <td className="px-4 py-4 sticky right-0 bg-white group-hover:bg-slate-50 shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-10 transition-colors">
                       <div className="flex items-center justify-center gap-2">
                         <button type="button" onClick={() => setShowHistory(item.id)} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white flex items-center justify-center transition-colors" title="ประวัติ"><Icons.History /></button>
@@ -572,7 +562,6 @@ export default function App() {
                             {isBorrowed && <button type="button" onClick={() => { setReturnData({ staff: '', newStaff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
                             <button type="button" onClick={() => { setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
                             
-                            {/* 🛠️ ปุ่มลบ: ส่งข้อมูลทั้งก้อนไปให้ Modal เพื่อกันความสับสน */}
                             <button type="button" onClick={() => setItemToDelete(item)} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
                           </>
                         )}
@@ -817,7 +806,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 🛠️ Modal 2: ยืนยันการลบอุปกรณ์ในตารางหลัก (มั่นใจว่าถูกตัวแน่นอน) */}
+      {/* 🛠️ Modal 2: ยืนยันการลบอุปกรณ์ในตารางหลัก */}
       {itemToDelete && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
