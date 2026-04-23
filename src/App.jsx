@@ -62,6 +62,8 @@ export default function App() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState('all');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
 
   const [isAdmin, setIsAdmin] = useState(() => {
     try { return localStorage.getItem('mdec_admin') === 'true'; } 
@@ -124,26 +126,35 @@ export default function App() {
     return () => unsubscribeAuth();
   }, []);
 
+  // 🛠️ อุดรอยรั่วการเรียงข้อมูลและการกรองให้ทำงานเป๊ะ 100%
   const filteredItems = useMemo(() => {
     let result = items.filter(item => {
-      const searchLower = searchTerm.trim().toLowerCase();
+      const searchLower = String(searchTerm || '').trim().toLowerCase();
       const matchSearch = searchLower === '' || 
-                          (item.name && item.name.toLowerCase().includes(searchLower)) || 
-                          (item.sn && item.sn.toLowerCase().includes(searchLower)) || 
-                          (item.location && item.location.toLowerCase().includes(searchLower));
+                          (item.name && String(item.name).toLowerCase().includes(searchLower)) || 
+                          (item.sn && String(item.sn).toLowerCase().includes(searchLower)) || 
+                          (item.location && String(item.location).toLowerCase().includes(searchLower));
                           
-      const matchDept = filterDept === 'all' || item.department === filterDept;
-      return matchSearch && matchDept;
+      const matchDept = filterDept === 'all' || String(item.department) === String(filterDept);
+      const matchCat = filterCategory === 'all' || String(item.category) === String(filterCategory);
+      const matchStat = filterStatus === 'all' || String(item.status) === String(filterStatus);
+      
+      return matchSearch && matchDept && matchCat && matchStat;
     });
 
+    // เรียงตามตัวอักษรไทย-อังกฤษเสมอ เพื่อกันข้อมูลสลับตำแหน่งตอนรีเฟรช
     result.sort((a, b) => {
-      const strA = String(a.name || '');
-      const strB = String(b.name || '');
-      return strA.localeCompare(strB, 'th', { numeric: true, sensitivity: 'base' });
+      try {
+        const strA = String(a.name || '');
+        const strB = String(b.name || '');
+        return strA.localeCompare(strB, 'th', { numeric: true, sensitivity: 'base' });
+      } catch (e) {
+        return 0;
+      }
     });
 
     return result;
-  }, [items, searchTerm, filterDept]);
+  }, [items, searchTerm, filterDept, filterCategory, filterStatus]);
 
   const stats = useMemo(() => {
     const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
@@ -220,14 +231,15 @@ export default function App() {
     setShowForm(false);
   };
 
+  // 🛠️ อุดรอยรั่วการลบ หากลบไม่ได้จะโชว์ Error จริงให้เห็นทันที
   const handleDeleteItem = async () => {
     if (itemToDelete && itemToDelete.id) {
       try {
         await deleteDoc(doc(db, "mdec_stock", "shared_data", "items", itemToDelete.id));
+        setItemToDelete(null);
       } catch (error) {
         console.error("Error deleting item:", error);
-        alert("เกิดข้อผิดพลาดในการลบข้อมูล กรุณาลองใหม่ (โปรดเปลี่ยนกฎ Firebase Rules เป็น if true;)");
-      } finally {
+        alert(`เกิดข้อผิดพลาดจากฐานข้อมูล: ${error.message}`);
         setItemToDelete(null);
       }
     }
@@ -367,7 +379,7 @@ export default function App() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v9.0 Master</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v10.0 Ultra Fix</span>
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -442,6 +454,17 @@ export default function App() {
             <input type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           
+          <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+            <select className="flex-1 px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+              <option value="all">หมวดหมู่ทั้งหมด</option>
+              {settingsOptions.categories.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select className="flex-1 px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+              <option value="all">สถานะทั้งหมด</option>
+              {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
+          </div>
+
           {isAdmin && (
             <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: filterDept === 'all' ? 'ภาพนิ่ง' : filterDept, category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1 }); setShowForm(true); }} className="w-full xl:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap"><Icons.Plus /> เพิ่มอุปกรณ์</button>
           )}
@@ -460,13 +483,14 @@ export default function App() {
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
+              {/* 🛠️ ลบ Sticky ออกจาก Table เพื่อแก้ไขปัญหาปุ่มลบกดไม่ติด (Ghost Click) */}
               <tr className="bg-slate-200 border-b border-slate-300 text-lg">
                 <th className="px-4 py-4 text-left font-bold text-slate-700">ชื่ออุปกรณ์ / รหัส</th>
                 <th className="px-4 py-4 text-left font-bold text-slate-700">หมวดหมู่</th>
                 <th className="px-4 py-4 text-left font-bold text-slate-700">ฝ่ายที่รับผิดชอบ</th>
                 <th className="px-4 py-4 text-left font-bold text-slate-700">สถานที่ / ห้อง</th>
                 <th className="px-4 py-4 text-left font-bold text-slate-700">สถานะ</th>
-                <th className="px-4 py-4 text-center font-bold text-slate-700 sticky right-0 bg-slate-200 shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-20">ประวัติ / จัดการ</th>
+                <th className="px-4 py-4 text-center font-bold text-slate-700">ประวัติ / จัดการ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -493,17 +517,19 @@ export default function App() {
                     <td className="px-4 py-4 font-bold text-slate-600">{item.location || '-'}</td>
                     <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-base font-bold border ${statusInfo.color}`}><div className={`w-2 h-2 rounded-full currentColor`}></div>{statusInfo.label}</span></td>
                     
-                    <td className="px-4 py-4 sticky right-0 bg-white group-hover:bg-slate-50 shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-10 transition-colors">
+                    {/* 🛠️ นำ Sticky ขวาสุดออก เพื่อให้ปุ่มทุกปุ่มกดติดแน่นอน 100% */}
+                    <td className="px-4 py-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button type="button" onClick={() => setShowHistory(item.id)} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white flex items-center justify-center transition-colors" title="ประวัติ"><Icons.History /></button>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setShowHistory(item.id); }} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white flex items-center justify-center transition-colors" title="ประวัติ"><Icons.History /></button>
                         
                         {isAdmin && (
                           <>
-                            {item.status === 'available' && <button type="button" onClick={() => { setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
-                            {isBorrowed && <button type="button" onClick={() => { setReturnData({ staff: '', newStaff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
-                            <button type="button" onClick={() => { setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
+                            {item.status === 'available' && <button type="button" onClick={(e) => { e.stopPropagation(); setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
+                            {isBorrowed && <button type="button" onClick={(e) => { e.stopPropagation(); setReturnData({ staff: '', newStaff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
                             
-                            <button type="button" onClick={() => setItemToDelete(item)} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
+                            {/* 🛠️ ปุ่มลบ: ใส่ stopPropagation ป้องกันคำสั่งชนกันในบรรทัด */}
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
                           </>
                         )}
                       </div>
