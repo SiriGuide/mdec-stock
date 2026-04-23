@@ -139,9 +139,13 @@ export default function App() {
       return matchSearch && matchDept && matchCategory && matchStatus;
     });
 
+    // 🛠️ อัปเกรดสูตรจัดเรียง: รองรับภาษาไทยได้สมบูรณ์แบบ
     result.sort((a, b) => {
-      let aValue = a[sortConfig.key] || '';
-      let bValue = b[sortConfig.key] || '';
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+
+      if (aValue === undefined || aValue === null) aValue = '';
+      if (bValue === undefined || bValue === null) bValue = '';
 
       if (sortConfig.key === 'status') {
         const statusOrder = { 'available': 1, 'in-use': 2, 'borrowed': 3, 'maintenance': 4 };
@@ -151,19 +155,24 @@ export default function App() {
         aValue = Number(aValue);
         bValue = Number(bValue);
       } else {
-        aValue = aValue.toString().toLowerCase();
-        bValue = bValue.toString().toLowerCase();
+        aValue = aValue.toString();
+        bValue = bValue.toString();
       }
 
-      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-      return 0;
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+
+      // ใช้ localeCompare สำหรับภาษาไทย
+      return sortConfig.direction === 'asc' 
+        ? aValue.toString().localeCompare(bValue.toString(), 'th') 
+        : bValue.toString().localeCompare(aValue.toString(), 'th');
     });
 
     return result;
   }, [items, searchTerm, filterDept, filterCategory, filterStatus, sortConfig]);
 
-  // กล่องบนสุด โชว์ "ยอดรวมทั้งหมดของศูนย์เสมอ" (ใช้ items แทน deptItems)
+  // กล่องบนสุด โชว์ "ยอดรวมทั้งหมดของศูนย์เสมอ"
   const stats = useMemo(() => {
     const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
     items.forEach(item => {
@@ -182,7 +191,7 @@ export default function App() {
     return items.filter(item => filterDept === 'all' || item.department === filterDept);
   }, [items, filterDept]);
 
-  // กล่องหมวดหมู่เล็กๆ จะ "โชว์เฉพาะหมวดหมู่ที่มีของอยู่จริงในฝ่ายนั้น" (ซ่อนกล่องที่มีค่า 0)
+  // กล่องหมวดหมู่เล็กๆ จะ "โชว์เฉพาะหมวดหมู่ที่มีของอยู่จริงในฝ่ายนั้น"
   const categoryStats = useMemo(() => {
     const catData = {};
     settingsOptions.categories.filter(c => c !== 'อื่นๆ').forEach(cat => {
@@ -242,7 +251,8 @@ export default function App() {
     if (formData.id) {
       await setDoc(doc(db, "mdec_stock", "shared_data", "items", formData.id), itemData, { merge: true });
     } else {
-      const newId = `item_${Date.now()}`;
+      // 🛠️ อัปเกรดสูตรสร้าง ID: ป้องกัน ID ซ้ำกัน 100% แม้จะกดเซฟเร็วแค่ไหน
+      const newId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       await setDoc(doc(db, "mdec_stock", "shared_data", "items", newId), { ...itemData, history: [] });
     }
     setShowForm(false);
@@ -410,7 +420,7 @@ export default function App() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v2.1</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v2.2</span>
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -515,7 +525,8 @@ export default function App() {
             <tr className="bg-slate-200 border-b border-slate-300 text-lg">
               <Th label="ชื่ออุปกรณ์ / รหัส" columnKey="name" />
               <Th label="หมวดหมู่" columnKey="category" />
-              <Th label="ฝ่ายที่รับผิดชอบ" columnKey="department" />
+              {/* 🛠️ ซ่อนคอลัมน์ ฝ่าย ถ้าไม่ได้เลือก 'ทั้งหมด' */}
+              {filterDept === 'all' && <Th label="ฝ่ายที่รับผิดชอบ" columnKey="department" />}
               <Th label="สถานที่ / ห้อง" columnKey="location" />
               <Th label="สถานะ" columnKey="status" />
               <th className="px-4 py-4 text-center font-bold text-slate-700">ประวัติ / จัดการ</th>
@@ -540,7 +551,12 @@ export default function App() {
                     {isBorrowed && <div className="text-base mt-2 p-2 bg-purple-50 rounded-lg border border-purple-100 inline-block"><span className="font-bold text-purple-700">ผู้ยืม: {item.currentBorrower}</span> <span className="text-purple-400 mx-1">|</span> <span className="text-slate-500">คืน: {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</span></div>}
                   </td>
                   <td className="px-4 py-4 font-bold text-slate-600">{item.category || '-'}</td>
-                  <td className="px-4 py-4"><span className={`inline-block px-3 py-1.5 rounded-lg text-base font-bold ${deptInfo.color}`}>{deptInfo.label}</span></td>
+                  
+                  {/* 🛠️ ซ่อนข้อมูล ฝ่าย ถ้าไม่ได้เลือก 'ทั้งหมด' */}
+                  {filterDept === 'all' && (
+                    <td className="px-4 py-4"><span className={`inline-block px-3 py-1.5 rounded-lg text-base font-bold ${deptInfo.color}`}>{deptInfo.label}</span></td>
+                  )}
+
                   <td className="px-4 py-4 font-bold text-slate-600">{item.location || '-'}</td>
                   <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-base font-bold border ${statusInfo.color}`}><div className={`w-2 h-2 rounded-full currentColor`}></div>{statusInfo.label}</span></td>
                   <td className="px-4 py-4">
