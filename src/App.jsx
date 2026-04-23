@@ -5,12 +5,12 @@ import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "fi
 
 // ⚠️ นำค่า Firebase Config ของคุณมาใส่ตรงนี้
 const myFirebaseConfig = {
-  apiKey: "ใส่_API_KEY_ของคุณที่นี่",
-  authDomain: "ใส่_AUTH_DOMAIN_ของคุณที่นี่",
-  projectId: "ใส่_PROJECT_ID_ของคุณที่นี่",
-  storageBucket: "ใส่_STORAGE_BUCKET_ของคุณที่นี่",
-  messagingSenderId: "ใส่_MESSAGING_SENDER_ID_ของคุณที่นี่",
-  appId: "ใส่_APP_ID_ของคุณที่นี่"
+  apiKey: "AIzaSyA0IFm6icc-QG4ZC2WiuhRa2YquISGH9FM",
+  authDomain: "mdec-stock-app.firebaseapp.com",
+  projectId: "mdec-stock-app",
+  storageBucket: "mdec-stock-app.firebasestorage.app",
+  messagingSenderId: "283888438624",
+  appId: "1:283888438624:web:6cfe60c58d94dc00fda205"
 };
 
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : myFirebaseConfig;
