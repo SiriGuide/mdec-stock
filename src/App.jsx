@@ -76,7 +76,9 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1 });
   
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  // ตัวแปรสำหรับ Modal ยืนยันการลบ
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // ใช้กับอุปกรณ์หลัก
+  const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null); // ใช้กับการตั้งค่า
   
   const [showBorrow, setShowBorrow] = useState(null);
   const [borrowData, setBorrowData] = useState({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '' });
@@ -89,9 +91,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsTab, setSettingsTab] = useState('categories');
   const [newSettingItem, setNewSettingItem] = useState('');
-  
   const [editingSettingItem, setEditingSettingItem] = useState(null);
-  const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
 
   useEffect(() => {
     signInAnonymously(auth).catch(() => setFirebaseError(true));
@@ -413,7 +413,7 @@ export default function App() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v2.5</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v2.6</span>
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -552,15 +552,14 @@ export default function App() {
                   <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-base font-bold border ${statusInfo.color}`}><div className={`w-2 h-2 rounded-full currentColor`}></div>{statusInfo.label}</span></td>
                   <td className="px-4 py-4">
                     <div className="flex items-center justify-center gap-2">
-                      {/* ปุ่มประวัติ */}
                       <button onClick={() => setShowHistory(item.id)} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white flex items-center justify-center transition-colors" title="ประวัติ"><Icons.History /></button>
                       
-                      {/* ปุ่มจัดการอื่นๆ */}
                       {isAdmin && (
                         <>
                           {item.status === 'available' && <button onClick={() => { setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
                           {isBorrowed && <button onClick={() => { setReturnData({ staff: '', newStaff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
                           <button onClick={() => { setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
+                          {/* ปุ่มสำหรับเรียก Modal ลบอุปกรณ์ */}
                           <button onClick={() => setShowDeleteConfirm(item.id)} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
                         </>
                       )}
@@ -601,29 +600,29 @@ export default function App() {
               </div>
             </div>
             <div className="p-4 bg-slate-50 border-t border-slate-100">
-        <button onClick={() => { setShowSettings(false); setEditingSettingItem(null); setNewSettingItem(''); }} className="w-full py-4 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-lg">ปิดหน้าต่าง</button>
-      </div>
-    </div>
-  </div>
-)}
+              <button onClick={() => { setShowSettings(false); setEditingSettingItem(null); setNewSettingItem(''); }} className="w-full py-4 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-lg">ปิดหน้าต่าง</button>
+            </div>
+          </div>
+        </div>
+      )}
 
-{/* Delete Setting Confirm */}
-{deleteSettingConfirm !== null && (
-  <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
-    <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
-      <div className="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.Trash /></div>
-      <h3 className="text-2xl font-black text-slate-800 mb-2">ยืนยันการลบ?</h3>
-      <p className="text-slate-500 mb-8 text-lg">รายการ <span className="font-bold text-rose-600">"{deleteSettingConfirm}"</span> จะหายไปจากตัวเลือก</p>
-      <div className="flex gap-3">
-        <button onClick={() => setDeleteSettingConfirm(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
-        <button onClick={handleDeleteSetting} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-200 text-lg">ลบรายการ</button>
-      </div>
-    </div>
-  </div>
-)}
+      {/* Modal 1: ยืนยันการลบการตั้งค่า (Settings) */}
+      {deleteSettingConfirm !== null && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
+            <div className="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.Trash /></div>
+            <h3 className="text-2xl font-black text-slate-800 mb-2">ยืนยันการลบ?</h3>
+            <p className="text-slate-500 mb-8 text-lg">รายการ <span className="font-bold text-rose-600">"{deleteSettingConfirm}"</span> จะหายไปจากตัวเลือก</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteSettingConfirm(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
+              <button onClick={handleDeleteSetting} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-200 text-lg">ลบรายการ</button>
+            </div>
+          </div>
+        </div>
+      )}
 
-{/* Login Modal */}
-{showLogin && (
+      {/* Login Modal */}
+      {showLogin && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
             <h3 className="text-2xl font-black text-slate-800 mb-6 text-center">เข้าสู่ระบบจัดการ</h3>
@@ -804,7 +803,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Delete Confirm */}
+      {/* Modal 2: ยืนยันการลบอุปกรณ์ในตารางหลัก (Main Items) */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
