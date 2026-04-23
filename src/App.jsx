@@ -963,6 +963,21 @@ export default function App() {
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr className={`border-b text-lg transition-colors ${theme.th}`}>
+                {isAdmin && (
+                  <th className="px-4 py-4 text-center w-14">
+                    <input 
+                      type="checkbox" 
+                      className="w-5 h-5 rounded cursor-pointer accent-indigo-600" 
+                      onChange={(e) => {
+                        if(e.target.checked) setSelectedItems(selectableItems.map(i => i.id));
+                        else setSelectedItems([]);
+                      }}
+                      disabled={selectableItems.length === 0}
+                      checked={selectableItems.length > 0 && selectableItems.every(i => selectedItems.includes(i.id))}
+                      title="เลือกรายการที่ทำได้ทั้งหมด"
+                    />
+                  </th>
+                )}
                 <th className="px-4 py-4 text-left font-bold pl-6">ชื่ออุปกรณ์ / รหัส</th>
                 <th className="px-4 py-4 text-left font-bold">หมวดหมู่</th>
                 <th className="px-4 py-4 text-left font-bold">ฝ่ายที่รับผิดชอบ</th>
@@ -986,6 +1001,23 @@ export default function App() {
                 
                 return (
                   <tr key={`${item.id}_${index}`} className={`group transition-colors text-lg ${rowBg} ${rowBorder}`}>
+
+                    {isAdmin && (
+                      <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        {(item.status === 'available' || item.status === 'borrowed') ? (
+                          <input 
+                            type="checkbox" 
+                            className="w-5 h-5 rounded cursor-pointer accent-indigo-600"
+                            checked={selectedItems.includes(item.id)}
+                            onChange={() => {
+                              setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
+                            }}
+                          />
+                        ) : (
+                          <div className={`w-5 h-5 mx-auto rounded-sm cursor-not-allowed ${isDarkMode ? 'bg-slate-700 opacity-50' : 'bg-slate-200 opacity-50'}`} title="สถานะนี้ไม่สามารถทำรายการแบบกลุ่มได้"></div>
+                        )}
+                      </td>
+                    )}
 
                     <td className="px-4 py-4 pl-6">
                       <div className={`font-bold text-xl flex items-center gap-2 flex-wrap ${theme.textTitle}`}>
@@ -1052,6 +1084,21 @@ export default function App() {
           </table>
         </div>
       </div>
+
+      {/* 🛒 Floating Action Bar (ระบบตะกร้าเลือกหลายชิ้นอิสระ) */}
+      {isAdmin && selectedItems.length > 0 && (
+        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 backdrop-blur-xl px-4 py-4 sm:px-6 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] flex items-center gap-4 sm:gap-8 z-40 w-[90%] max-w-xl justify-between animate-[slideUp_0.3s_ease-out] border-2 ${isDarkMode ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-white/90 border-slate-100 text-slate-800'}`}>
+          <div className="flex items-center gap-3">
+            <div className="bg-indigo-600 text-white font-black w-10 h-10 rounded-full flex items-center justify-center shadow-inner text-lg">{selectedItems.length}</div>
+            <span className="font-bold text-lg hidden sm:inline">รายการที่เลือก</span>
+          </div>
+          <div className="flex gap-2 sm:gap-3">
+            <button onClick={handleOpenBatchBorrow} className="px-4 sm:px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base"><Icons.UserPlus className="w-5 h-5"/> <span className="hidden sm:inline">ยืมออก</span></button>
+            <button onClick={handleOpenBatchReturn} className="px-4 sm:px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base"><Icons.CheckCircle className="w-5 h-5"/> <span className="hidden sm:inline">รับคืน</span></button>
+            <button onClick={() => setSelectedItems([])} className={`px-4 py-3 rounded-2xl font-bold transition-colors border ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600'}`}><Icons.X /></button>
+          </div>
+        </div>
+      )}
 
       {/* 📦 Modal ยืม/คืนแบบจัดเซ็ต (Bundles) */}
       {showBundleModal && (
