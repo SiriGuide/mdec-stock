@@ -87,6 +87,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsTab, setSettingsTab] = useState('categories'); // categories | locations | staff
   const [newSettingItem, setNewSettingItem] = useState('');
+  
   const [editingSettingItem, setEditingSettingItem] = useState(null);
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
 
@@ -108,7 +109,6 @@ export default function App() {
         const unsubscribeSettings = onSnapshot(doc(db, "mdec_stock", "shared_data", "settings", "global"), (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
-            // ป้องกันข้อมูลเก่าที่ยังไม่มีอาร์เรย์ staff
             if (!data.staff) data.staff = ['แอดมิน', 'อื่นๆ'];
             setSettingsOptions(data);
           } else {
@@ -160,10 +160,14 @@ export default function App() {
     return result;
   }, [items, searchTerm, filterDept, filterCategory, filterStatus, sortConfig]);
 
-  // 1. สรุปภาพรวมหลัก (ทั้งหมด, ว่าง, ใช้งาน, ยืม, ซ่อม)
+  // ดึงข้อมูลเฉพาะฝ่ายที่เลือก เพื่อเอาไปคำนวณในกล่องสรุปยอด
+  const deptItems = useMemo(() => {
+    return items.filter(item => filterDept === 'all' || item.department === filterDept);
+  }, [items, filterDept]);
+
   const stats = useMemo(() => {
     const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
-    items.forEach(item => {
+    deptItems.forEach(item => {
       const qty = Number(item.quantity) || 1;
       s.all += qty;
       if (item.status === 'available') s.available += qty;
@@ -172,16 +176,15 @@ export default function App() {
       if (item.status === 'maintenance') s.maintenance += qty;
     });
     return s;
-  }, [items]);
+  }, [deptItems]);
 
-  // 2. สรุปแยกตามหมวดหมู่แบบไดนามิก (ดึงจาก Settings)
   const categoryStats = useMemo(() => {
     const catData = {};
     settingsOptions.categories.filter(c => c !== 'อื่นๆ').forEach(cat => {
       catData[cat] = { total: 0, available: 0 };
     });
 
-    items.forEach(item => {
+    deptItems.forEach(item => {
       const qty = Number(item.quantity) || 1;
       const cat = item.category;
       if (cat && catData[cat]) {
@@ -193,7 +196,7 @@ export default function App() {
     });
 
     return Object.entries(catData).map(([label, data]) => ({ label, data }));
-  }, [items, settingsOptions.categories]);
+  }, [deptItems, settingsOptions.categories]);
 
   const handleSort = (key) => {
     setSortConfig(prev => ({
@@ -243,8 +246,13 @@ export default function App() {
 
   const handleDelete = async () => {
     if (showDeleteConfirm) {
-      await deleteDoc(doc(db, "mdec_stock", "shared_data", "items", showDeleteConfirm));
-      setShowDeleteConfirm(null);
+      try {
+        await deleteDoc(doc(db, "mdec_stock", "shared_data", "items", showDeleteConfirm));
+      } catch (error) {
+        console.error("Error deleting item:", error);
+      } finally {
+        setShowDeleteConfirm(null);
+      }
     }
   };
 
@@ -290,23 +298,26 @@ export default function App() {
     if (!newSettingItem.trim()) return;
     const key = settingsTab;
     let newOptions = [...(settingsOptions[key] || [])];
-    let oldName = null;
+    let oldName = editingSettingItem;
     let newName = newSettingItem.trim();
 
-    if (editingSettingItem !== null) {
-      oldName = newOptions[editingSettingItem];
-      newOptions[editingSettingItem] = newName;
+    if (oldName !== null) {
+      const index = newOptions.indexOf(oldName);
+      if (index > -1) {
+        newOptions[index] = newName;
+      }
     } else {
       newOptions = newOptions.filter(item => item !== 'อื่นๆ');
       newOptions.push(newName);
       newOptions.push('อื่นๆ');
     }
+    
+    newOptions = [...new Set(newOptions)];
 
     const updatedSettings = { ...settingsOptions, [key]: newOptions };
     setSettingsOptions(updatedSettings);
     await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), updatedSettings);
 
-    // Auto-update items if category or location name changed
     if (oldName && oldName !== newName && (key === 'categories' || key === 'locations')) {
       items.forEach(async (item) => {
         let updateData = {};
@@ -324,12 +335,18 @@ export default function App() {
 
   const handleDeleteSetting = async () => {
     if (deleteSettingConfirm !== null) {
-      const key = settingsTab;
-      const newOptions = settingsOptions[key].filter((_, i) => i !== deleteSettingConfirm);
-      const updatedSettings = { ...settingsOptions, [key]: newOptions };
-      setSettingsOptions(updatedSettings);
-      await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), updatedSettings);
-      setDeleteSettingConfirm(null);
+      try {
+        const key = settingsTab;
+        const newOptions = (settingsOptions[key] || []).filter(item => item !== deleteSettingConfirm);
+        const updatedSettings = { ...settingsOptions, [key]: newOptions };
+        
+        setSettingsOptions(updatedSettings);
+        await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), updatedSettings);
+      } catch (error) {
+        console.error("Error deleting setting:", error);
+      } finally {
+        setDeleteSettingConfirm(null);
+      }
     }
   };
 
@@ -555,8 +572,8 @@ export default function App() {
                   <div key={index} className="flex justify-between items-center p-4 bg-slate-50 border border-slate-100 rounded-xl group hover:bg-slate-100 transition-colors">
                     <span className="font-bold text-slate-700 text-lg">{item}</span>
                     <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => { setEditingSettingItem(index); setNewSettingItem(item); }} className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors"><Icons.Edit /></button>
-                      <button onClick={() => setDeleteSettingConfirm(index)} className="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors"><Icons.Trash /></button>
+                      <button onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors"><Icons.Edit /></button>
+                      <button onClick={() => setDeleteSettingConfirm(item)} className="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors"><Icons.Trash /></button>
                     </div>
                   </div>
                 ))}
@@ -574,7 +591,7 @@ export default function App() {
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
             <div className="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.Trash /></div>
             <h3 className="text-2xl font-black text-slate-800 mb-2">ยืนยันการลบ?</h3>
-            <p className="text-slate-500 mb-8 text-lg">รายการนี้จะหายไปจากตัวเลือก</p>
+            <p className="text-slate-500 mb-8 text-lg">รายการ <span className="font-bold text-rose-600">"{deleteSettingConfirm}"</span> จะหายไปจากตัวเลือก</p>
             <div className="flex gap-3">
               <button onClick={() => setDeleteSettingConfirm(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
               <button onClick={handleDeleteSetting} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-200 text-lg">ลบรายการ</button>
