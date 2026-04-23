@@ -12,7 +12,6 @@ const myFirebaseConfig = {
   messagingSenderId: "283888438624",
   appId: "1:283888438624:web:6cfe60c58d94dc00fda205"
 };
-
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : myFirebaseConfig;
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -62,13 +61,9 @@ export default function App() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState('all');
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
 
-  const [isAdmin, setIsAdmin] = useState(() => {
-    return localStorage.getItem('mdec_admin') === 'true';
-  });
+  // 🛠️ นำระบบจำการล็อกอินออก เพื่อความชัวร์เวลาเปลี่ยนเครื่อง
+  const [isAdmin, setIsAdmin] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [pin, setPin] = useState('');
   const [firebaseError, setFirebaseError] = useState(false);
@@ -76,7 +71,7 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1 });
   
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // เก็บ ID ของอุปกรณ์ที่ต้องการลบ
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
   
   const [showBorrow, setShowBorrow] = useState(null);
@@ -126,8 +121,9 @@ export default function App() {
     return () => unsubscribeAuth();
   }, []);
 
+  // 🛠️ กรองข้อมูลให้ตรงไปตรงมา ลบฟังก์ชัน Sort ที่ทำให้ตารางรวนออกทั้งหมด
   const filteredItems = useMemo(() => {
-    let result = items.filter(item => {
+    return items.filter(item => {
       const searchLower = searchTerm.trim().toLowerCase();
       const matchSearch = searchLower === '' || 
                           (item.name && item.name.toLowerCase().includes(searchLower)) || 
@@ -135,44 +131,10 @@ export default function App() {
                           (item.location && item.location.toLowerCase().includes(searchLower));
                           
       const matchDept = filterDept === 'all' || item.department === filterDept;
-      const matchCategory = filterCategory === 'all' || item.category === filterCategory;
-      const matchStatus = filterStatus === 'all' || item.status === filterStatus;
       
-      return matchSearch && matchDept && matchCategory && matchStatus;
+      return matchSearch && matchDept;
     });
-
-    result.sort((a, b) => {
-      let aValue = a[sortConfig.key];
-      let bValue = b[sortConfig.key];
-
-      if (aValue === undefined || aValue === null) aValue = '';
-      if (bValue === undefined || bValue === null) bValue = '';
-
-      if (sortConfig.key === 'status') {
-        const statusOrder = { 'available': 1, 'in-use': 2, 'borrowed': 3, 'maintenance': 4 };
-        aValue = statusOrder[a.status] || 99;
-        bValue = statusOrder[b.status] || 99;
-      } else if (sortConfig.key === 'quantity') {
-        aValue = Number(aValue) || 0;
-        bValue = Number(bValue) || 0;
-      } else {
-        aValue = aValue.toString();
-        bValue = bValue.toString();
-      }
-
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-
-      const safeA = aValue.toString();
-      const safeB = bValue.toString();
-      return sortConfig.direction === 'asc' 
-        ? safeA.localeCompare(safeB, 'th') 
-        : safeB.localeCompare(safeA, 'th');
-    });
-
-    return result;
-  }, [items, searchTerm, filterDept, filterCategory, filterStatus, sortConfig]);
+  }, [items, searchTerm, filterDept]);
 
   const stats = useMemo(() => {
     const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
@@ -212,13 +174,6 @@ export default function App() {
       .map(([label, data]) => ({ label, data }));
   }, [deptItems, settingsOptions.categories]);
 
-  const handleSort = (key) => {
-    setSortConfig(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
-    }));
-  };
-
   const handleSave = async () => {
     if (!formData.name.trim()) return;
     let finalCategory = formData.category;
@@ -256,15 +211,15 @@ export default function App() {
     setShowForm(false);
   };
 
-  const handleDelete = async () => {
-    if (showDeleteConfirm) {
-      try {
-        await deleteDoc(doc(db, "mdec_stock", "shared_data", "items", showDeleteConfirm));
-      } catch (error) {
-        console.error("Error deleting item:", error);
-      } finally {
-        setShowDeleteConfirm(null);
-      }
+  // 🛠️ ปรับฟังก์ชันลบอุปกรณ์ให้รับ ID ตรงๆ และแม่นยำที่สุด
+  const handleDeleteItem = async (itemId) => {
+    try {
+      await deleteDoc(doc(db, "mdec_stock", "shared_data", "items", itemId));
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      alert("เกิดข้อผิดพลาดในการลบข้อมูล กรุณาลองใหม่");
+    } finally {
+      setShowDeleteConfirm(null);
     }
   };
 
@@ -366,39 +321,6 @@ export default function App() {
     link.click();
   };
 
-  const handleLogin = () => {
-    if (pin === ADMIN_PIN) { 
-      setIsAdmin(true); 
-      localStorage.setItem('mdec_admin', 'true'); 
-      setShowLogin(false); 
-      setPin(''); 
-    } else { 
-      alert('รหัสผ่านไม่ถูกต้อง'); 
-      setPin(''); 
-    }
-  };
-
-  const handleLogout = () => {
-    setIsAdmin(false);
-    localStorage.removeItem('mdec_admin'); 
-  };
-
-  const SortIcon = ({ columnKey }) => {
-    if (sortConfig.key !== columnKey) return <span className="text-slate-300 ml-1 opacity-0 group-hover:opacity-100">↕</span>;
-    return <span className="text-blue-600 ml-1">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
-  };
-
-  const Th = ({ label, columnKey, className }) => (
-    <th 
-      className={`px-4 py-4 text-left font-bold text-slate-700 cursor-pointer hover:bg-slate-300 transition-colors group select-none ${className || ''}`} 
-      onClick={() => handleSort(columnKey)}
-    >
-      <div className="flex items-center">
-        {label} <SortIcon columnKey={columnKey} />
-      </div>
-    </th>
-  );
-
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans p-4 sm:p-8">
       {firebaseError && (
@@ -418,7 +340,7 @@ export default function App() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v4.0 Final</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v5.0 Stable</span>
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -436,7 +358,7 @@ export default function App() {
           )}
 
           {isAdmin ? (
-            <button onClick={handleLogout} className="flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold rounded-xl transition-colors flex"><Icons.Unlock /><span className="hidden sm:inline">ออกจากระบบ</span></button>
+            <button onClick={() => setIsAdmin(false)} className="flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold rounded-xl transition-colors flex"><Icons.Unlock /><span className="hidden sm:inline">ออกจากระบบ</span></button>
           ) : (
             <button onClick={() => setShowLogin(true)} className="flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 bg-slate-800 text-white hover:bg-slate-700 font-bold rounded-xl transition-colors shadow-md flex"><Icons.Lock /><span className="hidden sm:inline">เข้าสู่ระบบจัดการ</span></button>
           )}
@@ -492,16 +414,7 @@ export default function App() {
             <input type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
-            <select className="flex-1 px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
-              <option value="all">หมวดหมู่ทั้งหมด</option>
-              {settingsOptions.categories.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select className="flex-1 px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-              <option value="all">สถานะทั้งหมด</option>
-              {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-            </select>
-          </div>
+          {/* 🛠️ ลบ Filter หมวดหมู่และสถานะออกตามคำขอ เพื่อความโล่งและไม่สร้างบั๊กซ้อน */}
 
           {isAdmin && (
             <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: filterDept === 'all' ? 'ภาพนิ่ง' : filterDept, category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1 }); setShowForm(true); }} className="w-full xl:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap"><Icons.Plus /> เพิ่มอุปกรณ์</button>
@@ -520,13 +433,13 @@ export default function App() {
       <div className="w-full bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
+            {/* 🛠️ นำฟังก์ชันจัดเรียงออก ให้หัวตารางเป็นข้อความธรรมดา เพื่อลดปัญหาการเรียงมั่วสลับบรรทัด */}
             <tr className="bg-slate-200 border-b border-slate-300 text-lg">
-              <Th label="ชื่ออุปกรณ์ / รหัส" columnKey="name" />
-              <Th label="หมวดหมู่" columnKey="category" />
-              {/* 🛠️ เปลี่ยนกลับมาแสดง "ฝ่ายที่รับผิดชอบ" ถาวร เพื่อป้องกันตารางชิฟต์และแสดงข้อมูลเบี้ยว */}
-              <Th label="ฝ่ายที่รับผิดชอบ" columnKey="department" />
-              <Th label="สถานที่ / ห้อง" columnKey="location" />
-              <Th label="สถานะ" columnKey="status" />
+              <th className="px-4 py-4 text-left font-bold text-slate-700">ชื่ออุปกรณ์ / รหัส</th>
+              <th className="px-4 py-4 text-left font-bold text-slate-700">หมวดหมู่</th>
+              <th className="px-4 py-4 text-left font-bold text-slate-700">ฝ่ายที่รับผิดชอบ</th>
+              <th className="px-4 py-4 text-left font-bold text-slate-700">สถานที่ / ห้อง</th>
+              <th className="px-4 py-4 text-left font-bold text-slate-700">สถานะ</th>
               <th className="px-4 py-4 text-center font-bold text-slate-700">ประวัติ / จัดการ</th>
             </tr>
           </thead>
@@ -551,7 +464,7 @@ export default function App() {
                   </td>
                   <td className="px-4 py-4 font-bold text-slate-600">{item.category || '-'}</td>
                   
-                  {/* 🛠️ แสดงฝ่ายตลอดเวลาเพื่อรักษา Layout ตารางให้ตรงกัน */}
+                  {/* 🛠️ แสดงฝ่ายตลอดเวลาเพื่อรักษา Layout ตารางให้ตรงกันเสมอ ป้องกันคอลัมน์เหลื่อมกัน */}
                   <td className="px-4 py-4">
                     <span className={`inline-block px-3 py-1.5 rounded-lg text-base font-bold ${deptInfo.color}`}>{deptInfo.label}</span>
                   </td>
@@ -567,6 +480,8 @@ export default function App() {
                           {item.status === 'available' && <button type="button" onClick={() => { setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
                           {isBorrowed && <button type="button" onClick={() => { setReturnData({ staff: '', newStaff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
                           <button type="button" onClick={() => { setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
+                          
+                          {/* 🛠️ ปุ่มสำหรับเรียก Modal ลบอุปกรณ์ */}
                           <button type="button" onClick={() => setShowDeleteConfirm(item.id)} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
                         </>
                       )}
@@ -613,7 +528,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Modal 1: ยืนยันการลบการตั้งค่า (Settings) */}
+      {/* Modal: ยืนยันการลบการตั้งค่า (Settings) */}
       {deleteSettingConfirm !== null && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
@@ -633,10 +548,10 @@ export default function App() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
             <h3 className="text-2xl font-black text-slate-800 mb-6 text-center">เข้าสู่ระบบจัดการ</h3>
-            <input type="password" autoFocus className="w-full px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl font-bold text-center text-3xl tracking-widest focus:ring-2 focus:ring-blue-500 outline-none mb-6" maxLength={8} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
+            <input type="password" autoFocus className="w-full px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl font-bold text-center text-3xl tracking-widest focus:ring-2 focus:ring-blue-500 outline-none mb-6" maxLength={8} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { if (pin === ADMIN_PIN) { setIsAdmin(true); setShowLogin(false); setPin(''); } else { alert('รหัสผ่านไม่ถูกต้อง'); setPin(''); } } }} />
             <div className="flex gap-3">
               <button type="button" onClick={() => setShowLogin(false)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
-              <button type="button" onClick={handleLogin} className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-xl text-lg">เข้าสู่ระบบ</button>
+              <button type="button" onClick={() => { if (pin === ADMIN_PIN) { setIsAdmin(true); setShowLogin(false); setPin(''); } else { alert('รหัสผ่านไม่ถูกต้อง'); setPin(''); } }} className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-xl text-lg">เข้าสู่ระบบ</button>
             </div>
           </div>
         </div>
@@ -819,7 +734,7 @@ export default function App() {
             <p className="text-slate-500 mb-8 text-lg">ข้อมูลนี้จะถูกลบถาวร ไม่สามารถกู้คืนได้</p>
             <div className="flex gap-3">
               <button type="button" onClick={() => setShowDeleteConfirm(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
-              <button type="button" onClick={handleDelete} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-200 text-lg">ยืนยันการลบ</button>
+              <button type="button" onClick={() => handleDeleteItem(showDeleteConfirm)} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-200 text-lg">ยืนยันการลบ</button>
             </div>
           </div>
         </div>
