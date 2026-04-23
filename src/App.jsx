@@ -19,7 +19,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const ADMIN_PIN = 'mdec8203';
 
-// 🛠️ แก้ไขโค้ดวาดไอคอน UserPlus ที่เสีย ทำให้ระบบไม่รวนอีกต่อไป
 const Icons = {
   Plus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
   Search: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
@@ -150,8 +149,8 @@ export default function App() {
         aValue = statusOrder[a.status] || 99;
         bValue = statusOrder[b.status] || 99;
       } else if (sortConfig.key === 'quantity') {
-        aValue = Number(aValue);
-        bValue = Number(bValue);
+        aValue = Number(aValue) || 0;
+        bValue = Number(bValue) || 0;
       } else {
         aValue = aValue.toString();
         bValue = bValue.toString();
@@ -413,7 +412,7 @@ export default function App() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v2.7</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v3.1</span>
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -518,7 +517,7 @@ export default function App() {
             <tr className="bg-slate-200 border-b border-slate-300 text-lg">
               <Th label="ชื่ออุปกรณ์ / รหัส" columnKey="name" />
               <Th label="หมวดหมู่" columnKey="category" />
-              <Th label="ฝ่ายที่รับผิดชอบ" columnKey="department" className={filterDept === 'all' ? '' : 'hidden'} />
+              {filterDept === 'all' && <Th label="ฝ่ายที่รับผิดชอบ" columnKey="department" />}
               <Th label="สถานที่ / ห้อง" columnKey="location" />
               <Th label="สถานะ" columnKey="status" />
               <th className="px-4 py-4 text-center font-bold text-slate-700">ประวัติ / จัดการ</th>
@@ -532,6 +531,8 @@ export default function App() {
               const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
               const isBorrowed = item.status === 'borrowed';
               const qty = Number(item.quantity) || 1;
+              
+              // 🛠️ ล็อกรหัส Key ให้เป็นค่าจาก Database โดยตรง ห้ามพึ่งพาลำดับเด็ดขาด
               return (
                 <tr key={item.id} className="hover:bg-slate-50 transition-colors text-lg">
                   <td className="px-4 py-4">
@@ -544,18 +545,18 @@ export default function App() {
                   </td>
                   <td className="px-4 py-4 font-bold text-slate-600">{item.category || '-'}</td>
                   
-                  <td className={`px-4 py-4 ${filterDept === 'all' ? '' : 'hidden'}`}>
-                    <span className={`inline-block px-3 py-1.5 rounded-lg text-base font-bold ${deptInfo.color}`}>{deptInfo.label}</span>
-                  </td>
+                  {filterDept === 'all' && (
+                    <td className="px-4 py-4">
+                      <span className={`inline-block px-3 py-1.5 rounded-lg text-base font-bold ${deptInfo.color}`}>{deptInfo.label}</span>
+                    </td>
+                  )}
 
                   <td className="px-4 py-4 font-bold text-slate-600">{item.location || '-'}</td>
                   <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-base font-bold border ${statusInfo.color}`}><div className={`w-2 h-2 rounded-full currentColor`}></div>{statusInfo.label}</span></td>
                   <td className="px-4 py-4">
                     <div className="flex items-center justify-center gap-2">
-                      {/* ปุ่มประวัติ */}
                       <button onClick={() => setShowHistory(item.id)} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white flex items-center justify-center transition-colors" title="ประวัติ"><Icons.History /></button>
                       
-                      {/* ปุ่มจัดการอื่นๆ */}
                       {isAdmin && (
                         <>
                           {item.status === 'available' && <button onClick={() => { setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
@@ -575,7 +576,7 @@ export default function App() {
 
       {/* Settings Modal */}
       {showSettings && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-[9990]">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="flex border-b border-slate-100 overflow-x-auto custom-scrollbar">
               <button onClick={() => {setSettingsTab('categories'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg ${settingsTab === 'categories' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>หมวดหมู่</button>
@@ -609,7 +610,7 @@ export default function App() {
 
       {/* Modal 1: ยืนยันการลบการตั้งค่า (Settings) */}
       {deleteSettingConfirm !== null && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
             <div className="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.Trash /></div>
             <h3 className="text-2xl font-black text-slate-800 mb-2">ยืนยันการลบ?</h3>
@@ -624,7 +625,7 @@ export default function App() {
 
       {/* Login Modal */}
       {showLogin && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
             <h3 className="text-2xl font-black text-slate-800 mb-6 text-center">เข้าสู่ระบบจัดการ</h3>
             <input type="password" autoFocus className="w-full px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl font-bold text-center text-3xl tracking-widest focus:ring-2 focus:ring-blue-500 outline-none mb-6" maxLength={8} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
@@ -638,7 +639,7 @@ export default function App() {
 
       {/* Add/Edit Form */}
       {showForm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-black text-slate-800">{formData.id ? 'แก้ไขข้อมูล' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
@@ -710,7 +711,7 @@ export default function App() {
 
       {/* Borrow Modal */}
       {showBorrow && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl">
             <h3 className="text-2xl font-black text-slate-800 mb-6 text-center">บันทึกการให้ยืม</h3>
             <div className="space-y-4 mb-8">
@@ -746,7 +747,7 @@ export default function App() {
 
       {/* Return Modal */}
       {showReturn && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center">
             <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.CheckCircle /></div>
             <h3 className="text-2xl font-black text-slate-800 mb-6">บันทึกรับคืนอุปกรณ์</h3>
@@ -774,7 +775,7 @@ export default function App() {
 
       {/* History Modal */}
       {showHistory && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full max-h-[80vh] flex flex-col shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-black text-slate-800">ประวัติการยืม-คืน</h3>
@@ -806,7 +807,7 @@ export default function App() {
 
       {/* Modal 2: ยืนยันการลบอุปกรณ์ในตารางหลัก (Main Items) */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
             <div className="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.Trash /></div>
             <h3 className="text-2xl font-black text-slate-800 mb-2">ลบอุปกรณ์?</h3>
