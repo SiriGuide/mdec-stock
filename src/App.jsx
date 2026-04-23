@@ -136,6 +136,8 @@ export default function App() {
   const [itemToDelete, setItemToDelete] = useState(null); 
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
   
+  const [selectedItems, setSelectedItems] = useState([]);
+  
   const [borrowTargetIds, setBorrowTargetIds] = useState([]);
   const [borrowData, setBorrowData] = useState({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '' });
   
@@ -259,6 +261,10 @@ export default function App() {
     if (item.status !== 'borrowed' || !item.expectedReturn) return false;
     return new Date(item.expectedReturn).getTime() < todayMs;
   });
+
+  const selectableItems = useMemo(() => {
+    return filteredItems.filter(i => i.status === 'available' || i.status === 'borrowed');
+  }, [filteredItems]);
 
   const stats = useMemo(() => {
     const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
@@ -410,6 +416,7 @@ export default function App() {
       
       setBorrowTargetIds([]);
       setPackingChecklist([]);
+      setSelectedItems([]); 
       setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '' });
     } catch (error) {
       console.error(error);
@@ -445,6 +452,7 @@ export default function App() {
 
       setReturnTargetIds([]);
       setReturnChecklist([]);
+      setSelectedItems([]); 
       setReturnData({ staff: '', newStaff: '' });
     } catch (error) {
       console.error(error);
@@ -503,6 +511,26 @@ export default function App() {
     setReturnChecklist([]);
     setReturnData({ staff: '', newStaff: '' });
     setShowBundleModal(false);
+  };
+
+  const handleOpenBatchBorrow = () => {
+    const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
+    if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมให้ยืมในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้งาน")');
+    setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' });
+    
+    const expanded = expandWithChildren(validIds);
+    setBorrowTargetIds(expanded);
+    setPackingChecklist([]);
+  };
+
+  const handleOpenBatchReturn = () => {
+    const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'borrowed');
+    if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่สามารถคืนได้ในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "กำลังถูกยืม")');
+    setReturnData({ staff: '', newStaff: '' });
+    
+    const expanded = expandWithChildren(validIds);
+    setReturnTargetIds(expanded);
+    setReturnChecklist([]);
   };
 
   const handleImportCSV = (e) => {
@@ -625,6 +653,7 @@ export default function App() {
 
   const handleLogout = () => {
     setIsAdmin(false);
+    setSelectedItems([]);
     try { localStorage.removeItem('mdec_admin'); } catch(e) {}
   };
 
@@ -806,7 +835,7 @@ export default function App() {
           <div>
             <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textTitle}`}>
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v18.1 Command Dark Mode</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v18.2 Stable</span>
             </h1>
             <p className={`font-medium text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -944,13 +973,13 @@ export default function App() {
 
         <div className="flex gap-2 overflow-x-auto w-full pb-2 custom-scrollbar">
           <button type="button" onClick={() => setFilterDept('all')} className={`flex items-center justify-center gap-2 whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all border ${filterDept === 'all' ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-800 border-slate-800 text-white shadow-md') : theme.btnSecondary}`}>
-            ทั้งหมด <Icons.ViewGrid className={filterDept === 'all' ? 'text-white' : theme.textMuted} />
+            ทั้งหมด <Icons.ViewGrid className="w-5 h-5" />
           </button>
           {DEPARTMENTS.map(d => {
             const IconComponent = Icons[d.iconName];
             return (
               <button type="button" key={d.id} onClick={() => setFilterDept(d.id)} className={`flex items-center justify-center gap-2 whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all border ${filterDept === d.id ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-800 border-slate-800 text-white shadow-md') : theme.btnSecondary}`}>
-                {d.label} {IconComponent && <IconComponent className={filterDept === d.id ? 'text-white' : d.iconColor} />}
+                {d.label} {IconComponent && <IconComponent className="w-5 h-5" />}
               </button>
             );
           })}
@@ -988,7 +1017,7 @@ export default function App() {
             </thead>
             <tbody className={`divide-y transition-colors ${theme.divide}`}>
               {filteredItems.length === 0 ? (
-                <tr><td colSpan={6} className={`px-4 py-12 text-center font-bold text-xl ${theme.textMuted}`}>ไม่พบข้อมูลที่ค้นหา</td></tr>
+                <tr><td colSpan={isAdmin ? 7 : 6} className={`px-4 py-12 text-center font-bold text-xl ${theme.textMuted}`}>ไม่พบข้อมูลที่ค้นหา</td></tr>
               ) : filteredItems.map((item, index) => {
                 const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
                 const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
@@ -1030,7 +1059,7 @@ export default function App() {
                       {/* 🔗 โชว์ไอคอนผูกลูกข่าย */}
                       {(item.childIds && item.childIds.length > 0) && (
                         <div className={`text-sm mt-1 px-2 py-1 rounded-md inline-flex items-center gap-1 font-bold ${isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
-                           <Icons.Link className="w-4 h-4"/> ผูกพ่วงอุปกรณ์ย่อย {item.childIds.length} ชิ้น
+                           <Icons.Link className="w-4 h-4" /> ผูกพ่วงอุปกรณ์ย่อย {item.childIds.length} ชิ้น
                         </div>
                       )}
 
@@ -1051,7 +1080,7 @@ export default function App() {
                     
                     <td className="px-4 py-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button type="button" onClick={(e) => { e.stopPropagation(); setShowHistory(item.id); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${theme.btnCancel}`} title="ประวัติ"><Icons.History /></button>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setShowHistory(item.id); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${theme.btnCancel}`} title="ประวัติ"><Icons.History className="w-5 h-5" /></button>
                         
                         {isAdmin && (
                           <>
@@ -1061,7 +1090,7 @@ export default function App() {
                               const expanded = expandWithChildren([item.id]);
                               setBorrowTargetIds(expanded);
                               setPackingChecklist([]);
-                            }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white'}`} title="ให้ยืม"><Icons.UserPlus /></button>}
+                            }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white'}`} title="ให้ยืม"><Icons.UserPlus className="w-5 h-5" /></button>}
                             
                             {isBorrowed && <button type="button" onClick={(e) => { 
                               e.stopPropagation(); 
@@ -1069,10 +1098,10 @@ export default function App() {
                               const expanded = expandWithChildren([item.id]);
                               setReturnTargetIds(expanded);
                               setReturnChecklist([]);
-                            }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle /></button>}
+                            }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle className="w-5 h-5" /></button>}
                             
-                            <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit /></button>
-                            <button type="button" onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="ลบ"><Icons.Trash /></button>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="ลบ"><Icons.Trash className="w-4 h-4" /></button>
                           </>
                         )}
                       </div>
@@ -1095,7 +1124,7 @@ export default function App() {
           <div className="flex gap-2 sm:gap-3">
             <button onClick={handleOpenBatchBorrow} className="px-4 sm:px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base"><Icons.UserPlus className="w-5 h-5"/> <span className="hidden sm:inline">ยืมออก</span></button>
             <button onClick={handleOpenBatchReturn} className="px-4 sm:px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base"><Icons.CheckCircle className="w-5 h-5"/> <span className="hidden sm:inline">รับคืน</span></button>
-            <button onClick={() => setSelectedItems([])} className={`px-4 py-3 rounded-2xl font-bold transition-colors border ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600'}`}><Icons.X /></button>
+            <button onClick={() => setSelectedItems([])} className={`px-4 py-3 rounded-2xl font-bold transition-colors border ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600'}`}><Icons.X className="w-5 h-5" /></button>
           </div>
         </div>
       )}
@@ -1105,8 +1134,8 @@ export default function App() {
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
             <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
-              <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.Layers className="text-purple-500"/> ทำรายการแบบเซ็ตอุปกรณ์</h3>
-              <button type="button" onClick={() => setShowBundleModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X /></button>
+              <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.Layers className="w-6 h-6 text-purple-500"/> ทำรายการแบบเซ็ตอุปกรณ์</h3>
+              <button type="button" onClick={() => setShowBundleModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
               {(settingsOptions.bundles || []).length === 0 ? (
@@ -1181,7 +1210,7 @@ export default function App() {
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black ${theme.textTitle}`}>บันทึกการให้ยืม</h3>
-              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X /></button>
+              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             
             <div className="space-y-4 mb-6">
@@ -1213,7 +1242,7 @@ export default function App() {
             <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
               <div className="flex justify-between items-center mb-3">
                 <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                  <Icons.ClipboardList /> เช็คลิสต์ก่อนปล่อยยืม ({packingChecklist.length}/{borrowTargetIds.length})
+                  <Icons.ClipboardList className="w-5 h-5"/> เช็คลิสต์ก่อนปล่อยยืม ({packingChecklist.length}/{borrowTargetIds.length})
                 </h4>
                 <button 
                   type="button" 
@@ -1273,7 +1302,7 @@ export default function App() {
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black ${theme.textTitle}`}>บันทึกรับคืนอุปกรณ์</h3>
-              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X /></button>
+              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             
             <div className="mb-6">
@@ -1293,7 +1322,7 @@ export default function App() {
             <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
               <div className="flex justify-between items-center mb-3">
                 <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                  <Icons.ClipboardList /> เช็คลิสต์ของเข้ากล่อง ({returnChecklist.length}/{returnTargetIds.length})
+                  <Icons.ClipboardList className="w-5 h-5"/> เช็คลิสต์ของเข้ากล่อง ({returnChecklist.length}/{returnTargetIds.length})
                 </h4>
                 <button 
                   type="button" 
@@ -1352,8 +1381,8 @@ export default function App() {
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
             <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
-              <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.ClipboardList className="text-blue-500"/> ประวัติการทำงานส่วนกลาง</h3>
-              <button type="button" onClick={() => setShowAuditModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X /></button>
+              <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.ClipboardList className="w-6 h-6 text-blue-500"/> ประวัติการทำงานส่วนกลาง</h3>
+              <button type="button" onClick={() => setShowAuditModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
               {auditLogs.length === 0 ? (
@@ -1404,15 +1433,15 @@ export default function App() {
                 <div className="flex gap-2 mb-6">
                   <input type="text" className={`flex-1 px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder={`พิมพ์${settingsTab === 'categories' ? 'หมวดหมู่' : settingsTab === 'locations' ? 'สถานที่' : 'ชื่อเจ้าหน้าที่'}ใหม่...`} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} />
                   <button type="button" onClick={handleSaveSetting} className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg">{editingSettingItem !== null ? 'บันทึก' : 'เพิ่ม'}</button>
-                  {editingSettingItem !== null && <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-4 py-3 font-bold rounded-xl ${theme.btnCancel}`}><Icons.X /></button>}
+                  {editingSettingItem !== null && <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-4 py-3 font-bold rounded-xl ${theme.btnCancel}`}><Icons.X className="w-5 h-5" /></button>}
                 </div>
                 <div className="max-h-60 overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2">
                   {(settingsOptions[settingsTab] || []).filter(c => c !== 'อื่นๆ').map((item, index) => (
                     <div key={index} className={`flex justify-between items-center p-4 border rounded-xl group transition-colors ${theme.btnSecondary}`}>
                       <span className={`font-bold text-lg ${theme.textTitle}`}>{item}</span>
                       <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button type="button" onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`}><Icons.Edit /></button>
-                        <button type="button" onClick={() => setDeleteSettingConfirm(item)} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`}><Icons.Trash /></button>
+                        <button type="button" onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`}><Icons.Edit className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => setDeleteSettingConfirm(item)} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`}><Icons.Trash className="w-4 h-4" /></button>
                       </div>
                     </div>
                   ))}
@@ -1426,7 +1455,7 @@ export default function App() {
                 <div className={`p-4 mb-6 rounded-2xl border ${isDarkMode ? 'bg-purple-900/10 border-purple-800' : 'bg-purple-50 border-purple-200'}`}>
                   <div className="flex justify-between items-center mb-3">
                     <h4 className={`font-black text-lg flex items-center gap-2 ${isDarkMode ? 'text-purple-400' : 'text-purple-700'}`}>
-                      {bundleForm.id ? <Icons.Edit /> : <Icons.Plus />} 
+                      {bundleForm.id ? <Icons.Edit className="w-5 h-5"/> : <Icons.Plus className="w-5 h-5"/>} 
                       {bundleForm.id ? 'แก้ไขเซ็ตอุปกรณ์' : 'สร้างเซ็ตอุปกรณ์ใหม่'}
                     </h4>
                     {bundleForm.id && (
@@ -1466,8 +1495,8 @@ export default function App() {
                       <div className="flex justify-between items-center mb-1">
                         <span className={`font-bold text-lg ${theme.textTitle}`}>{b.name}</span>
                         <div className="flex gap-2">
-                          <button type="button" onClick={() => setBundleForm({ id: b.id, name: b.name, itemIds: b.itemIds })} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-100 text-purple-600 hover:bg-purple-600 hover:text-white'}`}><Icons.Edit /></button>
-                          <button type="button" onClick={() => handleDeleteBundle(b.id)} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`}><Icons.Trash /></button>
+                          <button type="button" onClick={() => setBundleForm({ id: b.id, name: b.name, itemIds: b.itemIds })} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-100 text-purple-600 hover:bg-purple-600 hover:text-white'}`}><Icons.Edit className="w-4 h-4" /></button>
+                          <button type="button" onClick={() => handleDeleteBundle(b.id)} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`}><Icons.Trash className="w-4 h-4" /></button>
                         </div>
                       </div>
                       <span className={`text-sm ${theme.textMuted}`}>ประกอบด้วยอุปกรณ์ {b.itemIds.length} ชิ้น</span>
@@ -1488,7 +1517,7 @@ export default function App() {
       {deleteSettingConfirm !== null && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
           <div className={`rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl ${theme.cardBg}`}>
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isDarkMode ? 'bg-rose-900/40 text-rose-500' : 'bg-rose-100 text-rose-500'}`}><Icons.Trash /></div>
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isDarkMode ? 'bg-rose-900/40 text-rose-500' : 'bg-rose-100 text-rose-500'}`}><Icons.Trash className="w-10 h-10" /></div>
             <h3 className={`text-2xl font-black mb-2 ${theme.textTitle}`}>ยืนยันการลบ?</h3>
             <p className={`mb-8 text-lg ${theme.textMuted}`}>รายการ <span className="font-bold text-rose-500">"{deleteSettingConfirm}"</span> จะหายไปจากตัวเลือก</p>
             <div className="flex gap-3">
@@ -1505,7 +1534,7 @@ export default function App() {
           <div className={`rounded-3xl p-6 sm:p-8 max-w-xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black ${theme.textTitle}`}>{formData.id ? 'แก้ไขข้อมูล' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
-              <button type="button" onClick={() => setShowForm(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X /></button>
+              <button type="button" onClick={() => setShowForm(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="sm:col-span-2">
@@ -1599,185 +1628,13 @@ export default function App() {
         </div>
       )}
 
-      {/* 📋 Borrow Modal (พร้อมระบบ Checklist และปุ่มเลือกทั้งหมด) */}
-      {borrowTargetIds.length > 0 && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className={`text-2xl font-black ${theme.textTitle}`}>บันทึกการให้ยืม</h3>
-              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X /></button>
-            </div>
-            
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ผู้ให้ยืม (จนท.) <span className="text-rose-500">*</span></label>
-                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-purple-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} value={borrowData.staff} onChange={e => setBorrowData({...borrowData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : borrowData.newStaff})}>
-                  <option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>
-                  {(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              {borrowData.staff === 'อื่นๆ' && (
-                <div>
-                  <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-purple-500 ${isDarkMode ? 'bg-purple-900/20 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-300 text-purple-800'}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่..." value={borrowData.newStaff} onChange={e => setBorrowData({...borrowData, newStaff: e.target.value})} />
-                </div>
-              )}
-              
-              <div>
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ชื่อผู้ยืม <span className="text-rose-500">*</span></label>
-                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-purple-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} placeholder="ชื่อ-สกุล หรือ แผนก" value={borrowData.borrower} onChange={e => setBorrowData({...borrowData, borrower: e.target.value})} />
-              </div>
-              
-              <div>
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>กำหนดคืน</label>
-                <input type="date" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-purple-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} value={borrowData.returnDate} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} />
-              </div>
-            </div>
-
-            {/* 📋 ส่วนแสดง Checklist สำหรับยืม */}
-            <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-              <div className="flex justify-between items-center mb-3">
-                <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                  <Icons.ClipboardList /> เช็คลิสต์ก่อนปล่อยยืม ({packingChecklist.length}/{borrowTargetIds.length})
-                </h4>
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    if (packingChecklist.length === borrowTargetIds.length) setPackingChecklist([]);
-                    else setPackingChecklist([...borrowTargetIds]);
-                  }}
-                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-purple-900/40 hover:bg-purple-800 text-purple-400' : 'bg-purple-100 hover:bg-purple-200 text-purple-700'}`}
-                >
-                  {packingChecklist.length === borrowTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
-                </button>
-              </div>
-              <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
-                {borrowTargetIds.map(id => {
-                  const item = items.find(i => i.id === id);
-                  if(!item) return null;
-                  const isChecked = packingChecklist.includes(id);
-                  return (
-                    <label key={id} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${isChecked ? (isDarkMode ? 'bg-purple-900/40 border-purple-800' : 'bg-purple-50 border-purple-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
-                      <input type="checkbox" className="w-5 h-5 accent-purple-600 rounded mt-0.5 cursor-pointer shrink-0"
-                        checked={isChecked}
-                        onChange={(e) => {
-                          if(e.target.checked) setPackingChecklist([...packingChecklist, id]);
-                          else setPackingChecklist(packingChecklist.filter(c => c !== id));
-                        }}
-                      />
-                      <span className={`font-bold text-sm sm:text-base leading-tight ${isChecked ? (isDarkMode ? 'text-purple-400 line-through opacity-70' : 'text-purple-700 line-through opacity-70') : theme.textMain}`}>
-                        {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
-                      </span>
-                    </label>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); }} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button 
-                type="button" 
-                onClick={handleBorrow} 
-                disabled={!borrowData.borrower || !borrowData.staff || packingChecklist.length !== borrowTargetIds.length} 
-                className={`flex-1 py-4 font-bold rounded-xl text-lg transition-colors ${(!borrowData.borrower || !borrowData.staff || packingChecklist.length !== borrowTargetIds.length) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-purple-600 text-white hover:bg-purple-500 shadow-lg shadow-purple-500/20'}`}
-              >
-                ยืนยันการยืม
-              </button>
-            </div>
-            {packingChecklist.length !== borrowTargetIds.length && (
-               <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>* ต้องติ๊กตรวจสอบอุปกรณ์ให้ครบทุกรายการจึงจะกดได้</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 📋 Return Modal (พร้อมระบบ Checklist และปุ่มเลือกทั้งหมด) */}
-      {returnTargetIds.length > 0 && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className={`text-2xl font-black ${theme.textTitle}`}>บันทึกรับคืนอุปกรณ์</h3>
-              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X /></button>
-            </div>
-            
-            <div className="mb-6">
-              <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ผู้รับคืน (จนท.) <span className="text-rose-500">*</span></label>
-              <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-emerald-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} value={returnData.staff} onChange={e => setReturnData({...returnData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : returnData.newStaff})}>
-                <option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>
-                {(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            {returnData.staff === 'อื่นๆ' && (
-              <div className="mb-6">
-                <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-emerald-500 ${isDarkMode ? 'bg-emerald-900/20 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-300 text-emerald-800'}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่..." value={returnData.newStaff} onChange={e => setReturnData({...returnData, newStaff: e.target.value})} />
-              </div>
-            )}
-
-            {/* 📋 ส่วนแสดง Checklist สำหรับคืน */}
-            <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-              <div className="flex justify-between items-center mb-3">
-                <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                  <Icons.ClipboardList /> เช็คลิสต์ของเข้ากล่อง ({returnChecklist.length}/{returnTargetIds.length})
-                </h4>
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    if (returnChecklist.length === returnTargetIds.length) setReturnChecklist([]);
-                    else setReturnChecklist([...returnTargetIds]);
-                  }}
-                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-emerald-900/40 hover:bg-emerald-800 text-emerald-400' : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700'}`}
-                >
-                  {returnChecklist.length === returnTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
-                </button>
-              </div>
-              <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
-                {returnTargetIds.map(id => {
-                  const item = items.find(i => i.id === id);
-                  if(!item) return null;
-                  const isChecked = returnChecklist.includes(id);
-                  return (
-                    <label key={id} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${isChecked ? (isDarkMode ? 'bg-emerald-900/40 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
-                      <input type="checkbox" className="w-5 h-5 accent-emerald-600 rounded mt-0.5 cursor-pointer shrink-0"
-                        checked={isChecked}
-                        onChange={(e) => {
-                          if(e.target.checked) setReturnChecklist([...returnChecklist, id]);
-                          else setReturnChecklist(returnChecklist.filter(c => c !== id));
-                        }}
-                      />
-                      <span className={`font-bold text-sm sm:text-base leading-tight ${isChecked ? (isDarkMode ? 'text-emerald-400 line-through opacity-70' : 'text-emerald-700 line-through opacity-70') : theme.textMain}`}>
-                        {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
-                      </span>
-                    </label>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); }} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button 
-                type="button" 
-                onClick={handleReturn} 
-                disabled={!returnData.staff || returnChecklist.length !== returnTargetIds.length} 
-                className={`flex-1 py-4 font-bold rounded-xl text-lg transition-colors ${(!returnData.staff || returnChecklist.length !== returnTargetIds.length) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20'}`}
-              >
-                ยืนยันการรับคืน
-              </button>
-            </div>
-            {returnChecklist.length !== returnTargetIds.length && (
-               <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>* ต้องติ๊กตรวจสอบอุปกรณ์ให้ครบทุกรายการจึงจะกดได้</p>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* History Modal ของแต่ละอุปกรณ์ */}
       {showHistory && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full max-h-[80vh] flex flex-col shadow-2xl ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black ${theme.textTitle}`}>ประวัติการยืม-คืน</h3>
-              <button type="button" onClick={() => setShowHistory(null)} className={`p-2 hover:text-blue-500 transition-colors ${theme.textMuted}`}><Icons.X /></button>
+              <button type="button" onClick={() => setShowHistory(null)} className={`p-2 hover:text-blue-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
               {items.find(i => i.id === showHistory)?.history?.length > 0 ? items.find(i => i.id === showHistory).history.slice().reverse().map((h, idx) => {
@@ -1810,7 +1667,7 @@ export default function App() {
       {itemToDelete && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
           <div className={`rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl ${theme.cardBg}`}>
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isDarkMode ? 'bg-rose-900/40 text-rose-500' : 'bg-rose-100 text-rose-500'}`}><Icons.Trash /></div>
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isDarkMode ? 'bg-rose-900/40 text-rose-500' : 'bg-rose-100 text-rose-500'}`}><Icons.Trash className="w-10 h-10" /></div>
             <h3 className={`text-2xl font-black mb-2 ${theme.textTitle}`}>ลบอุปกรณ์?</h3>
             <p className={`mb-6 text-lg ${theme.textMuted}`}>
               คุณแน่ใจหรือไม่ที่จะลบ<br/>
