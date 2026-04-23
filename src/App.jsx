@@ -139,8 +139,14 @@ export default function App() {
   const [borrowTargetIds, setBorrowTargetIds] = useState([]);
   const [borrowData, setBorrowData] = useState({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '' });
   
+  // 📋 State สำหรับระบบเช็คลิสต์ตรวจนับของตอนยืม
+  const [packingChecklist, setPackingChecklist] = useState([]);
+  
   const [returnTargetIds, setReturnTargetIds] = useState([]);
   const [returnData, setReturnData] = useState({ staff: '', newStaff: '' });
+
+  // 📋 State สำหรับระบบเช็คลิสต์ตรวจนับของตอนคืน
+  const [returnChecklist, setReturnChecklist] = useState([]);
   
   const [showHistory, setShowHistory] = useState(null);
 
@@ -149,7 +155,6 @@ export default function App() {
   const [newSettingItem, setNewSettingItem] = useState('');
   const [editingSettingItem, setEditingSettingItem] = useState(null);
 
-  // 🛠️ อัปเกรด Bundle Form ให้รองรับการ "แก้ไข (Edit)"
   const [showBundleModal, setShowBundleModal] = useState(false);
   const [bundleForm, setBundleForm] = useState({ id: null, name: '', itemIds: [] });
 
@@ -398,10 +403,9 @@ export default function App() {
     const newHistoryEntry = { type: 'borrow', date: new Date().toISOString(), borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff };
     const borrowedNames = [];
 
-    const finalIdsToBorrow = expandWithChildren(borrowTargetIds);
-
     try {
-      const promises = finalIdsToBorrow.map(id => {
+      // 📋 ใช้ borrowTargetIds โดยตรงเพราะมันถูกประมวลผลแม่-ลูกและส่งเข้ามาใน Modal เรียบร้อยแล้ว
+      const promises = borrowTargetIds.map(id => {
         const item = items.find(i => i.id === id);
         if (!item || item.status !== 'available') return Promise.resolve(); 
         borrowedNames.push(item.name);
@@ -410,9 +414,10 @@ export default function App() {
       });
       await Promise.all(promises);
       
-      await logAction('ให้ยืมอุปกรณ์', `ทำรายการ ${finalIdsToBorrow.length} ชิ้น (รวมอุปกรณ์ผูกติด)`, `ยืมโดย: ${borrowData.borrower} (จนท.ผู้ให้ยืม: ${finalStaff})\nรายการ: ${borrowedNames.join(', ')}`);
+      await logAction('ให้ยืมอุปกรณ์', `ทำรายการ ${borrowTargetIds.length} ชิ้น (รวมอุปกรณ์ผูกติด)`, `ยืมโดย: ${borrowData.borrower} (จนท.ผู้ให้ยืม: ${finalStaff})\nรายการ: ${borrowedNames.join(', ')}`);
       
       setBorrowTargetIds([]);
+      setPackingChecklist([]);
       setSelectedItems([]); 
       setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '' });
     } catch (error) {
@@ -435,10 +440,9 @@ export default function App() {
     const newHistoryEntry = { type: 'return', date: new Date().toISOString(), staffIn: finalStaff };
     const returnedNames = [];
 
-    const finalIdsToReturn = expandWithChildren(returnTargetIds);
-
     try {
-      const promises = finalIdsToReturn.map(id => {
+      // 📋 ใช้ returnTargetIds โดยตรงเช่นเดียวกัน
+      const promises = returnTargetIds.map(id => {
         const item = items.find(i => i.id === id);
         if (!item || item.status !== 'borrowed') return Promise.resolve();
         returnedNames.push(item.name);
@@ -447,9 +451,10 @@ export default function App() {
       });
       await Promise.all(promises);
 
-      await logAction('รับคืนอุปกรณ์', `ทำรายการ ${finalIdsToReturn.length} ชิ้น (รวมอุปกรณ์ผูกติด)`, `จนท.ผู้รับคืน: ${finalStaff}\nรายการ: ${returnedNames.join(', ')}`);
+      await logAction('รับคืนอุปกรณ์', `ทำรายการ ${returnTargetIds.length} ชิ้น (รวมอุปกรณ์ผูกติด)`, `จนท.ผู้รับคืน: ${finalStaff}\nรายการ: ${returnedNames.join(', ')}`);
 
       setReturnTargetIds([]);
+      setReturnChecklist([]);
       setSelectedItems([]); 
       setReturnData({ staff: '', newStaff: '' });
     } catch (error) {
@@ -458,18 +463,15 @@ export default function App() {
     }
   };
 
-  // 🛠️ อัปเกรดฟังก์ชันบันทึก Bundle ให้รองรับการ "แก้ไข (Update)"
   const handleSaveBundle = async () => {
     if (!bundleForm.name.trim() || bundleForm.itemIds.length === 0) return alert('กรุณาใส่ชื่อเซ็ต และเลือกอุปกรณ์อย่างน้อย 1 ชิ้น');
     
     let newBundles;
     if (bundleForm.id) {
-      // อัปเดตของเดิม
       newBundles = (settingsOptions.bundles || []).map(b => 
         b.id === bundleForm.id ? { ...b, name: bundleForm.name, itemIds: bundleForm.itemIds } : b
       );
     } else {
-      // สร้างใหม่
       newBundles = [...(settingsOptions.bundles || []), { id: Date.now().toString(), name: bundleForm.name, itemIds: bundleForm.itemIds }];
     }
     
@@ -496,7 +498,9 @@ export default function App() {
       if (!proceed) return;
     }
     
-    setBorrowTargetIds(availableIds);
+    const expanded = expandWithChildren(availableIds);
+    setBorrowTargetIds(expanded);
+    setPackingChecklist([]);
     setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' });
     setShowBundleModal(false);
   };
@@ -629,14 +633,22 @@ export default function App() {
     const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
     if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมให้ยืมในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้งาน")');
     setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' });
-    setBorrowTargetIds(validIds);
+    
+    // 📋 โหลดของลูกพ่วงมาด้วย
+    const expanded = expandWithChildren(validIds);
+    setBorrowTargetIds(expanded);
+    setPackingChecklist([]);
   };
 
   const handleOpenBatchReturn = () => {
     const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'borrowed');
     if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่สามารถคืนได้ในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "กำลังถูกยืม")');
     setReturnData({ staff: '', newStaff: '' });
-    setReturnTargetIds(validIds);
+    
+    // 📋 โหลดของลูกพ่วงมาด้วย
+    const expanded = expandWithChildren(validIds);
+    setReturnTargetIds(expanded);
+    setReturnChecklist([]);
   };
 
   if (showCommandCenter) {
@@ -766,7 +778,7 @@ export default function App() {
           <div>
             <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textTitle}`}>
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v16.1 Bundle Pro</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v17.0 Checklist Pro</span>
             </h1>
             <p className={`font-medium text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -893,7 +905,6 @@ export default function App() {
             <div className="flex gap-2 w-full xl:w-auto">
               <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, childIds: [] }); setShowForm(true); }} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}><Icons.Plus /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span></button>
               
-              {/* 📦 ปุ่มยืมแบบจัดเซ็ต (Bundles) */}
               {(settingsOptions.bundles && settingsOptions.bundles.length > 0) && (
                 <button type="button" onClick={() => setShowBundleModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-purple-600 text-white hover:bg-purple-500' : 'bg-purple-600 text-white hover:bg-purple-700'}`}><Icons.Layers /> ยืมแบบเซ็ต</button>
               )}
@@ -1014,8 +1025,24 @@ export default function App() {
                         
                         {isAdmin && (
                           <>
-                            {item.status === 'available' && <button type="button" onClick={(e) => { e.stopPropagation(); setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setBorrowTargetIds([item.id]); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white'}`} title="ให้ยืม"><Icons.UserPlus /></button>}
-                            {isBorrowed && <button type="button" onClick={(e) => { e.stopPropagation(); setReturnData({ staff: '', newStaff: '' }); setReturnTargetIds([item.id]); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle /></button>}
+                            {/* 📋 ปรับปุ่มให้ยืมให้โหลดของลูกด้วย */}
+                            {item.status === 'available' && <button type="button" onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); 
+                              const expanded = expandWithChildren([item.id]);
+                              setBorrowTargetIds(expanded);
+                              setPackingChecklist([]);
+                            }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white'}`} title="ให้ยืม"><Icons.UserPlus /></button>}
+                            
+                            {/* 📋 ปรับปุ่มรับคืนให้โหลดของลูกด้วย */}
+                            {isBorrowed && <button type="button" onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setReturnData({ staff: '', newStaff: '' }); 
+                              const expanded = expandWithChildren([item.id]);
+                              setReturnTargetIds(expanded);
+                              setReturnChecklist([]);
+                            }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle /></button>}
+                            
                             <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit /></button>
                             <button type="button" onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="ลบ"><Icons.Trash /></button>
                           </>
@@ -1079,7 +1106,6 @@ export default function App() {
                       </button>
                     </div>
                     
-                    {/* 🛠️ ลิสต์รายชื่อของในเซ็ต พร้อมสถานะแบบเรียลไทม์ */}
                     <div className={`mt-2 p-3 rounded-xl border max-h-40 overflow-y-auto custom-scrollbar ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-white border-slate-200'}`}>
                       <h5 className={`text-sm font-bold mb-2 ${theme.textMuted}`}>รายการอุปกรณ์ในเซ็ต:</h5>
                       <div className="space-y-1.5">
