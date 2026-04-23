@@ -29,7 +29,7 @@ const Icons = {
   Settings: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
   X: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>,
   History: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-  UserPlus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>,
+  UserPlus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>,
   CheckCircle: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
   Unlock: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>,
   Lock: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
@@ -88,7 +88,7 @@ export default function App() {
   const [showHistory, setShowHistory] = useState(null);
 
   const [showSettings, setShowSettings] = useState(false);
-  const [settingsTab, setSettingsTab] = useState('categories'); // categories | locations | staff
+  const [settingsTab, setSettingsTab] = useState('categories');
   const [newSettingItem, setNewSettingItem] = useState('');
   
   const [editingSettingItem, setEditingSettingItem] = useState(null);
@@ -185,8 +185,6 @@ export default function App() {
   // กล่องหมวดหมู่เล็กๆ จะ "โชว์เฉพาะหมวดหมู่ที่มีของอยู่จริงในฝ่ายนั้น" (ซ่อนกล่องที่มีค่า 0)
   const categoryStats = useMemo(() => {
     const catData = {};
-    
-    // ตั้งค่ากล่องเริ่มต้นเตรียมไว้
     settingsOptions.categories.filter(c => c !== 'อื่นๆ').forEach(cat => {
       catData[cat] = { total: 0, available: 0 };
     });
@@ -201,7 +199,6 @@ export default function App() {
       }
     });
 
-    // กรองเอาเฉพาะหมวดหมู่ที่มีของ > 0 เท่านั้นมาแสดง
     return Object.entries(catData)
       .filter(([_, data]) => data.total > 0)
       .map(([label, data]) => ({ label, data }));
@@ -216,7 +213,6 @@ export default function App() {
 
   const handleSave = async () => {
     if (!formData.name.trim()) return;
-    
     let finalCategory = formData.category;
     if (formData.category === 'อื่นๆ' && formData.newCategory.trim()) {
       finalCategory = formData.newCategory.trim();
@@ -240,7 +236,6 @@ export default function App() {
       quantity: Number(formData.quantity) || 1,
       updatedAt: new Date().toISOString() 
     };
-    
     delete itemData.newCategory;
     delete itemData.newLocation;
     
@@ -267,7 +262,6 @@ export default function App() {
 
   const handleBorrow = async () => {
     if (!borrowData.borrower || !borrowData.staff) return;
-    
     let finalStaff = borrowData.staff;
     if (borrowData.staff === 'อื่นๆ' && borrowData.newStaff.trim()) {
       finalStaff = borrowData.newStaff.trim();
@@ -276,7 +270,6 @@ export default function App() {
       setSettingsOptions(newSettings);
       await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
     }
-
     const item = items.find(i => i.id === showBorrow);
     const newHistory = [...(item.history || []), { type: 'borrow', date: new Date().toISOString(), borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff }];
     await setDoc(doc(db, "mdec_stock", "shared_data", "items", showBorrow), { status: 'borrowed', currentBorrower: borrowData.borrower, expectedReturn: borrowData.returnDate, history: newHistory }, { merge: true });
@@ -286,7 +279,6 @@ export default function App() {
 
   const handleReturn = async () => {
     if (!returnData.staff) return;
-
     let finalStaff = returnData.staff;
     if (returnData.staff === 'อื่นๆ' && returnData.newStaff.trim()) {
       finalStaff = returnData.newStaff.trim();
@@ -295,7 +287,6 @@ export default function App() {
       setSettingsOptions(newSettings);
       await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
     }
-
     const item = items.find(i => i.id === showReturn);
     const newHistory = [...(item.history || []), { type: 'return', date: new Date().toISOString(), staffIn: finalStaff }];
     await setDoc(doc(db, "mdec_stock", "shared_data", "items", showReturn), { status: 'available', currentBorrower: null, expectedReturn: null, history: newHistory }, { merge: true });
@@ -312,17 +303,13 @@ export default function App() {
 
     if (oldName !== null) {
       const index = newOptions.indexOf(oldName);
-      if (index > -1) {
-        newOptions[index] = newName;
-      }
+      if (index > -1) newOptions[index] = newName;
     } else {
       newOptions = newOptions.filter(item => item !== 'อื่นๆ');
       newOptions.push(newName);
       newOptions.push('อื่นๆ');
     }
-    
     newOptions = [...new Set(newOptions)];
-
     const updatedSettings = { ...settingsOptions, [key]: newOptions };
     setSettingsOptions(updatedSettings);
     await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), updatedSettings);
@@ -337,7 +324,6 @@ export default function App() {
         }
       });
     }
-    
     setNewSettingItem('');
     setEditingSettingItem(null);
   };
@@ -348,7 +334,6 @@ export default function App() {
         const key = settingsTab;
         const newOptions = (settingsOptions[key] || []).filter(item => item !== deleteSettingConfirm);
         const updatedSettings = { ...settingsOptions, [key]: newOptions };
-        
         setSettingsOptions(updatedSettings);
         await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), updatedSettings);
       } catch (error) {
@@ -376,7 +361,7 @@ export default function App() {
   const handleLogin = () => {
     if (pin === ADMIN_PIN) { 
       setIsAdmin(true); 
-      localStorage.setItem('mdec_admin', 'true'); // บันทึกสถานะล็อกอินไว้ในเครื่อง
+      localStorage.setItem('mdec_admin', 'true'); 
       setShowLogin(false); 
       setPin(''); 
     } else { 
@@ -387,7 +372,7 @@ export default function App() {
 
   const handleLogout = () => {
     setIsAdmin(false);
-    localStorage.removeItem('mdec_admin'); // ล้างข้อมูลล็อกอินเมื่อกดออก
+    localStorage.removeItem('mdec_admin'); 
   };
 
   const SortIcon = ({ columnKey }) => {
@@ -423,7 +408,10 @@ export default function App() {
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg"><Icons.Package /></div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">MDEC-Stock</h1>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              MDEC-Stock 
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v2.1</span>
+            </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
         </div>
@@ -557,10 +545,10 @@ export default function App() {
                   <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-base font-bold border ${statusInfo.color}`}><div className={`w-2 h-2 rounded-full currentColor`}></div>{statusInfo.label}</span></td>
                   <td className="px-4 py-4">
                     <div className="flex items-center justify-center gap-2">
-                      {/* ปุ่มประวัติ: ทุกคนเห็นได้ */}
+                      {/* ปุ่มประวัติ */}
                       <button onClick={() => setShowHistory(item.id)} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white flex items-center justify-center transition-colors" title="ประวัติ"><Icons.History /></button>
                       
-                      {/* ปุ่มจัดการอื่นๆ: เฉพาะแอดมินเท่านั้น */}
+                      {/* ปุ่มจัดการอื่นๆ */}
                       {isAdmin && (
                         <>
                           {item.status === 'available' && <button onClick={() => { setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
