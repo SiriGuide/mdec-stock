@@ -62,9 +62,6 @@ export default function App() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState('all');
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
 
   const [isAdmin, setIsAdmin] = useState(() => {
     try { return localStorage.getItem('mdec_admin') === 'true'; } 
@@ -136,39 +133,17 @@ export default function App() {
                           (item.location && item.location.toLowerCase().includes(searchLower));
                           
       const matchDept = filterDept === 'all' || item.department === filterDept;
-      const matchCategory = filterCategory === 'all' || item.category === filterCategory;
-      const matchStatus = filterStatus === 'all' || item.status === filterStatus;
-      
-      return matchSearch && matchDept && matchCategory && matchStatus;
+      return matchSearch && matchDept;
     });
 
     result.sort((a, b) => {
-      let aVal = a[sortConfig.key] ?? '';
-      let bVal = b[sortConfig.key] ?? '';
-
-      if (sortConfig.key === 'status') {
-        const statusOrder = { 'available': 1, 'in-use': 2, 'borrowed': 3, 'maintenance': 4 };
-        aVal = statusOrder[a.status] || 99;
-        bVal = statusOrder[b.status] || 99;
-      } else if (sortConfig.key === 'quantity') {
-        aVal = Number(a.quantity) || 0;
-        bVal = Number(b.quantity) || 0;
-      }
-
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
-      }
-
-      const strA = String(aVal);
-      const strB = String(bVal);
-
-      return sortConfig.direction === 'asc' 
-        ? strA.localeCompare(strB, 'th', { numeric: true, sensitivity: 'base' }) 
-        : strB.localeCompare(strA, 'th', { numeric: true, sensitivity: 'base' });
+      const strA = String(a.name || '');
+      const strB = String(b.name || '');
+      return strA.localeCompare(strB, 'th', { numeric: true, sensitivity: 'base' });
     });
 
     return result;
-  }, [items, searchTerm, filterDept, filterCategory, filterStatus, sortConfig]);
+  }, [items, searchTerm, filterDept]);
 
   const stats = useMemo(() => {
     const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
@@ -207,13 +182,6 @@ export default function App() {
       .filter(([_, data]) => data.total > 0)
       .map(([label, data]) => ({ label, data }));
   }, [deptItems, settingsOptions.categories]);
-
-  const handleSort = (key) => {
-    setSortConfig(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
-    }));
-  };
 
   const handleSave = async () => {
     if (!formData.name.trim()) return;
@@ -258,7 +226,7 @@ export default function App() {
         await deleteDoc(doc(db, "mdec_stock", "shared_data", "items", itemToDelete.id));
       } catch (error) {
         console.error("Error deleting item:", error);
-        alert("เกิดข้อผิดพลาดในการลบข้อมูล: อาจเป็นเพราะฐานข้อมูลหมดอายุ (กรุณาดูวิธีแก้ที่คู่มือ)");
+        alert("เกิดข้อผิดพลาดในการลบข้อมูล กรุณาลองใหม่ (โปรดเปลี่ยนกฎ Firebase Rules เป็น if true;)");
       } finally {
         setItemToDelete(null);
       }
@@ -380,22 +348,6 @@ export default function App() {
     try { localStorage.removeItem('mdec_admin'); } catch(e) {}
   };
 
-  const SortIcon = ({ columnKey }) => {
-    if (sortConfig.key !== columnKey) return <span className="text-slate-300 ml-1 opacity-0 group-hover:opacity-100">↕</span>;
-    return <span className="text-blue-600 ml-1">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
-  };
-
-  const Th = ({ label, columnKey, className }) => (
-    <th 
-      className={`px-4 py-4 text-left font-bold text-slate-700 cursor-pointer hover:bg-slate-300 transition-colors group select-none ${className || ''}`} 
-      onClick={() => handleSort(columnKey)}
-    >
-      <div className="flex items-center">
-        {label} <SortIcon columnKey={columnKey} />
-      </div>
-    </th>
-  );
-
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans p-4 sm:p-8">
       {firebaseError && (
@@ -415,7 +367,7 @@ export default function App() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v8.0 Fix</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v9.0 Master</span>
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -490,17 +442,6 @@ export default function App() {
             <input type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
-            <select className="flex-1 px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
-              <option value="all">หมวดหมู่ทั้งหมด</option>
-              {settingsOptions.categories.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select className="flex-1 px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-              <option value="all">สถานะทั้งหมด</option>
-              {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-            </select>
-          </div>
-
           {isAdmin && (
             <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: filterDept === 'all' ? 'ภาพนิ่ง' : filterDept, category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1 }); setShowForm(true); }} className="w-full xl:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap"><Icons.Plus /> เพิ่มอุปกรณ์</button>
           )}
@@ -520,11 +461,11 @@ export default function App() {
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr className="bg-slate-200 border-b border-slate-300 text-lg">
-                <Th label="ชื่ออุปกรณ์ / รหัส" columnKey="name" />
-                <Th label="หมวดหมู่" columnKey="category" />
-                <Th label="ฝ่ายที่รับผิดชอบ" columnKey="department" />
-                <Th label="สถานที่ / ห้อง" columnKey="location" />
-                <Th label="สถานะ" columnKey="status" />
+                <th className="px-4 py-4 text-left font-bold text-slate-700">ชื่ออุปกรณ์ / รหัส</th>
+                <th className="px-4 py-4 text-left font-bold text-slate-700">หมวดหมู่</th>
+                <th className="px-4 py-4 text-left font-bold text-slate-700">ฝ่ายที่รับผิดชอบ</th>
+                <th className="px-4 py-4 text-left font-bold text-slate-700">สถานที่ / ห้อง</th>
+                <th className="px-4 py-4 text-left font-bold text-slate-700">สถานะ</th>
                 <th className="px-4 py-4 text-center font-bold text-slate-700 sticky right-0 bg-slate-200 shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-20">ประวัติ / จัดการ</th>
               </tr>
             </thead>
