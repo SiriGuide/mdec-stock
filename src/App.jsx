@@ -19,6 +19,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const ADMIN_PIN = 'mdec8203';
 
+// 🛠️ แก้ไขโค้ดวาดไอคอน UserPlus ที่เสีย ทำให้ระบบไม่รวนอีกต่อไป
 const Icons = {
   Plus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
   Search: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
@@ -29,7 +30,7 @@ const Icons = {
   Settings: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
   X: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>,
   History: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-  UserPlus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>,
+  UserPlus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>,
   CheckCircle: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
   Unlock: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>,
   Lock: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
@@ -76,9 +77,8 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1 });
   
-  // ตัวแปรสำหรับ Modal ยืนยันการลบ
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // ใช้กับอุปกรณ์หลัก
-  const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null); // ใช้กับการตั้งค่า
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
   
   const [showBorrow, setShowBorrow] = useState(null);
   const [borrowData, setBorrowData] = useState({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '' });
@@ -413,7 +413,7 @@ export default function App() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v2.6</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v2.7</span>
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -527,13 +527,13 @@ export default function App() {
           <tbody className="divide-y divide-slate-100">
             {filteredItems.length === 0 ? (
               <tr><td colSpan={filterDept === 'all' ? 6 : 5} className="px-4 py-12 text-center text-slate-400 font-bold text-xl">ไม่พบข้อมูลที่ค้นหา</td></tr>
-            ) : filteredItems.map((item, index) => {
+            ) : filteredItems.map((item) => {
               const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
               const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
               const isBorrowed = item.status === 'borrowed';
               const qty = Number(item.quantity) || 1;
               return (
-                <tr key={`${item.id}-${index}`} className="hover:bg-slate-50 transition-colors text-lg">
+                <tr key={item.id} className="hover:bg-slate-50 transition-colors text-lg">
                   <td className="px-4 py-4">
                     <div className="font-bold text-slate-800 text-xl flex items-center gap-2">
                       {item.name} 
@@ -552,14 +552,15 @@ export default function App() {
                   <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-base font-bold border ${statusInfo.color}`}><div className={`w-2 h-2 rounded-full currentColor`}></div>{statusInfo.label}</span></td>
                   <td className="px-4 py-4">
                     <div className="flex items-center justify-center gap-2">
+                      {/* ปุ่มประวัติ */}
                       <button onClick={() => setShowHistory(item.id)} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white flex items-center justify-center transition-colors" title="ประวัติ"><Icons.History /></button>
                       
+                      {/* ปุ่มจัดการอื่นๆ */}
                       {isAdmin && (
                         <>
                           {item.status === 'available' && <button onClick={() => { setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
                           {isBorrowed && <button onClick={() => { setReturnData({ staff: '', newStaff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
                           <button onClick={() => { setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
-                          {/* ปุ่มสำหรับเรียก Modal ลบอุปกรณ์ */}
                           <button onClick={() => setShowDeleteConfirm(item.id)} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
                         </>
                       )}
@@ -574,7 +575,7 @@ export default function App() {
 
       {/* Settings Modal */}
       {showSettings && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="flex border-b border-slate-100 overflow-x-auto custom-scrollbar">
               <button onClick={() => {setSettingsTab('categories'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg ${settingsTab === 'categories' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>หมวดหมู่</button>
@@ -608,7 +609,7 @@ export default function App() {
 
       {/* Modal 1: ยืนยันการลบการตั้งค่า (Settings) */}
       {deleteSettingConfirm !== null && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
             <div className="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.Trash /></div>
             <h3 className="text-2xl font-black text-slate-800 mb-2">ยืนยันการลบ?</h3>
@@ -623,7 +624,7 @@ export default function App() {
 
       {/* Login Modal */}
       {showLogin && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
             <h3 className="text-2xl font-black text-slate-800 mb-6 text-center">เข้าสู่ระบบจัดการ</h3>
             <input type="password" autoFocus className="w-full px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl font-bold text-center text-3xl tracking-widest focus:ring-2 focus:ring-blue-500 outline-none mb-6" maxLength={8} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
@@ -637,7 +638,7 @@ export default function App() {
 
       {/* Add/Edit Form */}
       {showForm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-black text-slate-800">{formData.id ? 'แก้ไขข้อมูล' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
@@ -709,7 +710,7 @@ export default function App() {
 
       {/* Borrow Modal */}
       {showBorrow && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl">
             <h3 className="text-2xl font-black text-slate-800 mb-6 text-center">บันทึกการให้ยืม</h3>
             <div className="space-y-4 mb-8">
@@ -745,7 +746,7 @@ export default function App() {
 
       {/* Return Modal */}
       {showReturn && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center">
             <div className="w-20 h-20 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.CheckCircle /></div>
             <h3 className="text-2xl font-black text-slate-800 mb-6">บันทึกรับคืนอุปกรณ์</h3>
@@ -773,7 +774,7 @@ export default function App() {
 
       {/* History Modal */}
       {showHistory && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full max-h-[80vh] flex flex-col shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-black text-slate-800">ประวัติการยืม-คืน</h3>
@@ -805,7 +806,7 @@ export default function App() {
 
       {/* Modal 2: ยืนยันการลบอุปกรณ์ในตารางหลัก (Main Items) */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
             <div className="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.Trash /></div>
             <h3 className="text-2xl font-black text-slate-800 mb-2">ลบอุปกรณ์?</h3>
