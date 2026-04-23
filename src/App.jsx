@@ -49,13 +49,16 @@ const Icons = {
   Moon: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>,
   Link: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>,
   Layers: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
-  Monitor: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+  Monitor: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
+  Truck: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l3 4v5m-3-9v9m-9-9v9m-4 0h4m-4 0a2 2 0 100 4 2 2 0 000-4zm12 0a2 2 0 100 4 2 2 0 000-4z" /></svg>
 };
 
+// 🛠️ อัปเดต STATUSES เพิ่ม "ออกงาน"
 const STATUSES = [
   { id: 'available', label: 'พร้อมใช้งาน', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', darkColor: 'bg-emerald-900/40 text-emerald-400 border-emerald-800' },
   { id: 'in-use', label: 'กำลังใช้งาน', color: 'bg-amber-100 text-amber-700 border-amber-200', darkColor: 'bg-amber-900/40 text-amber-400 border-amber-800' },
   { id: 'borrowed', label: 'ถูกยืม', color: 'bg-purple-100 text-purple-700 border-purple-200', darkColor: 'bg-purple-900/40 text-purple-400 border-purple-800' },
+  { id: 'out-for-event', label: 'ออกงาน', color: 'bg-orange-100 text-orange-700 border-orange-200', darkColor: 'bg-orange-900/40 text-orange-400 border-orange-800' },
   { id: 'maintenance', label: 'ส่งซ่อม/ชำรุด', color: 'bg-rose-100 text-rose-700 border-rose-200', darkColor: 'bg-rose-900/40 text-rose-400 border-rose-800' }
 ];
 
@@ -139,13 +142,17 @@ export default function App() {
   const [selectedItems, setSelectedItems] = useState([]);
   
   const [borrowTargetIds, setBorrowTargetIds] = useState([]);
-  const [borrowData, setBorrowData] = useState({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '' });
+  const [borrowData, setBorrowData] = useState({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '', note: '' });
+  
+  // 🚚 State สำหรับนำออกงาน
+  const [eventTargetIds, setEventTargetIds] = useState([]);
+  const [eventData, setEventData] = useState({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
   
   const [packingChecklist, setPackingChecklist] = useState([]);
+  const [eventChecklist, setEventChecklist] = useState([]);
   
   const [returnTargetIds, setReturnTargetIds] = useState([]);
   const [returnData, setReturnData] = useState({ staff: '', newStaff: '' });
-
   const [returnChecklist, setReturnChecklist] = useState([]);
   
   const [showHistory, setShowHistory] = useState(null);
@@ -258,22 +265,23 @@ export default function App() {
 
   const todayMs = new Date().setHours(0,0,0,0);
   const overdueItems = items.filter(item => {
-    if (item.status !== 'borrowed' || !item.expectedReturn) return false;
+    if ((item.status !== 'borrowed' && item.status !== 'out-for-event') || !item.expectedReturn) return false;
     return new Date(item.expectedReturn).getTime() < todayMs;
   });
 
   const selectableItems = useMemo(() => {
-    return filteredItems.filter(i => i.status === 'available' || i.status === 'borrowed');
+    return filteredItems.filter(i => i.status === 'available' || i.status === 'borrowed' || i.status === 'out-for-event');
   }, [filteredItems]);
 
   const stats = useMemo(() => {
-    const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
+    const s = { all: 0, available: 0, inUse: 0, borrowed: 0, outForEvent: 0, maintenance: 0 };
     items.forEach(item => {
       const qty = Number(item.quantity) || 1;
       s.all += qty;
       if (item.status === 'available') s.available += qty;
       if (item.status === 'in-use') s.inUse += qty;
       if (item.status === 'borrowed') s.borrowed += qty;
+      if (item.status === 'out-for-event') s.outForEvent += qty;
       if (item.status === 'maintenance') s.maintenance += qty;
     });
     return s;
@@ -399,7 +407,7 @@ export default function App() {
       await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
     }
     
-    const newHistoryEntry = { type: 'borrow', date: new Date().toISOString(), borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff };
+    const newHistoryEntry = { type: 'borrow', date: new Date().toISOString(), borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff, note: borrowData.note };
     const borrowedNames = [];
 
     try {
@@ -408,7 +416,7 @@ export default function App() {
         if (!item || item.status !== 'available') return Promise.resolve(); 
         borrowedNames.push(item.name);
         const newHistory = [...(item.history || []), newHistoryEntry];
-        return setDoc(doc(db, "mdec_stock", "shared_data", "items", id), { status: 'borrowed', currentBorrower: borrowData.borrower, expectedReturn: borrowData.returnDate, history: newHistory }, { merge: true });
+        return setDoc(doc(db, "mdec_stock", "shared_data", "items", id), { status: 'borrowed', currentBorrower: borrowData.borrower, expectedReturn: borrowData.returnDate, currentNote: borrowData.note, history: newHistory }, { merge: true });
       });
       await Promise.all(promises);
       
@@ -417,10 +425,46 @@ export default function App() {
       setBorrowTargetIds([]);
       setPackingChecklist([]);
       setSelectedItems([]); 
-      setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '' });
+      setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '', note: '' });
     } catch (error) {
       console.error(error);
       alert("เกิดข้อผิดพลาดในการทำรายการยืม");
+    }
+  };
+
+  const handleEventOut = async () => {
+    if (!eventData.eventName || !eventData.staff || eventTargetIds.length === 0) return;
+    let finalStaff = eventData.staff;
+    if (eventData.staff === 'อื่นๆ' && eventData.newStaff.trim()) {
+      finalStaff = eventData.newStaff.trim();
+      const updatedStaff = [...new Set([...(settingsOptions.staff || []).filter(c => c !== 'อื่นๆ'), finalStaff, 'อื่นๆ'])];
+      const newSettings = { ...settingsOptions, staff: updatedStaff };
+      setSettingsOptions(newSettings);
+      await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
+    }
+    
+    const newHistoryEntry = { type: 'event', date: new Date().toISOString(), eventName: eventData.eventName, expectedReturn: eventData.returnDate, staffOut: finalStaff, note: eventData.note };
+    const eventNames = [];
+
+    try {
+      const promises = eventTargetIds.map(id => {
+        const item = items.find(i => i.id === id);
+        if (!item || item.status !== 'available') return Promise.resolve(); 
+        eventNames.push(item.name);
+        const newHistory = [...(item.history || []), newHistoryEntry];
+        return setDoc(doc(db, "mdec_stock", "shared_data", "items", id), { status: 'out-for-event', currentEvent: eventData.eventName, expectedReturn: eventData.returnDate, currentNote: eventData.note, history: newHistory }, { merge: true });
+      });
+      await Promise.all(promises);
+      
+      await logAction('นำออกงาน', `ทำรายการ ${eventTargetIds.length} ชิ้น (รวมอุปกรณ์ผูกติด)`, `ชื่องาน: ${eventData.eventName} (ผู้นำออก: ${finalStaff})\nรายการ: ${eventNames.join(', ')}`);
+      
+      setEventTargetIds([]);
+      setEventChecklist([]);
+      setSelectedItems([]); 
+      setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
+    } catch (error) {
+      console.error(error);
+      alert("เกิดข้อผิดพลาดในการนำออกงาน");
     }
   };
 
@@ -441,10 +485,10 @@ export default function App() {
     try {
       const promises = returnTargetIds.map(id => {
         const item = items.find(i => i.id === id);
-        if (!item || item.status !== 'borrowed') return Promise.resolve();
+        if (!item || (item.status !== 'borrowed' && item.status !== 'out-for-event')) return Promise.resolve();
         returnedNames.push(item.name);
         const newHistory = [...(item.history || []), newHistoryEntry];
-        return setDoc(doc(db, "mdec_stock", "shared_data", "items", id), { status: 'available', currentBorrower: null, expectedReturn: null, history: newHistory }, { merge: true });
+        return setDoc(doc(db, "mdec_stock", "shared_data", "items", id), { status: 'available', currentBorrower: null, currentEvent: null, currentNote: null, expectedReturn: null, history: newHistory }, { merge: true });
       });
       await Promise.all(promises);
 
@@ -488,7 +532,7 @@ export default function App() {
 
   const handleSelectBundleToBorrow = (bundle) => {
     const availableIds = bundle.itemIds.filter(id => items.find(i => i.id === id)?.status === 'available');
-    if (availableIds.length === 0) return alert('❌ ไม่สามารถยืมได้: อุปกรณ์ในเซ็ตนี้ถูกยืมไปหมดแล้ว หรือไม่พร้อมใช้งานเลย');
+    if (availableIds.length === 0) return alert('❌ ไม่สามารถยืมได้: อุปกรณ์ในเซ็ตนี้ถูกใช้งานไปหมดแล้ว');
     
     if (availableIds.length < bundle.itemIds.length) {
       const proceed = confirm(`⚠️ อุปกรณ์ในเซ็ตไม่ครบ!\nมีอุปกรณ์พร้อมใช้งานเพียง ${availableIds.length} จาก ${bundle.itemIds.length} ชิ้น\nคุณต้องการกดยืมชิ้นที่เหลือเท่าที่มีหรือไม่?`);
@@ -498,15 +542,34 @@ export default function App() {
     const expanded = expandWithChildren(availableIds);
     setBorrowTargetIds(expanded);
     setPackingChecklist([]);
-    setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' });
+    setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' });
+    setShowBundleModal(false);
+  };
+
+  const handleSelectBundleToEvent = (bundle) => {
+    const availableIds = bundle.itemIds.filter(id => items.find(i => i.id === id)?.status === 'available');
+    if (availableIds.length === 0) return alert('❌ ไม่สามารถนำออกงานได้: อุปกรณ์ในเซ็ตนี้ถูกใช้งานไปหมดแล้ว');
+    
+    if (availableIds.length < bundle.itemIds.length) {
+      const proceed = confirm(`⚠️ อุปกรณ์ในเซ็ตไม่ครบ!\nมีอุปกรณ์พร้อมใช้งานเพียง ${availableIds.length} จาก ${bundle.itemIds.length} ชิ้น\nคุณต้องการกดนำออกชิ้นที่เหลือเท่าที่มีหรือไม่?`);
+      if (!proceed) return;
+    }
+    
+    const expanded = expandWithChildren(availableIds);
+    setEventTargetIds(expanded);
+    setEventChecklist([]);
+    setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
     setShowBundleModal(false);
   };
 
   const handleSelectBundleToReturn = (bundle) => {
-    const borrowedIds = bundle.itemIds.filter(id => items.find(i => i.id === id)?.status === 'borrowed');
-    if (borrowedIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ในเซ็ตนี้ที่กำลังถูกยืม');
+    const outIds = bundle.itemIds.filter(id => {
+      const st = items.find(i => i.id === id)?.status;
+      return st === 'borrowed' || st === 'out-for-event';
+    });
+    if (outIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ในเซ็ตนี้ที่รอรับคืน');
     
-    const expanded = expandWithChildren(borrowedIds);
+    const expanded = expandWithChildren(outIds);
     setReturnTargetIds(expanded);
     setReturnChecklist([]);
     setReturnData({ staff: '', newStaff: '' });
@@ -516,16 +579,29 @@ export default function App() {
   const handleOpenBatchBorrow = () => {
     const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
     if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมให้ยืมในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้งาน")');
-    setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' });
+    setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' });
     
     const expanded = expandWithChildren(validIds);
     setBorrowTargetIds(expanded);
     setPackingChecklist([]);
   };
 
+  const handleOpenBatchEvent = () => {
+    const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
+    if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมออกงานในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้งาน")');
+    setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
+    
+    const expanded = expandWithChildren(validIds);
+    setEventTargetIds(expanded);
+    setEventChecklist([]);
+  };
+
   const handleOpenBatchReturn = () => {
-    const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'borrowed');
-    if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่สามารถคืนได้ในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "กำลังถูกยืม")');
+    const validIds = selectedItems.filter(id => {
+      const st = items.find(i => i.id === id)?.status;
+      return st === 'borrowed' || st === 'out-for-event';
+    });
+    if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่สามารถคืนได้ในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "กำลังถูกยืม" หรือ "ออกงาน")');
     setReturnData({ staff: '', newStaff: '' });
     
     const expanded = expandWithChildren(validIds);
@@ -629,7 +705,7 @@ export default function App() {
     const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'สถานะ', 'จำนวน', 'ผู้ยืมปัจจุบัน', 'อัปเดตล่าสุด'];
     const csvData = items.map(i => [
       i.name, i.sn || '-', i.department, i.category || '-', i.location || '-', 
-      STATUSES.find(s=>s.id===i.status)?.label || i.status, i.quantity || 1, i.currentBorrower || '-', new Date(i.updatedAt).toLocaleDateString('th-TH')
+      STATUSES.find(s=>s.id===i.status)?.label || i.status, i.quantity || 1, i.currentBorrower || i.currentEvent || '-', new Date(i.updatedAt).toLocaleDateString('th-TH')
     ]);
     const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...csvData].map(e => e.join(",")).join("\n");
     const link = document.createElement("a");
@@ -670,6 +746,7 @@ export default function App() {
       statAvail: isDarkMode ? 'bg-emerald-900/20 border-emerald-800/50' : 'bg-emerald-50 border-emerald-100',
       statInUse: isDarkMode ? 'bg-amber-900/20 border-amber-800/50' : 'bg-amber-50 border-amber-100',
       statBorrow: isDarkMode ? 'bg-purple-900/20 border-purple-800/50' : 'bg-purple-50 border-purple-100',
+      statEvent: isDarkMode ? 'bg-orange-900/20 border-orange-800/50' : 'bg-orange-50 border-orange-100',
       statMaint: isDarkMode ? 'bg-rose-900/20 border-rose-800/50' : 'bg-rose-50 border-rose-100',
       circleOuter: isDarkMode ? 'border-slate-950' : 'border-slate-50',
       circleInner: isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-50 text-slate-800',
@@ -715,22 +792,22 @@ export default function App() {
               <h2 className={`text-xl font-bold mb-2 z-10 flex items-center gap-2 ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}><Icons.Package className="w-6 h-6"/> อุปกรณ์ทั้งหมด</h2>
               <span className="text-7xl sm:text-8xl font-black text-white z-10 drop-shadow-md">{stats.all}</span>
             </div>
-            <div className="grid grid-cols-2 gap-4 flex-1">
-              <div className={`p-5 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statAvail}`}>
+            <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-4 flex-1">
+              <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statAvail}`}>
                 <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>🟢 พร้อมใช้งาน</span>
-                <span className={`text-5xl font-black ${isDarkMode ? 'text-emerald-400' : 'text-emerald-500'}`}>{stats.available}</span>
+                <span className={`text-4xl lg:text-5xl font-black ${isDarkMode ? 'text-emerald-400' : 'text-emerald-500'}`}>{stats.available}</span>
               </div>
-              <div className={`p-5 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statInUse}`}>
-                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>🟡 กำลังใช้งาน</span>
-                <span className={`text-5xl font-black ${isDarkMode ? 'text-amber-400' : 'text-amber-500'}`}>{stats.inUse}</span>
-              </div>
-              <div className={`p-5 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statBorrow}`}>
+              <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statBorrow}`}>
                 <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>🟣 กำลังถูกยืม</span>
-                <span className={`text-5xl font-black ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>{stats.borrowed}</span>
+                <span className={`text-4xl lg:text-5xl font-black ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>{stats.borrowed}</span>
               </div>
-              <div className={`p-5 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statMaint}`}>
-                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-rose-400' : 'text-rose-600'}`}>🔴 ส่งซ่อม/ชำรุด</span>
-                <span className={`text-5xl font-black ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>{stats.maintenance}</span>
+              <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statEvent}`}>
+                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>🚚 ออกงาน</span>
+                <span className={`text-4xl lg:text-5xl font-black ${isDarkMode ? 'text-orange-400' : 'text-orange-500'}`}>{stats.outForEvent}</span>
+              </div>
+              <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statMaint}`}>
+                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-rose-400' : 'text-rose-600'}`}>🔴 ชำรุด</span>
+                <span className={`text-4xl lg:text-5xl font-black ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>{stats.maintenance}</span>
               </div>
             </div>
           </div>
@@ -758,7 +835,9 @@ export default function App() {
                   {overdueItems.map(i => (
                     <div key={i.id} className={`text-base px-4 py-3 rounded-2xl border shadow-sm flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 transition-colors ${isDarkMode ? 'bg-slate-800 border-rose-900/50 text-rose-300 hover:bg-slate-700' : 'bg-white border-rose-100 text-rose-700 hover:bg-rose-50'}`}>
                       <span className="font-bold truncate">{i.name}</span> 
-                      <span className={`text-sm font-semibold px-2 py-1 rounded-lg whitespace-nowrap ${isDarkMode ? 'bg-rose-900/40 text-rose-400' : 'bg-rose-50 text-rose-500'}`}>ผู้ยืม: {i.currentBorrower}</span>
+                      <span className={`text-sm font-semibold px-2 py-1 rounded-lg whitespace-nowrap ${isDarkMode ? 'bg-rose-900/40 text-rose-400' : 'bg-rose-50 text-rose-500'}`}>
+                        {i.status === 'out-for-event' ? 'งาน: ' : 'ผู้ยืม: '} {i.currentBorrower || i.currentEvent}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -787,6 +866,7 @@ export default function App() {
                 if (log.action.includes('แก้')) { badgeColor = isDarkMode ? 'bg-amber-900/40 text-amber-400' : 'bg-amber-100 text-amber-700'; icon = '✏️'; }
                 if (log.action.includes('ลบ')) { badgeColor = isDarkMode ? 'bg-rose-900/40 text-rose-400' : 'bg-rose-100 text-rose-700'; icon = '🗑️'; }
                 if (log.action.includes('ยืม')) { badgeColor = isDarkMode ? 'bg-purple-900/40 text-purple-400' : 'bg-purple-100 text-purple-700'; icon = '📤'; }
+                if (log.action.includes('ออกงาน')) { badgeColor = isDarkMode ? 'bg-orange-900/40 text-orange-400' : 'bg-orange-100 text-orange-700'; icon = '🚚'; }
                 if (log.action.includes('คืน')) { badgeColor = isDarkMode ? 'bg-emerald-900/40 text-emerald-400' : 'bg-emerald-100 text-emerald-700'; icon = '📥'; }
 
                 return (
@@ -835,7 +915,7 @@ export default function App() {
           <div>
             <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textTitle}`}>
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v18.2 Stable</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v19.0 Event Tracker</span>
             </h1>
             <p className={`font-medium text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -893,8 +973,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Stats Grid */}
-      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-8">
+      {/* 📊 Main Stats Grid (เพิ่มช่อง ออกงาน) */}
+      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6 mb-8">
         <div className={`p-5 rounded-2xl shadow-md border-t-4 border-blue-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
           <span className={`font-bold text-sm sm:text-base mb-1 ${theme.textMuted}`}>อุปกรณ์ทั้งหมด</span>
           <span className="text-4xl sm:text-5xl font-black text-blue-500">{stats.all}</span>
@@ -910,6 +990,10 @@ export default function App() {
         <div className={`p-5 rounded-2xl shadow-md border-t-4 border-purple-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
           <span className={`font-bold text-sm sm:text-base mb-1 ${theme.textMuted}`}>กำลังถูกยืม</span>
           <span className="text-4xl sm:text-5xl font-black text-purple-500">{stats.borrowed}</span>
+        </div>
+        <div className={`p-5 rounded-2xl shadow-md border-t-4 border-orange-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
+          <span className={`font-bold text-sm sm:text-base mb-1 flex items-center gap-1 ${theme.textMuted}`}>🚚 ออกงาน</span>
+          <span className="text-4xl sm:text-5xl font-black text-orange-500">{stats.outForEvent}</span>
         </div>
         <div className={`p-5 rounded-2xl shadow-md border-t-4 border-rose-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
           <span className={`font-bold text-sm sm:text-base mb-1 ${theme.textMuted}`}>ส่งซ่อม/ชำรุด</span>
@@ -964,7 +1048,7 @@ export default function App() {
               
               {(settingsOptions.bundles && settingsOptions.bundles.length > 0) && (
                 <button type="button" onClick={() => setShowBundleModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-purple-600 text-white hover:bg-purple-500' : 'bg-purple-600 text-white hover:bg-purple-700'}`}>
-                  <Icons.Layers /> ยืม/คืนแบบเซ็ต
+                  <Icons.Layers /> จัดการเซ็ต
                 </button>
               )}
             </div>
@@ -1022,9 +1106,10 @@ export default function App() {
                 const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
                 const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
                 const isBorrowed = item.status === 'borrowed';
+                const isEvent = item.status === 'out-for-event';
                 const qty = Number(item.quantity) || 1;
                 
-                const isOverdue = isBorrowed && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
+                const isOverdue = (isBorrowed || isEvent) && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
                 const rowBg = isOverdue ? (isDarkMode ? 'bg-rose-900/20 hover:bg-rose-900/40' : 'bg-rose-50 hover:bg-rose-100') : theme.trHover;
                 const rowBorder = isOverdue ? 'border-l-4 border-l-rose-500' : '';
                 
@@ -1033,7 +1118,7 @@ export default function App() {
 
                     {isAdmin && (
                       <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        {(item.status === 'available' || item.status === 'borrowed') ? (
+                        {(item.status === 'available' || isBorrowed || isEvent) ? (
                           <input 
                             type="checkbox" 
                             className="w-5 h-5 rounded cursor-pointer accent-indigo-600"
@@ -1063,13 +1148,24 @@ export default function App() {
                         </div>
                       )}
 
-                      {isBorrowed && (
-                        <div className={`text-base mt-2 p-2 rounded-lg border inline-block ${isOverdue ? (isDarkMode ? 'bg-rose-900/30 border-rose-800' : 'bg-rose-100 border-rose-200') : (isDarkMode ? 'bg-purple-900/30 border-purple-800' : 'bg-purple-50 border-purple-100')}`}>
-                          <span className={`font-bold ${isOverdue ? (isDarkMode ? 'text-rose-400' : 'text-rose-700') : (isDarkMode ? 'text-purple-400' : 'text-purple-700')}`}>ผู้ยืม: {item.currentBorrower}</span> 
-                          <span className={`${isOverdue ? (isDarkMode ? 'text-rose-600' : 'text-rose-300') : (isDarkMode ? 'text-purple-600' : 'text-purple-300')} mx-1`}>|</span> 
-                          <span className={`${isOverdue ? (isDarkMode ? 'text-rose-500 font-bold' : 'text-rose-600 font-bold') : theme.textMuted}`}>
-                            คืน: {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}
-                          </span>
+                      {/* 📝 กล่องแสดงหมายเหตุ การยืม/ออกงาน */}
+                      {(isBorrowed || isEvent) && (
+                        <div className={`text-base mt-2 p-2 rounded-lg border inline-block ${isOverdue ? (isDarkMode ? 'bg-rose-900/30 border-rose-800' : 'bg-rose-100 border-rose-200') : isEvent ? (isDarkMode ? 'bg-orange-900/30 border-orange-800' : 'bg-orange-50 border-orange-100') : (isDarkMode ? 'bg-purple-900/30 border-purple-800' : 'bg-purple-50 border-purple-100')}`}>
+                          <div className="flex items-center gap-2">
+                            {isEvent && <Icons.Truck className={`w-4 h-4 ${isOverdue ? (isDarkMode ? 'text-rose-400' : 'text-rose-700') : (isDarkMode ? 'text-orange-400' : 'text-orange-700')}`} />}
+                            <span className={`font-bold ${isOverdue ? (isDarkMode ? 'text-rose-400' : 'text-rose-700') : isEvent ? (isDarkMode ? 'text-orange-400' : 'text-orange-700') : (isDarkMode ? 'text-purple-400' : 'text-purple-700')}`}>
+                              {isEvent ? `ออกงาน: ${item.currentEvent}` : `ผู้ยืม: ${item.currentBorrower}`}
+                            </span> 
+                            <span className={`${isOverdue ? (isDarkMode ? 'text-rose-600' : 'text-rose-300') : isEvent ? (isDarkMode ? 'text-orange-600' : 'text-orange-300') : (isDarkMode ? 'text-purple-600' : 'text-purple-300')}`}>|</span> 
+                            <span className={`${isOverdue ? (isDarkMode ? 'text-rose-500 font-bold' : 'text-rose-600 font-bold') : theme.textMuted}`}>
+                              คืน: {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}
+                            </span>
+                          </div>
+                          {item.currentNote && (
+                            <div className={`mt-1 text-sm italic font-medium ${isOverdue ? (isDarkMode ? 'text-rose-400/80' : 'text-rose-700/80') : isEvent ? (isDarkMode ? 'text-orange-400/80' : 'text-orange-700/80') : (isDarkMode ? 'text-purple-400/80' : 'text-purple-700/80')}`}>
+                              * หมายเหตุ: {item.currentNote}
+                            </div>
+                          )}
                         </div>
                       )}
                     </td>
@@ -1084,15 +1180,28 @@ export default function App() {
                         
                         {isAdmin && (
                           <>
-                            {item.status === 'available' && <button type="button" onClick={(e) => { 
-                              e.stopPropagation(); 
-                              setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); 
-                              const expanded = expandWithChildren([item.id]);
-                              setBorrowTargetIds(expanded);
-                              setPackingChecklist([]);
-                            }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white'}`} title="ให้ยืม"><Icons.UserPlus className="w-5 h-5" /></button>}
+                            {/* ปุ่มทำรายการรายชิ้น */}
+                            {item.status === 'available' && (
+                              <>
+                                <button type="button" onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' }); 
+                                  const expanded = expandWithChildren([item.id]);
+                                  setBorrowTargetIds(expanded);
+                                  setPackingChecklist([]);
+                                }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white'}`} title="ให้ยืม"><Icons.UserPlus className="w-5 h-5" /></button>
+
+                                <button type="button" onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' }); 
+                                  const expanded = expandWithChildren([item.id]);
+                                  setEventTargetIds(expanded);
+                                  setEventChecklist([]);
+                                }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-orange-900/40 text-orange-400 hover:bg-orange-600 hover:text-white' : 'bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white'}`} title="นำออกงาน"><Icons.Truck className="w-5 h-5" /></button>
+                              </>
+                            )}
                             
-                            {isBorrowed && <button type="button" onClick={(e) => { 
+                            {(isBorrowed || isEvent) && <button type="button" onClick={(e) => { 
                               e.stopPropagation(); 
                               setReturnData({ staff: '', newStaff: '' }); 
                               const expanded = expandWithChildren([item.id]);
@@ -1114,17 +1223,21 @@ export default function App() {
         </div>
       </div>
 
-      {/* 🛒 Floating Action Bar (ระบบตะกร้าเลือกหลายชิ้นอิสระ) */}
+      {/* 🛒 Floating Action Bar (ระบบตะกร้า เพิ่มปุ่ม นำออกงาน) */}
       {isAdmin && selectedItems.length > 0 && (
-        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 backdrop-blur-xl px-4 py-4 sm:px-6 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] flex items-center gap-4 sm:gap-8 z-40 w-[90%] max-w-xl justify-between animate-[slideUp_0.3s_ease-out] border-2 ${isDarkMode ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-white/90 border-slate-100 text-slate-800'}`}>
+        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 backdrop-blur-xl px-4 py-4 sm:px-6 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] flex items-center gap-4 sm:gap-6 z-40 w-[95%] max-w-2xl justify-between animate-[slideUp_0.3s_ease-out] border-2 ${isDarkMode ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-white/90 border-slate-100 text-slate-800'}`}>
           <div className="flex items-center gap-3">
             <div className="bg-indigo-600 text-white font-black w-10 h-10 rounded-full flex items-center justify-center shadow-inner text-lg">{selectedItems.length}</div>
-            <span className="font-bold text-lg hidden sm:inline">รายการที่เลือก</span>
+            <span className="font-bold text-lg hidden md:inline whitespace-nowrap">รายการที่เลือก</span>
           </div>
-          <div className="flex gap-2 sm:gap-3">
-            <button onClick={handleOpenBatchBorrow} className="px-4 sm:px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base"><Icons.UserPlus className="w-5 h-5"/> <span className="hidden sm:inline">ยืมออก</span></button>
-            <button onClick={handleOpenBatchReturn} className="px-4 sm:px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base"><Icons.CheckCircle className="w-5 h-5"/> <span className="hidden sm:inline">รับคืน</span></button>
-            <button onClick={() => setSelectedItems([])} className={`px-4 py-3 rounded-2xl font-bold transition-colors border ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600'}`}><Icons.X className="w-5 h-5" /></button>
+          <div className="flex gap-2 sm:gap-3 overflow-x-auto custom-scrollbar">
+            <button onClick={handleOpenBatchBorrow} className="px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.UserPlus className="w-5 h-5"/> <span className="hidden sm:inline">ยืมออก</span></button>
+            
+            <button onClick={handleOpenBatchEvent} className="px-4 py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Truck className="w-5 h-5"/> <span className="hidden sm:inline">ออกงาน</span></button>
+            
+            <button onClick={handleOpenBatchReturn} className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.CheckCircle className="w-5 h-5"/> <span className="hidden sm:inline">รับคืน</span></button>
+            
+            <button onClick={() => setSelectedItems([])} className={`px-4 py-3 rounded-2xl font-bold transition-colors border shrink-0 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600'}`}><Icons.X className="w-5 h-5" /></button>
           </div>
         </div>
       )}
@@ -1132,9 +1245,9 @@ export default function App() {
       {/* 📦 Modal ยืม/คืนแบบจัดเซ็ต (Bundles) */}
       {showBundleModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
             <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
-              <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.Layers className="w-6 h-6 text-purple-500"/> ทำรายการแบบเซ็ตอุปกรณ์</h3>
+              <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.Layers className="w-6 h-6 text-purple-500"/> จัดการเซ็ตอุปกรณ์</h3>
               <button type="button" onClick={() => setShowBundleModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
@@ -1143,37 +1256,49 @@ export default function App() {
               ) : (settingsOptions.bundles || []).map((bundle) => {
                 const totalInBundle = bundle.itemIds.length;
                 const availableIds = bundle.itemIds.filter(id => items.find(i => i.id === id)?.status === 'available');
-                const borrowedIds = bundle.itemIds.filter(id => items.find(i => i.id === id)?.status === 'borrowed');
+                const outIds = bundle.itemIds.filter(id => {
+                  const st = items.find(i => i.id === id)?.status;
+                  return st === 'borrowed' || st === 'out-for-event';
+                });
                 
                 const readyInBundle = availableIds.length;
-                const borrowedCount = borrowedIds.length;
+                const outCount = outIds.length;
 
                 return (
                   <div key={bundle.id} className={`p-5 rounded-2xl border flex flex-col gap-4 transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                       <div>
                         <h4 className={`text-xl font-black mb-2 ${theme.textTitle}`}>{bundle.name}</h4>
                         <div className="flex flex-wrap gap-x-4 gap-y-1">
                            <p className={`text-sm font-bold ${readyInBundle > 0 ? 'text-purple-500' : theme.textMuted}`}>
-                             ยืมได้: {readyInBundle}/{totalInBundle} ชิ้น
+                             พร้อมใช้: {readyInBundle}/{totalInBundle} ชิ้น
                            </p>
-                           <p className={`text-sm font-bold ${borrowedCount > 0 ? 'text-emerald-500' : theme.textMuted}`}>
-                             รอรับคืน: {borrowedCount}/{totalInBundle} ชิ้น
+                           <p className={`text-sm font-bold ${outCount > 0 ? 'text-emerald-500' : theme.textMuted}`}>
+                             รอรับคืน: {outCount}/{totalInBundle} ชิ้น
                            </p>
                         </div>
                       </div>
-                      <div className="flex gap-2 w-full sm:w-auto">
+                      <div className="flex flex-wrap gap-2 w-full lg:w-auto">
                         <button 
                           onClick={() => handleSelectBundleToBorrow(bundle)}
                           disabled={readyInBundle === 0}
-                          className={`flex-1 sm:flex-none justify-center px-4 py-3 font-bold rounded-xl transition-colors whitespace-nowrap flex items-center gap-2 ${readyInBundle === 0 ? (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20'}`}
+                          className={`flex-1 lg:flex-none justify-center px-4 py-3 font-bold rounded-xl transition-colors whitespace-nowrap flex items-center gap-2 ${readyInBundle === 0 ? (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-purple-600 hover:bg-purple-500 text-white shadow-md'}`}
                         >
                           <Icons.UserPlus className="w-5 h-5"/> ยืมเซ็ตนี้
                         </button>
+
+                        <button 
+                          onClick={() => handleSelectBundleToEvent(bundle)}
+                          disabled={readyInBundle === 0}
+                          className={`flex-1 lg:flex-none justify-center px-4 py-3 font-bold rounded-xl transition-colors whitespace-nowrap flex items-center gap-2 ${readyInBundle === 0 ? (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-orange-600 hover:bg-orange-500 text-white shadow-md'}`}
+                        >
+                          <Icons.Truck className="w-5 h-5"/> นำออกงาน
+                        </button>
+
                         <button 
                           onClick={() => handleSelectBundleToReturn(bundle)}
-                          disabled={borrowedCount === 0}
-                          className={`flex-1 sm:flex-none justify-center px-4 py-3 font-bold rounded-xl transition-colors whitespace-nowrap flex items-center gap-2 ${borrowedCount === 0 ? (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'}`}
+                          disabled={outCount === 0}
+                          className={`flex-1 lg:flex-none justify-center px-4 py-3 font-bold rounded-xl transition-colors whitespace-nowrap flex items-center gap-2 ${outCount === 0 ? (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'}`}
                         >
                           <Icons.CheckCircle className="w-5 h-5"/> รับคืนเซ็ตนี้
                         </button>
@@ -1204,12 +1329,12 @@ export default function App() {
         </div>
       )}
 
-      {/* 📋 Borrow Modal (พร้อมระบบ Checklist และปุ่มเลือกทั้งหมด) */}
+      {/* 📋 Borrow Modal (อัปเดตมีช่องหมายเหตุ) */}
       {borrowTargetIds.length > 0 && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className={`text-2xl font-black ${theme.textTitle}`}>บันทึกการให้ยืม</h3>
+              <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.UserPlus className="text-purple-500"/> บันทึกการให้ยืม</h3>
               <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             
@@ -1235,6 +1360,12 @@ export default function App() {
               <div>
                 <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>กำหนดคืน</label>
                 <input type="date" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-purple-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} value={borrowData.returnDate} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} />
+              </div>
+
+              {/* 📝 เพิ่มช่องหมายเหตุตรงนี้ */}
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>หมายเหตุ <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่บังคับ)</span></label>
+                <textarea className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-purple-500 resize-none ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} rows="2" placeholder="เช่น ยืมไปถ่าย MV, ขาตั้งมีรอยถลอก..." value={borrowData.note} onChange={e => setBorrowData({...borrowData, note: e.target.value})}></textarea>
               </div>
             </div>
 
@@ -1296,12 +1427,109 @@ export default function App() {
         </div>
       )}
 
+      {/* 🚚 Event Modal (ระบบนำออกงานใหม่!) */}
+      {eventTargetIds.length > 0 && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.Truck className="text-orange-500"/> นำอุปกรณ์ออกงาน</h3>
+              <button type="button" onClick={() => { setEventTargetIds([]); setEventChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ผู้นำออก / ผู้รับผิดชอบ <span className="text-rose-500">*</span></label>
+                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-orange-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} value={eventData.staff} onChange={e => setEventData({...eventData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : eventData.newStaff})}>
+                  <option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>
+                  {(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              {eventData.staff === 'อื่นๆ' && (
+                <div>
+                  <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-orange-500 ${isDarkMode ? 'bg-orange-900/20 border-orange-800 text-orange-300' : 'bg-orange-50 border-orange-300 text-orange-800'}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่..." value={eventData.newStaff} onChange={e => setEventData({...eventData, newStaff: e.target.value})} />
+                </div>
+              )}
+              
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ชื่องาน (Project / Event) <span className="text-rose-500">*</span></label>
+                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-orange-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} placeholder="เช่น งานถ่าย MV, งานประชุมประจำปี..." value={eventData.eventName} onChange={e => setEventData({...eventData, eventName: e.target.value})} />
+              </div>
+              
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>กำหนดกลับ / คืนของ</label>
+                <input type="date" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-orange-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} value={eventData.returnDate} onChange={e => setEventData({...eventData, returnDate: e.target.value})} />
+              </div>
+
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>สถานที่ / หมายเหตุ <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่บังคับ)</span></label>
+                <textarea className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-orange-500 resize-none ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} rows="2" placeholder="เช่น สถานที่จัดงาน, เบอร์โทรติดต่อ..." value={eventData.note} onChange={e => setEventData({...eventData, note: e.target.value})}></textarea>
+              </div>
+            </div>
+
+            {/* 📋 ส่วนแสดง Checklist สำหรับนำออกงาน */}
+            <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="flex justify-between items-center mb-3">
+                <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                  <Icons.ClipboardList className="w-5 h-5"/> เช็คของขึ้นรถ ({eventChecklist.length}/{eventTargetIds.length})
+                </h4>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (eventChecklist.length === eventTargetIds.length) setEventChecklist([]);
+                    else setEventChecklist([...eventTargetIds]);
+                  }}
+                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-orange-900/40 hover:bg-orange-800 text-orange-400' : 'bg-orange-100 hover:bg-orange-200 text-orange-700'}`}
+                >
+                  {eventChecklist.length === eventTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                </button>
+              </div>
+              <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                {eventTargetIds.map(id => {
+                  const item = items.find(i => i.id === id);
+                  if(!item) return null;
+                  const isChecked = eventChecklist.includes(id);
+                  return (
+                    <label key={id} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${isChecked ? (isDarkMode ? 'bg-orange-900/40 border-orange-800' : 'bg-orange-50 border-orange-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
+                      <input type="checkbox" className="w-5 h-5 accent-orange-600 rounded mt-0.5 cursor-pointer shrink-0"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if(e.target.checked) setEventChecklist([...eventChecklist, id]);
+                          else setEventChecklist(eventChecklist.filter(c => c !== id));
+                        }}
+                      />
+                      <span className={`font-bold text-sm sm:text-base leading-tight ${isChecked ? (isDarkMode ? 'text-orange-400 line-through opacity-70' : 'text-orange-700 line-through opacity-70') : theme.textMain}`}>
+                        {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button type="button" onClick={() => { setEventTargetIds([]); setEventChecklist([]); }} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button 
+                type="button" 
+                onClick={handleEventOut} 
+                disabled={!eventData.eventName || !eventData.staff || eventChecklist.length !== eventTargetIds.length} 
+                className={`flex-1 py-4 font-bold rounded-xl text-lg transition-colors ${(!eventData.eventName || !eventData.staff || eventChecklist.length !== eventTargetIds.length) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-orange-600 text-white hover:bg-orange-500 shadow-lg shadow-orange-500/20'}`}
+              >
+                ยืนยันการนำออกงาน
+              </button>
+            </div>
+            {eventChecklist.length !== eventTargetIds.length && (
+               <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>* ต้องติ๊กตรวจสอบอุปกรณ์ให้ครบทุกรายการจึงจะกดได้</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 📋 Return Modal (พร้อมระบบ Checklist และปุ่มเลือกทั้งหมด) */}
       {returnTargetIds.length > 0 && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className={`text-2xl font-black ${theme.textTitle}`}>บันทึกรับคืนอุปกรณ์</h3>
+              <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.CheckCircle className="text-emerald-500"/> บันทึกรับคืนอุปกรณ์</h3>
               <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             
@@ -1393,6 +1621,7 @@ export default function App() {
                 if (log.action.includes('แก้')) badgeColor = isDarkMode ? 'bg-amber-900/50 text-amber-400' : 'bg-amber-100 text-amber-700';
                 if (log.action.includes('ลบ')) badgeColor = isDarkMode ? 'bg-rose-900/50 text-rose-400' : 'bg-rose-100 text-rose-700';
                 if (log.action.includes('ยืม')) badgeColor = isDarkMode ? 'bg-purple-900/50 text-purple-400' : 'bg-purple-100 text-purple-700';
+                if (log.action.includes('ออกงาน')) badgeColor = isDarkMode ? 'bg-orange-900/50 text-orange-400' : 'bg-orange-100 text-orange-700';
                 if (log.action.includes('คืน')) badgeColor = isDarkMode ? 'bg-emerald-900/50 text-emerald-400' : 'bg-emerald-100 text-emerald-700';
 
                 return (
@@ -1416,7 +1645,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Settings Modal (เพิ่มแท็บเซ็ตอุปกรณ์) */}
+      {/* Settings Modal */}
       {showSettings && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden ${theme.cardBg}`}>
@@ -1639,14 +1868,25 @@ export default function App() {
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
               {items.find(i => i.id === showHistory)?.history?.length > 0 ? items.find(i => i.id === showHistory).history.slice().reverse().map((h, idx) => {
                 const isBorrow = h.type === 'borrow';
+                const isEvent = h.type === 'event';
                 return (
-                  <div key={idx} className={`p-5 rounded-xl border ${isBorrow ? (isDarkMode ? 'bg-purple-900/20 border-purple-800/50' : 'bg-purple-50 border-purple-100') : (isDarkMode ? 'bg-emerald-900/20 border-emerald-800/50' : 'bg-emerald-50 border-emerald-100')}`}>
+                  <div key={idx} className={`p-5 rounded-xl border ${isBorrow ? (isDarkMode ? 'bg-purple-900/20 border-purple-800/50' : 'bg-purple-50 border-purple-100') : isEvent ? (isDarkMode ? 'bg-orange-900/20 border-orange-800/50' : 'bg-orange-50 border-orange-100') : (isDarkMode ? 'bg-emerald-900/20 border-emerald-800/50' : 'bg-emerald-50 border-emerald-100')}`}>
                     <div className="flex items-center gap-3 mb-3">
-                      <span className={`text-sm font-black px-3 py-1.5 rounded-md ${isBorrow ? (isDarkMode ? 'bg-purple-900/50 text-purple-400' : 'bg-purple-200 text-purple-700') : (isDarkMode ? 'bg-emerald-900/50 text-emerald-400' : 'bg-emerald-200 text-emerald-700')}`}>{isBorrow ? 'ยืมออก' : 'รับคืน'}</span>
+                      <span className={`text-sm font-black px-3 py-1.5 rounded-md ${isBorrow ? (isDarkMode ? 'bg-purple-900/50 text-purple-400' : 'bg-purple-200 text-purple-700') : isEvent ? (isDarkMode ? 'bg-orange-900/50 text-orange-400' : 'bg-orange-200 text-orange-700') : (isDarkMode ? 'bg-emerald-900/50 text-emerald-400' : 'bg-emerald-200 text-emerald-700')}`}>{isBorrow ? 'ยืมออก' : isEvent ? 'ออกงาน' : 'รับคืน'}</span>
                       <span className={`text-base font-bold ${theme.textMuted}`}>{new Date(h.date).toLocaleString('th-TH')}</span>
                     </div>
                     {isBorrow ? (
-                      <div className={`text-lg ${theme.textMain}`}><p className="mb-1"><span className={`font-bold ${theme.textTitle}`}>ผู้ยืม:</span> {h.borrower}</p><p><span className={`font-bold ${theme.textTitle}`}>ผู้ให้ยืม (จนท.):</span> {h.staffOut || '-'}</p></div>
+                      <div className={`text-lg ${theme.textMain}`}>
+                        <p className="mb-1"><span className={`font-bold ${theme.textTitle}`}>ผู้ยืม:</span> {h.borrower}</p>
+                        <p><span className={`font-bold ${theme.textTitle}`}>ผู้ให้ยืม (จนท.):</span> {h.staffOut || '-'}</p>
+                        {h.note && <p className="mt-2 text-sm italic opacity-80"><span className={`font-bold ${theme.textTitle}`}>หมายเหตุ:</span> {h.note}</p>}
+                      </div>
+                    ) : isEvent ? (
+                      <div className={`text-lg ${theme.textMain}`}>
+                        <p className="mb-1"><span className={`font-bold ${theme.textTitle}`}>ชื่องาน:</span> {h.eventName}</p>
+                        <p><span className={`font-bold ${theme.textTitle}`}>ผู้นำออก (จนท.):</span> {h.staffOut || '-'}</p>
+                        {h.note && <p className="mt-2 text-sm italic opacity-80"><span className={`font-bold ${theme.textTitle}`}>หมายเหตุ:</span> {h.note}</p>}
+                      </div>
                     ) : (
                       <div className={`text-lg ${theme.textMain}`}><p><span className={`font-bold ${theme.textTitle}`}>ผู้รับคืน (จนท.):</span> {h.staffIn || '-'}</p></div>
                     )}
