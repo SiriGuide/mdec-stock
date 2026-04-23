@@ -197,6 +197,22 @@ export default function App() {
 
   const handleSave = async () => {
     if (!formData.name.trim()) return;
+
+    // 🛠️ ตรวจสอบว่ารหัส S.N. ซ้ำกับของเดิมในระบบหรือไม่
+    const snInput = formData.sn.trim();
+    if (snInput) {
+      const isDuplicate = items.some(item => 
+        item.sn && 
+        item.sn.trim().toLowerCase() === snInput.toLowerCase() && 
+        item.id !== formData.id // ไม่ต้องเช็คซ้ำกับตัวเองในกรณีที่กำลังแก้ไขข้อมูลเดิม
+      );
+      
+      if (isDuplicate) {
+        alert(`❌ ไม่สามารถบันทึกได้: รหัส S.N. "${snInput}" มีอยู่ในระบบแล้ว กรุณาตรวจสอบอีกครั้ง`);
+        return; // หยุดการบันทึกข้อมูลทันที
+      }
+    }
+
     let finalCategory = formData.category;
     if (formData.category === 'อื่นๆ' && formData.newCategory.trim()) {
       finalCategory = formData.newCategory.trim();
@@ -387,7 +403,7 @@ export default function App() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v12.0 Final</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v12.1 S.N. Check</span>
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
