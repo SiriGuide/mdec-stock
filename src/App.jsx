@@ -1078,9 +1078,21 @@ export default function App() {
 
             {/* 📋 ส่วนแสดง Checklist สำหรับยืม */}
             <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-              <h4 className={`font-bold mb-3 flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                <Icons.ClipboardList /> เช็คลิสต์ตรวจสอบก่อนปล่อยยืม ({packingChecklist.length}/{borrowTargetIds.length})
-              </h4>
+              <div className="flex justify-between items-center mb-3">
+                <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                  <Icons.ClipboardList /> เช็คลิสต์ก่อนปล่อยยืม ({packingChecklist.length}/{borrowTargetIds.length})
+                </h4>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (packingChecklist.length === borrowTargetIds.length) setPackingChecklist([]);
+                    else setPackingChecklist([...borrowTargetIds]);
+                  }}
+                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-purple-900/40 hover:bg-purple-800 text-purple-400' : 'bg-purple-100 hover:bg-purple-200 text-purple-700'}`}
+                >
+                  {packingChecklist.length === borrowTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                </button>
+              </div>
               <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
                 {borrowTargetIds.map(id => {
                   const item = items.find(i => i.id === id);
@@ -1146,9 +1158,21 @@ export default function App() {
 
             {/* 📋 ส่วนแสดง Checklist สำหรับคืน */}
             <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-              <h4 className={`font-bold mb-3 flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                <Icons.ClipboardList /> เช็คลิสต์ตรวจสอบของเข้ากล่อง ({returnChecklist.length}/{returnTargetIds.length})
-              </h4>
+              <div className="flex justify-between items-center mb-3">
+                <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                  <Icons.ClipboardList /> เช็คลิสต์ของเข้ากล่อง ({returnChecklist.length}/{returnTargetIds.length})
+                </h4>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (returnChecklist.length === returnTargetIds.length) setReturnChecklist([]);
+                    else setReturnChecklist([...returnTargetIds]);
+                  }}
+                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-emerald-900/40 hover:bg-emerald-800 text-emerald-400' : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700'}`}
+                >
+                  {returnChecklist.length === returnTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                </button>
+              </div>
               <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
                 {returnTargetIds.map(id => {
                   const item = items.find(i => i.id === id);
