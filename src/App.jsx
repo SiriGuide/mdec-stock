@@ -173,6 +173,11 @@ export default function App() {
     return new Date(item.expectedReturn).getTime() < todayMs;
   });
 
+  // 🛠️ คำนวณรายการที่สามารถใช้ Checkbox เลือกได้ (เฉพาะสถานะ พร้อมใช้งาน และ ถูกยืม)
+  const selectableItems = useMemo(() => {
+    return filteredItems.filter(i => i.status === 'available' || i.status === 'borrowed');
+  }, [filteredItems]);
+
   const stats = useMemo(() => {
     const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
     items.forEach(item => {
@@ -569,10 +574,12 @@ export default function App() {
                       type="checkbox" 
                       className="w-5 h-5 rounded cursor-pointer accent-blue-600" 
                       onChange={(e) => {
-                        if(e.target.checked) setSelectedItems(filteredItems.map(i => i.id));
+                        if(e.target.checked) setSelectedItems(selectableItems.map(i => i.id));
                         else setSelectedItems([]);
                       }}
-                      checked={selectedItems.length > 0 && selectedItems.length === filteredItems.length}
+                      disabled={selectableItems.length === 0}
+                      checked={selectedItems.length > 0 && selectedItems.length === selectableItems.length}
+                      title="เลือกรายการที่ทำได้ทั้งหมด"
                     />
                   </th>
                 )}
@@ -601,17 +608,21 @@ export default function App() {
                 return (
                   <tr key={`${item.id}_${index}`} className={`group transition-colors text-lg ${rowBg} ${rowBorder}`}>
                     
-                    {/* 🛠️ Checkbox เลือกอุปกรณ์ (คลิกแล้วเพิ่มลงตะกร้า) */}
+                    {/* 🛠️ Checkbox เลือกอุปกรณ์ (คลิกแล้วเพิ่มลงตะกร้า) - แสดงเฉพาะที่ยืมและคืนได้ */}
                     {isAdmin && (
                       <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        <input 
-                          type="checkbox" 
-                          className="w-5 h-5 rounded cursor-pointer accent-blue-600"
-                          checked={selectedItems.includes(item.id)}
-                          onChange={() => {
-                            setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
-                          }}
-                        />
+                        {(item.status === 'available' || item.status === 'borrowed') ? (
+                          <input 
+                            type="checkbox" 
+                            className="w-5 h-5 rounded cursor-pointer accent-blue-600"
+                            checked={selectedItems.includes(item.id)}
+                            onChange={() => {
+                              setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
+                            }}
+                          />
+                        ) : (
+                          <div className="w-5 h-5 mx-auto bg-slate-200 rounded-sm opacity-50 cursor-not-allowed" title="สถานะนี้ไม่สามารถทำรายการแบบกลุ่มได้"></div>
+                        )}
                       </td>
                     )}
 
