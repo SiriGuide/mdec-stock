@@ -19,6 +19,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const ADMIN_PIN = 'mdec8203';
 
+// 🛠️ เพิ่มไอคอนสำหรับปุ่มหมวดหมู่ฝ่ายต่างๆ
 const Icons = {
   Plus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
   Search: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
@@ -34,7 +35,13 @@ const Icons = {
   Unlock: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>,
   Lock: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
   Download: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>,
-  Folder: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+  Folder: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>,
+  ViewGrid: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
+  Camera: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+  VideoCamera: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>,
+  Speaker: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>,
+  Users: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>,
+  Signal: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
 };
 
 const STATUSES = [
@@ -44,12 +51,13 @@ const STATUSES = [
   { id: 'maintenance', label: 'ส่งซ่อม/ชำรุด', color: 'bg-rose-100 text-rose-700 border-rose-200' }
 ];
 
+// 🛠️ ผูกชื่อไอคอนเข้ากับแต่ละฝ่าย พร้อมระบุสีของไอคอน
 const DEPARTMENTS = [
-  { id: 'ภาพนิ่ง', label: 'ฝ่ายภาพนิ่ง', color: 'bg-blue-100 text-blue-700' },
-  { id: 'วิดีโอ', label: 'ฝ่ายวิดีโอ', color: 'bg-indigo-100 text-indigo-700' },
-  { id: 'เครื่องเสียง', label: 'ฝ่ายอุปกรณ์เครื่องเสียง', color: 'bg-cyan-100 text-cyan-700' },
-  { id: 'ห้องประชุม', label: 'ห้องประชุม', color: 'bg-sky-100 text-sky-700' },
-  { id: 'ob-live', label: 'OB-LIVE', color: 'bg-violet-100 text-violet-700' }
+  { id: 'ภาพนิ่ง', label: 'ฝ่ายภาพนิ่ง', color: 'bg-blue-100 text-blue-700', iconName: 'Camera', iconColor: 'text-blue-500' },
+  { id: 'วิดีโอ', label: 'ฝ่ายวิดีโอ', color: 'bg-indigo-100 text-indigo-700', iconName: 'VideoCamera', iconColor: 'text-indigo-500' },
+  { id: 'เครื่องเสียง', label: 'ฝ่ายอุปกรณ์เครื่องเสียง', color: 'bg-cyan-100 text-cyan-700', iconName: 'Speaker', iconColor: 'text-cyan-500' },
+  { id: 'ห้องประชุม', label: 'ห้องประชุม', color: 'bg-sky-100 text-sky-700', iconName: 'Users', iconColor: 'text-sky-500' },
+  { id: 'ob-live', label: 'OB-LIVE', color: 'bg-violet-100 text-violet-700', iconName: 'Signal', iconColor: 'text-violet-500' }
 ];
 
 export default function App() {
@@ -100,7 +108,6 @@ export default function App() {
         const unsubscribeItems = onSnapshot(collection(db, "mdec_stock", "shared_data", "items"), (snapshot) => {
           const loadedItems = [];
           snapshot.forEach((doc) => {
-            // 🛠️ FIX สำคัญ: เอา doc.id ของแท้จาก Firebase ไว้ทีหลังสุด เพื่อบังคับเขียนทับ id ปลอมที่อยู่ในข้อมูล
             loadedItems.push({ ...doc.data(), id: doc.id });
           });
           setItems(loadedItems);
@@ -198,18 +205,17 @@ export default function App() {
   const handleSave = async () => {
     if (!formData.name.trim()) return;
 
-    // 🛠️ ตรวจสอบว่ารหัส S.N. ซ้ำกับของเดิมในระบบหรือไม่
+    // ตรวจสอบ S.N. ซ้ำ
     const snInput = formData.sn.trim();
     if (snInput) {
       const isDuplicate = items.some(item => 
         item.sn && 
         item.sn.trim().toLowerCase() === snInput.toLowerCase() && 
-        item.id !== formData.id // ไม่ต้องเช็คซ้ำกับตัวเองในกรณีที่กำลังแก้ไขข้อมูลเดิม
+        item.id !== formData.id 
       );
-      
       if (isDuplicate) {
         alert(`❌ ไม่สามารถบันทึกได้: รหัส S.N. "${snInput}" มีอยู่ในระบบแล้ว กรุณาตรวจสอบอีกครั้ง`);
-        return; // หยุดการบันทึกข้อมูลทันที
+        return; 
       }
     }
 
@@ -238,8 +244,6 @@ export default function App() {
     };
     delete itemData.newCategory;
     delete itemData.newLocation;
-    
-    // 🛠️ FIX สำคัญ: ลบ key 'id' ทิ้ง ไม่ให้เซฟลงฐานข้อมูลเด็ดขาด (กันบั๊กรหัสชนกัน)
     delete itemData.id;
     
     if (formData.id) {
@@ -252,20 +256,15 @@ export default function App() {
   };
 
   const handleDeleteItem = async () => {
-    if (!itemToDelete || !itemToDelete.id) {
-       alert("ข้อผิดพลาด: ไม่พบรหัส ID ของอุปกรณ์ชิ้นนี้");
-       setItemToDelete(null);
-       return;
-    }
-    
-    try {
-      await deleteDoc(doc(db, "mdec_stock", "shared_data", "items", itemToDelete.id));
-      // alert("✅ ลบอุปกรณ์สำเร็จเรียบร้อย!"); // ปิดการแจ้งเตือนเพื่อความรวดเร็วในการใช้งาน
-      setItemToDelete(null);
-    } catch (error) {
-      console.error("Error deleting item:", error);
-      alert(`❌ ลบไม่ได้! สาเหตุ: ${error.message} (เช็คกฎ Firebase)`);
-      setItemToDelete(null);
+    if (itemToDelete && itemToDelete.id) {
+      try {
+        await deleteDoc(doc(db, "mdec_stock", "shared_data", "items", itemToDelete.id));
+        setItemToDelete(null);
+      } catch (error) {
+        console.error("Error deleting item:", error);
+        alert(`เกิดข้อผิดพลาดจากฐานข้อมูล: ${error.message}`);
+        setItemToDelete(null);
+      }
     }
   };
 
@@ -402,10 +401,10 @@ export default function App() {
           <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg"><Icons.Package /></div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              MDEC-STOCK-MANAGEMENT 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v100.15</span>
+              MDEC-Stock 
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v12.2 Icons</span>
             </h1>
-            <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดียทางการศึกษา</p>
+            <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
         </div>
         <div className="flex flex-wrap justify-center gap-3 w-full md:w-auto">
@@ -494,11 +493,19 @@ export default function App() {
           )}
         </div>
 
+        {/* 🛠️ ปรับปุ่มให้แสดงไอคอนพร้อมสีสัน */}
         <div className="flex gap-2 overflow-x-auto w-full pb-2 custom-scrollbar">
-          <button type="button" onClick={() => setFilterDept('all')} className={`whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all ${filterDept === 'all' ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>ทั้งหมด</button>
-          {DEPARTMENTS.map(d => (
-            <button type="button" key={d.id} onClick={() => setFilterDept(d.id)} className={`whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all ${filterDept === d.id ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>{d.label}</button>
-          ))}
+          <button type="button" onClick={() => setFilterDept('all')} className={`flex items-center justify-center gap-2 whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all ${filterDept === 'all' ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>
+            ทั้งหมด <Icons.ViewGrid className={filterDept === 'all' ? 'text-slate-300' : 'text-slate-400'} />
+          </button>
+          {DEPARTMENTS.map(d => {
+            const IconComponent = Icons[d.iconName];
+            return (
+              <button type="button" key={d.id} onClick={() => setFilterDept(d.id)} className={`flex items-center justify-center gap-2 whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all ${filterDept === d.id ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>
+                {d.label} {IconComponent && <IconComponent className={filterDept === d.id ? 'text-white' : d.iconColor} />}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -542,14 +549,15 @@ export default function App() {
                     
                     <td className="px-4 py-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button type="button" onClick={() => setShowHistory(item.id)} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white flex items-center justify-center transition-colors" title="ประวัติ"><Icons.History /></button>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setShowHistory(item.id); }} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white flex items-center justify-center transition-colors" title="ประวัติ"><Icons.History /></button>
                         
                         {isAdmin && (
                           <>
-                            {item.status === 'available' && <button type="button" onClick={() => { setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
-                            {isBorrowed && <button type="button" onClick={() => { setReturnData({ staff: '', newStaff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
-                            <button type="button" onClick={() => { setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
-                            <button type="button" onClick={() => setItemToDelete(item)} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
+                            {item.status === 'available' && <button type="button" onClick={(e) => { e.stopPropagation(); setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
+                            {isBorrowed && <button type="button" onClick={(e) => { e.stopPropagation(); setReturnData({ staff: '', newStaff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
+                            
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
                           </>
                         )}
                       </div>
