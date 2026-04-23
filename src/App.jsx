@@ -139,13 +139,11 @@ export default function App() {
   const [borrowTargetIds, setBorrowTargetIds] = useState([]);
   const [borrowData, setBorrowData] = useState({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '' });
   
-  // 📋 State สำหรับระบบเช็คลิสต์ตรวจนับของตอนยืม
   const [packingChecklist, setPackingChecklist] = useState([]);
   
   const [returnTargetIds, setReturnTargetIds] = useState([]);
   const [returnData, setReturnData] = useState({ staff: '', newStaff: '' });
 
-  // 📋 State สำหรับระบบเช็คลิสต์ตรวจนับของตอนคืน
   const [returnChecklist, setReturnChecklist] = useState([]);
   
   const [showHistory, setShowHistory] = useState(null);
@@ -496,6 +494,17 @@ export default function App() {
     setShowBundleModal(false);
   };
 
+  const handleSelectBundleToReturn = (bundle) => {
+    const borrowedIds = bundle.itemIds.filter(id => items.find(i => i.id === id)?.status === 'borrowed');
+    if (borrowedIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ในเซ็ตนี้ที่กำลังถูกยืม');
+    
+    const expanded = expandWithChildren(borrowedIds);
+    setReturnTargetIds(expanded);
+    setReturnChecklist([]);
+    setReturnData({ staff: '', newStaff: '' });
+    setShowBundleModal(false);
+  };
+
   const handleImportCSV = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -739,7 +748,7 @@ export default function App() {
           <div>
             <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textTitle}`}>
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v18.0 Checklist Only</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v18.0 Checklist Pro</span>
             </h1>
             <p className={`font-medium text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -867,7 +876,9 @@ export default function App() {
               <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, childIds: [] }); setShowForm(true); }} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}><Icons.Plus /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span></button>
               
               {(settingsOptions.bundles && settingsOptions.bundles.length > 0) && (
-                <button type="button" onClick={() => setShowBundleModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-purple-600 text-white hover:bg-purple-500' : 'bg-purple-600 text-white hover:bg-purple-700'}`}><Icons.Layers /> ยืมแบบเซ็ต</button>
+                <button type="button" onClick={() => setShowBundleModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-purple-600 text-white hover:bg-purple-500' : 'bg-purple-600 text-white hover:bg-purple-700'}`}>
+                  <Icons.Layers /> ยืม/คืนแบบเซ็ต
+                </button>
               )}
             </div>
           )}
@@ -984,12 +995,12 @@ export default function App() {
         </div>
       </div>
 
-      {/* 📦 Modal เลือกยืมแบบจัดเซ็ต (Bundles) */}
+      {/* 📦 Modal ยืม/คืนแบบจัดเซ็ต (Bundles) */}
       {showBundleModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
             <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
-              <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.Layers className="text-purple-500"/> เลือกเซ็ตอุปกรณ์เพื่อยืมออก</h3>
+              <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.Layers className="text-purple-500"/> ทำรายการแบบเซ็ตอุปกรณ์</h3>
               <button type="button" onClick={() => setShowBundleModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X /></button>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
@@ -997,25 +1008,42 @@ export default function App() {
                 <div className={`text-center py-10 font-bold text-xl ${theme.textMuted}`}>ยังไม่มีเซ็ตอุปกรณ์ (สร้างได้ที่ปุ่มตั้งค่า)</div>
               ) : (settingsOptions.bundles || []).map((bundle) => {
                 const totalInBundle = bundle.itemIds.length;
-                const readyInBundle = bundle.itemIds.filter(id => items.find(i => i.id === id)?.status === 'available').length;
-                const isFullReady = readyInBundle === totalInBundle && totalInBundle > 0;
+                const availableIds = bundle.itemIds.filter(id => items.find(i => i.id === id)?.status === 'available');
+                const borrowedIds = bundle.itemIds.filter(id => items.find(i => i.id === id)?.status === 'borrowed');
+                
+                const readyInBundle = availableIds.length;
+                const borrowedCount = borrowedIds.length;
 
                 return (
                   <div key={bundle.id} className={`p-5 rounded-2xl border flex flex-col gap-4 transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                       <div>
-                        <h4 className={`text-xl font-black mb-1 ${theme.textTitle}`}>{bundle.name}</h4>
-                        <p className={`text-base font-bold ${isFullReady ? 'text-emerald-500' : 'text-amber-500'}`}>
-                          พร้อมใช้งาน: {readyInBundle} / {totalInBundle} ชิ้น
-                        </p>
+                        <h4 className={`text-xl font-black mb-2 ${theme.textTitle}`}>{bundle.name}</h4>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1">
+                           <p className={`text-sm font-bold ${readyInBundle > 0 ? 'text-purple-500' : theme.textMuted}`}>
+                             ยืมได้: {readyInBundle}/{totalInBundle} ชิ้น
+                           </p>
+                           <p className={`text-sm font-bold ${borrowedCount > 0 ? 'text-emerald-500' : theme.textMuted}`}>
+                             รอรับคืน: {borrowedCount}/{totalInBundle} ชิ้น
+                           </p>
+                        </div>
                       </div>
-                      <button 
-                        onClick={() => handleSelectBundleToBorrow(bundle)}
-                        disabled={readyInBundle === 0}
-                        className={`px-6 py-3 font-bold rounded-xl transition-colors whitespace-nowrap ${readyInBundle === 0 ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20'}`}
-                      >
-                        กดยืมเซ็ตนี้
-                      </button>
+                      <div className="flex gap-2 w-full sm:w-auto">
+                        <button 
+                          onClick={() => handleSelectBundleToBorrow(bundle)}
+                          disabled={readyInBundle === 0}
+                          className={`flex-1 sm:flex-none justify-center px-4 py-3 font-bold rounded-xl transition-colors whitespace-nowrap flex items-center gap-2 ${readyInBundle === 0 ? (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20'}`}
+                        >
+                          <Icons.UserPlus className="w-5 h-5"/> ยืมเซ็ตนี้
+                        </button>
+                        <button 
+                          onClick={() => handleSelectBundleToReturn(bundle)}
+                          disabled={borrowedCount === 0}
+                          className={`flex-1 sm:flex-none justify-center px-4 py-3 font-bold rounded-xl transition-colors whitespace-nowrap flex items-center gap-2 ${borrowedCount === 0 ? (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'}`}
+                        >
+                          <Icons.CheckCircle className="w-5 h-5"/> รับคืนเซ็ตนี้
+                        </button>
+                      </div>
                     </div>
                     
                     <div className={`mt-2 p-3 rounded-xl border max-h-40 overflow-y-auto custom-scrollbar ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-white border-slate-200'}`}>
@@ -1042,7 +1070,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 📋 Borrow Modal (พร้อมระบบ Checklist) */}
+      {/* 📋 Borrow Modal (พร้อมระบบ Checklist และปุ่มเลือกทั้งหมด) */}
       {borrowTargetIds.length > 0 && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
@@ -1134,7 +1162,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 📋 Return Modal (พร้อมระบบ Checklist) */}
+      {/* 📋 Return Modal (พร้อมระบบ Checklist และปุ่มเลือกทั้งหมด) */}
       {returnTargetIds.length > 0 && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
@@ -1254,7 +1282,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Settings Modal */}
+      {/* Settings Modal (เพิ่มแท็บเซ็ตอุปกรณ์) */}
       {showSettings && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden ${theme.cardBg}`}>
@@ -1366,7 +1394,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Add/Edit Form (เรียกกลับคืนมา!) */}
+      {/* Add/Edit Form (แก้ไขให้ครบถ้วน) */}
       {showForm && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl ${theme.cardBg}`}>
@@ -1466,7 +1494,7 @@ export default function App() {
         </div>
       )}
 
-      {/* History Modal ของแต่ละอุปกรณ์ (เรียกกลับคืนมา!) */}
+      {/* History Modal ของแต่ละอุปกรณ์ (แก้ไขให้ครบถ้วน) */}
       {showHistory && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full max-h-[80vh] flex flex-col shadow-2xl ${theme.cardBg}`}>
@@ -1501,7 +1529,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Modal ยืนยันการลบอุปกรณ์ในตารางหลัก (เรียกกลับคืนมา!) */}
+      {/* Modal ยืนยันการลบอุปกรณ์ในตารางหลัก (แก้ไขให้ครบถ้วน) */}
       {itemToDelete && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
           <div className={`rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl ${theme.cardBg}`}>
