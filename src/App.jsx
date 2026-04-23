@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "firebase/firestore";
 
-// ⚠️ นำค่า Firebase Config ของคุณมาใส่ตรงนี้ ระวังอย่าให้เครื่องหมาย " และ , หายไปนะครับ
+// ⚠️ นำค่า Firebase Config ของคุณมาใส่ตรงนี้
 const myFirebaseConfig = {
   apiKey: "AIzaSyA0IFm6icc-QG4ZC2WiuhRa2YquISGH9FM",
   authDomain: "mdec-stock-app.firebaseapp.com",
@@ -62,6 +62,8 @@ export default function App() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState('all');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
 
   const [isAdmin, setIsAdmin] = useState(() => {
     try { return localStorage.getItem('mdec_admin') === 'true'; } 
@@ -97,7 +99,10 @@ export default function App() {
       if (user) {
         const unsubscribeItems = onSnapshot(collection(db, "mdec_stock", "shared_data", "items"), (snapshot) => {
           const loadedItems = [];
-          snapshot.forEach((doc) => loadedItems.push({ id: doc.id, ...doc.data() }));
+          snapshot.forEach((doc) => {
+            // 🛠️ FIX สำคัญ: เอา doc.id ของแท้จาก Firebase ไว้ทีหลังสุด เพื่อบังคับเขียนทับ id ปลอมที่อยู่ในข้อมูล
+            loadedItems.push({ ...doc.data(), id: doc.id });
+          });
           setItems(loadedItems);
           setFirebaseError(false);
         }, (error) => {
@@ -133,7 +138,10 @@ export default function App() {
                           (item.location && String(item.location).toLowerCase().includes(searchLower));
                           
       const matchDept = filterDept === 'all' || String(item.department) === String(filterDept);
-      return matchSearch && matchDept;
+      const matchCategory = filterCategory === 'all' || String(item.category) === String(filterCategory);
+      const matchStatus = filterStatus === 'all' || String(item.status) === String(filterStatus);
+      
+      return matchSearch && matchDept && matchCategory && matchStatus;
     });
 
     result.sort((a, b) => {
@@ -147,7 +155,7 @@ export default function App() {
     });
 
     return result;
-  }, [items, searchTerm, filterDept]);
+  }, [items, searchTerm, filterDept, filterCategory, filterStatus]);
 
   const stats = useMemo(() => {
     const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
@@ -215,6 +223,9 @@ export default function App() {
     delete itemData.newCategory;
     delete itemData.newLocation;
     
+    // 🛠️ FIX สำคัญ: ลบ key 'id' ทิ้ง ไม่ให้เซฟลงฐานข้อมูลเด็ดขาด (กันบั๊กรหัสชนกัน)
+    delete itemData.id;
+    
     if (formData.id) {
       await setDoc(doc(db, "mdec_stock", "shared_data", "items", formData.id), itemData, { merge: true });
     } else {
@@ -224,7 +235,6 @@ export default function App() {
     setShowForm(false);
   };
 
-  // 🛠️ โหมด Debug: ลบแบบมีแจ้งเตือนชัดเจน 
   const handleDeleteItem = async () => {
     if (!itemToDelete || !itemToDelete.id) {
        alert("ข้อผิดพลาด: ไม่พบรหัส ID ของอุปกรณ์ชิ้นนี้");
@@ -233,9 +243,8 @@ export default function App() {
     }
     
     try {
-      // เอาคอมเมนต์ออกเพื่อให้ลบได้จริง
       await deleteDoc(doc(db, "mdec_stock", "shared_data", "items", itemToDelete.id));
-      alert("✅ ลบอุปกรณ์สำเร็จเรียบร้อย!");
+      // alert("✅ ลบอุปกรณ์สำเร็จเรียบร้อย!"); // ปิดการแจ้งเตือนเพื่อความรวดเร็วในการใช้งาน
       setItemToDelete(null);
     } catch (error) {
       console.error("Error deleting item:", error);
@@ -378,7 +387,7 @@ export default function App() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v11.0 Debug Mode</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v12.0 Final</span>
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -453,6 +462,17 @@ export default function App() {
             <input type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           
+          <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+            <select className="flex-1 px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+              <option value="all">หมวดหมู่ทั้งหมด</option>
+              {settingsOptions.categories.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select className="flex-1 px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+              <option value="all">สถานะทั้งหมด</option>
+              {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
+          </div>
+
           {isAdmin && (
             <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: filterDept === 'all' ? 'ภาพนิ่ง' : filterDept, category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1 }); setShowForm(true); }} className="w-full xl:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap"><Icons.Plus /> เพิ่มอุปกรณ์</button>
           )}
@@ -580,10 +600,10 @@ export default function App() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
             <h3 className="text-2xl font-black text-slate-800 mb-6 text-center">เข้าสู่ระบบจัดการ</h3>
-            <input type="password" autoFocus className="w-full px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl font-bold text-center text-3xl tracking-widest focus:ring-2 focus:ring-blue-500 outline-none mb-6" maxLength={8} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
+            <input type="password" autoFocus className="w-full px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl font-bold text-center text-3xl tracking-widest focus:ring-2 focus:ring-blue-500 outline-none mb-6" maxLength={8} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { if (pin === ADMIN_PIN) { setIsAdmin(true); try { localStorage.setItem('mdec_admin', 'true'); } catch(err){} setShowLogin(false); setPin(''); } else { alert('รหัสผ่านไม่ถูกต้อง'); setPin(''); } } }} />
             <div className="flex gap-3">
               <button type="button" onClick={() => setShowLogin(false)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
-              <button type="button" onClick={handleLogin} className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-xl text-lg">เข้าสู่ระบบ</button>
+              <button type="button" onClick={() => { if (pin === ADMIN_PIN) { setIsAdmin(true); try { localStorage.setItem('mdec_admin', 'true'); } catch(err){} setShowLogin(false); setPin(''); } else { alert('รหัสผ่านไม่ถูกต้อง'); setPin(''); } }} className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-xl text-lg">เข้าสู่ระบบ</button>
             </div>
           </div>
         </div>
