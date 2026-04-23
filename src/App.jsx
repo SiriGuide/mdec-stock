@@ -66,7 +66,10 @@ export default function App() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
 
-  const [isAdmin, setIsAdmin] = useState(false);
+  // ให้จำสถานะล็อกอินแอดมินไว้ในเครื่อง (localStorage) รีเฟรชก็ไม่หาย
+  const [isAdmin, setIsAdmin] = useState(() => {
+    return localStorage.getItem('mdec_admin') === 'true';
+  });
   const [showLogin, setShowLogin] = useState(false);
   const [pin, setPin] = useState('');
   const [firebaseError, setFirebaseError] = useState(false);
@@ -160,14 +163,10 @@ export default function App() {
     return result;
   }, [items, searchTerm, filterDept, filterCategory, filterStatus, sortConfig]);
 
-  // ดึงข้อมูลเฉพาะฝ่ายที่เลือก เพื่อเอาไปคำนวณในกล่องสรุปยอด
-  const deptItems = useMemo(() => {
-    return items.filter(item => filterDept === 'all' || item.department === filterDept);
-  }, [items, filterDept]);
-
+  // กล่องบนสุด โชว์ "ยอดรวมทั้งหมดของศูนย์เสมอ" (ใช้ items แทน deptItems)
   const stats = useMemo(() => {
     const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
-    deptItems.forEach(item => {
+    items.forEach(item => {
       const qty = Number(item.quantity) || 1;
       s.all += qty;
       if (item.status === 'available') s.available += qty;
@@ -176,26 +175,36 @@ export default function App() {
       if (item.status === 'maintenance') s.maintenance += qty;
     });
     return s;
-  }, [deptItems]);
+  }, [items]);
 
+  // เตรียมข้อมูลเฉพาะฝ่ายที่เลือก เพื่อเอาไปทำกล่องแยกหมวดหมู่ย่อย
+  const deptItems = useMemo(() => {
+    return items.filter(item => filterDept === 'all' || item.department === filterDept);
+  }, [items, filterDept]);
+
+  // กล่องหมวดหมู่เล็กๆ จะ "โชว์เฉพาะหมวดหมู่ที่มีของอยู่จริงในฝ่ายนั้น" (ซ่อนกล่องที่มีค่า 0)
   const categoryStats = useMemo(() => {
     const catData = {};
+    
+    // ตั้งค่ากล่องเริ่มต้นเตรียมไว้
     settingsOptions.categories.filter(c => c !== 'อื่นๆ').forEach(cat => {
       catData[cat] = { total: 0, available: 0 };
     });
 
     deptItems.forEach(item => {
       const qty = Number(item.quantity) || 1;
-      const cat = item.category;
-      if (cat && catData[cat]) {
-        catData[cat].total += qty;
-        if (item.status === 'available') {
-          catData[cat].available += qty;
-        }
+      const cat = item.category || 'อื่นๆ';
+      if (!catData[cat]) catData[cat] = { total: 0, available: 0 };
+      catData[cat].total += qty;
+      if (item.status === 'available') {
+        catData[cat].available += qty;
       }
     });
 
-    return Object.entries(catData).map(([label, data]) => ({ label, data }));
+    // กรองเอาเฉพาะหมวดหมู่ที่มีของ > 0 เท่านั้นมาแสดง
+    return Object.entries(catData)
+      .filter(([_, data]) => data.total > 0)
+      .map(([label, data]) => ({ label, data }));
   }, [deptItems, settingsOptions.categories]);
 
   const handleSort = (key) => {
@@ -364,6 +373,23 @@ export default function App() {
     link.click();
   };
 
+  const handleLogin = () => {
+    if (pin === ADMIN_PIN) { 
+      setIsAdmin(true); 
+      localStorage.setItem('mdec_admin', 'true'); // บันทึกสถานะล็อกอินไว้ในเครื่อง
+      setShowLogin(false); 
+      setPin(''); 
+    } else { 
+      alert('รหัสผ่านไม่ถูกต้อง'); 
+      setPin(''); 
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAdmin(false);
+    localStorage.removeItem('mdec_admin'); // ล้างข้อมูลล็อกอินเมื่อกดออก
+  };
+
   const SortIcon = ({ columnKey }) => {
     if (sortConfig.key !== columnKey) return <span className="text-slate-300 ml-1 opacity-0 group-hover:opacity-100">↕</span>;
     return <span className="text-blue-600 ml-1">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
@@ -414,7 +440,7 @@ export default function App() {
           )}
 
           {isAdmin ? (
-            <button onClick={() => setIsAdmin(false)} className="flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold rounded-xl transition-colors flex"><Icons.Unlock /><span className="hidden sm:inline">ออกจากระบบ</span></button>
+            <button onClick={handleLogout} className="flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold rounded-xl transition-colors flex"><Icons.Unlock /><span className="hidden sm:inline">ออกจากระบบ</span></button>
           ) : (
             <button onClick={() => setShowLogin(true)} className="flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 bg-slate-800 text-white hover:bg-slate-700 font-bold rounded-xl transition-colors shadow-md flex"><Icons.Lock /><span className="hidden sm:inline">เข้าสู่ระบบจัดการ</span></button>
           )}
@@ -586,8 +612,9 @@ export default function App() {
         </div>
       )}
 
-      {deleteSettingConfirm !== null && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+      {/* Delete Confirm */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
             <div className="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.Trash /></div>
             <h3 className="text-2xl font-black text-slate-800 mb-2">ยืนยันการลบ?</h3>
@@ -605,10 +632,10 @@ export default function App() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
             <h3 className="text-2xl font-black text-slate-800 mb-6 text-center">เข้าสู่ระบบจัดการ</h3>
-            <input type="password" autoFocus className="w-full px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl font-bold text-center text-3xl tracking-widest focus:ring-2 focus:ring-blue-500 outline-none mb-6" maxLength={8} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && pin === ADMIN_PIN) { setIsAdmin(true); setShowLogin(false); setPin(''); } }} />
+            <input type="password" autoFocus className="w-full px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl font-bold text-center text-3xl tracking-widest focus:ring-2 focus:ring-blue-500 outline-none mb-6" maxLength={8} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
             <div className="flex gap-3">
               <button onClick={() => setShowLogin(false)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
-              <button onClick={() => { if (pin === ADMIN_PIN) { setIsAdmin(true); setShowLogin(false); setPin(''); } else { alert('รหัสผ่านไม่ถูกต้อง'); setPin(''); } }} className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-xl text-lg">เข้าสู่ระบบ</button>
+              <button onClick={handleLogin} className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-xl text-lg">เข้าสู่ระบบ</button>
             </div>
           </div>
         </div>
