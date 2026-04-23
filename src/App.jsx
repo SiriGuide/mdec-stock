@@ -66,7 +66,6 @@ export default function App() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
 
-  // ให้จำสถานะล็อกอินแอดมินไว้ในเครื่อง (localStorage) รีเฟรชก็ไม่หาย
   const [isAdmin, setIsAdmin] = useState(() => {
     return localStorage.getItem('mdec_admin') === 'true';
   });
@@ -139,7 +138,6 @@ export default function App() {
       return matchSearch && matchDept && matchCategory && matchStatus;
     });
 
-    // 🛠️ อัปเกรดสูตรจัดเรียง: รองรับภาษาไทยได้สมบูรณ์แบบ
     result.sort((a, b) => {
       let aValue = a[sortConfig.key];
       let bValue = b[sortConfig.key];
@@ -163,7 +161,6 @@ export default function App() {
         return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
       }
 
-      // ใช้ localeCompare สำหรับภาษาไทย
       return sortConfig.direction === 'asc' 
         ? aValue.toString().localeCompare(bValue.toString(), 'th') 
         : bValue.toString().localeCompare(aValue.toString(), 'th');
@@ -172,7 +169,6 @@ export default function App() {
     return result;
   }, [items, searchTerm, filterDept, filterCategory, filterStatus, sortConfig]);
 
-  // กล่องบนสุด โชว์ "ยอดรวมทั้งหมดของศูนย์เสมอ"
   const stats = useMemo(() => {
     const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
     items.forEach(item => {
@@ -186,12 +182,10 @@ export default function App() {
     return s;
   }, [items]);
 
-  // เตรียมข้อมูลเฉพาะฝ่ายที่เลือก เพื่อเอาไปทำกล่องแยกหมวดหมู่ย่อย
   const deptItems = useMemo(() => {
     return items.filter(item => filterDept === 'all' || item.department === filterDept);
   }, [items, filterDept]);
 
-  // กล่องหมวดหมู่เล็กๆ จะ "โชว์เฉพาะหมวดหมู่ที่มีของอยู่จริงในฝ่ายนั้น"
   const categoryStats = useMemo(() => {
     const catData = {};
     settingsOptions.categories.filter(c => c !== 'อื่นๆ').forEach(cat => {
@@ -251,7 +245,6 @@ export default function App() {
     if (formData.id) {
       await setDoc(doc(db, "mdec_stock", "shared_data", "items", formData.id), itemData, { merge: true });
     } else {
-      // 🛠️ อัปเกรดสูตรสร้าง ID: ป้องกัน ID ซ้ำกัน 100% แม้จะกดเซฟเร็วแค่ไหน
       const newId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       await setDoc(doc(db, "mdec_stock", "shared_data", "items", newId), { ...itemData, history: [] });
     }
@@ -392,7 +385,7 @@ export default function App() {
 
   const Th = ({ label, columnKey, className }) => (
     <th 
-      className={`px-4 py-4 text-left font-bold text-slate-700 cursor-pointer hover:bg-slate-300 transition-colors group select-none ${className}`} 
+      className={`px-4 py-4 text-left font-bold text-slate-700 cursor-pointer hover:bg-slate-300 transition-colors group select-none ${className || ''}`} 
       onClick={() => handleSort(columnKey)}
     >
       <div className="flex items-center">
@@ -420,7 +413,7 @@ export default function App() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v2.2</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v2.4</span>
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -525,8 +518,7 @@ export default function App() {
             <tr className="bg-slate-200 border-b border-slate-300 text-lg">
               <Th label="ชื่ออุปกรณ์ / รหัส" columnKey="name" />
               <Th label="หมวดหมู่" columnKey="category" />
-              {/* 🛠️ ซ่อนคอลัมน์ ฝ่าย ถ้าไม่ได้เลือก 'ทั้งหมด' */}
-              {filterDept === 'all' && <Th label="ฝ่ายที่รับผิดชอบ" columnKey="department" />}
+              <Th label="ฝ่ายที่รับผิดชอบ" columnKey="department" className={filterDept === 'all' ? '' : 'hidden'} />
               <Th label="สถานที่ / ห้อง" columnKey="location" />
               <Th label="สถานะ" columnKey="status" />
               <th className="px-4 py-4 text-center font-bold text-slate-700">ประวัติ / จัดการ</th>
@@ -534,14 +526,14 @@ export default function App() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filteredItems.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400 font-bold text-xl">ไม่พบข้อมูลที่ค้นหา</td></tr>
-            ) : filteredItems.map((item) => {
+              <tr><td colSpan={filterDept === 'all' ? 6 : 5} className="px-4 py-12 text-center text-slate-400 font-bold text-xl">ไม่พบข้อมูลที่ค้นหา</td></tr>
+            ) : filteredItems.map((item, index) => {
               const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
               const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
               const isBorrowed = item.status === 'borrowed';
               const qty = Number(item.quantity) || 1;
               return (
-                <tr key={item.id} className="hover:bg-slate-50 transition-colors text-lg">
+                <tr key={`${item.id}-${index}`} className="hover:bg-slate-50 transition-colors text-lg">
                   <td className="px-4 py-4">
                     <div className="font-bold text-slate-800 text-xl flex items-center gap-2">
                       {item.name} 
@@ -552,10 +544,9 @@ export default function App() {
                   </td>
                   <td className="px-4 py-4 font-bold text-slate-600">{item.category || '-'}</td>
                   
-                  {/* 🛠️ ซ่อนข้อมูล ฝ่าย ถ้าไม่ได้เลือก 'ทั้งหมด' */}
-                  {filterDept === 'all' && (
-                    <td className="px-4 py-4"><span className={`inline-block px-3 py-1.5 rounded-lg text-base font-bold ${deptInfo.color}`}>{deptInfo.label}</span></td>
-                  )}
+                  <td className={`px-4 py-4 ${filterDept === 'all' ? '' : 'hidden'}`}>
+                    <span className={`inline-block px-3 py-1.5 rounded-lg text-base font-bold ${deptInfo.color}`}>{deptInfo.label}</span>
+                  </td>
 
                   <td className="px-4 py-4 font-bold text-slate-600">{item.location || '-'}</td>
                   <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-base font-bold border ${statusInfo.color}`}><div className={`w-2 h-2 rounded-full currentColor`}></div>{statusInfo.label}</span></td>
