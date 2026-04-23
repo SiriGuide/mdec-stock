@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "firebase/firestore";
 
-// ⚠️ นำค่า Firebase Config ของคุณมาใส่ตรงนี้ (แทนที่คำว่า "ใส่_..._ของคุณที่นี่")
+// ⚠️ นำค่า Firebase Config ของคุณมาใส่ตรงนี้
 const myFirebaseConfig = {
   apiKey: "AIzaSyA0IFm6icc-QG4ZC2WiuhRa2YquISGH9FM",
   authDomain: "mdec-stock-app.firebaseapp.com",
@@ -128,12 +128,16 @@ export default function App() {
 
   const filteredItems = useMemo(() => {
     let result = items.filter(item => {
-      const matchSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (item.sn && item.sn.toLowerCase().includes(searchTerm.toLowerCase())) || 
-                          (item.location && item.location.toLowerCase().includes(searchTerm.toLowerCase()));
+      const searchLower = searchTerm.trim().toLowerCase();
+      const matchSearch = searchLower === '' || 
+                          (item.name && item.name.toLowerCase().includes(searchLower)) || 
+                          (item.sn && item.sn.toLowerCase().includes(searchLower)) || 
+                          (item.location && item.location.toLowerCase().includes(searchLower));
+                          
       const matchDept = filterDept === 'all' || item.department === filterDept;
       const matchCategory = filterCategory === 'all' || item.category === filterCategory;
       const matchStatus = filterStatus === 'all' || item.status === filterStatus;
+      
       return matchSearch && matchDept && matchCategory && matchStatus;
     });
 
@@ -160,9 +164,11 @@ export default function App() {
         return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
       }
 
+      const safeA = aValue.toString();
+      const safeB = bValue.toString();
       return sortConfig.direction === 'asc' 
-        ? aValue.toString().localeCompare(bValue.toString(), 'th') 
-        : bValue.toString().localeCompare(aValue.toString(), 'th');
+        ? safeA.localeCompare(safeB, 'th') 
+        : safeB.localeCompare(safeA, 'th');
     });
 
     return result;
@@ -412,7 +418,7 @@ export default function App() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v3.2</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v4.0 Final</span>
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -498,14 +504,14 @@ export default function App() {
           </div>
 
           {isAdmin && (
-            <button onClick={() => { setFormData({ id: '', name: '', sn: '', department: filterDept === 'all' ? 'ภาพนิ่ง' : filterDept, category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1 }); setShowForm(true); }} className="w-full xl:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap"><Icons.Plus /> เพิ่มอุปกรณ์</button>
+            <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: filterDept === 'all' ? 'ภาพนิ่ง' : filterDept, category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1 }); setShowForm(true); }} className="w-full xl:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap"><Icons.Plus /> เพิ่มอุปกรณ์</button>
           )}
         </div>
 
         <div className="flex gap-2 overflow-x-auto w-full pb-2 custom-scrollbar">
-          <button onClick={() => setFilterDept('all')} className={`whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all ${filterDept === 'all' ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>ทั้งหมด</button>
+          <button type="button" onClick={() => setFilterDept('all')} className={`whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all ${filterDept === 'all' ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>ทั้งหมด</button>
           {DEPARTMENTS.map(d => (
-            <button key={d.id} onClick={() => setFilterDept(d.id)} className={`whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all ${filterDept === d.id ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>{d.label}</button>
+            <button type="button" key={d.id} onClick={() => setFilterDept(d.id)} className={`whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all ${filterDept === d.id ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-300'}`}>{d.label}</button>
           ))}
         </div>
       </div>
@@ -517,7 +523,8 @@ export default function App() {
             <tr className="bg-slate-200 border-b border-slate-300 text-lg">
               <Th label="ชื่ออุปกรณ์ / รหัส" columnKey="name" />
               <Th label="หมวดหมู่" columnKey="category" />
-              {filterDept === 'all' && <Th label="ฝ่ายที่รับผิดชอบ" columnKey="department" />}
+              {/* 🛠️ เปลี่ยนกลับมาแสดง "ฝ่ายที่รับผิดชอบ" ถาวร เพื่อป้องกันตารางชิฟต์และแสดงข้อมูลเบี้ยว */}
+              <Th label="ฝ่ายที่รับผิดชอบ" columnKey="department" />
               <Th label="สถานที่ / ห้อง" columnKey="location" />
               <Th label="สถานะ" columnKey="status" />
               <th className="px-4 py-4 text-center font-bold text-slate-700">ประวัติ / จัดการ</th>
@@ -525,7 +532,7 @@ export default function App() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filteredItems.length === 0 ? (
-              <tr><td colSpan={filterDept === 'all' ? 6 : 5} className="px-4 py-12 text-center text-slate-400 font-bold text-xl">ไม่พบข้อมูลที่ค้นหา</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400 font-bold text-xl">ไม่พบข้อมูลที่ค้นหา</td></tr>
             ) : filteredItems.map((item) => {
               const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
               const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
@@ -544,24 +551,23 @@ export default function App() {
                   </td>
                   <td className="px-4 py-4 font-bold text-slate-600">{item.category || '-'}</td>
                   
-                  {filterDept === 'all' && (
-                    <td className="px-4 py-4">
-                      <span className={`inline-block px-3 py-1.5 rounded-lg text-base font-bold ${deptInfo.color}`}>{deptInfo.label}</span>
-                    </td>
-                  )}
+                  {/* 🛠️ แสดงฝ่ายตลอดเวลาเพื่อรักษา Layout ตารางให้ตรงกัน */}
+                  <td className="px-4 py-4">
+                    <span className={`inline-block px-3 py-1.5 rounded-lg text-base font-bold ${deptInfo.color}`}>{deptInfo.label}</span>
+                  </td>
 
                   <td className="px-4 py-4 font-bold text-slate-600">{item.location || '-'}</td>
                   <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-base font-bold border ${statusInfo.color}`}><div className={`w-2 h-2 rounded-full currentColor`}></div>{statusInfo.label}</span></td>
                   <td className="px-4 py-4">
                     <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => setShowHistory(item.id)} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white flex items-center justify-center transition-colors" title="ประวัติ"><Icons.History /></button>
+                      <button type="button" onClick={() => setShowHistory(item.id)} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white flex items-center justify-center transition-colors" title="ประวัติ"><Icons.History /></button>
                       
                       {isAdmin && (
                         <>
-                          {item.status === 'available' && <button onClick={() => { setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
-                          {isBorrowed && <button onClick={() => { setReturnData({ staff: '', newStaff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
-                          <button onClick={() => { setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
-                          <button onClick={() => setShowDeleteConfirm(item.id)} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
+                          {item.status === 'available' && <button type="button" onClick={() => { setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
+                          {isBorrowed && <button type="button" onClick={() => { setReturnData({ staff: '', newStaff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
+                          <button type="button" onClick={() => { setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
+                          <button type="button" onClick={() => setShowDeleteConfirm(item.id)} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
                         </>
                       )}
                     </div>
@@ -578,30 +584,30 @@ export default function App() {
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-[9990]">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="flex border-b border-slate-100 overflow-x-auto custom-scrollbar">
-              <button onClick={() => {setSettingsTab('categories'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg ${settingsTab === 'categories' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>หมวดหมู่</button>
-              <button onClick={() => {setSettingsTab('locations'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg ${settingsTab === 'locations' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>สถานที่</button>
-              <button onClick={() => {setSettingsTab('staff'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg ${settingsTab === 'staff' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>เจ้าหน้าที่</button>
+              <button type="button" onClick={() => {setSettingsTab('categories'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg ${settingsTab === 'categories' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>หมวดหมู่</button>
+              <button type="button" onClick={() => {setSettingsTab('locations'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg ${settingsTab === 'locations' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>สถานที่</button>
+              <button type="button" onClick={() => {setSettingsTab('staff'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg ${settingsTab === 'staff' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>เจ้าหน้าที่</button>
             </div>
             <div className="p-6">
               <div className="flex gap-2 mb-6">
                 <input type="text" className="flex-1 px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 outline-none text-lg" placeholder={`พิมพ์${settingsTab === 'categories' ? 'หมวดหมู่' : settingsTab === 'locations' ? 'สถานที่' : 'ชื่อเจ้าหน้าที่'}ใหม่...`} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} />
-                <button onClick={handleSaveSetting} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-lg">{editingSettingItem !== null ? 'บันทึกแก้ไข' : 'เพิ่ม'}</button>
-                {editingSettingItem !== null && <button onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className="px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl"><Icons.X /></button>}
+                <button type="button" onClick={handleSaveSetting} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-lg">{editingSettingItem !== null ? 'บันทึกแก้ไข' : 'เพิ่ม'}</button>
+                {editingSettingItem !== null && <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className="px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl"><Icons.X /></button>}
               </div>
               <div className="max-h-60 overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2">
                 {(settingsOptions[settingsTab] || []).filter(c => c !== 'อื่นๆ').map((item, index) => (
                   <div key={index} className="flex justify-between items-center p-4 bg-slate-50 border border-slate-100 rounded-xl group hover:bg-slate-100 transition-colors">
                     <span className="font-bold text-slate-700 text-lg">{item}</span>
                     <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors"><Icons.Edit /></button>
-                      <button onClick={() => setDeleteSettingConfirm(item)} className="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors"><Icons.Trash /></button>
+                      <button type="button" onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors"><Icons.Edit /></button>
+                      <button type="button" onClick={() => setDeleteSettingConfirm(item)} className="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors"><Icons.Trash /></button>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
             <div className="p-4 bg-slate-50 border-t border-slate-100">
-              <button onClick={() => { setShowSettings(false); setEditingSettingItem(null); setNewSettingItem(''); }} className="w-full py-4 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-lg">ปิดหน้าต่าง</button>
+              <button type="button" onClick={() => { setShowSettings(false); setEditingSettingItem(null); setNewSettingItem(''); }} className="w-full py-4 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-lg">ปิดหน้าต่าง</button>
             </div>
           </div>
         </div>
@@ -615,8 +621,8 @@ export default function App() {
             <h3 className="text-2xl font-black text-slate-800 mb-2">ยืนยันการลบ?</h3>
             <p className="text-slate-500 mb-8 text-lg">รายการ <span className="font-bold text-rose-600">"{deleteSettingConfirm}"</span> จะหายไปจากตัวเลือก</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteSettingConfirm(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
-              <button onClick={handleDeleteSetting} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-200 text-lg">ลบรายการ</button>
+              <button type="button" onClick={() => setDeleteSettingConfirm(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
+              <button type="button" onClick={handleDeleteSetting} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-200 text-lg">ลบรายการ</button>
             </div>
           </div>
         </div>
@@ -629,8 +635,8 @@ export default function App() {
             <h3 className="text-2xl font-black text-slate-800 mb-6 text-center">เข้าสู่ระบบจัดการ</h3>
             <input type="password" autoFocus className="w-full px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl font-bold text-center text-3xl tracking-widest focus:ring-2 focus:ring-blue-500 outline-none mb-6" maxLength={8} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
             <div className="flex gap-3">
-              <button onClick={() => setShowLogin(false)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
-              <button onClick={handleLogin} className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-xl text-lg">เข้าสู่ระบบ</button>
+              <button type="button" onClick={() => setShowLogin(false)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
+              <button type="button" onClick={handleLogin} className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-xl text-lg">เข้าสู่ระบบ</button>
             </div>
           </div>
         </div>
@@ -642,7 +648,7 @@ export default function App() {
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-black text-slate-800">{formData.id ? 'แก้ไขข้อมูล' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
-              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600 p-2"><Icons.X /></button>
+              <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600 p-2"><Icons.X /></button>
             </div>
             <div className="space-y-5">
               <div>
@@ -701,8 +707,8 @@ export default function App() {
               </div>
             </div>
             <div className="flex gap-3 mt-8">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition-colors text-lg">ยกเลิก</button>
-              <button onClick={handleSave} className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-colors text-lg">บันทึกข้อมูล</button>
+              <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition-colors text-lg">ยกเลิก</button>
+              <button type="button" onClick={handleSave} className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-colors text-lg">บันทึกข้อมูล</button>
             </div>
           </div>
         </div>
@@ -737,8 +743,8 @@ export default function App() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setShowBorrow(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
-              <button onClick={handleBorrow} disabled={!borrowData.borrower || !borrowData.staff} className="flex-1 py-4 bg-purple-600 disabled:bg-purple-300 text-white font-bold rounded-xl shadow-lg shadow-purple-200 text-lg transition-colors">ยืนยัน</button>
+              <button type="button" onClick={() => setShowBorrow(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
+              <button type="button" onClick={handleBorrow} disabled={!borrowData.borrower || !borrowData.staff} className="flex-1 py-4 bg-purple-600 disabled:bg-purple-300 text-white font-bold rounded-xl shadow-lg shadow-purple-200 text-lg transition-colors">ยืนยัน</button>
             </div>
           </div>
         </div>
@@ -765,8 +771,8 @@ export default function App() {
               )}
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setShowReturn(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
-              <button onClick={handleReturn} disabled={!returnData.staff} className="flex-1 py-4 bg-emerald-600 disabled:bg-emerald-300 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 text-lg transition-colors">รับคืน</button>
+              <button type="button" onClick={() => setShowReturn(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
+              <button type="button" onClick={handleReturn} disabled={!returnData.staff} className="flex-1 py-4 bg-emerald-600 disabled:bg-emerald-300 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 text-lg transition-colors">รับคืน</button>
             </div>
           </div>
         </div>
@@ -778,7 +784,7 @@ export default function App() {
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full max-h-[80vh] flex flex-col shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-black text-slate-800">ประวัติการยืม-คืน</h3>
-              <button onClick={() => setShowHistory(null)} className="text-slate-400 hover:text-slate-600 p-2"><Icons.X /></button>
+              <button type="button" onClick={() => setShowHistory(null)} className="text-slate-400 hover:text-slate-600 p-2"><Icons.X /></button>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
               {items.find(i => i.id === showHistory)?.history?.length > 0 ? items.find(i => i.id === showHistory).history.slice().reverse().map((h, idx) => (
@@ -798,7 +804,7 @@ export default function App() {
               )}
             </div>
             <div className="mt-6 pt-4 border-t border-slate-100">
-              <button onClick={() => setShowHistory(null)} className="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition-colors text-lg">ปิดหน้าต่าง</button>
+              <button type="button" onClick={() => setShowHistory(null)} className="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition-colors text-lg">ปิดหน้าต่าง</button>
             </div>
           </div>
         </div>
@@ -812,8 +818,8 @@ export default function App() {
             <h3 className="text-2xl font-black text-slate-800 mb-2">ลบอุปกรณ์?</h3>
             <p className="text-slate-500 mb-8 text-lg">ข้อมูลนี้จะถูกลบถาวร ไม่สามารถกู้คืนได้</p>
             <div className="flex gap-3">
-              <button onClick={() => setShowDeleteConfirm(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
-              <button onClick={handleDelete} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-200 text-lg">ยืนยันการลบ</button>
+              <button type="button" onClick={() => setShowDeleteConfirm(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
+              <button type="button" onClick={handleDelete} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-200 text-lg">ยืนยันการลบ</button>
             </div>
           </div>
         </div>
