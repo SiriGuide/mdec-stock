@@ -158,7 +158,6 @@ export default function App() {
   const [showBundleModal, setShowBundleModal] = useState(false);
   const [bundleForm, setBundleForm] = useState({ id: null, name: '', itemIds: [] });
 
-  const [selectedItems, setSelectedItems] = useState([]);
   const [showEmptyCategories, setShowEmptyCategories] = useState(false);
 
   const [showAuditModal, setShowAuditModal] = useState(false);
@@ -262,10 +261,6 @@ export default function App() {
     if (item.status !== 'borrowed' || !item.expectedReturn) return false;
     return new Date(item.expectedReturn).getTime() < todayMs;
   });
-
-  const selectableItems = useMemo(() => {
-    return filteredItems.filter(i => i.status === 'available' || i.status === 'borrowed');
-  }, [filteredItems]);
 
   const stats = useMemo(() => {
     const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
@@ -404,7 +399,6 @@ export default function App() {
     const borrowedNames = [];
 
     try {
-      // 📋 ใช้ borrowTargetIds โดยตรงเพราะมันถูกประมวลผลแม่-ลูกและส่งเข้ามาใน Modal เรียบร้อยแล้ว
       const promises = borrowTargetIds.map(id => {
         const item = items.find(i => i.id === id);
         if (!item || item.status !== 'available') return Promise.resolve(); 
@@ -418,7 +412,6 @@ export default function App() {
       
       setBorrowTargetIds([]);
       setPackingChecklist([]);
-      setSelectedItems([]); 
       setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '' });
     } catch (error) {
       console.error(error);
@@ -441,7 +434,6 @@ export default function App() {
     const returnedNames = [];
 
     try {
-      // 📋 ใช้ returnTargetIds โดยตรงเช่นเดียวกัน
       const promises = returnTargetIds.map(id => {
         const item = items.find(i => i.id === id);
         if (!item || item.status !== 'borrowed') return Promise.resolve();
@@ -455,7 +447,6 @@ export default function App() {
 
       setReturnTargetIds([]);
       setReturnChecklist([]);
-      setSelectedItems([]); 
       setReturnData({ staff: '', newStaff: '' });
     } catch (error) {
       console.error(error);
@@ -625,30 +616,7 @@ export default function App() {
 
   const handleLogout = () => {
     setIsAdmin(false);
-    setSelectedItems([]); 
     try { localStorage.removeItem('mdec_admin'); } catch(e) {}
-  };
-
-  const handleOpenBatchBorrow = () => {
-    const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
-    if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมให้ยืมในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้งาน")');
-    setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' });
-    
-    // 📋 โหลดของลูกพ่วงมาด้วย
-    const expanded = expandWithChildren(validIds);
-    setBorrowTargetIds(expanded);
-    setPackingChecklist([]);
-  };
-
-  const handleOpenBatchReturn = () => {
-    const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'borrowed');
-    if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่สามารถคืนได้ในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "กำลังถูกยืม")');
-    setReturnData({ staff: '', newStaff: '' });
-    
-    // 📋 โหลดของลูกพ่วงมาด้วย
-    const expanded = expandWithChildren(validIds);
-    setReturnTargetIds(expanded);
-    setReturnChecklist([]);
   };
 
   if (showCommandCenter) {
@@ -656,7 +624,6 @@ export default function App() {
     
     return (
       <div className="fixed inset-0 bg-gray-950 text-emerald-400 font-mono z-[10000] flex flex-col p-4 sm:p-8 overflow-hidden">
-        {/* Header - Command Center */}
         <div className="flex justify-between items-center mb-8 border-b border-emerald-900/50 pb-4">
           <h1 className="text-2xl sm:text-3xl font-black tracking-widest uppercase flex items-center gap-3">
             <Icons.Monitor className="w-8 h-8 text-emerald-500"/> MDEC Command Center
@@ -672,10 +639,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
-          
-          {/* ซ้าย: สถิติตัวเลขใหญ่ๆ */}
           <div className="flex flex-col gap-6">
             <div className="bg-gray-900 border border-emerald-900/50 p-6 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.1)]">
               <div className="absolute inset-0 bg-emerald-500/5 animate-pulse"></div>
@@ -702,7 +666,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* กลาง: กราฟ Donut & การแจ้งเตือน */}
           <div className="flex flex-col gap-6">
             <div className="bg-gray-900 border border-emerald-900/50 p-6 rounded-2xl flex-1 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.1)]">
               <h2 className="text-emerald-600 text-lg uppercase tracking-widest mb-8">Stock Health</h2>
@@ -736,7 +699,6 @@ export default function App() {
             )}
           </div>
 
-          {/* ขวา: Live Activity Log */}
           <div className="bg-gray-900 border border-emerald-900/50 p-6 rounded-2xl flex flex-col h-full overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.1)]">
             <h2 className="text-emerald-600 text-lg uppercase tracking-widest mb-4 border-b border-emerald-900/50 pb-2">Live Activity Log</h2>
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
@@ -753,7 +715,6 @@ export default function App() {
               {auditLogs.length === 0 && <div className="text-center text-emerald-800 mt-10">No recent activity</div>}
             </div>
           </div>
-
         </div>
       </div>
     );
@@ -778,7 +739,7 @@ export default function App() {
           <div>
             <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textTitle}`}>
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v17.0 Checklist Pro</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v18.0 Checklist Only</span>
             </h1>
             <p className={`font-medium text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -927,28 +888,13 @@ export default function App() {
         </div>
       </div>
 
-      {/* Table / List */}
+      {/* 📋 Table / List (นำ Checkbox ด้านหน้าออกแล้ว) */}
       <div className={`w-full rounded-2xl shadow-md border overflow-hidden relative transition-colors ${theme.cardBg}`}>
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr className={`border-b text-lg transition-colors ${theme.th}`}>
-                {isAdmin && (
-                  <th className="px-4 py-4 text-center w-14">
-                    <input 
-                      type="checkbox" 
-                      className="w-5 h-5 rounded cursor-pointer accent-blue-600" 
-                      onChange={(e) => {
-                        if(e.target.checked) setSelectedItems(selectableItems.map(i => i.id));
-                        else setSelectedItems([]);
-                      }}
-                      disabled={selectableItems.length === 0}
-                      checked={selectableItems.length > 0 && selectableItems.every(i => selectedItems.includes(i.id))}
-                      title="เลือกรายการที่ทำได้ทั้งหมด"
-                    />
-                  </th>
-                )}
-                <th className="px-4 py-4 text-left font-bold">ชื่ออุปกรณ์ / รหัส</th>
+                <th className="px-4 py-4 text-left font-bold pl-6">ชื่ออุปกรณ์ / รหัส</th>
                 <th className="px-4 py-4 text-left font-bold">หมวดหมู่</th>
                 <th className="px-4 py-4 text-left font-bold">ฝ่ายที่รับผิดชอบ</th>
                 <th className="px-4 py-4 text-left font-bold">สถานที่ / ห้อง</th>
@@ -958,7 +904,7 @@ export default function App() {
             </thead>
             <tbody className={`divide-y transition-colors ${theme.divide}`}>
               {filteredItems.length === 0 ? (
-                <tr><td colSpan={isAdmin ? 7 : 6} className={`px-4 py-12 text-center font-bold text-xl ${theme.textMuted}`}>ไม่พบข้อมูลที่ค้นหา</td></tr>
+                <tr><td colSpan={6} className={`px-4 py-12 text-center font-bold text-xl ${theme.textMuted}`}>ไม่พบข้อมูลที่ค้นหา</td></tr>
               ) : filteredItems.map((item, index) => {
                 const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
                 const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
@@ -971,25 +917,8 @@ export default function App() {
                 
                 return (
                   <tr key={`${item.id}_${index}`} className={`group transition-colors text-lg ${rowBg} ${rowBorder}`}>
-                    
-                    {isAdmin && (
-                      <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        {(item.status === 'available' || item.status === 'borrowed') ? (
-                          <input 
-                            type="checkbox" 
-                            className="w-5 h-5 rounded cursor-pointer accent-blue-600"
-                            checked={selectedItems.includes(item.id)}
-                            onChange={() => {
-                              setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
-                            }}
-                          />
-                        ) : (
-                          <div className={`w-5 h-5 mx-auto rounded-sm cursor-not-allowed ${isDarkMode ? 'bg-slate-700 opacity-50' : 'bg-slate-200 opacity-50'}`} title="สถานะนี้ไม่สามารถทำรายการแบบกลุ่มได้"></div>
-                        )}
-                      </td>
-                    )}
 
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-4 pl-6">
                       <div className={`font-bold text-xl flex items-center gap-2 flex-wrap ${theme.textTitle}`}>
                         {item.name} 
                         {qty > 1 && <span className={`text-base px-2 py-1 rounded-md ${isDarkMode ? 'bg-blue-900/40 text-blue-400' : 'bg-blue-100 text-blue-700'}`}>x{qty}</span>}
@@ -1025,7 +954,6 @@ export default function App() {
                         
                         {isAdmin && (
                           <>
-                            {/* 📋 ปรับปุ่มให้ยืมให้โหลดของลูกด้วย */}
                             {item.status === 'available' && <button type="button" onClick={(e) => { 
                               e.stopPropagation(); 
                               setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); 
@@ -1034,7 +962,6 @@ export default function App() {
                               setPackingChecklist([]);
                             }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white'}`} title="ให้ยืม"><Icons.UserPlus /></button>}
                             
-                            {/* 📋 ปรับปุ่มรับคืนให้โหลดของลูกด้วย */}
                             {isBorrowed && <button type="button" onClick={(e) => { 
                               e.stopPropagation(); 
                               setReturnData({ staff: '', newStaff: '' }); 
@@ -1057,22 +984,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* Floating Action Bar (สำหรับยืม/คืนทีละหลายรายการ) */}
-      {isAdmin && selectedItems.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-md border border-slate-700 text-white px-6 py-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex items-center gap-4 sm:gap-8 z-40 w-[90%] max-w-xl justify-between animate-[slideUp_0.3s_ease-out]">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-500 text-white font-black w-8 h-8 rounded-full flex items-center justify-center shadow-inner">{selectedItems.length}</div>
-            <span className="font-bold text-lg hidden sm:inline">รายการที่เลือก</span>
-          </div>
-          <div className="flex gap-2 sm:gap-3">
-            <button onClick={handleOpenBatchBorrow} className="px-4 sm:px-6 py-2.5 bg-purple-500 hover:bg-purple-600 rounded-xl font-bold transition-colors shadow-md">ยืมออก</button>
-            <button onClick={handleOpenBatchReturn} className="px-4 sm:px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 rounded-xl font-bold transition-colors shadow-md">รับคืน</button>
-            <button onClick={() => setSelectedItems([])} className="px-3 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold transition-colors"><Icons.X /></button>
-          </div>
-        </div>
-      )}
-
-      {/* 📦 Modal เลือกยืมแบบจัดเซ็ต (Bundles) พร้อมโชว์เช็คลิสต์ด้านใน */}
+      {/* 📦 Modal เลือกยืมแบบจัดเซ็ต (Bundles) */}
       {showBundleModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
@@ -1130,6 +1042,154 @@ export default function App() {
         </div>
       )}
 
+      {/* 📋 Borrow Modal (พร้อมระบบ Checklist) */}
+      {borrowTargetIds.length > 0 && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className={`text-2xl font-black ${theme.textTitle}`}>บันทึกการให้ยืม</h3>
+              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X /></button>
+            </div>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ผู้ให้ยืม (จนท.) <span className="text-rose-500">*</span></label>
+                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-purple-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} value={borrowData.staff} onChange={e => setBorrowData({...borrowData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : borrowData.newStaff})}>
+                  <option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>
+                  {(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              {borrowData.staff === 'อื่นๆ' && (
+                <div>
+                  <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-purple-500 ${isDarkMode ? 'bg-purple-900/20 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-300 text-purple-800'}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่..." value={borrowData.newStaff} onChange={e => setBorrowData({...borrowData, newStaff: e.target.value})} />
+                </div>
+              )}
+              
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ชื่อผู้ยืม <span className="text-rose-500">*</span></label>
+                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-purple-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} placeholder="ชื่อ-สกุล หรือ แผนก" value={borrowData.borrower} onChange={e => setBorrowData({...borrowData, borrower: e.target.value})} />
+              </div>
+              
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>กำหนดคืน</label>
+                <input type="date" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-purple-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} value={borrowData.returnDate} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} />
+              </div>
+            </div>
+
+            {/* 📋 ส่วนแสดง Checklist สำหรับยืม */}
+            <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <h4 className={`font-bold mb-3 flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                <Icons.ClipboardList /> เช็คลิสต์ตรวจสอบก่อนปล่อยยืม ({packingChecklist.length}/{borrowTargetIds.length})
+              </h4>
+              <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                {borrowTargetIds.map(id => {
+                  const item = items.find(i => i.id === id);
+                  if(!item) return null;
+                  const isChecked = packingChecklist.includes(id);
+                  return (
+                    <label key={id} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${isChecked ? (isDarkMode ? 'bg-purple-900/40 border-purple-800' : 'bg-purple-50 border-purple-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
+                      <input type="checkbox" className="w-5 h-5 accent-purple-600 rounded mt-0.5 cursor-pointer shrink-0"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if(e.target.checked) setPackingChecklist([...packingChecklist, id]);
+                          else setPackingChecklist(packingChecklist.filter(c => c !== id));
+                        }}
+                      />
+                      <span className={`font-bold text-sm sm:text-base leading-tight ${isChecked ? (isDarkMode ? 'text-purple-400 line-through opacity-70' : 'text-purple-700 line-through opacity-70') : theme.textMain}`}>
+                        {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); }} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button 
+                type="button" 
+                onClick={handleBorrow} 
+                disabled={!borrowData.borrower || !borrowData.staff || packingChecklist.length !== borrowTargetIds.length} 
+                className={`flex-1 py-4 font-bold rounded-xl text-lg transition-colors ${(!borrowData.borrower || !borrowData.staff || packingChecklist.length !== borrowTargetIds.length) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-purple-600 text-white hover:bg-purple-500 shadow-lg shadow-purple-500/20'}`}
+              >
+                ยืนยันการยืม
+              </button>
+            </div>
+            {packingChecklist.length !== borrowTargetIds.length && (
+               <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>* ต้องติ๊กตรวจสอบอุปกรณ์ให้ครบทุกรายการจึงจะกดได้</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 📋 Return Modal (พร้อมระบบ Checklist) */}
+      {returnTargetIds.length > 0 && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className={`text-2xl font-black ${theme.textTitle}`}>บันทึกรับคืนอุปกรณ์</h3>
+              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X /></button>
+            </div>
+            
+            <div className="mb-6">
+              <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ผู้รับคืน (จนท.) <span className="text-rose-500">*</span></label>
+              <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-emerald-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} value={returnData.staff} onChange={e => setReturnData({...returnData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : returnData.newStaff})}>
+                <option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>
+                {(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            {returnData.staff === 'อื่นๆ' && (
+              <div className="mb-6">
+                <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-emerald-500 ${isDarkMode ? 'bg-emerald-900/20 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-300 text-emerald-800'}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่..." value={returnData.newStaff} onChange={e => setReturnData({...returnData, newStaff: e.target.value})} />
+              </div>
+            )}
+
+            {/* 📋 ส่วนแสดง Checklist สำหรับคืน */}
+            <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <h4 className={`font-bold mb-3 flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                <Icons.ClipboardList /> เช็คลิสต์ตรวจสอบของเข้ากล่อง ({returnChecklist.length}/{returnTargetIds.length})
+              </h4>
+              <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                {returnTargetIds.map(id => {
+                  const item = items.find(i => i.id === id);
+                  if(!item) return null;
+                  const isChecked = returnChecklist.includes(id);
+                  return (
+                    <label key={id} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${isChecked ? (isDarkMode ? 'bg-emerald-900/40 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
+                      <input type="checkbox" className="w-5 h-5 accent-emerald-600 rounded mt-0.5 cursor-pointer shrink-0"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if(e.target.checked) setReturnChecklist([...returnChecklist, id]);
+                          else setReturnChecklist(returnChecklist.filter(c => c !== id));
+                        }}
+                      />
+                      <span className={`font-bold text-sm sm:text-base leading-tight ${isChecked ? (isDarkMode ? 'text-emerald-400 line-through opacity-70' : 'text-emerald-700 line-through opacity-70') : theme.textMain}`}>
+                        {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); }} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button 
+                type="button" 
+                onClick={handleReturn} 
+                disabled={!returnData.staff || returnChecklist.length !== returnTargetIds.length} 
+                className={`flex-1 py-4 font-bold rounded-xl text-lg transition-colors ${(!returnData.staff || returnChecklist.length !== returnTargetIds.length) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20'}`}
+              >
+                ยืนยันการรับคืน
+              </button>
+            </div>
+            {returnChecklist.length !== returnTargetIds.length && (
+               <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>* ต้องติ๊กตรวจสอบอุปกรณ์ให้ครบทุกรายการจึงจะกดได้</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 🛠️ Modal ประวัติส่วนกลาง (Audit Log) */}
       {showAuditModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
@@ -1170,7 +1230,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Settings Modal (เพิ่มแท็บเซ็ตอุปกรณ์) */}
+      {/* Settings Modal */}
       {showSettings && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden ${theme.cardBg}`}>
@@ -1203,7 +1263,7 @@ export default function App() {
               </div>
             )}
 
-            {/* 📦 เนื้อหาแท็บ เซ็ตอุปกรณ์ (Bundles) - อัปเกรดให้มีป้ายสถานะ & แก้ไขได้ */}
+            {/* 📦 เนื้อหาแท็บ เซ็ตอุปกรณ์ (Bundles) */}
             {settingsTab === 'bundles' && (
               <div className="p-6">
                 <div className={`p-4 mb-6 rounded-2xl border ${isDarkMode ? 'bg-purple-900/10 border-purple-800' : 'bg-purple-50 border-purple-200'}`}>
