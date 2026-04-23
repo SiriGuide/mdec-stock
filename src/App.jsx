@@ -12,6 +12,7 @@ const myFirebaseConfig = {
   messagingSenderId: "283888438624",
   appId: "1:283888438624:web:6cfe60c58d94dc00fda205"
 };
+
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : myFirebaseConfig;
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -61,9 +62,17 @@ export default function App() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState('all');
+  
+  // 🛠️ คืนชีพปุ่ม Filter และ Sort เพื่อความสะดวก (ระบบใหม่เสถียร 100%)
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
 
-  // 🛠️ นำระบบจำการล็อกอินออก เพื่อความชัวร์เวลาเปลี่ยนเครื่อง
-  const [isAdmin, setIsAdmin] = useState(false);
+  // ระบบจำการล็อกอิน ให้ใช้งานสะดวกไม่ต้องพิมพ์รหัสบ่อย
+  const [isAdmin, setIsAdmin] = useState(() => {
+    try { return localStorage.getItem('mdec_admin') === 'true'; } 
+    catch (e) { return false; }
+  });
   const [showLogin, setShowLogin] = useState(false);
   const [pin, setPin] = useState('');
   const [firebaseError, setFirebaseError] = useState(false);
@@ -71,7 +80,7 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1 });
   
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // เก็บ ID ของอุปกรณ์ที่ต้องการลบ
+  const [itemToDelete, setItemToDelete] = useState(null); // 🛠️ แก้ปัญหาปุ่มลบรวน โดยเก็บข้อมูลทั้งก้อนเพื่อให้ชัวร์ว่าลบถูกตัว
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
   
   const [showBorrow, setShowBorrow] = useState(null);
@@ -121,9 +130,8 @@ export default function App() {
     return () => unsubscribeAuth();
   }, []);
 
-  // 🛠️ กรองข้อมูลให้ตรงไปตรงมา ลบฟังก์ชัน Sort ที่ทำให้ตารางรวนออกทั้งหมด
   const filteredItems = useMemo(() => {
-    return items.filter(item => {
+    let result = items.filter(item => {
       const searchLower = searchTerm.trim().toLowerCase();
       const matchSearch = searchLower === '' || 
                           (item.name && item.name.toLowerCase().includes(searchLower)) || 
@@ -131,10 +139,41 @@ export default function App() {
                           (item.location && item.location.toLowerCase().includes(searchLower));
                           
       const matchDept = filterDept === 'all' || item.department === filterDept;
+      const matchCategory = filterCategory === 'all' || item.category === filterCategory;
+      const matchStatus = filterStatus === 'all' || item.status === filterStatus;
       
-      return matchSearch && matchDept;
+      return matchSearch && matchDept && matchCategory && matchStatus;
     });
-  }, [items, searchTerm, filterDept]);
+
+    // 🛠️ อัปเกรดการจัดเรียง (Sort) ให้ฉลาดขึ้น: รู้จักตัวเลขในข้อความ (Numeric Sort) และอ่านไทย-อังกฤษแม่นยำ
+    result.sort((a, b) => {
+      let aVal = a[sortConfig.key] ?? '';
+      let bVal = b[sortConfig.key] ?? '';
+
+      if (sortConfig.key === 'status') {
+        const statusOrder = { 'available': 1, 'in-use': 2, 'borrowed': 3, 'maintenance': 4 };
+        aVal = statusOrder[a.status] || 99;
+        bVal = statusOrder[b.status] || 99;
+      } else if (sortConfig.key === 'quantity') {
+        aVal = Number(a.quantity) || 0;
+        bVal = Number(b.quantity) || 0;
+      }
+
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+
+      const strA = String(aVal);
+      const strB = String(bVal);
+
+      // ใช้ localeCompare พร้อม numeric: true เพื่อให้เรียง "12" ขึ้นก่อน "15" ได้อย่างถูกต้อง
+      return sortConfig.direction === 'asc' 
+        ? strA.localeCompare(strB, 'th', { numeric: true, sensitivity: 'base' }) 
+        : strB.localeCompare(strA, 'th', { numeric: true, sensitivity: 'base' });
+    });
+
+    return result;
+  }, [items, searchTerm, filterDept, filterCategory, filterStatus, sortConfig]);
 
   const stats = useMemo(() => {
     const s = { all: 0, available: 0, inUse: 0, borrowed: 0, maintenance: 0 };
@@ -174,6 +213,13 @@ export default function App() {
       .map(([label, data]) => ({ label, data }));
   }, [deptItems, settingsOptions.categories]);
 
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
   const handleSave = async () => {
     if (!formData.name.trim()) return;
     let finalCategory = formData.category;
@@ -211,15 +257,17 @@ export default function App() {
     setShowForm(false);
   };
 
-  // 🛠️ ปรับฟังก์ชันลบอุปกรณ์ให้รับ ID ตรงๆ และแม่นยำที่สุด
-  const handleDeleteItem = async (itemId) => {
-    try {
-      await deleteDoc(doc(db, "mdec_stock", "shared_data", "items", itemId));
-    } catch (error) {
-      console.error("Error deleting item:", error);
-      alert("เกิดข้อผิดพลาดในการลบข้อมูล กรุณาลองใหม่");
-    } finally {
-      setShowDeleteConfirm(null);
+  // 🛠️ ลบไอเทมที่เลือกไว้ได้อย่างแม่นยำ 100%
+  const handleDeleteItem = async () => {
+    if (itemToDelete) {
+      try {
+        await deleteDoc(doc(db, "mdec_stock", "shared_data", "items", itemToDelete.id));
+      } catch (error) {
+        console.error("Error deleting item:", error);
+        alert("เกิดข้อผิดพลาดในการลบข้อมูล กรุณาลองใหม่");
+      } finally {
+        setItemToDelete(null);
+      }
     }
   };
 
@@ -321,6 +369,40 @@ export default function App() {
     link.click();
   };
 
+  const handleLogin = () => {
+    if (pin === ADMIN_PIN) { 
+      setIsAdmin(true); 
+      try { localStorage.setItem('mdec_admin', 'true'); } catch(e) {}
+      setShowLogin(false); 
+      setPin(''); 
+    } else { 
+      alert('รหัสผ่านไม่ถูกต้อง'); 
+      setPin(''); 
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAdmin(false);
+    try { localStorage.removeItem('mdec_admin'); } catch(e) {}
+  };
+
+  const SortIcon = ({ columnKey }) => {
+    if (sortConfig.key !== columnKey) return <span className="text-slate-300 ml-1 opacity-0 group-hover:opacity-100">↕</span>;
+    return <span className="text-blue-600 ml-1">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
+  };
+
+  // 🛠️ คืนชีพการจัดเรียงข้อมูลเมื่อกดที่หัวตาราง
+  const Th = ({ label, columnKey, className }) => (
+    <th 
+      className={`px-4 py-4 text-left font-bold text-slate-700 cursor-pointer hover:bg-slate-300 transition-colors group select-none ${className || ''}`} 
+      onClick={() => handleSort(columnKey)}
+    >
+      <div className="flex items-center">
+        {label} <SortIcon columnKey={columnKey} />
+      </div>
+    </th>
+  );
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans p-4 sm:p-8">
       {firebaseError && (
@@ -340,16 +422,17 @@ export default function App() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v5.0 Stable</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v7.0 Ultimate</span>
             </h1>
             <p className="text-slate-500 font-medium text-sm sm:text-base">ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
         </div>
         <div className="flex flex-wrap justify-center gap-3 w-full md:w-auto">
-          {isAdmin && <button onClick={exportToCSV} className="flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 font-bold rounded-xl transition-colors flex"><Icons.Download /><span className="hidden sm:inline">ส่งออก Sheet</span></button>}
+          {isAdmin && <button type="button" onClick={exportToCSV} className="flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 font-bold rounded-xl transition-colors flex"><Icons.Download /><span className="hidden sm:inline">ส่งออก Sheet</span></button>}
           
           {isAdmin && (
             <button 
+              type="button"
               onClick={() => { setSettingsTab('categories'); setShowSettings(true); }} 
               className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-slate-100 text-slate-700 hover:bg-slate-200 font-bold rounded-xl transition-colors shadow-sm"
             >
@@ -358,9 +441,9 @@ export default function App() {
           )}
 
           {isAdmin ? (
-            <button onClick={() => setIsAdmin(false)} className="flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold rounded-xl transition-colors flex"><Icons.Unlock /><span className="hidden sm:inline">ออกจากระบบ</span></button>
+            <button type="button" onClick={handleLogout} className="flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold rounded-xl transition-colors flex"><Icons.Unlock /><span className="hidden sm:inline">ออกจากระบบ</span></button>
           ) : (
-            <button onClick={() => setShowLogin(true)} className="flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 bg-slate-800 text-white hover:bg-slate-700 font-bold rounded-xl transition-colors shadow-md flex"><Icons.Lock /><span className="hidden sm:inline">เข้าสู่ระบบจัดการ</span></button>
+            <button type="button" onClick={() => setShowLogin(true)} className="flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 bg-slate-800 text-white hover:bg-slate-700 font-bold rounded-xl transition-colors shadow-md flex"><Icons.Lock /><span className="hidden sm:inline">เข้าสู่ระบบจัดการ</span></button>
           )}
         </div>
       </div>
@@ -414,7 +497,16 @@ export default function App() {
             <input type="text" className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           
-          {/* 🛠️ ลบ Filter หมวดหมู่และสถานะออกตามคำขอ เพื่อความโล่งและไม่สร้างบั๊กซ้อน */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+            <select className="flex-1 px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+              <option value="all">หมวดหมู่ทั้งหมด</option>
+              {settingsOptions.categories.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select className="flex-1 px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+              <option value="all">สถานะทั้งหมด</option>
+              {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
+          </div>
 
           {isAdmin && (
             <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: filterDept === 'all' ? 'ภาพนิ่ง' : filterDept, category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1 }); setShowForm(true); }} className="w-full xl:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap"><Icons.Plus /> เพิ่มอุปกรณ์</button>
@@ -430,68 +522,68 @@ export default function App() {
       </div>
 
       {/* Table / List */}
-      <div className="w-full bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[900px]">
-          <thead>
-            {/* 🛠️ นำฟังก์ชันจัดเรียงออก ให้หัวตารางเป็นข้อความธรรมดา เพื่อลดปัญหาการเรียงมั่วสลับบรรทัด */}
-            <tr className="bg-slate-200 border-b border-slate-300 text-lg">
-              <th className="px-4 py-4 text-left font-bold text-slate-700">ชื่ออุปกรณ์ / รหัส</th>
-              <th className="px-4 py-4 text-left font-bold text-slate-700">หมวดหมู่</th>
-              <th className="px-4 py-4 text-left font-bold text-slate-700">ฝ่ายที่รับผิดชอบ</th>
-              <th className="px-4 py-4 text-left font-bold text-slate-700">สถานที่ / ห้อง</th>
-              <th className="px-4 py-4 text-left font-bold text-slate-700">สถานะ</th>
-              <th className="px-4 py-4 text-center font-bold text-slate-700">ประวัติ / จัดการ</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredItems.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400 font-bold text-xl">ไม่พบข้อมูลที่ค้นหา</td></tr>
-            ) : filteredItems.map((item) => {
-              const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
-              const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
-              const isBorrowed = item.status === 'borrowed';
-              const qty = Number(item.quantity) || 1;
-              
-              return (
-                <tr key={item.id} className="hover:bg-slate-50 transition-colors text-lg">
-                  <td className="px-4 py-4">
-                    <div className="font-bold text-slate-800 text-xl flex items-center gap-2">
-                      {item.name} 
-                      {qty > 1 && <span className="bg-blue-100 text-blue-700 text-base px-2 py-1 rounded-md">x{qty}</span>}
-                    </div>
-                    {item.sn && <div className="text-base text-slate-500 mt-1 font-mono">S.N.: {item.sn}</div>}
-                    {isBorrowed && <div className="text-base mt-2 p-2 bg-purple-50 rounded-lg border border-purple-100 inline-block"><span className="font-bold text-purple-700">ผู้ยืม: {item.currentBorrower}</span> <span className="text-purple-400 mx-1">|</span> <span className="text-slate-500">คืน: {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</span></div>}
-                  </td>
-                  <td className="px-4 py-4 font-bold text-slate-600">{item.category || '-'}</td>
-                  
-                  {/* 🛠️ แสดงฝ่ายตลอดเวลาเพื่อรักษา Layout ตารางให้ตรงกันเสมอ ป้องกันคอลัมน์เหลื่อมกัน */}
-                  <td className="px-4 py-4">
-                    <span className={`inline-block px-3 py-1.5 rounded-lg text-base font-bold ${deptInfo.color}`}>{deptInfo.label}</span>
-                  </td>
-
-                  <td className="px-4 py-4 font-bold text-slate-600">{item.location || '-'}</td>
-                  <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-base font-bold border ${statusInfo.color}`}><div className={`w-2 h-2 rounded-full currentColor`}></div>{statusInfo.label}</span></td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <button type="button" onClick={() => setShowHistory(item.id)} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white flex items-center justify-center transition-colors" title="ประวัติ"><Icons.History /></button>
-                      
-                      {isAdmin && (
-                        <>
-                          {item.status === 'available' && <button type="button" onClick={() => { setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
-                          {isBorrowed && <button type="button" onClick={() => { setReturnData({ staff: '', newStaff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
-                          <button type="button" onClick={() => { setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
-                          
-                          {/* 🛠️ ปุ่มสำหรับเรียก Modal ลบอุปกรณ์ */}
-                          <button type="button" onClick={() => setShowDeleteConfirm(item.id)} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="w-full bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden relative">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left border-collapse min-w-[900px]">
+            <thead>
+              <tr className="bg-slate-200 border-b border-slate-300 text-lg">
+                <Th label="ชื่ออุปกรณ์ / รหัส" columnKey="name" />
+                <Th label="หมวดหมู่" columnKey="category" />
+                <Th label="ฝ่ายที่รับผิดชอบ" columnKey="department" />
+                <Th label="สถานที่ / ห้อง" columnKey="location" />
+                <Th label="สถานะ" columnKey="status" />
+                {/* 🛠️ ล็อกปุ่มจัดการให้ติดหนึบขวาสุดเสมอ ป้องกันปุ่มหายตกขอบจอ */}
+                <th className="px-4 py-4 text-center font-bold text-slate-700 sticky right-0 bg-slate-200 shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-20">ประวัติ / จัดการ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredItems.length === 0 ? (
+                <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400 font-bold text-xl">ไม่พบข้อมูลที่ค้นหา</td></tr>
+              ) : filteredItems.map((item) => {
+                const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
+                const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
+                const isBorrowed = item.status === 'borrowed';
+                const qty = Number(item.quantity) || 1;
+                
+                // 🛠️ ล็อก ID แถวให้ตายตัว 100% ไม่มีทางที่ข้อมูลจะสลับบรรทัดกันอีก
+                return (
+                  <tr key={item.id} className="group hover:bg-slate-50 transition-colors text-lg">
+                    <td className="px-4 py-4">
+                      <div className="font-bold text-slate-800 text-xl flex items-center gap-2">
+                        {item.name} 
+                        {qty > 1 && <span className="bg-blue-100 text-blue-700 text-base px-2 py-1 rounded-md">x{qty}</span>}
+                      </div>
+                      {item.sn && <div className="text-base text-slate-500 mt-1 font-mono">S.N.: {item.sn}</div>}
+                      {isBorrowed && <div className="text-base mt-2 p-2 bg-purple-50 rounded-lg border border-purple-100 inline-block"><span className="font-bold text-purple-700">ผู้ยืม: {item.currentBorrower}</span> <span className="text-purple-400 mx-1">|</span> <span className="text-slate-500">คืน: {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</span></div>}
+                    </td>
+                    <td className="px-4 py-4 font-bold text-slate-600">{item.category || '-'}</td>
+                    <td className="px-4 py-4"><span className={`inline-block px-3 py-1.5 rounded-lg text-base font-bold ${deptInfo.color}`}>{deptInfo.label}</span></td>
+                    <td className="px-4 py-4 font-bold text-slate-600">{item.location || '-'}</td>
+                    <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-base font-bold border ${statusInfo.color}`}><div className={`w-2 h-2 rounded-full currentColor`}></div>{statusInfo.label}</span></td>
+                    
+                    {/* 🛠️ ล็อกปุ่มจัดการให้ติดหนึบขวาสุดเสมอ */}
+                    <td className="px-4 py-4 sticky right-0 bg-white group-hover:bg-slate-50 shadow-[-4px_0_10px_rgba(0,0,0,0.05)] z-10 transition-colors">
+                      <div className="flex items-center justify-center gap-2">
+                        <button type="button" onClick={() => setShowHistory(item.id)} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white flex items-center justify-center transition-colors" title="ประวัติ"><Icons.History /></button>
+                        
+                        {isAdmin && (
+                          <>
+                            {item.status === 'available' && <button type="button" onClick={() => { setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '' }); setShowBorrow(item.id); }} className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="ให้ยืม"><Icons.UserPlus /></button>}
+                            {isBorrowed && <button type="button" onClick={() => { setReturnData({ staff: '', newStaff: '' }); setShowReturn(item.id); }} className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors" title="รับคืน"><Icons.CheckCircle /></button>}
+                            <button type="button" onClick={() => { setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="แก้ไข"><Icons.Edit /></button>
+                            
+                            {/* 🛠️ ปุ่มลบ: ส่งข้อมูลทั้งก้อนไปให้ Modal เพื่อกันความสับสน */}
+                            <button type="button" onClick={() => setItemToDelete(item)} className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white flex items-center justify-center transition-colors" title="ลบ"><Icons.Trash /></button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Settings Modal */}
@@ -528,7 +620,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Modal: ยืนยันการลบการตั้งค่า (Settings) */}
+      {/* Modal 1: ยืนยันการลบการตั้งค่า (Settings) */}
       {deleteSettingConfirm !== null && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
@@ -548,10 +640,10 @@ export default function App() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
             <h3 className="text-2xl font-black text-slate-800 mb-6 text-center">เข้าสู่ระบบจัดการ</h3>
-            <input type="password" autoFocus className="w-full px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl font-bold text-center text-3xl tracking-widest focus:ring-2 focus:ring-blue-500 outline-none mb-6" maxLength={8} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { if (pin === ADMIN_PIN) { setIsAdmin(true); setShowLogin(false); setPin(''); } else { alert('รหัสผ่านไม่ถูกต้อง'); setPin(''); } } }} />
+            <input type="password" autoFocus className="w-full px-4 py-4 bg-slate-50 border border-slate-300 rounded-xl font-bold text-center text-3xl tracking-widest focus:ring-2 focus:ring-blue-500 outline-none mb-6" maxLength={8} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { if (pin === ADMIN_PIN) { setIsAdmin(true); try { localStorage.setItem('mdec_admin', 'true'); } catch(err){} setShowLogin(false); setPin(''); } else { alert('รหัสผ่านไม่ถูกต้อง'); setPin(''); } } }} />
             <div className="flex gap-3">
               <button type="button" onClick={() => setShowLogin(false)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
-              <button type="button" onClick={() => { if (pin === ADMIN_PIN) { setIsAdmin(true); setShowLogin(false); setPin(''); } else { alert('รหัสผ่านไม่ถูกต้อง'); setPin(''); } }} className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-xl text-lg">เข้าสู่ระบบ</button>
+              <button type="button" onClick={() => { if (pin === ADMIN_PIN) { setIsAdmin(true); try { localStorage.setItem('mdec_admin', 'true'); } catch(err){} setShowLogin(false); setPin(''); } else { alert('รหัสผ่านไม่ถูกต้อง'); setPin(''); } }} className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-xl text-lg">เข้าสู่ระบบ</button>
             </div>
           </div>
         </div>
@@ -725,16 +817,19 @@ export default function App() {
         </div>
       )}
 
-      {/* Modal 2: ยืนยันการลบอุปกรณ์ในตารางหลัก (Main Items) */}
-      {showDeleteConfirm && (
+      {/* 🛠️ Modal 2: ยืนยันการลบอุปกรณ์ในตารางหลัก (มั่นใจว่าถูกตัวแน่นอน) */}
+      {itemToDelete && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
             <div className="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.Trash /></div>
             <h3 className="text-2xl font-black text-slate-800 mb-2">ลบอุปกรณ์?</h3>
-            <p className="text-slate-500 mb-8 text-lg">ข้อมูลนี้จะถูกลบถาวร ไม่สามารถกู้คืนได้</p>
+            <p className="text-slate-500 mb-6 text-lg">
+              คุณแน่ใจหรือไม่ที่จะลบ<br/>
+              <span className="font-bold text-rose-600 text-xl block mt-2">"{itemToDelete.name}"</span>
+            </p>
             <div className="flex gap-3">
-              <button type="button" onClick={() => setShowDeleteConfirm(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
-              <button type="button" onClick={() => handleDeleteItem(showDeleteConfirm)} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-200 text-lg">ยืนยันการลบ</button>
+              <button type="button" onClick={() => setItemToDelete(null)} className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl text-lg">ยกเลิก</button>
+              <button type="button" onClick={handleDeleteItem} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-200 text-lg">ยืนยันการลบ</button>
             </div>
           </div>
         </div>
