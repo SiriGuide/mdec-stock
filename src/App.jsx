@@ -628,102 +628,160 @@ export default function App() {
     try { localStorage.removeItem('mdec_admin'); } catch(e) {}
   };
 
+  // 🎛️ Command Center (รองรับ Light & Dark Mode)
   if (showCommandCenter) {
     const healthPercentage = stats.all > 0 ? Math.round((stats.available / stats.all) * 100) : 0;
     
+    const ccTheme = {
+      bg: isDarkMode ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800',
+      card: isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100',
+      textMain: isDarkMode ? 'text-slate-100' : 'text-slate-800',
+      textMuted: isDarkMode ? 'text-slate-400' : 'text-slate-500',
+      totalBg: isDarkMode ? 'bg-gradient-to-br from-blue-900/80 to-indigo-900/80 shadow-indigo-900/20' : 'bg-gradient-to-br from-blue-400 to-indigo-500 shadow-indigo-200',
+      statAvail: isDarkMode ? 'bg-emerald-900/20 border-emerald-800/50' : 'bg-emerald-50 border-emerald-100',
+      statInUse: isDarkMode ? 'bg-amber-900/20 border-amber-800/50' : 'bg-amber-50 border-amber-100',
+      statBorrow: isDarkMode ? 'bg-purple-900/20 border-purple-800/50' : 'bg-purple-50 border-purple-100',
+      statMaint: isDarkMode ? 'bg-rose-900/20 border-rose-800/50' : 'bg-rose-50 border-rose-100',
+      circleOuter: isDarkMode ? 'border-slate-950' : 'border-slate-50',
+      circleInner: isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-50 text-slate-800',
+      timeBg: isDarkMode ? 'bg-indigo-950/50 border-indigo-900/50 text-indigo-400' : 'bg-indigo-50 border-indigo-100 text-indigo-700',
+      titleText: isDarkMode ? 'text-indigo-400' : 'text-indigo-600',
+      iconBg: isDarkMode ? 'bg-indigo-900/50 text-indigo-400' : 'bg-indigo-100 text-indigo-600',
+    };
+
     return (
-      <div className="fixed inset-0 bg-gray-950 text-emerald-400 font-mono z-[10000] flex flex-col p-4 sm:p-8 overflow-hidden">
-        <div className="flex justify-between items-center mb-8 border-b border-emerald-900/50 pb-4">
-          <h1 className="text-2xl sm:text-3xl font-black tracking-widest uppercase flex items-center gap-3">
-            <Icons.Monitor className="w-8 h-8 text-emerald-500"/> MDEC Command Center
+      <div className={`fixed inset-0 font-sans z-[10000] flex flex-col p-4 sm:p-8 overflow-hidden font-medium transition-colors duration-300 ${ccTheme.bg}`}>
+        {/* Header - Cute Command Center */}
+        <div className={`flex flex-col sm:flex-row justify-between items-center mb-6 p-4 sm:px-8 sm:py-5 rounded-3xl shadow-sm border gap-4 ${ccTheme.card}`}>
+          <h1 className={`text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3 ${ccTheme.titleText}`}>
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${ccTheme.iconBg}`}>
+              <Icons.Monitor className="w-7 h-7"/>
+            </div>
+            ศูนย์ควบคุม MDEC ✨
           </h1>
           <div className="flex items-center gap-4 sm:gap-6">
-            <span className="text-xl animate-pulse text-rose-500 font-bold tracking-widest hidden sm:inline">● LIVE</span>
-            <div className="text-xl sm:text-2xl font-bold bg-gray-900 px-4 py-2 rounded-lg border border-emerald-800 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+            <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className={`flex items-center justify-center p-3 font-bold rounded-xl transition-colors shadow-sm ${isDarkMode ? 'bg-slate-800 text-slate-200 hover:bg-slate-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`} title={isDarkMode ? "เปลี่ยนเป็นโหมดสว่าง" : "เปลี่ยนเป็นโหมดกลางคืน"}>
+              {isDarkMode ? <Icons.Sun /> : <Icons.Moon />}
+            </button>
+            <span className="text-lg animate-pulse text-rose-500 font-bold hidden sm:flex items-center gap-2">
+              <span className="w-3 h-3 bg-rose-500 rounded-full shadow-[0_0_8px_rgba(244,63,94,0.6)]"></span> เคลื่อนไหวสด
+            </span>
+            <div className={`text-xl sm:text-2xl font-black px-5 py-2.5 rounded-2xl border shadow-inner ${ccTheme.timeBg}`}>
               {currentTime.toLocaleTimeString('th-TH')}
             </div>
-            <button onClick={() => setShowCommandCenter(false)} className="bg-rose-900/40 border border-rose-800 text-rose-400 px-6 py-2 rounded-xl hover:bg-rose-800 hover:text-white transition-colors uppercase font-bold tracking-wider">
-              Exit
+            <button onClick={() => setShowCommandCenter(false)} className={`border px-6 py-3 rounded-2xl transition-all font-bold shadow-sm flex items-center gap-2 group ${isDarkMode ? 'bg-rose-900/30 border-rose-800 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-500 hover:text-white'}`}>
+              ปิดหน้าต่าง <Icons.X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
             </button>
           </div>
         </div>
 
+        {/* Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
+          
+          {/* ซ้าย: สถิติตัวเลข */}
           <div className="flex flex-col gap-6">
-            <div className="bg-gray-900 border border-emerald-900/50 p-6 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.1)]">
-              <div className="absolute inset-0 bg-emerald-500/5 animate-pulse"></div>
-              <h2 className="text-emerald-600 text-lg uppercase tracking-widest mb-2 z-10">Total Equipment</h2>
-              <span className="text-7xl sm:text-8xl font-black text-white z-10">{stats.all}</span>
+            <div className={`p-8 rounded-3xl flex flex-col items-center justify-center relative overflow-hidden shadow-lg ${ccTheme.totalBg}`}>
+              <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+              <div className="absolute -left-6 -bottom-6 w-24 h-24 bg-black/20 rounded-full blur-xl"></div>
+              <h2 className={`text-xl font-bold mb-2 z-10 flex items-center gap-2 ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}><Icons.Package className="w-6 h-6"/> อุปกรณ์ทั้งหมด</h2>
+              <span className="text-7xl sm:text-8xl font-black text-white z-10 drop-shadow-md">{stats.all}</span>
             </div>
             <div className="grid grid-cols-2 gap-4 flex-1">
-              <div className="bg-gray-900 border border-emerald-900/50 p-4 rounded-xl flex flex-col items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                <span className="text-emerald-500 text-sm mb-1 uppercase tracking-wider">Available</span>
-                <span className="text-5xl font-bold text-emerald-400">{stats.available}</span>
+              <div className={`p-5 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statAvail}`}>
+                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>🟢 พร้อมใช้งาน</span>
+                <span className={`text-5xl font-black ${isDarkMode ? 'text-emerald-400' : 'text-emerald-500'}`}>{stats.available}</span>
               </div>
-              <div className="bg-gray-900 border border-amber-900/50 p-4 rounded-xl flex flex-col items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.1)]">
-                <span className="text-amber-500 text-sm mb-1 uppercase tracking-wider">In Use</span>
-                <span className="text-5xl font-bold text-amber-400">{stats.inUse}</span>
+              <div className={`p-5 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statInUse}`}>
+                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>🟡 กำลังใช้งาน</span>
+                <span className={`text-5xl font-black ${isDarkMode ? 'text-amber-400' : 'text-amber-500'}`}>{stats.inUse}</span>
               </div>
-              <div className="bg-gray-900 border border-purple-900/50 p-4 rounded-xl flex flex-col items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.1)]">
-                <span className="text-purple-500 text-sm mb-1 uppercase tracking-wider">Borrowed</span>
-                <span className="text-5xl font-bold text-purple-400">{stats.borrowed}</span>
+              <div className={`p-5 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statBorrow}`}>
+                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>🟣 กำลังถูกยืม</span>
+                <span className={`text-5xl font-black ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>{stats.borrowed}</span>
               </div>
-              <div className="bg-gray-900 border border-rose-900/50 p-4 rounded-xl flex flex-col items-center justify-center shadow-[0_0_15px_rgba(244,63,94,0.1)]">
-                <span className="text-rose-500 text-sm mb-1 uppercase tracking-wider">Maintenance</span>
-                <span className="text-5xl font-bold text-rose-400">{stats.maintenance}</span>
+              <div className={`p-5 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statMaint}`}>
+                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-rose-400' : 'text-rose-600'}`}>🔴 ส่งซ่อม/ชำรุด</span>
+                <span className={`text-5xl font-black ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>{stats.maintenance}</span>
               </div>
             </div>
           </div>
 
+          {/* กลาง: กราฟ Donut & การแจ้งเตือน */}
           <div className="flex flex-col gap-6">
-            <div className="bg-gray-900 border border-emerald-900/50 p-6 rounded-2xl flex-1 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.1)]">
-              <h2 className="text-emerald-600 text-lg uppercase tracking-widest mb-8">Stock Health</h2>
-              <div className="relative w-56 h-56 rounded-full border-8 border-gray-800 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.2)]"
+            <div className={`p-8 rounded-3xl flex-1 flex flex-col items-center justify-center shadow-sm relative overflow-hidden border ${ccTheme.card}`}>
+              <div className={`absolute top-0 right-0 w-32 h-32 rounded-bl-[100px] -z-0 ${isDarkMode ? 'bg-emerald-900/10' : 'bg-emerald-50'}`}></div>
+              <h2 className={`text-xl font-bold mb-6 flex items-center gap-2 z-10 ${ccTheme.textMuted}`}>💖 สุขภาพสต๊อก (ความพร้อม)</h2>
+              <div className={`relative w-56 h-56 rounded-full border-[12px] flex items-center justify-center shadow-inner z-10 ${ccTheme.circleOuter}`}
                    style={{ background: `conic-gradient(#10b981 ${healthPercentage * 3.6}deg, transparent 0)` }}>
-                <div className="absolute inset-3 bg-gray-900 rounded-full flex flex-col items-center justify-center">
-                  <span className="text-5xl font-black text-white">{healthPercentage}%</span>
-                  <span className="text-sm text-emerald-600 uppercase tracking-widest mt-1">Ready</span>
+                <div className={`absolute inset-4 rounded-full flex flex-col items-center justify-center shadow-sm border ${ccTheme.circleInner}`}>
+                  <span className="text-5xl font-black">{healthPercentage}%</span>
+                  <span className={`text-sm font-bold mt-1 px-3 py-1 rounded-full ${isDarkMode ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>พร้อมใช้สุดๆ ✨</span>
                 </div>
               </div>
             </div>
             
             {overdueItems.length > 0 ? (
-              <div className="bg-rose-950/30 border border-rose-900 p-5 rounded-2xl flex-1 flex flex-col shadow-[0_0_20px_rgba(244,63,94,0.2)] animate-[pulse_3s_ease-in-out_infinite]">
-                <h3 className="text-rose-500 font-bold mb-3 flex items-center gap-2 text-lg uppercase tracking-wider">
-                  <Icons.Alert className="w-6 h-6"/> {overdueItems.length} Overdue Items!
+              <div className={`border-2 p-5 rounded-3xl flex-1 flex flex-col shadow-sm animate-[pulse_3s_ease-in-out_infinite] ${isDarkMode ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-200'}`}>
+                <h3 className={`font-black mb-3 flex items-center gap-2 text-lg ${isDarkMode ? 'text-rose-400' : 'text-rose-600'}`}>
+                  <Icons.Alert className="w-7 h-7 text-rose-500"/> อุปกรณ์เลยกำหนดคืน! ({overdueItems.length})
                 </h3>
                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
                   {overdueItems.map(i => (
-                    <div key={i.id} className="text-rose-300 text-sm truncate bg-rose-900/20 px-3 py-2 rounded-lg border border-rose-900/50">
-                      <span className="font-bold">{i.name}</span> <span className="text-rose-400/70">(by {i.currentBorrower})</span>
+                    <div key={i.id} className={`text-base px-4 py-3 rounded-2xl border shadow-sm flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 transition-colors ${isDarkMode ? 'bg-slate-800 border-rose-900/50 text-rose-300 hover:bg-slate-700' : 'bg-white border-rose-100 text-rose-700 hover:bg-rose-50'}`}>
+                      <span className="font-bold truncate">{i.name}</span> 
+                      <span className={`text-sm font-semibold px-2 py-1 rounded-lg whitespace-nowrap ${isDarkMode ? 'bg-rose-900/40 text-rose-400' : 'bg-rose-50 text-rose-500'}`}>ผู้ยืม: {i.currentBorrower}</span>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="bg-gray-900 border border-emerald-900/50 p-5 rounded-2xl flex-1 flex flex-col items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                 <Icons.CheckCircle className="w-12 h-12 text-emerald-500/50 mb-2" />
-                 <span className="text-emerald-600 uppercase tracking-widest">No Overdue Items</span>
+              <div className={`border p-5 rounded-3xl flex-1 flex flex-col items-center justify-center shadow-sm ${isDarkMode ? 'bg-emerald-900/10 border-emerald-800/50' : 'bg-emerald-50 border-emerald-100'}`}>
+                 <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 shadow-sm ${isDarkMode ? 'bg-slate-800 text-emerald-500' : 'bg-white text-emerald-400'}`}>
+                   <Icons.CheckCircle className="w-10 h-10" />
+                 </div>
+                 <span className={`font-black text-xl ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>ไม่มีอุปกรณ์เลยกำหนด</span>
+                 <span className={`font-medium text-base mt-1 ${isDarkMode ? 'text-emerald-500/70' : 'text-emerald-500'}`}>ยอดเยี่ยมมาก! ทุกคนคืนของตรงเวลา 🎉</span>
               </div>
             )}
           </div>
 
-          <div className="bg-gray-900 border border-emerald-900/50 p-6 rounded-2xl flex flex-col h-full overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.1)]">
-            <h2 className="text-emerald-600 text-lg uppercase tracking-widest mb-4 border-b border-emerald-900/50 pb-2">Live Activity Log</h2>
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
-              {auditLogs.slice(0, 30).map(log => (
-                <div key={log.id} className="border-l-4 border-emerald-500 pl-4 py-1 bg-gradient-to-r from-emerald-900/20 to-transparent">
-                  <div className="flex justify-between items-center text-xs text-emerald-600 mb-1">
-                    <span>{new Date(log.timestamp).toLocaleTimeString('en-US', {hour12: false})}</span>
-                    <span className="uppercase font-bold">{log.action}</span>
+          {/* ขวา: Live Activity Log */}
+          <div className={`border p-6 rounded-3xl flex flex-col h-full overflow-hidden shadow-sm ${ccTheme.card}`}>
+            <h2 className={`text-xl font-black mb-4 flex items-center gap-2 p-3 rounded-2xl ${ccTheme.titleText} ${isDarkMode ? 'bg-indigo-900/20' : 'bg-indigo-50'}`}>
+               <Icons.ClipboardList className="w-6 h-6"/> ประวัติการเคลื่อนไหวล่าสุด
+            </h2>
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
+              {auditLogs.slice(0, 30).map(log => {
+                let badgeColor = isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600';
+                let icon = '📌';
+                if (log.action.includes('เพิ่ม') || log.action.includes('นำเข้า')) { badgeColor = isDarkMode ? 'bg-blue-900/40 text-blue-400' : 'bg-blue-100 text-blue-700'; icon = '✨'; }
+                if (log.action.includes('แก้')) { badgeColor = isDarkMode ? 'bg-amber-900/40 text-amber-400' : 'bg-amber-100 text-amber-700'; icon = '✏️'; }
+                if (log.action.includes('ลบ')) { badgeColor = isDarkMode ? 'bg-rose-900/40 text-rose-400' : 'bg-rose-100 text-rose-700'; icon = '🗑️'; }
+                if (log.action.includes('ยืม')) { badgeColor = isDarkMode ? 'bg-purple-900/40 text-purple-400' : 'bg-purple-100 text-purple-700'; icon = '📤'; }
+                if (log.action.includes('คืน')) { badgeColor = isDarkMode ? 'bg-emerald-900/40 text-emerald-400' : 'bg-emerald-100 text-emerald-700'; icon = '📥'; }
+
+                return (
+                  <div key={log.id} className={`p-3.5 rounded-2xl border transition-shadow hover:shadow-md ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className={`text-xs font-bold px-2 py-1 rounded-lg ${badgeColor}`}>{icon} {log.action}</span>
+                      <span className={`text-xs font-semibold ${ccTheme.textMuted}`}>{new Date(log.timestamp).toLocaleTimeString('th-TH', {hour12: false})} น.</span>
+                    </div>
+                    <div className={`text-base font-bold truncate ${ccTheme.textMain}`}>{log.target}</div>
+                    <div className={`text-xs truncate mt-1 flex items-center gap-1.5 ${ccTheme.textMuted}`}>
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'}`}>👤</span> แอดมิน: {log.user}
+                    </div>
                   </div>
-                  <div className="text-base text-emerald-300 font-bold truncate">{log.target}</div>
-                  <div className="text-xs text-gray-500 truncate mt-1">BY: {log.user}</div>
+                );
+              })}
+              {auditLogs.length === 0 && (
+                <div className={`text-center font-medium mt-10 flex flex-col items-center ${ccTheme.textMuted}`}>
+                  <Icons.ViewGrid className={`w-12 h-12 mb-2 ${isDarkMode ? 'text-slate-700' : 'text-slate-200'}`} />
+                  ยังไม่มีการเคลื่อนไหว
                 </div>
-              ))}
-              {auditLogs.length === 0 && <div className="text-center text-emerald-800 mt-10">No recent activity</div>}
+              )}
             </div>
           </div>
+
         </div>
       </div>
     );
@@ -748,7 +806,7 @@ export default function App() {
           <div>
             <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textTitle}`}>
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v18.0 Checklist Pro</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v18.1 Command Dark Mode</span>
             </h1>
             <p className={`font-medium text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -899,7 +957,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* 📋 Table / List (นำ Checkbox ด้านหน้าออกแล้ว) */}
+      {/* 📋 Table / List */}
       <div className={`w-full rounded-2xl shadow-md border overflow-hidden relative transition-colors ${theme.cardBg}`}>
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-[900px]">
@@ -1389,159 +1447,6 @@ export default function App() {
             <div className="flex gap-3">
               <button type="button" onClick={() => setDeleteSettingConfirm(null)} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button type="button" onClick={handleDeleteSetting} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-200/20 text-lg hover:bg-rose-500">ลบรายการ</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add/Edit Form (แก้ไขให้ครบถ้วน) */}
-      {showForm && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl ${theme.cardBg}`}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className={`text-2xl font-black ${theme.textTitle}`}>{formData.id ? 'แก้ไขข้อมูล' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
-              <button type="button" onClick={() => setShowForm(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X /></button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="sm:col-span-2">
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ชื่ออุปกรณ์ <span className="text-rose-500">*</span></label>
-                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น กล้อง Sony A7IV" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-              </div>
-              
-              <div>
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ฝ่ายที่รับผิดชอบ</label>
-                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})}>
-                  {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>จำนวนชิ้น</label>
-                <input type="number" min="1" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.quantity} onChange={e => setFormData({...formData, quantity: e.target.value})} />
-              </div>
-              
-              <div>
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>หมวดหมู่อุปกรณ์</label>
-                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.category} onChange={e => setFormData({...formData, category: e.target.value, newCategory: e.target.value !== 'อื่นๆ' ? '' : formData.newCategory})}>
-                  <option value="" disabled>-- เลือกหมวดหมู่ --</option>
-                  {settingsOptions.categories.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>รหัส S.N. (ถ้ามี)</label>
-                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น CAM-001" value={formData.sn} onChange={e => setFormData({...formData, sn: e.target.value})} />
-              </div>
-
-              {formData.category === 'อื่นๆ' && (
-                <div className="sm:col-span-2">
-                  <label className="block text-base sm:text-lg font-bold text-blue-500 mb-2">เพิ่มหมวดหมู่ใหม่ / พิมพ์ระบุเอง</label>
-                  <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-800'}`} placeholder="พิมพ์ชื่อหมวดหมู่ใหม่..." value={formData.newCategory} onChange={e => setFormData({...formData, newCategory: e.target.value})} />
-                </div>
-              )}
-              
-              <div className="sm:col-span-2">
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>สถานที่จัดเก็บ / ห้อง</label>
-                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.location} onChange={e => setFormData({...formData, location: e.target.value, newLocation: e.target.value !== 'อื่นๆ' ? '' : formData.newLocation})}>
-                  <option value="" disabled>-- เลือกสถานที่ --</option>
-                  {settingsOptions.locations.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
-              {formData.location === 'อื่นๆ' && (
-                <div className="sm:col-span-2">
-                  <label className="block text-base sm:text-lg font-bold text-blue-500 mb-2">เพิ่มสถานที่ใหม่ / พิมพ์ระบุเอง</label>
-                  <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-800'}`} placeholder="พิมพ์ชื่อสถานที่จัดเก็บใหม่..." value={formData.newLocation} onChange={e => setFormData({...formData, newLocation: e.target.value})} />
-                </div>
-              )}
-              
-              <div className="sm:col-span-2">
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>สถานะ</label>
-                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
-                  {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
-              </div>
-
-              {/* 🔗 ระบบผูกอุปกรณ์ลูกข่าย (Parent-Child) */}
-              <div className="sm:col-span-2 mt-2">
-                <label className={`block text-base sm:text-lg font-bold mb-3 flex items-center gap-2 ${theme.textTitle}`}>
-                   <Icons.Link className="w-5 h-5 text-blue-500"/> อุปกรณ์ลูกข่าย (บังคับยืม-คืนพร้อมกันอัตโนมัติ)
-                </label>
-                <div className={`max-h-40 overflow-y-auto border rounded-xl p-3 space-y-2 custom-scrollbar ${theme.input}`}>
-                  {items.filter(i => i.id !== formData.id).length === 0 && <div className={`text-sm ${theme.textMuted}`}>ยังไม่มีอุปกรณ์อื่นๆ ในระบบให้ผูก</div>}
-                  {items.filter(i => i.id !== formData.id).map(i => (
-                    <label key={i.id} className={`flex items-center gap-3 cursor-pointer py-1 px-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}>
-                      <input type="checkbox" className="w-5 h-5 accent-blue-600 rounded"
-                        checked={formData.childIds?.includes(i.id) || false}
-                        onChange={(e) => {
-                          const newChildren = e.target.checked
-                            ? [...(formData.childIds || []), i.id]
-                            : (formData.childIds || []).filter(id => id !== i.id);
-                          setFormData({...formData, childIds: newChildren});
-                        }}
-                      />
-                      <span className={`text-base font-bold ${theme.textMain}`}>{i.name} <span className={`text-sm font-normal ${theme.textMuted}`}>(S.N: {i.sn || '-'})</span></span>
-                    </label>
-                  ))}
-                </div>
-                <p className={`text-xs mt-2 font-bold ${theme.textMuted}`}>* เหมาะสำหรับ แบตเตอรี่ เมมโมรี่การ์ด หรือสายชาร์จ ที่ต้องไปคู่กับอุปกรณ์นี้เสมอ</p>
-              </div>
-
-            </div>
-            <div className="flex gap-3 mt-8">
-              <button type="button" onClick={() => setShowForm(false)} className={`flex-1 py-4 font-bold rounded-xl transition-colors text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={handleSave} className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-colors text-lg">บันทึกข้อมูล</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* History Modal ของแต่ละอุปกรณ์ (แก้ไขให้ครบถ้วน) */}
-      {showHistory && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full max-h-[80vh] flex flex-col shadow-2xl ${theme.cardBg}`}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className={`text-2xl font-black ${theme.textTitle}`}>ประวัติการยืม-คืน</h3>
-              <button type="button" onClick={() => setShowHistory(null)} className={`p-2 hover:text-blue-500 transition-colors ${theme.textMuted}`}><Icons.X /></button>
-            </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
-              {items.find(i => i.id === showHistory)?.history?.length > 0 ? items.find(i => i.id === showHistory).history.slice().reverse().map((h, idx) => {
-                const isBorrow = h.type === 'borrow';
-                return (
-                  <div key={idx} className={`p-5 rounded-xl border ${isBorrow ? (isDarkMode ? 'bg-purple-900/20 border-purple-800/50' : 'bg-purple-50 border-purple-100') : (isDarkMode ? 'bg-emerald-900/20 border-emerald-800/50' : 'bg-emerald-50 border-emerald-100')}`}>
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className={`text-sm font-black px-3 py-1.5 rounded-md ${isBorrow ? (isDarkMode ? 'bg-purple-900/50 text-purple-400' : 'bg-purple-200 text-purple-700') : (isDarkMode ? 'bg-emerald-900/50 text-emerald-400' : 'bg-emerald-200 text-emerald-700')}`}>{isBorrow ? 'ยืมออก' : 'รับคืน'}</span>
-                      <span className={`text-base font-bold ${theme.textMuted}`}>{new Date(h.date).toLocaleString('th-TH')}</span>
-                    </div>
-                    {isBorrow ? (
-                      <div className={`text-lg ${theme.textMain}`}><p className="mb-1"><span className={`font-bold ${theme.textTitle}`}>ผู้ยืม:</span> {h.borrower}</p><p><span className={`font-bold ${theme.textTitle}`}>ผู้ให้ยืม (จนท.):</span> {h.staffOut || '-'}</p></div>
-                    ) : (
-                      <div className={`text-lg ${theme.textMain}`}><p><span className={`font-bold ${theme.textTitle}`}>ผู้รับคืน (จนท.):</span> {h.staffIn || '-'}</p></div>
-                    )}
-                  </div>
-                );
-              }) : (
-                <div className={`text-center py-8 font-bold text-xl ${theme.textMuted}`}>ยังไม่มีประวัติการใช้งาน</div>
-              )}
-            </div>
-            <div className={`mt-6 pt-4 border-t ${theme.divide}`}>
-              <button type="button" onClick={() => setShowHistory(null)} className={`w-full py-4 font-bold rounded-xl transition-colors text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal ยืนยันการลบอุปกรณ์ในตารางหลัก (แก้ไขให้ครบถ้วน) */}
-      {itemToDelete && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl ${theme.cardBg}`}>
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isDarkMode ? 'bg-rose-900/40 text-rose-500' : 'bg-rose-100 text-rose-500'}`}><Icons.Trash /></div>
-            <h3 className={`text-2xl font-black mb-2 ${theme.textTitle}`}>ลบอุปกรณ์?</h3>
-            <p className={`mb-6 text-lg ${theme.textMuted}`}>
-              คุณแน่ใจหรือไม่ที่จะลบ<br/>
-              <span className="font-bold text-rose-500 text-xl block mt-2">"{itemToDelete.name}"</span>
-            </p>
-            <div className="flex gap-3">
-              <button type="button" onClick={() => setItemToDelete(null)} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={handleDeleteItem} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/20 text-lg hover:bg-rose-500">ยืนยันการลบ</button>
             </div>
           </div>
         </div>
