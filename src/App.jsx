@@ -1062,6 +1062,12 @@ function MainApp() {
                 <Icons.Layers className="w-5 h-5" /> จัดการเซ็ต
               </button>
 
+              {(settingsOptions.bundles && settingsOptions.bundles.length > 0) && (
+                <button type="button" onClick={() => setShowBundleModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-purple-600 text-white hover:bg-purple-500' : 'bg-purple-600 text-white hover:bg-purple-700'}`}>
+                  <Icons.Package className="w-5 h-5" /> ใช้งานเซ็ต
+                </button>
+              )}
+
               <button type="button" onClick={() => setShowQuickReturnModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
                   <Icons.Users className="w-5 h-5" /> ติดตามของรอคืน
               </button>
