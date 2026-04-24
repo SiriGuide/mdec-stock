@@ -5,12 +5,12 @@ import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc } 
 
 // ⚠️ นำค่า Firebase Config ของคุณมาใส่ตรงนี้
 const myFirebaseConfig = {
-  apiKey: "AIzaSyA0IFm6icc-QG4ZC2WiuhRa2YquISGH9FM",
-  authDomain: "mdec-stock-app.firebaseapp.com",
-  projectId: "mdec-stock-app",
-  storageBucket: "mdec-stock-app.firebasestorage.app",
-  messagingSenderId: "283888438624",
-  appId: "1:283888438624:web:6cfe60c58d94dc00fda205"
+  apiKey: "ใส่_API_KEY_ของคุณที่นี่",
+  authDomain: "ใส่_AUTH_DOMAIN_ของคุณที่นี่",
+  projectId: "ใส่_PROJECT_ID_ของคุณที่นี่",
+  storageBucket: "ใส่_STORAGE_BUCKET_ของคุณที่นี่",
+  messagingSenderId: "ใส่_MESSAGING_SENDER_ID_ของคุณที่นี่",
+  appId: "ใส่_APP_ID_ของคุณที่นี่"
 };
 
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : myFirebaseConfig;
@@ -21,37 +21,37 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const ADMIN_PIN = 'mdec8203';
 
 const Icons = {
-  Plus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
-  Search: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
-  Edit: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
-  Trash: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
-  Package: () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>,
-  Alert: () => <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
-  Settings: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
-  X: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>,
-  History: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-  UserPlus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>,
-  CheckCircle: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-  Unlock: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>,
-  Lock: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
-  Download: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>,
-  Upload: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>,
-  ClipboardList: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>,
-  Folder: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>,
-  ViewGrid: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
-  Camera: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
-  VideoCamera: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>,
-  Speaker: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>,
-  Users: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>,
-  Signal: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" /></svg>,
-  Eye: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
-  EyeOff: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>,
-  Sun: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
-  Moon: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>,
-  Link: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>,
-  Layers: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
-  Monitor: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
-  Truck: ({ className }) => <svg className={`w-5 h-5 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.92l-1.09-1.09A4 4 0 0 0 16.92 9H14v8h2"/><circle cx="8.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/></svg>
+  Plus: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
+  Search: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
+  Edit: ({ className = "" }) => <svg className={`w-4 h-4 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
+  Trash: ({ className = "" }) => <svg className={`w-4 h-4 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
+  Package: ({ className = "" }) => <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>,
+  Alert: ({ className = "" }) => <svg className={`w-12 h-12 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
+  Settings: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /></svg>,
+  X: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>,
+  History: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+  UserPlus: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>,
+  CheckCircle: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+  Unlock: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>,
+  Lock: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
+  Download: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>,
+  Upload: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>,
+  ClipboardList: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>,
+  Folder: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>,
+  ViewGrid: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
+  Camera: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+  VideoCamera: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>,
+  Speaker: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>,
+  Users: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>,
+  Signal: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" /></svg>,
+  Eye: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
+  EyeOff: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>,
+  Sun: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
+  Moon: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>,
+  Link: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>,
+  Layers: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
+  Monitor: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
+  Truck: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.92l-1.09-1.09A4 4 0 0 0 16.92 9H14v8h2"/><circle cx="8.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/></svg>
 };
 
 const STATUSES = [
@@ -99,39 +99,6 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    if (showCommandCenter) {
-      const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-      return () => clearInterval(timer);
-    }
-  }, [showCommandCenter]);
-
-  useEffect(() => {
-    try { localStorage.setItem('mdec_theme', isDarkMode ? 'dark' : 'light'); } catch(e){}
-    if (isDarkMode) {
-      document.body.style.backgroundColor = '#0f172a'; 
-    } else {
-      document.body.style.backgroundColor = '#f1f5f9'; 
-    }
-  }, [isDarkMode]);
-
-  const theme = {
-    mainBg: isDarkMode ? 'bg-slate-900' : 'bg-slate-100',
-    textMain: isDarkMode ? 'text-slate-100' : 'text-slate-800',
-    textTitle: isDarkMode ? 'text-white' : 'text-slate-900',
-    textMuted: isDarkMode ? 'text-slate-400' : 'text-slate-500',
-    cardBg: isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200',
-    input: isDarkMode ? 'bg-slate-900 border-slate-600 text-white focus:ring-blue-500' : 'bg-slate-50 border-slate-300 text-slate-700 focus:ring-blue-500',
-    th: isDarkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-slate-200 border-slate-300 text-slate-700',
-    trHover: isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50',
-    divide: isDarkMode ? 'divide-slate-700' : 'divide-slate-100',
-    btnSecondary: isDarkMode ? 'bg-slate-700 text-slate-200 hover:bg-slate-600 border-slate-600' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-300',
-    btnCancel: isDarkMode ? 'bg-slate-700 text-slate-200 hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
-    modalOverlay: isDarkMode ? 'bg-black/70' : 'bg-slate-900/40',
-    statCard: isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800',
-  };
-
   const [showLogin, setShowLogin] = useState(false);
   const [pin, setPin] = useState('');
   const [firebaseError, setFirebaseError] = useState(false);
@@ -176,6 +143,38 @@ export default function App() {
   const [auditLogs, setAuditLogs] = useState([]);
 
   useEffect(() => {
+    if (showCommandCenter) {
+      const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+      return () => clearInterval(timer);
+    }
+  }, [showCommandCenter]);
+
+  useEffect(() => {
+    try { localStorage.setItem('mdec_theme', isDarkMode ? 'dark' : 'light'); } catch(e){}
+    if (isDarkMode) {
+      document.body.style.backgroundColor = '#0f172a'; 
+    } else {
+      document.body.style.backgroundColor = '#f1f5f9'; 
+    }
+  }, [isDarkMode]);
+
+  const theme = {
+    mainBg: isDarkMode ? 'bg-slate-900' : 'bg-slate-100',
+    textMain: isDarkMode ? 'text-slate-100' : 'text-slate-800',
+    textTitle: isDarkMode ? 'text-white' : 'text-slate-900',
+    textMuted: isDarkMode ? 'text-slate-400' : 'text-slate-500',
+    cardBg: isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200',
+    input: isDarkMode ? 'bg-slate-900 border-slate-600 text-white focus:ring-blue-500' : 'bg-slate-50 border-slate-300 text-slate-700 focus:ring-blue-500',
+    th: isDarkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-slate-200 border-slate-300 text-slate-700',
+    trHover: isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50',
+    divide: isDarkMode ? 'divide-slate-700' : 'divide-slate-100',
+    btnSecondary: isDarkMode ? 'bg-slate-700 text-slate-200 hover:bg-slate-600 border-slate-600' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-300',
+    btnCancel: isDarkMode ? 'bg-slate-700 text-slate-200 hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+    modalOverlay: isDarkMode ? 'bg-black/70' : 'bg-slate-900/40',
+    statCard: isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800',
+  };
+
+  useEffect(() => {
     const initAuth = async () => {
       try {
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -201,8 +200,8 @@ export default function App() {
 
     const unsubscribeItems = onSnapshot(itemsRef, (snapshot) => {
       const loadedItems = [];
-      snapshot.forEach((doc) => {
-        loadedItems.push({ ...doc.data(), id: doc.id });
+      snapshot.forEach((docSnap) => {
+        loadedItems.push({ ...docSnap.data(), id: docSnap.id });
       });
       setItems(loadedItems);
       setFirebaseError(false);
@@ -214,9 +213,12 @@ export default function App() {
     const unsubscribeSettings = onSnapshot(settingsRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (!data.staff) data.staff = ['แอดมิน', 'อื่นๆ'];
-        if (!data.bundles) data.bundles = [];
-        setSettingsOptions(data);
+        setSettingsOptions({
+          categories: data.categories || ['กล้อง', 'เลนส์', 'ไมโครโฟน', 'ชุดลำโพง', 'ถ่าน/แบต', 'สายไฟ', 'อื่นๆ'],
+          locations: data.locations || ['ตู้ A1', 'ห้องเก็บของ 2', 'ห้องประชุม 1', 'อื่นๆ'],
+          staff: data.staff || ['แอดมิน', 'อื่นๆ'],
+          bundles: data.bundles || []
+        });
       } else {
         const defaultSettings = {
           categories: ['กล้อง', 'เลนส์', 'ไมโครโฟน', 'ชุดลำโพง', 'ถ่าน/แบต', 'สายไฟ', 'อื่นๆ'],
@@ -243,13 +245,15 @@ export default function App() {
       const auditRef = collection(db, 'artifacts', appId, 'public', 'data', 'audit_logs');
       const unsub = onSnapshot(auditRef, (snapshot) => {
         const logs = [];
-        snapshot.forEach((doc) => logs.push({ id: doc.id, ...doc.data() }));
+        snapshot.forEach((docSnap) => logs.push({ id: docSnap.id, ...docSnap.data() }));
         logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         setAuditLogs(logs);
       }, (error) => console.error(error));
       return () => unsub();
     }
   }, [user, showAuditModal, showCommandCenter]);
+
+  const fileInputRef = useRef(null);
 
   const logAction = async (actionType, targetName, details) => {
     if (!user) return;
@@ -325,7 +329,7 @@ export default function App() {
 
   const categoryStats = useMemo(() => {
     const catData = {};
-    settingsOptions.categories.filter(c => c !== 'อื่นๆ').forEach(cat => {
+    (settingsOptions?.categories || []).filter(c => c !== 'อื่นๆ').forEach(cat => {
       catData[cat] = { total: 0, available: 0 };
     });
 
@@ -344,7 +348,7 @@ export default function App() {
       result = result.filter(item => item.data.total > 0);
     }
     return result;
-  }, [deptItems, settingsOptions.categories, showEmptyCategories]);
+  }, [deptItems, settingsOptions, showEmptyCategories]);
 
   const activeGroups = useMemo(() => {
     const groups = {};
@@ -366,15 +370,15 @@ export default function App() {
     if (!showSettings || settingsTab !== 'bundles') return [];
     const search = bundleSearchTerm.toLowerCase().trim();
     const filtered = items.filter(i => 
-      i.name.toLowerCase().includes(search) || 
-      (i.sn && i.sn.toLowerCase().includes(search))
+      (i?.name || '').toLowerCase().includes(search) || 
+      (i?.sn && i.sn.toLowerCase().includes(search))
     );
     return filtered.sort((a, b) => {
-      const aSel = bundleForm.itemIds.includes(a.id);
-      const bSel = bundleForm.itemIds.includes(b.id);
+      const aSel = (bundleForm.itemIds || []).includes(a.id);
+      const bSel = (bundleForm.itemIds || []).includes(b.id);
       if (aSel && !bSel) return -1;
       if (!aSel && bSel) return 1;
-      return a.name.localeCompare(b.name, 'th', { numeric: true });
+      return (a.name||'').localeCompare(b.name||'', 'th', { numeric: true });
     });
   }, [items, bundleSearchTerm, bundleForm.itemIds, showSettings, settingsTab]);
 
@@ -397,7 +401,7 @@ export default function App() {
     let finalCategory = formData.category;
     if (formData.category === 'อื่นๆ' && formData.newCategory.trim()) {
       finalCategory = formData.newCategory.trim();
-      const updatedCategories = [...new Set([...settingsOptions.categories.filter(c => c !== 'อื่นๆ'), finalCategory, 'อื่นๆ'])];
+      const updatedCategories = [...new Set([...(settingsOptions.categories || []).filter(c => c !== 'อื่นๆ'), finalCategory, 'อื่นๆ'])];
       setSettingsOptions(prev => ({ ...prev, categories: updatedCategories }));
       await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), { ...settingsOptions, categories: updatedCategories });
     }
@@ -405,7 +409,7 @@ export default function App() {
     let finalLocation = formData.location;
     if (formData.location === 'อื่นๆ' && formData.newLocation.trim()) {
       finalLocation = formData.newLocation.trim();
-      const updatedLocations = [...new Set([...settingsOptions.locations.filter(c => c !== 'อื่นๆ'), finalLocation, 'อื่นๆ'])];
+      const updatedLocations = [...new Set([...(settingsOptions.locations || []).filter(c => c !== 'อื่นๆ'), finalLocation, 'อื่นๆ'])];
       setSettingsOptions(prev => ({ ...prev, locations: updatedLocations }));
       await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), { ...settingsOptions, locations: updatedLocations });
     }
@@ -568,7 +572,7 @@ export default function App() {
   };
 
   const handleSaveBundle = async () => {
-    if (!user || !bundleForm.name.trim() || bundleForm.itemIds.length === 0) return alert('กรุณาใส่ชื่อเซ็ต และเลือกอุปกรณ์อย่างน้อย 1 ชิ้น');
+    if (!user || !bundleForm.name.trim() || (bundleForm.itemIds || []).length === 0) return alert('กรุณาใส่ชื่อเซ็ต และเลือกอุปกรณ์อย่างน้อย 1 ชิ้น');
     
     let newBundles;
     if (bundleForm.id) {
@@ -598,11 +602,11 @@ export default function App() {
   };
 
   const handleSelectBundleToBorrow = (bundle) => {
-    const availableIds = bundle.itemIds.filter(id => items.find(i => i.id === id)?.status === 'available');
+    const availableIds = (bundle.itemIds || []).filter(id => items.find(i => i.id === id)?.status === 'available');
     if (availableIds.length === 0) return alert('❌ ไม่สามารถยืมได้: อุปกรณ์ในเซ็ตนี้ถูกใช้งานไปหมดแล้ว');
     
-    if (availableIds.length < bundle.itemIds.length) {
-      const proceed = confirm(`⚠️ อุปกรณ์ในเซ็ตไม่ครบ!\nมีอุปกรณ์พร้อมใช้งานเพียง ${availableIds.length} จาก ${bundle.itemIds.length} ชิ้น\nคุณต้องการกดยืมชิ้นที่เหลือเท่าที่มีหรือไม่?`);
+    if (availableIds.length < (bundle.itemIds || []).length) {
+      const proceed = confirm(`⚠️ อุปกรณ์ในเซ็ตไม่ครบ!\nมีอุปกรณ์พร้อมใช้งานเพียง ${availableIds.length} จาก ${(bundle.itemIds || []).length} ชิ้น\nคุณต้องการกดยืมชิ้นที่เหลือเท่าที่มีหรือไม่?`);
       if (!proceed) return;
     }
     
@@ -614,11 +618,11 @@ export default function App() {
   };
 
   const handleSelectBundleToEvent = (bundle) => {
-    const availableIds = bundle.itemIds.filter(id => items.find(i => i.id === id)?.status === 'available');
+    const availableIds = (bundle.itemIds || []).filter(id => items.find(i => i.id === id)?.status === 'available');
     if (availableIds.length === 0) return alert('❌ ไม่สามารถนำออกงานได้: อุปกรณ์ในเซ็ตนี้ถูกใช้งานไปหมดแล้ว');
     
-    if (availableIds.length < bundle.itemIds.length) {
-      const proceed = confirm(`⚠️ อุปกรณ์ในเซ็ตไม่ครบ!\nมีอุปกรณ์พร้อมใช้งานเพียง ${availableIds.length} จาก ${bundle.itemIds.length} ชิ้น\nคุณต้องการกดนำออกชิ้นที่เหลือเท่าที่มีหรือไม่?`);
+    if (availableIds.length < (bundle.itemIds || []).length) {
+      const proceed = confirm(`⚠️ อุปกรณ์ในเซ็ตไม่ครบ!\nมีอุปกรณ์พร้อมใช้งานเพียง ${availableIds.length} จาก ${(bundle.itemIds || []).length} ชิ้น\nคุณต้องการกดนำออกชิ้นที่เหลือเท่าที่มีหรือไม่?`);
       if (!proceed) return;
     }
     
@@ -630,7 +634,7 @@ export default function App() {
   };
 
   const handleSelectBundleToReturn = (bundle) => {
-    const outIds = bundle.itemIds.filter(id => {
+    const outIds = (bundle.itemIds || []).filter(id => {
       const st = items.find(i => i.id === id)?.status;
       return st === 'borrowed' || st === 'out-for-event';
     });
@@ -808,6 +812,7 @@ export default function App() {
     try { localStorage.removeItem('mdec_admin'); } catch(e) {}
   };
 
+  // 🎛️ Command Center (รองรับ Light & Dark Mode)
   if (showCommandCenter) {
     const healthPercentage = stats.all > 0 ? Math.round((stats.available / stats.all) * 100) : 0;
     
@@ -840,7 +845,7 @@ export default function App() {
           </h1>
           <div className="flex items-center gap-4 sm:gap-6">
             <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className={`flex items-center justify-center p-3 font-bold rounded-xl transition-colors shadow-sm ${isDarkMode ? 'bg-slate-800 text-slate-200 hover:bg-slate-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`} title={isDarkMode ? "เปลี่ยนเป็นโหมดสว่าง" : "เปลี่ยนเป็นโหมดกลางคืน"}>
-              {isDarkMode ? <Icons.Sun /> : <Icons.Moon />}
+              {isDarkMode ? <Icons.Sun className="w-5 h-5"/> : <Icons.Moon className="w-5 h-5"/>}
             </button>
             <span className="text-lg animate-pulse text-rose-500 font-bold hidden sm:flex items-center gap-2">
               <span className="w-3 h-3 bg-rose-500 rounded-full shadow-[0_0_8px_rgba(244,63,94,0.6)]"></span> เคลื่อนไหวสด
@@ -898,7 +903,7 @@ export default function App() {
             {overdueItems.length > 0 ? (
               <div className={`border-2 p-5 rounded-3xl flex-1 flex flex-col shadow-sm animate-[pulse_3s_ease-in-out_infinite] ${isDarkMode ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-200'}`}>
                 <h3 className={`font-black mb-3 flex items-center gap-2 text-lg ${isDarkMode ? 'text-rose-400' : 'text-rose-600'}`}>
-                  <Icons.Alert className="w-7 h-7 text-rose-500"/> อุปกรณ์เลยกำหนดคืน! ({overdueItems.length})
+                  <Icons.Alert className="w-7 h-7 text-rose-500" /> อุปกรณ์เลยกำหนดคืน! ({overdueItems.length})
                 </h3>
                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
                   {overdueItems.map(i => (
@@ -967,7 +972,7 @@ export default function App() {
     <div className={`min-h-screen font-sans p-4 sm:p-8 pb-32 transition-colors duration-300 ${theme.mainBg} ${theme.textMain}`}>
       {firebaseError && (
         <div className="w-full mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl shadow-md flex items-start gap-4">
-          <Icons.Alert />
+          <Icons.Alert className="w-6 h-6" />
           <div>
             <h3 className="font-bold text-lg">ฐานข้อมูลถูกระงับ (Firebase Permission Error)</h3>
             <p>โปรดตรวจสอบการเชื่อมต่อ Firebase และสิทธิ์การเข้าถึง (Firestore Rules)</p>
@@ -978,52 +983,52 @@ export default function App() {
       {/* Header */}
       <div className={`w-full flex flex-col xl:flex-row justify-between items-center mb-8 gap-4 p-6 rounded-2xl shadow-md border transition-colors ${theme.cardBg}`}>
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg"><Icons.Package /></div>
+          <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg"><Icons.Package className="w-8 h-8" /></div>
           <div>
             <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textTitle}`}>
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v19.7 Stable Auth</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v19.8 Super Safe</span>
             </h1>
             <p className={`font-medium text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
         </div>
         <div className="flex flex-wrap justify-center gap-2 sm:gap-3 w-full xl:w-auto">
           <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className={`flex items-center justify-center p-3 font-bold rounded-xl transition-colors shadow-sm ${theme.btnCancel}`} title={isDarkMode ? "เปลี่ยนเป็นโหมดสว่าง" : "เปลี่ยนเป็นโหมดกลางคืน"}>
-            {isDarkMode ? <Icons.Sun /> : <Icons.Moon />}
+            {isDarkMode ? <Icons.Sun className="w-5 h-5" /> : <Icons.Moon className="w-5 h-5" />}
           </button>
 
           {isAdmin && (
             <>
               <button type="button" onClick={() => setShowCommandCenter(true)} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors flex ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-800/60 border border-emerald-800' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`} title="เปิดหน้าจอควบคุมรวม (Dashboard)">
-                <Icons.Monitor /><span className="hidden sm:inline">Command Center</span>
+                <Icons.Monitor className="w-5 h-5" /><span className="hidden sm:inline">Command Center</span>
               </button>
 
               <input type="file" accept=".csv" ref={fileInputRef} className="hidden" onChange={handleImportCSV} />
               <button type="button" onClick={() => fileInputRef.current.click()} className={`flex items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors ${theme.btnCancel}`} title="นำเข้าข้อมูลจาก Excel (.csv)">
-                <Icons.Upload />
+                <Icons.Upload className="w-5 h-5" />
               </button>
               
               <button type="button" onClick={exportToCSV} className={`flex items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors ${theme.btnCancel}`} title="ส่งออกข้อมูลเป็นตาราง (Sheet)">
-                <Icons.Download />
+                <Icons.Download className="w-5 h-5" />
               </button>
 
               <button type="button" onClick={() => setShowAuditModal(true)} className={`flex items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors ${theme.btnCancel}`} title="ดูประวัติการทำงานส่วนกลาง">
-                <Icons.ClipboardList />
+                <Icons.ClipboardList className="w-5 h-5" />
               </button>
               
               <button type="button" onClick={() => { setSettingsTab('categories'); setShowSettings(true); }} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors shadow-sm ${theme.btnCancel}`}>
-                <Icons.Settings /><span className="hidden sm:inline">ตั้งค่า</span>
+                <Icons.Settings className="w-5 h-5" /><span className="hidden sm:inline">ตั้งค่า</span>
               </button>
               
               <button type="button" onClick={handleLogout} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors flex ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-800/60 border border-rose-800' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'}`} title="ออกจากระบบแอดมิน">
-                <Icons.Unlock />
+                <Icons.Unlock className="w-5 h-5" />
               </button>
             </>
           )}
           
           {!isAdmin && (
             <button type="button" onClick={() => setShowLogin(true)} className={`flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 font-bold rounded-xl transition-colors shadow-md flex ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-slate-800 text-white hover:bg-slate-700'}`}>
-              <Icons.Lock /><span className="hidden sm:inline">เข้าสู่ระบบจัดการ</span>
+              <Icons.Lock className="w-5 h-5" /><span className="hidden sm:inline">เข้าสู่ระบบจัดการ</span>
             </button>
           )}
         </div>
@@ -1032,7 +1037,7 @@ export default function App() {
       {/* แจ้งเตือนของเลยกำหนดคืน */}
       {overdueItems.length > 0 && (
         <div className={`w-full mb-8 border-l-4 p-5 rounded-r-2xl shadow-md flex items-start gap-4 animate-[pulse_2s_ease-in-out_infinite] ${isDarkMode ? 'bg-rose-900/30 border-rose-500 text-rose-300' : 'bg-rose-100 border-rose-500 text-rose-800'}`}>
-          <div className={isDarkMode ? 'text-rose-400' : 'text-rose-500'}><Icons.Alert /></div>
+          <div className={isDarkMode ? 'text-rose-400' : 'text-rose-500'}><Icons.Alert className="w-6 h-6" /></div>
           <div>
             <h3 className={`font-black text-xl mb-1 ${isDarkMode ? 'text-rose-400' : 'text-rose-800'}`}>⚠️ แจ้งเตือน: มีอุปกรณ์เลยกำหนดคืน {overdueItems.length} รายการ!</h3>
             <p className={`font-medium ${isDarkMode ? 'text-rose-400' : 'text-rose-600'}`}>โปรดตรวจสอบรายการที่มีแถบสีแดงในตาราง หรือทวงถามผู้ยืม</p>
@@ -1094,18 +1099,18 @@ export default function App() {
       <div className={`w-full flex flex-col gap-4 p-5 sm:p-6 rounded-2xl shadow-md border mb-6 transition-colors ${theme.cardBg}`}>
         <div className="flex flex-col xl:flex-row gap-4 items-center w-full">
           <div className="relative flex-1 w-full">
-            <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${theme.textMuted}`}><Icons.Search /></div>
+            <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${theme.textMuted}`}><Icons.Search className="w-5 h-5" /></div>
             <input type="text" className={`w-full pl-12 pr-4 py-4 rounded-xl text-lg font-bold outline-none transition-all border ${theme.input}`} placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           
           <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto">
             <select className={`flex-1 px-4 py-4 rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterLocation} onChange={e => setFilterLocation(e.target.value)}>
               <option value="all">สถานที่/ห้อง ทั้งหมด</option>
-              {settingsOptions.locations.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+              {(settingsOptions.locations || []).filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <select className={`flex-1 px-4 py-4 rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
               <option value="all">หมวดหมู่ทั้งหมด</option>
-              {settingsOptions.categories.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+              {(settingsOptions.categories || []).filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <select className={`flex-1 px-4 py-4 rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
               <option value="all">สถานะทั้งหมด</option>
@@ -1115,11 +1120,11 @@ export default function App() {
 
           {isAdmin && (
             <div className="flex gap-2 w-full xl:w-auto">
-              <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, childIds: [] }); setShowForm(true); }} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}><Icons.Plus /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span></button>
+              <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, childIds: [] }); setShowForm(true); }} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}><Icons.Plus className="w-5 h-5" /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span></button>
               
               {(settingsOptions.bundles && settingsOptions.bundles.length > 0) && (
                 <button type="button" onClick={() => setShowBundleModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-purple-600 text-white hover:bg-purple-500' : 'bg-purple-600 text-white hover:bg-purple-700'}`}>
-                  <Icons.Layers /> จัดการเซ็ต
+                  <Icons.Layers className="w-5 h-5" /> จัดการเซ็ต
                 </button>
               )}
 
@@ -1395,330 +1400,376 @@ export default function App() {
         </div>
       )}
 
-      {/* Settings Modal (การตั้งค่า / จัดการเซ็ต) */}
-      {showSettings && (
+      {/* 📦 Modal ทำรายการจากเซ็ต (Borrow/Return Bundles) */}
+      {showBundleModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl shadow-2xl w-full ${settingsTab === 'bundles' ? 'max-w-4xl' : 'max-w-lg'} overflow-hidden flex flex-col max-h-[90vh] transition-all duration-300 ${theme.cardBg}`}>
-            <div className={`flex border-b overflow-x-auto custom-scrollbar shrink-0 ${theme.divide}`}>
-              <button type="button" onClick={() => {setSettingsTab('categories'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'categories' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>หมวดหมู่</button>
-              <button type="button" onClick={() => {setSettingsTab('locations'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'locations' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>สถานที่</button>
-              <button type="button" onClick={() => {setSettingsTab('staff'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'staff' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>เจ้าหน้าที่</button>
-              <button type="button" onClick={() => {setSettingsTab('bundles'); setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'bundles' ? 'text-purple-500 border-purple-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>เซ็ตอุปกรณ์</button>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
+            <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
+              <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.Layers className="w-6 h-6 text-purple-500" /> ทำรายการแบบเซ็ตอุปกรณ์</h3>
+              <button type="button" onClick={() => setShowBundleModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
-            
-            <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
-              {settingsTab !== 'bundles' && (
-                <div className="p-6">
-                  <div className="flex gap-2 mb-6">
-                    <input type="text" className={`flex-1 px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder={`พิมพ์${settingsTab === 'categories' ? 'หมวดหมู่' : settingsTab === 'locations' ? 'สถานที่' : 'ชื่อเจ้าหน้าที่'}ใหม่...`} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} />
-                    <button type="button" onClick={handleSaveSetting} className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg">{editingSettingItem !== null ? 'บันทึก' : 'เพิ่ม'}</button>
-                    {editingSettingItem !== null && <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-4 py-3 font-bold rounded-xl ${theme.btnCancel}`}><Icons.X className="w-5 h-5" /></button>}
-                  </div>
-                  <div className="max-h-[50vh] overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2">
-                    {(settingsOptions[settingsTab] || []).filter(c => c !== 'อื่นๆ').map((item, index) => (
-                      <div key={index} className={`flex justify-between items-center p-4 border rounded-xl group transition-colors ${theme.btnSecondary}`}>
-                        <span className={`font-bold text-lg ${theme.textTitle}`}>{item}</span>
-                        <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button type="button" onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`}><Icons.Edit className="w-4 h-4" /></button>
-                          <button type="button" onClick={() => setDeleteSettingConfirm(item)} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`}><Icons.Trash className="w-4 h-4" /></button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+              {(settingsOptions.bundles || []).length === 0 ? (
+                <div className={`text-center py-10 font-bold text-xl ${theme.textMuted}`}>ยังไม่มีเซ็ตอุปกรณ์ (สร้างได้ที่เมนูตั้งค่า)</div>
+              ) : (settingsOptions.bundles || []).map((bundle) => {
+                const totalInBundle = bundle.itemIds.length;
+                const availableIds = bundle.itemIds.filter(id => items.find(i => i.id === id)?.status === 'available');
+                const outIds = bundle.itemIds.filter(id => {
+                  const st = items.find(i => i.id === id)?.status;
+                  return st === 'borrowed' || st === 'out-for-event';
+                });
+                
+                const readyInBundle = availableIds.length;
+                const outCount = outIds.length;
 
-              {/* 📦 เนื้อหาแท็บ เซ็ตอุปกรณ์ (Bundles) */}
-              {settingsTab === 'bundles' && (
-                <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8 h-full min-h-[50vh]">
-                  
-                  {/* ซ้าย: รายการเซ็ตที่มีอยู่ */}
-                  <div className={`flex flex-col border-b lg:border-b-0 lg:border-r pb-6 lg:pb-0 lg:pr-6 ${theme.divide}`}>
-                    <h4 className={`font-black text-xl mb-4 ${theme.textTitle}`}>รายการเซ็ตอุปกรณ์ ({(settingsOptions.bundles || []).length})</h4>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3 min-h-[200px]">
-                      {(settingsOptions.bundles || []).length === 0 && <div className={`text-center py-6 font-bold ${theme.textMuted}`}>ยังไม่มีการสร้างเซ็ตอุปกรณ์</div>}
-                      {(settingsOptions.bundles || []).map((b) => (
-                        <div key={b.id} className={`p-4 rounded-2xl border flex flex-col group transition-colors ${isDarkMode ? 'bg-slate-800/40 border-slate-700 hover:border-slate-600' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
-                          <div className="flex justify-between items-start mb-1">
-                            <div>
-                              <span className={`font-black text-lg ${theme.textTitle}`}>{b.name}</span>
-                              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ประกอบด้วยอุปกรณ์ {b.itemIds.length} ชิ้น</p>
-                            </div>
-                            <div className="flex gap-2">
-                              <button type="button" onClick={() => { setBundleForm({ id: b.id, name: b.name, itemIds: b.itemIds }); setBundleSearchTerm(''); }} className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shadow-sm ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-white border text-purple-600 hover:bg-purple-600 hover:text-white'}`}><Icons.Edit className="w-4 h-4" /></button>
-                              <button type="button" onClick={() => handleDeleteBundle(b.id)} className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shadow-sm ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-white border text-rose-600 hover:bg-rose-600 hover:text-white'}`}><Icons.Trash className="w-4 h-4" /></button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* ขวา: ฟอร์มสร้าง/แก้ไขเซ็ต */}
-                  <div className={`p-5 rounded-2xl border flex flex-col h-full ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className="flex justify-between items-center mb-4">
-                      <h4 className={`font-black text-lg flex items-center gap-2 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
-                        {bundleForm.id ? <Icons.Edit className="w-6 h-6"/> : <Icons.Plus className="w-6 h-6"/>} 
-                        {bundleForm.id ? 'แก้ไขเซ็ตอุปกรณ์' : 'สร้างเซ็ตใหม่'}
-                      </h4>
-                      {bundleForm.id && (
-                        <button onClick={() => { setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); }} className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}>
-                          ยกเลิกแก้ไข
-                        </button>
-                      )}
-                    </div>
-                    
-                    <label className={`font-bold mb-1 ${theme.textTitle}`}>ชื่อเซ็ต <span className="text-rose-500">*</span></label>
-                    <input type="text" className={`w-full px-4 py-3 mb-4 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-purple-500 ${theme.input}`} placeholder="เช่น: เซ็ตสัมภาษณ์, ชุดเครื่องเสียง B" value={bundleForm.name} onChange={e => setBundleForm({...bundleForm, name: e.target.value})} />
-                    
-                    <div className="flex justify-between items-end mb-1">
-                      <label className={`font-bold ${theme.textTitle}`}>เลือกอุปกรณ์เข้าเซ็ต <span className={`text-sm ${theme.textMuted}`}>({bundleForm.itemIds.length} ชิ้น)</span></label>
-                    </div>
-                    
-                    <div className="relative mb-2">
-                      <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${theme.textMuted}`}><Icons.Search className="w-4 h-4" /></div>
-                      <input type="text" className={`w-full pl-9 pr-3 py-2.5 rounded-lg text-sm font-bold outline-none border focus:ring-2 focus:ring-purple-500 ${theme.input}`} placeholder="ค้นหาชื่ออุปกรณ์, รหัส เพื่อจัดเซ็ต..." value={bundleSearchTerm} onChange={e => setBundleSearchTerm(e.target.value)} />
-                    </div>
-
-                    {/* ลิสต์อุปกรณ์สำหรับเลือกเข้าเซ็ต */}
-                    <div className={`flex-1 min-h-[250px] max-h-[35vh] overflow-y-auto p-2 mb-4 rounded-xl border space-y-1 custom-scrollbar ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                      {sortedBundleItems.length === 0 ? (
-                        <div className={`text-center py-6 text-sm font-bold ${theme.textMuted}`}>ไม่พบอุปกรณ์ที่ค้นหา</div>
-                      ) : sortedBundleItems.map(i => {
-                        const isSelected = bundleForm.itemIds.includes(i.id);
-                        const s = STATUSES.find(st => st.id === i.status) || STATUSES[0];
-                        return (
-                          <label key={i.id} className={`flex justify-between items-center cursor-pointer py-2 px-3 rounded-lg border transition-all ${isSelected ? (isDarkMode ? 'bg-purple-900/40 border-purple-700' : 'bg-purple-50 border-purple-300') : (isDarkMode ? 'bg-slate-800 border-transparent hover:bg-slate-700' : 'bg-white border-transparent hover:bg-slate-50')} ${theme.textMain}`}>
-                            <div className="flex items-center gap-3 min-w-0 pr-2">
-                              <input type="checkbox" className="w-5 h-5 accent-purple-600 rounded shrink-0 cursor-pointer" checked={isSelected} onChange={(e) => {
-                                const newIds = e.target.checked ? [...bundleForm.itemIds, i.id] : bundleForm.itemIds.filter(id => id !== i.id);
-                                setBundleForm({...bundleForm, itemIds: newIds});
-                              }} />
-                              <div className="truncate">
-                                <span className={`font-bold ${isSelected ? (isDarkMode ? 'text-purple-300' : 'text-purple-700') : ''}`}>{i.name}</span>
-                                <span className={`text-xs ml-2 ${isSelected ? (isDarkMode ? 'text-purple-400/70' : 'text-purple-600/70') : theme.textMuted}`}>(S.N: {i.sn || '-'})</span>
-                              </div>
-                            </div>
-                            <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-md font-bold whitespace-nowrap ${isDarkMode ? s.darkColor : s.color}`}>{s.label}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                    
-                    <button type="button" onClick={handleSaveBundle} disabled={!bundleForm.name.trim() || bundleForm.itemIds.length === 0} className={`w-full py-4 font-black rounded-xl text-lg shadow-lg transition-colors mt-auto ${bundleForm.name.trim() && bundleForm.itemIds.length > 0 ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-500/30' : (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-300 text-slate-500 cursor-not-allowed')}`}>
-                      {bundleForm.id ? 'บันทึกการแก้ไข' : 'บันทึกเซ็ตใหม่'}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className={`p-4 border-t shrink-0 ${theme.divide}`}>
-              <button type="button" onClick={() => { setShowSettings(false); setEditingSettingItem(null); setNewSettingItem(''); }} className={`w-full py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal 1: ยืนยันการลบการตั้งค่า (Settings) */}
-      {deleteSettingConfirm !== null && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl ${theme.cardBg}`}>
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isDarkMode ? 'bg-rose-900/40 text-rose-500' : 'bg-rose-100 text-rose-500'}`}><Icons.Trash className="w-10 h-10" /></div>
-            <h3 className={`text-2xl font-black mb-2 ${theme.textTitle}`}>ยืนยันการลบ?</h3>
-            <p className={`mb-8 text-lg ${theme.textMuted}`}>รายการ <span className="font-bold text-rose-500">"{deleteSettingConfirm}"</span> จะหายไปจากตัวเลือก</p>
-            <div className="flex gap-3">
-              <button type="button" onClick={() => setDeleteSettingConfirm(null)} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={handleDeleteSetting} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-200/20 text-lg hover:bg-rose-500">ลบรายการ</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add/Edit Form */}
-      {showForm && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl ${theme.cardBg}`}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className={`text-2xl font-black ${theme.textTitle}`}>{formData.id ? 'แก้ไขข้อมูล' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
-              <button type="button" onClick={() => setShowForm(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="sm:col-span-2">
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ชื่ออุปกรณ์ <span className="text-rose-500">*</span></label>
-                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น กล้อง Sony A7IV" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-              </div>
-              
-              <div>
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ฝ่ายที่รับผิดชอบ</label>
-                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})}>
-                  {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>จำนวนชิ้น</label>
-                <input type="number" min="1" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.quantity} onChange={e => setFormData({...formData, quantity: e.target.value})} />
-              </div>
-              
-              <div>
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>หมวดหมู่อุปกรณ์</label>
-                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.category} onChange={e => setFormData({...formData, category: e.target.value, newCategory: e.target.value !== 'อื่นๆ' ? '' : formData.newCategory})}>
-                  <option value="" disabled>-- เลือกหมวดหมู่ --</option>
-                  {settingsOptions.categories.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>รหัส S.N. (ถ้ามี)</label>
-                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น CAM-001" value={formData.sn} onChange={e => setFormData({...formData, sn: e.target.value})} />
-              </div>
-
-              {formData.category === 'อื่นๆ' && (
-                <div className="sm:col-span-2">
-                  <label className="block text-base sm:text-lg font-bold text-blue-500 mb-2">เพิ่มหมวดหมู่ใหม่ / พิมพ์ระบุเอง</label>
-                  <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-800'}`} placeholder="พิมพ์ชื่อหมวดหมู่ใหม่..." value={formData.newCategory} onChange={e => setFormData({...formData, newCategory: e.target.value})} />
-                </div>
-              )}
-              
-              <div className="sm:col-span-2">
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>สถานที่จัดเก็บ / ห้อง</label>
-                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.location} onChange={e => setFormData({...formData, location: e.target.value, newLocation: e.target.value !== 'อื่นๆ' ? '' : formData.newLocation})}>
-                  <option value="" disabled>-- เลือกสถานที่ --</option>
-                  {settingsOptions.locations.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
-              {formData.location === 'อื่นๆ' && (
-                <div className="sm:col-span-2">
-                  <label className="block text-base sm:text-lg font-bold text-blue-500 mb-2">เพิ่มสถานที่ใหม่ / พิมพ์ระบุเอง</label>
-                  <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-800'}`} placeholder="พิมพ์ชื่อสถานที่จัดเก็บใหม่..." value={formData.newLocation} onChange={e => setFormData({...formData, newLocation: e.target.value})} />
-                </div>
-              )}
-              
-              <div className="sm:col-span-2">
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>สถานะ</label>
-                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
-                  {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
-              </div>
-
-              {/* 🔗 ระบบผูกอุปกรณ์ลูกข่าย (Parent-Child) */}
-              <div className="sm:col-span-2 mt-2">
-                <label className={`block text-base sm:text-lg font-bold mb-3 flex items-center gap-2 ${theme.textTitle}`}>
-                   <Icons.Link className="w-5 h-5 text-blue-500"/> อุปกรณ์ลูกข่าย (บังคับยืม-คืนพร้อมกันอัตโนมัติ)
-                </label>
-                <div className={`max-h-40 overflow-y-auto border rounded-xl p-3 space-y-2 custom-scrollbar ${theme.input}`}>
-                  {items.filter(i => i.id !== formData.id).length === 0 && <div className={`text-sm ${theme.textMuted}`}>ยังไม่มีอุปกรณ์อื่นๆ ในระบบให้ผูก</div>}
-                  {items.filter(i => i.id !== formData.id).map(i => (
-                    <label key={i.id} className={`flex items-center gap-3 cursor-pointer py-1 px-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}>
-                      <input type="checkbox" className="w-5 h-5 accent-blue-600 rounded"
-                        checked={formData.childIds?.includes(i.id) || false}
-                        onChange={(e) => {
-                          const newChildren = e.target.checked
-                            ? [...(formData.childIds || []), i.id]
-                            : (formData.childIds || []).filter(id => id !== i.id);
-                          setFormData({...formData, childIds: newChildren});
-                        }}
-                      />
-                      <span className={`text-base font-bold ${theme.textMain}`}>{i.name} <span className={`text-sm font-normal ${theme.textMuted}`}>(S.N: {i.sn || '-'})</span></span>
-                    </label>
-                  ))}
-                </div>
-                <p className={`text-xs mt-2 font-bold ${theme.textMuted}`}>* เหมาะสำหรับ แบตเตอรี่ เมมโมรี่การ์ด หรือสายชาร์จ ที่ต้องไปคู่กับอุปกรณ์นี้เสมอ</p>
-              </div>
-
-            </div>
-            <div className="flex gap-3 mt-8">
-              <button type="button" onClick={() => setShowForm(false)} className={`flex-1 py-4 font-bold rounded-xl transition-colors text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={handleSave} className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-colors text-lg">บันทึกข้อมูล</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* History Modal ของแต่ละอุปกรณ์ */}
-      {showHistory && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full max-h-[80vh] flex flex-col shadow-2xl ${theme.cardBg}`}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className={`text-2xl font-black ${theme.textTitle}`}>ประวัติการยืม-คืน</h3>
-              <button type="button" onClick={() => setShowHistory(null)} className={`p-2 hover:text-blue-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
-            </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
-              {items.find(i => i.id === showHistory)?.history?.length > 0 ? items.find(i => i.id === showHistory).history.slice().reverse().map((h, idx) => {
-                const isBorrow = h.type === 'borrow';
-                const isEvent = h.type === 'event';
                 return (
-                  <div key={idx} className={`p-5 rounded-xl border ${isBorrow ? (isDarkMode ? 'bg-purple-900/20 border-purple-800/50' : 'bg-purple-50 border-purple-100') : isEvent ? (isDarkMode ? 'bg-orange-900/20 border-orange-800/50' : 'bg-orange-50 border-orange-100') : (isDarkMode ? 'bg-emerald-900/20 border-emerald-800/50' : 'bg-emerald-50 border-emerald-100')}`}>
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className={`text-sm font-black px-3 py-1.5 rounded-md ${isBorrow ? (isDarkMode ? 'bg-purple-900/50 text-purple-400' : 'bg-purple-200 text-purple-700') : isEvent ? (isDarkMode ? 'bg-orange-900/50 text-orange-400' : 'bg-orange-200 text-orange-700') : (isDarkMode ? 'bg-emerald-900/50 text-emerald-400' : 'bg-emerald-200 text-emerald-700')}`}>{isBorrow ? 'ยืมออก' : isEvent ? 'ออกงาน' : 'รับคืน'}</span>
-                      <span className={`text-base font-bold ${theme.textMuted}`}>{new Date(h.date).toLocaleString('th-TH')}</span>
+                  <div key={bundle.id} className={`p-5 rounded-2xl border flex flex-col lg:flex-row lg:items-start justify-between gap-4 transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                      <div>
+                        <h4 className={`text-xl font-black mb-2 ${theme.textTitle}`}>{bundle.name}</h4>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1">
+                           <p className={`text-sm font-bold ${readyInBundle > 0 ? 'text-purple-500' : theme.textMuted}`}>
+                             พร้อมใช้: {readyInBundle}/{totalInBundle} ชิ้น
+                           </p>
+                           <p className={`text-sm font-bold ${outCount > 0 ? 'text-emerald-500' : theme.textMuted}`}>
+                             รอรับคืน: {outCount}/{totalInBundle} ชิ้น
+                           </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+                        <button 
+                          onClick={() => handleSelectBundleToBorrow(bundle)}
+                          disabled={readyInBundle === 0}
+                          className={`flex-1 lg:flex-none justify-center px-4 py-3 font-bold rounded-xl transition-colors whitespace-nowrap flex items-center gap-2 ${readyInBundle === 0 ? (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-purple-600 hover:bg-purple-500 text-white shadow-md'}`}
+                        >
+                          <Icons.UserPlus className="w-5 h-5" /> ยืมเซ็ตนี้
+                        </button>
+
+                        <button 
+                          onClick={() => handleSelectBundleToEvent(bundle)}
+                          disabled={readyInBundle === 0}
+                          className={`flex-1 lg:flex-none justify-center px-4 py-3 font-bold rounded-xl transition-colors whitespace-nowrap flex items-center gap-2 ${readyInBundle === 0 ? (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-orange-600 hover:bg-orange-500 text-white shadow-md'}`}
+                        >
+                          <Icons.Truck className="w-5 h-5" /> นำออกงาน
+                        </button>
+
+                        <button 
+                          onClick={() => handleSelectBundleToReturn(bundle)}
+                          disabled={outCount === 0}
+                          className={`flex-1 lg:flex-none justify-center px-4 py-3 font-bold rounded-xl transition-colors whitespace-nowrap flex items-center gap-2 ${outCount === 0 ? (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'}`}
+                        >
+                          <Icons.CheckCircle className="w-5 h-5" /> รับคืนเซ็ตนี้
+                        </button>
+                      </div>
                     </div>
-                    {isBorrow ? (
-                      <div className={`text-lg ${theme.textMain}`}>
-                        <p className="mb-1"><span className={`font-bold ${theme.textTitle}`}>ผู้ยืม:</span> {h.borrower}</p>
-                        <p><span className={`font-bold ${theme.textTitle}`}>ผู้ให้ยืม (จนท.):</span> {h.staffOut || '-'}</p>
-                        {h.note && <p className="mt-2 text-sm italic opacity-80"><span className={`font-bold ${theme.textTitle}`}>หมายเหตุ:</span> {h.note}</p>}
+                    
+                    <div className={`mt-2 p-3 rounded-xl border max-h-40 overflow-y-auto custom-scrollbar ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <h5 className={`text-sm font-bold mb-2 ${theme.textMuted}`}>รายการอุปกรณ์ในเซ็ต:</h5>
+                      <div className="space-y-1.5">
+                        {bundle.itemIds.map(id => {
+                          const i = items.find(it => it.id === id);
+                          if (!i) return <div key={id} className="text-xs text-rose-500 font-bold border-b border-rose-500/20 pb-1">⚠️ ไม่พบอุปกรณ์ (อาจถูกลบไปแล้ว)</div>;
+                          const s = STATUSES.find(st => st.id === i.status) || STATUSES[0];
+                          return (
+                            <div key={id} className={`flex justify-between items-center text-sm py-1 border-b last:border-0 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                              <span className={`truncate pr-2 ${theme.textMain}`}>- {i.name} <span className={theme.textMuted}>({i.sn || 'ไม่มี S.N.'})</span></span>
+                              <span className={`text-[11px] px-2 py-0.5 rounded-md font-bold whitespace-nowrap ${isDarkMode ? s.darkColor : s.color}`}>{s.label}</span>
+                            </div>
+                          );
+                        })}
                       </div>
-                    ) : isEvent ? (
-                      <div className={`text-lg ${theme.textMain}`}>
-                        <p className="mb-1"><span className={`font-bold ${theme.textTitle}`}>ชื่องาน:</span> {h.eventName}</p>
-                        <p><span className={`font-bold ${theme.textTitle}`}>ผู้นำออก (จนท.):</span> {h.staffOut || '-'}</p>
-                        {h.note && <p className="mt-2 text-sm italic opacity-80"><span className={`font-bold ${theme.textTitle}`}>หมายเหตุ:</span> {h.note}</p>}
-                      </div>
-                    ) : (
-                      <div className={`text-lg ${theme.textMain}`}><p><span className={`font-bold ${theme.textTitle}`}>ผู้รับคืน (จนท.):</span> {h.staffIn || '-'}</p></div>
-                    )}
+                    </div>
                   </div>
                 );
-              }) : (
-                <div className={`text-center py-8 font-bold text-xl ${theme.textMuted}`}>ยังไม่มีประวัติการใช้งาน</div>
+              })}
+            </div>
+            <div className={`p-4 border-t shrink-0 ${theme.divide}`}>
+              <button type="button" onClick={() => setShowBundleModal(false)} className={`w-full py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📋 Borrow Modal (แบบมีระบบ Checklist) */}
+      {borrowTargetIds.length > 0 && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.UserPlus className="text-purple-500 w-6 h-6" /> บันทึกการให้ยืม</h3>
+              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ผู้ให้ยืม (จนท.) <span className="text-rose-500">*</span></label>
+                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-purple-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} value={borrowData.staff} onChange={e => setBorrowData({...borrowData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : borrowData.newStaff})}>
+                  <option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>
+                  {(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              {borrowData.staff === 'อื่นๆ' && (
+                <div>
+                  <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-purple-500 ${isDarkMode ? 'bg-purple-900/20 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-300 text-purple-800'}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่..." value={borrowData.newStaff} onChange={e => setBorrowData({...borrowData, newStaff: e.target.value})} />
+                </div>
               )}
+              
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ชื่อผู้ยืม <span className="text-rose-500">*</span></label>
+                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-purple-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} placeholder="ชื่อ-สกุล หรือ แผนก" value={borrowData.borrower} onChange={e => setBorrowData({...borrowData, borrower: e.target.value})} />
+              </div>
+              
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>กำหนดคืน</label>
+                <input type="date" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-purple-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} value={borrowData.returnDate} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} />
+              </div>
+
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>หมายเหตุ <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่บังคับ)</span></label>
+                <textarea className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-purple-500 resize-none ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} rows="2" placeholder="เช่น ยืมไปถ่าย MV, ขาตั้งมีรอยถลอก..." value={borrowData.note} onChange={e => setBorrowData({...borrowData, note: e.target.value})}></textarea>
+              </div>
             </div>
-            <div className={`mt-6 pt-4 border-t ${theme.divide}`}>
-              <button type="button" onClick={() => setShowHistory(null)} className={`w-full py-4 font-bold rounded-xl transition-colors text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+
+            <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="flex justify-between items-center mb-3">
+                <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                  <Icons.ClipboardList className="w-5 h-5" /> เช็คลิสต์ก่อนปล่อยยืม ({packingChecklist.length}/{borrowTargetIds.length})
+                </h4>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (packingChecklist.length === borrowTargetIds.length) setPackingChecklist([]);
+                    else setPackingChecklist([...borrowTargetIds]);
+                  }}
+                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-purple-900/40 hover:bg-purple-800 text-purple-400' : 'bg-purple-100 hover:bg-purple-200 text-purple-700'}`}
+                >
+                  {packingChecklist.length === borrowTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                </button>
+              </div>
+              <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                {borrowTargetIds.map(id => {
+                  const item = items.find(i => i.id === id);
+                  if(!item) return null;
+                  const isChecked = packingChecklist.includes(id);
+                  return (
+                    <label key={id} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${isChecked ? (isDarkMode ? 'bg-purple-900/40 border-purple-800' : 'bg-purple-50 border-purple-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
+                      <input type="checkbox" className="w-5 h-5 accent-purple-600 rounded mt-0.5 cursor-pointer shrink-0"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if(e.target.checked) setPackingChecklist([...packingChecklist, id]);
+                          else setPackingChecklist(packingChecklist.filter(c => c !== id));
+                        }}
+                      />
+                      <span className={`font-bold text-sm sm:text-base leading-tight ${isChecked ? (isDarkMode ? 'text-purple-400 line-through opacity-70' : 'text-purple-700 line-through opacity-70') : theme.textMain}`}>
+                        {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
             </div>
+
+            <div className="flex gap-3">
+              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); }} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button 
+                type="button" 
+                onClick={handleBorrow} 
+                disabled={!borrowData.borrower || !borrowData.staff || packingChecklist.length === 0} 
+                className={`flex-1 py-4 font-bold rounded-xl text-lg transition-colors ${(!borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-purple-600 text-white hover:bg-purple-500 shadow-lg shadow-purple-500/20'}`}
+              >
+                {packingChecklist.length > 0 && packingChecklist.length < borrowTargetIds.length ? `ยืนยันการยืม (${packingChecklist.length} ชิ้น)` : 'ยืนยันการยืม'}
+              </button>
+            </div>
+            {packingChecklist.length < borrowTargetIds.length && packingChecklist.length > 0 && (
+               <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-500'}`}>* อุปกรณ์ที่ไม่ได้ติ๊ก จะไม่ถูกยืมออกไป (ทำรายการบางส่วน)</p>
+            )}
+            {packingChecklist.length === 0 && (
+               <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>* กรุณาติ๊กเลือกอุปกรณ์อย่างน้อย 1 ชิ้นเพื่อทำรายการ</p>
+            )}
           </div>
         </div>
       )}
 
-      {/* Modal ยืนยันการลบอุปกรณ์ในตารางหลัก */}
-      {itemToDelete && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl ${theme.cardBg}`}>
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isDarkMode ? 'bg-rose-900/40 text-rose-500' : 'bg-rose-100 text-rose-500'}`}><Icons.Trash className="w-10 h-10" /></div>
-            <h3 className={`text-2xl font-black mb-2 ${theme.textTitle}`}>ลบอุปกรณ์?</h3>
-            <p className={`mb-6 text-lg ${theme.textMuted}`}>
-              คุณแน่ใจหรือไม่ที่จะลบ<br/>
-              <span className="font-bold text-rose-500 text-xl block mt-2">"{itemToDelete.name}"</span>
-            </p>
-            <div className="flex gap-3">
-              <button type="button" onClick={() => setItemToDelete(null)} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={handleDeleteItem} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/20 text-lg hover:bg-rose-500">ยืนยันการลบ</button>
+      {/* 🚚 Event Modal (ระบบนำออกงาน) */}
+      {eventTargetIds.length > 0 && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.Truck className="text-orange-500 w-6 h-6" /> นำอุปกรณ์ออกงาน</h3>
+              <button type="button" onClick={() => { setEventTargetIds([]); setEventChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ผู้นำออก / ผู้รับผิดชอบ <span className="text-rose-500">*</span></label>
+                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-orange-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} value={eventData.staff} onChange={e => setEventData({...eventData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : eventData.newStaff})}>
+                  <option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>
+                  {(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              {eventData.staff === 'อื่นๆ' && (
+                <div>
+                  <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-orange-500 ${isDarkMode ? 'bg-orange-900/20 border-orange-800 text-orange-300' : 'bg-orange-50 border-orange-300 text-orange-800'}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่..." value={eventData.newStaff} onChange={e => setEventData({...eventData, newStaff: e.target.value})} />
+                </div>
+              )}
+              
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ชื่องาน (Project / Event) <span className="text-rose-500">*</span></label>
+                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-orange-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} placeholder="เช่น งานถ่าย MV, งานประชุมประจำปี..." value={eventData.eventName} onChange={e => setEventData({...eventData, eventName: e.target.value})} />
+              </div>
+              
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>กำหนดกลับ / คืนของ</label>
+                <input type="date" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-orange-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} value={eventData.returnDate} onChange={e => setEventData({...eventData, returnDate: e.target.value})} />
+              </div>
+
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>สถานที่ / หมายเหตุ <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่บังคับ)</span></label>
+                <textarea className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-orange-500 resize-none ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} rows="2" placeholder="เช่น สถานที่จัดงาน, เบอร์โทรติดต่อ..." value={eventData.note} onChange={e => setEventData({...eventData, note: e.target.value})}></textarea>
+              </div>
+            </div>
+
+            <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="flex justify-between items-center mb-3">
+                <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                  <Icons.ClipboardList className="w-5 h-5" /> เช็คของขึ้นรถ ({eventChecklist.length}/{eventTargetIds.length})
+                </h4>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (eventChecklist.length === eventTargetIds.length) setEventChecklist([]);
+                    else setEventChecklist([...eventTargetIds]);
+                  }}
+                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-orange-900/40 hover:bg-orange-800 text-orange-400' : 'bg-orange-100 hover:bg-orange-200 text-orange-700'}`}
+                >
+                  {eventChecklist.length === eventTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                </button>
+              </div>
+              <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                {eventTargetIds.map(id => {
+                  const item = items.find(i => i.id === id);
+                  if(!item) return null;
+                  const isChecked = eventChecklist.includes(id);
+                  return (
+                    <label key={id} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${isChecked ? (isDarkMode ? 'bg-orange-900/40 border-orange-800' : 'bg-orange-50 border-orange-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
+                      <input type="checkbox" className="w-5 h-5 accent-orange-600 rounded mt-0.5 cursor-pointer shrink-0"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if(e.target.checked) setEventChecklist([...eventChecklist, id]);
+                          else setEventChecklist(eventChecklist.filter(c => c !== id));
+                        }}
+                      />
+                      <span className={`font-bold text-sm sm:text-base leading-tight ${isChecked ? (isDarkMode ? 'text-orange-400 line-through opacity-70' : 'text-orange-700 line-through opacity-70') : theme.textMain}`}>
+                        {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button type="button" onClick={() => { setEventTargetIds([]); setEventChecklist([]); }} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button 
+                type="button" 
+                onClick={handleEventOut} 
+                disabled={!eventData.eventName || !eventData.staff || eventChecklist.length === 0} 
+                className={`flex-1 py-4 font-bold rounded-xl text-lg transition-colors ${(!eventData.eventName || !eventData.staff || eventChecklist.length === 0) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-orange-600 text-white hover:bg-orange-500 shadow-lg shadow-orange-500/20'}`}
+              >
+                {eventChecklist.length > 0 && eventChecklist.length < eventTargetIds.length ? `ยืนยันนำออก (${eventChecklist.length} ชิ้น)` : 'ยืนยันการนำออกงาน'}
+              </button>
+            </div>
+            {eventChecklist.length < eventTargetIds.length && eventChecklist.length > 0 && (
+               <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-500'}`}>* อุปกรณ์ที่ไม่ได้ติ๊ก จะไม่ถูกนำออกไป (ทำรายการบางส่วน)</p>
+            )}
+            {eventChecklist.length === 0 && (
+               <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>* กรุณาติ๊กเลือกอุปกรณ์อย่างน้อย 1 ชิ้นเพื่อทำรายการ</p>
+            )}
           </div>
         </div>
       )}
 
-      {/* Login Modal */}
-      {showLogin && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-8 max-w-sm w-full shadow-2xl ${theme.cardBg}`}>
-            <h3 className={`text-2xl font-black mb-6 text-center ${theme.textTitle}`}>เข้าสู่ระบบจัดการ</h3>
-            <input type="password" autoFocus className={`w-full px-4 py-4 border rounded-xl font-bold text-center text-3xl tracking-widest outline-none mb-6 ${theme.input}`} maxLength={8} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
-            <div className="flex gap-3">
-              <button type="button" onClick={() => setShowLogin(false)} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={handleLogin} className="flex-1 py-4 bg-blue-600 text-white font-bold rounded-xl text-lg hover:bg-blue-500">เข้าสู่ระบบ</button>
+      {/* 📋 Return Modal (ระบบรับคืน) */}
+      {returnTargetIds.length > 0 && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.CheckCircle className="text-emerald-500 w-6 h-6" /> บันทึกรับคืนอุปกรณ์</h3>
+              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
+            
+            <div className="mb-6">
+              <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ผู้รับคืน (จนท.) <span className="text-rose-500">*</span></label>
+              <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-emerald-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} value={returnData.staff} onChange={e => setReturnData({...returnData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : returnData.newStaff})}>
+                <option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>
+                {(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            {returnData.staff === 'อื่นๆ' && (
+              <div className="mb-6">
+                <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-emerald-500 ${isDarkMode ? 'bg-emerald-900/20 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-300 text-emerald-800'}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่..." value={returnData.newStaff} onChange={e => setReturnData({...returnData, newStaff: e.target.value})} />
+              </div>
+            )}
+
+            <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="flex justify-between items-center mb-3">
+                <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                  <Icons.ClipboardList className="w-5 h-5" /> เช็คลิสต์ของเข้ากล่อง ({returnChecklist.length}/{returnTargetIds.length})
+                </h4>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (returnChecklist.length === returnTargetIds.length) setReturnChecklist([]);
+                    else setReturnChecklist([...returnTargetIds]);
+                  }}
+                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-emerald-900/40 hover:bg-emerald-800 text-emerald-400' : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700'}`}
+                >
+                  {returnChecklist.length === returnTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                </button>
+              </div>
+              <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                {returnTargetIds.map(id => {
+                  const item = items.find(i => i.id === id);
+                  if(!item) return null;
+                  const isChecked = returnChecklist.includes(id);
+                  return (
+                    <label key={id} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${isChecked ? (isDarkMode ? 'bg-emerald-900/40 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
+                      <input type="checkbox" className="w-5 h-5 accent-emerald-600 rounded mt-0.5 cursor-pointer shrink-0"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if(e.target.checked) setReturnChecklist([...returnChecklist, id]);
+                          else setReturnChecklist(returnChecklist.filter(c => c !== id));
+                        }}
+                      />
+                      <span className={`font-bold text-sm sm:text-base leading-tight ${isChecked ? (isDarkMode ? 'text-emerald-400 line-through opacity-70' : 'text-emerald-700 line-through opacity-70') : theme.textMain}`}>
+                        {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); }} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button 
+                type="button" 
+                onClick={handleReturn} 
+                disabled={!returnData.staff || returnChecklist.length === 0} 
+                className={`flex-1 py-4 font-bold rounded-xl text-lg transition-colors ${(!returnData.staff || returnChecklist.length === 0) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20'}`}
+              >
+                {returnChecklist.length > 0 && returnChecklist.length < returnTargetIds.length ? `ยืนยันรับคืน (${returnChecklist.length} ชิ้น)` : 'ยืนยันการรับคืน'}
+              </button>
+            </div>
+            {returnChecklist.length < returnTargetIds.length && returnChecklist.length > 0 && (
+               <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-500'}`}>* อุปกรณ์ที่ไม่ได้ติ๊ก จะยังคงถูกยืม/ออกงานต่อไป (รับคืนบางส่วน)</p>
+            )}
+            {returnChecklist.length === 0 && (
+               <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>* กรุณาติ๊กเลือกอุปกรณ์อย่างน้อย 1 ชิ้นเพื่อทำรายการ</p>
+            )}
           </div>
         </div>
       )}
-      
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes slideUp {
-          from { transform: translate(-50%, 100%); opacity: 0; }
-          to { transform: translate(-50%, 0); opacity: 1; }
-        }
-      `}} />
+
     </div>
   );
 }
