@@ -82,6 +82,7 @@ export default function App() {
   const [filterDept, setFilterDept] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterLocation, setFilterLocation] = useState('all');
 
   const [isAdmin, setIsAdmin] = useState(() => {
     try { return localStorage.getItem('mdec_admin') === 'true'; } 
@@ -247,8 +248,9 @@ export default function App() {
       const matchDept = filterDept === 'all' || String(item.department) === String(filterDept);
       const matchCategory = filterCategory === 'all' || String(item.category) === String(filterCategory);
       const matchStatus = filterStatus === 'all' || String(item.status) === String(filterStatus);
+      const matchLocation = filterLocation === 'all' || String(item.location) === String(filterLocation);
       
-      return matchSearch && matchDept && matchCategory && matchStatus;
+      return matchSearch && matchDept && matchCategory && matchStatus && matchLocation;
     });
 
     result.sort((a, b) => {
@@ -262,7 +264,7 @@ export default function App() {
     });
 
     return result;
-  }, [items, searchTerm, filterDept, filterCategory, filterStatus]);
+  }, [items, searchTerm, filterDept, filterCategory, filterStatus, filterLocation]);
 
   const todayMs = new Date().setHours(0,0,0,0);
   const overdueItems = items.filter(item => {
@@ -933,7 +935,7 @@ export default function App() {
           <div>
             <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textTitle}`}>
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v19.2 Ultimate Tracker</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v19.3 Smart Filter</span>
             </h1>
             <p className={`font-medium text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -1049,7 +1051,11 @@ export default function App() {
             <input type="text" className={`w-full pl-12 pr-4 py-4 rounded-xl text-lg font-bold outline-none transition-all border ${theme.input}`} placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+          <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto">
+            <select className={`flex-1 px-4 py-4 rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterLocation} onChange={e => setFilterLocation(e.target.value)}>
+              <option value="all">สถานที่/ห้อง ทั้งหมด</option>
+              {settingsOptions.locations.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
             <select className={`flex-1 px-4 py-4 rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
               <option value="all">หมวดหมู่ทั้งหมด</option>
               {settingsOptions.categories.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
