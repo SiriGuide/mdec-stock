@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
 import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc } from "firebase/firestore";
 
 // ⚠️ นำค่า Firebase Config ของคุณมาใส่ตรงนี้
@@ -17,6 +17,7 @@ const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__f
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const ADMIN_PIN = 'mdec8203';
 
 const Icons = {
@@ -97,6 +98,8 @@ export default function App() {
   const [showCommandCenter, setShowCommandCenter] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  const [user, setUser] = useState(null);
+
   useEffect(() => {
     if (showCommandCenter) {
       const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -163,7 +166,7 @@ export default function App() {
 
   const [showBundleModal, setShowBundleModal] = useState(false);
   const [bundleForm, setBundleForm] = useState({ id: null, name: '', itemIds: [] });
-  const [bundleSearchTerm, setBundleSearchTerm] = useState(''); // 💡 สถานะคำค้นหาสำหรับจัดเซ็ต
+  const [bundleSearchTerm, setBundleSearchTerm] = useState(''); 
   
   const [showQuickReturnModal, setShowQuickReturnModal] = useState(false);
 
@@ -172,9 +175,86 @@ export default function App() {
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
 
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (error) {
+        console.error("Auth init error", error);
+        setFirebaseError(true);
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const itemsRef = collection(db, 'artifacts', appId, 'public', 'data', 'items');
+    const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global');
+
+    const unsubscribeItems = onSnapshot(itemsRef, (snapshot) => {
+      const loadedItems = [];
+      snapshot.forEach((doc) => {
+        loadedItems.push({ ...doc.data(), id: doc.id });
+      });
+      setItems(loadedItems);
+      setFirebaseError(false);
+    }, (error) => {
+      console.error(error);
+      setFirebaseError(true);
+    });
+
+    const unsubscribeSettings = onSnapshot(settingsRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (!data.staff) data.staff = ['แอดมิน', 'อื่นๆ'];
+        if (!data.bundles) data.bundles = [];
+        setSettingsOptions(data);
+      } else {
+        const defaultSettings = {
+          categories: ['กล้อง', 'เลนส์', 'ไมโครโฟน', 'ชุดลำโพง', 'ถ่าน/แบต', 'สายไฟ', 'อื่นๆ'],
+          locations: ['ตู้ A1', 'ห้องเก็บของ 2', 'ห้องประชุม 1', 'อื่นๆ'],
+          staff: ['แอดมิน', 'อื่นๆ'],
+          bundles: [] 
+        };
+        setDoc(settingsRef, defaultSettings);
+      }
+    }, (error) => {
+      console.error(error);
+      setFirebaseError(true);
+    });
+
+    return () => {
+      unsubscribeItems();
+      unsubscribeSettings();
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (showAuditModal || showCommandCenter) {
+      const auditRef = collection(db, 'artifacts', appId, 'public', 'data', 'audit_logs');
+      const unsub = onSnapshot(auditRef, (snapshot) => {
+        const logs = [];
+        snapshot.forEach((doc) => logs.push({ id: doc.id, ...doc.data() }));
+        logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        setAuditLogs(logs);
+      }, (error) => console.error(error));
+      return () => unsub();
+    }
+  }, [user, showAuditModal, showCommandCenter]);
+
   const logAction = async (actionType, targetName, details) => {
+    if (!user) return;
     try {
-      await addDoc(collection(db, "mdec_stock", "shared_data", "audit_logs"), {
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'audit_logs'), {
         timestamp: new Date().toISOString(),
         action: actionType,
         target: targetName,
@@ -185,57 +265,6 @@ export default function App() {
       console.error("Audit Log Error:", e);
     }
   };
-
-  const fileInputRef = useRef(null);
-
-  useEffect(() => {
-    signInAnonymously(auth).catch(() => setFirebaseError(true));
-    
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        const unsubscribeItems = onSnapshot(collection(db, "mdec_stock", "shared_data", "items"), (snapshot) => {
-          const loadedItems = [];
-          snapshot.forEach((doc) => {
-            loadedItems.push({ ...doc.data(), id: doc.id });
-          });
-          setItems(loadedItems);
-          setFirebaseError(false);
-        }, (error) => {
-          console.error(error);
-          setFirebaseError(true);
-        });
-
-        const unsubscribeSettings = onSnapshot(doc(db, "mdec_stock", "shared_data", "settings", "global"), (docSnap) => {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (!data.staff) data.staff = ['แอดมิน', 'อื่นๆ'];
-            if (!data.bundles) data.bundles = [];
-            setSettingsOptions(data);
-          } else {
-            setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), settingsOptions);
-          }
-        });
-
-        return () => {
-          unsubscribeItems();
-          unsubscribeSettings();
-        };
-      }
-    });
-    return () => unsubscribeAuth();
-  }, []);
-
-  useEffect(() => {
-    if (showAuditModal || showCommandCenter) {
-      const unsub = onSnapshot(collection(db, "mdec_stock", "shared_data", "audit_logs"), (snapshot) => {
-        const logs = [];
-        snapshot.forEach((doc) => logs.push({ id: doc.id, ...doc.data() }));
-        logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        setAuditLogs(logs);
-      });
-      return () => unsub();
-    }
-  }, [showAuditModal, showCommandCenter]);
 
   const filteredItems = useMemo(() => {
     let result = items.filter(item => {
@@ -333,7 +362,6 @@ export default function App() {
     return Object.values(groups);
   }, [items]);
 
-  // 💡 สร้าง List อุปกรณ์สำหรับหน้าจัดเซ็ตโดยเฉพาะ (มีระบบค้นหา & ดันของที่เลือกไว้บนสุด)
   const sortedBundleItems = useMemo(() => {
     if (!showSettings || settingsTab !== 'bundles') return [];
     const search = bundleSearchTerm.toLowerCase().trim();
@@ -351,7 +379,7 @@ export default function App() {
   }, [items, bundleSearchTerm, bundleForm.itemIds, showSettings, settingsTab]);
 
   const handleSave = async () => {
-    if (!formData.name.trim()) return;
+    if (!user || !formData.name.trim()) return;
 
     const snInput = formData.sn.trim();
     if (snInput) {
@@ -371,7 +399,7 @@ export default function App() {
       finalCategory = formData.newCategory.trim();
       const updatedCategories = [...new Set([...settingsOptions.categories.filter(c => c !== 'อื่นๆ'), finalCategory, 'อื่นๆ'])];
       setSettingsOptions(prev => ({ ...prev, categories: updatedCategories }));
-      await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), { ...settingsOptions, categories: updatedCategories });
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), { ...settingsOptions, categories: updatedCategories });
     }
 
     let finalLocation = formData.location;
@@ -379,7 +407,7 @@ export default function App() {
       finalLocation = formData.newLocation.trim();
       const updatedLocations = [...new Set([...settingsOptions.locations.filter(c => c !== 'อื่นๆ'), finalLocation, 'อื่นๆ'])];
       setSettingsOptions(prev => ({ ...prev, locations: updatedLocations }));
-      await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), { ...settingsOptions, locations: updatedLocations });
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), { ...settingsOptions, locations: updatedLocations });
     }
 
     const itemData = { 
@@ -396,28 +424,27 @@ export default function App() {
     delete itemData.id;
     
     if (isEdit) {
-      await setDoc(doc(db, "mdec_stock", "shared_data", "items", formData.id), itemData, { merge: true });
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', formData.id), itemData, { merge: true });
       await logAction('แก้ไขข้อมูล', itemData.name, `แก้ไขรายละเอียดอุปกรณ์ S.N.: ${itemData.sn || '-'}`);
     } else {
       const newId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      await setDoc(doc(db, "mdec_stock", "shared_data", "items", newId), { ...itemData, history: [] });
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', newId), { ...itemData, history: [] });
       await logAction('เพิ่มอุปกรณ์', itemData.name, `เพิ่มเข้าสู่ระบบใหม่ หมวดหมู่: ${itemData.category}`);
     }
     setShowForm(false);
   };
 
   const handleDeleteItem = async () => {
-    if (itemToDelete && itemToDelete.id) {
-      try {
-        const itemName = itemToDelete.name;
-        await deleteDoc(doc(db, "mdec_stock", "shared_data", "items", itemToDelete.id));
-        await logAction('ลบข้อมูล', itemName, `ลบอุปกรณ์ออกจากระบบ`);
-        setItemToDelete(null);
-      } catch (error) {
-        console.error("Error deleting item:", error);
-        alert(`เกิดข้อผิดพลาดจากฐานข้อมูล: ${error.message}`);
-        setItemToDelete(null);
-      }
+    if (!user || !itemToDelete || !itemToDelete.id) return;
+    try {
+      const itemName = itemToDelete.name;
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', itemToDelete.id));
+      await logAction('ลบข้อมูล', itemName, `ลบอุปกรณ์ออกจากระบบ`);
+      setItemToDelete(null);
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      alert(`เกิดข้อผิดพลาดจากฐานข้อมูล: ${error.message}`);
+      setItemToDelete(null);
     }
   };
 
@@ -433,14 +460,14 @@ export default function App() {
   };
 
   const handleBorrow = async () => {
-    if (!borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return;
+    if (!user || !borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return;
     let finalStaff = borrowData.staff;
     if (borrowData.staff === 'อื่นๆ' && borrowData.newStaff.trim()) {
       finalStaff = borrowData.newStaff.trim();
       const updatedStaff = [...new Set([...(settingsOptions.staff || []).filter(c => c !== 'อื่นๆ'), finalStaff, 'อื่นๆ'])];
       const newSettings = { ...settingsOptions, staff: updatedStaff };
       setSettingsOptions(newSettings);
-      await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), newSettings);
     }
     
     const newHistoryEntry = { type: 'borrow', date: new Date().toISOString(), borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff, note: borrowData.note };
@@ -452,7 +479,7 @@ export default function App() {
         if (!item || item.status !== 'available') return Promise.resolve(); 
         borrowedNames.push(item.name);
         const newHistory = [...(item.history || []), newHistoryEntry];
-        return setDoc(doc(db, "mdec_stock", "shared_data", "items", id), { status: 'borrowed', currentBorrower: borrowData.borrower, expectedReturn: borrowData.returnDate, currentNote: borrowData.note, history: newHistory }, { merge: true });
+        return setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', id), { status: 'borrowed', currentBorrower: borrowData.borrower, expectedReturn: borrowData.returnDate, currentNote: borrowData.note, history: newHistory }, { merge: true });
       });
       await Promise.all(promises);
       
@@ -469,14 +496,14 @@ export default function App() {
   };
 
   const handleEventOut = async () => {
-    if (!eventData.eventName || !eventData.staff || eventChecklist.length === 0) return;
+    if (!user || !eventData.eventName || !eventData.staff || eventChecklist.length === 0) return;
     let finalStaff = eventData.staff;
     if (eventData.staff === 'อื่นๆ' && eventData.newStaff.trim()) {
       finalStaff = eventData.newStaff.trim();
       const updatedStaff = [...new Set([...(settingsOptions.staff || []).filter(c => c !== 'อื่นๆ'), finalStaff, 'อื่นๆ'])];
       const newSettings = { ...settingsOptions, staff: updatedStaff };
       setSettingsOptions(newSettings);
-      await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), newSettings);
     }
     
     const newHistoryEntry = { type: 'event', date: new Date().toISOString(), eventName: eventData.eventName, expectedReturn: eventData.returnDate, staffOut: finalStaff, note: eventData.note };
@@ -488,7 +515,7 @@ export default function App() {
         if (!item || item.status !== 'available') return Promise.resolve(); 
         eventNames.push(item.name);
         const newHistory = [...(item.history || []), newHistoryEntry];
-        return setDoc(doc(db, "mdec_stock", "shared_data", "items", id), { status: 'out-for-event', currentEvent: eventData.eventName, expectedReturn: eventData.returnDate, currentNote: eventData.note, history: newHistory }, { merge: true });
+        return setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', id), { status: 'out-for-event', currentEvent: eventData.eventName, expectedReturn: eventData.returnDate, currentNote: eventData.note, history: newHistory }, { merge: true });
       });
       await Promise.all(promises);
       
@@ -505,14 +532,14 @@ export default function App() {
   };
 
   const handleReturn = async () => {
-    if (!returnData.staff || returnChecklist.length === 0) return;
+    if (!user || !returnData.staff || returnChecklist.length === 0) return;
     let finalStaff = returnData.staff;
     if (returnData.staff === 'อื่นๆ' && returnData.newStaff.trim()) {
       finalStaff = returnData.newStaff.trim();
       const updatedStaff = [...new Set([...(settingsOptions.staff || []).filter(c => c !== 'อื่นๆ'), finalStaff, 'อื่นๆ'])];
       const newSettings = { ...settingsOptions, staff: updatedStaff };
       setSettingsOptions(newSettings);
-      await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), newSettings);
     }
     
     const newHistoryEntry = { type: 'return', date: new Date().toISOString(), staffIn: finalStaff };
@@ -524,7 +551,7 @@ export default function App() {
         if (!item || (item.status !== 'borrowed' && item.status !== 'out-for-event')) return Promise.resolve();
         returnedNames.push(item.name);
         const newHistory = [...(item.history || []), newHistoryEntry];
-        return setDoc(doc(db, "mdec_stock", "shared_data", "items", id), { status: 'available', currentBorrower: null, currentEvent: null, currentNote: null, expectedReturn: null, history: newHistory }, { merge: true });
+        return setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', id), { status: 'available', currentBorrower: null, currentEvent: null, currentNote: null, expectedReturn: null, history: newHistory }, { merge: true });
       });
       await Promise.all(promises);
 
@@ -541,7 +568,7 @@ export default function App() {
   };
 
   const handleSaveBundle = async () => {
-    if (!bundleForm.name.trim() || bundleForm.itemIds.length === 0) return alert('กรุณาใส่ชื่อเซ็ต และเลือกอุปกรณ์อย่างน้อย 1 ชิ้น');
+    if (!user || !bundleForm.name.trim() || bundleForm.itemIds.length === 0) return alert('กรุณาใส่ชื่อเซ็ต และเลือกอุปกรณ์อย่างน้อย 1 ชิ้น');
     
     let newBundles;
     if (bundleForm.id) {
@@ -554,18 +581,20 @@ export default function App() {
     
     const newSettings = { ...settingsOptions, bundles: newBundles };
     setSettingsOptions(newSettings);
-    await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), newSettings);
     setBundleForm({ id: null, name: '', itemIds: [] });
     setBundleSearchTerm('');
     if (selectedItems.length > 0) setSelectedItems([]);
+    alert('✅ บันทึกเซ็ตอุปกรณ์เรียบร้อยแล้ว!');
   };
 
   const handleDeleteBundle = async (bundleId) => {
+    if (!user) return;
     if(!confirm('ยืนยันการลบเซ็ตอุปกรณ์นี้? (ไม่ส่งผลกระทบต่ออุปกรณ์จริง)')) return;
     const newBundles = (settingsOptions.bundles || []).filter(b => b.id !== bundleId);
     const newSettings = { ...settingsOptions, bundles: newBundles };
     setSettingsOptions(newSettings);
-    await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), newSettings);
   };
 
   const handleSelectBundleToBorrow = (bundle) => {
@@ -647,7 +676,6 @@ export default function App() {
     setReturnChecklist([]);
   };
 
-  // 💡 เพิ่มฟังก์ชันดึงของจากตะกร้าไปจัดเซ็ต
   const handleCreateBundleFromSelection = () => {
     if (selectedItems.length === 0) return;
     setBundleForm({ id: null, name: '', itemIds: [...selectedItems] });
@@ -657,6 +685,7 @@ export default function App() {
   };
 
   const handleImportCSV = (e) => {
+    if (!user) return;
     const file = e.target.files[0];
     if (!file) return;
 
@@ -682,7 +711,7 @@ export default function App() {
               updatedAt: new Date().toISOString(), history: [], childIds: []
             };
             
-            await setDoc(doc(db, "mdec_stock", "shared_data", "items", newId), itemData);
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', newId), itemData);
             importedCount++;
           }
         }
@@ -699,7 +728,7 @@ export default function App() {
   };
 
   const handleSaveSetting = async () => {
-    if (!newSettingItem.trim()) return;
+    if (!user || !newSettingItem.trim()) return;
     const key = settingsTab;
     let newOptions = [...(settingsOptions[key] || [])];
     let oldName = editingSettingItem;
@@ -716,7 +745,7 @@ export default function App() {
     newOptions = [...new Set(newOptions)];
     const updatedSettings = { ...settingsOptions, [key]: newOptions };
     setSettingsOptions(updatedSettings);
-    await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), updatedSettings);
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), updatedSettings);
 
     if (oldName && oldName !== newName && (key === 'categories' || key === 'locations')) {
       items.forEach(async (item) => {
@@ -724,7 +753,7 @@ export default function App() {
         if (key === 'categories' && item.category === oldName) updateData.category = newName;
         if (key === 'locations' && item.location === oldName) updateData.location = newName;
         if (Object.keys(updateData).length > 0) {
-          await setDoc(doc(db, "mdec_stock", "shared_data", "items", item.id), updateData, { merge: true });
+          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'items', item.id), updateData, { merge: true });
         }
       });
     }
@@ -733,18 +762,17 @@ export default function App() {
   };
 
   const handleDeleteSetting = async () => {
-    if (deleteSettingConfirm !== null) {
-      try {
-        const key = settingsTab;
-        const newOptions = (settingsOptions[key] || []).filter(item => item !== deleteSettingConfirm);
-        const updatedSettings = { ...settingsOptions, [key]: newOptions };
-        setSettingsOptions(updatedSettings);
-        await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), updatedSettings);
-      } catch (error) {
-        console.error("Error deleting setting:", error);
-      } finally {
-        setDeleteSettingConfirm(null);
-      }
+    if (!user || deleteSettingConfirm === null) return;
+    try {
+      const key = settingsTab;
+      const newOptions = (settingsOptions[key] || []).filter(item => item !== deleteSettingConfirm);
+      const updatedSettings = { ...settingsOptions, [key]: newOptions };
+      setSettingsOptions(updatedSettings);
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), updatedSettings);
+    } catch (error) {
+      console.error("Error deleting setting:", error);
+    } finally {
+      setDeleteSettingConfirm(null);
     }
   };
 
@@ -780,7 +808,6 @@ export default function App() {
     try { localStorage.removeItem('mdec_admin'); } catch(e) {}
   };
 
-  // 🎛️ Command Center (รองรับ Light & Dark Mode)
   if (showCommandCenter) {
     const healthPercentage = stats.all > 0 ? Math.round((stats.available / stats.all) * 100) : 0;
     
@@ -804,11 +831,10 @@ export default function App() {
 
     return (
       <div className={`fixed inset-0 font-sans z-[10000] flex flex-col p-4 sm:p-8 overflow-hidden font-medium transition-colors duration-300 ${ccTheme.bg}`}>
-        {/* Header - Cute Command Center */}
         <div className={`flex flex-col sm:flex-row justify-between items-center mb-6 p-4 sm:px-8 sm:py-5 rounded-3xl shadow-sm border gap-4 ${ccTheme.card}`}>
           <h1 className={`text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3 ${ccTheme.titleText}`}>
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${ccTheme.iconBg}`}>
-              <Icons.Monitor />
+              <Icons.Monitor className="w-7 h-7"/>
             </div>
             ศูนย์ควบคุม MDEC ✨
           </h1>
@@ -823,20 +849,17 @@ export default function App() {
               {currentTime.toLocaleTimeString('th-TH')}
             </div>
             <button onClick={() => setShowCommandCenter(false)} className={`border px-6 py-3 rounded-2xl transition-all font-bold shadow-sm flex items-center gap-2 group ${isDarkMode ? 'bg-rose-900/30 border-rose-800 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-500 hover:text-white'}`}>
-              ปิดหน้าต่าง <Icons.X />
+              ปิดหน้าต่าง <Icons.X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
             </button>
           </div>
         </div>
 
-        {/* Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
-          
-          {/* ซ้าย: สถิติตัวเลข */}
           <div className="flex flex-col gap-6">
             <div className={`p-8 rounded-3xl flex flex-col items-center justify-center relative overflow-hidden shadow-lg ${ccTheme.totalBg}`}>
               <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
               <div className="absolute -left-6 -bottom-6 w-24 h-24 bg-black/20 rounded-full blur-xl"></div>
-              <h2 className={`text-xl font-bold mb-2 z-10 flex items-center gap-2 ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}><Icons.Package /> อุปกรณ์ทั้งหมด</h2>
+              <h2 className={`text-xl font-bold mb-2 z-10 flex items-center gap-2 ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}><Icons.Package className="w-6 h-6"/> อุปกรณ์ทั้งหมด</h2>
               <span className="text-7xl sm:text-8xl font-black text-white z-10 drop-shadow-md">{stats.all}</span>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-4 flex-1">
@@ -859,7 +882,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* กลาง: กราฟ Donut & การแจ้งเตือน */}
           <div className="flex flex-col gap-6">
             <div className={`p-8 rounded-3xl flex-1 flex flex-col items-center justify-center shadow-sm relative overflow-hidden border ${ccTheme.card}`}>
               <div className={`absolute top-0 right-0 w-32 h-32 rounded-bl-[100px] -z-0 ${isDarkMode ? 'bg-emerald-900/10' : 'bg-emerald-50'}`}></div>
@@ -876,7 +898,7 @@ export default function App() {
             {overdueItems.length > 0 ? (
               <div className={`border-2 p-5 rounded-3xl flex-1 flex flex-col shadow-sm animate-[pulse_3s_ease-in-out_infinite] ${isDarkMode ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-200'}`}>
                 <h3 className={`font-black mb-3 flex items-center gap-2 text-lg ${isDarkMode ? 'text-rose-400' : 'text-rose-600'}`}>
-                  <Icons.Alert /> อุปกรณ์เลยกำหนดคืน! ({overdueItems.length})
+                  <Icons.Alert className="w-7 h-7 text-rose-500"/> อุปกรณ์เลยกำหนดคืน! ({overdueItems.length})
                 </h3>
                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
                   {overdueItems.map(i => (
@@ -892,7 +914,7 @@ export default function App() {
             ) : (
               <div className={`border p-5 rounded-3xl flex-1 flex flex-col items-center justify-center shadow-sm ${isDarkMode ? 'bg-emerald-900/10 border-emerald-800/50' : 'bg-emerald-50 border-emerald-100'}`}>
                  <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 shadow-sm ${isDarkMode ? 'bg-slate-800 text-emerald-500' : 'bg-white text-emerald-400'}`}>
-                   <Icons.CheckCircle />
+                   <Icons.CheckCircle className="w-10 h-10" />
                  </div>
                  <span className={`font-black text-xl ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>ไม่มีอุปกรณ์เลยกำหนด</span>
                  <span className={`font-medium text-base mt-1 ${isDarkMode ? 'text-emerald-500/70' : 'text-emerald-500'}`}>ยอดเยี่ยมมาก! ทุกคนคืนของตรงเวลา 🎉</span>
@@ -900,10 +922,9 @@ export default function App() {
             )}
           </div>
 
-          {/* ขวา: Live Activity Log */}
           <div className={`border p-6 rounded-3xl flex flex-col h-full overflow-hidden shadow-sm ${ccTheme.card}`}>
             <h2 className={`text-xl font-black mb-4 flex items-center gap-2 p-3 rounded-2xl ${ccTheme.titleText} ${isDarkMode ? 'bg-indigo-900/20' : 'bg-indigo-50'}`}>
-               <Icons.ClipboardList /> ประวัติการเคลื่อนไหวล่าสุด
+               <Icons.ClipboardList className="w-6 h-6"/> ประวัติการเคลื่อนไหวล่าสุด
             </h2>
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
               {auditLogs.slice(0, 30).map(log => {
@@ -931,13 +952,12 @@ export default function App() {
               })}
               {auditLogs.length === 0 && (
                 <div className={`text-center font-medium mt-10 flex flex-col items-center ${ccTheme.textMuted}`}>
-                  <Icons.ViewGrid />
+                  <Icons.ViewGrid className={`w-12 h-12 mb-2 ${isDarkMode ? 'text-slate-700' : 'text-slate-200'}`} />
                   ยังไม่มีการเคลื่อนไหว
                 </div>
               )}
             </div>
           </div>
-
         </div>
       </div>
     );
@@ -950,7 +970,7 @@ export default function App() {
           <Icons.Alert />
           <div>
             <h3 className="font-bold text-lg">ฐานข้อมูลถูกระงับ (Firebase Permission Error)</h3>
-            <p>โปรดเข้าไปที่เว็บ Firebase Console &gt; Firestore Database &gt; Rules และเปลี่ยนเป็น <code>allow read, write: if true;</code> เพื่อให้ระบบทำงานได้</p>
+            <p>โปรดตรวจสอบการเชื่อมต่อ Firebase และสิทธิ์การเข้าถึง (Firestore Rules)</p>
           </div>
         </div>
       )}
@@ -962,7 +982,7 @@ export default function App() {
           <div>
             <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textTitle}`}>
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v19.5 Bundle Pro</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v19.7 Stable Auth</span>
             </h1>
             <p className={`font-medium text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -1375,7 +1395,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Settings Modal (อัปเกรดหน้าตาจัดการเซ็ตใหม่!) */}
+      {/* Settings Modal (การตั้งค่า / จัดการเซ็ต) */}
       {showSettings && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full ${settingsTab === 'bundles' ? 'max-w-4xl' : 'max-w-lg'} overflow-hidden flex flex-col max-h-[90vh] transition-all duration-300 ${theme.cardBg}`}>
@@ -1387,7 +1407,6 @@ export default function App() {
             </div>
             
             <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
-              {/* เนื้อหาแท็บปกติ */}
               {settingsTab !== 'bundles' && (
                 <div className="p-6">
                   <div className="flex gap-2 mb-6">
@@ -1409,7 +1428,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* 📦 เนื้อหาแท็บ เซ็ตอุปกรณ์ (Bundles) - หน้าตาใหม่ แบ่ง 2 ฝั่ง */}
+              {/* 📦 เนื้อหาแท็บ เซ็ตอุปกรณ์ (Bundles) */}
               {settingsTab === 'bundles' && (
                 <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8 h-full min-h-[50vh]">
                   
