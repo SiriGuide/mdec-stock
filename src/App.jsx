@@ -260,7 +260,6 @@ export default function App() {
   const fileInputRef = useRef(null);
 
   const logAction = async (actionType, targetName, details) => {
-    if (!user) return;
     try {
       await addDoc(getAuditCol(), {
         timestamp: new Date().toISOString(), action: actionType, target: targetName, details: details, user: "Admin" 
@@ -371,7 +370,7 @@ export default function App() {
   }, [items, bundleSearchTerm, bundleForm.itemIds, showBundleManager]);
 
   const handleSave = async () => {
-    if (!user || !formData.name.trim()) return;
+    if (!formData.name.trim()) return;
     const snInput = formData.sn.trim();
     if (snInput) {
       const isDuplicate = items.some(item => item.sn && item.sn.trim().toLowerCase() === snInput.toLowerCase() && item.id !== formData.id);
@@ -381,48 +380,53 @@ export default function App() {
       }
     }
 
-    let finalCategory = formData.category;
-    if (formData.category === 'อื่นๆ' && formData.newCategory.trim()) {
-      finalCategory = formData.newCategory.trim();
-      const updatedCategories = [...new Set([...(settingsOptions.categories || []).filter(c => c !== 'อื่นๆ'), finalCategory, 'อื่นๆ'])];
-      setSettingsOptions(prev => ({ ...prev, categories: updatedCategories }));
-      await setDoc(getSettingsDoc(), { ...settingsOptions, categories: updatedCategories });
-    }
+    try {
+      let finalCategory = formData.category;
+      if (formData.category === 'อื่นๆ' && formData.newCategory.trim()) {
+        finalCategory = formData.newCategory.trim();
+        const updatedCategories = [...new Set([...(settingsOptions.categories || []).filter(c => c !== 'อื่นๆ'), finalCategory, 'อื่นๆ'])];
+        setSettingsOptions(prev => ({ ...prev, categories: updatedCategories }));
+        await setDoc(getSettingsDoc(), { ...settingsOptions, categories: updatedCategories });
+      }
 
-    let finalLocation = formData.location;
-    if (formData.location === 'อื่นๆ' && formData.newLocation.trim()) {
-      finalLocation = formData.newLocation.trim();
-      const updatedLocations = [...new Set([...(settingsOptions.locations || []).filter(c => c !== 'อื่นๆ'), finalLocation, 'อื่นๆ'])];
-      setSettingsOptions(prev => ({ ...prev, locations: updatedLocations }));
-      await setDoc(getSettingsDoc(), { ...settingsOptions, locations: updatedLocations });
-    }
+      let finalLocation = formData.location;
+      if (formData.location === 'อื่นๆ' && formData.newLocation.trim()) {
+        finalLocation = formData.newLocation.trim();
+        const updatedLocations = [...new Set([...(settingsOptions.locations || []).filter(c => c !== 'อื่นๆ'), finalLocation, 'อื่นๆ'])];
+        setSettingsOptions(prev => ({ ...prev, locations: updatedLocations }));
+        await setDoc(getSettingsDoc(), { ...settingsOptions, locations: updatedLocations });
+      }
 
-    const itemData = { 
-      ...formData, category: finalCategory, location: finalLocation, quantity: Number(formData.quantity) || 1, updatedAt: new Date().toISOString() 
-    };
-    delete itemData.newCategory;
-    delete itemData.newLocation;
-    
-    const isEdit = !!formData.id;
-    delete itemData.id;
-    
-    if (isEdit) {
-      await setDoc(getItemDoc(formData.id), itemData, { merge: true });
-      await logAction('แก้ไขข้อมูล', itemData.name, `แก้ไขรายละเอียดอุปกรณ์ S.N.: ${itemData.sn || '-'}`);
-    } else {
-      const newId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      await setDoc(getItemDoc(newId), { ...itemData, history: [] });
-      await logAction('เพิ่มอุปกรณ์', itemData.name, `เพิ่มเข้าสู่ระบบใหม่ หมวดหมู่: ${itemData.category}`);
+      const itemData = { 
+        ...formData, category: finalCategory, location: finalLocation, quantity: Number(formData.quantity) || 1, updatedAt: new Date().toISOString() 
+      };
+      delete itemData.newCategory;
+      delete itemData.newLocation;
+      
+      const isEdit = !!formData.id;
+      delete itemData.id;
+      
+      if (isEdit) {
+        await setDoc(getItemDoc(formData.id), itemData, { merge: true });
+        logAction('แก้ไขข้อมูล', itemData.name, `แก้ไขรายละเอียดอุปกรณ์ S.N.: ${itemData.sn || '-'}`);
+      } else {
+        const newId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        await setDoc(getItemDoc(newId), { ...itemData, history: [] });
+        logAction('เพิ่มอุปกรณ์', itemData.name, `เพิ่มเข้าสู่ระบบใหม่ หมวดหมู่: ${itemData.category}`);
+      }
+      setShowForm(false);
+    } catch (error) {
+      console.error(error);
+      alert(`❌ ไม่สามารถบันทึกข้อมูลได้: ${error.message}`);
     }
-    setShowForm(false);
   };
 
   const handleDeleteItem = async () => {
-    if (!user || !itemToDelete || !itemToDelete.id) return;
+    if (!itemToDelete || !itemToDelete.id) return;
     try {
       const itemName = itemToDelete.name;
       await deleteDoc(getItemDoc(itemToDelete.id));
-      await logAction('ลบข้อมูล', itemName, `ลบอุปกรณ์ออกจากระบบ`);
+      logAction('ลบข้อมูล', itemName, `ลบอุปกรณ์ออกจากระบบ`);
       setItemToDelete(null);
     } catch (error) {
       console.error("Error deleting item:", error);
@@ -441,15 +445,17 @@ export default function App() {
   };
 
   const handleBorrow = async () => {
-    if (!user || !borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return;
+    if (!borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return;
     let finalStaff = borrowData.staff;
-    if (borrowData.staff === 'อื่นๆ' && borrowData.newStaff.trim()) {
-      finalStaff = borrowData.newStaff.trim();
-      const updatedStaff = [...new Set([...(settingsOptions.staff || []).filter(c => c !== 'อื่นๆ'), finalStaff, 'อื่นๆ'])];
-      const newSettings = { ...settingsOptions, staff: updatedStaff };
-      setSettingsOptions(newSettings);
-      await setDoc(getSettingsDoc(), newSettings);
-    }
+    try {
+      if (borrowData.staff === 'อื่นๆ' && borrowData.newStaff.trim()) {
+        finalStaff = borrowData.newStaff.trim();
+        const updatedStaff = [...new Set([...(settingsOptions.staff || []).filter(c => c !== 'อื่นๆ'), finalStaff, 'อื่นๆ'])];
+        const newSettings = { ...settingsOptions, staff: updatedStaff };
+        setSettingsOptions(newSettings);
+        await setDoc(getSettingsDoc(), newSettings);
+      }
+    } catch (e) { console.error("Settings error:", e); }
     
     const newHistoryEntry = { type: 'borrow', date: new Date().toISOString(), borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff, note: borrowData.note };
     const borrowedNames = [];
@@ -464,28 +470,31 @@ export default function App() {
       });
       await Promise.all(promises);
       
-      await logAction('ให้ยืมอุปกรณ์', `ทำรายการ ${packingChecklist.length} ชิ้น (รวมอุปกรณ์ผูกติด)`, `ยืมโดย: ${borrowData.borrower} (จนท.ผู้ให้ยืม: ${finalStaff})\nรายการ: ${borrowedNames.join(', ')}`);
+      logAction('ให้ยืมอุปกรณ์', `ทำรายการ ${packingChecklist.length} ชิ้น`, `ยืมโดย: ${borrowData.borrower} (จนท.ผู้ให้ยืม: ${finalStaff})\nรายการ: ${borrowedNames.join(', ')}`);
       
       setBorrowTargetIds([]);
       setPackingChecklist([]);
       setSelectedItems([]); 
       setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '', note: '' });
+      alert('✅ บันทึกการยืมเรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
-      alert("เกิดข้อผิดพลาดในการทำรายการยืม");
+      alert(`❌ เกิดข้อผิดพลาดในการทำรายการยืม: ${error.message}`);
     }
   };
 
   const handleEventOut = async () => {
-    if (!user || !eventData.eventName || !eventData.staff || eventChecklist.length === 0) return;
+    if (!eventData.eventName || !eventData.staff || eventChecklist.length === 0) return;
     let finalStaff = eventData.staff;
-    if (eventData.staff === 'อื่นๆ' && eventData.newStaff.trim()) {
-      finalStaff = eventData.newStaff.trim();
-      const updatedStaff = [...new Set([...(settingsOptions.staff || []).filter(c => c !== 'อื่นๆ'), finalStaff, 'อื่นๆ'])];
-      const newSettings = { ...settingsOptions, staff: updatedStaff };
-      setSettingsOptions(newSettings);
-      await setDoc(getSettingsDoc(), newSettings);
-    }
+    try {
+      if (eventData.staff === 'อื่นๆ' && eventData.newStaff.trim()) {
+        finalStaff = eventData.newStaff.trim();
+        const updatedStaff = [...new Set([...(settingsOptions.staff || []).filter(c => c !== 'อื่นๆ'), finalStaff, 'อื่นๆ'])];
+        const newSettings = { ...settingsOptions, staff: updatedStaff };
+        setSettingsOptions(newSettings);
+        await setDoc(getSettingsDoc(), newSettings);
+      }
+    } catch (e) { console.error("Settings error:", e); }
     
     const newHistoryEntry = { type: 'event', date: new Date().toISOString(), eventName: eventData.eventName, expectedReturn: eventData.returnDate, staffOut: finalStaff, note: eventData.note };
     const eventNames = [];
@@ -500,28 +509,31 @@ export default function App() {
       });
       await Promise.all(promises);
       
-      await logAction('นำออกงาน', `ทำรายการ ${eventChecklist.length} ชิ้น (รวมอุปกรณ์ผูกติด)`, `ชื่องาน: ${eventData.eventName} (ผู้นำออก: ${finalStaff})\nรายการ: ${eventNames.join(', ')}`);
+      logAction('นำออกงาน', `ทำรายการ ${eventChecklist.length} ชิ้น`, `ชื่องาน: ${eventData.eventName} (ผู้นำออก: ${finalStaff})\nรายการ: ${eventNames.join(', ')}`);
       
       setEventTargetIds([]);
       setEventChecklist([]);
       setSelectedItems([]); 
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
+      alert('✅ บันทึกการนำออกงานเรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
-      alert("เกิดข้อผิดพลาดในการนำออกงาน");
+      alert(`❌ เกิดข้อผิดพลาดในการนำออกงาน: ${error.message}`);
     }
   };
 
   const handleReturn = async () => {
-    if (!user || !returnData.staff || returnChecklist.length === 0) return;
+    if (!returnData.staff || returnChecklist.length === 0) return;
     let finalStaff = returnData.staff;
-    if (returnData.staff === 'อื่นๆ' && returnData.newStaff.trim()) {
-      finalStaff = returnData.newStaff.trim();
-      const updatedStaff = [...new Set([...(settingsOptions.staff || []).filter(c => c !== 'อื่นๆ'), finalStaff, 'อื่นๆ'])];
-      const newSettings = { ...settingsOptions, staff: updatedStaff };
-      setSettingsOptions(newSettings);
-      await setDoc(getSettingsDoc(), newSettings);
-    }
+    try {
+      if (returnData.staff === 'อื่นๆ' && returnData.newStaff.trim()) {
+        finalStaff = returnData.newStaff.trim();
+        const updatedStaff = [...new Set([...(settingsOptions.staff || []).filter(c => c !== 'อื่นๆ'), finalStaff, 'อื่นๆ'])];
+        const newSettings = { ...settingsOptions, staff: updatedStaff };
+        setSettingsOptions(newSettings);
+        await setDoc(getSettingsDoc(), newSettings);
+      }
+    } catch (e) { console.error("Settings error:", e); }
     
     const newHistoryEntry = { type: 'return', date: new Date().toISOString(), staffIn: finalStaff };
     const returnedNames = [];
@@ -536,46 +548,56 @@ export default function App() {
       });
       await Promise.all(promises);
 
-      await logAction('รับคืนอุปกรณ์', `ทำรายการ ${returnChecklist.length} ชิ้น (รวมอุปกรณ์ผูกติด)`, `จนท.ผู้รับคืน: ${finalStaff}\nรายการ: ${returnedNames.join(', ')}`);
+      logAction('รับคืนอุปกรณ์', `ทำรายการ ${returnChecklist.length} ชิ้น`, `จนท.ผู้รับคืน: ${finalStaff}\nรายการ: ${returnedNames.join(', ')}`);
 
       setReturnTargetIds([]);
       setReturnChecklist([]);
       setSelectedItems([]); 
       setReturnData({ staff: '', newStaff: '' });
+      alert('✅ รับคืนอุปกรณ์เรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
-      alert("เกิดข้อผิดพลาดในการรับคืน");
+      alert(`❌ เกิดข้อผิดพลาดในการรับคืน: ${error.message}`);
     }
   };
 
   const handleSaveBundle = async () => {
-    if (!user || !bundleForm.name.trim() || (bundleForm.itemIds || []).length === 0) return alert('กรุณาใส่ชื่อเซ็ต และเลือกอุปกรณ์อย่างน้อย 1 ชิ้น');
+    if (!bundleForm.name.trim() || (bundleForm.itemIds || []).length === 0) return alert('กรุณาใส่ชื่อเซ็ต และเลือกอุปกรณ์อย่างน้อย 1 ชิ้น');
     
-    let newBundles;
-    if (bundleForm.id) {
-      newBundles = (settingsOptions.bundles || []).map(b => 
-        b.id === bundleForm.id ? { ...b, name: bundleForm.name, itemIds: bundleForm.itemIds } : b
-      );
-    } else {
-      newBundles = [...(settingsOptions.bundles || []), { id: Date.now().toString(), name: bundleForm.name, itemIds: bundleForm.itemIds }];
+    try {
+      let newBundles;
+      if (bundleForm.id) {
+        newBundles = (settingsOptions.bundles || []).map(b => 
+          b.id === bundleForm.id ? { ...b, name: bundleForm.name, itemIds: bundleForm.itemIds } : b
+        );
+      } else {
+        newBundles = [...(settingsOptions.bundles || []), { id: Date.now().toString(), name: bundleForm.name, itemIds: bundleForm.itemIds }];
+      }
+      
+      const newSettings = { ...settingsOptions, bundles: newBundles };
+      setSettingsOptions(newSettings);
+      await setDoc(getSettingsDoc(), newSettings);
+      setBundleForm({ id: null, name: '', itemIds: [] });
+      setBundleSearchTerm('');
+      if (selectedItems.length > 0) setSelectedItems([]);
+      alert('✅ บันทึกเซ็ตอุปกรณ์เรียบร้อยแล้ว!');
+    } catch (error) {
+      console.error(error);
+      alert(`❌ บันทึกเซ็ตไม่สำเร็จ: ${error.message}`);
     }
-    
-    const newSettings = { ...settingsOptions, bundles: newBundles };
-    setSettingsOptions(newSettings);
-    await setDoc(getSettingsDoc(), newSettings);
-    setBundleForm({ id: null, name: '', itemIds: [] });
-    setBundleSearchTerm('');
-    if (selectedItems.length > 0) setSelectedItems([]);
-    alert('✅ บันทึกเซ็ตอุปกรณ์เรียบร้อยแล้ว!');
   };
 
   const handleDeleteBundle = async (bundleId) => {
-    if (!user) return;
     if(!confirm('ยืนยันการลบเซ็ตอุปกรณ์นี้? (ไม่ส่งผลกระทบต่ออุปกรณ์จริง)')) return;
-    const newBundles = (settingsOptions.bundles || []).filter(b => b.id !== bundleId);
-    const newSettings = { ...settingsOptions, bundles: newBundles };
-    setSettingsOptions(newSettings);
-    await setDoc(getSettingsDoc(), newSettings);
+    try {
+      const newBundles = (settingsOptions.bundles || []).filter(b => b.id !== bundleId);
+      const newSettings = { ...settingsOptions, bundles: newBundles };
+      setSettingsOptions(newSettings);
+      await setDoc(getSettingsDoc(), newSettings);
+    } catch (error) {
+      console.error(error);
+      alert(`❌ ลบเซ็ตไม่สำเร็จ: ${error.message}`);
+    }
   };
 
   const handleSelectBundleToBorrow = (bundle) => {
@@ -665,7 +687,6 @@ export default function App() {
   };
 
   const handleImportCSV = (e) => {
-    if (!user) return;
     const file = e.target.files[0];
     if (!file) return;
 
@@ -696,7 +717,7 @@ export default function App() {
           }
         }
         
-        await logAction('นำเข้าข้อมูล (Import)', `เพิ่มข้อมูล ${importedCount} ชิ้น`, `นำเข้าจากไฟล์: ${file.name}`);
+        logAction('นำเข้าข้อมูล (Import)', `เพิ่มข้อมูล ${importedCount} ชิ้น`, `นำเข้าจากไฟล์: ${file.name}`);
         alert(`✅ นำเข้าข้อมูลสำเร็จทั้งหมด ${importedCount} รายการ!`);
         e.target.value = null; 
       } catch (err) {
@@ -708,7 +729,7 @@ export default function App() {
   };
 
   const handleSaveSetting = async () => {
-    if (!user || !newSettingItem.trim()) return;
+    if (!newSettingItem.trim()) return;
     const key = settingsTab;
     let newOptions = [...(settingsOptions[key] || [])];
     let oldName = editingSettingItem;
@@ -725,24 +746,29 @@ export default function App() {
     newOptions = [...new Set(newOptions)];
     const updatedSettings = { ...settingsOptions, [key]: newOptions };
     setSettingsOptions(updatedSettings);
-    await setDoc(getSettingsDoc(), updatedSettings);
-
-    if (oldName && oldName !== newName && (key === 'categories' || key === 'locations')) {
-      items.forEach(async (item) => {
-        let updateData = {};
-        if (key === 'categories' && item.category === oldName) updateData.category = newName;
-        if (key === 'locations' && item.location === oldName) updateData.location = newName;
-        if (Object.keys(updateData).length > 0) {
-          await setDoc(getItemDoc(item.id), updateData, { merge: true });
-        }
-      });
+    
+    try {
+      await setDoc(getSettingsDoc(), updatedSettings);
+      if (oldName && oldName !== newName && (key === 'categories' || key === 'locations')) {
+        items.forEach(async (item) => {
+          let updateData = {};
+          if (key === 'categories' && item.category === oldName) updateData.category = newName;
+          if (key === 'locations' && item.location === oldName) updateData.location = newName;
+          if (Object.keys(updateData).length > 0) {
+            await setDoc(getItemDoc(item.id), updateData, { merge: true });
+          }
+        });
+      }
+      setNewSettingItem('');
+      setEditingSettingItem(null);
+    } catch (error) {
+      console.error(error);
+      alert(`❌ บันทึกตั้งค่าไม่สำเร็จ: ${error.message}`);
     }
-    setNewSettingItem('');
-    setEditingSettingItem(null);
   };
 
   const handleDeleteSetting = async () => {
-    if (!user || deleteSettingConfirm === null) return;
+    if (deleteSettingConfirm === null) return;
     try {
       const key = settingsTab;
       const newOptions = (settingsOptions[key] || []).filter(item => item !== deleteSettingConfirm);
