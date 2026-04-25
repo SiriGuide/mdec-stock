@@ -1391,7 +1391,7 @@ function MainApp() {
       {/* 📷 Modal สแกน QR Code / บาร์โค้ด */}
       {showScanModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-6 max-w-md w-full text-center shadow-2xl relative overflow-hidden ${theme.cardBg}`}>
+          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
             <style>{`
               #qr-reader button { background-color: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 5px; }
               #qr-reader select { padding: 8px; border-radius: 8px; margin: 5px; max-width: 100%; border: 1px solid #ccc; color: black; }
@@ -1399,56 +1399,67 @@ function MainApp() {
               #qr-reader__dashboard_section_csr span { color: inherit !important; }
             `}</style>
             
-            <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); }} className={`absolute top-4 right-4 p-2 hover:text-rose-500 transition-colors z-10 ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
+            {/* แอนิเมชันเส้นเลเซอร์สแกน (เพิ่ม pointer-events-none ไม่ให้มันบังการคลิก) */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-[scan_2s_ease-in-out_infinite] z-0 opacity-70 pointer-events-none"></div>
             
-            <h3 className={`text-2xl font-black mb-4 relative z-10 flex justify-center items-center gap-2 ${theme.textTitle}`}>
-              <Icons.QrCode className="w-8 h-8 text-amber-500" /> โหมดสแกนเข้าตะกร้า
-            </h3>
+            {/* ปุ่มกากบาทปรับให้ใหญ่ขึ้นและอยู่ชั้นบนสุด */}
+            <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); }} className={`absolute top-4 right-4 p-3 hover:bg-rose-500/10 rounded-full hover:text-rose-500 transition-colors z-50 ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
+            
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              <h3 className={`text-2xl font-black mb-4 mt-2 relative z-10 flex justify-center items-center gap-2 ${theme.textTitle}`}>
+                <Icons.QrCode className="w-8 h-8 text-amber-500" /> โหมดสแกนเข้าตะกร้า
+              </h3>
 
-            <div className="flex justify-center gap-2 mb-4 relative z-10">
-              <button onClick={() => setUseCamera(false)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${!useCamera ? 'bg-amber-500 text-white' : theme.btnSecondary}`}>
-                ⌨️ เครื่องยิง / พิมพ์
-              </button>
-              <button onClick={() => setUseCamera(true)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${useCamera ? 'bg-amber-500 text-white' : theme.btnSecondary}`}>
-                📷 ใช้กล้องมือถือ
-              </button>
-            </div>
-            
-            {!useCamera ? (
-              <>
-                <p className={`mb-4 text-sm font-medium relative z-10 ${theme.textMuted}`}>
-                  ใช้เครื่องยิงบาร์โค้ด หรือพิมพ์ S.N. / ID อุปกรณ์ลงในช่องด้านล่าง
-                </p>
-                <form onSubmit={handleScanSubmit} className="relative z-10">
-                  <input 
-                    type="text" 
-                    ref={scanInputRef}
-                    className={`w-full px-4 py-4 rounded-xl font-bold text-center text-xl outline-none mb-4 border-2 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 transition-all ${theme.input}`} 
-                    placeholder="สแกน หรือ พิมพ์ที่นี่..." 
-                    value={scanInput} 
-                    onChange={e => setScanInput(e.target.value)} 
-                    autoFocus
-                  />
-                  <button type="submit" className="hidden">ซ่อนปุ่มซับมิท</button>
-                </form>
-              </>
-            ) : (
-              <div className="w-full relative z-10 min-h-[300px] flex flex-col items-center justify-center">
-                {!isScannerLoaded ? (
-                  <div className="animate-pulse text-amber-500 font-bold">กำลังโหลดระบบกล้อง...</div>
-                ) : (
-                  <div id="qr-reader" className="w-full bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden shadow-inner border-2 border-amber-500/30"></div>
-                )}
+              <div className="flex justify-center gap-2 mb-4 relative z-10">
+                <button onClick={() => setUseCamera(false)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${!useCamera ? 'bg-amber-500 text-white' : theme.btnSecondary}`}>
+                  ⌨️ เครื่องยิง / พิมพ์
+                </button>
+                <button onClick={() => setUseCamera(true)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${useCamera ? 'bg-amber-500 text-white' : theme.btnSecondary}`}>
+                  📷 ใช้กล้องมือถือ
+                </button>
               </div>
-            )}
+              
+              {!useCamera ? (
+                <>
+                  <p className={`mb-4 text-sm font-medium relative z-10 ${theme.textMuted}`}>
+                    ใช้เครื่องยิงบาร์โค้ด หรือพิมพ์ S.N. / ID อุปกรณ์ลงในช่องด้านล่าง
+                  </p>
+                  <form onSubmit={handleScanSubmit} className="relative z-10">
+                    <input 
+                      type="text" 
+                      ref={scanInputRef}
+                      className={`w-full px-4 py-4 rounded-xl font-bold text-center text-xl outline-none mb-4 border-2 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 transition-all ${theme.input}`} 
+                      placeholder="สแกน หรือ พิมพ์ที่นี่..." 
+                      value={scanInput} 
+                      onChange={e => setScanInput(e.target.value)} 
+                      autoFocus
+                    />
+                    <button type="submit" className="hidden">ซ่อนปุ่มซับมิท</button>
+                  </form>
+                </>
+              ) : (
+                <div className="w-full relative z-10 min-h-[300px] flex flex-col items-center justify-center">
+                  {!isScannerLoaded ? (
+                    <div className="animate-pulse text-amber-500 font-bold">กำลังโหลดระบบกล้อง...</div>
+                  ) : (
+                    <div id="qr-reader" className="w-full bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden shadow-inner border-2 border-amber-500/30"></div>
+                  )}
+                </div>
+              )}
 
-            {/* แสดงข้อความแจ้งเตือนหลังสแกน */}
-            <div className="h-10 relative z-10 mt-4 flex items-center justify-center">
-               {scanMessage.text && (
-                 <span className={`font-bold px-5 py-2 rounded-full shadow-md animate-[slideUp_0.2s_ease-out] ${scanMessage.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
-                   {scanMessage.text}
-                 </span>
-               )}
+              {/* แสดงข้อความแจ้งเตือนหลังสแกน */}
+              <div className="h-10 relative z-10 mt-4 flex items-center justify-center">
+                 {scanMessage.text && (
+                   <span className={`font-bold px-5 py-2 rounded-full shadow-md animate-[slideUp_0.2s_ease-out] ${scanMessage.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
+                     {scanMessage.text}
+                   </span>
+                 )}
+              </div>
+            </div>
+
+            {/* เพิ่มปุ่มปิดหน้าต่างขนาดใหญ่ด้านล่าง */}
+            <div className={`mt-6 pt-4 border-t shrink-0 relative z-10 ${theme.divide}`}>
+              <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); }} className={`w-full py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
             </div>
           </div>
         </div>
