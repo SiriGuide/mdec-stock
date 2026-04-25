@@ -18,6 +18,15 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// 💡 Smart Database Router
+const IS_CANVAS = typeof __app_id !== 'undefined';
+const APP_ID = IS_CANVAS ? __app_id : 'default-app-id';
+
+const getItemsCol = () => IS_CANVAS ? collection(db, 'artifacts', APP_ID, 'public', 'data', 'items') : collection(db, 'mdec_stock', 'shared_data', 'items');
+const getSettingsDoc = () => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'settings', 'global') : doc(db, 'mdec_stock', 'shared_data', 'settings', 'global');
+const getAuditCol = () => IS_CANVAS ? collection(db, 'artifacts', APP_ID, 'public', 'data', 'audit_logs') : collection(db, 'mdec_stock', 'shared_data', 'audit_logs');
+const getItemDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'items', id) : doc(db, 'mdec_stock', 'shared_data', 'items', id);
+
 const ADMIN_PIN = 'mdec8203';
 
 const Icons = {
@@ -105,7 +114,8 @@ function MainApp() {
   const [firebaseError, setFirebaseError] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1 });
+  // 💡 เพิ่ม owner ใน formData เริ่มต้น
+  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, owner: '', newOwner: '', isPersonalItem: false });
   
   const [itemToDelete, setItemToDelete] = useState(null); 
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
@@ -141,14 +151,13 @@ function MainApp() {
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
 
-  // 🖨️ สถานะใหม่สำหรับ Print & Scan QR Code
+  // 🖨️ สถานะสำหรับ Print & Scan QR Code
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
   const scanInputRef = useRef(null);
 
-  // --- เพิ่มเติมสำหรับระบบกล้องสแกน ---
   const [useCamera, setUseCamera] = useState(false);
   const [isScannerLoaded, setIsScannerLoaded] = useState(false);
   const itemsRefForScan = useRef(items);
@@ -299,7 +308,8 @@ function MainApp() {
       const matchSearch = searchLower === '' || 
                           (item.name && String(item.name).toLowerCase().includes(searchLower)) || 
                           (item.sn && String(item.sn).toLowerCase().includes(searchLower)) || 
-                          (item.location && String(item.location).toLowerCase().includes(searchLower));
+                          (item.location && String(item.location).toLowerCase().includes(searchLower)) ||
+                          (item.owner && String(item.owner).toLowerCase().includes(searchLower)); // ค้นหาจากชื่อเจ้าของได้ด้วย
                           
       const matchDept = filterDept === 'all' || String(item.department) === String(filterDept);
       const matchCategory = filterCategory === 'all' || String(item.category) === String(filterCategory);
@@ -409,27 +419,58 @@ function MainApp() {
     }
 
     try {
+      let currentSettings = { ...settingsOptions };
+      let settingsChanged = false;
+
       let finalCategory = formData.category || 'อื่นๆ';
       if (formData.category === 'อื่นๆ' && (formData.newCategory || '').trim()) {
         finalCategory = formData.newCategory.trim();
-        const updatedCategories = [...new Set([...(settingsOptions.categories || []).filter(c => c !== 'อื่นๆ'), finalCategory, 'อื่นๆ'])];
-        setSettingsOptions(prev => ({ ...prev, categories: updatedCategories }));
-        await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), { ...settingsOptions, categories: updatedCategories });
+        currentSettings.categories = [...new Set([...(currentSettings.categories || []).filter(c => c !== 'อื่นๆ'), finalCategory, 'อื่นๆ'])];
+        settingsChanged = true;
       }
 
       let finalLocation = formData.location || 'อื่นๆ';
       if (formData.location === 'อื่นๆ' && (formData.newLocation || '').trim()) {
         finalLocation = formData.newLocation.trim();
-        const updatedLocations = [...new Set([...(settingsOptions.locations || []).filter(c => c !== 'อื่นๆ'), finalLocation, 'อื่นๆ'])];
-        setSettingsOptions(prev => ({ ...prev, locations: updatedLocations }));
-        await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), { ...settingsOptions, locations: updatedLocations });
+        currentSettings.locations = [...new Set([...(currentSettings.locations || []).filter(c => c !== 'อื่นๆ'), finalLocation, 'อื่นๆ'])];
+        settingsChanged = true;
+      }
+
+      let finalOwner = '';
+      if (formData.isPersonalItem) {
+        if (formData.owner === 'อื่นๆ') {
+          if (!(formData.newOwner || '').trim()) {
+            alert('❌ กรุณาระบุชื่อเจ้าของ (ของส่วนตัว)');
+            return;
+          }
+          finalOwner = formData.newOwner.trim();
+          currentSettings.staff = [...new Set([...(currentSettings.staff || []).filter(c => c !== 'อื่นๆ'), finalOwner, 'อื่นๆ'])];
+          settingsChanged = true;
+        } else if (!formData.owner) {
+           alert('❌ กรุณาเลือกชื่อเจ้าของ (ของส่วนตัว)');
+           return;
+        } else {
+          finalOwner = formData.owner;
+        }
+      }
+
+      if (settingsChanged) {
+         setSettingsOptions(currentSettings);
+         await setDoc(getSettingsDoc(), currentSettings);
       }
 
       const itemData = { 
-        ...formData, category: finalCategory, location: finalLocation, quantity: Number(formData.quantity) || 1, updatedAt: new Date().toISOString() 
+        ...formData, 
+        category: finalCategory, 
+        location: finalLocation, 
+        owner: finalOwner,
+        quantity: Number(formData.quantity) || 1, 
+        updatedAt: new Date().toISOString() 
       };
       delete itemData.newCategory;
       delete itemData.newLocation;
+      delete itemData.newOwner;
+      delete itemData.isPersonalItem;
       
       const isEdit = !!formData.id;
       delete itemData.id;
@@ -482,8 +523,21 @@ function MainApp() {
     } catch (err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
+  // 💡 ตรวจสอบของส่วนตัวก่อนยืม/ออกงาน
+  const checkPersonalItemsWarning = (selectedIds) => {
+    const personalItems = selectedIds.map(id => items.find(i => i.id === id)).filter(i => i && i.owner);
+    if (personalItems.length > 0) {
+      const ownerNames = [...new Set(personalItems.map(i => i.owner))].join(', ');
+      return confirm(`⚠️ คำเตือน: มี "ของส่วนตัว" รวมอยู่ในรายการนี้\n(เจ้าของ: ${ownerNames})\n\nโปรดตรวจสอบให้แน่ใจว่าคุณได้รับอนุญาตจากเจ้าของแล้ว ต้องการดำเนินการยืม/นำออกงานต่อหรือไม่?`);
+    }
+    return true; // ให้ผ่านถ้าไม่มีของส่วนตัว
+  };
+
   const handleBorrow = async () => {
     if (!user || !borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return;
+    
+    if (!checkPersonalItemsWarning(packingChecklist)) return; // 🛡️ เช็คของส่วนตัว
+
     let finalStaff = borrowData.staff;
     try {
       if (borrowData.staff === 'อื่นๆ' && (borrowData.newStaff || '').trim()) {
@@ -523,6 +577,9 @@ function MainApp() {
 
   const handleEventOut = async () => {
     if (!user || !eventData.eventName || !eventData.staff || eventChecklist.length === 0) return;
+
+    if (!checkPersonalItemsWarning(eventChecklist)) return; // 🛡️ เช็คของส่วนตัว
+
     let finalStaff = eventData.staff;
     try {
       if (eventData.staff === 'อื่นๆ' && (eventData.newStaff || '').trim()) {
@@ -789,6 +846,49 @@ function MainApp() {
     };
   }, [showScanModal, useCamera, isScannerLoaded]);
 
+  const handleImportCSV = (e) => {
+    if (!user) return;
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const csvData = event.target.result;
+        const rows = csvData.split('\n').map(row => row.trim()).filter(row => row);
+        if (rows.length < 2) return alert('ไฟล์ว่างเปล่า หรือรูปแบบข้อมูลไม่ถูกต้อง');
+        
+        let importedCount = 0;
+        for (let i = 1; i < rows.length; i++) {
+          const cols = rows[i].split(',').map(c => c.trim());
+          if (cols.length >= 1) {
+            const name = cols[0];
+            if (!name) continue;
+            
+            const newId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+            const itemData = {
+              name: name, sn: cols[1] || '', category: cols[2] || 'อื่นๆ',
+              department: cols[3] || 'ภาพนิ่ง', location: cols[4] || 'อื่นๆ',
+              quantity: Number(cols[5]) || 1, status: 'available',
+              updatedAt: new Date().toISOString(), history: []
+            };
+            
+            await setDoc(doc(db, "mdec_stock", "shared_data", "items", newId), itemData);
+            importedCount++;
+          }
+        }
+        
+        logAction('นำเข้าข้อมูล (Import)', `เพิ่มข้อมูล ${importedCount} ชิ้น`, `นำเข้าจากไฟล์: ${file.name}`);
+        alert(`✅ นำเข้าข้อมูลสำเร็จทั้งหมด ${importedCount} รายการ!`);
+        e.target.value = null; 
+      } catch (err) {
+        console.error(err);
+        alert(`เกิดข้อผิดพลาดในการอ่านไฟล์: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const handleSaveSetting = async () => {
     const newSetting = newSettingItem || '';
     if (!user || !newSetting.trim()) return;
@@ -844,6 +944,20 @@ function MainApp() {
     }
   };
 
+  const exportToCSV = () => {
+    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'สถานะ', 'จำนวน', 'ผู้ยืมปัจจุบัน', 'อัปเดตล่าสุด'];
+    const csvData = items.map(i => [
+      i.name, i.sn || '-', i.department, i.category || '-', i.location || '-', 
+      STATUSES.find(s=>s.id===i.status)?.label || i.status, i.quantity || 1, i.currentBorrower || i.currentEvent || '-', new Date(i.updatedAt).toLocaleDateString('th-TH')
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...csvData].map(e => e.join(",")).join("\n");
+    const link = document.createElement("a");
+    link.href = encodeURI(csvContent);
+    link.download = `MDEC_Stock_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+  };
+
   const handleLogin = () => {
     if (pin === ADMIN_PIN) { 
       setIsAdmin(true); 
@@ -883,10 +997,12 @@ function MainApp() {
               const item = items.find(i => i.id === id);
               if(!item) return null;
               return (
-                 <div key={id} className="border-2 border-dashed border-gray-300 p-3 flex flex-col items-center justify-center text-center break-inside-avoid print:border-solid print:border-black print:p-2 rounded-xl print:rounded-none">
+                 <div key={id} className="border-2 border-dashed border-gray-300 p-3 flex flex-col items-center justify-center text-center break-inside-avoid print:border-solid print:border-black print:p-2 rounded-xl print:rounded-none relative">
                     <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${item.id}`} alt="QR" className="w-24 h-24 object-contain mb-2 print:w-20 print:h-20" />
                     <span className="text-xs font-black leading-tight line-clamp-2 w-full">{item.name}</span>
                     <span className="text-[10px] font-bold text-gray-600 mt-1">{item.sn}</span>
+                    {/* แสดงป้ายของส่วนตัวในสติ๊กเกอร์ด้วย */}
+                    {item.owner && <span className="text-[9px] font-bold bg-gray-200 px-1 rounded mt-1">👤 {item.owner}</span>}
                  </div>
               )
            })}
@@ -1072,7 +1188,7 @@ function MainApp() {
           <div>
             <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textTitle}`}>
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v20.5 Pro</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v20.6 BYOD</span>
             </h1>
             <p className={`font-medium text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -1195,7 +1311,7 @@ function MainApp() {
         <div className="flex flex-col xl:flex-row gap-4 items-center w-full">
           <div className="relative flex-1 w-full">
             <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${theme.textMuted}`}><Icons.Search className="w-5 h-5" /></div>
-            <input type="text" className={`w-full pl-12 pr-4 py-4 rounded-xl text-lg font-bold outline-none transition-all border ${theme.input}`} placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <input type="text" className={`w-full pl-12 pr-4 py-4 rounded-xl text-lg font-bold outline-none transition-all border ${theme.input}`} placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่, เจ้าของ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           
           <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto">
@@ -1215,7 +1331,7 @@ function MainApp() {
 
           {isAdmin && (
             <div className="flex gap-2 w-full xl:w-auto">
-              <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1 }); setShowForm(true); }} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}><Icons.Plus className="w-5 h-5" /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span></button>
+              <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, owner: '', newOwner: '', isPersonalItem: false }); setShowForm(true); }} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}><Icons.Plus className="w-5 h-5" /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span></button>
             </div>
           )}
         </div>
@@ -1298,6 +1414,12 @@ function MainApp() {
                       <div className={`font-bold text-xl flex items-center gap-2 flex-wrap ${theme.textTitle}`}>
                         {item.name} 
                         {qty > 1 && <span className={`text-base px-2 py-1 rounded-md ${isDarkMode ? 'bg-blue-900/40 text-blue-400' : 'bg-blue-100 text-blue-700'}`}>x{qty}</span>}
+                        {/* 🏷️ Badge ของส่วนตัว */}
+                        {item.owner && (
+                           <span className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>
+                             👤 ของส่วนตัว ({item.owner})
+                           </span>
+                        )}
                         {isOverdue && <span className="bg-rose-500 text-white text-xs px-2 py-1 rounded-md font-bold shadow-sm">เลยกำหนดคืน!</span>}
                       </div>
                       {item.sn && <div className={`text-base mt-1 font-mono ${theme.textMuted}`}>S.N.: {item.sn}</div>}
@@ -1350,7 +1472,7 @@ function MainApp() {
                               setReturnChecklist([]);
                             }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle className="w-5 h-5" /></button>}
                             
-                            <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({ ...item, newCategory: '', newLocation: '' }); setShowForm(true); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({ ...item, newCategory: '', newLocation: '', newOwner: '', isPersonalItem: !!item.owner }); setShowForm(true); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>
                             <button type="button" onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="ลบ"><Icons.Trash className="w-4 h-4" /></button>
                           </>
                         )}
@@ -1372,7 +1494,7 @@ function MainApp() {
             <span className="font-bold text-lg hidden lg:inline whitespace-nowrap">รายการที่เลือก</span>
           </div>
           <div className="flex gap-2 sm:gap-3 overflow-x-auto custom-scrollbar">
-            {/* 🖨️ ปุ่มสั่งพิมพ์ QR Code (ใหม่) */}
+            {/* 🖨️ ปุ่มสั่งพิมพ์ QR Code */}
             <button onClick={() => setShowPrintModal(true)} className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.QrCode className="w-5 h-5"/> <span className="hidden sm:inline">พิมพ์ QR</span></button>
 
             <button onClick={handleCreateBundleFromSelection} className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Layers className="w-5 h-5"/> <span className="hidden sm:inline">จัดเซ็ต</span></button>
@@ -1877,9 +1999,10 @@ function MainApp() {
                           else setPackingChecklist(packingChecklist.filter(c => c !== id));
                         }}
                       />
-                      <span className={`font-bold text-sm sm:text-base leading-tight ${isChecked ? (isDarkMode ? 'text-purple-400 line-through opacity-70' : 'text-purple-700 line-through opacity-70') : theme.textMain}`}>
+                      <span className={`font-bold text-sm sm:text-base leading-tight flex-1 ${isChecked ? (isDarkMode ? 'text-purple-400 line-through opacity-70' : 'text-purple-700 line-through opacity-70') : theme.textMain}`}>
                         {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
                       </span>
+                      {item.owner && <span className={`text-[10px] px-2 py-0.5 rounded font-bold shrink-0 ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>👤 {item.owner}</span>}
                     </label>
                   );
                 })}
@@ -1976,9 +2099,10 @@ function MainApp() {
                           else setEventChecklist(eventChecklist.filter(c => c !== id));
                         }}
                       />
-                      <span className={`font-bold text-sm sm:text-base leading-tight ${isChecked ? (isDarkMode ? 'text-orange-400 line-through opacity-70' : 'text-orange-700 line-through opacity-70') : theme.textMain}`}>
+                      <span className={`font-bold text-sm sm:text-base leading-tight flex-1 ${isChecked ? (isDarkMode ? 'text-orange-400 line-through opacity-70' : 'text-orange-700 line-through opacity-70') : theme.textMain}`}>
                         {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
                       </span>
+                      {item.owner && <span className={`text-[10px] px-2 py-0.5 rounded font-bold shrink-0 ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>👤 {item.owner}</span>}
                     </label>
                   );
                 })}
@@ -2058,9 +2182,10 @@ function MainApp() {
                           else setReturnChecklist(returnChecklist.filter(c => c !== id));
                         }}
                       />
-                      <span className={`font-bold text-sm sm:text-base leading-tight ${isChecked ? (isDarkMode ? 'text-emerald-400 line-through opacity-70' : 'text-emerald-700 line-through opacity-70') : theme.textMain}`}>
+                      <span className={`font-bold text-sm sm:text-base leading-tight flex-1 ${isChecked ? (isDarkMode ? 'text-emerald-400 line-through opacity-70' : 'text-emerald-700 line-through opacity-70') : theme.textMain}`}>
                         {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
                       </span>
+                      {item.owner && <span className={`text-[10px] px-2 py-0.5 rounded font-bold shrink-0 ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>👤 {item.owner}</span>}
                     </label>
                   );
                 })}
@@ -2209,6 +2334,54 @@ function MainApp() {
               <button type="button" onClick={() => setShowForm(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              
+              {/* 🏷️ กล่องเลือกว่าเป็นของส่วนตัว */}
+              <div className={`sm:col-span-2 p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <label className={`flex items-center gap-3 cursor-pointer ${theme.textTitle}`}>
+                  <input type="checkbox" className="w-5 h-5 accent-fuchsia-500 rounded cursor-pointer" 
+                    checked={formData.isPersonalItem} 
+                    onChange={e => {
+                      const isChecked = e.target.checked;
+                      setFormData({
+                        ...formData, 
+                        isPersonalItem: isChecked, 
+                        owner: isChecked ? (formData.owner || '') : '',
+                        newOwner: ''
+                      });
+                    }} 
+                  />
+                  <span className="font-bold text-lg">👤 ระบุว่าเป็น "ของส่วนตัว" (Personal Item)</span>
+                </label>
+                
+                {formData.isPersonalItem && (
+                  <div className="mt-4 pl-8 space-y-4">
+                    <div>
+                      <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>เลือกชื่อเจ้าของ <span className="text-rose-500">*</span></label>
+                      <select 
+                        className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-fuchsia-500 ${theme.input}`} 
+                        value={formData.owner || ''} 
+                        onChange={e => setFormData({...formData, owner: e.target.value, newOwner: e.target.value !== 'อื่นๆ' ? '' : formData.newOwner})}
+                      >
+                        <option value="" disabled>-- เลือกชื่อเจ้าของ --</option>
+                        {(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    {formData.owner === 'อื่นๆ' && (
+                      <div className="animate-[slideDown_0.2s_ease-out]">
+                        <input 
+                          type="text" 
+                          autoFocus 
+                          className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-fuchsia-500 ${isDarkMode ? 'bg-fuchsia-900/20 border-fuchsia-800 text-fuchsia-300' : 'bg-fuchsia-50 border-fuchsia-300 text-fuchsia-800'}`} 
+                          placeholder="พิมพ์ชื่อเจ้าของใหม่..." 
+                          value={formData.newOwner || ''} 
+                          onChange={e => setFormData({...formData, newOwner: e.target.value})} 
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="sm:col-span-2">
                 <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ชื่ออุปกรณ์ <span className="text-rose-500">*</span></label>
                 <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น กล้อง Sony A7IV" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
