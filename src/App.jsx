@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
 import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc } from "firebase/firestore";
 
-// ⚠️ นำค่า Firebase Config ของคุณมาใส่ตรงนี้
+// ⚠️ ใช้ Firebase Config ของคุณโดยตรง เพื่อให้เชื่อมกับข้อมูลจริง
 const myFirebaseConfig = {
   apiKey: "AIzaSyA0IFm6icc-QG4ZC2WiuhRa2YquISGH9FM",
   authDomain: "mdec-stock-app.firebaseapp.com",
@@ -17,15 +17,6 @@ const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__f
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-
-// 💡 Smart Database Router
-const IS_CANVAS = typeof __app_id !== 'undefined';
-const APP_ID = IS_CANVAS ? __app_id : 'default-app-id';
-
-const getItemsCol = () => IS_CANVAS ? collection(db, 'artifacts', APP_ID, 'public', 'data', 'items') : collection(db, 'mdec_stock', 'shared_data', 'items');
-const getSettingsDoc = () => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'settings', 'global') : doc(db, 'mdec_stock', 'shared_data', 'settings', 'global');
-const getAuditCol = () => IS_CANVAS ? collection(db, 'artifacts', APP_ID, 'public', 'data', 'audit_logs') : collection(db, 'mdec_stock', 'shared_data', 'audit_logs');
-const getItemDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'items', id) : doc(db, 'mdec_stock', 'shared_data', 'items', id);
 
 const ADMIN_PIN = 'mdec8203';
 
@@ -59,7 +50,9 @@ const Icons = {
   Moon: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>,
   Layers: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
   Monitor: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
-  Truck: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.92l-1.09-1.09A4 4 0 0 0 16.92 9H14v8h2"/><circle cx="8.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/></svg>
+  Truck: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.92l-1.09-1.09A4 4 0 0 0 16.92 9H14v8h2"/><circle cx="8.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/></svg>,
+  QrCode: ({ className = "" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m-4 8h.01M16 12h.01M8 16h.01M16 16h.01M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6z" /></svg>,
+  Printer: ({ className = "" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
 };
 
 const STATUSES = [
@@ -107,7 +100,6 @@ function MainApp() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [user, setUser] = useState(null);
-  
   const [showLogin, setShowLogin] = useState(false);
   const [pin, setPin] = useState('');
   const [firebaseError, setFirebaseError] = useState(false);
@@ -134,13 +126,11 @@ function MainApp() {
   const [returnChecklist, setReturnChecklist] = useState([]);
   
   const [showHistory, setShowHistory] = useState(null);
-
   const [showSettings, setShowSettings] = useState(false);
   const [settingsTab, setSettingsTab] = useState('categories');
   const [newSettingItem, setNewSettingItem] = useState('');
   const [editingSettingItem, setEditingSettingItem] = useState(null);
 
-  // ตัวแปรจัดการเซ็ต
   const [showBundleModal, setShowBundleModal] = useState(false);
   const [showBundleManager, setShowBundleManager] = useState(false); 
   const [bundleForm, setBundleForm] = useState({ id: null, name: '', itemIds: [] });
@@ -148,9 +138,15 @@ function MainApp() {
   
   const [showQuickReturnModal, setShowQuickReturnModal] = useState(false);
   const [showEmptyCategories, setShowEmptyCategories] = useState(false);
-
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
+
+  // 🖨️ สถานะใหม่สำหรับ Print & Scan QR Code
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showScanModal, setShowScanModal] = useState(false);
+  const [scanInput, setScanInput] = useState('');
+  const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
+  const scanInputRef = useRef(null);
 
   useEffect(() => {
     if (showCommandCenter) {
@@ -167,6 +163,13 @@ function MainApp() {
       document.body.style.backgroundColor = '#f1f5f9'; 
     }
   }, [isDarkMode]);
+
+  // ให้ช่อง Scan โฟกัสเสมอเมื่อเปิด Modal
+  useEffect(() => {
+    if (showScanModal && scanInputRef.current) {
+      scanInputRef.current.focus();
+    }
+  }, [showScanModal]);
 
   const theme = {
     mainBg: isDarkMode ? 'bg-slate-900' : 'bg-slate-100',
@@ -187,11 +190,7 @@ function MainApp() {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
+        await signInAnonymously(auth);
       } catch (error) {
         console.error("Auth init error", error);
         setFirebaseError(true);
@@ -202,7 +201,6 @@ function MainApp() {
     return () => unsubscribe();
   }, []);
 
-  // ใช้ฐานข้อมูลเดิม (mdec_stock) ทันทีเพื่อให้ข้อมูลเก่าไม่หาย
   useEffect(() => {
     if (!user) return;
     const itemsRef = collection(db, "mdec_stock", "shared_data", "items");
@@ -376,20 +374,17 @@ function MainApp() {
 
   const handleSave = async () => {
     const nameInput = formData.name || '';
-    if (!nameInput.trim()) {
-      alert('❌ กรุณากรอกชื่ออุปกรณ์');
+    const snInput = String(formData.sn || '').trim();
+
+    if (!nameInput.trim() || !snInput) {
+      alert('❌ กรุณากรอก "ชื่ออุปกรณ์" และ "รหัส S.N." ให้ครบถ้วน (ระบบบังคับใส่รหัสซีเรียล)');
       return;
     }
 
-    const snInput = String(formData.sn || '').trim();
-    const ignoredSNs = ['-', 'none', 'n/a', 'na', 'ไม่มี', 'ไม่ระบุ', ''];
-    
-    if (snInput && !ignoredSNs.includes(snInput.toLowerCase())) {
-      const isDuplicate = items.some(item => item.sn && String(item.sn).trim().toLowerCase() === snInput.toLowerCase() && item.id !== formData.id);
-      if (isDuplicate) {
-        alert(`❌ ไม่สามารถบันทึกได้: รหัส S.N. "${snInput}" มีซ้ำอยู่ในระบบแล้ว\n(หากไม่มีซีเรียล ให้ปล่อยว่างไว้ หรือใส่เครื่องหมาย - แทนได้ครับ)`);
-        return; 
-      }
+    const isDuplicate = items.some(item => item.sn && String(item.sn).trim().toLowerCase() === snInput.toLowerCase() && item.id !== formData.id);
+    if (isDuplicate) {
+      alert(`❌ ไม่สามารถบันทึกได้: รหัส S.N. "${snInput}" มีซ้ำอยู่ในระบบแล้ว กรุณาตรวจสอบอีกครั้ง`);
+      return; 
     }
 
     try {
@@ -446,19 +441,6 @@ function MainApp() {
       alert(`เกิดข้อผิดพลาดจากฐานข้อมูล: ${error.message}`);
       setItemToDelete(null);
     }
-  };
-
-  const expandWithChildren = (targetIds) => {
-    let expanded = new Set(targetIds);
-    if (Array.isArray(targetIds)) {
-      targetIds.forEach(id => {
-        const item = items.find(i => i.id === id);
-        if (item && Array.isArray(item.childIds)) {
-          item.childIds.forEach(cId => expanded.add(cId));
-        }
-      });
-    }
-    return Array.from(expanded);
   };
 
   const handleOpenRowBorrow = (e, item) => {
@@ -731,47 +713,27 @@ function MainApp() {
     setShowBundleManager(true);
   };
 
-  const handleImportCSV = (e) => {
-    if (!user) return;
-    const file = e.target.files[0];
-    if (!file) return;
+  // 📷 ฟังก์ชันจัดการการสแกน QR Code
+  const handleScanSubmit = (e) => {
+    e.preventDefault();
+    const scannedVal = scanInput.trim();
+    if (!scannedVal) return;
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      try {
-        const csvData = event.target.result;
-        const rows = csvData.split('\n').map(row => row.trim()).filter(row => row);
-        if (rows.length < 2) return alert('ไฟล์ว่างเปล่า หรือรูปแบบข้อมูลไม่ถูกต้อง');
-        
-        let importedCount = 0;
-        for (let i = 1; i < rows.length; i++) {
-          const cols = rows[i].split(',').map(c => c.trim());
-          if (cols.length >= 1) {
-            const name = cols[0];
-            if (!name) continue;
-            
-            const newId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-            const itemData = {
-              name: name, sn: cols[1] || '', category: cols[2] || 'อื่นๆ',
-              department: cols[3] || 'ภาพนิ่ง', location: cols[4] || 'อื่นๆ',
-              quantity: Number(cols[5]) || 1, status: 'available',
-              updatedAt: new Date().toISOString(), history: []
-            };
-            
-            await setDoc(doc(db, "mdec_stock", "shared_data", "items", newId), itemData);
-            importedCount++;
-          }
-        }
-        
-        logAction('นำเข้าข้อมูล (Import)', `เพิ่มข้อมูล ${importedCount} ชิ้น`, `นำเข้าจากไฟล์: ${file.name}`);
-        alert(`✅ นำเข้าข้อมูลสำเร็จทั้งหมด ${importedCount} รายการ!`);
-        e.target.value = null; 
-      } catch (err) {
-        console.error(err);
-        alert(`เกิดข้อผิดพลาดในการอ่านไฟล์: ${err.message}`);
-      }
-    };
-    reader.readAsText(file);
+    // ค้นหาอุปกรณ์จาก ID หรือ S.N.
+    const foundItem = items.find(i => i.id === scannedVal || (i.sn && i.sn.toLowerCase() === scannedVal.toLowerCase()));
+    
+    if (foundItem) {
+      // เพิ่มเข้าตะกร้า (ถ้ายังไม่มี)
+      setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+      setScanMessage({ text: `✅ เพิ่ม "${foundItem.name}" ลงตะกร้าแล้ว!`, type: 'success' });
+    } else {
+      setScanMessage({ text: `❌ ไม่พบอุปกรณ์รหัส "${scannedVal}" ในระบบ`, type: 'error' });
+    }
+    
+    // ล้างช่องรอสแกนชิ้นต่อไป
+    setScanInput('');
+    // เคลียร์ข้อความแจ้งเตือนหลัง 3 วินาที
+    setTimeout(() => setScanMessage({ text: '', type: '' }), 3000);
   };
 
   const handleSaveSetting = async () => {
@@ -829,20 +791,6 @@ function MainApp() {
     }
   };
 
-  const exportToCSV = () => {
-    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'สถานะ', 'จำนวน', 'ผู้ยืมปัจจุบัน', 'อัปเดตล่าสุด'];
-    const csvData = items.map(i => [
-      i.name, i.sn || '-', i.department, i.category || '-', i.location || '-', 
-      STATUSES.find(s=>s.id===i.status)?.label || i.status, i.quantity || 1, i.currentBorrower || i.currentEvent || '-', new Date(i.updatedAt).toLocaleDateString('th-TH')
-    ]);
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...csvData].map(e => e.join(",")).join("\n");
-    const link = document.createElement("a");
-    link.href = encodeURI(csvContent);
-    link.download = `MDEC_Stock_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-  };
-
   const handleLogin = () => {
     if (pin === ADMIN_PIN) { 
       setIsAdmin(true); 
@@ -861,6 +809,40 @@ function MainApp() {
     try { localStorage.removeItem('mdec_admin'); } catch(e) {}
   };
 
+  // ==================== 🖨️ โหมดการพิมพ์ (Print Mode UI) ====================
+  if (showPrintModal) {
+    return (
+      <div className="bg-white min-h-screen font-sans text-black">
+         <div className="print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
+            <h2 className="font-bold text-xl flex items-center gap-2">
+              <Icons.QrCode className="w-6 h-6" /> โหมดพิมพ์สติ๊กเกอร์ QR Code ({selectedItems.length} ดวง)
+            </h2>
+            <div className="flex gap-3">
+               <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
+                 <Icons.Printer className="w-5 h-5"/> สั่งพิมพ์
+               </button>
+               <button onClick={() => setShowPrintModal(false)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button>
+            </div>
+         </div>
+         {/* หน้ากระดาษสำหรับปรินต์ */}
+         <div className="pt-24 p-8 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6 print:pt-0 print:p-0 print:gap-2">
+           {selectedItems.map(id => {
+              const item = items.find(i => i.id === id);
+              if(!item) return null;
+              return (
+                 <div key={id} className="border-2 border-dashed border-gray-300 p-3 flex flex-col items-center justify-center text-center break-inside-avoid print:border-solid print:border-black print:p-2 rounded-xl print:rounded-none">
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${item.id}`} alt="QR" className="w-24 h-24 object-contain mb-2 print:w-20 print:h-20" />
+                    <span className="text-xs font-black leading-tight line-clamp-2 w-full">{item.name}</span>
+                    <span className="text-[10px] font-bold text-gray-600 mt-1">{item.sn}</span>
+                 </div>
+              )
+           })}
+         </div>
+      </div>
+    );
+  }
+
+  // ==================== 📊 Dashboard UI ====================
   if (showCommandCenter) {
     const healthPercentage = stats.all > 0 ? Math.round((stats.available / stats.all) * 100) : 0;
     
@@ -995,7 +977,7 @@ function MainApp() {
                   <div key={log.id} className={`p-3.5 rounded-2xl border transition-shadow hover:shadow-md ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
                     <div className="flex justify-between items-center mb-2">
                       <span className={`text-xs font-bold px-2 py-1 rounded-lg ${badgeColor}`}>{icon} {action}</span>
-                      <span className={`text-xs font-semibold ${ccTheme.textMuted}`}>{log.timestamp ? new Date(log.timestamp).toLocaleTimeString('th-TH', {hour12: false}) : '-'} น.</span>
+                      <span className={`text-xs font-semibold ${ccTheme.textMuted}`}>{log.timestamp ? new Date(log.timestamp).toLocaleTimeString('th-TH') : '-'}</span>
                     </div>
                     <div className={`text-base font-bold truncate ${ccTheme.textMain}`}>{log.target || '-'}</div>
                     <div className={`text-xs truncate mt-1 flex items-center gap-1.5 ${ccTheme.textMuted}`}>
@@ -1017,20 +999,15 @@ function MainApp() {
     );
   }
 
+  // ==================== 🎯 Main UI ====================
   return (
     <div className={`min-h-screen font-sans p-4 sm:p-8 pb-32 transition-colors duration-300 ${theme.mainBg} ${theme.textMain}`}>
-      {/* 🚨 แจ้งเตือนข้อผิดพลาด Firebase ให้ผู้ใช้แก้ไขเองบน Vercel */}
       {firebaseError && (
         <div className="w-full mb-6 bg-rose-100 border-l-4 border-rose-500 text-rose-800 p-5 rounded-r-xl shadow-md flex items-start gap-4">
           <Icons.Alert className="w-8 h-8 shrink-0 text-rose-600" />
           <div>
             <h3 className="font-black text-xl mb-2 text-rose-700">🚨 ฐานข้อมูลถูกระงับ (Firebase Permission Denied)</h3>
-            <p className="font-bold text-base mb-2">ระบบไม่สามารถดึงข้อมูลจาก Firebase ของคุณได้ โปรดแก้ไขการตั้งค่าตามนี้:</p>
-            <ul className="list-decimal ml-5 space-y-1 font-medium text-sm">
-              <li>ไปที่ <b>Firebase Console</b> แล้วเปิดโปรเจกต์ของคุณ</li>
-              <li>ไปที่เมนู <b>Authentication</b> {'>'} แท็บ Sign-in method {'>'} เปิดใช้งาน <b>Anonymous (ไม่ระบุตัวตน)</b></li>
-              <li>ไปที่เมนู <b>Firestore Database</b> {'>'} แท็บ Rules {'>'} แก้ไขโค้ดเป็น <code>allow read, write: if true;</code> แล้วกด <b>Publish</b></li>
-            </ul>
+            <p className="font-bold text-base mb-2">ระบบไม่สามารถดึงข้อมูลจาก Firebase ของคุณได้ โปรดตรวจสอบการตั้งค่า Rules อีกครั้ง</p>
           </div>
         </div>
       )}
@@ -1042,7 +1019,7 @@ function MainApp() {
           <div>
             <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textTitle}`}>
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v20.4 Ultimate Stable</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v20.5 Pro</span>
             </h1>
             <p className={`font-medium text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -1054,8 +1031,13 @@ function MainApp() {
 
           {isAdmin && (
             <>
+              {/* 📷 ปุ่มเปิดโหมดสแกน */}
+              <button type="button" onClick={() => setShowScanModal(true)} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-black rounded-xl transition-colors flex shadow-md ${isDarkMode ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`} title="เปิดโหมดสแกน QR Code/Barcode">
+                <Icons.QrCode className="w-5 h-5" /><span className="hidden sm:inline">โหมดสแกน</span>
+              </button>
+
               <button type="button" onClick={() => setShowCommandCenter(true)} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors flex ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-800/60 border border-emerald-800' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`} title="เปิดหน้าจอควบคุมรวม (Dashboard)">
-                <Icons.Monitor className="w-5 h-5" /><span className="hidden sm:inline">Command Center</span>
+                <Icons.Monitor className="w-5 h-5" /><span className="hidden sm:inline">Dashboard</span>
               </button>
 
               <button type="button" onClick={() => { setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-fuchsia-600 text-white hover:bg-fuchsia-500' : 'bg-fuchsia-600 text-white hover:bg-fuchsia-700'}`}>
@@ -1248,18 +1230,14 @@ function MainApp() {
 
                     {isAdmin && (
                       <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        {(item.status === 'available' || isBorrowed || isEvent) ? (
-                          <input 
-                            type="checkbox" 
-                            className="w-5 h-5 rounded cursor-pointer accent-indigo-600"
-                            checked={selectedItems.includes(item.id)}
-                            onChange={() => {
-                              setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
-                            }}
-                          />
-                        ) : (
-                          <div className={`w-5 h-5 mx-auto rounded-sm cursor-not-allowed ${isDarkMode ? 'bg-slate-700 opacity-50' : 'bg-slate-200 opacity-50'}`} title="สถานะนี้ไม่สามารถทำรายการแบบกลุ่มได้"></div>
-                        )}
+                        <input 
+                          type="checkbox" 
+                          className="w-5 h-5 rounded cursor-pointer accent-indigo-600"
+                          checked={selectedItems.includes(item.id)}
+                          onChange={() => {
+                            setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
+                          }}
+                        />
                       </td>
                     )}
 
@@ -1333,14 +1311,17 @@ function MainApp() {
         </div>
       </div>
 
-      {/* 🛒 Floating Action Bar (ระบบตะกร้า) */}
+      {/* 🛒 Floating Action Bar (ระบบตะกร้า + ปรินต์) */}
       {isAdmin && selectedItems.length > 0 && (
-        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 backdrop-blur-xl px-4 py-4 sm:px-6 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] flex items-center gap-4 sm:gap-6 z-40 w-[95%] max-w-3xl justify-between animate-[slideUp_0.3s_ease-out] border-2 ${isDarkMode ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-white/90 border-slate-100 text-slate-800'}`}>
+        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 backdrop-blur-xl px-4 py-4 sm:px-6 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] flex items-center gap-4 sm:gap-6 z-40 w-[95%] max-w-4xl justify-between animate-[slideUp_0.3s_ease-out] border-2 ${isDarkMode ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-white/90 border-slate-100 text-slate-800'}`}>
           <div className="flex items-center gap-3 shrink-0">
             <div className="bg-indigo-600 text-white font-black w-10 h-10 rounded-full flex items-center justify-center shadow-inner text-lg">{selectedItems.length}</div>
             <span className="font-bold text-lg hidden lg:inline whitespace-nowrap">รายการที่เลือก</span>
           </div>
           <div className="flex gap-2 sm:gap-3 overflow-x-auto custom-scrollbar">
+            {/* 🖨️ ปุ่มสั่งพิมพ์ QR Code (ใหม่) */}
+            <button onClick={() => setShowPrintModal(true)} className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.QrCode className="w-5 h-5"/> <span className="hidden sm:inline">พิมพ์ QR</span></button>
+
             <button onClick={handleCreateBundleFromSelection} className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Layers className="w-5 h-5"/> <span className="hidden sm:inline">จัดเซ็ต</span></button>
 
             <button onClick={handleOpenBatchBorrow} className="px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.UserPlus className="w-5 h-5"/> <span className="hidden sm:inline">ยืมออก</span></button>
@@ -1354,54 +1335,44 @@ function MainApp() {
         </div>
       )}
 
-      {/* Settings Modal (การตั้งค่าทั่วไป) */}
-      {showSettings && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] transition-all duration-300 ${theme.cardBg}`}>
-            <div className={`flex border-b overflow-x-auto custom-scrollbar shrink-0 ${theme.divide}`}>
-              <button type="button" onClick={() => {setSettingsTab('categories'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'categories' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>หมวดหมู่</button>
-              <button type="button" onClick={() => {setSettingsTab('locations'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'locations' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>สถานที่</button>
-              <button type="button" onClick={() => {setSettingsTab('staff'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'staff' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>เจ้าหน้าที่</button>
+      {/* 📷 Modal สแกน QR Code / บาร์โค้ด */}
+      {showScanModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
+          <div className={`rounded-3xl p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden ${theme.cardBg}`}>
+            {/* แอนิเมชันเส้นเลเซอร์สแกน */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-[scan_2s_ease-in-out_infinite] z-0 opacity-70"></div>
+            
+            <button type="button" onClick={() => setShowScanModal(false)} className={`absolute top-4 right-4 p-2 hover:text-rose-500 transition-colors z-10 ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
+            
+            <div className={`w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6 relative z-10 ${isDarkMode ? 'bg-amber-900/40 text-amber-500' : 'bg-amber-100 text-amber-500'}`}>
+              <Icons.QrCode className="w-12 h-12" />
             </div>
             
-            <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
-              <div className="p-6">
-                <div className="flex gap-2 mb-6">
-                  <input type="text" className={`flex-1 px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder={`พิมพ์${settingsTab === 'categories' ? 'หมวดหมู่' : settingsTab === 'locations' ? 'สถานที่' : 'ชื่อเจ้าหน้าที่'}ใหม่...`} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} />
-                  <button type="button" onClick={handleSaveSetting} className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg">{editingSettingItem !== null ? 'บันทึก' : 'เพิ่ม'}</button>
-                  {editingSettingItem !== null && <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-4 py-3 font-bold rounded-xl ${theme.btnCancel}`}><Icons.X className="w-5 h-5" /></button>}
-                </div>
-                <div className="max-h-[50vh] overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2">
-                  {(settingsOptions[settingsTab] || []).filter(c => c !== 'อื่นๆ').map((item, index) => (
-                    <div key={index} className={`flex justify-between items-center p-4 border rounded-xl group transition-colors ${theme.btnSecondary}`}>
-                      <span className={`font-bold text-lg ${theme.textTitle}`}>{item}</span>
-                      <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button type="button" onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`}><Icons.Edit className="w-4 h-4" /></button>
-                        <button type="button" onClick={() => setDeleteSettingConfirm(item)} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`}><Icons.Trash className="w-4 h-4" /></button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <h3 className={`text-2xl font-black mb-2 relative z-10 ${theme.textTitle}`}>โหมดสแกนเข้าตะกร้า</h3>
+            <p className={`mb-6 text-sm font-medium relative z-10 ${theme.textMuted}`}>
+              ใช้เครื่องยิงบาร์โค้ด หรือนำเคอร์เซอร์มาคลิกที่ช่องด้านล่างแล้วยิงสแกนได้เลย ของจะเข้าไปอยู่ในตะกร้าให้อัตโนมัติ
+            </p>
+            
+            <form onSubmit={handleScanSubmit} className="relative z-10">
+              <input 
+                type="text" 
+                ref={scanInputRef}
+                className={`w-full px-4 py-4 rounded-xl font-bold text-center text-xl outline-none mb-4 border-2 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 transition-all ${theme.input}`} 
+                placeholder="สแกน S.N. หรือ ID ที่นี่..." 
+                value={scanInput} 
+                onChange={e => setScanInput(e.target.value)} 
+                autoFocus
+              />
+              <button type="submit" className="hidden">ซ่อนปุ่มซับมิท</button>
+            </form>
 
-            <div className={`p-4 border-t shrink-0 ${theme.divide}`}>
-              <button type="button" onClick={() => { setShowSettings(false); setEditingSettingItem(null); setNewSettingItem(''); }} className={`w-full py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal 1: ยืนยันการลบการตั้งค่า (Settings) */}
-      {deleteSettingConfirm !== null && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl ${theme.cardBg}`}>
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isDarkMode ? 'bg-rose-900/40 text-rose-500' : 'bg-rose-100 text-rose-500'}`}><Icons.Trash className="w-10 h-10" /></div>
-            <h3 className={`text-2xl font-black mb-2 ${theme.textTitle}`}>ยืนยันการลบ?</h3>
-            <p className={`mb-8 text-lg ${theme.textMuted}`}>รายการ <span className="font-bold text-rose-500">"{deleteSettingConfirm}"</span> จะหายไปจากตัวเลือก</p>
-            <div className="flex gap-3">
-              <button type="button" onClick={() => setDeleteSettingConfirm(null)} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={handleDeleteSetting} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/20 text-lg hover:bg-rose-500">ลบรายการ</button>
+            {/* แสดงข้อความแจ้งเตือนหลังสแกน */}
+            <div className="h-8 relative z-10 mt-2">
+               {scanMessage.text && (
+                 <span className={`font-bold px-4 py-1.5 rounded-full animate-[pulse_0.5s_ease-in-out] ${scanMessage.type === 'success' ? (isDarkMode ? 'bg-emerald-900/50 text-emerald-400' : 'bg-emerald-100 text-emerald-600') : (isDarkMode ? 'bg-rose-900/50 text-rose-400' : 'bg-rose-100 text-rose-600')}`}>
+                   {scanMessage.text}
+                 </span>
+               )}
             </div>
           </div>
         </div>
@@ -1475,6 +1446,59 @@ function MainApp() {
             </div>
             <div className={`p-4 border-t ${theme.divide}`}>
               <p className={`text-sm text-center font-bold ${theme.textMuted}`}>* กดปุ่มรับคืนกลุ่มนี้ ระบบจะดึงของทั้งหมดไปเข้าหน้าเช็คลิสต์ตรวจของเข้ากล่องให้ทันที (ทยอยคืนบางส่วนได้)</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal (การตั้งค่าทั่วไป) */}
+      {showSettings && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] transition-all duration-300 ${theme.cardBg}`}>
+            <div className={`flex border-b overflow-x-auto custom-scrollbar shrink-0 ${theme.divide}`}>
+              <button type="button" onClick={() => {setSettingsTab('categories'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'categories' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>หมวดหมู่</button>
+              <button type="button" onClick={() => {setSettingsTab('locations'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'locations' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>สถานที่</button>
+              <button type="button" onClick={() => {setSettingsTab('staff'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'staff' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>เจ้าหน้าที่</button>
+            </div>
+            
+            <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
+              <div className="p-6">
+                <div className="flex gap-2 mb-6">
+                  <input type="text" className={`flex-1 px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder={`พิมพ์${settingsTab === 'categories' ? 'หมวดหมู่' : settingsTab === 'locations' ? 'สถานที่' : 'ชื่อเจ้าหน้าที่'}ใหม่...`} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} />
+                  <button type="button" onClick={handleSaveSetting} className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg">{editingSettingItem !== null ? 'บันทึก' : 'เพิ่ม'}</button>
+                  {editingSettingItem !== null && <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-4 py-3 font-bold rounded-xl ${theme.btnCancel}`}><Icons.X className="w-5 h-5" /></button>}
+                </div>
+                <div className="max-h-[50vh] overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2">
+                  {(settingsOptions[settingsTab] || []).filter(c => c !== 'อื่นๆ').map((item, index) => (
+                    <div key={index} className={`flex justify-between items-center p-4 border rounded-xl group transition-colors ${theme.btnSecondary}`}>
+                      <span className={`font-bold text-lg ${theme.textTitle}`}>{item}</span>
+                      <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button type="button" onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`}><Icons.Edit className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => setDeleteSettingConfirm(item)} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`}><Icons.Trash className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className={`p-4 border-t shrink-0 ${theme.divide}`}>
+              <button type="button" onClick={() => { setShowSettings(false); setEditingSettingItem(null); setNewSettingItem(''); }} className={`w-full py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 1: ยืนยันการลบการตั้งค่า (Settings) */}
+      {deleteSettingConfirm !== null && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
+          <div className={`rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl ${theme.cardBg}`}>
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isDarkMode ? 'bg-rose-900/40 text-rose-500' : 'bg-rose-100 text-rose-500'}`}><Icons.Trash className="w-10 h-10" /></div>
+            <h3 className={`text-2xl font-black mb-2 ${theme.textTitle}`}>ยืนยันการลบ?</h3>
+            <p className={`mb-8 text-lg ${theme.textMuted}`}>รายการ <span className="font-bold text-rose-500">"{deleteSettingConfirm}"</span> จะหายไปจากตัวเลือก</p>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setDeleteSettingConfirm(null)} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={handleDeleteSetting} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/20 text-lg hover:bg-rose-500">ลบรายการ</button>
             </div>
           </div>
         </div>
@@ -2004,7 +2028,7 @@ function MainApp() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
                         <span className={`text-sm font-black px-3 py-1 rounded-md ${badgeColor}`}>{icon} {action}</span>
-                        <span className={`text-sm font-bold ${theme.textMuted}`}>{log.timestamp ? new Date(log.timestamp).toLocaleTimeString('th-TH') : '-'} น.</span>
+                        <span className={`text-sm font-bold ${theme.textMuted}`}>{log.timestamp ? new Date(log.timestamp).toLocaleTimeString('th-TH') : '-'}</span>
                       </div>
                       <h4 className={`text-lg font-bold mb-1 ${theme.textTitle}`}>{log.target || '-'}</h4>
                       <p className={`text-base whitespace-pre-line ${theme.textMain}`}>{log.details}</p>
@@ -2154,7 +2178,6 @@ function MainApp() {
                   {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                 </select>
               </div>
-
             </div>
             <div className="flex gap-3 mt-8">
               <button type="button" onClick={() => setShowForm(false)} className={`flex-1 py-4 font-bold rounded-xl transition-colors text-lg ${theme.btnCancel}`}>ยกเลิก</button>
