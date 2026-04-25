@@ -148,6 +148,27 @@ function MainApp() {
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
   const scanInputRef = useRef(null);
 
+  // --- เพิ่มเติมสำหรับระบบกล้องสแกน ---
+  const [useCamera, setUseCamera] = useState(false);
+  const [isScannerLoaded, setIsScannerLoaded] = useState(false);
+  const itemsRefForScan = useRef(items);
+
+  useEffect(() => {
+    itemsRefForScan.current = items;
+  }, [items]);
+
+  useEffect(() => {
+    if (!window.Html5QrcodeScanner) {
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/html5-qrcode";
+      script.async = true;
+      script.onload = () => setIsScannerLoaded(true);
+      document.body.appendChild(script);
+    } else {
+      setIsScannerLoaded(true);
+    }
+  }, []);
+
   useEffect(() => {
     if (showCommandCenter) {
       const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -713,28 +734,60 @@ function MainApp() {
     setShowBundleManager(true);
   };
 
-  // 📷 ฟังก์ชันจัดการการสแกน QR Code
-  const handleScanSubmit = (e) => {
-    e.preventDefault();
-    const scannedVal = scanInput.trim();
-    if (!scannedVal) return;
+  // 📷 ฟังก์ชันจัดการการสแกน QR Code (รองรับทั้งกล้องและเครื่องยิง)
+  const handleProcessScan = (scannedVal) => {
+    const val = scannedVal.trim();
+    if (!val) return;
 
-    // ค้นหาอุปกรณ์จาก ID หรือ S.N.
-    const foundItem = items.find(i => i.id === scannedVal || (i.sn && i.sn.toLowerCase() === scannedVal.toLowerCase()));
+    const currentItems = itemsRefForScan.current || [];
+    const foundItem = currentItems.find(i => i.id === val || (i.sn && i.sn.toLowerCase() === val.toLowerCase()));
     
     if (foundItem) {
-      // เพิ่มเข้าตะกร้า (ถ้ายังไม่มี)
       setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
       setScanMessage({ text: `✅ เพิ่ม "${foundItem.name}" ลงตะกร้าแล้ว!`, type: 'success' });
+      try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
     } else {
-      setScanMessage({ text: `❌ ไม่พบอุปกรณ์รหัส "${scannedVal}" ในระบบ`, type: 'error' });
+      setScanMessage({ text: `❌ ไม่พบอุปกรณ์รหัส "${val}" ในระบบ`, type: 'error' });
+      try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
     }
     
-    // ล้างช่องรอสแกนชิ้นต่อไป
     setScanInput('');
-    // เคลียร์ข้อความแจ้งเตือนหลัง 3 วินาที
     setTimeout(() => setScanMessage({ text: '', type: '' }), 3000);
   };
+
+  const handleScanSubmit = (e) => {
+    e.preventDefault();
+    handleProcessScan(scanInput);
+  };
+
+  useEffect(() => {
+    let scanner = null;
+    if (showScanModal && useCamera && isScannerLoaded) {
+      scanner = new window.Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true },
+        false
+      );
+      scanner.render(
+        (decodedText) => {
+          handleProcessScan(decodedText);
+          // หยุดสแกนชั่วคราว 2 วินาทีป้องกันแสกนรัวๆ เกินไป
+          if (scanner) {
+            try { scanner.pause(true); } catch(e) {}
+            setTimeout(() => {
+              try { scanner.resume(); } catch(e) {}
+            }, 2000);
+          }
+        },
+        (err) => { /* ซ่อน error ตอนที่กล้องกำลังหาโฟกัส */ }
+      );
+    }
+    return () => {
+      if (scanner) {
+        scanner.clear().catch(console.error);
+      }
+    };
+  }, [showScanModal, useCamera, isScannerLoaded]);
 
   const handleSaveSetting = async () => {
     const newSetting = newSettingItem || '';
@@ -1338,38 +1391,61 @@ function MainApp() {
       {/* 📷 Modal สแกน QR Code / บาร์โค้ด */}
       {showScanModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden ${theme.cardBg}`}>
-            {/* แอนิเมชันเส้นเลเซอร์สแกน */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-[scan_2s_ease-in-out_infinite] z-0 opacity-70"></div>
+          <div className={`rounded-3xl p-6 max-w-md w-full text-center shadow-2xl relative overflow-hidden ${theme.cardBg}`}>
+            <style>{`
+              #qr-reader button { background-color: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 5px; }
+              #qr-reader select { padding: 8px; border-radius: 8px; margin: 5px; max-width: 100%; border: 1px solid #ccc; color: black; }
+              #qr-reader { border: none !important; }
+              #qr-reader__dashboard_section_csr span { color: inherit !important; }
+            `}</style>
             
-            <button type="button" onClick={() => setShowScanModal(false)} className={`absolute top-4 right-4 p-2 hover:text-rose-500 transition-colors z-10 ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
+            <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); }} className={`absolute top-4 right-4 p-2 hover:text-rose-500 transition-colors z-10 ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
             
-            <div className={`w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6 relative z-10 ${isDarkMode ? 'bg-amber-900/40 text-amber-500' : 'bg-amber-100 text-amber-500'}`}>
-              <Icons.QrCode className="w-12 h-12" />
+            <h3 className={`text-2xl font-black mb-4 relative z-10 flex justify-center items-center gap-2 ${theme.textTitle}`}>
+              <Icons.QrCode className="w-8 h-8 text-amber-500" /> โหมดสแกนเข้าตะกร้า
+            </h3>
+
+            <div className="flex justify-center gap-2 mb-4 relative z-10">
+              <button onClick={() => setUseCamera(false)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${!useCamera ? 'bg-amber-500 text-white' : theme.btnSecondary}`}>
+                ⌨️ เครื่องยิง / พิมพ์
+              </button>
+              <button onClick={() => setUseCamera(true)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${useCamera ? 'bg-amber-500 text-white' : theme.btnSecondary}`}>
+                📷 ใช้กล้องมือถือ
+              </button>
             </div>
             
-            <h3 className={`text-2xl font-black mb-2 relative z-10 ${theme.textTitle}`}>โหมดสแกนเข้าตะกร้า</h3>
-            <p className={`mb-6 text-sm font-medium relative z-10 ${theme.textMuted}`}>
-              ใช้เครื่องยิงบาร์โค้ด หรือนำเคอร์เซอร์มาคลิกที่ช่องด้านล่างแล้วยิงสแกนได้เลย ของจะเข้าไปอยู่ในตะกร้าให้อัตโนมัติ
-            </p>
-            
-            <form onSubmit={handleScanSubmit} className="relative z-10">
-              <input 
-                type="text" 
-                ref={scanInputRef}
-                className={`w-full px-4 py-4 rounded-xl font-bold text-center text-xl outline-none mb-4 border-2 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 transition-all ${theme.input}`} 
-                placeholder="สแกน S.N. หรือ ID ที่นี่..." 
-                value={scanInput} 
-                onChange={e => setScanInput(e.target.value)} 
-                autoFocus
-              />
-              <button type="submit" className="hidden">ซ่อนปุ่มซับมิท</button>
-            </form>
+            {!useCamera ? (
+              <>
+                <p className={`mb-4 text-sm font-medium relative z-10 ${theme.textMuted}`}>
+                  ใช้เครื่องยิงบาร์โค้ด หรือพิมพ์ S.N. / ID อุปกรณ์ลงในช่องด้านล่าง
+                </p>
+                <form onSubmit={handleScanSubmit} className="relative z-10">
+                  <input 
+                    type="text" 
+                    ref={scanInputRef}
+                    className={`w-full px-4 py-4 rounded-xl font-bold text-center text-xl outline-none mb-4 border-2 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 transition-all ${theme.input}`} 
+                    placeholder="สแกน หรือ พิมพ์ที่นี่..." 
+                    value={scanInput} 
+                    onChange={e => setScanInput(e.target.value)} 
+                    autoFocus
+                  />
+                  <button type="submit" className="hidden">ซ่อนปุ่มซับมิท</button>
+                </form>
+              </>
+            ) : (
+              <div className="w-full relative z-10 min-h-[300px] flex flex-col items-center justify-center">
+                {!isScannerLoaded ? (
+                  <div className="animate-pulse text-amber-500 font-bold">กำลังโหลดระบบกล้อง...</div>
+                ) : (
+                  <div id="qr-reader" className="w-full bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden shadow-inner border-2 border-amber-500/30"></div>
+                )}
+              </div>
+            )}
 
             {/* แสดงข้อความแจ้งเตือนหลังสแกน */}
-            <div className="h-8 relative z-10 mt-2">
+            <div className="h-10 relative z-10 mt-4 flex items-center justify-center">
                {scanMessage.text && (
-                 <span className={`font-bold px-4 py-1.5 rounded-full animate-[pulse_0.5s_ease-in-out] ${scanMessage.type === 'success' ? (isDarkMode ? 'bg-emerald-900/50 text-emerald-400' : 'bg-emerald-100 text-emerald-600') : (isDarkMode ? 'bg-rose-900/50 text-rose-400' : 'bg-rose-100 text-rose-600')}`}>
+                 <span className={`font-bold px-5 py-2 rounded-full shadow-md animate-[slideUp_0.2s_ease-out] ${scanMessage.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
                    {scanMessage.text}
                  </span>
                )}
