@@ -38,6 +38,7 @@ const Icons = {
   Alert: ({ className = "" }) => <svg className={`w-12 h-12 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
   Settings: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /></svg>,
   X: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>,
+  Tag: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>,
   History: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
   UserPlus: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>,
   CheckCircle: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
@@ -147,6 +148,7 @@ function MainApp() {
   const [bundleSearchTerm, setBundleSearchTerm] = useState(''); 
   
   const [showQuickReturnModal, setShowQuickReturnModal] = useState(false);
+  const [showPersonalItemsModal, setShowPersonalItemsModal] = useState(false);
   const [showEmptyCategories, setShowEmptyCategories] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
@@ -1209,6 +1211,10 @@ function MainApp() {
                 </button>
               )}
 
+              <button type="button" onClick={() => setShowPersonalItemsModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-pink-600 text-white hover:bg-pink-500' : 'bg-pink-600 text-white hover:bg-pink-700'}`}>
+                  <Icons.Tag className="w-5 h-5" /> ของส่วนตัว
+              </button>
+
               <button type="button" onClick={() => setShowQuickReturnModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
                   <Icons.Users className="w-5 h-5" /> ติดตามของรอคืน
               </button>
@@ -1636,6 +1642,90 @@ function MainApp() {
             </div>
             <div className={`p-4 border-t ${theme.divide}`}>
               <p className={`text-sm text-center font-bold ${theme.textMuted}`}>* กดปุ่มรับคืนกลุ่มนี้ ระบบจะดึงของทั้งหมดไปเข้าหน้าเช็คลิสต์ตรวจของเข้ากล่องให้ทันที (ทยอยคืนบางส่วนได้)</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🏷️ Modal ทรัพย์สินส่วนตัว (BYOD) */}
+      {showPersonalItemsModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
+            <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
+              <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
+                <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-pink-900/50 text-pink-400' : 'bg-pink-100 text-pink-600'}`}><Icons.Tag className="w-6 h-6"/></div>
+                รายการทรัพย์สินส่วนตัว (BYOD)
+              </h3>
+              <button type="button" onClick={() => setShowPersonalItemsModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+              {(() => {
+                const groups = {};
+                let totalPersonalItems = 0;
+                items.forEach(item => {
+                  if (item.owner) {
+                    if (!groups[item.owner]) groups[item.owner] = [];
+                    groups[item.owner].push(item);
+                    totalPersonalItems++;
+                  }
+                });
+
+                const ownerKeys = Object.keys(groups).sort();
+
+                if (ownerKeys.length === 0) {
+                  return (
+                    <div className={`text-center py-10 font-bold text-xl flex flex-col items-center gap-3 ${theme.textMuted}`}>
+                      <Icons.Tag className="w-12 h-12" />
+                      ยังไม่มีการลงทะเบียนทรัพย์สินส่วนตัวในระบบ
+                    </div>
+                  );
+                }
+
+                return (
+                  <>
+                    <div className={`mb-4 px-4 py-3 rounded-xl border font-bold flex flex-wrap gap-4 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                       <span>👥 เจ้าของทั้งหมด: <span className="text-pink-500">{ownerKeys.length} ท่าน</span></span>
+                       <span>📦 อุปกรณ์ส่วนตัวรวม: <span className="text-pink-500">{totalPersonalItems} ชิ้น</span></span>
+                    </div>
+                    {ownerKeys.map(owner => (
+                      <div key={owner} className={`p-5 rounded-2xl border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Icons.Users className={`w-6 h-6 ${isDarkMode ? 'text-pink-400' : 'text-pink-500'}`} />
+                          <h4 className={`text-xl font-black truncate ${theme.textTitle}`}>
+                            ของส่วนตัว: {owner}
+                          </h4>
+                          <span className={`shrink-0 text-sm font-bold px-2 py-0.5 rounded-md ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-700'}`}>{groups[owner].length} ชิ้น</span>
+                        </div>
+                        
+                        <div className={`p-3 rounded-xl border max-h-60 overflow-y-auto custom-scrollbar ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                          <div className="space-y-1.5">
+                            {groups[owner].map(i => {
+                              const s = STATUSES.find(st => st.id === i.status) || STATUSES[0];
+                              return (
+                                <div key={i.id} className={`flex justify-between items-center text-sm py-2 border-b last:border-0 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                                  <div className="flex flex-col min-w-0 pr-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`font-bold text-base truncate ${theme.textMain}`}>- {i.name}</span>
+                                      <span className={`text-[11px] px-2 py-0.5 rounded-md font-bold whitespace-nowrap ${isDarkMode ? s.darkColor : s.color}`}>{s.label}</span>
+                                    </div>
+                                    <div className="flex gap-3 mt-1">
+                                      {i.sn && <span className={`text-xs ${theme.textMuted}`}>S.N.: {i.sn}</span>}
+                                      {i.category && <span className={`text-xs ${theme.textMuted}`}>หมวดหมู่: {i.category}</span>}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
+            </div>
+            <div className={`p-4 border-t shrink-0 ${theme.divide}`}>
+              <button type="button" onClick={() => setShowPersonalItemsModal(false)} className={`w-full py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
             </div>
           </div>
         </div>
