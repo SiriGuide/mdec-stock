@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "firebase/auth";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc } from "firebase/firestore";
 
-// ⚠️ ใช้ Firebase Config ของคุณโดยตรง เพื่อให้เชื่อมกับข้อมูลจริง
+// ⚠️ ใช้ Firebase Config ของคุณโดยตรง
 const myFirebaseConfig = {
   apiKey: "AIzaSyA0IFm6icc-QG4ZC2WiuhRa2YquISGH9FM",
   authDomain: "mdec-stock-app.firebaseapp.com",
@@ -114,7 +114,6 @@ function MainApp() {
   const [firebaseError, setFirebaseError] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
-  // 💡 เพิ่ม owner ใน formData เริ่มต้น
   const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, owner: '', newOwner: '', isPersonalItem: false });
   
   const [itemToDelete, setItemToDelete] = useState(null); 
@@ -136,6 +135,7 @@ function MainApp() {
   const [returnChecklist, setReturnChecklist] = useState([]);
   
   const [showHistory, setShowHistory] = useState(null);
+
   const [showSettings, setShowSettings] = useState(false);
   const [settingsTab, setSettingsTab] = useState('categories');
   const [newSettingItem, setNewSettingItem] = useState('');
@@ -161,6 +161,7 @@ function MainApp() {
   const [useCamera, setUseCamera] = useState(false);
   const [isScannerLoaded, setIsScannerLoaded] = useState(false);
   const itemsRefForScan = useRef(items);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     itemsRefForScan.current = items;
@@ -194,7 +195,6 @@ function MainApp() {
     }
   }, [isDarkMode]);
 
-  // ให้ช่อง Scan โฟกัสเสมอเมื่อเปิด Modal
   useEffect(() => {
     if (showScanModal && scanInputRef.current) {
       scanInputRef.current.focus();
@@ -233,8 +233,8 @@ function MainApp() {
 
   useEffect(() => {
     if (!user) return;
-    const itemsRef = collection(db, "mdec_stock", "shared_data", "items");
-    const settingsRef = doc(db, "mdec_stock", "shared_data", "settings", "global");
+    const itemsRef = getItemsCol();
+    const settingsRef = getSettingsDoc();
 
     const unsubscribeItems = onSnapshot(itemsRef, (snapshot) => {
       const loadedItems = [];
@@ -278,7 +278,7 @@ function MainApp() {
   useEffect(() => {
     if (!user) return;
     if (showAuditModal || showCommandCenter) {
-      const auditRef = collection(db, "mdec_stock", "shared_data", "audit_logs");
+      const auditRef = getAuditCol();
       const unsub = onSnapshot(auditRef, (snapshot) => {
         const logs = [];
         snapshot.forEach((docSnap) => logs.push({ id: docSnap.id, ...docSnap.data() }));
@@ -289,12 +289,10 @@ function MainApp() {
     }
   }, [user, showAuditModal, showCommandCenter]);
 
-  const fileInputRef = useRef(null);
-
   const logAction = async (actionType, targetName, details) => {
     if (!user) return;
     try {
-      await addDoc(collection(db, "mdec_stock", "shared_data", "audit_logs"), {
+      await addDoc(getAuditCol(), {
         timestamp: new Date().toISOString(), action: actionType, target: targetName, details: details, user: "Admin" 
       });
     } catch (e) {
@@ -309,7 +307,7 @@ function MainApp() {
                           (item.name && String(item.name).toLowerCase().includes(searchLower)) || 
                           (item.sn && String(item.sn).toLowerCase().includes(searchLower)) || 
                           (item.location && String(item.location).toLowerCase().includes(searchLower)) ||
-                          (item.owner && String(item.owner).toLowerCase().includes(searchLower)); // ค้นหาจากชื่อเจ้าของได้ด้วย
+                          (item.owner && String(item.owner).toLowerCase().includes(searchLower)); 
                           
       const matchDept = filterDept === 'all' || String(item.department) === String(filterDept);
       const matchCategory = filterCategory === 'all' || String(item.category) === String(filterCategory);
@@ -476,11 +474,11 @@ function MainApp() {
       delete itemData.id;
       
       if (isEdit) {
-        await setDoc(doc(db, "mdec_stock", "shared_data", "items", formData.id), itemData, { merge: true });
+        await setDoc(getItemDoc(formData.id), itemData, { merge: true });
         logAction('แก้ไขข้อมูล', itemData.name, `แก้ไขรายละเอียดอุปกรณ์ S.N.: ${itemData.sn || '-'}`);
       } else {
         const newId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        await setDoc(doc(db, "mdec_stock", "shared_data", "items", newId), { ...itemData, history: [] });
+        await setDoc(getItemDoc(newId), { ...itemData, history: [] });
         logAction('เพิ่มอุปกรณ์', itemData.name, `เพิ่มเข้าสู่ระบบใหม่ หมวดหมู่: ${itemData.category}`);
       }
       setShowForm(false);
@@ -495,7 +493,7 @@ function MainApp() {
     if (!user || !itemToDelete || !itemToDelete.id) return;
     try {
       const itemName = itemToDelete.name;
-      await deleteDoc(doc(db, "mdec_stock", "shared_data", "items", itemToDelete.id));
+      await deleteDoc(getItemDoc(itemToDelete.id));
       logAction('ลบข้อมูล', itemName, `ลบอุปกรณ์ออกจากระบบ`);
       setItemToDelete(null);
     } catch (error) {
@@ -523,20 +521,19 @@ function MainApp() {
     } catch (err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
-  // 💡 ตรวจสอบของส่วนตัวก่อนยืม/ออกงาน
   const checkPersonalItemsWarning = (selectedIds) => {
     const personalItems = selectedIds.map(id => items.find(i => i.id === id)).filter(i => i && i.owner);
     if (personalItems.length > 0) {
       const ownerNames = [...new Set(personalItems.map(i => i.owner))].join(', ');
       return confirm(`⚠️ คำเตือน: มี "ของส่วนตัว" รวมอยู่ในรายการนี้\n(เจ้าของ: ${ownerNames})\n\nโปรดตรวจสอบให้แน่ใจว่าคุณได้รับอนุญาตจากเจ้าของแล้ว ต้องการดำเนินการยืม/นำออกงานต่อหรือไม่?`);
     }
-    return true; // ให้ผ่านถ้าไม่มีของส่วนตัว
+    return true; 
   };
 
   const handleBorrow = async () => {
     if (!user || !borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return;
     
-    if (!checkPersonalItemsWarning(packingChecklist)) return; // 🛡️ เช็คของส่วนตัว
+    if (!checkPersonalItemsWarning(packingChecklist)) return; 
 
     let finalStaff = borrowData.staff;
     try {
@@ -545,7 +542,7 @@ function MainApp() {
         const updatedStaff = [...new Set([...(settingsOptions.staff || []).filter(c => c !== 'อื่นๆ'), finalStaff, 'อื่นๆ'])];
         const newSettings = { ...settingsOptions, staff: updatedStaff };
         setSettingsOptions(newSettings);
-        await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
+        await setDoc(getSettingsDoc(), newSettings);
       }
     } catch (e) { console.error("Settings error:", e); }
     
@@ -558,7 +555,7 @@ function MainApp() {
         if (!item || item.status !== 'available') return Promise.resolve(); 
         borrowedNames.push(item.name);
         const newHistory = [...(item.history || []), newHistoryEntry];
-        return setDoc(doc(db, "mdec_stock", "shared_data", "items", id), { status: 'borrowed', currentBorrower: borrowData.borrower, expectedReturn: borrowData.returnDate, currentNote: borrowData.note, history: newHistory }, { merge: true });
+        return setDoc(getItemDoc(id), { status: 'borrowed', currentBorrower: borrowData.borrower, expectedReturn: borrowData.returnDate, currentNote: borrowData.note, history: newHistory }, { merge: true });
       });
       await Promise.all(promises);
       
@@ -578,7 +575,7 @@ function MainApp() {
   const handleEventOut = async () => {
     if (!user || !eventData.eventName || !eventData.staff || eventChecklist.length === 0) return;
 
-    if (!checkPersonalItemsWarning(eventChecklist)) return; // 🛡️ เช็คของส่วนตัว
+    if (!checkPersonalItemsWarning(eventChecklist)) return;
 
     let finalStaff = eventData.staff;
     try {
@@ -587,7 +584,7 @@ function MainApp() {
         const updatedStaff = [...new Set([...(settingsOptions.staff || []).filter(c => c !== 'อื่นๆ'), finalStaff, 'อื่นๆ'])];
         const newSettings = { ...settingsOptions, staff: updatedStaff };
         setSettingsOptions(newSettings);
-        await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
+        await setDoc(getSettingsDoc(), newSettings);
       }
     } catch (e) { console.error("Settings error:", e); }
     
@@ -600,7 +597,7 @@ function MainApp() {
         if (!item || item.status !== 'available') return Promise.resolve(); 
         eventNames.push(item.name);
         const newHistory = [...(item.history || []), newHistoryEntry];
-        return setDoc(doc(db, "mdec_stock", "shared_data", "items", id), { status: 'out-for-event', currentEvent: eventData.eventName, expectedReturn: eventData.returnDate, currentNote: eventData.note, history: newHistory }, { merge: true });
+        return setDoc(getItemDoc(id), { status: 'out-for-event', currentEvent: eventData.eventName, expectedReturn: eventData.returnDate, currentNote: eventData.note, history: newHistory }, { merge: true });
       });
       await Promise.all(promises);
       
@@ -626,7 +623,7 @@ function MainApp() {
         const updatedStaff = [...new Set([...(settingsOptions.staff || []).filter(c => c !== 'อื่นๆ'), finalStaff, 'อื่นๆ'])];
         const newSettings = { ...settingsOptions, staff: updatedStaff };
         setSettingsOptions(newSettings);
-        await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
+        await setDoc(getSettingsDoc(), newSettings);
       }
     } catch (e) { console.error("Settings error:", e); }
     
@@ -639,7 +636,7 @@ function MainApp() {
         if (!item || (item.status !== 'borrowed' && item.status !== 'out-for-event')) return Promise.resolve();
         returnedNames.push(item.name);
         const newHistory = [...(item.history || []), newHistoryEntry];
-        return setDoc(doc(db, "mdec_stock", "shared_data", "items", id), { status: 'available', currentBorrower: null, currentEvent: null, currentNote: null, expectedReturn: null, history: newHistory }, { merge: true });
+        return setDoc(getItemDoc(id), { status: 'available', currentBorrower: null, currentEvent: null, currentNote: null, expectedReturn: null, history: newHistory }, { merge: true });
       });
       await Promise.all(promises);
 
@@ -674,7 +671,7 @@ function MainApp() {
       
       const newSettings = { ...settingsOptions, bundles: newBundles };
       setSettingsOptions(newSettings);
-      await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
+      await setDoc(getSettingsDoc(), newSettings);
       setBundleForm({ id: null, name: '', itemIds: [] });
       setBundleSearchTerm('');
       if (selectedItems.length > 0) setSelectedItems([]);
@@ -692,7 +689,7 @@ function MainApp() {
       const newBundles = (settingsOptions.bundles || []).filter(b => b.id !== bundleId);
       const newSettings = { ...settingsOptions, bundles: newBundles };
       setSettingsOptions(newSettings);
-      await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), newSettings);
+      await setDoc(getSettingsDoc(), newSettings);
     } catch (error) {
       console.error(error);
       alert(`❌ ลบเซ็ตไม่สำเร็จ: ${error.message}`);
@@ -791,7 +788,6 @@ function MainApp() {
     setShowBundleManager(true);
   };
 
-  // 📷 ฟังก์ชันจัดการการสแกน QR Code (รองรับทั้งกล้องและเครื่องยิง)
   const handleProcessScan = (scannedVal) => {
     const val = scannedVal.trim();
     if (!val) return;
@@ -828,7 +824,6 @@ function MainApp() {
       scanner.render(
         (decodedText) => {
           handleProcessScan(decodedText);
-          // หยุดสแกนชั่วคราว 2 วินาทีป้องกันแสกนรัวๆ เกินไป
           if (scanner) {
             try { scanner.pause(true); } catch(e) {}
             setTimeout(() => {
@@ -846,6 +841,7 @@ function MainApp() {
     };
   }, [showScanModal, useCamera, isScannerLoaded]);
 
+  // 💡 กลับมาแล้ว: ระบบนำเข้าไฟล์ CSV
   const handleImportCSV = (e) => {
     if (!user) return;
     const file = e.target.files[0];
@@ -869,11 +865,11 @@ function MainApp() {
             const itemData = {
               name: name, sn: cols[1] || '', category: cols[2] || 'อื่นๆ',
               department: cols[3] || 'ภาพนิ่ง', location: cols[4] || 'อื่นๆ',
-              quantity: Number(cols[5]) || 1, status: 'available',
+              quantity: Number(cols[5]) || 1, status: 'available', owner: '',
               updatedAt: new Date().toISOString(), history: []
             };
             
-            await setDoc(doc(db, "mdec_stock", "shared_data", "items", newId), itemData);
+            await setDoc(getItemDoc(newId), itemData);
             importedCount++;
           }
         }
@@ -910,14 +906,14 @@ function MainApp() {
     setSettingsOptions(updatedSettings);
     
     try {
-      await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), updatedSettings);
+      await setDoc(getSettingsDoc(), updatedSettings);
       if (oldName && oldName !== newName && (key === 'categories' || key === 'locations')) {
         items.forEach(async (item) => {
           let updateData = {};
           if (key === 'categories' && item.category === oldName) updateData.category = newName;
           if (key === 'locations' && item.location === oldName) updateData.location = newName;
           if (Object.keys(updateData).length > 0) {
-            await setDoc(doc(db, "mdec_stock", "shared_data", "items", item.id), updateData, { merge: true });
+            await setDoc(getItemDoc(item.id), updateData, { merge: true });
           }
         });
       }
@@ -948,7 +944,7 @@ function MainApp() {
     const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'สถานะ', 'จำนวน', 'ผู้ยืมปัจจุบัน', 'อัปเดตล่าสุด'];
     const csvData = items.map(i => [
       i.name, i.sn || '-', i.department, i.category || '-', i.location || '-', 
-      STATUSES.find(s=>s.id===i.status)?.label || i.status, i.quantity || 1, i.currentBorrower || i.currentEvent || '-', new Date(i.updatedAt).toLocaleDateString('th-TH')
+      STATUSES.find(s=>s.id===i.status)?.label || i.status, i.quantity || 1, i.currentBorrower || i.currentEvent || '-', i.owner || '-', new Date(i.updatedAt).toLocaleDateString('th-TH')
     ]);
     const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...csvData].map(e => e.join(",")).join("\n");
     const link = document.createElement("a");
@@ -976,7 +972,6 @@ function MainApp() {
     try { localStorage.removeItem('mdec_admin'); } catch(e) {}
   };
 
-  // ==================== 🖨️ โหมดการพิมพ์ (Print Mode UI) ====================
   if (showPrintModal) {
     return (
       <div className="bg-white min-h-screen font-sans text-black">
@@ -991,7 +986,6 @@ function MainApp() {
                <button onClick={() => setShowPrintModal(false)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button>
             </div>
          </div>
-         {/* หน้ากระดาษสำหรับปรินต์ */}
          <div className="pt-24 p-8 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6 print:pt-0 print:p-0 print:gap-2">
            {selectedItems.map(id => {
               const item = items.find(i => i.id === id);
@@ -1001,7 +995,6 @@ function MainApp() {
                     <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${item.id}`} alt="QR" className="w-24 h-24 object-contain mb-2 print:w-20 print:h-20" />
                     <span className="text-xs font-black leading-tight line-clamp-2 w-full">{item.name}</span>
                     <span className="text-[10px] font-bold text-gray-600 mt-1">{item.sn}</span>
-                    {/* แสดงป้ายของส่วนตัวในสติ๊กเกอร์ด้วย */}
                     {item.owner && <span className="text-[9px] font-bold bg-gray-200 px-1 rounded mt-1">👤 {item.owner}</span>}
                  </div>
               )
@@ -1011,7 +1004,6 @@ function MainApp() {
     );
   }
 
-  // ==================== 📊 Dashboard UI ====================
   if (showCommandCenter) {
     const healthPercentage = stats.all > 0 ? Math.round((stats.available / stats.all) * 100) : 0;
     
@@ -1146,7 +1138,7 @@ function MainApp() {
                   <div key={log.id} className={`p-3.5 rounded-2xl border transition-shadow hover:shadow-md ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
                     <div className="flex justify-between items-center mb-2">
                       <span className={`text-xs font-bold px-2 py-1 rounded-lg ${badgeColor}`}>{icon} {action}</span>
-                      <span className={`text-xs font-semibold ${ccTheme.textMuted}`}>{log.timestamp ? new Date(log.timestamp).toLocaleTimeString('th-TH') : '-'}</span>
+                      <span className={`text-xs font-semibold ${ccTheme.textMuted}`}>{log.timestamp ? new Date(log.timestamp).toLocaleTimeString('th-TH', {hour12: false}) : '-'} น.</span>
                     </div>
                     <div className={`text-base font-bold truncate ${ccTheme.textMain}`}>{log.target || '-'}</div>
                     <div className={`text-xs truncate mt-1 flex items-center gap-1.5 ${ccTheme.textMuted}`}>
@@ -1168,7 +1160,6 @@ function MainApp() {
     );
   }
 
-  // ==================== 🎯 Main UI ====================
   return (
     <div className={`min-h-screen font-sans p-4 sm:p-8 pb-32 transition-colors duration-300 ${theme.mainBg} ${theme.textMain}`}>
       {firebaseError && (
@@ -1188,7 +1179,7 @@ function MainApp() {
           <div>
             <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textTitle}`}>
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v20.6 BYOD</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v20.6 BYOD (Pro)</span>
             </h1>
             <p className={`font-medium text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -1200,7 +1191,6 @@ function MainApp() {
 
           {isAdmin && (
             <>
-              {/* 📷 ปุ่มเปิดโหมดสแกน */}
               <button type="button" onClick={() => setShowScanModal(true)} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-black rounded-xl transition-colors flex shadow-md ${isDarkMode ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`} title="เปิดโหมดสแกน QR Code/Barcode">
                 <Icons.QrCode className="w-5 h-5" /><span className="hidden sm:inline">โหมดสแกน</span>
               </button>
@@ -1399,14 +1389,18 @@ function MainApp() {
 
                     {isAdmin && (
                       <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        <input 
-                          type="checkbox" 
-                          className="w-5 h-5 rounded cursor-pointer accent-indigo-600"
-                          checked={selectedItems.includes(item.id)}
-                          onChange={() => {
-                            setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
-                          }}
-                        />
+                        {(item.status === 'available' || isBorrowed || isEvent) ? (
+                          <input 
+                            type="checkbox" 
+                            className="w-5 h-5 rounded cursor-pointer accent-indigo-600"
+                            checked={selectedItems.includes(item.id)}
+                            onChange={() => {
+                              setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
+                            }}
+                          />
+                        ) : (
+                          <div className={`w-5 h-5 mx-auto rounded-sm cursor-not-allowed ${isDarkMode ? 'bg-slate-700 opacity-50' : 'bg-slate-200 opacity-50'}`} title="สถานะนี้ไม่สามารถทำรายการแบบกลุ่มได้"></div>
+                        )}
                       </td>
                     )}
 
@@ -1414,7 +1408,6 @@ function MainApp() {
                       <div className={`font-bold text-xl flex items-center gap-2 flex-wrap ${theme.textTitle}`}>
                         {item.name} 
                         {qty > 1 && <span className={`text-base px-2 py-1 rounded-md ${isDarkMode ? 'bg-blue-900/40 text-blue-400' : 'bg-blue-100 text-blue-700'}`}>x{qty}</span>}
-                        {/* 🏷️ Badge ของส่วนตัว */}
                         {item.owner && (
                            <span className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>
                              👤 ของส่วนตัว ({item.owner})
@@ -1424,7 +1417,6 @@ function MainApp() {
                       </div>
                       {item.sn && <div className={`text-base mt-1 font-mono ${theme.textMuted}`}>S.N.: {item.sn}</div>}
 
-                      {/* 📝 กล่องแสดงหมายเหตุ การยืม/ออกงาน */}
                       {(isBorrowed || isEvent) && (
                         <div className={`text-base mt-2 p-2 rounded-lg border inline-block ${isOverdue ? (isDarkMode ? 'bg-rose-900/30 border-rose-800' : 'bg-rose-100 border-rose-200') : isEvent ? (isDarkMode ? 'bg-orange-900/30 border-orange-800' : 'bg-orange-50 border-orange-100') : (isDarkMode ? 'bg-purple-900/30 border-purple-800' : 'bg-purple-50 border-purple-100')}`}>
                           <div className="flex items-center gap-2">
@@ -1456,7 +1448,6 @@ function MainApp() {
                         
                         {isAdmin && (
                           <>
-                            {/* ปุ่มทำรายการรายชิ้น */}
                             {item.status === 'available' && (
                               <>
                                 <button type="button" onClick={(e) => handleOpenRowBorrow(e, item)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white'}`} title="ให้ยืม"><Icons.UserPlus className="w-5 h-5" /></button>
@@ -1472,7 +1463,7 @@ function MainApp() {
                               setReturnChecklist([]);
                             }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle className="w-5 h-5" /></button>}
                             
-                            <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({ ...item, newCategory: '', newLocation: '', newOwner: '', isPersonalItem: !!item.owner }); setShowForm(true); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({ ...item, newCategory: '', newLocation: '', newOwner: item.owner || '', isPersonalItem: !!item.owner }); setShowForm(true); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>
                             <button type="button" onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="ลบ"><Icons.Trash className="w-4 h-4" /></button>
                           </>
                         )}
@@ -1486,7 +1477,7 @@ function MainApp() {
         </div>
       </div>
 
-      {/* 🛒 Floating Action Bar (ระบบตะกร้า + ปรินต์) */}
+      {/* 🛒 Floating Action Bar */}
       {isAdmin && selectedItems.length > 0 && (
         <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 backdrop-blur-xl px-4 py-4 sm:px-6 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] flex items-center gap-4 sm:gap-6 z-40 w-[95%] max-w-4xl justify-between animate-[slideUp_0.3s_ease-out] border-2 ${isDarkMode ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-white/90 border-slate-100 text-slate-800'}`}>
           <div className="flex items-center gap-3 shrink-0">
@@ -1494,23 +1485,17 @@ function MainApp() {
             <span className="font-bold text-lg hidden lg:inline whitespace-nowrap">รายการที่เลือก</span>
           </div>
           <div className="flex gap-2 sm:gap-3 overflow-x-auto custom-scrollbar">
-            {/* 🖨️ ปุ่มสั่งพิมพ์ QR Code */}
             <button onClick={() => setShowPrintModal(true)} className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.QrCode className="w-5 h-5"/> <span className="hidden sm:inline">พิมพ์ QR</span></button>
-
             <button onClick={handleCreateBundleFromSelection} className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Layers className="w-5 h-5"/> <span className="hidden sm:inline">จัดเซ็ต</span></button>
-
             <button onClick={handleOpenBatchBorrow} className="px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.UserPlus className="w-5 h-5"/> <span className="hidden sm:inline">ยืมออก</span></button>
-            
             <button onClick={handleOpenBatchEvent} className="px-4 py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Truck className="w-5 h-5"/> <span className="hidden sm:inline">ออกงาน</span></button>
-            
             <button onClick={handleOpenBatchReturn} className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.CheckCircle className="w-5 h-5"/> <span className="hidden sm:inline">รับคืน</span></button>
-            
             <button onClick={() => setSelectedItems([])} className={`px-4 py-3 rounded-2xl font-bold transition-colors border shrink-0 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600'}`}><Icons.X className="w-5 h-5" /></button>
           </div>
         </div>
       )}
 
-      {/* 📷 Modal สแกน QR Code / บาร์โค้ด */}
+      {/* 📷 Modal สแกน QR Code */}
       {showScanModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
@@ -1521,10 +1506,8 @@ function MainApp() {
               #qr-reader__dashboard_section_csr span { color: inherit !important; }
             `}</style>
             
-            {/* แอนิเมชันเส้นเลเซอร์สแกน (เพิ่ม pointer-events-none ไม่ให้มันบังการคลิก) */}
             <div className="absolute top-0 left-0 w-full h-1 bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-[scan_2s_ease-in-out_infinite] z-0 opacity-70 pointer-events-none"></div>
             
-            {/* ปุ่มกากบาทปรับให้ใหญ่ขึ้นและอยู่ชั้นบนสุด */}
             <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); }} className={`absolute top-4 right-4 p-3 hover:bg-rose-500/10 rounded-full hover:text-rose-500 transition-colors z-50 ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
             
             <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -1569,7 +1552,6 @@ function MainApp() {
                 </div>
               )}
 
-              {/* แสดงข้อความแจ้งเตือนหลังสแกน */}
               <div className="h-10 relative z-10 mt-4 flex items-center justify-center">
                  {scanMessage.text && (
                    <span className={`font-bold px-5 py-2 rounded-full shadow-md animate-[slideUp_0.2s_ease-out] ${scanMessage.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
@@ -1579,7 +1561,6 @@ function MainApp() {
               </div>
             </div>
 
-            {/* เพิ่มปุ่มปิดหน้าต่างขนาดใหญ่ด้านล่าง */}
             <div className={`mt-6 pt-4 border-t shrink-0 relative z-10 ${theme.divide}`}>
               <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); }} className={`w-full py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
             </div>
@@ -1587,7 +1568,7 @@ function MainApp() {
         </div>
       )}
 
-      {/* 💡 Modal รับคืนด่วน (Quick Return) */}
+      {/* 💡 Modal รับคืนด่วน */}
       {showQuickReturnModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
@@ -1660,7 +1641,7 @@ function MainApp() {
         </div>
       )}
 
-      {/* Settings Modal (การตั้งค่าทั่วไป) */}
+      {/* Settings Modal (การตั้งค่าทั่วไป + ฐานข้อมูล) */}
       {showSettings && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] transition-all duration-300 ${theme.cardBg}`}>
@@ -1668,27 +1649,49 @@ function MainApp() {
               <button type="button" onClick={() => {setSettingsTab('categories'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'categories' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>หมวดหมู่</button>
               <button type="button" onClick={() => {setSettingsTab('locations'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'locations' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>สถานที่</button>
               <button type="button" onClick={() => {setSettingsTab('staff'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'staff' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>เจ้าหน้าที่</button>
+              <button type="button" onClick={() => {setSettingsTab('database'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'database' ? 'text-emerald-500 border-emerald-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>ฐานข้อมูล</button>
             </div>
             
             <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
-              <div className="p-6">
-                <div className="flex gap-2 mb-6">
-                  <input type="text" className={`flex-1 px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder={`พิมพ์${settingsTab === 'categories' ? 'หมวดหมู่' : settingsTab === 'locations' ? 'สถานที่' : 'ชื่อเจ้าหน้าที่'}ใหม่...`} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} />
-                  <button type="button" onClick={handleSaveSetting} className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg">{editingSettingItem !== null ? 'บันทึก' : 'เพิ่ม'}</button>
-                  {editingSettingItem !== null && <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-4 py-3 font-bold rounded-xl ${theme.btnCancel}`}><Icons.X className="w-5 h-5" /></button>}
+              {settingsTab === 'database' ? (
+                <div className="p-6 space-y-6">
+                  <div className={`p-6 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-6 h-6 text-emerald-500"/> สำรองข้อมูล (Export)</h4>
+                    <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>ดาวน์โหลดข้อมูลสต๊อกทั้งหมดออกมาเป็นไฟล์ Excel (.csv) เพื่อเก็บสำรองไว้ในคอมพิวเตอร์ของคุณ</p>
+                    <button onClick={exportToCSV} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-lg">
+                      <Icons.Download className="w-5 h-5"/> โหลดไฟล์ CSV
+                    </button>
+                  </div>
+
+                  <div className={`p-6 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Upload className="w-6 h-6 text-blue-500"/> นำเข้าข้อมูล (Import)</h4>
+                    <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>อัปโหลดไฟล์ .csv เพื่อเพิ่มอุปกรณ์ทีละหลายๆ ชิ้น (Format: ชื่อ, S.N., หมวดหมู่, ฝ่าย, สถานที่, จำนวน)</p>
+                    <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleImportCSV} />
+                    <button onClick={() => fileInputRef.current?.click()} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-lg">
+                      <Icons.Upload className="w-5 h-5"/> เลือกไฟล์ CSV
+                    </button>
+                  </div>
                 </div>
-                <div className="max-h-[50vh] overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2">
-                  {(settingsOptions[settingsTab] || []).filter(c => c !== 'อื่นๆ').map((item, index) => (
-                    <div key={index} className={`flex justify-between items-center p-4 border rounded-xl group transition-colors ${theme.btnSecondary}`}>
-                      <span className={`font-bold text-lg ${theme.textTitle}`}>{item}</span>
-                      <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button type="button" onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`}><Icons.Edit className="w-4 h-4" /></button>
-                        <button type="button" onClick={() => setDeleteSettingConfirm(item)} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`}><Icons.Trash className="w-4 h-4" /></button>
+              ) : (
+                <div className="p-6">
+                  <div className="flex gap-2 mb-6">
+                    <input type="text" className={`flex-1 px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder={`พิมพ์${settingsTab === 'categories' ? 'หมวดหมู่' : settingsTab === 'locations' ? 'สถานที่' : 'ชื่อเจ้าหน้าที่'}ใหม่...`} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} />
+                    <button type="button" onClick={handleSaveSetting} className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg">{editingSettingItem !== null ? 'บันทึก' : 'เพิ่ม'}</button>
+                    {editingSettingItem !== null && <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-4 py-3 font-bold rounded-xl ${theme.btnCancel}`}><Icons.X className="w-5 h-5" /></button>}
+                  </div>
+                  <div className="max-h-[50vh] overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2">
+                    {(settingsOptions[settingsTab] || []).filter(c => c !== 'อื่นๆ').map((item, index) => (
+                      <div key={index} className={`flex justify-between items-center p-4 border rounded-xl group transition-colors ${theme.btnSecondary}`}>
+                        <span className={`font-bold text-lg ${theme.textTitle}`}>{item}</span>
+                        <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button type="button" onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`}><Icons.Edit className="w-4 h-4" /></button>
+                          <button type="button" onClick={() => setDeleteSettingConfirm(item)} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`}><Icons.Trash className="w-4 h-4" /></button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className={`p-4 border-t shrink-0 ${theme.divide}`}>
@@ -1713,7 +1716,7 @@ function MainApp() {
         </div>
       )}
 
-      {/* 📦 Modal สร้างและจัดการเซ็ต (New Dedicated UI แบบแบ่ง 2 ฝั่ง) */}
+      {/* 📦 Modal สร้างและจัดการเซ็ต */}
       {showBundleManager && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col h-[85vh] overflow-hidden transition-all duration-300 ${theme.cardBg}`}>
@@ -1735,7 +1738,7 @@ function MainApp() {
             {/* Body - Split Screen */}
             <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
               
-              {/* Left Panel: List of Bundles */}
+              {/* Left Panel */}
               <div className={`w-full lg:w-1/3 flex flex-col border-b lg:border-b-0 lg:border-r ${theme.divide} ${isDarkMode ? 'bg-slate-800/30' : 'bg-slate-50/50'}`}>
                 <div className={`p-5 border-b font-black text-lg flex justify-between items-center ${theme.textTitle} ${theme.divide}`}>
                   เซ็ตที่มีในระบบ 
@@ -1762,7 +1765,7 @@ function MainApp() {
                 </div>
               </div>
 
-              {/* Right Panel: Create/Edit Form */}
+              {/* Right Panel */}
               <div className="w-full lg:w-2/3 flex flex-col h-full overflow-hidden p-6">
                 <div className="flex justify-between items-center mb-4 shrink-0">
                   <h4 className={`font-black text-xl flex items-center gap-2 ${bundleForm.id ? 'text-amber-500' : 'text-fuchsia-500'}`}>
@@ -1776,17 +1779,16 @@ function MainApp() {
                   )}
                 </div>
 
-                {/* Bundle Name Input */}
                 <div className="mb-4 shrink-0">
                   <label className={`block font-bold mb-1.5 ${theme.textTitle}`}>ชื่อเซ็ต <span className="text-rose-500">*</span></label>
-                  <input type="text" className={`w-full px-4 py-3 mb-4 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-fuchsia-500 shadow-sm ${theme.input}`} placeholder="เช่น: เซ็ตกล้องหลัก (ตัว A), ชุดเครื่องเสียงสัมภาษณ์..." value={bundleForm.name || ''} onChange={e => setBundleForm({...bundleForm, name: e.target.value})} />
+                  <input type="text" className={`w-full px-4 py-3 mb-4 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-fuchsia-500 shadow-sm ${theme.input}`} placeholder="เช่น: เซ็ตกล้องหลัก (ตัว A)..." value={bundleForm.name || ''} onChange={e => setBundleForm({...bundleForm, name: e.target.value})} />
                 </div>
 
                 {/* Equipment Selection Area */}
                 <div className={`flex-1 flex flex-col min-h-0 border rounded-2xl overflow-hidden shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
                   <div className={`p-4 border-b flex flex-col sm:flex-row justify-between gap-3 sm:items-center ${theme.divide} ${isDarkMode ? 'bg-slate-800/80' : 'bg-slate-50'} shrink-0`}>
                     <label className={`font-bold flex items-center gap-2 ${theme.textTitle}`}>
-                      เลือกอุปกรณ์เข้าเซ็ต 
+                      เลือกอุปกรณ์เข้าเซ็ต
                       <span className={`px-2 py-0.5 rounded-md text-sm ${isDarkMode ? 'bg-fuchsia-900/50 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>
                         เลือกแล้ว {(bundleForm.itemIds || []).length} ชิ้น
                       </span>
@@ -1840,7 +1842,7 @@ function MainApp() {
         </div>
       )}
 
-      {/* 📦 Modal ยืม/คืนแบบใช้งานเซ็ต (Use Bundles) */}
+      {/* 📦 Modal ยืม/คืนแบบใช้งานเซ็ต */}
       {showBundleModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
@@ -1930,7 +1932,7 @@ function MainApp() {
         </div>
       )}
 
-      {/* 📋 Borrow Modal (แบบมีระบบ Checklist) */}
+      {/* 📋 Borrow Modal */}
       {borrowTargetIds.length > 0 && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
@@ -2030,7 +2032,7 @@ function MainApp() {
         </div>
       )}
 
-      {/* 🚚 Event Modal (ระบบนำออกงาน) */}
+      {/* 🚚 Event Modal */}
       {eventTargetIds.length > 0 && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
@@ -2130,7 +2132,7 @@ function MainApp() {
         </div>
       )}
 
-      {/* 📋 Return Modal (ระบบรับคืน) */}
+      {/* 📋 Return Modal */}
       {returnTargetIds.length > 0 && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
@@ -2240,7 +2242,7 @@ function MainApp() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
                         <span className={`text-sm font-black px-3 py-1 rounded-md ${badgeColor}`}>{icon} {action}</span>
-                        <span className={`text-sm font-bold ${theme.textMuted}`}>{log.timestamp ? new Date(log.timestamp).toLocaleTimeString('th-TH') : '-'}</span>
+                        <span className={`text-sm font-bold ${theme.textMuted}`}>{log.timestamp ? new Date(log.timestamp).toLocaleTimeString('th-TH', {hour12: false}) : '-'} น.</span>
                       </div>
                       <h4 className={`text-lg font-bold mb-1 ${theme.textTitle}`}>{log.target || '-'}</h4>
                       <p className={`text-base whitespace-pre-line ${theme.textMain}`}>{log.details}</p>
@@ -2464,7 +2466,6 @@ function MainApp() {
   );
 }
 
-// 🛡️ Error Boundary - เกราะป้องกันหน้าจอขาวโพน
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
