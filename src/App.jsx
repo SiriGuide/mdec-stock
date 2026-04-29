@@ -121,9 +121,10 @@ function csvEscape(value) {
 
 function downloadCSV(filename, headers, rows) {
   const csvRows = [headers, ...rows].map((row) => row.map(csvEscape).join(","));
-  const csv = csvRows.join("
-");
-  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const newline = String.fromCharCode(10);
+  const csv = csvRows.join(newline);
+  const bom = String.fromCharCode(0xfeff);
+  const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
