@@ -139,7 +139,7 @@ function MainApp() {
   
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
-  const [auditLimit, setAuditLimit] = useState(50);
+  const [auditLimit, setAuditLimit] = useState(50); // 💡 Pagination
   
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
@@ -843,6 +843,21 @@ if (showPrintModal) {
           </div>
           {isAdmin && <button onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', location: '', status: 'available', quantity: 1, owner: '', isPersonalItem: false }); setShowForm(true); }} className="px-6 py-4 font-black rounded-xl shadow-md bg-blue-600 text-white flex items-center gap-2"><Icons.Plus c="w-5 h-5" /> เพิ่มอุปกรณ์</button>}
         </div>
+
+        {/* 💡 แถบปุ่มกดแยกตามฝ่าย (นำกลับมาให้แล้วครับ) */}
+        <div className="flex gap-2 overflow-x-auto w-full pb-2 custom-scrollbar">
+          <button type="button" onClick={() => setFilterDept('all')} className={`flex items-center justify-center gap-2 whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all border ${filterDept === 'all' ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-800 border-slate-800 text-white shadow-md') : theme.btnSecondary}`}>
+            ทั้งหมด <Icons.ViewGrid c="w-5 h-5" />
+          </button>
+          {DEPARTMENTS.map(d => {
+            const IconComponent = Icons[d.iconName];
+            return (
+              <button type="button" key={d.id} onClick={() => setFilterDept(d.id)} className={`flex items-center justify-center gap-2 whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all border ${filterDept === d.id ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-800 border-slate-800 text-white shadow-md') : theme.btnSecondary}`}>
+                {d.label} {IconComponent && <IconComponent c="w-5 h-5" />}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* 📋 Table */}
@@ -888,6 +903,7 @@ if (showPrintModal) {
         </div>
       </div>
 
+      {/* Action Bar ลอยด้านล่าง */}
       {isAdmin && selectedItems.length > 0 && (
         <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 backdrop-blur-xl px-4 py-4 sm:px-6 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] flex items-center gap-4 sm:gap-6 z-40 w-[95%] max-w-4xl justify-between border-2 ${isDarkMode ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-white/90 border-slate-100 text-slate-800'}`}>
           <div className="flex items-center gap-3 shrink-0"><div className="bg-indigo-600 text-white font-black w-10 h-10 rounded-full flex items-center justify-center shadow-inner text-lg">{selectedItems.length}</div><span className="font-bold text-lg hidden lg:inline">รายการที่เลือก</span></div>
