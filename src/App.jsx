@@ -430,16 +430,16 @@ function MainApp() {
     return finalStaff;
   };
 
-  // 💡 อัปเดต: Auto-trim ประวัติ 100 รายการ เพื่อไม่ให้เกินลิมิต 1MB ของ Firestore
+  // 💡 แก้ไขระบบยืม: ไม่ต้องรอเช็คลิสต์แล้ว ให้บันทึกตามรายการที่เลือกมาเลยทันที
   const handleBorrow = async () => {
-    if (!user || !borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return;
-    if (!checkPersonalItemsWarning(packingChecklist)) return; 
+    if (!user || !borrowData.borrower || !borrowData.staff || borrowTargetIds.length === 0) return;
+    if (!checkPersonalItemsWarning(borrowTargetIds)) return; 
     let finalStaff = await processStaffOption(borrowData.staff, borrowData.newStaff);
     const newHistoryEntry = { type: 'borrow', date: new Date().toISOString(), borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff, note: borrowData.note };
     const borrowedNames = [];
 
     try {
-      const promises = packingChecklist.map(id => {
+      const promises = borrowTargetIds.map(id => {
         const item = items.find(i => i.id === id);
         if (!item || item.status !== 'available') return Promise.resolve(); 
         borrowedNames.push(item.name);
@@ -447,21 +447,22 @@ function MainApp() {
         return setDoc(getItemDoc(id), { status: 'borrowed', currentBorrower: borrowData.borrower, expectedReturn: borrowData.returnDate, currentNote: borrowData.note, history: newHistory }, { merge: true });
       });
       await Promise.all(promises);
-      logAction('ให้ยืมอุปกรณ์', `ทำรายการ ${packingChecklist.length} ชิ้น`, `ยืมโดย: ${borrowData.borrower} (จนท: ${finalStaff})\nรายการ: ${borrowedNames.join(', ')}`);
-      setBorrowTargetIds([]); setPackingChecklist([]); setSelectedItems([]); 
+      logAction('ให้ยืมอุปกรณ์', `ทำรายการ ${borrowTargetIds.length} ชิ้น`, `ยืมโดย: ${borrowData.borrower} (จนท: ${finalStaff})\nรายการ: ${borrowedNames.join(', ')}`);
+      setBorrowTargetIds([]); setSelectedItems([]); 
       alert('✅ บันทึกการยืมเรียบร้อยแล้ว!');
     } catch (error) { alert(`❌ เกิดข้อผิดพลาด: ${error.message}`); }
   };
 
+  // 💡 แก้ไขระบบออกงาน: บันทึกตามรายการที่เลือกมาเลยทันที
   const handleEventOut = async () => {
-    if (!user || !eventData.eventName || !eventData.staff || eventChecklist.length === 0) return;
-    if (!checkPersonalItemsWarning(eventChecklist)) return;
+    if (!user || !eventData.eventName || !eventData.staff || eventTargetIds.length === 0) return;
+    if (!checkPersonalItemsWarning(eventTargetIds)) return;
     let finalStaff = await processStaffOption(eventData.staff, eventData.newStaff);
     const newHistoryEntry = { type: 'event', date: new Date().toISOString(), eventName: eventData.eventName, expectedReturn: eventData.returnDate, staffOut: finalStaff, note: eventData.note };
     const eventNames = [];
 
     try {
-      const promises = eventChecklist.map(id => {
+      const promises = eventTargetIds.map(id => {
         const item = items.find(i => i.id === id);
         if (!item || item.status !== 'available') return Promise.resolve(); 
         eventNames.push(item.name);
@@ -469,20 +470,21 @@ function MainApp() {
         return setDoc(getItemDoc(id), { status: 'out-for-event', currentEvent: eventData.eventName, expectedReturn: eventData.returnDate, currentNote: eventData.note, history: newHistory }, { merge: true });
       });
       await Promise.all(promises);
-      logAction('นำออกงาน', `ทำรายการ ${eventChecklist.length} ชิ้น`, `ชื่องาน: ${eventData.eventName} (จนท: ${finalStaff})\nรายการ: ${eventNames.join(', ')}`);
-      setEventTargetIds([]); setEventChecklist([]); setSelectedItems([]); 
+      logAction('นำออกงาน', `ทำรายการ ${eventTargetIds.length} ชิ้น`, `ชื่องาน: ${eventData.eventName} (จนท: ${finalStaff})\nรายการ: ${eventNames.join(', ')}`);
+      setEventTargetIds([]); setSelectedItems([]); 
       alert('✅ บันทึกการนำออกงานเรียบร้อยแล้ว!');
     } catch (error) { alert(`❌ เกิดข้อผิดพลาด: ${error.message}`); }
   };
 
+  // 💡 แก้ไขระบบรับคืน: บันทึกตามรายการที่เลือกมาเลยทันที
   const handleReturn = async () => {
-    if (!user || !returnData.staff || returnChecklist.length === 0) return;
+    if (!user || !returnData.staff || returnTargetIds.length === 0) return;
     let finalStaff = await processStaffOption(returnData.staff, returnData.newStaff);
     const newHistoryEntry = { type: 'return', date: new Date().toISOString(), staffIn: finalStaff };
     const returnedNames = [];
 
     try {
-      const promises = returnChecklist.map(id => {
+      const promises = returnTargetIds.map(id => {
         const item = items.find(i => i.id === id);
         if (!item || (item.status !== 'borrowed' && item.status !== 'out-for-event')) return Promise.resolve();
         returnedNames.push(item.name);
@@ -490,8 +492,8 @@ function MainApp() {
         return setDoc(getItemDoc(id), { status: 'available', currentBorrower: null, currentEvent: null, currentNote: null, expectedReturn: null, history: newHistory }, { merge: true });
       });
       await Promise.all(promises);
-      logAction('รับคืนอุปกรณ์', `ทำรายการ ${returnChecklist.length} ชิ้น`, `จนท.ผู้รับคืน: ${finalStaff}\nรายการ: ${returnedNames.join(', ')}`);
-      setReturnTargetIds([]); setReturnChecklist([]); setSelectedItems([]); 
+      logAction('รับคืนอุปกรณ์', `ทำรายการ ${returnTargetIds.length} ชิ้น`, `จนท.ผู้รับคืน: ${finalStaff}\nรายการ: ${returnedNames.join(', ')}`);
+      setReturnTargetIds([]); setSelectedItems([]); 
       alert('✅ รับคืนอุปกรณ์เรียบร้อยแล้ว!');
     } catch (error) { alert(`❌ เกิดข้อผิดพลาด: ${error.message}`); }
   };
@@ -1271,7 +1273,8 @@ function MainApp() {
             {borrowData.staff === 'อื่นๆ' && <input type="text" className={`w-full mb-3 px-4 py-3 border rounded-xl ${theme.input}`} placeholder="ชื่อเจ้าหน้าที่ใหม่..." onChange={e => setBorrowData({...borrowData, newStaff: e.target.value})} />}
             <input type="date" className={`w-full mb-3 px-4 py-3 border rounded-xl ${theme.input}`} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} />
             <textarea className={`w-full mb-4 px-4 py-3 border rounded-xl resize-none ${theme.input}`} rows="2" placeholder="หมายเหตุ" onChange={e => setBorrowData({...borrowData, note: e.target.value})}></textarea>
-            <div className="flex gap-3"><button onClick={()=>setBorrowTargetIds([])} className={`flex-1 py-3 rounded-xl ${theme.btnCancel}`}>ยกเลิก</button><button onClick={handleBorrow} className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-bold">ยืนยันการยืม</button></div>
+            {/* 💡 อัปเดตปุ่มให้ล็อกไว้ หากยังไม่กรอกข้อมูลสำคัญ */}
+            <div className="flex gap-3"><button onClick={()=>setBorrowTargetIds([])} className={`flex-1 py-3 rounded-xl ${theme.btnCancel}`}>ยกเลิก</button><button onClick={handleBorrow} disabled={!borrowData.borrower || !borrowData.staff} className="flex-1 py-3 bg-purple-600 disabled:opacity-50 text-white rounded-xl font-bold transition-opacity">ยืนยันการยืม ({borrowTargetIds.length})</button></div>
           </div>
         </div>
       )}
@@ -1285,7 +1288,8 @@ function MainApp() {
             {eventData.staff === 'อื่นๆ' && <input type="text" className={`w-full mb-3 px-4 py-3 border rounded-xl ${theme.input}`} placeholder="ชื่อผู้รับผิดชอบใหม่..." onChange={e => setEventData({...eventData, newStaff: e.target.value})} />}
             <input type="date" className={`w-full mb-3 px-4 py-3 border rounded-xl ${theme.input}`} onChange={e => setEventData({...eventData, returnDate: e.target.value})} />
             <textarea className={`w-full mb-4 px-4 py-3 border rounded-xl resize-none ${theme.input}`} rows="2" placeholder="สถานที่ / หมายเหตุ" onChange={e => setEventData({...eventData, note: e.target.value})}></textarea>
-            <div className="flex gap-3"><button onClick={()=>setEventTargetIds([])} className={`flex-1 py-3 rounded-xl ${theme.btnCancel}`}>ยกเลิก</button><button onClick={handleEventOut} className="flex-1 py-3 bg-orange-600 text-white rounded-xl font-bold">ยืนยันนำออกงาน</button></div>
+            {/* 💡 อัปเดตปุ่มให้ล็อกไว้ หากยังไม่กรอกข้อมูลสำคัญ */}
+            <div className="flex gap-3"><button onClick={()=>setEventTargetIds([])} className={`flex-1 py-3 rounded-xl ${theme.btnCancel}`}>ยกเลิก</button><button onClick={handleEventOut} disabled={!eventData.eventName || !eventData.staff} className="flex-1 py-3 bg-orange-600 disabled:opacity-50 text-white rounded-xl font-bold transition-opacity">ยืนยันนำออก ({eventTargetIds.length})</button></div>
           </div>
         </div>
       )}
@@ -1296,7 +1300,8 @@ function MainApp() {
             <h3 className="text-2xl font-black mb-4">บันทึกการรับคืน</h3>
             <select className={`w-full mb-4 px-4 py-3 border rounded-xl ${theme.input}`} onChange={e => setReturnData({...returnData, staff: e.target.value})}><option value="">-- เลือกเจ้าหน้าที่รับคืน * --</option>{settingsOptions.staff.map(s=><option key={s} value={s}>{s}</option>)}</select>
             {returnData.staff === 'อื่นๆ' && <input type="text" className={`w-full mb-3 px-4 py-3 border rounded-xl ${theme.input}`} placeholder="ชื่อเจ้าหน้าที่ใหม่..." onChange={e => setReturnData({...returnData, newStaff: e.target.value})} />}
-            <div className="flex gap-3"><button onClick={()=>setReturnTargetIds([])} className={`flex-1 py-3 rounded-xl ${theme.btnCancel}`}>ยกเลิก</button><button onClick={handleReturn} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold">ยืนยันรับคืน</button></div>
+            {/* 💡 อัปเดตปุ่มให้ล็อกไว้ หากยังไม่กรอกข้อมูลสำคัญ */}
+            <div className="flex gap-3"><button onClick={()=>setReturnTargetIds([])} className={`flex-1 py-3 rounded-xl ${theme.btnCancel}`}>ยกเลิก</button><button onClick={handleReturn} disabled={!returnData.staff} className="flex-1 py-3 bg-emerald-600 disabled:opacity-50 text-white rounded-xl font-bold transition-opacity">ยืนยันรับคืน ({returnTargetIds.length})</button></div>
           </div>
         </div>
       )}
