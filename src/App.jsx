@@ -1001,11 +1001,17 @@ function MainApp() {
                   <p className={`mt-4 text-sm font-medium ${theme.textMuted}`}>* คลิกที่ช่องว่าง แล้วใช้ปืนยิงบาร์โค้ดได้เลย</p>
                 </form>
               ) : (
-                <div className={`w-full min-h-[300px] flex items-center justify-center p-2 rounded-xl overflow-hidden border-2 border-amber-500/30 ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'}`} ref={scannerContainerRef}>
-                  {!isScannerLoaded && <div className="animate-pulse font-bold text-amber-500">กำลังโหลดระบบกล้อง...</div>}
-                </div>
+                <>
+                  <div className={`w-full min-h-[300px] flex items-center justify-center p-2 rounded-xl overflow-hidden border-2 border-amber-500/30 ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'}`} ref={scannerContainerRef}>
+                    {!isScannerLoaded && <div className="animate-pulse font-bold text-amber-500">กำลังโหลดระบบกล้อง...</div>}
+                  </div>
+                  <div className={`mt-3 p-3 rounded-lg text-sm text-center font-medium border ${isDarkMode ? 'bg-amber-900/20 border-amber-800/50 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                    💡 <b>วิธีใช้:</b> ให้คลิกที่ข้อความ <u className="underline underline-offset-2">Request Camera Permissions</u> ในกรอบสีดำด้านบน เพื่อขออนุญาตเปิดกล้อง
+                    <br/><span className="text-[11px] opacity-80 mt-1 block">(หมายเหตุ: หากกดแล้วกล้องไม่ทำงาน อาจเป็นเพราะหน้าต่างจำลอง Preview นี้บล็อกการเข้าถึงกล้อง แนะนำให้ทดสอบในเว็บที่นำขึ้น Vercel เรียบร้อยแล้วครับ)</span>
+                  </div>
+                </>
               )}
-              <div className="h-10 mt-4 flex items-center justify-center">{scanMessage.text && <span className={`font-bold px-5 py-2 rounded-full text-white animate-[slideUp_0.2s_ease-out] ${scanMessage.type==='success'?'bg-emerald-500':'bg-rose-500'}`}>{scanMessage.text}</span>}</div>
+              <div className="h-10 mt-2 flex items-center justify-center">{scanMessage.text && <span className={`font-bold px-5 py-2 rounded-full text-white animate-[slideUp_0.2s_ease-out] ${scanMessage.type==='success'?'bg-emerald-500':'bg-rose-500'}`}>{scanMessage.text}</span>}</div>
             </div>
           </div>
         </div>
