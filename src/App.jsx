@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc, query, orderBy, limit } from "firebase/firestore";
+import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc } from "firebase/firestore";
 
 // ⚠️ ใช้ Firebase Config ของคุณโดยตรง
 const myFirebaseConfig = {
@@ -152,16 +152,14 @@ function MainApp() {
   const [showEmptyCategories, setShowEmptyCategories] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
-  const [auditLimit, setAuditLimit] = useState(50); // Pagination สำหรับ Audit Logs
 
   // 🖨️ สถานะสำหรับ Print & Scan QR Code
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
-  
   const scanInputRef = useRef(null);
-  const scannerContainerRef = useRef(null); // Ref สำหรับวาดกล้อง
+
   const [useCamera, setUseCamera] = useState(false);
   const [isScannerLoaded, setIsScannerLoaded] = useState(false);
   const itemsRefForScan = useRef(items);
@@ -203,7 +201,7 @@ function MainApp() {
     if (showScanModal && scanInputRef.current) {
       scanInputRef.current.focus();
     }
-  }, [showScanModal, useCamera]); // โฟกัสเวลากลับมาโหมดพิมพ์
+  }, [showScanModal]);
 
   const theme = {
     mainBg: isDarkMode ? 'bg-slate-900' : 'bg-slate-100',
@@ -279,19 +277,19 @@ function MainApp() {
     };
   }, [user]);
 
-  // ระบบดึงข้อมูล Audit Logs แบบ Pagination โหลดทีละ 50 ชิ้น ป้องกันเว็บช้า
   useEffect(() => {
     if (!user) return;
     if (showAuditModal || showCommandCenter) {
-      const q = query(getAuditCol(), orderBy('timestamp', 'desc'), limit(auditLimit));
-      const unsub = onSnapshot(q, (snapshot) => {
+      const auditRef = getAuditCol();
+      const unsub = onSnapshot(auditRef, (snapshot) => {
         const logs = [];
         snapshot.forEach((docSnap) => logs.push({ id: docSnap.id, ...docSnap.data() }));
+        logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         setAuditLogs(logs);
       }, (error) => console.error(error));
       return () => unsub();
     }
-  }, [user, showAuditModal, showCommandCenter, auditLimit]);
+  }, [user, showAuditModal, showCommandCenter]);
 
   const logAction = async (actionType, targetName, details) => {
     if (!user) return;
@@ -336,17 +334,6 @@ function MainApp() {
     if ((item.status !== 'borrowed' && item.status !== 'out-for-event') || !item.expectedReturn) return false;
     return new Date(item.expectedReturn).getTime() < todayMs;
   });
-
-  const activeOutItems = useMemo(() => {
-    const out = items.filter(item => item.status === 'borrowed' || item.status === 'out-for-event');
-    out.sort((a, b) => {
-      const aOverdue = a.expectedReturn && new Date(a.expectedReturn).getTime() < todayMs ? -1 : 1;
-      const bOverdue = b.expectedReturn && new Date(b.expectedReturn).getTime() < todayMs ? -1 : 1;
-      if (aOverdue !== bOverdue) return aOverdue - bOverdue;
-      return 0;
-    });
-    return out;
-  }, [items, todayMs]);
 
   const selectableItems = useMemo(() => {
     return filteredItems.filter(i => i.status === 'available' || i.status === 'borrowed' || i.status === 'out-for-event');
@@ -453,14 +440,14 @@ function MainApp() {
       if (formData.isPersonalItem) {
         if (formData.owner === 'อื่นๆ') {
           if (!(formData.newOwner || '').trim()) {
-            alert('❌ กรุณาระบุชื่อผู้ถือครอง');
+            alert('❌ กรุณาระบุชื่อเจ้าของ (ของส่วนตัว)');
             return;
           }
           finalOwner = formData.newOwner.trim();
           currentSettings.staff = [...new Set([...(currentSettings.staff || []).filter(c => c !== 'อื่นๆ'), finalOwner, 'อื่นๆ'])];
           settingsChanged = true;
         } else if (!formData.owner) {
-           alert('❌ กรุณาเลือกชื่อผู้ถือครอง');
+           alert('❌ กรุณาเลือกชื่อเจ้าของ (ของส่วนตัว)');
            return;
         } else {
           finalOwner = formData.owner;
@@ -540,7 +527,7 @@ function MainApp() {
     const personalItems = selectedIds.map(id => items.find(i => i.id === id)).filter(i => i && i.owner);
     if (personalItems.length > 0) {
       const ownerNames = [...new Set(personalItems.map(i => i.owner))].join(', ');
-      return confirm(`⚠️ คำเตือน: มี "ของประจำตัวเจ้าหน้าที่" รวมอยู่ในรายการนี้\n(ผู้ถือครอง: ${ownerNames})\n\nโปรดตรวจสอบให้แน่ใจว่าคุณได้รับอนุญาตจากผู้ถือครองแล้ว ต้องการดำเนินการยืม/นำออกงานต่อหรือไม่?`);
+      return confirm(`⚠️ คำเตือน: มี "ของส่วนตัว" รวมอยู่ในรายการนี้\n(เจ้าของ: ${ownerNames})\n\nโปรดตรวจสอบให้แน่ใจว่าคุณได้รับอนุญาตจากเจ้าของแล้ว ต้องการดำเนินการยืม/นำออกงานต่อหรือไม่?`);
     }
     return true; 
   };
@@ -828,53 +815,35 @@ function MainApp() {
     handleProcessScan(scanInput);
   };
 
-  // 💡 อัปเดตระบบกล้องใหม่ทั้งหมด แก้ปัญหาจอดำ/กล้องไม่ขึ้น
   useEffect(() => {
     let scanner = null;
-    let scannerDiv = null;
-    let timer = null;
-
-    if (showScanModal && useCamera && isScannerLoaded && scannerContainerRef.current) {
-      // หน่วงเวลาให้ UI กางออกก่อน แล้วค่อยกางกล้องตาม
-      timer = setTimeout(() => {
-        if (!scannerContainerRef.current) return;
-        scannerDiv = document.createElement('div');
-        const scannerId = "qr-reader-" + Date.now();
-        scannerDiv.id = scannerId;
-        scannerDiv.style.width = "100%";
-        scannerContainerRef.current.appendChild(scannerDiv);
-        
-        scanner = new window.Html5QrcodeScanner(
-          scannerId,
-          { fps: 10, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true },
-          false
-        );
-        
-        scanner.render(
-          (decodedText) => {
-            handleProcessScan(decodedText);
-            if (scanner) {
-              try { scanner.pause(true); } catch(e) {}
-              setTimeout(() => { try { scanner.resume(); } catch(e) {} }, 2000);
-            }
-          },
-          (err) => {}
-        );
-      }, 150);
-    }
-
-    return () => {
-      if (timer) clearTimeout(timer);
-      if (scanner) {
-        scanner.clear().catch(e => console.log(e)).finally(() => {
-          if (scannerContainerRef.current && scannerDiv) {
-            try { scannerContainerRef.current.removeChild(scannerDiv); } catch(e) {}
+    if (showScanModal && useCamera && isScannerLoaded) {
+      scanner = new window.Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true },
+        false
+      );
+      scanner.render(
+        (decodedText) => {
+          handleProcessScan(decodedText);
+          if (scanner) {
+            try { scanner.pause(true); } catch(e) {}
+            setTimeout(() => {
+              try { scanner.resume(); } catch(e) {}
+            }, 2000);
           }
-        });
+        },
+        (err) => { /* ซ่อน error ตอนที่กล้องกำลังหาโฟกัส */ }
+      );
+    }
+    return () => {
+      if (scanner) {
+        scanner.clear().catch(console.error);
       }
     };
   }, [showScanModal, useCamera, isScannerLoaded]);
 
+  // 💡 กลับมาแล้ว: ระบบนำเข้าไฟล์ CSV
   const handleImportCSV = (e) => {
     if (!user) return;
     const file = e.target.files[0];
@@ -965,7 +934,7 @@ function MainApp() {
       const newOptions = (settingsOptions[key] || []).filter(item => item !== deleteSettingConfirm);
       const updatedSettings = { ...settingsOptions, [key]: newOptions };
       setSettingsOptions(updatedSettings);
-      await setDoc(getSettingsDoc(), updatedSettings);
+      await setDoc(doc(db, "mdec_stock", "shared_data", "settings", "global"), updatedSettings);
     } catch (error) {
       console.error("Error deleting setting:", error);
     } finally {
@@ -973,34 +942,17 @@ function MainApp() {
     }
   };
 
-  // 💡 อัปเดต: เพิ่มคอลัมน์ประวัติยืม-คืนลงในไฟล์ Excel
   const exportToCSV = () => {
-    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'สถานะ', 'จำนวน', 'ผู้ยืม/โปรเจกต์', 'ของประจำตัว', 'อัปเดตล่าสุด', 'ประวัติยืม-คืน'];
-    
-    const csvData = items.map(i => {
-      const historyStr = (i.history || []).map(h => {
-        const d = new Date(h.date).toLocaleDateString('th-TH');
-        if(h.type === 'borrow') return `[${d}] ยืม:${h.borrower}`;
-        if(h.type === 'event') return `[${d}] งาน:${h.eventName}`;
-        if(h.type === 'return') return `[${d}] คืน:${h.staffIn}`;
-        return '';
-      }).join(' -> ');
-
-      return [ 
-        i.name, i.sn || '-', i.department, i.category || '-', i.location || '-', 
-        STATUSES.find(s=>s.id===i.status)?.label || i.status, 
-        i.quantity || 1, i.currentBorrower || i.currentEvent || '-', i.owner || '-', 
-        new Date(i.updatedAt).toLocaleDateString('th-TH'),
-        historyStr || 'ไม่มีประวัติ'
-      ];
-    });
-    
-    const csvContent = [headers, ...csvData].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' }); 
-    const link = document.createElement("a"); 
-    link.href = URL.createObjectURL(blob); 
+    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'สถานะ', 'จำนวน', 'ผู้ยืมปัจจุบัน', 'อัปเดตล่าสุด'];
+    const csvData = items.map(i => [
+      i.name, i.sn || '-', i.department, i.category || '-', i.location || '-', 
+      STATUSES.find(s=>s.id===i.status)?.label || i.status, i.quantity || 1, i.currentBorrower || i.currentEvent || '-', i.owner || '-', new Date(i.updatedAt).toLocaleDateString('th-TH')
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...csvData].map(e => e.join(",")).join("\n");
+    const link = document.createElement("a");
+    link.href = encodeURI(csvContent);
     link.download = `MDEC_Stock_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link); 
+    document.body.appendChild(link);
     link.click();
   };
 
@@ -1141,28 +1093,20 @@ function MainApp() {
               </div>
             </div>
             
-            {activeOutItems.length > 0 ? (
-              <div className={`border p-5 rounded-3xl flex-1 flex flex-col shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
-                <h3 className={`font-black mb-3 flex items-center gap-2 text-lg ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                  <Icons.Users className="w-6 h-6" /> รายการกำลังยืม / ออกงาน ({activeOutItems.length})
+            {overdueItems.length > 0 ? (
+              <div className={`border-2 p-5 rounded-3xl flex-1 flex flex-col shadow-sm animate-[pulse_3s_ease-in-out_infinite] ${isDarkMode ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-200'}`}>
+                <h3 className={`font-black mb-3 flex items-center gap-2 text-lg ${isDarkMode ? 'text-rose-400' : 'text-rose-600'}`}>
+                  <Icons.Alert className="w-6 h-6" /> อุปกรณ์เลยกำหนดคืน! ({overdueItems.length})
                 </h3>
                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
-                  {activeOutItems.map(i => {
-                    const isOverdue = i.expectedReturn && new Date(i.expectedReturn).getTime() < todayMs;
-                    return (
-                    <div key={i.id} className={`text-base px-4 py-3 rounded-2xl border shadow-sm flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 transition-colors ${isOverdue ? (isDarkMode ? 'bg-rose-900/30 border-rose-800/50 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700') : (isDarkMode ? 'bg-slate-800/50 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-100 text-slate-700')}`}>
-                      <div className="flex flex-col min-w-0 pr-2">
-                        <span className="font-bold truncate flex items-center gap-2">
-                          {i.name}
-                          {isOverdue && <span className="text-[10px] bg-rose-500 text-white px-2 py-0.5 rounded-full font-black animate-pulse shrink-0">เลยกำหนด!</span>}
-                        </span>
-                        {i.expectedReturn && <span className={`text-xs font-semibold mt-0.5 ${isOverdue ? 'text-rose-500' : theme.textMuted}`}>กำหนดคืน: {new Date(i.expectedReturn).toLocaleDateString('th-TH')}</span>}
-                      </div>
-                      <span className={`text-sm font-bold px-2.5 py-1.5 rounded-xl whitespace-nowrap shrink-0 border ${isOverdue ? (isDarkMode ? 'bg-rose-900/50 text-rose-400 border-rose-800/50' : 'bg-rose-100 text-rose-600 border-rose-200') : i.status === 'out-for-event' ? (isDarkMode ? 'bg-orange-900/40 text-orange-400 border-orange-800/50' : 'bg-orange-100 text-orange-600 border-orange-200') : (isDarkMode ? 'bg-purple-900/40 text-purple-400 border-purple-800/50' : 'bg-purple-100 text-purple-700 border-purple-200')}`}>
-                        {i.status === 'out-for-event' ? '🚚 งาน: ' : '👤 ยืม: '} {i.currentBorrower || i.currentEvent}
+                  {overdueItems.map(i => (
+                    <div key={i.id} className={`text-base px-4 py-3 rounded-2xl border shadow-sm flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 transition-colors ${isDarkMode ? 'bg-slate-800 border-rose-900/50 text-rose-300 hover:bg-slate-700' : 'bg-white border-rose-100 text-rose-700 hover:bg-rose-50'}`}>
+                      <span className="font-bold truncate">{i.name}</span> 
+                      <span className={`text-sm font-semibold px-2 py-1 rounded-lg whitespace-nowrap ${isDarkMode ? 'bg-rose-900/40 text-rose-400' : 'bg-rose-50 text-rose-500'}`}>
+                        {i.status === 'out-for-event' ? 'งาน: ' : 'ผู้ยืม: '} {i.currentBorrower || i.currentEvent}
                       </span>
                     </div>
-                  )})}
+                  ))}
                 </div>
               </div>
             ) : (
@@ -1170,8 +1114,8 @@ function MainApp() {
                  <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 shadow-sm ${isDarkMode ? 'bg-slate-800 text-emerald-500' : 'bg-white text-emerald-400'}`}>
                    <Icons.CheckCircle className="w-10 h-10" />
                  </div>
-                 <span className={`font-black text-xl ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>อุปกรณ์อยู่ครบในสต๊อก</span>
-                 <span className={`font-medium text-base mt-1 ${isDarkMode ? 'text-emerald-500/70' : 'text-emerald-500'}`}>ไม่มีการยืมหรือออกงานในขณะนี้ 🎉</span>
+                 <span className={`font-black text-xl ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>ไม่มีอุปกรณ์เลยกำหนด</span>
+                 <span className={`font-medium text-base mt-1 ${isDarkMode ? 'text-emerald-500/70' : 'text-emerald-500'}`}>ยอดเยี่ยมมาก! ทุกคนคืนของตรงเวลา 🎉</span>
               </div>
             )}
           </div>
@@ -1268,7 +1212,7 @@ function MainApp() {
               )}
 
               <button type="button" onClick={() => setShowPersonalItemsModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-pink-600 text-white hover:bg-pink-500' : 'bg-pink-600 text-white hover:bg-pink-700'}`}>
-                  <Icons.Tag className="w-5 h-5" /> ของประจำตัว
+                  <Icons.Tag className="w-5 h-5" /> ของส่วนตัว
               </button>
 
               <button type="button" onClick={() => setShowQuickReturnModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
@@ -1560,55 +1504,58 @@ function MainApp() {
       {/* 📷 Modal สแกน QR Code */}
       {showScanModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl relative flex flex-col max-h-[90vh] ${theme.cardBg}`}>
+          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
             <style>{`
               #qr-reader button { background-color: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 5px; }
-              #qr-reader select { padding: 8px; border-radius: 8px; margin: 5px; max-width: 100%; border: 1px solid #ccc; color: black; background: white; }
+              #qr-reader select { padding: 8px; border-radius: 8px; margin: 5px; max-width: 100%; border: 1px solid #ccc; color: black; }
               #qr-reader { border: none !important; }
               #qr-reader__dashboard_section_csr span { color: inherit !important; }
             `}</style>
+            
+            <div className="absolute top-0 left-0 w-full h-1 bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-[scan_2s_ease-in-out_infinite] z-0 opacity-70 pointer-events-none"></div>
             
             <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); }} className={`absolute top-4 right-4 p-3 hover:bg-rose-500/10 rounded-full hover:text-rose-500 transition-colors z-50 ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
             
             <div className="flex-1 overflow-y-auto custom-scrollbar">
               <h3 className={`text-2xl font-black mb-4 mt-2 relative z-10 flex justify-center items-center gap-2 ${theme.textTitle}`}>
-                <Icons.QrCode className="w-8 h-8 text-amber-500" /> สแกน QR Code
+                <Icons.QrCode className="w-8 h-8 text-amber-500" /> โหมดสแกนเข้าตะกร้า
               </h3>
 
               <div className="flex justify-center gap-2 mb-4 relative z-10">
                 <button onClick={() => setUseCamera(false)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${!useCamera ? 'bg-amber-500 text-white' : theme.btnSecondary}`}>
-                  ⌨️ พิมพ์ / สแกนเนอร์
+                  ⌨️ เครื่องยิง / พิมพ์
                 </button>
                 <button onClick={() => setUseCamera(true)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${useCamera ? 'bg-amber-500 text-white' : theme.btnSecondary}`}>
-                  📷 กล้องมือถือ
+                  📷 ใช้กล้องมือถือ
                 </button>
               </div>
               
               {!useCamera ? (
                 <>
+                  <p className={`mb-4 text-sm font-medium relative z-10 ${theme.textMuted}`}>
+                    ใช้เครื่องยิงบาร์โค้ด หรือพิมพ์ S.N. / ID อุปกรณ์ลงในช่องด้านล่าง
+                  </p>
                   <form onSubmit={handleScanSubmit} className="relative z-10">
                     <input 
                       type="text" 
                       ref={scanInputRef}
-                      className={`w-full px-4 py-4 rounded-xl font-bold text-center text-xl outline-none mb-4 border-2 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 transition-all ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-800'}`} 
+                      className={`w-full px-4 py-4 rounded-xl font-bold text-center text-xl outline-none mb-4 border-2 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 transition-all ${theme.input}`} 
                       placeholder="สแกน หรือ พิมพ์ที่นี่..." 
                       value={scanInput} 
                       onChange={e => setScanInput(e.target.value)} 
                       autoFocus
                     />
                     <button type="submit" className="hidden">ซ่อนปุ่มซับมิท</button>
-                    <p className={`mt-4 text-sm font-medium ${theme.textMuted}`}>* คลิกที่ช่องว่าง แล้วใช้ปืนยิงบาร์โค้ดได้เลย</p>
                   </form>
                 </>
               ) : (
-                <>
-                  <div className={`w-full relative z-10 min-h-[300px] flex flex-col items-center justify-center p-2 rounded-xl border-2 border-amber-500/30 ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'}`} ref={scannerContainerRef}>
-                    {!isScannerLoaded && <div className="animate-pulse text-amber-500 font-bold">กำลังโหลดระบบกล้อง...</div>}
-                  </div>
-                  <div className={`mt-3 p-3 rounded-lg text-sm text-center font-medium border ${isDarkMode ? 'bg-amber-900/20 border-amber-800/50 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
-                    💡 <b>วิธีใช้:</b> ให้คลิกที่ข้อความ <u className="underline underline-offset-2">Request Camera Permissions</u> ในกรอบสีดำด้านบน เพื่อขออนุญาตเปิดกล้อง
-                  </div>
-                </>
+                <div className="w-full relative z-10 min-h-[300px] flex flex-col items-center justify-center">
+                  {!isScannerLoaded ? (
+                    <div className="animate-pulse text-amber-500 font-bold">กำลังโหลดระบบกล้อง...</div>
+                  ) : (
+                    <div id="qr-reader" className="w-full bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden shadow-inner border-2 border-amber-500/30"></div>
+                  )}
+                </div>
               )}
 
               <div className="h-10 relative z-10 mt-4 flex items-center justify-center">
@@ -1619,11 +1566,15 @@ function MainApp() {
                  )}
               </div>
             </div>
+
+            <div className={`mt-6 pt-4 border-t shrink-0 relative z-10 ${theme.divide}`}>
+              <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); }} className={`w-full py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* 💡 Modal รับคืนด่วน (Quick Return) */}
+      {/* 💡 Modal รับคืนด่วน */}
       {showQuickReturnModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
@@ -1703,7 +1654,7 @@ function MainApp() {
             <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
               <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
                 <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-pink-900/50 text-pink-400' : 'bg-pink-100 text-pink-600'}`}><Icons.Tag className="w-6 h-6"/></div>
-                รายการอุปกรณ์ประจำตัวเจ้าหน้าที่ (Assigned Items)
+                รายการทรัพย์สินส่วนตัว (BYOD)
               </h3>
               <button type="button" onClick={() => setShowPersonalItemsModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -1725,7 +1676,7 @@ function MainApp() {
                   return (
                     <div className={`text-center py-10 font-bold text-xl flex flex-col items-center gap-3 ${theme.textMuted}`}>
                       <Icons.Tag className="w-12 h-12" />
-                      ยังไม่มีการลงทะเบียนของประจำตัวในระบบ
+                      ยังไม่มีการลงทะเบียนทรัพย์สินส่วนตัวในระบบ
                     </div>
                   );
                 }
@@ -1733,15 +1684,15 @@ function MainApp() {
                 return (
                   <>
                     <div className={`mb-4 px-4 py-3 rounded-xl border font-bold flex flex-wrap gap-4 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
-                       <span>👥 ผู้ถือครองทั้งหมด: <span className="text-pink-500">{ownerKeys.length} ท่าน</span></span>
-                       <span>📦 อุปกรณ์ประจำตัวรวม: <span className="text-pink-500">{totalPersonalItems} ชิ้น</span></span>
+                       <span>👥 เจ้าของทั้งหมด: <span className="text-pink-500">{ownerKeys.length} ท่าน</span></span>
+                       <span>📦 อุปกรณ์ส่วนตัวรวม: <span className="text-pink-500">{totalPersonalItems} ชิ้น</span></span>
                     </div>
                     {ownerKeys.map(owner => (
                       <div key={owner} className={`p-5 rounded-2xl border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                         <div className="flex items-center gap-2 mb-3">
                           <Icons.Users className={`w-6 h-6 ${isDarkMode ? 'text-pink-400' : 'text-pink-500'}`} />
                           <h4 className={`text-xl font-black truncate ${theme.textTitle}`}>
-                            ของประจำตัว: {owner}
+                            ของส่วนตัว: {owner}
                           </h4>
                           <span className={`shrink-0 text-sm font-bold px-2 py-0.5 rounded-md ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-700'}`}>{groups[owner].length} ชิ้น</span>
                         </div>
@@ -1798,7 +1749,7 @@ function MainApp() {
                     <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-6 h-6 text-emerald-500"/> สำรองข้อมูล (Export)</h4>
                     <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>ดาวน์โหลดข้อมูลสต๊อกทั้งหมดออกมาเป็นไฟล์ Excel (.csv) เพื่อเก็บสำรองไว้ในคอมพิวเตอร์ของคุณ</p>
                     <button onClick={exportToCSV} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-lg">
-                      <Icons.Download className="w-5 h-5"/> โหลดไฟล์ CSV พร้อมประวัติยืม-คืน
+                      <Icons.Download className="w-5 h-5"/> โหลดไฟล์ CSV
                     </button>
                   </div>
 
@@ -1946,14 +1897,16 @@ function MainApp() {
                       const isSelected = (bundleForm.itemIds || []).includes(i.id);
                       const s = STATUSES.find(st => st.id === i.status) || STATUSES[0];
                       return (
-                        <label key={i.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${isSelected ? (isDarkMode ? 'border-fuchsia-500 bg-fuchsia-900/40 text-fuchsia-300' : 'border-fuchsia-500 bg-fuchsia-50 text-fuchsia-700') : (isDarkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-200' : 'border-slate-200 hover:bg-slate-50 text-slate-800')}`}>
-                          <input type="checkbox" className="w-5 h-5 accent-fuchsia-600 rounded shrink-0 cursor-pointer" checked={isSelected} onChange={(e) => {
-                            const newIds = e.target.checked ? [...(bundleForm.itemIds || []), i.id] : (bundleForm.itemIds || []).filter(id => id !== i.id);
-                            setBundleForm({...bundleForm, itemIds: newIds});
-                          }} />
-                          <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center sm:gap-2">
-                            <span className="font-bold truncate">{i.name}</span>
-                            <span className={`text-xs truncate ${isSelected ? (isDarkMode ? 'text-fuchsia-400/70' : 'text-fuchsia-600/70') : theme.textMuted}`}>(S.N: {i.sn || '-'})</span>
+                        <label key={i.id} className={`flex justify-between items-center cursor-pointer p-3 rounded-xl border transition-all ${isSelected ? (isDarkMode ? 'bg-fuchsia-900/40 border-fuchsia-700 shadow-inner' : 'bg-fuchsia-50 border-fuchsia-300 shadow-sm') : (isDarkMode ? 'bg-slate-800 border-transparent hover:bg-slate-700' : 'bg-white border-transparent hover:bg-slate-100')} ${theme.textMain}`}>
+                          <div className="flex items-center gap-3 min-w-0 pr-2">
+                            <input type="checkbox" className="w-5 h-5 accent-fuchsia-600 rounded shrink-0 cursor-pointer" checked={isSelected} onChange={(e) => {
+                              const newIds = e.target.checked ? [...(bundleForm.itemIds || []), i.id] : (bundleForm.itemIds || []).filter(id => id !== i.id);
+                              setBundleForm({...bundleForm, itemIds: newIds});
+                            }} />
+                            <div className="truncate">
+                              <span className={`font-bold text-base ${isSelected ? (isDarkMode ? 'text-fuchsia-300' : 'text-fuchsia-700') : ''}`}>{i.name}</span>
+                              <span className={`text-sm ml-2 ${isSelected ? (isDarkMode ? 'text-fuchsia-400/70' : 'text-fuchsia-600/70') : theme.textMuted}`}>(S.N: {i.sn || '-'})</span>
+                            </div>
                           </div>
                           <span className={`shrink-0 text-[10px] px-2 py-1 rounded-md font-bold whitespace-nowrap ${isDarkMode ? s.darkColor : s.color}`}>{s.label}</span>
                         </label>
@@ -2069,7 +2022,7 @@ function MainApp() {
         </div>
       )}
 
-      {/* 📋 Borrow Modal (แบบมีระบบ Checklist) */}
+      {/* 📋 Borrow Modal */}
       {borrowTargetIds.length > 0 && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
@@ -2169,7 +2122,7 @@ function MainApp() {
         </div>
       )}
 
-      {/* 🚚 Event Modal (ระบบนำออกงาน) */}
+      {/* 🚚 Event Modal */}
       {eventTargetIds.length > 0 && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
@@ -2269,7 +2222,7 @@ function MainApp() {
         </div>
       )}
 
-      {/* 📋 Return Modal (ระบบรับคืน) */}
+      {/* 📋 Return Modal */}
       {returnTargetIds.length > 0 && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
@@ -2379,7 +2332,7 @@ function MainApp() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
                         <span className={`text-sm font-black px-3 py-1 rounded-md ${badgeColor}`}>{icon} {action}</span>
-                        <span className={`text-sm font-bold ${theme.textMuted}`}>{log.timestamp ? new Date(log.timestamp).toLocaleTimeString('th-TH') : '-'}</span>
+                        <span className={`text-sm font-bold ${theme.textMuted}`}>{log.timestamp ? new Date(log.timestamp).toLocaleTimeString('th-TH', {hour12: false}) : '-'} น.</span>
                       </div>
                       <h4 className={`text-lg font-bold mb-1 ${theme.textTitle}`}>{log.target || '-'}</h4>
                       <p className={`text-base whitespace-pre-line ${theme.textMain}`}>{log.details}</p>
@@ -2390,11 +2343,6 @@ function MainApp() {
                   </div>
                 );
               })}
-              {auditLogs.length >= auditLimit && (
-                <button onClick={() => setAuditLimit(p => p + 50)} className={`w-full py-4 mt-4 font-bold rounded-xl border text-lg transition-colors ${theme.btnCancel}`}>
-                  โหลดประวัติเพิ่ม...
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -2451,7 +2399,7 @@ function MainApp() {
         </div>
       )}
 
-      {/* Modal ยืนยันการลบอุปกรณ์ */}
+      {/* Modal ยืนยันการลบอุปกรณ์ในตารางหลัก */}
       {itemToDelete && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
           <div className={`rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl ${theme.cardBg}`}>
@@ -2464,6 +2412,128 @@ function MainApp() {
             <div className="flex gap-3">
               <button type="button" onClick={() => setItemToDelete(null)} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button type="button" onClick={handleDeleteItem} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/20 text-lg hover:bg-rose-500">ยืนยันการลบ</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add/Edit Form */}
+      {showForm && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
+          <div className={`rounded-3xl p-6 sm:p-8 max-w-xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl ${theme.cardBg}`}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className={`text-2xl font-black ${theme.textTitle}`}>{formData.id ? 'แก้ไขข้อมูล' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
+              <button type="button" onClick={() => setShowForm(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              
+              {/* 🏷️ กล่องเลือกว่าเป็นของส่วนตัว */}
+              <div className={`sm:col-span-2 p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <label className={`flex items-center gap-3 cursor-pointer ${theme.textTitle}`}>
+                  <input type="checkbox" className="w-5 h-5 accent-fuchsia-500 rounded cursor-pointer" 
+                    checked={formData.isPersonalItem} 
+                    onChange={e => {
+                      const isChecked = e.target.checked;
+                      setFormData({
+                        ...formData, 
+                        isPersonalItem: isChecked, 
+                        owner: isChecked ? (formData.owner || '') : '',
+                        newOwner: ''
+                      });
+                    }} 
+                  />
+                  <span className="font-bold text-lg">👤 ระบุว่าเป็น "ของส่วนตัว" (Personal Item)</span>
+                </label>
+                
+                {formData.isPersonalItem && (
+                  <div className="mt-4 pl-8 space-y-4">
+                    <div>
+                      <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>เลือกชื่อเจ้าของ <span className="text-rose-500">*</span></label>
+                      <select 
+                        className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-fuchsia-500 ${theme.input}`} 
+                        value={formData.owner || ''} 
+                        onChange={e => setFormData({...formData, owner: e.target.value, newOwner: e.target.value !== 'อื่นๆ' ? '' : formData.newOwner})}
+                      >
+                        <option value="" disabled>-- เลือกชื่อเจ้าของ --</option>
+                        {(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    {formData.owner === 'อื่นๆ' && (
+                      <div className="animate-[slideDown_0.2s_ease-out]">
+                        <input 
+                          type="text" 
+                          autoFocus 
+                          className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-fuchsia-500 ${isDarkMode ? 'bg-fuchsia-900/20 border-fuchsia-800 text-fuchsia-300' : 'bg-fuchsia-50 border-fuchsia-300 text-fuchsia-800'}`} 
+                          placeholder="พิมพ์ชื่อเจ้าของใหม่..." 
+                          value={formData.newOwner || ''} 
+                          onChange={e => setFormData({...formData, newOwner: e.target.value})} 
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ชื่ออุปกรณ์ <span className="text-rose-500">*</span></label>
+                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น กล้อง Sony A7IV" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
+              </div>
+              
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ฝ่ายที่รับผิดชอบ</label>
+                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.department || ''} onChange={e => setFormData({...formData, department: e.target.value})}>
+                  {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>จำนวนชิ้น</label>
+                <input type="number" min="1" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.quantity || 1} onChange={e => setFormData({...formData, quantity: e.target.value})} />
+              </div>
+              
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>หมวดหมู่อุปกรณ์</label>
+                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.category || ''} onChange={e => setFormData({...formData, category: e.target.value, newCategory: e.target.value !== 'อื่นๆ' ? '' : formData.newCategory})}>
+                  <option value="" disabled>-- เลือกหมวดหมู่ --</option>
+                  {(settingsOptions.categories || []).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>รหัส S.N. <span className="text-rose-500">*</span></label>
+                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น CAM-001 (บังคับกรอก)" value={formData.sn || ''} onChange={e => setFormData({...formData, sn: e.target.value})} />
+              </div>
+
+              {formData.category === 'อื่นๆ' && (
+                <div className="sm:col-span-2">
+                  <label className="block text-base sm:text-lg font-bold text-blue-500 mb-2">เพิ่มหมวดหมู่ใหม่ / พิมพ์ระบุเอง</label>
+                  <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-800'}`} placeholder="พิมพ์ชื่อหมวดหมู่ใหม่..." value={formData.newCategory || ''} onChange={e => setFormData({...formData, newCategory: e.target.value})} />
+                </div>
+              )}
+              
+              <div className="sm:col-span-2">
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>สถานที่จัดเก็บ / ห้อง</label>
+                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.location || ''} onChange={e => setFormData({...formData, location: e.target.value, newLocation: e.target.value !== 'อื่นๆ' ? '' : formData.newLocation})}>
+                  <option value="" disabled>-- เลือกสถานที่ --</option>
+                  {(settingsOptions.locations || []).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              {formData.location === 'อื่นๆ' && (
+                <div className="sm:col-span-2">
+                  <label className="block text-base sm:text-lg font-bold text-blue-500 mb-2">เพิ่มสถานที่ใหม่ / พิมพ์ระบุเอง</label>
+                  <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-800'}`} placeholder="พิมพ์ชื่อสถานที่จัดเก็บใหม่..." value={formData.newLocation || ''} onChange={e => setFormData({...formData, newLocation: e.target.value})} />
+                </div>
+              )}
+              
+              <div className="sm:col-span-2">
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>สถานะ</label>
+                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.status || 'available'} onChange={e => setFormData({...formData, status: e.target.value})}>
+                  {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-8">
+              <button type="button" onClick={() => setShowForm(false)} className={`flex-1 py-4 font-bold rounded-xl transition-colors text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={handleSave} className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-colors text-lg">บันทึกข้อมูล</button>
             </div>
           </div>
         </div>
