@@ -943,12 +943,17 @@ function MainApp() {
                     <td className="px-4 py-4"><span className={`px-3 py-1.5 rounded-lg text-base font-bold border ${isDarkMode ? sInfo.darkColor : sInfo.color}`}>{sInfo.label}</span></td>
                     <td className="px-4 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <button onClick={(e) => { e.stopPropagation(); setShowHistory(item.id); }} className={`w-10 h-10 rounded-xl flex items-center justify-center ${theme.btnCancel}`}><Icons.History c="w-5 h-5"/></button>
+                        <button onClick={(e) => { e.stopPropagation(); setShowHistory(item.id); }} className={`w-10 h-10 rounded-xl flex items-center justify-center ${theme.btnCancel}`} title="ประวัติ"><Icons.History c="w-5 h-5"/></button>
                         {isAdmin && <>
-                          {item.status === 'available' && <button onClick={(e) => handleOpenRowBorrow(e, item)} className="w-10 h-10 rounded-xl flex items-center justify-center bg-purple-100 text-purple-600"><Icons.UserPlus c="w-5 h-5"/></button>}
-                          {(item.status === 'borrowed' || item.status === 'out-for-event') && <button onClick={(e) => { e.stopPropagation(); setReturnData({staff:''}); setReturnTargetIds([item.id]); setReturnChecklist([]); }} className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-100 text-emerald-600"><Icons.CheckCircle c="w-5 h-5"/></button>}
-                          <button onClick={(e) => { e.stopPropagation(); setFormData({...item, isPersonalItem: !!item.owner}); setShowForm(true); }} className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-100 text-blue-600"><Icons.Edit c="w-4 h-4"/></button>
-                          <button onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-100 text-rose-600"><Icons.Trash c="w-4 h-4"/></button>
+                          {item.status === 'available' && (
+                            <>
+                              <button onClick={(e) => handleOpenRowBorrow(e, item)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-100 text-purple-600 hover:bg-purple-600 hover:text-white'}`} title="ให้ยืม"><Icons.UserPlus c="w-5 h-5"/></button>
+                              <button onClick={(e) => handleOpenRowEvent(e, item)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-orange-900/40 text-orange-400 hover:bg-orange-600 hover:text-white' : 'bg-orange-100 text-orange-600 hover:bg-orange-600 hover:text-white'}`} title="นำออกงาน"><Icons.Truck c="w-5 h-5"/></button>
+                            </>
+                          )}
+                          {(item.status === 'borrowed' || item.status === 'out-for-event') && <button onClick={(e) => { e.stopPropagation(); setReturnData({staff:'', newStaff:''}); setReturnTargetIds([item.id]); setReturnChecklist([]); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-600 hover:text-white' : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle c="w-5 h-5"/></button>}
+                          <button onClick={(e) => { e.stopPropagation(); setFormData({...item, newCategory: '', newLocation: '', newOwner: item.owner || '', isPersonalItem: !!item.owner}); setShowForm(true); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit c="w-4 h-4"/></button>
+                          <button onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="ลบ"><Icons.Trash c="w-4 h-4"/></button>
                         </>}
                       </div>
                     </td>
