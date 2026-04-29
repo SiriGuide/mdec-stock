@@ -147,6 +147,7 @@ function MainApp() {
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
   
   const scanInputRef = useRef(null);
+  const scannerContainerRef = useRef(null);
   const [useCamera, setUseCamera] = useState(false);
   const [isScannerLoaded, setIsScannerLoaded] = useState(false);
   const itemsRefForScan = useRef(items);
@@ -601,23 +602,46 @@ function MainApp() {
 
   useEffect(() => {
     let scanner = null;
+    let scannerDiv = null;
     let timer = null;
-    if (showScanModal && useCamera && isScannerLoaded) {
-      // 💡 หน่วงเวลาให้ React สร้างกรอบให้เสร็จก่อนเปิดกล้อง
+
+    if (showScanModal && useCamera && isScannerLoaded && scannerContainerRef.current) {
       timer = setTimeout(() => {
-        const qrElement = document.getElementById("qr-reader");
-        if (qrElement) {
-          scanner = new window.Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true }, false);
-          scanner.render((decodedText) => {
+        if (!scannerContainerRef.current) return;
+        scannerDiv = document.createElement('div');
+        const scannerId = "qr-reader-" + Date.now();
+        scannerDiv.id = scannerId;
+        scannerDiv.style.width = "100%";
+        scannerContainerRef.current.appendChild(scannerDiv);
+        
+        scanner = new window.Html5QrcodeScanner(
+          scannerId,
+          { fps: 10, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true },
+          false
+        );
+        
+        scanner.render(
+          (decodedText) => {
             handleProcessScan(decodedText);
-            if (scanner) { try { scanner.pause(true); } catch(e) {} setTimeout(() => { try { scanner.resume(); } catch(e) {} }, 2000); }
-          }, (err) => {});
-        }
-      }, 100);
+            if (scanner) {
+              try { scanner.pause(true); } catch(e) {}
+              setTimeout(() => { try { scanner.resume(); } catch(e) {} }, 2000);
+            }
+          },
+          (err) => {}
+        );
+      }, 150);
     }
+
     return () => {
       if (timer) clearTimeout(timer);
-      if (scanner) { try { scanner.clear().catch(console.error); } catch(e){} }
+      if (scanner) {
+        scanner.clear().catch(e => console.log(e)).finally(() => {
+          if (scannerContainerRef.current && scannerDiv) {
+            try { scannerContainerRef.current.removeChild(scannerDiv); } catch(e) {}
+          }
+        });
+      }
     };
   }, [showScanModal, useCamera, isScannerLoaded]);
 
@@ -972,16 +996,16 @@ function MainApp() {
               </div>
               {!useCamera ? (
                 <form onSubmit={handleScanSubmit}>
-                  <input type="text" ref={scanInputRef} className={`w-full px-4 py-4 rounded-xl font-bold text-center text-xl border focus:border-amber-500 ${theme.input}`} placeholder="สแกนรหัส..." value={scanInput} onChange={e=>setScanInput(e.target.value)} autoFocus/>
+                  <input type="text" ref={scanInputRef} className={`w-full px-4 py-4 rounded-xl font-bold text-center text-xl border-2 transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-600 focus:border-amber-500 text-white' : 'bg-slate-50 border-slate-300 focus:border-amber-500 text-slate-800'}`} placeholder="สแกน หรือ พิมพ์รหัส..." value={scanInput} onChange={e=>setScanInput(e.target.value)} autoFocus/>
                   <button type="submit" className="hidden"></button>
+                  <p className={`mt-4 text-sm font-medium ${theme.textMuted}`}>* คลิกที่ช่องว่าง แล้วใช้ปืนยิงบาร์โค้ดได้เลย</p>
                 </form>
               ) : (
-                // 💡 ผูก ref เพื่อให้กล้องมาแสดงตรงนี้เสมอ
-                <div className={`w-full min-h-[300px] flex items-center justify-center rounded-xl overflow-hidden border-2 border-amber-500/30 ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'}`} ref={scannerContainerRef}>
+                <div className={`w-full min-h-[300px] flex items-center justify-center p-2 rounded-xl overflow-hidden border-2 border-amber-500/30 ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'}`} ref={scannerContainerRef}>
                   {!isScannerLoaded && <div className="animate-pulse font-bold text-amber-500">กำลังโหลดระบบกล้อง...</div>}
                 </div>
               )}
-              <div className="h-10 mt-4 flex items-center justify-center">{scanMessage.text && <span className={`font-bold px-5 py-2 rounded-full text-white ${scanMessage.type==='success'?'bg-emerald-500':'bg-rose-500'}`}>{scanMessage.text}</span>}</div>
+              <div className="h-10 mt-4 flex items-center justify-center">{scanMessage.text && <span className={`font-bold px-5 py-2 rounded-full text-white animate-[slideUp_0.2s_ease-out] ${scanMessage.type==='success'?'bg-emerald-500':'bg-rose-500'}`}>{scanMessage.text}</span>}</div>
             </div>
           </div>
         </div>
