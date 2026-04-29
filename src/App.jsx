@@ -225,6 +225,7 @@ function MainApp() {
     return () => { unsubItems(); unsubSettings(); };
   }, [user]);
 
+  // 💡 โหลด Audit Log แบบจำกัดหน้า (Pagination)
   useEffect(() => {
     if (!user) return;
     if (showAuditModal || showCommandCenter) {
@@ -428,6 +429,7 @@ function MainApp() {
     return finalStaff;
   };
 
+  // 💡 อัปเดต: Auto-trim ประวัติ 100 รายการ เพื่อไม่ให้เกินลิมิต 1MB ของ Firestore
   const handleBorrow = async () => {
     if (!user || !borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return;
     if (!checkPersonalItemsWarning(packingChecklist)) return; 
@@ -597,6 +599,28 @@ function MainApp() {
     e.preventDefault(); handleProcessScan(scanInput);
   };
 
+  useEffect(() => {
+    let scanner = null;
+    let timer = null;
+    if (showScanModal && useCamera && isScannerLoaded) {
+      // 💡 หน่วงเวลาให้ React สร้างกรอบให้เสร็จก่อนเปิดกล้อง
+      timer = setTimeout(() => {
+        const qrElement = document.getElementById("qr-reader");
+        if (qrElement) {
+          scanner = new window.Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true }, false);
+          scanner.render((decodedText) => {
+            handleProcessScan(decodedText);
+            if (scanner) { try { scanner.pause(true); } catch(e) {} setTimeout(() => { try { scanner.resume(); } catch(e) {} }, 2000); }
+          }, (err) => {});
+        }
+      }, 100);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+      if (scanner) { try { scanner.clear().catch(console.error); } catch(e){} }
+    };
+  }, [showScanModal, useCamera, isScannerLoaded]);
+
   const handleImportCSV = (e) => {
     if (!user || !e.target.files[0]) return;
     const reader = new FileReader();
@@ -647,9 +671,11 @@ function MainApp() {
     } catch (error) { alert(`❌ บันทึกตั้งค่าไม่สำเร็จ: ${error.message}`); }
   };
 
+  // 💡 อัปเดต: นำประวัติล่าสุดติดไปในไฟล์ CSV ด้วย
   const exportToCSV = () => {
     const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'สถานะ', 'จำนวน', 'ผู้ยืม/โปรเจกต์', 'ของประจำตัว', 'อัปเดตล่าสุด', 'ประวัติยืม-คืน (ล่าสุด)'];
     const csvData = items.map(i => {
+      // แปลงประวัติให้เป็นข้อความยาวๆ 1 บรรทัด
       const historyStr = (i.history || []).map(h => {
         const d = new Date(h.date).toLocaleDateString('th-TH');
         if(h.type === 'borrow') return `[${d}] ยืม:${h.borrower}`;
@@ -657,6 +683,7 @@ function MainApp() {
         if(h.type === 'return') return `[${d}] คืน:${h.staffIn}`;
         return '';
       }).join(' -> ');
+
       return [ 
         i.name, i.sn || '-', i.department, i.category || '-', i.location || '-', 
         STATUSES.find(s=>s.id===i.status)?.label || i.status, 
@@ -665,11 +692,25 @@ function MainApp() {
         historyStr || 'ไม่มีประวัติ'
       ];
     });
+    
+    // แปลงให้เป็นไฟล์ CSV (จัดการเครื่องหมาย "," ในประวัติด้วย)
     const csvContent = [headers, ...csvData].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a"); link.href = URL.createObjectURL(blob); 
+    const link = document.createElement("a"); 
+    link.href = URL.createObjectURL(blob); 
     link.download = `MDEC_Stock_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link); link.click();
+    document.body.appendChild(link); 
+    link.click();
+  };
+
+  const handleLogin = () => {
+    if (pin === ADMIN_PIN) { 
+      setIsAdmin(true); 
+      try { localStorage.setItem('mdec_admin', 'true'); } catch(e) {}
+      setShowLogin(false); setPin(''); 
+    } else { 
+      alert('รหัสผ่านไม่ถูกต้อง'); setPin(''); 
+    }
   };
 
   const handleLogout = () => {
@@ -677,10 +718,7 @@ function MainApp() {
     try { localStorage.removeItem('mdec_admin'); } catch(e) {}
   };
 
-  // ==========================================
-  // 🛑 จบโค้ดส่วนที่ 1 (ก๊อปปี้ถึงบรรทัดนี้ก่อนครับ)
-  // ==========================================
-if (showPrintModal) {
+  if (showPrintModal) {
     return (
       <div className="bg-white min-h-screen font-sans text-black">
          <div className="print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
@@ -923,13 +961,14 @@ if (showPrintModal) {
       {showScanModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl relative flex flex-col max-h-[90vh] ${theme.cardBg}`}>
-            <style>{`#qr-reader button{background:#f59e0b;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:bold;cursor:pointer;margin:5px} #qr-reader select{padding:8px;border-radius:8px;margin:5px;border:1px solid #ccc;color:#000} #qr-reader{border:none!important} #qr-reader__dashboard_section_csr span{color:inherit!important}`}</style>
+            {/* 💡 อัปเดต CSS ย่อยให้รองรับโหมดกลางคืน */}
+            <style>{`#qr-reader button{background:#f59e0b;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:bold;cursor:pointer;margin:5px} #qr-reader select{padding:8px;border-radius:8px;margin:5px;border:1px solid #ccc;color:#000;background:#fff;} #qr-reader{border:none!important} #qr-reader__dashboard_section_csr span{color:inherit!important}`}</style>
             <button onClick={()=>{setShowScanModal(false);setUseCamera(false);}} className="absolute top-4 right-4 p-3 hover:text-rose-500 z-50"><Icons.X c="w-6 h-6"/></button>
             <div className="flex-1 overflow-y-auto">
               <h3 className="text-2xl font-black mb-4 flex justify-center items-center gap-2"><Icons.QrCode c="w-8 h-8 text-amber-500"/> สแกน QR Code</h3>
               <div className="flex justify-center gap-2 mb-4">
-                <button onClick={()=>setUseCamera(false)} className={`px-4 py-2 font-bold rounded-xl ${!useCamera?'bg-amber-500 text-white':theme.btnSecondary}`}>⌨️ พิมพ์</button>
-                <button onClick={()=>setUseCamera(true)} className={`px-4 py-2 font-bold rounded-xl ${useCamera?'bg-amber-500 text-white':theme.btnSecondary}`}>📷 กล้อง</button>
+                <button onClick={()=>setUseCamera(false)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${!useCamera?'bg-amber-500 text-white':theme.btnSecondary}`}>⌨️ พิมพ์ / สแกนเนอร์</button>
+                <button onClick={()=>setUseCamera(true)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${useCamera?'bg-amber-500 text-white':theme.btnSecondary}`}>📷 กล้องมือถือ</button>
               </div>
               {!useCamera ? (
                 <form onSubmit={handleScanSubmit}>
@@ -937,8 +976,9 @@ if (showPrintModal) {
                   <button type="submit" className="hidden"></button>
                 </form>
               ) : (
-                <div className="w-full min-h-[300px] flex items-center justify-center">
-                  {!isScannerLoaded ? <div className="animate-pulse font-bold text-amber-500">โหลดกล้อง...</div> : <div id="qr-reader" className="w-full rounded-xl overflow-hidden shadow-inner border-2 border-amber-500/30"></div>}
+                // 💡 ผูก ref เพื่อให้กล้องมาแสดงตรงนี้เสมอ
+                <div className={`w-full min-h-[300px] flex items-center justify-center rounded-xl overflow-hidden border-2 border-amber-500/30 ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'}`} ref={scannerContainerRef}>
+                  {!isScannerLoaded && <div className="animate-pulse font-bold text-amber-500">กำลังโหลดระบบกล้อง...</div>}
                 </div>
               )}
               <div className="h-10 mt-4 flex items-center justify-center">{scanMessage.text && <span className={`font-bold px-5 py-2 rounded-full text-white ${scanMessage.type==='success'?'bg-emerald-500':'bg-rose-500'}`}>{scanMessage.text}</span>}</div>
@@ -978,9 +1018,10 @@ if (showPrintModal) {
                     {sortedBundleItems.map(i=>{
                       const isSel=(bundleForm.itemIds||[]).includes(i.id);
                       return (
-                        <label key={i.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${isSel?'border-fuchsia-500 bg-fuchsia-50 dark:bg-fuchsia-900/20':''}`}>
-                          <input type="checkbox" className="w-5 h-5 accent-fuchsia-600" checked={isSel} onChange={e=>{setBundleForm({...bundleForm,itemIds:e.target.checked?[...(bundleForm.itemIds||[]),i.id]:(bundleForm.itemIds||[]).filter(id=>id!==i.id)})}}/>
-                          <span className="font-bold">{i.name}</span>
+                        // 💡 แก้ไขสีตัวหนังสือและพื้นหลังให้ชัดเจน 100% ในโหมดกลางคืน
+                        <label key={i.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${isSel ? (isDarkMode ? 'border-fuchsia-500 bg-fuchsia-900/40 text-fuchsia-300' : 'border-fuchsia-500 bg-fuchsia-50 text-fuchsia-700') : (isDarkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-200' : 'border-slate-200 hover:bg-slate-50 text-slate-800')}`}>
+                          <input type="checkbox" className="w-5 h-5 accent-fuchsia-600 rounded shrink-0 cursor-pointer" checked={isSel} onChange={e=>{setBundleForm({...bundleForm,itemIds:e.target.checked?[...(bundleForm.itemIds||[]),i.id]:(bundleForm.itemIds||[]).filter(id=>id!==i.id)})}}/>
+                          <span className="font-bold truncate">{i.name}</span>
                         </label>
                       );
                     })}
