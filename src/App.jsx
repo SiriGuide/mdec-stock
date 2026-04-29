@@ -1033,6 +1033,57 @@ function MainApp() {
       alert('❌ สำรองข้อมูลทั้งหมดไม่สำเร็จ: ' + error.message);
     }
   };
+
+  const clearAllBorrowReturnHistory = async () => {
+    if (!user) return;
+
+    const historyCount = items.reduce((sum, item) => {
+      return sum + (Array.isArray(item.history) ? item.history.length : 0);
+    }, 0);
+
+    if (historyCount === 0) {
+      alert('ℹ️ ตอนนี้ยังไม่มีประวัติยืม-คืนให้ล้าง');
+      return;
+    }
+
+    const backupFirst = confirm(
+      '⚠️ ก่อนล้างประวัติยืม-คืนทั้งหมด\n\n' +
+      'แนะนำให้กดสำรองข้อมูลทั้งหมด JSON และประวัติยืม-คืน CSV เก็บไว้ก่อน\n\n' +
+      'คุณสำรองข้อมูลเรียบร้อยแล้ว และต้องการดำเนินการต่อหรือไม่?'
+    );
+    if (!backupFirst) return;
+
+    const confirmText = prompt(
+      'เพื่อป้องกันการกดพลาด กรุณาพิมพ์คำว่า CLEAR เพื่อยืนยันการล้างประวัติยืม-คืนทั้งหมด\n\n' +
+      'ระบบจะล้างเฉพาะ history ของอุปกรณ์ทุกชิ้น\n' +
+      'ไม่ลบรายการอุปกรณ์ ไม่ลบสถานะปัจจุบัน ไม่ลบหมวดหมู่ สถานที่ หรือเจ้าของ'
+    );
+
+    if (confirmText !== 'CLEAR') {
+      alert('ยกเลิกการล้างประวัติ เนื่องจากไม่ได้พิมพ์ CLEAR ให้ถูกต้อง');
+      return;
+    }
+
+    try {
+      const promises = items.map((item) => {
+        return setDoc(getItemDoc(item.id), { history: [] }, { merge: true });
+      });
+
+      await Promise.all(promises);
+
+      await logAction(
+        'ล้างประวัติยืม-คืนทั้งหมด',
+        'ล้างประวัติ ' + historyCount + ' รายการ',
+        'ล้างเฉพาะ history ของอุปกรณ์ทุกชิ้น โดยไม่ลบรายการอุปกรณ์หลักและไม่เปลี่ยนสถานะปัจจุบัน'
+      );
+
+      alert('✅ ล้างประวัติยืม-คืนทั้งหมดเรียบร้อยแล้ว\nรายการอุปกรณ์หลักและสถานะปัจจุบันยังอยู่เหมือนเดิม');
+    } catch (error) {
+      console.error(error);
+      alert('❌ ล้างประวัติยืม-คืนไม่สำเร็จ: ' + error.message);
+    }
+  };
+
   const exportToCSV = () => {
     const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'สถานะ', 'จำนวน', 'ผู้ยืมปัจจุบัน', 'อัปเดตล่าสุด'];
     const csvData = items.map(i => [
@@ -1848,6 +1899,18 @@ function MainApp() {
                       </button>
                     </div>
                     <p className={`text-xs mt-3 font-bold ${theme.textMuted}`}>* ไฟล์ JSON เก็บรายการอุปกรณ์ การตั้งค่า เซ็ตอุปกรณ์ ของส่วนตัว ประวัติยืม-คืน และ Audit Log เหมาะสำหรับสำรองรายปี</p>
+
+                    <div className={`mt-5 p-4 rounded-xl border ${isDarkMode ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-200'}`}>
+                      <h5 className={`text-base font-black mb-1 flex items-center gap-2 ${isDarkMode ? 'text-rose-300' : 'text-rose-700'}`}>
+                        <Icons.Trash className="w-4 h-4" /> ล้างประวัติยืม-คืนทั้งหมด
+                      </h5>
+                      <p className={`text-xs mb-3 font-bold ${isDarkMode ? 'text-rose-300/80' : 'text-rose-700/80'}`}>
+                        ใช้หลังจากสำรองข้อมูลรายปีแล้ว ระบบจะล้างเฉพาะประวัติใน history ของอุปกรณ์ทุกชิ้น ไม่ลบรายการอุปกรณ์และไม่เปลี่ยนสถานะปัจจุบัน
+                      </p>
+                      <button type="button" onClick={clearAllBorrowReturnHistory} className="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
+                        <Icons.Trash className="w-5 h-5"/> ล้างประวัติยืม-คืนทั้งหมด
+                      </button>
+                    </div>
                   </div>
                   <div className={`p-6 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                     <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-6 h-6 text-emerald-500"/> สำรองข้อมูล (Export)</h4>
