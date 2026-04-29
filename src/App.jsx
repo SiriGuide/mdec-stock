@@ -966,9 +966,9 @@ export default function App() {
     reader.onload = async (e) => {
       try {
         const text = String(e.target.result || "");
-        const csvLines = text.split(/
-?
-/).filter(Boolean);
+        const carriageReturn = String.fromCharCode(13);
+        const newline = String.fromCharCode(10);
+        const csvLines = text.replaceAll(carriageReturn, "").split(newline).filter(Boolean);
         let count = 0;
         for (let i = 1; i < csvLines.length; i++) {
           const cols = parseCSVLine(csvLines[i]);
