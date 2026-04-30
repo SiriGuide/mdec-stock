@@ -155,6 +155,7 @@ function MainApp() {
 
   // 🖨️ สถานะสำหรับ Print & Scan QR Code
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [qrPrintSize, setQrPrintSize] = useState('normal');
   const [showScanModal, setShowScanModal] = useState(false);
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
@@ -1117,115 +1118,79 @@ function MainApp() {
   };
 
   if (showPrintModal) {
+    const qrSizePresets = {
+      small: {
+        label: 'เล็ก',
+        desc: 'ของพื้นที่จำกัด',
+        grid: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7',
+        card: 'p-2 min-h-[135px] print:p-1.5',
+        qrClass: 'w-20 h-20 print:w-16 print:h-16',
+        qrServer: 160,
+        nameClass: 'text-[10px]',
+        snClass: 'text-[9px]'
+      },
+      normal: {
+        label: 'ปกติ',
+        desc: 'แนะนำ / แบบเดิม',
+        grid: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6',
+        card: 'p-3 min-h-[170px] print:p-2',
+        qrClass: 'w-28 h-28 print:w-24 print:h-24',
+        qrServer: 180,
+        nameClass: 'text-xs',
+        snClass: 'text-[10px]'
+      },
+      large: {
+        label: 'ใหญ่',
+        desc: 'สแกนง่าย',
+        grid: 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5',
+        card: 'p-4 min-h-[215px] print:p-3',
+        qrClass: 'w-36 h-36 print:w-32 print:h-32',
+        qrServer: 240,
+        nameClass: 'text-sm',
+        snClass: 'text-[11px]'
+      }
+    };
+    const qrPreset = qrSizePresets[qrPrintSize] || qrSizePresets.normal;
+
     return (
       <div className="bg-white min-h-screen font-sans text-black">
-         <style>{`
-           .mini-qr-grid {
-             display: grid;
-             grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-             gap: 14px;
-           }
-           .mini-qr-label {
-             border: 2px dashed #d1d5db;
-             border-radius: 12px;
-             padding: 8px;
-             min-height: 126px;
-             display: flex;
-             flex-direction: column;
-             align-items: center;
-             justify-content: center;
-             text-align: center;
-             break-inside: avoid;
-             page-break-inside: avoid;
-           }
-           .mini-qr-img {
-             width: 82px;
-             height: 82px;
-             object-fit: contain;
-             margin-bottom: 5px;
-           }
-           .mini-qr-name {
-             width: 100%;
-             font-size: 10px;
-             line-height: 1.1;
-             font-weight: 900;
-             display: -webkit-box;
-             -webkit-line-clamp: 2;
-             -webkit-box-orient: vertical;
-             overflow: hidden;
-           }
-           .mini-qr-sn {
-             margin-top: 2px;
-             font-size: 8px;
-             line-height: 1;
-             font-weight: 800;
-             color: #4b5563;
-           }
-           .mini-qr-owner {
-             margin-top: 2px;
-             font-size: 7px;
-             line-height: 1;
-             font-weight: 800;
-             background: #e5e7eb;
-             border-radius: 3px;
-             padding: 1px 3px;
-           }
-           @media print {
-             @page { size: A4; margin: 6mm; }
-             .mini-qr-grid {
-               grid-template-columns: repeat(6, 30mm);
-               gap: 3mm;
-               padding: 0;
-               justify-content: start;
-             }
-             .mini-qr-label {
-               width: 30mm;
-               min-height: 34mm;
-               border: 1px solid #000;
-               border-radius: 0;
-               padding: 1.5mm;
-             }
-             .mini-qr-img {
-               width: 20mm;
-               height: 20mm;
-               margin-bottom: 1mm;
-             }
-             .mini-qr-name {
-               font-size: 6.5pt;
-               line-height: 1.05;
-             }
-             .mini-qr-sn {
-               font-size: 5.5pt;
-               margin-top: .5mm;
-             }
-             .mini-qr-owner {
-               font-size: 5pt;
-               margin-top: .5mm;
-               padding: 0 .8mm;
-             }
-           }
-         `}</style>
-         <div className="print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
-            <h2 className="font-bold text-xl flex items-center gap-2">
-              <Icons.QrCode className="w-6 h-6" /> โหมดพิมพ์สติ๊กเกอร์ QR Code แบบเล็ก ({selectedItems.length} ดวง)
-            </h2>
-            <div className="flex gap-3">
+         <div className="print:hidden p-4 bg-slate-800 text-white flex flex-col lg:flex-row justify-between items-center fixed top-0 w-full z-50 shadow-md gap-3">
+            <div>
+              <h2 className="font-bold text-xl flex items-center gap-2">
+                <Icons.QrCode className="w-6 h-6" /> โหมดพิมพ์สติ๊กเกอร์ QR Code ({selectedItems.length} ดวง)
+              </h2>
+              <p className="text-slate-300 text-sm font-bold mt-1">เลือกขนาดก่อนพิมพ์: ปกติคือแบบเดิม, ใหญ่เหมาะกับสแกนเร็ว, เล็กใช้เฉพาะพื้นที่จำกัด</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3">
+               <div className="flex bg-slate-700/80 p-1 rounded-xl gap-1">
+                 {Object.entries(qrSizePresets).map(([key, preset]) => (
+                   <button
+                     key={key}
+                     type="button"
+                     onClick={() => setQrPrintSize(key)}
+                     className={`px-4 py-2 rounded-lg font-black transition-colors ${qrPrintSize === key ? 'bg-blue-600 text-white shadow' : 'text-slate-200 hover:bg-slate-600'}`}
+                     title={preset.desc}
+                   >
+                     {preset.label}
+                   </button>
+                 ))}
+               </div>
                <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
                  <Icons.Printer className="w-5 h-5"/> สั่งพิมพ์
                </button>
                <button onClick={() => setShowPrintModal(false)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button>
             </div>
          </div>
-         <div className="pt-24 p-8 print:pt-0 print:p-0 mini-qr-grid">
+         <div className={`pt-36 lg:pt-28 p-8 grid ${qrPreset.grid} gap-6 print:pt-0 print:p-0 print:gap-2`}>
            {selectedItems.map(id => {
               const item = items.find(i => i.id === id);
               if(!item) return null;
               return (
-                 <div key={id} className="mini-qr-label">
-                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.id)}`} alt="QR" className="mini-qr-img" />
-                    <span className="mini-qr-name">{item.name}</span>
-                    <span className="mini-qr-sn">{item.sn}</span>
-                    {item.owner && <span className="mini-qr-owner">👤 {item.owner}</span>}
+                 <div key={id} className={`border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-center break-inside-avoid print:border-solid print:border-black rounded-xl print:rounded-none relative print:min-h-0 ${qrPreset.card}`}>
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=${qrPreset.qrServer}x${qrPreset.qrServer}&data=${encodeURIComponent(item.id)}`} alt="QR" className={`${qrPreset.qrClass} object-contain mb-2`} />
+                    <span className={`${qrPreset.nameClass} font-black leading-tight line-clamp-2 w-full`}>{item.name}</span>
+                    <span className={`${qrPreset.snClass} font-bold text-gray-600 mt-1`}>{item.sn}</span>
+                    {item.owner && <span className="text-[9px] font-bold bg-gray-200 px-1 rounded mt-1">👤 {item.owner}</span>}
                  </div>
               )
            })}
