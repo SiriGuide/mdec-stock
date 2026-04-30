@@ -1131,8 +1131,8 @@ function MainApp() {
         snClass: 'text-[9px]',
         labelGrid: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5',
         labelCard: 'p-1.5 print:p-1',
-        labelQrClass: 'w-16 h-16 print:w-14 print:h-14',
-        labelQrServer: 150,
+        labelQrClass: 'w-20 h-20 print:w-16 print:h-16',
+        labelQrServer: 180,
         labelTitleClass: 'text-[10px] print:text-[7px]',
         labelTextClass: 'text-[8px] print:text-[6px]'
       },
@@ -1147,8 +1147,8 @@ function MainApp() {
         snClass: 'text-[10px]',
         labelGrid: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5',
         labelCard: 'p-2 print:p-1',
-        labelQrClass: 'w-20 h-20 print:w-16 print:h-16',
-        labelQrServer: 180,
+        labelQrClass: 'w-24 h-24 print:w-20 print:h-20',
+        labelQrServer: 220,
         labelTitleClass: 'text-[11px] print:text-[8px]',
         labelTextClass: 'text-[9px] print:text-[6.5px]'
       },
@@ -1163,8 +1163,8 @@ function MainApp() {
         snClass: 'text-[11px]',
         labelGrid: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4',
         labelCard: 'p-2.5 print:p-1.5',
-        labelQrClass: 'w-28 h-28 print:w-24 print:h-24',
-        labelQrServer: 240,
+        labelQrClass: 'w-32 h-32 print:w-28 print:h-28',
+        labelQrServer: 280,
         labelTitleClass: 'text-sm print:text-[10px]',
         labelTextClass: 'text-[10px] print:text-[7.5px]'
       }
@@ -1254,7 +1254,7 @@ function MainApp() {
                 const deptInfo = DEPARTMENTS.find(d => d.id === item.department);
                 const qrValue = encodeURIComponent(item.id || item.sn || item.name || 'MDEC-STOCK');
                 return (
-                   <div key={id} className={`qr-label-card border border-slate-900 rounded-xl flex flex-col bg-white text-slate-900 break-inside-avoid shadow-sm print:rounded-none ${qrPreset.labelCard}`}>
+                   <div key={id} className={`qr-label-card border border-slate-900 rounded-xl flex flex-col bg-white text-slate-900 break-inside-avoid shadow-sm print:rounded-none overflow-hidden ${qrPreset.labelCard}`}>
                       <div className="flex items-center justify-between gap-2 border-b border-slate-300 pb-1 mb-1.5 print:pb-0.5 print:mb-1">
                         <div className="leading-tight min-w-0">
                           <div className={`${qrPreset.labelTitleClass} font-black tracking-wide text-blue-700`}>MDEC STOCK</div>
@@ -1263,26 +1263,28 @@ function MainApp() {
                         <div className="text-[8px] print:text-[6px] font-black border border-blue-700 text-blue-700 px-1 py-0.5 rounded-md shrink-0">QR</div>
                       </div>
 
-                      <div className="flex gap-1.5 items-start">
+                      <div className="flex gap-2 items-stretch">
                         <img
                           src={`https://api.qrserver.com/v1/create-qr-code/?size=${qrPreset.labelQrServer}x${qrPreset.labelQrServer}&margin=1&data=${qrValue}`}
                           alt="QR"
-                          className={`${qrPreset.labelQrClass} object-contain shrink-0 border border-slate-200 p-0.5`}
+                          className={`${qrPreset.labelQrClass} object-contain shrink-0 border border-slate-300 rounded-md p-0.5 bg-white`}
                         />
-                        <div className="min-w-0 flex-1 leading-tight">
-                          <div className={`${qrPreset.labelTitleClass} font-black line-clamp-2`}>{item.name}</div>
-                          <div className={`mt-1 ${qrPreset.labelTextClass} font-bold text-slate-600 truncate`}>S.N. {item.sn || '-'}</div>
-                          <div className={`${qrPreset.labelTextClass} font-bold text-slate-600 truncate`}>ฝ่าย: {deptInfo?.label || item.department || '-'}</div>
-                          <div className={`${qrPreset.labelTextClass} font-bold text-slate-600 truncate`}>ที่เก็บ: {item.location || '-'}</div>
+                        <div className="min-w-0 flex-1 leading-tight rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 print:px-1 print:py-1">
+                          <div className={`${qrPreset.labelTitleClass} font-black line-clamp-2 text-slate-950`}>{item.name}</div>
+                          <div className={`mt-1 grid grid-cols-[auto_1fr] gap-x-1 gap-y-0.5 ${qrPreset.labelTextClass} font-bold`}>
+                            <span className="text-slate-400">S.N.</span><span className="truncate text-slate-700">{item.sn || '-'}</span>
+                            <span className="text-slate-400">ฝ่าย</span><span className="truncate text-slate-700">{deptInfo?.label || item.department || '-'}</span>
+                            <span className="text-slate-400">ที่เก็บ</span><span className="truncate text-slate-700">{item.location || '-'}</span>
+                          </div>
                         </div>
                       </div>
 
                       {item.owner ? (
-                        <div className="mt-1 print:mt-0.5 text-[8px] print:text-[6px] font-black bg-slate-100 border border-slate-300 px-1 py-0.5 rounded-md truncate">
+                        <div className="mt-1.5 print:mt-0.5 text-[8px] print:text-[6px] font-black bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded-md truncate">
                           ของส่วนตัว: {item.owner}
                         </div>
                       ) : (
-                        <div className="mt-1 print:mt-0.5 text-[8px] print:text-[6px] font-black bg-blue-50 border border-blue-200 text-blue-700 px-1 py-0.5 rounded-md truncate">
+                        <div className="mt-1.5 print:mt-0.5 text-[8px] print:text-[6px] font-black bg-blue-50 border border-blue-200 text-blue-700 px-1.5 py-0.5 rounded-md truncate">
                           ทรัพย์สินศูนย์มัลติมีเดีย
                         </div>
                       )}
