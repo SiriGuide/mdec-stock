@@ -1130,13 +1130,13 @@ function MainApp() {
                <button onClick={() => setShowPrintModal(false)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button>
             </div>
          </div>
-         <div className="pt-24 p-8 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6 print:pt-0 print:p-0 print:gap-2">
+         <div className="pt-24 p-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 print:pt-0 print:p-0 print:gap-2">
            {selectedItems.map(id => {
               const item = items.find(i => i.id === id);
               if(!item) return null;
               return (
-                 <div key={id} className="border-2 border-dashed border-gray-300 p-3 flex flex-col items-center justify-center text-center break-inside-avoid print:border-solid print:border-black print:p-2 rounded-xl print:rounded-none relative">
-                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${item.id}`} alt="QR" className="w-24 h-24 object-contain mb-2 print:w-20 print:h-20" />
+                 <div key={id} className="border-2 border-dashed border-gray-300 p-3 flex flex-col items-center justify-center text-center break-inside-avoid print:border-solid print:border-black print:p-2 rounded-xl print:rounded-none relative min-h-[170px] print:min-h-0">
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(item.id)}`} alt="QR" className="w-28 h-28 object-contain mb-2 print:w-24 print:h-24" />
                     <span className="text-xs font-black leading-tight line-clamp-2 w-full">{item.name}</span>
                     <span className="text-[10px] font-bold text-gray-600 mt-1">{item.sn}</span>
                     {item.owner && <span className="text-[9px] font-bold bg-gray-200 px-1 rounded mt-1">👤 {item.owner}</span>}
