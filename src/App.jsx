@@ -95,6 +95,7 @@ function MainApp() {
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterLocation, setFilterLocation] = useState('all');
+  const [filterQrTagged, setFilterQrTagged] = useState('all');
 
   const [isAdmin, setIsAdmin] = useState(() => {
     try { return localStorage.getItem('mdec_admin') === 'true'; } 
@@ -115,7 +116,7 @@ function MainApp() {
   const [firebaseError, setFirebaseError] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, owner: '', newOwner: '', isPersonalItem: false });
+  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false });
   
   const [itemToDelete, setItemToDelete] = useState(null); 
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
@@ -157,6 +158,7 @@ function MainApp() {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [qrPrintSize, setQrPrintSize] = useState('normal');
   const [qrPrintMode, setQrPrintMode] = useState('plain');
+  const [qrPrintColumns, setQrPrintColumns] = useState('auto');
   const [showScanModal, setShowScanModal] = useState(false);
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
@@ -166,6 +168,7 @@ function MainApp() {
   const [isScannerLoaded, setIsScannerLoaded] = useState(false);
   const itemsRefForScan = useRef(items);
   const fileInputRef = useRef(null);
+  const restoreInputRef = useRef(null);
 
   useEffect(() => {
     itemsRefForScan.current = items;
@@ -257,14 +260,16 @@ function MainApp() {
           categories: data.categories || ['กล้อง', 'เลนส์', 'ไมโครโฟน', 'ชุดลำโพง', 'ถ่าน/แบต', 'สายไฟ', 'อื่นๆ'],
           locations: data.locations || ['ตู้ A1', 'ห้องเก็บของ 2', 'ห้องประชุม 1', 'อื่นๆ'],
           staff: data.staff || ['แอดมิน', 'อื่นๆ'],
-          bundles: data.bundles || []
+          bundles: data.bundles || [],
+          backupMeta: data.backupMeta || {}
         });
       } else {
         const defaultSettings = {
           categories: ['กล้อง', 'เลนส์', 'ไมโครโฟน', 'ชุดลำโพง', 'ถ่าน/แบต', 'สายไฟ', 'อื่นๆ'],
           locations: ['ตู้ A1', 'ห้องเก็บของ 2', 'ห้องประชุม 1', 'อื่นๆ'],
           staff: ['แอดมิน', 'อื่นๆ'],
-          bundles: [] 
+          bundles: [],
+          backupMeta: {} 
         };
         setDoc(settingsRef, defaultSettings).catch(e => console.log("Init settings failed:", e));
       }
@@ -317,8 +322,9 @@ function MainApp() {
       const matchCategory = filterCategory === 'all' || String(item.category) === String(filterCategory);
       const matchStatus = filterStatus === 'all' || String(item.status) === String(filterStatus);
       const matchLocation = filterLocation === 'all' || String(item.location) === String(filterLocation);
+      const matchQrTagged = filterQrTagged === 'all' || (filterQrTagged === 'tagged' && !!item.qrTagged) || (filterQrTagged === 'untagged' && !item.qrTagged);
       
-      return matchSearch && matchDept && matchCategory && matchStatus && matchLocation;
+      return matchSearch && matchDept && matchCategory && matchStatus && matchLocation && matchQrTagged;
     });
 
     result.sort((a, b) => {
@@ -329,7 +335,7 @@ function MainApp() {
       } catch (e) { return 0; }
     });
     return result;
-  }, [items, searchTerm, filterDept, filterCategory, filterStatus, filterLocation]);
+  }, [items, searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterQrTagged]);
 
   const todayMs = new Date().setHours(0,0,0,0);
   const overdueItems = items.filter(item => {
@@ -989,6 +995,18 @@ function MainApp() {
 
   const getBackupStatusLabel = (statusId) => STATUSES.find(s => s.id === statusId)?.label || statusId || '-';
 
+  const saveBackupTimestamp = async (type) => {
+    try {
+      const now = new Date().toISOString();
+      const backupMeta = { ...(settingsOptions.backupMeta || {}), [type]: now, latest: now };
+      const newSettings = { ...settingsOptions, backupMeta };
+      setSettingsOptions(newSettings);
+      await setDoc(getSettingsDoc(), newSettings, { merge: true });
+    } catch (e) {
+      console.warn('Backup timestamp save failed:', e);
+    }
+  };
+
   const exportHistoryCSV = async () => {
     const headers = ['รหัสเอกสารอุปกรณ์', 'ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'ลำดับประวัติ', 'ประเภทประวัติ', 'วันเวลาทำรายการ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'สถานะปัจจุบัน'];
     const rows = [];
@@ -1001,6 +1019,7 @@ function MainApp() {
     });
     backupDownloadCSV('MDEC_Borrow_Return_History_' + getBackupFileTag() + '.csv', headers, rows);
     await logAction('สำรองประวัติยืม-คืน CSV', 'ส่งออก ' + rows.length + ' รายการประวัติ', 'ดาวน์โหลดประวัติการยืม-คืนพร้อมวันเวลาเป็นไฟล์ CSV');
+    await saveBackupTimestamp('historyCsv');
     if (rows.length === 0) alert('ℹ️ ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติยืม-คืนในระบบ');
   };
 
@@ -1029,11 +1048,67 @@ function MainApp() {
       };
       backupDownloadTextFile('MDEC_Full_Backup_' + getBackupFileTag() + '.json', JSON.stringify(payload, null, 2), 'application/json;charset=utf-8;');
       await logAction('สำรองข้อมูลทั้งหมด JSON', 'สำรอง ' + items.length + ' อุปกรณ์ / ' + historyCount + ' ประวัติ', 'ดาวน์โหลดข้อมูลทั้งระบบเป็นไฟล์ JSON รวมประวัติยืม-คืน');
+      await saveBackupTimestamp('fullJson');
       alert('✅ สำรองข้อมูลทั้งหมดเรียบร้อยแล้ว! ไฟล์ JSON นี้เก็บรายการอุปกรณ์ การตั้งค่า เซ็ตอุปกรณ์ ประวัติยืม-คืน และประวัติการทำงาน');
     } catch (error) {
       console.error(error);
       alert('❌ สำรองข้อมูลทั้งหมดไม่สำเร็จ: ' + error.message);
     }
+  };
+
+  const handleRestoreBackupJSON = (e) => {
+    if (!user) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = JSON.parse(String(event.target.result || '{}'));
+        if (!data || !Array.isArray(data.items)) {
+          alert('❌ ไฟล์ JSON ไม่ถูกต้อง: ไม่พบรายการอุปกรณ์');
+          return;
+        }
+
+        const warning = confirm(
+          '⚠️ กู้คืนข้อมูลจาก JSON\n\n' +
+          'โหมดนี้จะเขียนทับข้อมูลอุปกรณ์ที่มี ID ตรงกัน และเพิ่มอุปกรณ์ที่ยังไม่มี\n' +
+          'ระบบจะไม่ลบอุปกรณ์ที่ไม่ได้อยู่ในไฟล์สำรอง เพื่อความปลอดภัย\n\n' +
+          'ต้องการดำเนินการต่อหรือไม่?'
+        );
+        if (!warning) return;
+
+        const confirmText = prompt('พิมพ์ RESTORE เพื่อยืนยันการกู้คืนข้อมูลจากไฟล์ JSON');
+        if (confirmText !== 'RESTORE') {
+          alert('ยกเลิกการกู้คืน เนื่องจากไม่ได้พิมพ์ RESTORE ให้ถูกต้อง');
+          return;
+        }
+
+        if (data.settings && typeof data.settings === 'object') {
+          await setDoc(getSettingsDoc(), data.settings, { merge: true });
+        }
+
+        let restoredCount = 0;
+        for (const item of data.items) {
+          if (!item || !item.id) continue;
+          const itemId = item.id;
+          const itemData = { ...item };
+          delete itemData.id;
+          await setDoc(getItemDoc(itemId), itemData, { merge: true });
+          restoredCount++;
+        }
+
+        await logAction('กู้คืนข้อมูลจาก JSON', 'กู้คืน ' + restoredCount + ' อุปกรณ์', 'กู้คืนแบบปลอดภัย: เขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON โดยไม่ลบอุปกรณ์ที่ไม่มีในไฟล์');
+        await saveBackupTimestamp('restoreJson');
+        alert('✅ กู้คืนข้อมูลจาก JSON เรียบร้อยแล้ว ' + restoredCount + ' รายการ\nระบบไม่ได้ลบอุปกรณ์ที่ไม่มีในไฟล์สำรอง');
+      } catch (error) {
+        console.error(error);
+        alert('❌ กู้คืนข้อมูลไม่สำเร็จ: ' + error.message);
+      } finally {
+        e.target.value = null;
+      }
+    };
+    reader.readAsText(file);
   };
 
   const clearAllBorrowReturnHistory = async () => {
@@ -1087,10 +1162,10 @@ function MainApp() {
   };
 
   const exportToCSV = () => {
-    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'สถานะ', 'จำนวน', 'ผู้ยืมปัจจุบัน', 'อัปเดตล่าสุด'];
+    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'สถานะ', 'จำนวน', 'ผู้ยืมปัจจุบัน/ชื่องาน', 'สถานะ QR', 'เจ้าของ', 'อัปเดตล่าสุด'];
     const csvData = items.map(i => [
       i.name, i.sn || '-', i.department, i.category || '-', i.location || '-', 
-      STATUSES.find(s=>s.id===i.status)?.label || i.status, i.quantity || 1, i.currentBorrower || i.currentEvent || '-', i.owner || '-', new Date(i.updatedAt).toLocaleDateString('th-TH')
+      STATUSES.find(s=>s.id===i.status)?.label || i.status, i.quantity || 1, i.currentBorrower || i.currentEvent || '-', i.qrTagged ? 'ติด QR แล้ว' : 'ยังไม่ติด QR', i.owner || '-', new Date(i.updatedAt).toLocaleDateString('th-TH')
     ]);
     const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...csvData].map(e => e.join(",")).join("\n");
     const link = document.createElement("a");
@@ -1116,6 +1191,20 @@ function MainApp() {
     setIsAdmin(false);
     setSelectedItems([]);
     try { localStorage.removeItem('mdec_admin'); } catch(e) {}
+  };
+
+  const markSelectedQrTagged = async () => {
+    if (!user || selectedItems.length === 0) return;
+    const ok = confirm('บันทึกว่าอุปกรณ์ที่เลือก ' + selectedItems.length + ' รายการ ติด QR แล้วหรือไม่?');
+    if (!ok) return;
+    try {
+      await Promise.all(selectedItems.map((id) => setDoc(getItemDoc(id), { qrTagged: true, qrTaggedAt: new Date().toISOString() }, { merge: true })));
+      await logAction('อัปเดตสถานะ QR', 'ติด QR แล้ว ' + selectedItems.length + ' รายการ', 'บันทึกสถานะติด QR จากหน้าพิมพ์สติ๊กเกอร์');
+      alert('✅ บันทึกสถานะติด QR แล้ว');
+    } catch (error) {
+      console.error(error);
+      alert('❌ บันทึกสถานะ QR ไม่สำเร็จ: ' + error.message);
+    }
   };
 
   if (showPrintModal) {
@@ -1171,6 +1260,14 @@ function MainApp() {
     };
     const qrPreset = qrSizePresets[qrPrintSize] || qrSizePresets.normal;
     const isLabelMode = qrPrintMode === 'label';
+    const qrColumnPresets = {
+      auto: { label: 'อัตโนมัติ', plain: qrPreset.grid, labelGrid: qrPreset.labelGrid },
+      '3': { label: '3 คอลัมน์', plain: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3', labelGrid: 'grid-cols-1 md:grid-cols-3' },
+      '4': { label: '4 คอลัมน์', plain: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4', labelGrid: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4' },
+      '5': { label: '5 คอลัมน์', plain: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5', labelGrid: 'grid-cols-1 sm:grid-cols-3 md:grid-cols-5' }
+    };
+    const qrColumnPreset = qrColumnPresets[qrPrintColumns] || qrColumnPresets.auto;
+    const activeQrGrid = isLabelMode ? qrColumnPreset.labelGrid : qrColumnPreset.plain;
 
     return (
       <div className="bg-white min-h-screen font-sans text-black">
@@ -1224,15 +1321,32 @@ function MainApp() {
                  ))}
                </div>
 
+               <div className="flex bg-slate-700/80 p-1 rounded-xl gap-1">
+                 {Object.entries(qrColumnPresets).map(([key, preset]) => (
+                   <button
+                     key={key}
+                     type="button"
+                     onClick={() => setQrPrintColumns(key)}
+                     className={`px-3 py-2 rounded-lg font-black transition-colors ${qrPrintColumns === key ? 'bg-blue-600 text-white shadow' : 'text-slate-200 hover:bg-slate-600'}`}
+                     title="ปรับจำนวนคอลัมน์บนหน้าพิมพ์"
+                   >
+                     {preset.label}
+                   </button>
+                 ))}
+               </div>
+
                <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
                  <Icons.Printer className="w-5 h-5"/> สั่งพิมพ์
+               </button>
+               <button onClick={markSelectedQrTagged} className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
+                 <Icons.CheckCircle className="w-5 h-5"/> ติด QR แล้ว
                </button>
                <button onClick={() => setShowPrintModal(false)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button>
             </div>
          </div>
 
          {!isLabelMode ? (
-           <div className={`pt-44 xl:pt-28 p-8 grid ${qrPreset.grid} gap-6 print:pt-0 print:p-0 print:gap-2`}>
+           <div className={`pt-52 xl:pt-36 p-8 grid ${activeQrGrid} gap-6 print:pt-0 print:p-0 print:gap-2`}>
              {selectedItems.map(id => {
                 const item = items.find(i => i.id === id);
                 if(!item) return null;
@@ -1247,7 +1361,7 @@ function MainApp() {
              })}
            </div>
          ) : (
-           <div className={`pt-44 xl:pt-28 p-8 grid ${qrPreset.labelGrid} gap-5 print:pt-0 print:p-0 print:gap-2`}>
+           <div className={`pt-52 xl:pt-36 p-8 grid ${activeQrGrid} gap-5 print:pt-0 print:p-0 print:gap-2`}>
              {selectedItems.map(id => {
                 const item = items.find(i => i.id === id);
                 if(!item) return null;
@@ -1614,11 +1728,16 @@ function MainApp() {
               <option value="all">สถานะทั้งหมด</option>
               {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
+            <select className={`flex-1 px-4 py-4 rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterQrTagged} onChange={e => setFilterQrTagged(e.target.value)}>
+              <option value="all">QR ทั้งหมด</option>
+              <option value="tagged">ติด QR แล้ว</option>
+              <option value="untagged">ยังไม่ติด QR</option>
+            </select>
           </div>
 
           {isAdmin && (
             <div className="flex gap-2 w-full xl:w-auto">
-              <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, owner: '', newOwner: '', isPersonalItem: false }); setShowForm(true); }} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}><Icons.Plus className="w-5 h-5" /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span></button>
+              <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false }); setShowForm(true); }} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}><Icons.Plus className="w-5 h-5" /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span></button>
             </div>
           )}
         </div>
@@ -1710,6 +1829,11 @@ function MainApp() {
                              👤 ของส่วนตัว ({item.owner})
                            </span>
                         )}
+                        {item.qrTagged ? (
+                          <span className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400' : 'bg-emerald-100 text-emerald-700'}`}>QR ติดแล้ว</span>
+                        ) : (
+                          <span className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>ยังไม่ติด QR</span>
+                        )}
                         {isOverdue && <span className="bg-rose-500 text-white text-xs px-2 py-1 rounded-md font-bold shadow-sm">เลยกำหนดคืน!</span>}
                       </div>
                       {item.sn && <div className={`text-base mt-1 font-mono ${theme.textMuted}`}>S.N.: {item.sn}</div>}
@@ -1760,7 +1884,7 @@ function MainApp() {
                               setReturnChecklist([]);
                             }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle className="w-5 h-5" /></button>}
                             
-                            <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({ ...item, newCategory: '', newLocation: '', newOwner: item.owner || '', isPersonalItem: !!item.owner }); setShowForm(true); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newOwner: item.owner || '', isPersonalItem: !!item.owner }); setShowForm(true); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>
                             <button type="button" onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="ลบ"><Icons.Trash className="w-4 h-4" /></button>
                           </>
                         )}
@@ -2048,6 +2172,21 @@ function MainApp() {
                       </button>
                     </div>
                     <p className={`text-xs mt-3 font-bold ${theme.textMuted}`}>* ไฟล์ JSON เก็บรายการอุปกรณ์ การตั้งค่า เซ็ตอุปกรณ์ ของส่วนตัว ประวัติยืม-คืน และ Audit Log เหมาะสำหรับสำรองรายปี</p>
+                    <div className={`mt-3 p-3 rounded-xl border text-xs font-bold ${isDarkMode ? 'bg-slate-900/40 border-slate-700 text-slate-300' : 'bg-white border-blue-100 text-slate-600'}`}>
+                      สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่มีข้อมูลการสำรองในระบบ'}
+                    </div>
+                    <div className={`mt-4 p-4 rounded-xl border ${isDarkMode ? 'bg-amber-900/20 border-amber-800' : 'bg-amber-50 border-amber-200'}`}>
+                      <h5 className={`text-base font-black mb-1 flex items-center gap-2 ${isDarkMode ? 'text-amber-300' : 'text-amber-700'}`}>
+                        <Icons.Upload className="w-4 h-4" /> กู้คืนข้อมูลจาก JSON
+                      </h5>
+                      <p className={`text-xs mb-3 font-bold ${isDarkMode ? 'text-amber-300/80' : 'text-amber-700/80'}`}>
+                        ใช้เมื่อจำเป็นเท่านั้น ระบบจะเขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON แต่จะไม่ลบอุปกรณ์ที่ไม่มีในไฟล์สำรอง
+                      </p>
+                      <input type="file" accept=".json,application/json" className="hidden" ref={restoreInputRef} onChange={handleRestoreBackupJSON} />
+                      <button type="button" onClick={() => restoreInputRef.current?.click()} className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
+                        <Icons.Upload className="w-5 h-5"/> เลือกไฟล์ JSON เพื่อกู้คืน
+                      </button>
+                    </div>
 
                     <div className={`mt-5 p-4 rounded-xl border ${isDarkMode ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-200'}`}>
                       <h5 className={`text-base font-black mb-1 flex items-center gap-2 ${isDarkMode ? 'text-rose-300' : 'text-rose-700'}`}>
@@ -2840,6 +2979,14 @@ function MainApp() {
                 </div>
               )}
               
+              <div className={`sm:col-span-2 p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <label className={`flex items-center gap-3 cursor-pointer ${theme.textTitle}`}>
+                  <input type="checkbox" className="w-5 h-5 accent-emerald-500 rounded cursor-pointer" checked={!!formData.qrTagged} onChange={e => setFormData({...formData, qrTagged: e.target.checked})} />
+                  <span className="font-bold text-lg">▦ ติด QR แล้ว</span>
+                </label>
+                <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>ใช้ช่วยกรองรายการที่ยังไม่ได้ติดสติ๊กเกอร์ QR ตอนเตรียมอุปกรณ์จริง</p>
+              </div>
+
               <div className="sm:col-span-2">
                 <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>สถานะ</label>
                 <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.status || 'available'} onChange={e => setFormData({...formData, status: e.target.value})}>
