@@ -1119,21 +1119,10 @@ function MainApp() {
   if (showPrintModal) {
     return (
       <div className="bg-white min-h-screen font-sans text-black">
-         <style>{`
-           @media print {
-             @page { size: A4; margin: 8mm; }
-             body { background: white !important; }
-             .qr-print-grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 6mm !important; }
-             .qr-label-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; }
-           }
-         `}</style>
          <div className="print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
-            <div>
-              <h2 className="font-bold text-xl flex items-center gap-2">
-                <Icons.QrCode className="w-6 h-6" /> โหมดพิมพ์สติ๊กเกอร์ QR Code ({selectedItems.length} ดวง)
-              </h2>
-              <p className="text-sm text-slate-300 mt-1">รูปแบบป้ายทางการ ขนาด QR เล็กลง เหมาะสำหรับแปะอุปกรณ์</p>
-            </div>
+            <h2 className="font-bold text-xl flex items-center gap-2">
+              <Icons.QrCode className="w-6 h-6" /> โหมดพิมพ์สติ๊กเกอร์ QR Code ({selectedItems.length} ดวง)
+            </h2>
             <div className="flex gap-3">
                <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
                  <Icons.Printer className="w-5 h-5"/> สั่งพิมพ์
@@ -1141,46 +1130,16 @@ function MainApp() {
                <button onClick={() => setShowPrintModal(false)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button>
             </div>
          </div>
-         <div className="qr-print-grid pt-28 p-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-5 print:pt-0 print:p-0">
+         <div className="pt-24 p-8 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6 print:pt-0 print:p-0 print:gap-2">
            {selectedItems.map(id => {
               const item = items.find(i => i.id === id);
               if(!item) return null;
-              const deptInfo = DEPARTMENTS.find(d => d.id === item.department);
-              const qrValue = encodeURIComponent(item.id || item.sn || item.name || 'MDEC-STOCK');
               return (
-                 <div key={id} className="qr-label-card border border-slate-900 rounded-xl p-2.5 flex flex-col bg-white text-slate-900 break-inside-avoid shadow-sm min-h-[150px] print:min-h-[36mm] print:p-1.5 print:rounded-none">
-                    <div className="flex items-center justify-between gap-2 border-b border-slate-300 pb-1.5 mb-2 print:pb-1 print:mb-1">
-                      <div className="leading-tight min-w-0">
-                        <div className="text-[11px] print:text-[8px] font-black tracking-wide text-blue-700">MDEC STOCK</div>
-                        <div className="text-[9px] print:text-[6.5px] font-bold text-slate-500 truncate">ศูนย์มัลติมีเดียทางการศึกษา</div>
-                      </div>
-                      <div className="text-[8px] print:text-[6px] font-black border border-blue-700 text-blue-700 px-1.5 py-0.5 rounded-md shrink-0">QR LABEL</div>
-                    </div>
-
-                    <div className="flex gap-2 items-start flex-1">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=1&data=${qrValue}`}
-                        alt="QR"
-                        className="w-16 h-16 print:w-14 print:h-14 object-contain shrink-0 border border-slate-200 p-0.5"
-                      />
-                      <div className="min-w-0 flex-1 leading-tight">
-                        <div className="text-[11px] print:text-[8px] font-black line-clamp-2">{item.name}</div>
-                        <div className="mt-1 text-[9px] print:text-[6.5px] font-bold text-slate-600 truncate">S.N. {item.sn || '-'}</div>
-                        <div className="text-[9px] print:text-[6.5px] font-bold text-slate-600 truncate">ID {item.id}</div>
-                        <div className="text-[9px] print:text-[6.5px] font-bold text-slate-600 truncate">ฝ่าย: {deptInfo?.label || item.department || '-'}</div>
-                        <div className="text-[9px] print:text-[6.5px] font-bold text-slate-600 truncate">ที่เก็บ: {item.location || '-'}</div>
-                      </div>
-                    </div>
-
-                    {item.owner ? (
-                      <div className="mt-1.5 print:mt-1 text-[8px] print:text-[6px] font-black bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded-md truncate">
-                        ของส่วนตัว: {item.owner}
-                      </div>
-                    ) : (
-                      <div className="mt-1.5 print:mt-1 text-[8px] print:text-[6px] font-black bg-blue-50 border border-blue-200 text-blue-700 px-1.5 py-0.5 rounded-md truncate">
-                        ทรัพย์สินศูนย์มัลติมีเดีย
-                      </div>
-                    )}
+                 <div key={id} className="border-2 border-dashed border-gray-300 p-3 flex flex-col items-center justify-center text-center break-inside-avoid print:border-solid print:border-black print:p-2 rounded-xl print:rounded-none relative">
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${item.id}`} alt="QR" className="w-24 h-24 object-contain mb-2 print:w-20 print:h-20" />
+                    <span className="text-xs font-black leading-tight line-clamp-2 w-full">{item.name}</span>
+                    <span className="text-[10px] font-bold text-gray-600 mt-1">{item.sn}</span>
+                    {item.owner && <span className="text-[9px] font-bold bg-gray-200 px-1 rounded mt-1">👤 {item.owner}</span>}
                  </div>
               )
            })}
