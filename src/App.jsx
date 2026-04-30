@@ -116,7 +116,7 @@ function MainApp() {
   const [firebaseError, setFirebaseError] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false });
+  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '' });
   
   const [itemToDelete, setItemToDelete] = useState(null); 
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
@@ -149,6 +149,8 @@ function MainApp() {
   const [bundleSearchTerm, setBundleSearchTerm] = useState(''); 
   
   const [showQuickReturnModal, setShowQuickReturnModal] = useState(false);
+  const [showTodayModal, setShowTodayModal] = useState(false);
+  const [printSlipData, setPrintSlipData] = useState(null);
   const [showPersonalItemsModal, setShowPersonalItemsModal] = useState(false);
   const [showEmptyCategories, setShowEmptyCategories] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
@@ -398,6 +400,30 @@ function MainApp() {
     return Object.values(groups);
   }, [items]);
 
+  const getDateKey = (value) => {
+    if (!value) return '';
+    try {
+      if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return String(value).slice(0, 10);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + day;
+    } catch (e) { return String(value).slice(0, 10); }
+  };
+
+  const todayKey = getDateKey(new Date());
+
+  const todayFollowup = useMemo(() => {
+    const active = items.filter(i => i.status === 'borrowed' || i.status === 'out-for-event');
+    return {
+      dueToday: active.filter(i => getDateKey(i.expectedReturn) === todayKey),
+      overdue: active.filter(i => i.expectedReturn && new Date(i.expectedReturn).setHours(0,0,0,0) < todayMs),
+      active
+    };
+  }, [items, todayKey, todayMs]);
+
   const sortedBundleItems = useMemo(() => {
     if (!showBundleManager) return [];
     const search = bundleSearchTerm.toLowerCase().trim();
@@ -570,7 +596,17 @@ function MainApp() {
       await Promise.all(promises);
       
       logAction('ให้ยืมอุปกรณ์', `ทำรายการ ${packingChecklist.length} ชิ้น`, `ยืมโดย: ${borrowData.borrower} (จนท.ผู้ให้ยืม: ${finalStaff})\nรายการ: ${borrowedNames.join(', ')}`);
-      
+      setPrintSlipData({
+        type: 'borrow',
+        title: 'ใบยืมอุปกรณ์',
+        ref: `BR-${new Date().getTime()}`,
+        date: new Date().toISOString(),
+        borrower: borrowData.borrower,
+        staffOut: finalStaff,
+        expectedReturn: borrowData.returnDate,
+        note: borrowData.note,
+        items: packingChecklist.map(id => items.find(i => i.id === id)).filter(Boolean).map(i => ({ id: i.id, name: i.name, sn: i.sn, category: i.category, internalNote: i.internalNote }))
+      });
       setBorrowTargetIds([]);
       setPackingChecklist([]);
       setSelectedItems([]); 
@@ -612,7 +648,17 @@ function MainApp() {
       await Promise.all(promises);
       
       logAction('นำออกงาน', `ทำรายการ ${eventChecklist.length} ชิ้น`, `ชื่องาน: ${eventData.eventName} (ผู้นำออก: ${finalStaff})\nรายการ: ${eventNames.join(', ')}`);
-      
+      setPrintSlipData({
+        type: 'event',
+        title: 'ใบนำอุปกรณ์ออกงาน',
+        ref: `EV-${new Date().getTime()}`,
+        date: new Date().toISOString(),
+        borrower: eventData.eventName,
+        staffOut: finalStaff,
+        expectedReturn: eventData.returnDate,
+        note: eventData.note,
+        items: eventChecklist.map(id => items.find(i => i.id === id)).filter(Boolean).map(i => ({ id: i.id, name: i.name, sn: i.sn, category: i.category, internalNote: i.internalNote }))
+      });
       setEventTargetIds([]);
       setEventChecklist([]);
       setSelectedItems([]); 
@@ -1162,10 +1208,10 @@ function MainApp() {
   };
 
   const exportToCSV = () => {
-    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'สถานะ', 'จำนวน', 'ผู้ยืมปัจจุบัน/ชื่องาน', 'สถานะ QR', 'เจ้าของ', 'อัปเดตล่าสุด'];
+    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'สถานะ', 'จำนวน', 'ผู้ยืมปัจจุบัน/ชื่องาน', 'สถานะ QR', 'เจ้าของ', 'หมายเหตุภายใน', 'อัปเดตล่าสุด'];
     const csvData = items.map(i => [
       i.name, i.sn || '-', i.department, i.category || '-', i.location || '-', 
-      STATUSES.find(s=>s.id===i.status)?.label || i.status, i.quantity || 1, i.currentBorrower || i.currentEvent || '-', i.qrTagged ? 'ติด QR แล้ว' : 'ยังไม่ติด QR', i.owner || '-', new Date(i.updatedAt).toLocaleDateString('th-TH')
+      STATUSES.find(s=>s.id===i.status)?.label || i.status, i.quantity || 1, i.currentBorrower || i.currentEvent || '-', i.qrTagged ? 'ติด QR แล้ว' : 'ยังไม่ติด QR', i.owner || '-', i.internalNote || '-', new Date(i.updatedAt).toLocaleDateString('th-TH')
     ]);
     const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...csvData].map(e => e.join(",")).join("\n");
     const link = document.createElement("a");
@@ -1411,6 +1457,23 @@ function MainApp() {
     );
   }
 
+  if (printSlipData) {
+    return (
+      <div className="bg-slate-100 min-h-screen font-sans text-slate-900 print:bg-white">
+        <div className="print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
+          <h2 className="font-bold text-xl flex items-center gap-2"><Icons.Printer className="w-6 h-6" /> {printSlipData.title}</h2>
+          <div className="flex gap-3"><button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors"><Icons.Printer className="w-5 h-5"/> พิมพ์ใบยืม</button><button onClick={() => setPrintSlipData(null)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button></div>
+        </div>
+        <div className="pt-24 print:pt-0 p-6 print:p-0 max-w-4xl mx-auto"><div className="bg-white p-8 print:p-6 shadow-xl print:shadow-none border border-slate-200 print:border-0 rounded-2xl print:rounded-none">
+          <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6"><div><h1 className="text-3xl font-black">{printSlipData.title}</h1><p className="text-base font-bold mt-1">ศูนย์มัลติมีเดียทางการศึกษา (MDEC)</p></div><div className="text-right text-sm font-bold"><div>เลขที่: {printSlipData.ref}</div><div>วันที่ออกเอกสาร: {new Date(printSlipData.date).toLocaleString('th-TH', { hour12: false })}</div></div></div>
+          <div className="grid grid-cols-2 gap-4 mb-6 text-base"><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">ผู้ยืม / ชื่องาน</div><div className="font-black text-lg">{printSlipData.borrower || '-'}</div></div><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">เจ้าหน้าที่ผู้ให้ยืม / ผู้นำออก</div><div className="font-black text-lg">{printSlipData.staffOut || '-'}</div></div><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">กำหนดคืน</div><div className="font-black text-lg">{printSlipData.expectedReturn ? new Date(printSlipData.expectedReturn).toLocaleDateString('th-TH') : '-'}</div></div><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">หมายเหตุ</div><div className="font-bold">{printSlipData.note || '-'}</div></div></div>
+          <table className="w-full border-collapse mb-8 text-sm"><thead><tr className="bg-slate-900 text-white"><th className="border border-slate-900 px-3 py-2 text-left">#</th><th className="border border-slate-900 px-3 py-2 text-left">ชื่ออุปกรณ์</th><th className="border border-slate-900 px-3 py-2 text-left">S.N.</th><th className="border border-slate-900 px-3 py-2 text-left">หมวดหมู่</th><th className="border border-slate-900 px-3 py-2 text-left">หมายเหตุภายใน</th></tr></thead><tbody>{(printSlipData.items || []).map((item, index) => (<tr key={item.id || index}><td className="border px-3 py-2 font-bold">{index + 1}</td><td className="border px-3 py-2 font-bold">{item.name || '-'}</td><td className="border px-3 py-2">{item.sn || '-'}</td><td className="border px-3 py-2">{item.category || '-'}</td><td className="border px-3 py-2 text-xs">{item.internalNote || '-'}</td></tr>))}</tbody></table>
+          <div className="grid grid-cols-2 gap-12 mt-14 text-center font-bold"><div><div className="border-b border-slate-900 h-12 mb-2"></div><div>ลงชื่อผู้ยืม / ผู้รับผิดชอบงาน</div></div><div><div className="border-b border-slate-900 h-12 mb-2"></div><div>ลงชื่อเจ้าหน้าที่ผู้ให้ยืม</div></div></div>
+        </div></div>
+      </div>
+    );
+  }
+
   if (showCommandCenter) {
     const healthPercentage = stats.all > 0 ? Math.round((stats.available / stats.all) * 100) : 0;
     
@@ -1624,6 +1687,10 @@ function MainApp() {
                   <Icons.Users className="w-5 h-5" /> ติดตามของรอคืน
               </button>
 
+              <button type="button" onClick={() => setShowTodayModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-sky-600 text-white hover:bg-sky-500' : 'bg-sky-600 text-white hover:bg-sky-700'}`}>
+                  <Icons.History className="w-5 h-5" /> วันนี้
+              </button>
+
               <button type="button" onClick={() => setShowAuditModal(true)} className={`flex items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors ${theme.btnCancel}`} title="ดูประวัติการทำงานส่วนกลาง">
                 <Icons.ClipboardList className="w-5 h-5" />
               </button>
@@ -1737,7 +1804,7 @@ function MainApp() {
 
           {isAdmin && (
             <div className="flex gap-2 w-full xl:w-auto">
-              <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false }); setShowForm(true); }} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}><Icons.Plus className="w-5 h-5" /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span></button>
+              <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '' }); setShowForm(true); }} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}><Icons.Plus className="w-5 h-5" /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span></button>
             </div>
           )}
         </div>
@@ -1987,6 +2054,11 @@ function MainApp() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 📅 Modal วันนี้ */}
+      {showTodayModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}><div className={`rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[85vh] ${theme.cardBg}`}><div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}><h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><div className={`p-2 rounded-xl ${isDarkMode ? 'bg-sky-900/50 text-sky-400' : 'bg-sky-100 text-sky-600'}`}><Icons.History className="w-6 h-6"/></div>วันนี้ต้องติดตามอะไรบ้าง</h3><button type="button" onClick={() => setShowTodayModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button></div><div className="flex-1 overflow-y-auto custom-scrollbar p-6 grid grid-cols-1 lg:grid-cols-3 gap-4"><TodayPanel title="ต้องคืนวันนี้" color="amber" items={todayFollowup.dueToday} empty="วันนี้ยังไม่มีรายการครบกำหนดคืน" isDarkMode={isDarkMode} theme={theme} /><TodayPanel title="เลยกำหนดคืน" color="rose" items={todayFollowup.overdue} empty="ไม่มีรายการเลยกำหนด" isDarkMode={isDarkMode} theme={theme} /><TodayPanel title="กำลังถูกยืม / ออกงาน" color="purple" items={todayFollowup.active} empty="ไม่มีอุปกรณ์ที่ถูกยืมหรือออกงาน" isDarkMode={isDarkMode} theme={theme} /></div><div className={`p-4 border-t text-center text-sm font-bold ${theme.divide} ${theme.textMuted}`}>ใช้หน้านี้เปิดเช็กตอนเช้าได้เลย ว่าต้องตามคืนอะไรบ้างและใครกำลังใช้อุปกรณ์อยู่</div></div></div>
       )}
 
       {/* 💡 Modal รับคืนด่วน */}
@@ -2548,6 +2620,7 @@ function MainApp() {
                       />
                       <span className={`font-bold text-sm sm:text-base leading-tight flex-1 ${isChecked ? (isDarkMode ? 'text-purple-400 line-through opacity-70' : 'text-purple-700 line-through opacity-70') : theme.textMain}`}>
                         {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
+                        {item.internalNote && <span className={`text-xs font-bold block mt-1 px-2 py-1 rounded-lg ${isDarkMode ? 'bg-amber-900/30 text-amber-300 border border-amber-800/50' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>โน้ตภายใน: {item.internalNote}</span>}
                       </span>
                       {item.owner && <span className={`text-[10px] px-2 py-0.5 rounded font-bold shrink-0 ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>👤 {item.owner}</span>}
                     </label>
@@ -2648,6 +2721,7 @@ function MainApp() {
                       />
                       <span className={`font-bold text-sm sm:text-base leading-tight flex-1 ${isChecked ? (isDarkMode ? 'text-orange-400 line-through opacity-70' : 'text-orange-700 line-through opacity-70') : theme.textMain}`}>
                         {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
+                        {item.internalNote && <span className={`text-xs font-bold block mt-1 px-2 py-1 rounded-lg ${isDarkMode ? 'bg-amber-900/30 text-amber-300 border border-amber-800/50' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>โน้ตภายใน: {item.internalNote}</span>}
                       </span>
                       {item.owner && <span className={`text-[10px] px-2 py-0.5 rounded font-bold shrink-0 ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>👤 {item.owner}</span>}
                     </label>
@@ -2731,6 +2805,7 @@ function MainApp() {
                       />
                       <span className={`font-bold text-sm sm:text-base leading-tight flex-1 ${isChecked ? (isDarkMode ? 'text-emerald-400 line-through opacity-70' : 'text-emerald-700 line-through opacity-70') : theme.textMain}`}>
                         {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
+                        {item.internalNote && <span className={`text-xs font-bold block mt-1 px-2 py-1 rounded-lg ${isDarkMode ? 'bg-amber-900/30 text-amber-300 border border-amber-800/50' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>โน้ตภายใน: {item.internalNote}</span>}
                       </span>
                       {item.owner && <span className={`text-[10px] px-2 py-0.5 rounded font-bold shrink-0 ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>👤 {item.owner}</span>}
                     </label>
@@ -2979,6 +3054,11 @@ function MainApp() {
                 </div>
               )}
               
+              <div className="sm:col-span-2">
+                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>หมายเหตุภายใน / โน้ตอุปกรณ์ <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่แสดงบน QR)</span></label>
+                <textarea className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border resize-none ${theme.input}`} rows="3" placeholder="เช่น แบตเสื่อมเร็ว, ช่อง HDMI หลวม, ใช้กับสายเฉพาะรุ่น..." value={formData.internalNote || ''} onChange={e => setFormData({...formData, internalNote: e.target.value})}></textarea>
+              </div>
+
               <div className={`sm:col-span-2 p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                 <label className={`flex items-center gap-3 cursor-pointer ${theme.textTitle}`}>
                   <input type="checkbox" className="w-5 h-5 accent-emerald-500 rounded cursor-pointer" checked={!!formData.qrTagged} onChange={e => setFormData({...formData, qrTagged: e.target.checked})} />
@@ -3017,6 +3097,11 @@ function MainApp() {
       )}
     </div>
   );
+}
+
+function TodayPanel({ title, color, items, empty, isDarkMode, theme }) {
+  const palette = { amber: isDarkMode ? 'bg-amber-900/20 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800', rose: isDarkMode ? 'bg-rose-900/20 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-800', purple: isDarkMode ? 'bg-purple-900/20 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-800' };
+  return (<div className={`rounded-2xl border p-4 flex flex-col min-h-[300px] ${palette[color] || palette.purple}`}><h4 className="text-xl font-black mb-3 flex justify-between items-center"><span>{title}</span><span className="text-sm px-2 py-1 rounded-lg bg-white/40">{items.length}</span></h4><div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">{items.length === 0 ? (<div className={`h-full flex items-center justify-center text-center font-bold ${theme.textMuted}`}>{empty}</div>) : items.map(item => (<div key={item.id} className={`p-3 rounded-xl border shadow-sm ${isDarkMode ? 'bg-slate-800/70 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}><div className="font-black truncate">{item.name}</div><div className="text-xs font-bold opacity-80 mt-1">{item.status === 'out-for-event' ? 'งาน' : 'ผู้ยืม'}: {item.currentBorrower || item.currentEvent || '-'}</div><div className="text-xs font-bold opacity-80">กำหนดคืน: {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</div>{item.internalNote && <div className="text-xs font-bold mt-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">โน้ต: {item.internalNote}</div>}</div>))}</div></div>);
 }
 
 class ErrorBoundary extends React.Component {
