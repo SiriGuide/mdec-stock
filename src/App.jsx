@@ -87,7 +87,9 @@ function MainApp() {
     categories: ['กล้อง', 'เลนส์', 'ไมโครโฟน', 'ชุดลำโพง', 'ถ่าน/แบต', 'สายไฟ', 'อื่นๆ'],
     locations: ['ตู้ A1', 'ห้องเก็บของ 2', 'ห้องประชุม 1', 'อื่นๆ'],
     staff: ['แอดมิน', 'อื่นๆ'],
-    bundles: [] 
+    bundles: [],
+    storageBoxes: [],
+    backupMeta: {}
   });
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -161,6 +163,11 @@ function MainApp() {
   const [qrPrintSize, setQrPrintSize] = useState('normal');
   const [qrPrintMode, setQrPrintMode] = useState('plain');
   const [qrPrintColumns, setQrPrintColumns] = useState('auto');
+  const [showBoxLabelPrintModal, setShowBoxLabelPrintModal] = useState(false);
+  const [showStorageBoxesModal, setShowStorageBoxesModal] = useState(false);
+  const [boxLabelSize, setBoxLabelSize] = useState('normal');
+  const [boxLabelTitle, setBoxLabelTitle] = useState('กล่องอุปกรณ์ MDEC');
+  const [boxLabelNote, setBoxLabelNote] = useState('');
   const [showScanModal, setShowScanModal] = useState(false);
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
@@ -263,6 +270,7 @@ function MainApp() {
           locations: data.locations || ['ตู้ A1', 'ห้องเก็บของ 2', 'ห้องประชุม 1', 'อื่นๆ'],
           staff: data.staff || ['แอดมิน', 'อื่นๆ'],
           bundles: data.bundles || [],
+          storageBoxes: data.storageBoxes || [],
           backupMeta: data.backupMeta || {}
         });
       } else {
@@ -271,6 +279,7 @@ function MainApp() {
           locations: ['ตู้ A1', 'ห้องเก็บของ 2', 'ห้องประชุม 1', 'อื่นๆ'],
           staff: ['แอดมิน', 'อื่นๆ'],
           bundles: [],
+          storageBoxes: [],
           backupMeta: {} 
         };
         setDoc(settingsRef, defaultSettings).catch(e => console.log("Init settings failed:", e));
@@ -318,6 +327,7 @@ function MainApp() {
                           (item.name && String(item.name).toLowerCase().includes(searchLower)) || 
                           (item.sn && String(item.sn).toLowerCase().includes(searchLower)) || 
                           (item.location && String(item.location).toLowerCase().includes(searchLower)) ||
+                          (item.storageBoxName && String(item.storageBoxName).toLowerCase().includes(searchLower)) ||
                           (item.owner && String(item.owner).toLowerCase().includes(searchLower)); 
                           
       const matchDept = filterDept === 'all' || String(item.department) === String(filterDept);
@@ -1208,9 +1218,9 @@ function MainApp() {
   };
 
   const exportToCSV = () => {
-    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'สถานะ', 'จำนวน', 'ผู้ยืมปัจจุบัน/ชื่องาน', 'สถานะ QR', 'เจ้าของ', 'หมายเหตุภายใน', 'อัปเดตล่าสุด'];
+    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'กล่องเก็บของ', 'สถานะ', 'จำนวน', 'ผู้ยืมปัจจุบัน/ชื่องาน', 'สถานะ QR', 'เจ้าของ', 'หมายเหตุภายใน', 'อัปเดตล่าสุด'];
     const csvData = items.map(i => [
-      i.name, i.sn || '-', i.department, i.category || '-', i.location || '-', 
+      i.name, i.sn || '-', i.department, i.category || '-', i.location || '-', i.storageBoxName || '-',
       STATUSES.find(s=>s.id===i.status)?.label || i.status, i.quantity || 1, i.currentBorrower || i.currentEvent || '-', i.qrTagged ? 'ติด QR แล้ว' : 'ยังไม่ติด QR', i.owner || '-', i.internalNote || '-', new Date(i.updatedAt).toLocaleDateString('th-TH')
     ]);
     const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...csvData].map(e => e.join(",")).join("\n");
@@ -1252,6 +1262,249 @@ function MainApp() {
       alert('❌ บันทึกสถานะ QR ไม่สำเร็จ: ' + error.message);
     }
   };
+
+
+  const saveSelectedAsStorageBoxAndPrint = async () => {
+    if (!user) return;
+    if (selectedItems.length === 0) return alert('❌ กรุณาเลือกอุปกรณ์ก่อนบันทึกเป็นกล่องเก็บของ');
+    const boxName = String(boxLabelTitle || '').trim();
+    if (!boxName) return alert('❌ กรุณาระบุชื่อกล่องเก็บของ');
+    const ok = confirm('บันทึกอุปกรณ์ที่เลือก ' + selectedItems.length + ' รายการ ให้อยู่ใน "' + boxName + '" และพิมพ์ฉลากหรือไม่?');
+    if (!ok) return;
+    try {
+      const now = new Date().toISOString();
+      const existingBoxes = settingsOptions.storageBoxes || [];
+      const existing = existingBoxes.find((box) => String(box.name || '').trim().toLowerCase() === boxName.toLowerCase());
+      const boxId = existing?.id || `box_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const itemIds = [...new Set(selectedItems)];
+      const newBox = {
+        id: boxId,
+        name: boxName,
+        note: boxLabelNote || '',
+        size: boxLabelSize || 'normal',
+        itemIds,
+        createdAt: existing?.createdAt || now,
+        updatedAt: now
+      };
+      const newBoxes = [...existingBoxes.filter((box) => box.id !== boxId), newBox].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true }));
+      const newSettings = { ...settingsOptions, storageBoxes: newBoxes };
+      setSettingsOptions(newSettings);
+      await setDoc(getSettingsDoc(), newSettings);
+      await Promise.all(itemIds.map((id) => setDoc(getItemDoc(id), { storageBoxId: boxId, storageBoxName: boxName, storageBoxUpdatedAt: now }, { merge: true })));
+      await logAction('บันทึกกล่องเก็บของ', boxName, 'บันทึกอุปกรณ์ ' + itemIds.length + ' รายการเข้ากล่อง และเตรียมพิมพ์ฉลาก');
+      alert('✅ บันทึกเป็นกล่องเก็บของเรียบร้อยแล้ว\nระบบจะเปิดหน้าพิมพ์ฉลากต่อ');
+      setTimeout(() => window.print(), 250);
+    } catch (error) {
+      console.error(error);
+      alert('❌ บันทึกกล่องเก็บของไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  const openStorageBoxLabel = (box) => {
+    const ids = (box.itemIds || []).filter((id) => items.some((item) => item.id === id));
+    if (ids.length === 0) return alert('❌ กล่องนี้ยังไม่มีอุปกรณ์ หรืออุปกรณ์ถูกลบไปแล้ว');
+    setSelectedItems(ids);
+    setBoxLabelTitle(box.name || 'กล่องอุปกรณ์ MDEC');
+    setBoxLabelNote(box.note || '');
+    setBoxLabelSize(box.size || 'normal');
+    setShowStorageBoxesModal(false);
+    setShowBoxLabelPrintModal(true);
+  };
+
+  const selectStorageBoxItems = (box) => {
+    const ids = (box.itemIds || []).filter((id) => items.some((item) => item.id === id));
+    setSelectedItems(ids);
+    setShowStorageBoxesModal(false);
+  };
+
+  const deleteStorageBox = async (box) => {
+    if (!user || !box?.id) return;
+    const ok = confirm('ลบข้อมูลกล่อง "' + (box.name || '-') + '" หรือไม่?\n\nระบบจะนำชื่อกล่องออกจากอุปกรณ์ในกล่องนี้ แต่จะไม่ลบรายการอุปกรณ์');
+    if (!ok) return;
+    try {
+      const newBoxes = (settingsOptions.storageBoxes || []).filter((b) => b.id !== box.id);
+      const newSettings = { ...settingsOptions, storageBoxes: newBoxes };
+      setSettingsOptions(newSettings);
+      await setDoc(getSettingsDoc(), newSettings);
+      const affectedItems = items.filter((item) => item.storageBoxId === box.id || (box.itemIds || []).includes(item.id));
+      await Promise.all(affectedItems.map((item) => setDoc(getItemDoc(item.id), { storageBoxId: null, storageBoxName: null, storageBoxUpdatedAt: new Date().toISOString() }, { merge: true })));
+      await logAction('ลบกล่องเก็บของ', box.name || '-', 'นำชื่อกล่องออกจากอุปกรณ์ ' + affectedItems.length + ' รายการ โดยไม่ลบอุปกรณ์');
+      alert('✅ ลบกล่องเก็บของแล้ว รายการอุปกรณ์ยังอยู่ครบ');
+    } catch (error) {
+      console.error(error);
+      alert('❌ ลบกล่องไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  if (showBoxLabelPrintModal) {
+    const selectedLabelItems = selectedItems.map((id) => items.find((i) => i.id === id)).filter(Boolean);
+    const boxLabelSizePresets = {
+      small: {
+        label: 'เล็ก',
+        desc: 'กล่องเล็ก / ถุงอุปกรณ์',
+        outerStyle: { width: '92mm', minHeight: '58mm' },
+        title: 'text-lg print:text-[15pt]',
+        subtitle: 'text-[11px] print:text-[8pt]',
+        itemText: 'text-[11px] print:text-[8pt]',
+        gridClass: 'grid-cols-1',
+        maxPreviewHeight: 'max-h-[190px]'
+      },
+      normal: {
+        label: 'ปกติ',
+        desc: 'กล่องอุปกรณ์ทั่วไป',
+        outerStyle: { width: '120mm', minHeight: '78mm' },
+        title: 'text-2xl print:text-[18pt]',
+        subtitle: 'text-sm print:text-[9pt]',
+        itemText: 'text-sm print:text-[9pt]',
+        gridClass: 'grid-cols-1 sm:grid-cols-2',
+        maxPreviewHeight: 'max-h-[260px]'
+      },
+      large: {
+        label: 'ใหญ่',
+        desc: 'กล่องใหญ่ / ลังเก็บของ',
+        outerStyle: { width: '165mm', minHeight: '110mm' },
+        title: 'text-3xl print:text-[24pt]',
+        subtitle: 'text-base print:text-[11pt]',
+        itemText: 'text-base print:text-[11pt]',
+        gridClass: 'grid-cols-1 sm:grid-cols-2',
+        maxPreviewHeight: 'max-h-[380px]'
+      }
+    };
+    const boxPreset = boxLabelSizePresets[boxLabelSize] || boxLabelSizePresets.normal;
+    const groupedByCategory = selectedLabelItems.reduce((acc, item) => {
+      const key = item.category || 'ไม่ระบุหมวดหมู่';
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(item);
+      return acc;
+    }, {});
+
+    return (
+      <div className="bg-slate-100 min-h-screen font-sans text-slate-900 print:bg-white">
+        <style>{`
+          @media print {
+            @page { size: A4; margin: 10mm; }
+            body { background: white !important; }
+            .box-label-toolbar { display: none !important; }
+            .box-label-page { padding: 0 !important; }
+            .box-storage-label { box-shadow: none !important; break-inside: avoid; page-break-inside: avoid; }
+          }
+        `}</style>
+
+        <div className="box-label-toolbar print:hidden p-4 bg-slate-800 text-white flex flex-col xl:flex-row justify-between items-center fixed top-0 w-full z-50 shadow-md gap-3">
+          <div>
+            <h2 className="font-bold text-xl flex items-center gap-2">
+              <Icons.Folder className="w-6 h-6" /> โหมดพิมพ์ฉลากกล่องเก็บของ ({selectedLabelItems.length} รายการ)
+            </h2>
+            <p className="text-slate-300 text-sm font-bold mt-1">
+              ใช้สำหรับติดกล่อง/ลัง/บรรจุภัณฑ์ เพื่อบอกว่าข้างในมีอะไรบ้าง ไม่ต้องมี QR Code
+            </p>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-3">
+            <div className="flex bg-slate-700/80 p-1 rounded-xl gap-1">
+              {Object.entries(boxLabelSizePresets).map(([key, preset]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setBoxLabelSize(key)}
+                  className={`px-4 py-2 rounded-lg font-black transition-colors ${boxLabelSize === key ? 'bg-blue-600 text-white shadow' : 'text-slate-200 hover:bg-slate-600'}`}
+                  title={preset.desc}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <button onClick={saveSelectedAsStorageBoxAndPrint} className="bg-emerald-600 hover:bg-emerald-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
+              <Icons.CheckCircle className="w-5 h-5"/> บันทึกเป็นกล่อง + พิมพ์
+            </button>
+            <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
+              <Icons.Printer className="w-5 h-5"/> พิมพ์อย่างเดียว
+            </button>
+            <button onClick={() => setShowBoxLabelPrintModal(false)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button>
+          </div>
+        </div>
+
+        <div className="box-label-page pt-52 xl:pt-36 p-8 flex flex-col items-center gap-6 print:pt-0 print:p-0">
+          <div className="print:hidden w-full max-w-3xl bg-white border border-slate-200 rounded-2xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label className="block">
+              <span className="block text-sm font-black text-slate-600 mb-1">ชื่อหัวฉลาก</span>
+              <input
+                value={boxLabelTitle}
+                onChange={(e) => setBoxLabelTitle(e.target.value)}
+                className="w-full px-4 py-3 border border-slate-300 rounded-xl font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="เช่น กล่องไลฟ์สด / กล่องสาย HDMI"
+              />
+            </label>
+            <label className="block">
+              <span className="block text-sm font-black text-slate-600 mb-1">หมายเหตุบนฉลาก</span>
+              <input
+                value={boxLabelNote}
+                onChange={(e) => setBoxLabelNote(e.target.value)}
+                className="w-full px-4 py-3 border border-slate-300 rounded-xl font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="เช่น เก็บหลังงานทุกครั้ง / ห้ามแยกชุด"
+              />
+            </label>
+          </div>
+
+          <div className="box-storage-label bg-white border-2 border-slate-900 rounded-2xl overflow-hidden shadow-xl" style={boxPreset.outerStyle}>
+            <div className="bg-slate-900 text-white px-4 py-3 print:px-3 print:py-2 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className={`${boxPreset.title} font-black leading-tight truncate`}>{boxLabelTitle || 'กล่องอุปกรณ์ MDEC'}</div>
+                <div className={`${boxPreset.subtitle} font-bold text-slate-300 mt-1`}>ศูนย์มัลติมีเดียทางการศึกษา • รายการภายในกล่อง</div>
+              </div>
+              <div className="shrink-0 bg-white text-slate-900 rounded-xl px-3 py-1 text-center">
+                <div className="text-2xl print:text-[18pt] font-black leading-none">{selectedLabelItems.length}</div>
+                <div className="text-[10px] print:text-[7pt] font-black leading-tight">รายการ</div>
+              </div>
+            </div>
+
+            <div className="p-4 print:p-3">
+              {boxLabelNote && (
+                <div className="mb-3 border border-amber-300 bg-amber-50 text-amber-800 rounded-xl px-3 py-2 text-xs print:text-[8pt] font-black">
+                  หมายเหตุ: {boxLabelNote}
+                </div>
+              )}
+
+              {selectedLabelItems.length === 0 ? (
+                <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center font-black text-slate-400">
+                  ยังไม่ได้เลือกอุปกรณ์สำหรับทำฉลากกล่อง
+                </div>
+              ) : (
+                <div className={`${boxPreset.maxPreviewHeight} overflow-hidden print:max-h-none`}>
+                  <div className={`grid ${boxPreset.gridClass} gap-x-4 gap-y-2`}>
+                    {Object.entries(groupedByCategory).map(([category, group]) => (
+                      <div key={category} className="break-inside-avoid">
+                        <div className="text-[11px] print:text-[8pt] font-black text-blue-700 border-b border-blue-200 mb-1 pb-0.5">
+                          {category} ({group.length})
+                        </div>
+                        <ol className="space-y-1 pl-0 list-none">
+                          {group.map((item, index) => (
+                            <li key={item.id || `${category}_${index}`} className={`${boxPreset.itemText} font-bold leading-tight flex gap-1.5`}>
+                              <span className="font-black text-slate-400 shrink-0">{index + 1}.</span>
+                              <span className="min-w-0">
+                                <span className="text-slate-950">{item.name || '-'}</span>
+                                {item.sn && <span className="text-slate-500"> • {item.sn}</span>}
+                                {Number(item.quantity) > 1 && <span className="text-blue-700 font-black"> ×{item.quantity}</span>}
+                              </span>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-auto border-t border-slate-300 bg-slate-50 px-4 py-2 print:px-3 print:py-1 flex justify-between gap-3 text-[10px] print:text-[7pt] font-black text-slate-500">
+              <span>MDEC STOCK</span>
+              <span>พิมพ์วันที่ {new Date().toLocaleDateString('th-TH')}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (showPrintModal) {
     const qrSizePresets = {
@@ -1679,6 +1932,10 @@ function MainApp() {
                 </button>
               )}
 
+              <button type="button" onClick={() => setShowStorageBoxesModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-cyan-600 text-white hover:bg-cyan-500' : 'bg-cyan-600 text-white hover:bg-cyan-700'}`}>
+                <Icons.Folder className="w-5 h-5" /> กล่องเก็บของ
+              </button>
+
               <button type="button" onClick={() => setShowPersonalItemsModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-pink-600 text-white hover:bg-pink-500' : 'bg-pink-600 text-white hover:bg-pink-700'}`}>
                   <Icons.Tag className="w-5 h-5" /> ของส่วนตัว
               </button>
@@ -1896,6 +2153,9 @@ function MainApp() {
                              👤 ของส่วนตัว ({item.owner})
                            </span>
                         )}
+                        {item.storageBoxName && (
+                          <span className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-cyan-900/40 text-cyan-400' : 'bg-cyan-100 text-cyan-700'}`}>📦 {item.storageBoxName}</span>
+                        )}
                         {item.qrTagged ? (
                           <span className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400' : 'bg-emerald-100 text-emerald-700'}`}>QR ติดแล้ว</span>
                         ) : (
@@ -1974,6 +2234,7 @@ function MainApp() {
           </div>
           <div className="flex gap-2 sm:gap-3 overflow-x-auto custom-scrollbar">
             <button onClick={() => setShowPrintModal(true)} className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.QrCode className="w-5 h-5"/> <span className="hidden sm:inline">พิมพ์ QR</span></button>
+            <button onClick={() => setShowBoxLabelPrintModal(true)} className="px-4 py-3 bg-cyan-700 hover:bg-cyan-600 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Folder className="w-5 h-5"/> <span className="hidden sm:inline">ฉลากกล่อง</span></button>
             <button onClick={handleCreateBundleFromSelection} className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Layers className="w-5 h-5"/> <span className="hidden sm:inline">จัดเซ็ต</span></button>
             <button onClick={handleOpenBatchBorrow} className="px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.UserPlus className="w-5 h-5"/> <span className="hidden sm:inline">ยืมออก</span></button>
             <button onClick={handleOpenBatchEvent} className="px-4 py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Truck className="w-5 h-5"/> <span className="hidden sm:inline">ออกงาน</span></button>
@@ -2059,6 +2320,71 @@ function MainApp() {
       {/* 📅 Modal วันนี้ */}
       {showTodayModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}><div className={`rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[85vh] ${theme.cardBg}`}><div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}><h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><div className={`p-2 rounded-xl ${isDarkMode ? 'bg-sky-900/50 text-sky-400' : 'bg-sky-100 text-sky-600'}`}><Icons.History className="w-6 h-6"/></div>วันนี้ต้องติดตามอะไรบ้าง</h3><button type="button" onClick={() => setShowTodayModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button></div><div className="flex-1 overflow-y-auto custom-scrollbar p-6 grid grid-cols-1 lg:grid-cols-3 gap-4"><TodayPanel title="ต้องคืนวันนี้" color="amber" items={todayFollowup.dueToday} empty="วันนี้ยังไม่มีรายการครบกำหนดคืน" isDarkMode={isDarkMode} theme={theme} /><TodayPanel title="เลยกำหนดคืน" color="rose" items={todayFollowup.overdue} empty="ไม่มีรายการเลยกำหนด" isDarkMode={isDarkMode} theme={theme} /><TodayPanel title="กำลังถูกยืม / ออกงาน" color="purple" items={todayFollowup.active} empty="ไม่มีอุปกรณ์ที่ถูกยืมหรือออกงาน" isDarkMode={isDarkMode} theme={theme} /></div><div className={`p-4 border-t text-center text-sm font-bold ${theme.divide} ${theme.textMuted}`}>ใช้หน้านี้เปิดเช็กตอนเช้าได้เลย ว่าต้องตามคืนอะไรบ้างและใครกำลังใช้อุปกรณ์อยู่</div></div></div>
+      )}
+
+      {/* 📦 Modal กล่องเก็บของ */}
+      {showStorageBoxesModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
+            <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
+                  <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-cyan-900/50 text-cyan-400' : 'bg-cyan-100 text-cyan-600'}`}><Icons.Folder className="w-6 h-6"/></div>
+                  กล่องเก็บของ
+                </h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูได้ตลอดว่าแต่ละกล่องมีอะไร และอุปกรณ์แต่ละชิ้นอยู่กล่องไหน</p>
+              </div>
+              <button type="button" onClick={() => setShowStorageBoxesModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+              {(settingsOptions.storageBoxes || []).length === 0 ? (
+                <div className={`text-center py-12 font-bold text-xl flex flex-col items-center gap-3 ${theme.textMuted}`}>
+                  <Icons.Folder className="w-14 h-14" />
+                  ยังไม่มีกล่องเก็บของในระบบ
+                  <p className="text-sm font-medium max-w-xl">วิธีสร้าง: เลือกอุปกรณ์จากตาราง → กด “ฉลากกล่อง” → ตั้งชื่อกล่อง → กด “บันทึกเป็นกล่อง + พิมพ์”</p>
+                </div>
+              ) : (settingsOptions.storageBoxes || []).map((box) => {
+                const boxItems = (box.itemIds || []).map((id) => items.find((item) => item.id === id)).filter(Boolean);
+                const missingCount = (box.itemIds || []).length - boxItems.length;
+                const categories = [...new Set(boxItems.map((item) => item.category || 'ไม่ระบุหมวดหมู่'))];
+                return (
+                  <div key={box.id} className={`p-5 rounded-2xl border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                          <h4 className={`text-xl font-black truncate ${theme.textTitle}`}>📦 {box.name}</h4>
+                          <span className={`text-sm font-bold px-2 py-1 rounded-md ${isDarkMode ? 'bg-cyan-900/40 text-cyan-400' : 'bg-cyan-100 text-cyan-700'}`}>{boxItems.length} รายการ</span>
+                          {missingCount > 0 && <span className="text-sm font-bold px-2 py-1 rounded-md bg-rose-100 text-rose-700">หายจากระบบ {missingCount} รายการ</span>}
+                        </div>
+                        {box.note && <p className={`text-sm font-bold mb-2 ${theme.textMuted}`}>หมายเหตุ: {box.note}</p>}
+                        <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>หมวดหมู่ในกล่อง: {categories.length ? categories.join(', ') : '-'}</p>
+                        <div className={`p-3 rounded-xl border max-h-48 overflow-y-auto custom-scrollbar ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                          {boxItems.length === 0 ? (
+                            <div className={`text-center py-4 font-bold ${theme.textMuted}`}>ยังไม่มีอุปกรณ์ที่พบในกล่องนี้</div>
+                          ) : boxItems.map((item) => (
+                            <div key={item.id} className={`flex justify-between items-center gap-3 py-2 border-b last:border-0 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                              <div className="min-w-0">
+                                <div className={`font-bold truncate ${theme.textMain}`}>{item.name}</div>
+                                <div className={`text-xs font-mono ${theme.textMuted}`}>S.N.: {item.sn || '-'} • {item.location || '-'}</div>
+                              </div>
+                              <span className={`text-[11px] px-2 py-1 rounded-md font-bold whitespace-nowrap ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{item.category || '-'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2 w-full lg:w-56 shrink-0">
+                        <button type="button" onClick={() => openStorageBoxLabel(box)} className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.Printer className="w-5 h-5"/> พิมพ์ฉลากซ้ำ</button>
+                        <button type="button" onClick={() => selectStorageBoxItems(box)} className={`px-4 py-3 font-black rounded-xl border flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.CheckCircle className="w-5 h-5"/> เลือกรายการนี้</button>
+                        <button type="button" onClick={() => deleteStorageBox(box)} className="px-4 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.Trash className="w-4 h-4"/> ลบกล่อง</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 💡 Modal รับคืนด่วน */}
