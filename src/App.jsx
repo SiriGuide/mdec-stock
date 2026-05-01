@@ -166,6 +166,9 @@ function MainApp() {
   const [showBoxLabelPrintModal, setShowBoxLabelPrintModal] = useState(false);
   const [showStorageBoxesModal, setShowStorageBoxesModal] = useState(false);
   const [showStorageBoxAssignModal, setShowStorageBoxAssignModal] = useState(false);
+  const [showStorageBoxEditor, setShowStorageBoxEditor] = useState(false);
+  const [storageBoxForm, setStorageBoxForm] = useState({ id: null, name: '', note: '', size: 'normal', itemIds: [] });
+  const [storageBoxSearchTerm, setStorageBoxSearchTerm] = useState('');
   const [boxLabelSize, setBoxLabelSize] = useState('normal');
   const [boxLabelTitle, setBoxLabelTitle] = useState('กล่องอุปกรณ์ MDEC');
   const [boxLabelNote, setBoxLabelNote] = useState('');
@@ -447,6 +450,27 @@ function MainApp() {
       return (a.name||'').localeCompare(b.name||'', 'th', { numeric: true });
     });
   }, [items, bundleSearchTerm, bundleForm.itemIds, showBundleManager]);
+
+  const sortedStorageBoxEditorItems = useMemo(() => {
+    if (!showStorageBoxEditor) return [];
+    const search = storageBoxSearchTerm.toLowerCase().trim();
+    const selectedIdsInForm = storageBoxForm.itemIds || [];
+    const filtered = items.filter(i => {
+      if (!search) return true;
+      return (i?.name || '').toLowerCase().includes(search) ||
+             (i?.sn && String(i.sn).toLowerCase().includes(search)) ||
+             (i?.category && String(i.category).toLowerCase().includes(search)) ||
+             (i?.location && String(i.location).toLowerCase().includes(search)) ||
+             (i?.storageBoxName && String(i.storageBoxName).toLowerCase().includes(search));
+    });
+    return filtered.sort((a, b) => {
+      const aSel = selectedIdsInForm.includes(a.id);
+      const bSel = selectedIdsInForm.includes(b.id);
+      if (aSel && !bSel) return -1;
+      if (!aSel && bSel) return 1;
+      return (a.name || '').localeCompare(b.name || '', 'th', { numeric: true });
+    });
+  }, [items, storageBoxSearchTerm, storageBoxForm.itemIds, showStorageBoxEditor]);
 
   const handleSave = async () => {
     const nameInput = formData.name || '';
@@ -1299,6 +1323,80 @@ function MainApp() {
     } catch (error) {
       console.error(error);
       alert('❌ บันทึกกล่องเก็บของไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  const openStorageBoxEditor = (box = null) => {
+    const selectedFromTable = selectedItems.length > 0 ? [...selectedItems] : [];
+    setStorageBoxForm({
+      id: box?.id || null,
+      name: box?.name || '',
+      note: box?.note || '',
+      size: box?.size || 'normal',
+      itemIds: box?.itemIds ? [...box.itemIds] : selectedFromTable
+    });
+    setStorageBoxSearchTerm('');
+    setShowStorageBoxesModal(false);
+    setShowStorageBoxAssignModal(false);
+    setShowStorageBoxEditor(true);
+  };
+
+  const handleSaveStorageBoxEditor = async () => {
+    if (!user) return;
+    const boxName = String(storageBoxForm.name || '').trim();
+    if (!boxName) return alert('❌ กรุณาระบุชื่อกล่องเก็บของ');
+    const itemIds = [...new Set(storageBoxForm.itemIds || [])].filter((id) => items.some((item) => item.id === id));
+    if (itemIds.length === 0) return alert('❌ กรุณาเลือกอุปกรณ์อย่างน้อย 1 ชิ้นเข้ากล่อง');
+
+    try {
+      const now = new Date().toISOString();
+      const existingBoxes = settingsOptions.storageBoxes || [];
+      const oldBox = storageBoxForm.id ? existingBoxes.find((box) => box.id === storageBoxForm.id) : null;
+      const sameNameBox = existingBoxes.find((box) => box.id !== storageBoxForm.id && String(box.name || '').trim().toLowerCase() === boxName.toLowerCase());
+      if (sameNameBox) return alert('❌ มีกล่องชื่อนี้อยู่แล้ว กรุณาใช้ชื่ออื่น หรือเปิดแก้ไขกล่องเดิม');
+
+      const boxId = storageBoxForm.id || `box_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const removedIds = [...new Set([...(oldBox?.itemIds || [])])].filter((id) => !itemIds.includes(id));
+      const newBox = {
+        id: boxId,
+        name: boxName,
+        note: storageBoxForm.note || '',
+        size: storageBoxForm.size || 'normal',
+        itemIds,
+        createdAt: oldBox?.createdAt || now,
+        updatedAt: now
+      };
+
+      // ถ้าอุปกรณ์ถูกย้ายเข้ากล่องนี้ ให้นำออกจากกล่องอื่นด้วย เพื่อไม่ให้ซ้ำกันหลายกล่อง
+      const otherBoxes = existingBoxes
+        .filter((box) => box.id !== boxId)
+        .map((box) => ({ ...box, itemIds: (box.itemIds || []).filter((id) => !itemIds.includes(id)) }));
+      const newBoxes = [...otherBoxes, newBox]
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true }));
+
+      const newSettings = { ...settingsOptions, storageBoxes: newBoxes };
+      setSettingsOptions(newSettings);
+      await setDoc(getSettingsDoc(), newSettings);
+
+      await Promise.all(itemIds.map((id) => setDoc(getItemDoc(id), {
+        storageBoxId: boxId,
+        storageBoxName: boxName,
+        storageBoxUpdatedAt: now
+      }, { merge: true })));
+
+      await Promise.all(removedIds.map((id) => setDoc(getItemDoc(id), {
+        storageBoxId: null,
+        storageBoxName: null,
+        storageBoxUpdatedAt: now
+      }, { merge: true })));
+
+      await logAction(storageBoxForm.id ? 'แก้ไขกล่องเก็บของ' : 'สร้างกล่องเก็บของ', boxName, `บันทึกอุปกรณ์ ${itemIds.length} รายการในกล่อง${removedIds.length ? ` และนำออก ${removedIds.length} รายการ` : ''}`);
+      setShowStorageBoxEditor(false);
+      setShowStorageBoxesModal(true);
+      alert('✅ บันทึกกล่องเก็บของเรียบร้อยแล้ว');
+    } catch (error) {
+      console.error(error);
+      alert('❌ บันทึกกล่องไม่สำเร็จ: ' + error.message);
     }
   };
 
@@ -2393,6 +2491,104 @@ function MainApp() {
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}><div className={`rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[85vh] ${theme.cardBg}`}><div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}><h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><div className={`p-2 rounded-xl ${isDarkMode ? 'bg-sky-900/50 text-sky-400' : 'bg-sky-100 text-sky-600'}`}><Icons.History className="w-6 h-6"/></div>วันนี้ต้องติดตามอะไรบ้าง</h3><button type="button" onClick={() => setShowTodayModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button></div><div className="flex-1 overflow-y-auto custom-scrollbar p-6 grid grid-cols-1 lg:grid-cols-3 gap-4"><TodayPanel title="ต้องคืนวันนี้" color="amber" items={todayFollowup.dueToday} empty="วันนี้ยังไม่มีรายการครบกำหนดคืน" isDarkMode={isDarkMode} theme={theme} /><TodayPanel title="เลยกำหนดคืน" color="rose" items={todayFollowup.overdue} empty="ไม่มีรายการเลยกำหนด" isDarkMode={isDarkMode} theme={theme} /><TodayPanel title="กำลังถูกยืม / ออกงาน" color="purple" items={todayFollowup.active} empty="ไม่มีอุปกรณ์ที่ถูกยืมหรือออกงาน" isDarkMode={isDarkMode} theme={theme} /></div><div className={`p-4 border-t text-center text-sm font-bold ${theme.divide} ${theme.textMuted}`}>ใช้หน้านี้เปิดเช็กตอนเช้าได้เลย ว่าต้องตามคืนอะไรบ้างและใครกำลังใช้อุปกรณ์อยู่</div></div></div>
       )}
 
+      {/* 🛠️ Modal แก้ไขกล่องเก็บของ */}
+      {showStorageBoxEditor && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-[9995]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-6xl flex flex-col h-[92vh] sm:h-[88vh] overflow-hidden ${theme.cardBg}`}>
+            <div className={`flex justify-between items-start gap-4 p-5 sm:p-6 border-b shrink-0 ${theme.divide}`}>
+              <div className="min-w-0">
+                <h3 className={`text-xl sm:text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
+                  <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-cyan-900/50 text-cyan-400' : 'bg-cyan-100 text-cyan-600'}`}><Icons.Folder className="w-6 h-6"/></div>
+                  {storageBoxForm.id ? 'แก้ไขกล่องเก็บของ' : 'สร้างกล่องเก็บของ'}
+                </h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แก้ชื่อกล่อง หมายเหตุ และติ๊กเลือกอุปกรณ์เข้ากล่องได้ในหน้าเดียว</p>
+              </div>
+              <button type="button" onClick={() => { setShowStorageBoxEditor(false); setShowStorageBoxesModal(true); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden">
+              <div className={`w-full lg:w-[360px] p-5 border-b lg:border-b-0 lg:border-r shrink-0 ${theme.divide} ${isDarkMode ? 'bg-slate-900/25' : 'bg-slate-50/80'}`}>
+                <div className="space-y-4">
+                  <label className="block">
+                    <span className={`block text-base font-black mb-2 ${theme.textTitle}`}>ชื่อกล่องเก็บของ <span className="text-rose-500">*</span></span>
+                    <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น กล่องไลฟ์สด A" value={storageBoxForm.name || ''} onChange={(e) => setStorageBoxForm({...storageBoxForm, name: e.target.value})} />
+                  </label>
+
+                  <label className="block">
+                    <span className={`block text-base font-black mb-2 ${theme.textTitle}`}>หมายเหตุบนฉลาก</span>
+                    <textarea className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border resize-none ${theme.input}`} rows="4" placeholder="เช่น ห้ามแยกชุด / เก็บหลังงานทุกครั้ง" value={storageBoxForm.note || ''} onChange={(e) => setStorageBoxForm({...storageBoxForm, note: e.target.value})}></textarea>
+                  </label>
+
+                  <label className="block">
+                    <span className={`block text-base font-black mb-2 ${theme.textTitle}`}>ขนาดฉลากเริ่มต้น</span>
+                    <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={storageBoxForm.size || 'normal'} onChange={(e) => setStorageBoxForm({...storageBoxForm, size: e.target.value})}>
+                      <option value="small">เล็ก</option>
+                      <option value="normal">ปกติ</option>
+                      <option value="large">ใหญ่</option>
+                    </select>
+                  </label>
+
+                  <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className={`text-sm font-black ${theme.textTitle}`}>เลือกแล้ว {storageBoxForm.itemIds?.length || 0} รายการ</div>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ถ้าเลือกอุปกรณ์ที่อยู่กล่องอื่น ระบบจะย้ายมาอยู่กล่องนี้ให้อัตโนมัติ</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 min-h-0 flex flex-col p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 shrink-0">
+                  <div>
+                    <h4 className={`text-lg font-black ${theme.textTitle}`}>เลือกอุปกรณ์ในกล่อง</h4>
+                    <p className={`text-sm font-bold ${theme.textMuted}`}>ติ๊กเลือก / เอาออกได้เหมือนการจัดการเซ็ตอุปกรณ์</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setStorageBoxForm({...storageBoxForm, itemIds: items.map(i => i.id)})} className={`px-3 py-2 rounded-xl font-bold border text-sm ${theme.btnSecondary}`}>เลือกทั้งหมด</button>
+                    <button type="button" onClick={() => setStorageBoxForm({...storageBoxForm, itemIds: []})} className={`px-3 py-2 rounded-xl font-bold border text-sm ${theme.btnSecondary}`}>ล้างทั้งหมด</button>
+                  </div>
+                </div>
+
+                <div className="relative mb-4 shrink-0">
+                  <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${theme.textMuted}`}><Icons.Search className="w-5 h-5" /></div>
+                  <input type="text" className={`w-full pl-12 pr-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="ค้นหาชื่ออุปกรณ์, S.N., หมวดหมู่, สถานที่, ชื่อกล่องเดิม..." value={storageBoxSearchTerm} onChange={(e) => setStorageBoxSearchTerm(e.target.value)} />
+                </div>
+
+                <div className={`flex-1 overflow-y-auto custom-scrollbar rounded-2xl border p-2 space-y-1 ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  {sortedStorageBoxEditorItems.length === 0 ? (
+                    <div className={`text-center py-10 font-bold ${theme.textMuted}`}>ไม่พบอุปกรณ์ที่ค้นหา</div>
+                  ) : sortedStorageBoxEditorItems.map((item) => {
+                    const selected = (storageBoxForm.itemIds || []).includes(item.id);
+                    const movingFromOtherBox = item.storageBoxName && item.storageBoxId !== storageBoxForm.id;
+                    return (
+                      <label key={item.id} className={`flex items-center justify-between gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selected ? (isDarkMode ? 'bg-cyan-900/30 border-cyan-700' : 'bg-cyan-50 border-cyan-300') : (isDarkMode ? 'bg-slate-800 border-transparent hover:bg-slate-700' : 'bg-white border-transparent hover:bg-slate-100')}`}>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <input type="checkbox" className="w-5 h-5 accent-cyan-600 rounded shrink-0 cursor-pointer" checked={selected} onChange={(e) => {
+                            const newIds = e.target.checked ? [...(storageBoxForm.itemIds || []), item.id] : (storageBoxForm.itemIds || []).filter(id => id !== item.id);
+                            setStorageBoxForm({...storageBoxForm, itemIds: [...new Set(newIds)]});
+                          }} />
+                          <div className="min-w-0">
+                            <div className={`font-black truncate ${selected ? (isDarkMode ? 'text-cyan-300' : 'text-cyan-700') : theme.textTitle}`}>{item.name}</div>
+                            <div className={`text-xs font-mono truncate ${theme.textMuted}`}>S.N.: {item.sn || '-'} • {item.category || '-'} • {item.location || '-'}</div>
+                            {movingFromOtherBox && <div className="text-[11px] font-bold text-amber-500 mt-0.5">อยู่กล่องเดิม: {item.storageBoxName} — ถ้าติ๊กเลือกจะย้ายมากล่องนี้</div>}
+                          </div>
+                        </div>
+                        {item.storageBoxName && <span className={`hidden sm:inline text-[11px] px-2 py-1 rounded-md font-bold whitespace-nowrap ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>📦 {item.storageBoxName}</span>}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className={`p-4 border-t shrink-0 flex flex-col sm:flex-row gap-3 ${theme.divide}`}>
+              <button type="button" onClick={() => { setShowStorageBoxEditor(false); setShowStorageBoxesModal(true); }} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={handleSaveStorageBoxEditor} className="flex-[2] py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl text-lg shadow-md">
+                💾 บันทึกกล่องเก็บของ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 📦 Modal กล่องเก็บของ */}
       {showStorageBoxesModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
@@ -2405,7 +2601,12 @@ function MainApp() {
                 </h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูได้ตลอดว่าแต่ละกล่องมีอะไร และอุปกรณ์แต่ละชิ้นอยู่กล่องไหน</p>
               </div>
-              <button type="button" onClick={() => setShowStorageBoxesModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button type="button" onClick={() => openStorageBoxEditor(null)} className={`px-4 py-2.5 rounded-xl font-black transition-colors ${isDarkMode ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-cyan-600 hover:bg-cyan-700 text-white shadow-md'}`}>
+                  + สร้าง/แก้กล่อง
+                </button>
+                <button type="button" onClick={() => setShowStorageBoxesModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
@@ -2446,6 +2647,7 @@ function MainApp() {
                       </div>
                       <div className="flex flex-col gap-2 w-full lg:w-56 shrink-0">
                         <button type="button" onClick={() => openStorageBoxLabel(box)} className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.Printer className="w-5 h-5"/> พิมพ์ฉลาก</button>
+                        <button type="button" onClick={() => openStorageBoxEditor(box)} className="px-4 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.Edit className="w-4 h-4"/> แก้ไขกล่อง</button>
                         <button type="button" onClick={() => selectStorageBoxItems(box)} className={`px-4 py-3 font-black rounded-xl border flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.CheckCircle className="w-5 h-5"/> เลือกรายการนี้</button>
                         <button type="button" onClick={() => deleteStorageBox(box)} className="px-4 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.Trash className="w-4 h-4"/> ลบกล่อง</button>
                       </div>
