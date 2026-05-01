@@ -1342,32 +1342,35 @@ function MainApp() {
       small: {
         label: 'เล็ก',
         desc: 'กล่องเล็ก / ถุงอุปกรณ์',
-        outerStyle: { width: '92mm', minHeight: '58mm' },
-        title: 'text-lg print:text-[15pt]',
-        subtitle: 'text-[11px] print:text-[8pt]',
-        itemText: 'text-[11px] print:text-[8pt]',
+        outerStyle: { width: '90mm', minHeight: '56mm' },
+        title: 'text-[20px] print:text-[16pt]',
+        meta: 'text-[11px] print:text-[8pt]',
+        itemText: 'text-[12px] print:text-[8pt]',
         gridClass: 'grid-cols-1',
-        maxPreviewHeight: 'max-h-[190px]'
+        maxPreviewHeight: 'max-h-[175px]',
+        bodyPadding: 'p-3 print:p-2',
       },
       normal: {
         label: 'ปกติ',
         desc: 'กล่องอุปกรณ์ทั่วไป',
-        outerStyle: { width: '120mm', minHeight: '78mm' },
-        title: 'text-2xl print:text-[18pt]',
-        subtitle: 'text-sm print:text-[9pt]',
-        itemText: 'text-sm print:text-[9pt]',
+        outerStyle: { width: '125mm', minHeight: '78mm' },
+        title: 'text-[28px] print:text-[21pt]',
+        meta: 'text-[12px] print:text-[9pt]',
+        itemText: 'text-[14px] print:text-[9.5pt]',
         gridClass: 'grid-cols-1 sm:grid-cols-2',
-        maxPreviewHeight: 'max-h-[260px]'
+        maxPreviewHeight: 'max-h-[265px]',
+        bodyPadding: 'p-4 print:p-3',
       },
       large: {
         label: 'ใหญ่',
         desc: 'กล่องใหญ่ / ลังเก็บของ',
-        outerStyle: { width: '165mm', minHeight: '110mm' },
-        title: 'text-3xl print:text-[24pt]',
-        subtitle: 'text-base print:text-[11pt]',
-        itemText: 'text-base print:text-[11pt]',
+        outerStyle: { width: '170mm', minHeight: '108mm' },
+        title: 'text-[36px] print:text-[28pt]',
+        meta: 'text-[14px] print:text-[10pt]',
+        itemText: 'text-[16px] print:text-[11pt]',
         gridClass: 'grid-cols-1 sm:grid-cols-2',
-        maxPreviewHeight: 'max-h-[380px]'
+        maxPreviewHeight: 'max-h-[390px]',
+        bodyPadding: 'p-5 print:p-4',
       }
     };
     const boxPreset = boxLabelSizePresets[boxLabelSize] || boxLabelSizePresets.normal;
@@ -1379,11 +1382,12 @@ function MainApp() {
     }, {});
 
     return (
-      <div className="bg-slate-100 min-h-screen font-sans text-slate-900 print:bg-white">
+      <div className="bg-slate-100 min-h-screen font-sans text-black print:bg-white">
         <style>{`
           @media print {
-            @page { size: A4; margin: 10mm; }
+            @page { size: A4; margin: 9mm; }
             body { background: white !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .box-label-toolbar { display: none !important; }
             .box-label-page { padding: 0 !important; }
             .box-storage-label { box-shadow: none !important; break-inside: avoid; page-break-inside: avoid; }
@@ -1396,7 +1400,7 @@ function MainApp() {
               <Icons.Folder className="w-6 h-6" /> โหมดพิมพ์ฉลากกล่องเก็บของ ({selectedLabelItems.length} รายการ)
             </h2>
             <p className="text-slate-300 text-sm font-bold mt-1">
-              ใช้สำหรับติดกล่อง/ลัง/บรรจุภัณฑ์ เพื่อบอกว่าข้างในมีอะไรบ้าง ไม่ต้องมี QR Code
+              ดีไซน์ใหม่สำหรับเครื่องปริ้นเลเซอร์ขาวดำ: เส้นคมชัด ใช้หมึกน้อย อ่านง่าย ไม่มี QR Code
             </p>
           </div>
 
@@ -1407,7 +1411,7 @@ function MainApp() {
                   key={key}
                   type="button"
                   onClick={() => setBoxLabelSize(key)}
-                  className={`px-4 py-2 rounded-lg font-black transition-colors ${boxLabelSize === key ? 'bg-blue-600 text-white shadow' : 'text-slate-200 hover:bg-slate-600'}`}
+                  className={`px-4 py-2 rounded-lg font-black transition-colors ${boxLabelSize === key ? 'bg-white text-slate-900 shadow' : 'text-slate-200 hover:bg-slate-600'}`}
                   title={preset.desc}
                 >
                   {preset.label}
@@ -1431,7 +1435,7 @@ function MainApp() {
               <input
                 value={boxLabelTitle}
                 onChange={(e) => setBoxLabelTitle(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-xl font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-slate-300 rounded-xl font-bold outline-none focus:ring-2 focus:ring-slate-900"
                 placeholder="เช่น กล่องไลฟ์สด / กล่องสาย HDMI"
               />
             </label>
@@ -1440,51 +1444,55 @@ function MainApp() {
               <input
                 value={boxLabelNote}
                 onChange={(e) => setBoxLabelNote(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-xl font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-slate-300 rounded-xl font-bold outline-none focus:ring-2 focus:ring-slate-900"
                 placeholder="เช่น เก็บหลังงานทุกครั้ง / ห้ามแยกชุด"
               />
             </label>
           </div>
 
-          <div className="box-storage-label bg-white border-2 border-slate-900 rounded-2xl overflow-hidden shadow-xl" style={boxPreset.outerStyle}>
-            <div className="bg-slate-900 text-white px-4 py-3 print:px-3 print:py-2 flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className={`${boxPreset.title} font-black leading-tight truncate`}>{boxLabelTitle || 'กล่องอุปกรณ์ MDEC'}</div>
-                <div className={`${boxPreset.subtitle} font-bold text-slate-300 mt-1`}>ศูนย์มัลติมีเดียทางการศึกษา • รายการภายในกล่อง</div>
-              </div>
-              <div className="shrink-0 bg-white text-slate-900 rounded-xl px-3 py-1 text-center">
-                <div className="text-2xl print:text-[18pt] font-black leading-none">{selectedLabelItems.length}</div>
-                <div className="text-[10px] print:text-[7pt] font-black leading-tight">รายการ</div>
+          <div className="box-storage-label bg-white border-[3px] border-black text-black shadow-xl" style={boxPreset.outerStyle}>
+            <div className="border-b-[3px] border-black px-4 py-3 print:px-3 print:py-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className={`${boxPreset.meta} font-black tracking-[0.18em] uppercase leading-none`}>MDEC STORAGE BOX</div>
+                  <div className={`${boxPreset.title} font-black leading-tight mt-1 break-words`}>{boxLabelTitle || 'กล่องอุปกรณ์ MDEC'}</div>
+                  <div className={`${boxPreset.meta} font-bold mt-1`}>ศูนย์มัลติมีเดียทางการศึกษา</div>
+                </div>
+                <div className="shrink-0 border-[2px] border-black px-3 py-2 text-center min-w-[58px] print:min-w-[48px]">
+                  <div className="text-3xl print:text-[20pt] font-black leading-none">{selectedLabelItems.length}</div>
+                  <div className="text-[10px] print:text-[7pt] font-black leading-tight">รายการ</div>
+                </div>
               </div>
             </div>
 
-            <div className="p-4 print:p-3">
+            <div className={`${boxPreset.bodyPadding}`}>
               {boxLabelNote && (
-                <div className="mb-3 border border-amber-300 bg-amber-50 text-amber-800 rounded-xl px-3 py-2 text-xs print:text-[8pt] font-black">
+                <div className={`${boxPreset.meta} mb-3 border-[2px] border-black px-3 py-2 font-black leading-tight`}>
                   หมายเหตุ: {boxLabelNote}
                 </div>
               )}
 
               {selectedLabelItems.length === 0 ? (
-                <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center font-black text-slate-400">
+                <div className="border-2 border-dashed border-black p-8 text-center font-black text-slate-500">
                   ยังไม่ได้เลือกอุปกรณ์สำหรับทำฉลากกล่อง
                 </div>
               ) : (
                 <div className={`${boxPreset.maxPreviewHeight} overflow-hidden print:max-h-none`}>
-                  <div className={`grid ${boxPreset.gridClass} gap-x-4 gap-y-2`}>
+                  <div className={`grid ${boxPreset.gridClass} gap-x-5 gap-y-3`}>
                     {Object.entries(groupedByCategory).map(([category, group]) => (
-                      <div key={category} className="break-inside-avoid">
-                        <div className="text-[11px] print:text-[8pt] font-black text-blue-700 border-b border-blue-200 mb-1 pb-0.5">
-                          {category} ({group.length})
+                      <div key={category} className="break-inside-avoid border border-black">
+                        <div className={`${boxPreset.meta} font-black bg-white border-b border-black px-2 py-1 flex justify-between gap-2`}>
+                          <span className="truncate">{category}</span>
+                          <span className="shrink-0">{group.length} ชิ้น</span>
                         </div>
-                        <ol className="space-y-1 pl-0 list-none">
+                        <ol className="divide-y divide-black/40">
                           {group.map((item, index) => (
-                            <li key={item.id || `${category}_${index}`} className={`${boxPreset.itemText} font-bold leading-tight flex gap-1.5`}>
-                              <span className="font-black text-slate-400 shrink-0">{index + 1}.</span>
-                              <span className="min-w-0">
-                                <span className="text-slate-950">{item.name || '-'}</span>
-                                {item.sn && <span className="text-slate-500"> • {item.sn}</span>}
-                                {Number(item.quantity) > 1 && <span className="text-blue-700 font-black"> ×{item.quantity}</span>}
+                            <li key={item.id || `${category}_${index}`} className={`${boxPreset.itemText} font-bold leading-tight flex gap-2 px-2 py-1.5`}>
+                              <span className="font-black shrink-0 w-5 text-right">{index + 1}.</span>
+                              <span className="min-w-0 break-words">
+                                <span className="font-black">{item.name || '-'}</span>
+                                {item.sn && <span className="font-bold"> • S.N. {item.sn}</span>}
+                                {Number(item.quantity) > 1 && <span className="font-black"> ×{item.quantity}</span>}
                               </span>
                             </li>
                           ))}
@@ -1496,16 +1504,15 @@ function MainApp() {
               )}
             </div>
 
-            <div className="mt-auto border-t border-slate-300 bg-slate-50 px-4 py-2 print:px-3 print:py-1 flex justify-between gap-3 text-[10px] print:text-[7pt] font-black text-slate-500">
-              <span>MDEC STOCK</span>
-              <span>พิมพ์วันที่ {new Date().toLocaleDateString('th-TH')}</span>
+            <div className="border-t-[2px] border-black px-4 py-2 print:px-3 print:py-1.5 flex justify-between gap-3 text-[10px] print:text-[7pt] font-black">
+              <span>ตรวจเช็กก่อนใช้งานและหลังเก็บทุกครั้ง</span>
+              <span className="shrink-0">พิมพ์วันที่ {new Date().toLocaleDateString('th-TH')}</span>
             </div>
           </div>
         </div>
       </div>
     );
   }
-
   if (showPrintModal) {
     const qrSizePresets = {
       small: {
