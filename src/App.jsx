@@ -1620,6 +1620,9 @@ function MainApp() {
         card: 'p-2 min-h-[135px] print:p-1.5',
         qrClass: 'w-20 h-20 print:w-16 print:h-16',
         qrServer: 160,
+        printCardWidth: '28mm',
+        printCardHeight: '34mm',
+        printQrSize: '22mm',
         nameClass: 'text-[10px]',
         snClass: 'text-[9px]',
         labelGrid: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5',
@@ -1636,6 +1639,9 @@ function MainApp() {
         card: 'p-3 min-h-[170px] print:p-2',
         qrClass: 'w-28 h-28 print:w-24 print:h-24',
         qrServer: 180,
+        printCardWidth: '35mm',
+        printCardHeight: '43mm',
+        printQrSize: '28mm',
         nameClass: 'text-xs',
         snClass: 'text-[10px]',
         labelGrid: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5',
@@ -1652,6 +1658,9 @@ function MainApp() {
         card: 'p-4 min-h-[215px] print:p-3',
         qrClass: 'w-36 h-36 print:w-32 print:h-32',
         qrServer: 240,
+        printCardWidth: '47mm',
+        printCardHeight: '56mm',
+        printQrSize: '38mm',
         nameClass: 'text-sm',
         snClass: 'text-[11px]',
         labelGrid: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4',
@@ -1680,6 +1689,9 @@ function MainApp() {
              @page { size: A4; margin: 8mm; }
              body { background: white !important; }
              .qr-label-card, .qr-plain-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; }
+             .qr-plain-grid { grid-template-columns: repeat(auto-fill, var(--qr-card-width)) !important; justify-content: start !important; align-items: start !important; gap: 2mm !important; }
+             .qr-plain-card { width: var(--qr-card-width) !important; min-height: var(--qr-card-height) !important; padding: 1.2mm !important; box-sizing: border-box !important; }
+             .qr-plain-card img { width: var(--qr-image-size) !important; height: var(--qr-image-size) !important; margin-bottom: 1mm !important; }
            }
          `}</style>
          <div className="print:hidden p-4 bg-slate-800 text-white flex flex-col xl:flex-row justify-between items-center fixed top-0 w-full z-50 shadow-md gap-3">
@@ -1750,13 +1762,16 @@ function MainApp() {
          </div>
 
          {!isLabelMode ? (
-           <div className={`pt-52 xl:pt-36 p-8 grid ${activeQrGrid} gap-6 print:pt-0 print:p-0 print:gap-2`}>
+           <div
+             className={`qr-plain-grid pt-52 xl:pt-36 p-8 grid ${activeQrGrid} gap-5 print:pt-0 print:p-0`}
+             style={{ '--qr-card-width': qrPreset.printCardWidth, '--qr-card-height': qrPreset.printCardHeight, '--qr-image-size': qrPreset.printQrSize }}
+           >
              {selectedItems.map(id => {
                 const item = items.find(i => i.id === id);
                 if(!item) return null;
                 return (
                    <div key={id} className={`qr-plain-card border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-center break-inside-avoid print:border-solid print:border-black rounded-xl print:rounded-none relative print:min-h-0 ${qrPreset.card}`}>
-                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=${qrPreset.qrServer}x${qrPreset.qrServer}&data=${encodeURIComponent(item.id)}`} alt="QR" className={`${qrPreset.qrClass} object-contain mb-2`} />
+                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=${qrPreset.qrServer}x${qrPreset.qrServer}&data=${encodeURIComponent(item.id)}`} alt="QR" className={`${qrPreset.qrClass} object-contain mb-1.5`} />
                       <span className={`${qrPreset.nameClass} font-black leading-tight line-clamp-2 w-full`}>{item.name}</span>
                       <span className={`${qrPreset.snClass} font-bold text-gray-600 mt-1`}>{item.sn}</span>
                       {item.owner && <span className="text-[9px] font-bold bg-gray-200 px-1 rounded mt-1">👤 {item.owner}</span>}
