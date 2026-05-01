@@ -165,6 +165,7 @@ function MainApp() {
   const [qrPrintColumns, setQrPrintColumns] = useState('auto');
   const [showBoxLabelPrintModal, setShowBoxLabelPrintModal] = useState(false);
   const [showStorageBoxesModal, setShowStorageBoxesModal] = useState(false);
+  const [showStorageBoxAssignModal, setShowStorageBoxAssignModal] = useState(false);
   const [boxLabelSize, setBoxLabelSize] = useState('normal');
   const [boxLabelTitle, setBoxLabelTitle] = useState('กล่องอุปกรณ์ MDEC');
   const [boxLabelNote, setBoxLabelNote] = useState('');
@@ -1264,12 +1265,12 @@ function MainApp() {
   };
 
 
-  const saveSelectedAsStorageBoxAndPrint = async () => {
+  const saveSelectedAsStorageBox = async () => {
     if (!user) return;
     if (selectedItems.length === 0) return alert('❌ กรุณาเลือกอุปกรณ์ก่อนบันทึกเป็นกล่องเก็บของ');
     const boxName = String(boxLabelTitle || '').trim();
     if (!boxName) return alert('❌ กรุณาระบุชื่อกล่องเก็บของ');
-    const ok = confirm('บันทึกอุปกรณ์ที่เลือก ' + selectedItems.length + ' รายการ ให้อยู่ใน "' + boxName + '" และพิมพ์ฉลากหรือไม่?');
+    const ok = confirm('บันทึกอุปกรณ์ที่เลือก ' + selectedItems.length + ' รายการ ให้อยู่ใน "' + boxName + '" หรือไม่?\n\nหลังบันทึกแล้วให้ไปพิมพ์ฉลากจากหน้า “กล่องเก็บของ” เพื่อให้ฉลากตรงกับข้อมูลกล่องล่าสุด');
     if (!ok) return;
     try {
       const now = new Date().toISOString();
@@ -1280,8 +1281,8 @@ function MainApp() {
       const newBox = {
         id: boxId,
         name: boxName,
-        note: boxLabelNote || '',
-        size: boxLabelSize || 'normal',
+        note: boxLabelNote || existing?.note || '',
+        size: boxLabelSize || existing?.size || 'normal',
         itemIds,
         createdAt: existing?.createdAt || now,
         updatedAt: now
@@ -1291,9 +1292,10 @@ function MainApp() {
       setSettingsOptions(newSettings);
       await setDoc(getSettingsDoc(), newSettings);
       await Promise.all(itemIds.map((id) => setDoc(getItemDoc(id), { storageBoxId: boxId, storageBoxName: boxName, storageBoxUpdatedAt: now }, { merge: true })));
-      await logAction('บันทึกกล่องเก็บของ', boxName, 'บันทึกอุปกรณ์ ' + itemIds.length + ' รายการเข้ากล่อง และเตรียมพิมพ์ฉลาก');
-      alert('✅ บันทึกเป็นกล่องเก็บของเรียบร้อยแล้ว\nระบบจะเปิดหน้าพิมพ์ฉลากต่อ');
-      setTimeout(() => window.print(), 250);
+      await logAction('บันทึกกล่องเก็บของ', boxName, 'บันทึกอุปกรณ์ ' + itemIds.length + ' รายการเข้ากล่อง');
+      setShowStorageBoxAssignModal(false);
+      setShowStorageBoxesModal(true);
+      alert('✅ บันทึกกล่องเก็บของเรียบร้อยแล้ว\nหากต้องการพิมพ์ฉลาก ให้กดปุ่ม “พิมพ์ฉลาก” จากหน้ากล่องเก็บของ');
     } catch (error) {
       console.error(error);
       alert('❌ บันทึกกล่องเก็บของไม่สำเร็จ: ' + error.message);
@@ -1400,7 +1402,7 @@ function MainApp() {
               <Icons.Folder className="w-6 h-6" /> โหมดพิมพ์ฉลากกล่องเก็บของ ({selectedLabelItems.length} รายการ)
             </h2>
             <p className="text-slate-300 text-sm font-bold mt-1">
-              ดีไซน์ใหม่สำหรับเครื่องปริ้นเลเซอร์ขาวดำ: เส้นคมชัด ใช้หมึกน้อย อ่านง่าย ไม่มี QR Code
+              พิมพ์จากข้อมูลกล่องเก็บของล่าสุดเท่านั้น: ถ้าแก้รายการในกล่องแล้วกดพิมพ์ใหม่ ฉลากจะตรงกับข้อมูลปัจจุบัน
             </p>
           </div>
 
@@ -1418,13 +1420,10 @@ function MainApp() {
                 </button>
               ))}
             </div>
-            <button onClick={saveSelectedAsStorageBoxAndPrint} className="bg-emerald-600 hover:bg-emerald-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
-              <Icons.CheckCircle className="w-5 h-5"/> บันทึกเป็นกล่อง + พิมพ์
-            </button>
             <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
-              <Icons.Printer className="w-5 h-5"/> พิมพ์อย่างเดียว
+              <Icons.Printer className="w-5 h-5"/> พิมพ์ฉลาก
             </button>
-            <button onClick={() => setShowBoxLabelPrintModal(false)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button>
+            <button onClick={() => { setShowBoxLabelPrintModal(false); setShowStorageBoxesModal(true); }} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">กลับหน้ากล่อง</button>
           </div>
         </div>
 
@@ -2241,12 +2240,77 @@ function MainApp() {
           </div>
           <div className="flex gap-2 sm:gap-3 overflow-x-auto custom-scrollbar">
             <button onClick={() => setShowPrintModal(true)} className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.QrCode className="w-5 h-5"/> <span className="hidden sm:inline">พิมพ์ QR</span></button>
-            <button onClick={() => setShowBoxLabelPrintModal(true)} className="px-4 py-3 bg-cyan-700 hover:bg-cyan-600 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Folder className="w-5 h-5"/> <span className="hidden sm:inline">ฉลากกล่อง</span></button>
+            <button onClick={() => { setBoxLabelTitle('กล่องอุปกรณ์ MDEC'); setBoxLabelNote(''); setShowStorageBoxAssignModal(true); }} className="px-4 py-3 bg-cyan-700 hover:bg-cyan-600 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Folder className="w-5 h-5"/> <span className="hidden sm:inline">สร้าง/เพิ่มเข้ากล่อง</span></button>
             <button onClick={handleCreateBundleFromSelection} className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Layers className="w-5 h-5"/> <span className="hidden sm:inline">จัดเซ็ต</span></button>
             <button onClick={handleOpenBatchBorrow} className="px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.UserPlus className="w-5 h-5"/> <span className="hidden sm:inline">ยืมออก</span></button>
             <button onClick={handleOpenBatchEvent} className="px-4 py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Truck className="w-5 h-5"/> <span className="hidden sm:inline">ออกงาน</span></button>
             <button onClick={handleOpenBatchReturn} className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.CheckCircle className="w-5 h-5"/> <span className="hidden sm:inline">รับคืน</span></button>
             <button onClick={() => setSelectedItems([])} className={`px-4 py-3 rounded-2xl font-bold transition-colors border shrink-0 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600'}`}><Icons.X className="w-5 h-5" /></button>
+          </div>
+        </div>
+      )}
+
+      {/* 📦 Modal สร้าง/เพิ่มเข้ากล่องเก็บของ */}
+      {showStorageBoxAssignModal && (
+        <div className={`${theme.modalOverlay} fixed inset-0 backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden ${theme.cardBg}`}>
+            <div className={`flex justify-between items-start gap-4 p-6 border-b ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
+                  <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-cyan-900/50 text-cyan-400' : 'bg-cyan-100 text-cyan-600'}`}><Icons.Folder className="w-6 h-6"/></div>
+                  สร้าง/เพิ่มเข้ากล่อง
+                </h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>บันทึกตำแหน่งกล่องจากรายการที่เลือก ส่วนฉลากให้พิมพ์จากหน้า “กล่องเก็บของ” เพื่อให้ข้อมูลตรงล่าสุดเสมอ</p>
+              </div>
+              <button type="button" onClick={() => setShowStorageBoxAssignModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`font-black mb-2 ${theme.textTitle}`}>รายการที่เลือก {selectedItems.length} ชิ้น</div>
+                <div className="max-h-40 overflow-y-auto custom-scrollbar space-y-1.5 pr-1">
+                  {selectedItems.map((id) => {
+                    const item = items.find((i) => i.id === id);
+                    if (!item) return null;
+                    return <div key={id} className={`text-sm font-bold ${theme.textMuted}`}>- {item.name} {item.sn ? `(S.N. ${item.sn})` : ''}</div>;
+                  })}
+                </div>
+              </div>
+
+              <label className="block">
+                <span className={`block text-base font-black mb-2 ${theme.textTitle}`}>ชื่อกล่องเก็บของ</span>
+                <input
+                  list="storage-box-name-list"
+                  value={boxLabelTitle}
+                  onChange={(e) => setBoxLabelTitle(e.target.value)}
+                  className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`}
+                  placeholder="เช่น กล่องไลฟ์สด A / กล่องสาย HDMI"
+                />
+                <datalist id="storage-box-name-list">
+                  {(settingsOptions.storageBoxes || []).map((box) => <option key={box.id} value={box.name} />)}
+                </datalist>
+                <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>ถ้าพิมพ์ชื่อกล่องเดิม ระบบจะอัปเดตรายการในกล่องนั้นเป็นรายการที่เลือกอยู่ตอนนี้</p>
+              </label>
+
+              <label className="block">
+                <span className={`block text-base font-black mb-2 ${theme.textTitle}`}>หมายเหตุบนฉลาก / ข้อควรระวัง</span>
+                <input
+                  value={boxLabelNote}
+                  onChange={(e) => setBoxLabelNote(e.target.value)}
+                  className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`}
+                  placeholder="เช่น ห้ามแยกชุด / เก็บหลังงานทุกครั้ง"
+                />
+              </label>
+
+              <div className={`p-4 rounded-2xl border text-sm font-bold ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+                หลังบันทึกแล้ว ให้ไปที่เมนู “กล่องเก็บของ” แล้วกด “พิมพ์ฉลาก” จากกล่องนั้น ฉลากจะดึงข้อมูลกล่องล่าสุดเสมอ
+              </div>
+            </div>
+
+            <div className={`p-4 border-t flex flex-col sm:flex-row gap-3 ${theme.divide}`}>
+              <button type="button" onClick={() => setShowStorageBoxAssignModal(false)} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={saveSelectedAsStorageBox} className="flex-[2] py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl text-lg shadow-md">บันทึกเป็นกล่องเก็บของ</button>
+            </div>
           </div>
         </div>
       )}
@@ -2349,7 +2413,7 @@ function MainApp() {
                 <div className={`text-center py-12 font-bold text-xl flex flex-col items-center gap-3 ${theme.textMuted}`}>
                   <Icons.Folder className="w-14 h-14" />
                   ยังไม่มีกล่องเก็บของในระบบ
-                  <p className="text-sm font-medium max-w-xl">วิธีสร้าง: เลือกอุปกรณ์จากตาราง → กด “ฉลากกล่อง” → ตั้งชื่อกล่อง → กด “บันทึกเป็นกล่อง + พิมพ์”</p>
+                  <p className="text-sm font-medium max-w-xl">วิธีสร้าง: เลือกอุปกรณ์จากตาราง → กด “สร้าง/เพิ่มเข้ากล่อง” → บันทึกกล่อง จากนั้นค่อยพิมพ์ฉลากจากหน้านี้</p>
                 </div>
               ) : (settingsOptions.storageBoxes || []).map((box) => {
                 const boxItems = (box.itemIds || []).map((id) => items.find((item) => item.id === id)).filter(Boolean);
@@ -2381,7 +2445,7 @@ function MainApp() {
                         </div>
                       </div>
                       <div className="flex flex-col gap-2 w-full lg:w-56 shrink-0">
-                        <button type="button" onClick={() => openStorageBoxLabel(box)} className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.Printer className="w-5 h-5"/> พิมพ์ฉลากซ้ำ</button>
+                        <button type="button" onClick={() => openStorageBoxLabel(box)} className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.Printer className="w-5 h-5"/> พิมพ์ฉลาก</button>
                         <button type="button" onClick={() => selectStorageBoxItems(box)} className={`px-4 py-3 font-black rounded-xl border flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.CheckCircle className="w-5 h-5"/> เลือกรายการนี้</button>
                         <button type="button" onClick={() => deleteStorageBox(box)} className="px-4 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.Trash className="w-4 h-4"/> ลบกล่อง</button>
                       </div>
