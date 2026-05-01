@@ -157,6 +157,7 @@ function MainApp() {
   const [showEmptyCategories, setShowEmptyCategories] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   // 🖨️ สถานะสำหรับ Print & Scan QR Code
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -2026,40 +2027,22 @@ function MainApp() {
                 <Icons.Monitor className="w-5 h-5" /><span className="hidden sm:inline">Dashboard</span>
               </button>
 
-              <button type="button" onClick={() => { setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-fuchsia-600 text-white hover:bg-fuchsia-500' : 'bg-fuchsia-600 text-white hover:bg-fuchsia-700'}`}>
-                <Icons.Layers className="w-5 h-5" /> จัดการเซ็ต
-              </button>
-
-              {(settingsOptions.bundles && settingsOptions.bundles.length > 0) && (
-                <button type="button" onClick={() => setShowBundleModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-purple-600 text-white hover:bg-purple-500' : 'bg-purple-600 text-white hover:bg-purple-700'}`}>
-                  <Icons.Package className="w-5 h-5" /> ใช้งานเซ็ต
-                </button>
-              )}
-
-              <button type="button" onClick={() => setShowStorageBoxesModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-cyan-600 text-white hover:bg-cyan-500' : 'bg-cyan-600 text-white hover:bg-cyan-700'}`}>
+              <button type="button" onClick={() => setShowStorageBoxesModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-3 font-black rounded-xl shadow-md transition-colors text-base whitespace-nowrap ${isDarkMode ? 'bg-cyan-600 text-white hover:bg-cyan-500' : 'bg-cyan-600 text-white hover:bg-cyan-700'}`}>
                 <Icons.Folder className="w-5 h-5" /> กล่องเก็บของ
               </button>
 
-              <button type="button" onClick={() => setShowPersonalItemsModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-pink-600 text-white hover:bg-pink-500' : 'bg-pink-600 text-white hover:bg-pink-700'}`}>
-                  <Icons.Tag className="w-5 h-5" /> ของส่วนตัว
+              <button type="button" onClick={() => setShowTodayModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-3 font-black rounded-xl shadow-md transition-colors text-base whitespace-nowrap ${isDarkMode ? 'bg-sky-600 text-white hover:bg-sky-500' : 'bg-sky-600 text-white hover:bg-sky-700'}`}>
+                <Icons.History className="w-5 h-5" /> วันนี้
               </button>
 
-              <button type="button" onClick={() => setShowQuickReturnModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
-                  <Icons.Users className="w-5 h-5" /> ติดตามของรอคืน
-              </button>
-
-              <button type="button" onClick={() => setShowTodayModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-sky-600 text-white hover:bg-sky-500' : 'bg-sky-600 text-white hover:bg-sky-700'}`}>
-                  <Icons.History className="w-5 h-5" /> วันนี้
-              </button>
-
-              <button type="button" onClick={() => setShowAuditModal(true)} className={`flex items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors ${theme.btnCancel}`} title="ดูประวัติการทำงานส่วนกลาง">
-                <Icons.ClipboardList className="w-5 h-5" />
-              </button>
-              
               <button type="button" onClick={() => { setSettingsTab('categories'); setShowSettings(true); }} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors shadow-sm ${theme.btnCancel}`}>
                 <Icons.Settings className="w-5 h-5" /><span className="hidden sm:inline">ตั้งค่า</span>
               </button>
-              
+
+              <button type="button" onClick={() => setShowMoreMenu(true)} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 font-black rounded-xl transition-colors shadow-sm border ${theme.btnSecondary}`} title="เมนูเพิ่มเติม">
+                <Icons.ViewGrid className="w-5 h-5" /><span className="hidden sm:inline">เพิ่มเติม</span>
+              </button>
+
               <button type="button" onClick={handleLogout} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors flex ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-800/60 border border-rose-800' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'}`} title="ออกจากระบบแอดมิน">
                 <Icons.Unlock className="w-5 h-5" />
               </button>
@@ -2073,6 +2056,54 @@ function MainApp() {
           )}
         </div>
       </div>
+
+      {/* เมนูเพิ่มเติม: รวมปุ่มรองเพื่อลดความรกของหัวเว็บ */}
+      {showMoreMenu && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden ${theme.cardBg}`}>
+            <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
+                  <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
+                    <Icons.ViewGrid className="w-6 h-6" />
+                  </div>
+                  เมนูเพิ่มเติม
+                </h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมฟังก์ชันที่ไม่ได้กดบ่อย ให้หัวเว็บโล่งขึ้น</p>
+              </div>
+              <button type="button" onClick={() => setShowMoreMenu(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button type="button" onClick={() => { setShowMoreMenu(false); setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                <div className="font-black text-lg flex items-center gap-2"><Icons.Layers className="w-5 h-5" /> จัดการเซ็ต</div>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สร้าง/แก้ไขชุดอุปกรณ์ที่ใช้บ่อย</p>
+              </button>
+              {(settingsOptions.bundles && settingsOptions.bundles.length > 0) && (
+                <button type="button" onClick={() => { setShowMoreMenu(false); setShowBundleModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                  <div className="font-black text-lg flex items-center gap-2"><Icons.Package className="w-5 h-5" /> ใช้งานเซ็ต</div>
+                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ยืม/ออกงาน/รับคืนเป็นชุด</p>
+                </button>
+              )}
+              <button type="button" onClick={() => { setShowMoreMenu(false); setShowQuickReturnModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                <div className="font-black text-lg flex items-center gap-2"><Icons.Users className="w-5 h-5" /> ติดตามของรอคืน</div>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูตามผู้ยืมหรือชื่องาน</p>
+              </button>
+              <button type="button" onClick={() => { setShowMoreMenu(false); setShowPersonalItemsModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                <div className="font-black text-lg flex items-center gap-2"><Icons.Tag className="w-5 h-5" /> ของส่วนตัว</div>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูอุปกรณ์ BYOD แยกตามเจ้าของ</p>
+              </button>
+              <button type="button" onClick={() => { setShowMoreMenu(false); setShowAuditModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> ประวัติการทำงาน</div>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Audit log ของระบบ</p>
+              </button>
+              <button type="button" onClick={() => { setShowMoreMenu(false); setSettingsTab('database'); setShowSettings(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                <div className="font-black text-lg flex items-center gap-2"><Icons.Download className="w-5 h-5" /> สำรองข้อมูล</div>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Export / Restore / ล้างประวัติ</p>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* แจ้งเตือนของเลยกำหนดคืน */}
       {overdueItems.length > 0 && (
@@ -2631,18 +2662,21 @@ function MainApp() {
                         </div>
                         {box.note && <p className={`text-sm font-bold mb-2 ${theme.textMuted}`}>หมายเหตุ: {box.note}</p>}
                         <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>หมวดหมู่ในกล่อง: {categories.length ? categories.join(', ') : '-'}</p>
-                        <div className={`p-3 rounded-xl border max-h-48 overflow-y-auto custom-scrollbar ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-white border-slate-200'}`}>
                           {boxItems.length === 0 ? (
                             <div className={`text-center py-4 font-bold ${theme.textMuted}`}>ยังไม่มีอุปกรณ์ที่พบในกล่องนี้</div>
-                          ) : boxItems.map((item) => (
-                            <div key={item.id} className={`flex justify-between items-center gap-3 py-2 border-b last:border-0 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                              <div className="min-w-0">
-                                <div className={`font-bold truncate ${theme.textMain}`}>{item.name}</div>
-                                <div className={`text-xs font-mono ${theme.textMuted}`}>S.N.: {item.sn || '-'} • {item.location || '-'}</div>
-                              </div>
-                              <span className={`text-[11px] px-2 py-1 rounded-md font-bold whitespace-nowrap ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{item.category || '-'}</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              {boxItems.slice(0, 6).map((item) => (
+                                <span key={item.id} className={`max-w-full truncate text-xs sm:text-sm font-bold px-3 py-2 rounded-xl border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                                  {item.name}
+                                </span>
+                              ))}
+                              {boxItems.length > 6 && (
+                                <span className={`text-xs sm:text-sm font-black px-3 py-2 rounded-xl ${isDarkMode ? 'bg-cyan-900/40 text-cyan-400' : 'bg-cyan-100 text-cyan-700'}`}>+ อีก {boxItems.length - 6} รายการ</span>
+                              )}
                             </div>
-                          ))}
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-col gap-2 w-full lg:w-56 shrink-0">
