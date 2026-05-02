@@ -89,6 +89,7 @@ function MainApp() {
     staff: ['แอดมิน', 'อื่นๆ'],
     bundles: [],
     storageBoxes: [],
+    prepLists: [],
     backupMeta: {}
   });
 
@@ -170,6 +171,10 @@ function MainApp() {
   const [showStorageBoxEditor, setShowStorageBoxEditor] = useState(false);
   const [storageBoxForm, setStorageBoxForm] = useState({ id: null, name: '', note: '', size: 'normal', itemIds: [] });
   const [storageBoxSearchTerm, setStorageBoxSearchTerm] = useState('');
+  const [showPrepListsModal, setShowPrepListsModal] = useState(false);
+  const [showPrepAssignModal, setShowPrepAssignModal] = useState(false);
+  const [prepOpenId, setPrepOpenId] = useState(null);
+  const [prepForm, setPrepForm] = useState({ id: null, name: '', useDate: '', staff: '', note: '', itemIds: [], checkedIds: [], status: 'pending' });
   const [boxLabelSize, setBoxLabelSize] = useState('normal');
   const [boxLabelTitle, setBoxLabelTitle] = useState('กล่องอุปกรณ์ MDEC');
   const [boxLabelNote, setBoxLabelNote] = useState('');
@@ -276,6 +281,7 @@ function MainApp() {
           staff: data.staff || ['แอดมิน', 'อื่นๆ'],
           bundles: data.bundles || [],
           storageBoxes: data.storageBoxes || [],
+          prepLists: data.prepLists || [],
           backupMeta: data.backupMeta || {}
         });
       } else {
@@ -285,6 +291,7 @@ function MainApp() {
           staff: ['แอดมิน', 'อื่นๆ'],
           bundles: [],
           storageBoxes: [],
+          prepLists: [],
           backupMeta: {} 
         };
         setDoc(settingsRef, defaultSettings).catch(e => console.log("Init settings failed:", e));
@@ -1418,6 +1425,161 @@ function MainApp() {
     setShowStorageBoxesModal(false);
   };
 
+  const openPrepAssignFromSelection = () => {
+    if (selectedItems.length === 0) return alert('❌ กรุณาเลือกอุปกรณ์ก่อนสร้างรายการเตรียมของ');
+    setPrepForm({
+      id: null,
+      name: '',
+      useDate: '',
+      staff: '',
+      note: '',
+      itemIds: [...new Set(selectedItems)],
+      checkedIds: [],
+      status: 'pending'
+    });
+    setShowPrepAssignModal(true);
+  };
+
+  const savePrepLists = async (newPrepLists, actionLabel = '', targetName = '', details = '') => {
+    const newSettings = { ...settingsOptions, prepLists: newPrepLists };
+    setSettingsOptions(newSettings);
+    await setDoc(getSettingsDoc(), newSettings);
+    if (actionLabel) await logAction(actionLabel, targetName || 'รายการเตรียมของ', details);
+  };
+
+  const handleSavePrepList = async () => {
+    if (!user) return;
+    const prepName = String(prepForm.name || '').trim();
+    if (!prepName) return alert('❌ กรุณาระบุชื่องาน / ชื่อรายการเตรียมของ');
+    if (!prepForm.useDate) return alert('❌ กรุณาเลือกวันที่ใช้งาน');
+    const itemIds = [...new Set(prepForm.itemIds || [])].filter((id) => items.some((item) => item.id === id));
+    if (itemIds.length === 0) return alert('❌ กรุณาเลือกอุปกรณ์อย่างน้อย 1 ชิ้น');
+
+    try {
+      const now = new Date().toISOString();
+      const existingLists = settingsOptions.prepLists || [];
+      const prepId = prepForm.id || `prep_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const oldPrep = existingLists.find((prep) => prep.id === prepId);
+      const newPrep = {
+        id: prepId,
+        name: prepName,
+        useDate: prepForm.useDate,
+        staff: prepForm.staff || '',
+        note: prepForm.note || '',
+        itemIds,
+        checkedIds: (prepForm.checkedIds || []).filter((id) => itemIds.includes(id)),
+        status: oldPrep?.status || 'pending',
+        createdAt: oldPrep?.createdAt || now,
+        updatedAt: now
+      };
+      const newPrepLists = [...existingLists.filter((prep) => prep.id !== prepId), newPrep]
+        .sort((a, b) => String(a.useDate || '').localeCompare(String(b.useDate || '')) || String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true }));
+      await savePrepLists(newPrepLists, prepForm.id ? 'แก้ไขรายการเตรียมของ' : 'สร้างรายการเตรียมของ', prepName, `บันทึกอุปกรณ์ ${itemIds.length} รายการ วันที่ใช้งาน ${prepForm.useDate}`);
+      setShowPrepAssignModal(false);
+      setShowPrepListsModal(true);
+      setSelectedItems([]);
+      alert('✅ บันทึกรายการเตรียมของเรียบร้อยแล้ว\nสถานะอุปกรณ์ยังไม่ถูกเปลี่ยน จนกว่าจะกด “ยืนยันนำออกงาน”');
+    } catch (error) {
+      console.error(error);
+      alert('❌ บันทึกรายการเตรียมของไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  const updatePrepCheckedIds = async (prep, checkedIds) => {
+    if (!user || !prep?.id) return;
+    try {
+      const newPrepLists = (settingsOptions.prepLists || []).map((item) =>
+        item.id === prep.id ? { ...item, checkedIds: [...new Set(checkedIds)], updatedAt: new Date().toISOString() } : item
+      );
+      await savePrepLists(newPrepLists);
+    } catch (error) {
+      console.error(error);
+      alert('❌ อัปเดตเช็กลิสต์ไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  const togglePrepChecklistItem = async (prep, itemId) => {
+    const current = prep.checkedIds || [];
+    const next = current.includes(itemId) ? current.filter((id) => id !== itemId) : [...current, itemId];
+    await updatePrepCheckedIds(prep, next);
+  };
+
+  const toggleAllPrepChecklist = async (prep) => {
+    const itemIds = (prep.itemIds || []).filter((id) => items.some((item) => item.id === id));
+    const checkedIds = prep.checkedIds || [];
+    const allChecked = itemIds.length > 0 && itemIds.every((id) => checkedIds.includes(id));
+    await updatePrepCheckedIds(prep, allChecked ? [] : itemIds);
+  };
+
+  const openPrepEditor = (prep = null) => {
+    if (prep) {
+      setPrepForm({
+        id: prep.id,
+        name: prep.name || '',
+        useDate: prep.useDate || '',
+        staff: prep.staff || '',
+        note: prep.note || '',
+        itemIds: [...(prep.itemIds || [])],
+        checkedIds: [...(prep.checkedIds || [])],
+        status: prep.status || 'pending'
+      });
+    } else {
+      setPrepForm({ id: null, name: '', useDate: '', staff: '', note: '', itemIds: [...new Set(selectedItems)], checkedIds: [], status: 'pending' });
+    }
+    setShowPrepListsModal(false);
+    setShowPrepAssignModal(true);
+  };
+
+  const startPrepAsEvent = (prep) => {
+    const prepItems = (prep.itemIds || []).map((id) => items.find((item) => item.id === id)).filter(Boolean);
+    const availableIds = prepItems.filter((item) => item.status === 'available').map((item) => item.id);
+    const unavailableItems = prepItems.filter((item) => item.status !== 'available');
+    if (availableIds.length === 0) return alert('❌ ยังนำออกงานไม่ได้ เพราะอุปกรณ์ในรายการนี้ไม่มีชิ้นที่พร้อมใช้งาน');
+    if (unavailableItems.length > 0) {
+      const proceed = confirm(`⚠️ มีอุปกรณ์บางชิ้นไม่พร้อมใช้งาน ${unavailableItems.length} รายการ\n\n${unavailableItems.map((item) => '- ' + item.name).slice(0, 8).join('\n')}\n\nต้องการนำออกเฉพาะชิ้นที่พร้อมใช้งานหรือไม่?`);
+      if (!proceed) return;
+    }
+    setEventTargetIds([...availableIds]);
+    setEventChecklist([]);
+    setEventData({
+      eventName: prep.name || '',
+      returnDate: '',
+      staff: prep.staff || '',
+      newStaff: '',
+      note: prep.note ? `จากรายการเตรียมของ: ${prep.note}` : 'จากรายการเตรียมของ'
+    });
+    setShowPrepListsModal(false);
+  };
+
+  const cancelPrepList = async (prep) => {
+    if (!user || !prep?.id) return;
+    const ok = confirm('ยกเลิกรายการเตรียมของ "' + (prep.name || '-') + '" หรือไม่?\n\nรายการนี้จะยังถูกเก็บไว้แต่สถานะจะเป็น “ยกเลิก”');
+    if (!ok) return;
+    try {
+      const newPrepLists = (settingsOptions.prepLists || []).map((item) =>
+        item.id === prep.id ? { ...item, status: 'cancelled', updatedAt: new Date().toISOString() } : item
+      );
+      await savePrepLists(newPrepLists, 'ยกเลิกรายการเตรียมของ', prep.name || '-', 'เปลี่ยนสถานะเป็นยกเลิก');
+    } catch (error) {
+      console.error(error);
+      alert('❌ ยกเลิกรายการไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  const deletePrepList = async (prep) => {
+    if (!user || !prep?.id) return;
+    const ok = confirm('ลบรายการเตรียมของ "' + (prep.name || '-') + '" ออกจากระบบหรือไม่?\n\nการลบนี้ไม่กระทบสถานะอุปกรณ์');
+    if (!ok) return;
+    try {
+      const newPrepLists = (settingsOptions.prepLists || []).filter((item) => item.id !== prep.id);
+      await savePrepLists(newPrepLists, 'ลบรายการเตรียมของ', prep.name || '-', 'ลบรายการเตรียมของ โดยไม่กระทบอุปกรณ์');
+      alert('✅ ลบรายการเตรียมของแล้ว');
+    } catch (error) {
+      console.error(error);
+      alert('❌ ลบรายการไม่สำเร็จ: ' + error.message);
+    }
+  };
+
   const deleteStorageBox = async (box) => {
     if (!user || !box?.id) return;
     const ok = confirm('ลบข้อมูลกล่อง "' + (box.name || '-') + '" หรือไม่?\n\nระบบจะนำชื่อกล่องออกจากอุปกรณ์ในกล่องนี้ แต่จะไม่ลบรายการอุปกรณ์');
@@ -2103,6 +2265,10 @@ function MainApp() {
                 <div className="font-black text-lg flex items-center gap-2"><Icons.Users className="w-5 h-5" /> ติดตามของรอคืน</div>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูตามผู้ยืมหรือชื่องาน</p>
               </button>
+              <button type="button" onClick={() => { setShowMoreMenu(false); setShowPrepListsModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายการเตรียมของ</div>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>วางแผนจัดของล่วงหน้า ยังไม่เปลี่ยนสถานะจริง</p>
+              </button>
               <button type="button" onClick={() => { setShowMoreMenu(false); setShowPersonalItemsModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
                 <div className="font-black text-lg flex items-center gap-2"><Icons.Tag className="w-5 h-5" /> ของส่วนตัว</div>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูอุปกรณ์ BYOD แยกตามเจ้าของ</p>
@@ -2386,6 +2552,7 @@ function MainApp() {
             <button onClick={() => setShowPrintModal(true)} className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.QrCode className="w-5 h-5"/> <span className="hidden sm:inline">พิมพ์ QR</span></button>
             <button onClick={() => { setBoxLabelTitle('กล่องอุปกรณ์ MDEC'); setBoxLabelNote(''); setShowStorageBoxAssignModal(true); }} className="px-4 py-3 bg-cyan-700 hover:bg-cyan-600 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Folder className="w-5 h-5"/> <span className="hidden sm:inline">สร้าง/เพิ่มเข้ากล่อง</span></button>
             <button onClick={handleCreateBundleFromSelection} className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Layers className="w-5 h-5"/> <span className="hidden sm:inline">จัดเซ็ต</span></button>
+            <button onClick={openPrepAssignFromSelection} className="px-4 py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.ClipboardList className="w-5 h-5"/> <span className="hidden sm:inline">เตรียมของ</span></button>
             <button onClick={handleOpenBatchBorrow} className="px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.UserPlus className="w-5 h-5"/> <span className="hidden sm:inline">ยืมออก</span></button>
             <button onClick={handleOpenBatchEvent} className="px-4 py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Truck className="w-5 h-5"/> <span className="hidden sm:inline">ออกงาน</span></button>
             <button onClick={handleOpenBatchReturn} className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.CheckCircle className="w-5 h-5"/> <span className="hidden sm:inline">รับคืน</span></button>
@@ -2454,6 +2621,170 @@ function MainApp() {
             <div className={`p-4 border-t flex flex-col sm:flex-row gap-3 ${theme.divide}`}>
               <button type="button" onClick={() => setShowStorageBoxAssignModal(false)} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button type="button" onClick={saveSelectedAsStorageBox} className="flex-[2] py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl text-lg shadow-md">บันทึกเป็นกล่องเก็บของ</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🧾 Modal สร้างรายการเตรียมของ */}
+      {showPrepAssignModal && (
+        <div className={`${theme.modalOverlay} fixed inset-0 backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden ${theme.cardBg}`}>
+            <div className={`flex justify-between items-start gap-4 p-6 border-b ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
+                  <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-sky-900/50 text-sky-400' : 'bg-sky-100 text-sky-600'}`}><Icons.ClipboardList className="w-6 h-6"/></div>
+                  {prepForm.id ? 'แก้ไขรายการเตรียมของ' : 'สร้างรายการเตรียมของ'}
+                </h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้วางแผนจัดของล่วงหน้า โดยยังไม่เปลี่ยนสถานะอุปกรณ์จริง</p>
+              </div>
+              <button type="button" onClick={() => { setShowPrepAssignModal(false); setShowPrepListsModal(true); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              <label className="block">
+                <span className={`block text-base font-black mb-2 ${theme.textTitle}`}>ชื่องาน / ชื่อรายการเตรียมของ <span className="text-rose-500">*</span></span>
+                <input value={prepForm.name || ''} onChange={(e) => setPrepForm({ ...prepForm, name: e.target.value })} className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น งานประชุมผู้ปกครอง / ไลฟ์สดพิธีเปิด" />
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label className="block">
+                  <span className={`block text-base font-black mb-2 ${theme.textTitle}`}>วันที่ใช้งาน <span className="text-rose-500">*</span></span>
+                  <input type="date" value={prepForm.useDate || ''} onChange={(e) => setPrepForm({ ...prepForm, useDate: e.target.value })} className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} />
+                </label>
+                <label className="block">
+                  <span className={`block text-base font-black mb-2 ${theme.textTitle}`}>ผู้รับผิดชอบ</span>
+                  <select value={prepForm.staff || ''} onChange={(e) => setPrepForm({ ...prepForm, staff: e.target.value })} className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`}>
+                    <option value="">-- เลือกผู้รับผิดชอบ --</option>
+                    {(settingsOptions.staff || []).map((staff) => <option key={staff} value={staff}>{staff}</option>)}
+                  </select>
+                </label>
+              </div>
+
+              <label className="block">
+                <span className={`block text-base font-black mb-2 ${theme.textTitle}`}>หมายเหตุ</span>
+                <textarea value={prepForm.note || ''} onChange={(e) => setPrepForm({ ...prepForm, note: e.target.value })} className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border resize-none ${theme.input}`} rows={3} placeholder="เช่น เตรียมไว้ก่อนวันงาน / ต้องมีแบตสำรอง / ใช้ห้องประชุมราชพฤกษ์" />
+              </label>
+
+              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`font-black mb-2 ${theme.textTitle}`}>อุปกรณ์ในรายการ {prepForm.itemIds.length} ชิ้น</div>
+                <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                  {prepForm.itemIds.length === 0 ? (
+                    <div className={`text-sm font-bold ${theme.textMuted}`}>ยังไม่มีอุปกรณ์ในรายการนี้</div>
+                  ) : prepForm.itemIds.map((id) => {
+                    const item = items.find((i) => i.id === id);
+                    if (!item) return null;
+                    const s = STATUSES.find((st) => st.id === item.status) || STATUSES[0];
+                    return (
+                      <div key={id} className={`flex justify-between items-center gap-2 p-3 rounded-xl border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className="min-w-0">
+                          <div className={`font-bold truncate ${theme.textTitle}`}>{item.name}</div>
+                          <div className={`text-xs font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'} {item.storageBoxName ? `• กล่อง: ${item.storageBoxName}` : ''}</div>
+                        </div>
+                        <span className={`text-[11px] px-2 py-1 rounded-md font-bold whitespace-nowrap ${isDarkMode ? s.darkColor : s.color}`}>{s.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className={`p-4 border-t flex flex-col sm:flex-row gap-3 ${theme.divide}`}>
+              <button type="button" onClick={() => { setShowPrepAssignModal(false); setShowPrepListsModal(true); }} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={handleSavePrepList} className="flex-[2] py-4 bg-sky-600 hover:bg-sky-500 text-white font-black rounded-xl text-lg shadow-md">บันทึกรายการเตรียมของ</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🧾 Modal รายการเตรียมของ */}
+      {showPrepListsModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
+            <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
+                  <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-sky-900/50 text-sky-400' : 'bg-sky-100 text-sky-600'}`}><Icons.ClipboardList className="w-6 h-6"/></div>
+                  รายการเตรียมของ
+                </h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เตรียมรายการล่วงหน้าได้ โดยยังไม่เปลี่ยนสถานะอุปกรณ์ จนกว่าจะกดนำออกงานจริง</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button type="button" onClick={() => openPrepEditor(null)} disabled={selectedItems.length === 0} className={`px-4 py-2.5 rounded-xl font-black transition-colors ${selectedItems.length === 0 ? (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-sky-600 hover:bg-sky-500 text-white shadow-md'}`}>
+                  + จากรายการที่เลือก
+                </button>
+                <button type="button" onClick={() => setShowPrepListsModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+              {(settingsOptions.prepLists || []).length === 0 ? (
+                <div className={`text-center py-12 font-bold text-xl flex flex-col items-center gap-3 ${theme.textMuted}`}>
+                  <Icons.ClipboardList className="w-14 h-14" />
+                  ยังไม่มีรายการเตรียมของ
+                  <p className="text-sm font-medium max-w-xl">เลือกอุปกรณ์จากตาราง แล้วกด “เตรียมของ” เพื่อวางแผนรายการล่วงหน้า</p>
+                </div>
+              ) : (settingsOptions.prepLists || []).slice().sort((a, b) => String(a.useDate || '').localeCompare(String(b.useDate || ''))).map((prep) => {
+                const prepItems = (prep.itemIds || []).map((id) => items.find((item) => item.id === id)).filter(Boolean);
+                const missingCount = (prep.itemIds || []).length - prepItems.length;
+                const unavailableItems = prepItems.filter((item) => item.status !== 'available');
+                const checkedIds = prep.checkedIds || [];
+                const checkedCount = prepItems.filter((item) => checkedIds.includes(item.id)).length;
+                const isOpen = prepOpenId === prep.id;
+                const isCancelled = prep.status === 'cancelled';
+                return (
+                  <div key={prep.id} className={`p-5 rounded-2xl border transition-colors ${isCancelled ? (isDarkMode ? 'bg-slate-800/30 border-slate-700 opacity-75' : 'bg-slate-50 border-slate-200 opacity-75') : (isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200')}`}>
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                          <h4 className={`text-xl font-black truncate ${theme.textTitle}`}>🧾 {prep.name}</h4>
+                          <span className={`text-sm font-bold px-2 py-1 rounded-md ${isDarkMode ? 'bg-sky-900/40 text-sky-400' : 'bg-sky-100 text-sky-700'}`}>{prepItems.length} รายการ</span>
+                          {prep.useDate && <span className={`text-sm font-bold px-2 py-1 rounded-md ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-700'}`}>ใช้วันที่ {new Date(prep.useDate).toLocaleDateString('th-TH')}</span>}
+                          {unavailableItems.length > 0 && !isCancelled && <span className="text-sm font-bold px-2 py-1 rounded-md bg-amber-100 text-amber-700">ไม่พร้อม {unavailableItems.length}</span>}
+                          {missingCount > 0 && <span className="text-sm font-bold px-2 py-1 rounded-md bg-rose-100 text-rose-700">หายจากระบบ {missingCount}</span>}
+                          {isCancelled && <span className="text-sm font-bold px-2 py-1 rounded-md bg-slate-200 text-slate-600">ยกเลิก</span>}
+                        </div>
+                        <div className={`text-sm font-bold ${theme.textMuted}`}>
+                          ผู้รับผิดชอบ: {prep.staff || '-'} • เช็กแล้ว {checkedCount}/{prepItems.length}
+                        </div>
+                        {prep.note && <p className={`text-sm font-bold mt-2 ${theme.textMuted}`}>หมายเหตุ: {prep.note}</p>}
+                      </div>
+                      <div className="flex flex-col gap-2 w-full lg:w-56 shrink-0">
+                        <button type="button" onClick={() => setPrepOpenId(isOpen ? null : prep.id)} className={`px-4 py-3 font-black rounded-xl border flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.CheckCircle className="w-5 h-5"/> {isOpen ? 'ซ่อนเช็กลิสต์' : 'เช็กของ'}</button>
+                        <button type="button" onClick={() => startPrepAsEvent(prep)} disabled={isCancelled} className={`px-4 py-3 font-black rounded-xl shadow-md flex items-center justify-center gap-2 ${isCancelled ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-500 text-white'}`}><Icons.Truck className="w-5 h-5"/> ยืนยันนำออกงาน</button>
+                        <button type="button" onClick={() => openPrepEditor(prep)} className="px-4 py-3 bg-sky-600 hover:bg-sky-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.Edit className="w-4 h-4"/> แก้ไข</button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button type="button" onClick={() => cancelPrepList(prep)} disabled={isCancelled} className={`px-3 py-2.5 font-black rounded-xl text-sm ${isCancelled ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-amber-500 hover:bg-amber-400 text-white'}`}>ยกเลิก</button>
+                          <button type="button" onClick={() => deletePrepList(prep)} className="px-3 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-black rounded-xl text-sm">ลบ</button>
+                        </div>
+                      </div>
+                    </div>
+                    {isOpen && (
+                      <div className={`mt-4 p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className="flex items-center justify-between gap-3 mb-3">
+                          <div className={`font-black ${theme.textTitle}`}>เช็กลิสต์เตรียมของ</div>
+                          <button type="button" onClick={() => toggleAllPrepChecklist(prep)} className={`px-3 py-1.5 rounded-lg text-sm font-black ${isDarkMode ? 'bg-sky-900/40 text-sky-400 hover:bg-sky-800' : 'bg-sky-100 text-sky-700 hover:bg-sky-200'}`}>{checkedCount === prepItems.length && prepItems.length > 0 ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}</button>
+                        </div>
+                        <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
+                          {prepItems.map((item) => {
+                            const checked = checkedIds.includes(item.id);
+                            const s = STATUSES.find((st) => st.id === item.status) || STATUSES[0];
+                            return (
+                              <label key={item.id} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer ${checked ? (isDarkMode ? 'bg-sky-900/30 border-sky-800' : 'bg-sky-50 border-sky-200') : (isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200')}`}>
+                                <input type="checkbox" checked={checked} onChange={() => togglePrepChecklistItem(prep, item.id)} className="w-5 h-5 mt-1 accent-sky-600 rounded cursor-pointer shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className={`font-bold truncate ${theme.textTitle}`}>{item.name}</div>
+                                  <div className={`text-xs font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'} {item.storageBoxName ? `• กล่อง: ${item.storageBoxName}` : ''}</div>
+                                </div>
+                                <span className={`text-[11px] px-2 py-1 rounded-md font-bold whitespace-nowrap ${isDarkMode ? s.darkColor : s.color}`}>{s.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
