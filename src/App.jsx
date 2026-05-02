@@ -1530,6 +1530,31 @@ function MainApp() {
     setShowPrepAssignModal(true);
   };
 
+  const openPrepPrint = (prep) => {
+    const prepItems = (prep.itemIds || []).map((id) => items.find((item) => item.id === id)).filter(Boolean);
+    if (prepItems.length === 0) return alert('❌ รายการเตรียมของนี้ยังไม่มีอุปกรณ์ที่พิมพ์ได้');
+    setPrintSlipData({
+      type: 'prep',
+      title: 'ใบเตรียมของ',
+      ref: `PREP-${new Date().getTime()}`,
+      date: new Date().toISOString(),
+      borrower: prep.name || '-',
+      staffOut: prep.staff || '-',
+      expectedReturn: prep.useDate || '',
+      note: prep.note || '',
+      items: prepItems.map((i) => ({
+        id: i.id,
+        name: i.name,
+        sn: i.sn,
+        category: i.category,
+        storageBoxName: i.storageBoxName,
+        internalNote: i.internalNote,
+        checked: (prep.checkedIds || []).includes(i.id)
+      }))
+    });
+    setShowPrepListsModal(false);
+  };
+
   const startPrepAsEvent = (prep) => {
     const prepItems = (prep.itemIds || []).map((id) => items.find((item) => item.id === id)).filter(Boolean);
     const availableIds = prepItems.filter((item) => item.status === 'available').map((item) => item.id);
@@ -1993,17 +2018,19 @@ function MainApp() {
   }
 
   if (printSlipData) {
+    const isPrepSlip = printSlipData.type === 'prep';
     return (
       <div className="bg-slate-100 min-h-screen font-sans text-slate-900 print:bg-white">
         <div className="print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
           <h2 className="font-bold text-xl flex items-center gap-2"><Icons.Printer className="w-6 h-6" /> {printSlipData.title}</h2>
-          <div className="flex gap-3"><button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors"><Icons.Printer className="w-5 h-5"/> พิมพ์ใบยืม</button><button onClick={() => setPrintSlipData(null)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button></div>
+          <div className="flex gap-3"><button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors"><Icons.Printer className="w-5 h-5"/> {isPrepSlip ? 'พิมพ์ใบเตรียมของ' : 'พิมพ์ใบยืม'}</button><button onClick={() => setPrintSlipData(null)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button></div>
         </div>
         <div className="pt-24 print:pt-0 p-6 print:p-0 max-w-4xl mx-auto"><div className="bg-white p-8 print:p-6 shadow-xl print:shadow-none border border-slate-200 print:border-0 rounded-2xl print:rounded-none">
-          <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6"><div><h1 className="text-3xl font-black">{printSlipData.title}</h1><p className="text-base font-bold mt-1">ศูนย์มัลติมีเดียทางการศึกษา (MDEC)</p></div><div className="text-right text-sm font-bold"><div>เลขที่: {printSlipData.ref}</div><div>วันที่ออกเอกสาร: {new Date(printSlipData.date).toLocaleString('th-TH', { hour12: false })}</div></div></div>
-          <div className="grid grid-cols-2 gap-4 mb-6 text-base"><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">ผู้ยืม / ชื่องาน</div><div className="font-black text-lg">{printSlipData.borrower || '-'}</div></div><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">เจ้าหน้าที่ผู้ให้ยืม / ผู้นำออก</div><div className="font-black text-lg">{printSlipData.staffOut || '-'}</div></div><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">กำหนดคืน</div><div className="font-black text-lg">{printSlipData.expectedReturn ? new Date(printSlipData.expectedReturn).toLocaleDateString('th-TH') : '-'}</div></div><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">หมายเหตุ</div><div className="font-bold">{printSlipData.note || '-'}</div></div></div>
-          <table className="w-full border-collapse mb-8 text-sm"><thead><tr className="bg-slate-900 text-white"><th className="border border-slate-900 px-3 py-2 text-left">#</th><th className="border border-slate-900 px-3 py-2 text-left">ชื่ออุปกรณ์</th><th className="border border-slate-900 px-3 py-2 text-left">S.N.</th><th className="border border-slate-900 px-3 py-2 text-left">หมวดหมู่</th><th className="border border-slate-900 px-3 py-2 text-left">หมายเหตุภายใน</th></tr></thead><tbody>{(printSlipData.items || []).map((item, index) => (<tr key={item.id || index}><td className="border px-3 py-2 font-bold">{index + 1}</td><td className="border px-3 py-2 font-bold">{item.name || '-'}</td><td className="border px-3 py-2">{item.sn || '-'}</td><td className="border px-3 py-2">{item.category || '-'}</td><td className="border px-3 py-2 text-xs">{item.internalNote || '-'}</td></tr>))}</tbody></table>
-          <div className="grid grid-cols-2 gap-12 mt-14 text-center font-bold"><div><div className="border-b border-slate-900 h-12 mb-2"></div><div>ลงชื่อผู้ยืม / ผู้รับผิดชอบงาน</div></div><div><div className="border-b border-slate-900 h-12 mb-2"></div><div>ลงชื่อเจ้าหน้าที่ผู้ให้ยืม</div></div></div>
+          <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6"><div><h1 className="text-3xl font-black">{printSlipData.title}</h1><p className="text-base font-bold mt-1">ศูนย์มัลติมีเดียทางการศึกษา (MDEC)</p>{isPrepSlip && <p className="text-sm font-bold mt-1 text-slate-600">ใช้สำหรับเช็กรายการอุปกรณ์ก่อนนำออกงานจริง</p>}</div><div className="text-right text-sm font-bold"><div>เลขที่: {printSlipData.ref}</div><div>วันที่ออกเอกสาร: {new Date(printSlipData.date).toLocaleString('th-TH', { hour12: false })}</div></div></div>
+          <div className="grid grid-cols-2 gap-4 mb-6 text-base"><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">{isPrepSlip ? 'ชื่องาน / รายการเตรียมของ' : 'ผู้ยืม / ชื่องาน'}</div><div className="font-black text-lg">{printSlipData.borrower || '-'}</div></div><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">{isPrepSlip ? 'ผู้รับผิดชอบ' : 'เจ้าหน้าที่ผู้ให้ยืม / ผู้นำออก'}</div><div className="font-black text-lg">{printSlipData.staffOut || '-'}</div></div><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">{isPrepSlip ? 'วันที่ใช้งาน' : 'กำหนดคืน'}</div><div className="font-black text-lg">{printSlipData.expectedReturn ? new Date(printSlipData.expectedReturn).toLocaleDateString('th-TH') : '-'}</div></div><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">หมายเหตุ</div><div className="font-bold">{printSlipData.note || '-'}</div></div></div>
+          <table className="w-full border-collapse mb-8 text-sm"><thead><tr className="bg-slate-900 text-white">{isPrepSlip && <th className="border border-slate-900 px-3 py-2 text-left w-16">เช็ก</th>}<th className="border border-slate-900 px-3 py-2 text-left w-12">#</th><th className="border border-slate-900 px-3 py-2 text-left">ชื่ออุปกรณ์</th><th className="border border-slate-900 px-3 py-2 text-left">S.N.</th><th className="border border-slate-900 px-3 py-2 text-left">หมวดหมู่</th>{isPrepSlip && <th className="border border-slate-900 px-3 py-2 text-left">กล่อง/ที่เก็บ</th>}<th className="border border-slate-900 px-3 py-2 text-left">หมายเหตุภายใน</th></tr></thead><tbody>{(printSlipData.items || []).map((item, index) => (<tr key={item.id || index}>{isPrepSlip && <td className="border px-3 py-2 text-center text-lg font-black">□</td>}<td className="border px-3 py-2 font-bold">{index + 1}</td><td className="border px-3 py-2 font-bold">{item.name || '-'}</td><td className="border px-3 py-2">{item.sn || '-'}</td><td className="border px-3 py-2">{item.category || '-'}</td>{isPrepSlip && <td className="border px-3 py-2 text-xs">{item.storageBoxName || '-'}</td>}<td className="border px-3 py-2 text-xs">{item.internalNote || '-'}</td></tr>))}</tbody></table>
+          {isPrepSlip && <div className="border-2 border-dashed border-slate-400 rounded-xl p-4 mb-8 text-sm font-bold"><div className="font-black mb-2">หมายเหตุขณะเตรียมของ</div><div className="h-16"></div></div>}
+          <div className="grid grid-cols-2 gap-12 mt-14 text-center font-bold"><div><div className="border-b border-slate-900 h-12 mb-2"></div><div>{isPrepSlip ? 'ลงชื่อผู้เตรียมของ' : 'ลงชื่อผู้ยืม / ผู้รับผิดชอบงาน'}</div></div><div><div className="border-b border-slate-900 h-12 mb-2"></div><div>{isPrepSlip ? 'ลงชื่อผู้ตรวจรายการ' : 'ลงชื่อเจ้าหน้าที่ผู้ให้ยืม'}</div></div></div>
         </div></div>
       </div>
     );
@@ -2750,6 +2777,7 @@ function MainApp() {
                       </div>
                       <div className="flex flex-col gap-2 w-full lg:w-56 shrink-0">
                         <button type="button" onClick={() => setPrepOpenId(isOpen ? null : prep.id)} className={`px-4 py-3 font-black rounded-xl border flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.CheckCircle className="w-5 h-5"/> {isOpen ? 'ซ่อนเช็กลิสต์' : 'เช็กของ'}</button>
+                        <button type="button" onClick={() => openPrepPrint(prep)} className={`px-4 py-3 font-black rounded-xl border flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.Printer className="w-5 h-5"/> พิมพ์ใบเตรียมของ</button>
                         <button type="button" onClick={() => startPrepAsEvent(prep)} disabled={isCancelled} className={`px-4 py-3 font-black rounded-xl shadow-md flex items-center justify-center gap-2 ${isCancelled ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-500 text-white'}`}><Icons.Truck className="w-5 h-5"/> ยืนยันนำออกงาน</button>
                         <button type="button" onClick={() => openPrepEditor(prep)} className="px-4 py-3 bg-sky-600 hover:bg-sky-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.Edit className="w-4 h-4"/> แก้ไข</button>
                         <div className="grid grid-cols-2 gap-2">
