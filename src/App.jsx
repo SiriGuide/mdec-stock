@@ -480,6 +480,84 @@ function MainApp() {
     });
   }, [items, storageBoxSearchTerm, storageBoxForm.itemIds, showStorageBoxEditor]);
 
+
+  const databaseStorageEstimate = useMemo(() => {
+    const historyCount = items.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.length : 0), 0);
+    const boxCount = (settingsOptions.storageBoxes || []).length;
+    const prepCount = (settingsOptions.prepLists || []).length;
+    const bundleCount = (settingsOptions.bundles || []).length;
+    const payload = {
+      items,
+      settings: settingsOptions,
+      auditLogs: auditLogs || [],
+      summary: { historyCount, boxCount, prepCount, bundleCount }
+    };
+    let rawBytes = 0;
+    try {
+      rawBytes = new TextEncoder().encode(JSON.stringify(payload)).length;
+    } catch (e) {
+      rawBytes = JSON.stringify(payload).length * 2;
+    }
+
+    // ประเมินเผื่อ overhead ของ Firestore/Index/metadata เพื่อให้ปลอดภัยกว่าไฟล์ JSON ดิบ
+    const estimatedBytes = Math.ceil((rawBytes * 1.45) + (items.length * 900) + (historyCount * 350) + (boxCount * 700) + (prepCount * 700) + ((auditLogs || []).length * 450));
+    const limitBytes = 1024 * 1024 * 1024; // อิงแผนฟรี 1GB ที่ผู้ใช้ใช้งานอยู่
+    const percent = Math.min(100, Math.max(0, (estimatedBytes / limitBytes) * 100));
+
+    const formatBytes = (bytes) => {
+      if (!bytes || bytes < 0) return '0 B';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+      return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+    };
+
+    let level = 'safe';
+    let label = 'ปลอดภัยมาก';
+    let barClass = 'bg-emerald-500';
+    let cardTone = isDarkMode ? 'bg-emerald-900/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200';
+    let textTone = isDarkMode ? 'text-emerald-300' : 'text-emerald-700';
+
+    if (percent >= 90) {
+      level = 'danger';
+      label = 'ใกล้เต็มมาก';
+      barClass = 'bg-rose-500';
+      cardTone = isDarkMode ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-200';
+      textTone = isDarkMode ? 'text-rose-300' : 'text-rose-700';
+    } else if (percent >= 75) {
+      level = 'warning';
+      label = 'ควรสำรอง/ล้างประวัติ';
+      barClass = 'bg-amber-500';
+      cardTone = isDarkMode ? 'bg-amber-900/20 border-amber-800' : 'bg-amber-50 border-amber-200';
+      textTone = isDarkMode ? 'text-amber-300' : 'text-amber-700';
+    } else if (percent >= 50) {
+      level = 'watch';
+      label = 'เริ่มเยอะ ควรติดตาม';
+      barClass = 'bg-blue-500';
+      cardTone = isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200';
+      textTone = isDarkMode ? 'text-blue-300' : 'text-blue-700';
+    }
+
+    return {
+      level,
+      label,
+      barClass,
+      cardTone,
+      textTone,
+      percent,
+      percentText: percent < 0.1 && estimatedBytes > 0 ? '<0.1%' : percent.toFixed(1) + '%',
+      estimatedText: formatBytes(estimatedBytes),
+      rawText: formatBytes(rawBytes),
+      limitText: formatBytes(limitBytes),
+      historyCount,
+      boxCount,
+      prepCount,
+      bundleCount,
+      auditCount: (auditLogs || []).length,
+      itemCount: items.length
+    };
+  }, [items, settingsOptions, auditLogs, isDarkMode]);
+
   const handleSave = async () => {
     const nameInput = formData.name || '';
     const snInput = String(formData.sn || '').trim();
@@ -3239,6 +3317,45 @@ function MainApp() {
             <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
               {settingsTab === 'database' ? (
                 <div className="p-6 space-y-6">
+                  <div className={`p-6 rounded-2xl border shadow-sm ${databaseStorageEstimate.cardTone}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                      <div>
+                        <h4 className={`text-xl font-black mb-1 flex items-center gap-2 ${theme.textTitle}`}><Icons.Signal className={`w-6 h-6 ${databaseStorageEstimate.textTone}`}/> สถานะพื้นที่ฐานข้อมูล</h4>
+                        <p className={`text-sm font-bold ${theme.textMuted}`}>ประเมินจากข้อมูลที่เว็บโหลดอยู่ เทียบกับพื้นที่ 1GB</p>
+                      </div>
+                      <span className={`px-3 py-1.5 rounded-xl text-sm font-black border ${databaseStorageEstimate.cardTone} ${databaseStorageEstimate.textTone}`}>
+                        {databaseStorageEstimate.label}
+                      </span>
+                    </div>
+
+                    <div className={`w-full h-5 rounded-full overflow-hidden border shadow-inner ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <div className={`h-full rounded-full transition-all duration-500 ${databaseStorageEstimate.barClass}`} style={{ width: `${Math.max(databaseStorageEstimate.percent, databaseStorageEstimate.percent > 0 ? 1 : 0)}%` }}></div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                      <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`text-xs font-bold ${theme.textMuted}`}>ใช้ไปประมาณ</div>
+                        <div className={`text-lg font-black ${databaseStorageEstimate.textTone}`}>{databaseStorageEstimate.percentText}</div>
+                      </div>
+                      <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`text-xs font-bold ${theme.textMuted}`}>ขนาดประเมิน</div>
+                        <div className={`text-lg font-black ${theme.textTitle}`}>{databaseStorageEstimate.estimatedText}</div>
+                      </div>
+                      <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`text-xs font-bold ${theme.textMuted}`}>อุปกรณ์</div>
+                        <div className={`text-lg font-black ${theme.textTitle}`}>{databaseStorageEstimate.itemCount} ชิ้น</div>
+                      </div>
+                      <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`text-xs font-bold ${theme.textMuted}`}>ประวัติยืม-คืน</div>
+                        <div className={`text-lg font-black ${theme.textTitle}`}>{databaseStorageEstimate.historyCount} รายการ</div>
+                      </div>
+                    </div>
+
+                    <p className={`text-xs mt-3 font-bold ${theme.textMuted}`}>
+                      * เป็นค่าประมาณเพื่อช่วยดูแนวโน้ม ไม่ใช่ตัวเลข Usage จริงจาก Firebase Console โดยตรง ถ้าเริ่มเกิน 75% ควรสำรอง JSON/CSV และล้างประวัติรายปี
+                    </p>
+                  </div>
+
                   <div className={`p-6 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
                     <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-6 h-6 text-blue-500"/> สำรองข้อมูลระบบทั้งหมด</h4>
                     <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>เพิ่มจากเว็บเดิม: สำรองข้อมูลทั้งหมดเป็น JSON และสำรองประวัติยืม-คืนพร้อมวันเวลาเป็น CSV โดยไม่เปลี่ยนหน้าตาและวิธีใช้งานเดิม</p>
