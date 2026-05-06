@@ -228,19 +228,19 @@ function MainApp() {
   }, [showScanModal]);
 
   const theme = {
-    mainBg: isDarkMode ? 'bg-slate-950' : 'bg-slate-50',
-    textMain: isDarkMode ? 'text-slate-100' : 'text-slate-700',
+    mainBg: isDarkMode ? 'bg-slate-900' : 'bg-slate-100',
+    textMain: isDarkMode ? 'text-slate-100' : 'text-slate-800',
     textTitle: isDarkMode ? 'text-white' : 'text-slate-900',
     textMuted: isDarkMode ? 'text-slate-400' : 'text-slate-500',
-    cardBg: isDarkMode ? 'bg-slate-900/95 border-slate-800' : 'bg-white border-slate-200/80',
-    input: isDarkMode ? 'bg-slate-950 border-slate-700 text-white focus:ring-blue-500' : 'bg-white border-slate-200 text-slate-700 focus:ring-blue-500',
-    th: isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600',
-    trHover: isDarkMode ? 'hover:bg-slate-800/70' : 'hover:bg-blue-50/40',
-    divide: isDarkMode ? 'divide-slate-800' : 'divide-slate-100',
-    btnSecondary: isDarkMode ? 'bg-slate-900 text-slate-200 hover:bg-slate-800 border-slate-700' : 'bg-white text-slate-600 hover:bg-blue-50 border-slate-200',
-    btnCancel: isDarkMode ? 'bg-slate-900 text-slate-200 hover:bg-slate-800 border border-slate-700' : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200',
-    modalOverlay: isDarkMode ? 'bg-black/75' : 'bg-slate-950/30',
-    statCard: isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200/80 text-slate-800',
+    cardBg: isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200',
+    input: isDarkMode ? 'bg-slate-900 border-slate-600 text-white focus:ring-blue-500' : 'bg-slate-50 border-slate-300 text-slate-700 focus:ring-blue-500',
+    th: isDarkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-slate-200 border-slate-300 text-slate-700',
+    trHover: isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50',
+    divide: isDarkMode ? 'divide-slate-700' : 'divide-slate-100',
+    btnSecondary: isDarkMode ? 'bg-slate-700 text-slate-200 hover:bg-slate-600 border-slate-600' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-300',
+    btnCancel: isDarkMode ? 'bg-slate-700 text-slate-200 hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+    modalOverlay: isDarkMode ? 'bg-black/70' : 'bg-slate-900/40',
+    statCard: isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800',
   };
 
   useEffect(() => {
@@ -2120,7 +2120,7 @@ function MainApp() {
     const ccTheme = {
       bg: isDarkMode ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800',
       card: isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100',
-      textMain: isDarkMode ? 'text-slate-100' : 'text-slate-700',
+      textMain: isDarkMode ? 'text-slate-100' : 'text-slate-800',
       textMuted: isDarkMode ? 'text-slate-400' : 'text-slate-500',
       totalBg: isDarkMode ? 'bg-gradient-to-br from-blue-900/80 to-indigo-900/80 shadow-indigo-900/20' : 'bg-gradient-to-br from-blue-400 to-indigo-500 shadow-indigo-200',
       statAvail: isDarkMode ? 'bg-emerald-900/20 border-emerald-800/50' : 'bg-emerald-50 border-emerald-100',
@@ -2271,99 +2271,7 @@ function MainApp() {
   }
 
   return (
-    <div className={`mdec-minimal-ui ${isDarkMode ? 'is-dark' : 'is-light'} min-h-screen font-sans p-4 sm:p-8 pb-32 transition-colors duration-300 ${theme.mainBg} ${theme.textMain}`}>
-      <style>{`
-        .mdec-minimal-ui {
-          --mdec-blue: #2563eb;
-          --mdec-blue-soft: #eff6ff;
-          --mdec-border: rgba(148, 163, 184, 0.24);
-          letter-spacing: -0.01em;
-        }
-        .mdec-minimal-ui::before {
-          content: "";
-          position: fixed;
-          inset: 0;
-          pointer-events: none;
-          background:
-            radial-gradient(circle at 8% 0%, rgba(37, 99, 235, 0.12), transparent 28rem),
-            radial-gradient(circle at 92% 8%, rgba(14, 165, 233, 0.10), transparent 24rem);
-          z-index: 0;
-        }
-        .mdec-minimal-ui > * { position: relative; z-index: 1; }
-        .mdec-minimal-ui .shadow-sm,
-        .mdec-minimal-ui .shadow-md,
-        .mdec-minimal-ui .shadow-lg,
-        .mdec-minimal-ui .shadow-2xl {
-          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06) !important;
-        }
-        .mdec-minimal-ui .rounded-2xl { border-radius: 1.35rem !important; }
-        .mdec-minimal-ui .rounded-3xl { border-radius: 1.55rem !important; }
-        .mdec-minimal-ui button {
-          transition: transform .12s ease, background-color .16s ease, border-color .16s ease, box-shadow .16s ease;
-        }
-        .mdec-minimal-ui button:hover { transform: translateY(-1px); }
-        .mdec-minimal-ui input,
-        .mdec-minimal-ui select,
-        .mdec-minimal-ui textarea {
-          box-shadow: none !important;
-        }
-        .mdec-minimal-ui table thead tr {
-          background: rgba(248, 250, 252, .92) !important;
-          color: #475569 !important;
-        }
-        .mdec-minimal-ui table tbody tr {
-          border-color: rgba(226, 232, 240, .78) !important;
-        }
-        .mdec-minimal-ui .mdec-clean-topbar {
-          background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(248,250,252,.94));
-          backdrop-filter: blur(14px);
-          border-color: rgba(148, 163, 184, .24) !important;
-        }
-        .mdec-minimal-ui .mdec-brand-mark {
-          background: linear-gradient(135deg, #2563eb, #0ea5e9);
-          box-shadow: 0 18px 36px rgba(37, 99, 235, .18) !important;
-        }
-        .mdec-minimal-ui .mdec-stat-card {
-          border-top-width: 0 !important;
-          box-shadow: 0 10px 28px rgba(15,23,42,.05) !important;
-        }
-        .mdec-minimal-ui .mdec-stat-card::after {
-          content: "";
-          display: block;
-          width: 2.2rem;
-          height: .22rem;
-          border-radius: 999px;
-          background: currentColor;
-          opacity: .22;
-          margin-top: .5rem;
-        }
-        .mdec-minimal-ui .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
-        .mdec-minimal-ui .custom-scrollbar::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(148,163,184,.45); }
-        .mdec-minimal-ui .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .mdec-minimal-ui.is-dark table thead tr {
-          background: rgba(15, 23, 42, .92) !important;
-          color: #cbd5e1 !important;
-        }
-        .mdec-minimal-ui.is-dark::before {
-          background:
-            radial-gradient(circle at 8% 0%, rgba(37, 99, 235, 0.20), transparent 28rem),
-            radial-gradient(circle at 92% 8%, rgba(14, 165, 233, 0.14), transparent 24rem);
-        }
-        .mdec-minimal-ui.is-dark .mdec-clean-topbar {
-          background: linear-gradient(135deg, rgba(15,23,42,.96), rgba(2,6,23,.94));
-          border-color: rgba(51,65,85,.72) !important;
-        }
-        @media (max-width: 640px) {
-          .mdec-minimal-ui { padding: 12px !important; padding-bottom: 112px !important; }
-          .mdec-minimal-ui .mdec-clean-topbar { padding: 16px !important; }
-          .mdec-minimal-ui table { font-size: 14px; }
-        }
-        @media print {
-          .mdec-minimal-ui::before { display: none !important; }
-          .mdec-minimal-ui button:hover { transform: none !important; }
-        }
-      `}</style>
-
+    <div className={`min-h-screen font-sans p-4 sm:p-8 pb-32 transition-colors duration-300 ${theme.mainBg} ${theme.textMain}`}>
       {firebaseError && (
         <div className="w-full mb-6 bg-rose-100 border-l-4 border-rose-500 text-rose-800 p-5 rounded-r-xl shadow-md flex items-start gap-4">
           <Icons.Alert className="w-8 h-8 shrink-0 text-rose-600" />
@@ -2375,13 +2283,13 @@ function MainApp() {
       )}
 
       {/* Header */}
-      <div className={`mdec-clean-topbar w-full flex flex-col xl:flex-row justify-between items-center mb-8 gap-4 p-6 rounded-3xl shadow-sm border transition-colors ${theme.cardBg}`}>
+      <div className={`w-full flex flex-col xl:flex-row justify-between items-center mb-8 gap-4 p-6 rounded-2xl shadow-md border transition-colors ${theme.cardBg}`}>
         <div className="flex items-center gap-4">
-          <div className="mdec-brand-mark w-14 h-14 text-white rounded-2xl flex items-center justify-center shadow-sm"><Icons.Package className="w-8 h-8" /></div>
+          <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg"><Icons.Package className="w-8 h-8" /></div>
           <div>
             <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textTitle}`}>
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded-full ml-2 align-middle border border-blue-100 shadow-sm">Clean UI</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v20.6 BYOD (Pro)</span>
             </h1>
             <p className={`font-medium text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
           </div>
@@ -2496,27 +2404,27 @@ function MainApp() {
 
       {/* 📊 Main Stats Grid */}
       <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6 mb-8">
-        <div className={`mdec-stat-card p-5 rounded-2xl shadow-sm border border-blue-100 text-blue-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
+        <div className={`p-5 rounded-2xl shadow-md border-t-4 border-blue-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
           <span className={`font-bold text-sm sm:text-base mb-1 ${theme.textMuted}`}>อุปกรณ์ทั้งหมด</span>
           <span className="text-4xl sm:text-5xl font-black text-blue-500">{stats.all}</span>
         </div>
-        <div className={`mdec-stat-card p-5 rounded-2xl shadow-sm border border-emerald-100 text-emerald-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
+        <div className={`p-5 rounded-2xl shadow-md border-t-4 border-emerald-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
           <span className={`font-bold text-sm sm:text-base mb-1 ${theme.textMuted}`}>พร้อมใช้งาน</span>
           <span className="text-4xl sm:text-5xl font-black text-emerald-500">{stats.available}</span>
         </div>
-        <div className={`mdec-stat-card p-5 rounded-2xl shadow-sm border border-amber-100 text-amber-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
+        <div className={`p-5 rounded-2xl shadow-md border-t-4 border-amber-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
           <span className={`font-bold text-sm sm:text-base mb-1 ${theme.textMuted}`}>กำลังใช้งาน</span>
           <span className="text-4xl sm:text-5xl font-black text-amber-500">{stats.inUse}</span>
         </div>
-        <div className={`mdec-stat-card p-5 rounded-2xl shadow-sm border border-purple-100 text-purple-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
+        <div className={`p-5 rounded-2xl shadow-md border-t-4 border-purple-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
           <span className={`font-bold text-sm sm:text-base mb-1 ${theme.textMuted}`}>กำลังถูกยืม</span>
           <span className="text-4xl sm:text-5xl font-black text-purple-500">{stats.borrowed}</span>
         </div>
-        <div className={`mdec-stat-card p-5 rounded-2xl shadow-sm border border-orange-100 text-orange-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
+        <div className={`p-5 rounded-2xl shadow-md border-t-4 border-orange-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
           <span className={`font-bold text-sm sm:text-base mb-1 flex items-center gap-1 ${theme.textMuted}`}>🚚 ออกงาน</span>
           <span className="text-4xl sm:text-5xl font-black text-orange-500">{stats.outForEvent}</span>
         </div>
-        <div className={`mdec-stat-card p-5 rounded-2xl shadow-sm border border-rose-100 text-rose-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
+        <div className={`p-5 rounded-2xl shadow-md border-t-4 border-rose-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
           <span className={`font-bold text-sm sm:text-base mb-1 ${theme.textMuted}`}>ส่งซ่อม/ชำรุด</span>
           <span className="text-4xl sm:text-5xl font-black text-rose-500">{stats.maintenance}</span>
         </div>
@@ -2545,7 +2453,7 @@ function MainApp() {
       </div>
 
       {/* Filters & Search */}
-      <div className={`w-full flex flex-col gap-4 p-5 sm:p-6 rounded-3xl shadow-sm border mb-6 transition-colors ${theme.cardBg}`}>
+      <div className={`w-full flex flex-col gap-4 p-5 sm:p-6 rounded-2xl shadow-md border mb-6 transition-colors ${theme.cardBg}`}>
         <div className="flex flex-col xl:flex-row gap-4 items-center w-full">
           <div className="relative flex-1 w-full">
             <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${theme.textMuted}`}><Icons.Search className="w-5 h-5" /></div>
@@ -2595,7 +2503,7 @@ function MainApp() {
       </div>
 
       {/* 📋 Table / List */}
-      <div className={`w-full rounded-3xl shadow-sm border overflow-hidden relative transition-colors ${theme.cardBg}`}>
+      <div className={`w-full rounded-2xl shadow-md border overflow-hidden relative transition-colors ${theme.cardBg}`}>
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
