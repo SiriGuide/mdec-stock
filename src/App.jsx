@@ -30,6 +30,8 @@ const getItemDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'd
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
+const APP_VERSION = 'v21.5 Final Polish';
+const APP_UPDATE_NOTE = 'บัญชีกลาง + ถังขยะ + กล่อง + เตรียมของ';
 
 const Icons = {
   Plus: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
@@ -169,6 +171,9 @@ function MainApp() {
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showTrashModal, setShowTrashModal] = useState(false);
+  const [showMyAccountModal, setShowMyAccountModal] = useState(false);
+  const [myPinForm, setMyPinForm] = useState({ oldPin: '', newPin: '', confirmPin: '' });
 
   // 🖨️ สถานะสำหรับ Print & Scan QR Code
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -349,6 +354,13 @@ function MainApp() {
   const canUseOperationalTools = isAdmin && ['owner', 'admin', 'staff'].includes(currentAccountRole);
   const canAddEditItems = canUseOperationalTools;
   const canDeleteItems = isAdmin && (currentAccountRole === 'owner' || currentAccountRole === 'admin');
+  const currentFullAccount = getEffectiveAccounts().find(acc => acc.id === currentOperator?.id || String(acc.username || '').toLowerCase() === String(currentOperator?.username || '').toLowerCase()) || currentOperator;
+  const deletedItems = useMemo(() => {
+    return items
+      .filter(item => item && item.isDeleted)
+      .slice()
+      .sort((a, b) => new Date(b.deletedAt || b.updatedAt || 0) - new Date(a.deletedAt || a.updatedAt || 0));
+  }, [items]);
 
   const roleLabel = (role) => {
     if (role === 'owner') return 'บัญชีกลาง';
@@ -456,15 +468,48 @@ function MainApp() {
   const handleDeleteAccount = async (account) => {
     if (!user || !canManageAccounts) return alert('❌ เฉพาะบัญชีกลาง/ผู้ดูแลเท่านั้นที่จัดการบัญชีได้');
     if (!account || !account.id) return;
-    if (currentOperator?.id === account.id) return alert('❌ ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่ได้');
-    if (String(account.username || '').toLowerCase() === 'admin') return alert('❌ ไม่ควรลบบัญชีกลาง admin');
-    if (!confirm(`ยืนยันลบบัญชี "${account.name}" หรือไม่?\n\nการลบนี้ไม่กระทบประวัติการยืม-คืนเดิม`)) return;
-    const nextAccounts = (Array.isArray(settingsOptions.accounts) ? settingsOptions.accounts : []).filter(acc => acc.id !== account.id);
+    if (currentOperator?.id === account.id) return alert('❌ ไม่สามารถปิดใช้งานบัญชีที่กำลังใช้งานอยู่ได้');
+    if (String(account.username || '').toLowerCase() === 'admin') return alert('❌ ไม่ควรปิดใช้งานบัญชีกลาง admin');
+    if (!confirm(`ปิดใช้งานบัญชี "${account.name}" หรือไม่?\n\nบัญชีนี้จะล็อกอินไม่ได้ แต่ประวัติรายการเดิมยังคงอ้างอิงชื่อผู้ใช้ไว้ครบ`)) return;
+    let nextAccounts = ensureCentralAccount(settingsOptions.accounts).map(acc => {
+      if (acc.id !== account.id) return acc;
+      return { ...acc, active: false, disabledAt: new Date().toISOString(), disabledBy: currentOperator?.name || 'Admin' };
+    });
     const updatedSettings = { ...settingsOptions, accounts: nextAccounts };
     setSettingsOptions(updatedSettings);
     await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
-    await logAction('ลบบัญชีผู้ใช้', account.name || account.username, `ลบบัญชี username: ${account.username}`);
-    alert('✅ ลบบัญชีเรียบร้อยแล้ว');
+    await logAction('ปิดใช้งานบัญชีผู้ใช้', account.name || account.username, `ปิดใช้งานบัญชี username: ${account.username}`);
+    alert('✅ ปิดใช้งานบัญชีเรียบร้อยแล้ว หากต้องการเปิดกลับ ให้กดแก้ไขแล้วติ๊ก “เปิดใช้งานบัญชีนี้”');
+  };
+
+  const handleChangeOwnPin = async () => {
+    if (!user || !currentOperator) return alert('❌ กรุณาเข้าสู่ระบบก่อน');
+    const oldPin = String(myPinForm.oldPin || '').trim();
+    const newPin = String(myPinForm.newPin || '').trim();
+    const confirmPin = String(myPinForm.confirmPin || '').trim();
+    const account = currentFullAccount;
+
+    if (!account || !account.id) return alert('❌ ไม่พบบัญชีปัจจุบัน');
+    if (String(account.pin || '') !== oldPin) return alert('❌ PIN เดิมไม่ถูกต้อง');
+    if (newPin !== confirmPin) return alert('❌ PIN ใหม่และการยืนยัน PIN ไม่ตรงกัน');
+    const pinCheck = validatePinPolicy(newPin, account.username || '');
+    if (!pinCheck.ok) return alert('❌ ' + pinCheck.message);
+
+    try {
+      let nextAccounts = ensureCentralAccount(settingsOptions.accounts).map(acc => {
+        if (acc.id !== account.id) return acc;
+        return { ...acc, pin: newPin, updatedAt: new Date().toISOString(), pinChangedAt: new Date().toISOString() };
+      });
+      const updatedSettings = { ...settingsOptions, accounts: nextAccounts };
+      setSettingsOptions(updatedSettings);
+      await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
+      await logAction('เปลี่ยน PIN ของตัวเอง', account.name || account.username, `ผู้ใช้ ${account.username} เปลี่ยน PIN ของตัวเอง`);
+      setMyPinForm({ oldPin: '', newPin: '', confirmPin: '' });
+      alert('✅ เปลี่ยน PIN เรียบร้อยแล้ว');
+    } catch (error) {
+      console.error(error);
+      alert('❌ เปลี่ยน PIN ไม่สำเร็จ: ' + error.message);
+    }
   };
 
   const handleResetAccountPin = async (account) => {
@@ -507,6 +552,7 @@ function MainApp() {
 
   const filteredItems = useMemo(() => {
     let result = items.filter(item => {
+      if (item && item.isDeleted) return false;
       const searchLower = String(searchTerm || '').trim().toLowerCase();
       const matchSearch = searchLower === '' || 
                           (item.name && String(item.name).toLowerCase().includes(searchLower)) || 
@@ -536,6 +582,7 @@ function MainApp() {
 
   const todayMs = new Date().setHours(0,0,0,0);
   const overdueItems = items.filter(item => {
+    if (item && item.isDeleted) return false;
     if ((item.status !== 'borrowed' && item.status !== 'out-for-event') || !item.expectedReturn) return false;
     return new Date(item.expectedReturn).getTime() < todayMs;
   });
@@ -547,6 +594,7 @@ function MainApp() {
   const stats = useMemo(() => {
     const s = { all: 0, available: 0, inUse: 0, borrowed: 0, outForEvent: 0, maintenance: 0 };
     items.forEach(item => {
+      if (item && item.isDeleted) return;
       const qty = Number(item.quantity) || 1;
       s.all += qty;
       if (item.status === 'available') s.available += qty;
@@ -559,7 +607,7 @@ function MainApp() {
   }, [items]);
 
   const deptItems = useMemo(() => {
-    return items.filter(item => filterDept === 'all' || item.department === filterDept);
+    return items.filter(item => !item.isDeleted && (filterDept === 'all' || item.department === filterDept));
   }, [items, filterDept]);
 
   const categoryStats = useMemo(() => {
@@ -582,6 +630,7 @@ function MainApp() {
   const activeGroups = useMemo(() => {
     const groups = {};
     items.forEach(item => {
+      if (item && item.isDeleted) return;
       if (item.status === 'borrowed' && item.currentBorrower) {
         const key = `borrow_${item.currentBorrower}`;
         if(!groups[key]) groups[key] = { type: 'borrow', name: item.currentBorrower, ids: [] };
@@ -622,7 +671,7 @@ function MainApp() {
   const sortedBundleItems = useMemo(() => {
     if (!showBundleManager) return [];
     const search = bundleSearchTerm.toLowerCase().trim();
-    const filtered = items.filter(i => (i?.name || '').toLowerCase().includes(search) || (i?.sn && String(i.sn).toLowerCase().includes(search)));
+    const filtered = items.filter(i => !i?.isDeleted && ((i?.name || '').toLowerCase().includes(search) || (i?.sn && String(i.sn).toLowerCase().includes(search))));
     return filtered.sort((a, b) => {
       const aSel = (bundleForm.itemIds || []).includes(a.id);
       const bSel = (bundleForm.itemIds || []).includes(b.id);
@@ -637,6 +686,7 @@ function MainApp() {
     const search = storageBoxSearchTerm.toLowerCase().trim();
     const selectedIdsInForm = storageBoxForm.itemIds || [];
     const filtered = items.filter(i => {
+      if (i?.isDeleted) return false;
       if (!search) return true;
       return (i?.name || '').toLowerCase().includes(search) ||
              (i?.sn && String(i.sn).toLowerCase().includes(search)) ||
@@ -826,13 +876,54 @@ function MainApp() {
     if (!user || !itemToDelete || !itemToDelete.id) return;
     try {
       const itemName = itemToDelete.name;
-      await deleteDoc(getItemDoc(itemToDelete.id));
-      logAction('ลบข้อมูล', itemName, `ลบอุปกรณ์ออกจากระบบ`);
+      await setDoc(getItemDoc(itemToDelete.id), {
+        isDeleted: true,
+        deletedAt: new Date().toISOString(),
+        deletedBy: currentOperator?.name || 'Admin',
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      logAction('ย้ายอุปกรณ์เข้าถังขยะ', itemName, `ย้ายอุปกรณ์ออกจากรายการหลัก สามารถกู้คืนได้จากเมนูถังขยะ`);
       setItemToDelete(null);
+      alert('✅ ย้ายอุปกรณ์เข้าถังขยะแล้ว สามารถกู้คืนได้ภายหลัง');
     } catch (error) {
       console.error("Error deleting item:", error);
       alert(`เกิดข้อผิดพลาดจากฐานข้อมูล: ${error.message}`);
       setItemToDelete(null);
+    }
+  };
+
+  const handleRestoreTrashItem = async (item) => {
+    if (!canDeleteItems) return alert('❌ เฉพาะบัญชีกลาง/ผู้ดูแลเท่านั้นที่กู้คืนอุปกรณ์ได้');
+    if (!item || !item.id) return;
+    try {
+      await setDoc(getItemDoc(item.id), {
+        isDeleted: false,
+        deletedAt: null,
+        deletedBy: null,
+        restoredAt: new Date().toISOString(),
+        restoredBy: currentOperator?.name || 'Admin',
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      await logAction('กู้คืนอุปกรณ์จากถังขยะ', item.name || '-', `กู้คืนอุปกรณ์กลับเข้ารายการหลัก`);
+      alert('✅ กู้คืนอุปกรณ์เรียบร้อยแล้ว');
+    } catch (error) {
+      console.error(error);
+      alert('❌ กู้คืนอุปกรณ์ไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  const handlePermanentDeleteTrashItem = async (item) => {
+    if (!canDeleteItems) return alert('❌ เฉพาะบัญชีกลาง/ผู้ดูแลเท่านั้นที่ลบถาวรได้');
+    if (!item || !item.id) return;
+    const confirmText = prompt(`ลบถาวร "${item.name}" หรือไม่?\n\nการลบถาวรจะกู้คืนไม่ได้ หากยืนยันให้พิมพ์ DELETE`);
+    if (String(confirmText || '').trim() !== 'DELETE') return;
+    try {
+      await deleteDoc(getItemDoc(item.id));
+      await logAction('ลบอุปกรณ์ถาวร', item.name || '-', `ลบถาวรจากถังขยะ`);
+      alert('✅ ลบถาวรเรียบร้อยแล้ว');
+    } catch (error) {
+      console.error(error);
+      alert('❌ ลบถาวรไม่สำเร็จ: ' + error.message);
     }
   };
 
@@ -1563,6 +1654,20 @@ function MainApp() {
     setIsAdmin(false);
     setCurrentOperator(null);
     setSelectedItems([]);
+    try {
+      localStorage.removeItem('mdec_admin');
+      localStorage.removeItem('mdec_operator');
+    } catch(e) {}
+  };
+
+  const handleLockScreen = () => {
+    const lockName = currentOperator?.name || 'Admin';
+    logAction('ล็อกหน้าจอ', lockName, 'ล็อกหน้าจอเพื่อกันคนอื่นใช้งานต่อ');
+    setIsAdmin(false);
+    setCurrentOperator(null);
+    setSelectedItems([]);
+    setPin('');
+    setShowLogin(true);
     try {
       localStorage.removeItem('mdec_admin');
       localStorage.removeItem('mdec_operator');
@@ -2518,9 +2623,10 @@ function MainApp() {
           <div>
             <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textTitle}`}>
               MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">v20.6 BYOD (Pro)</span>
+              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">{APP_VERSION}</span>
             </h1>
             <p className={`font-medium text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
+            <p className={`font-bold text-xs sm:text-sm ${theme.textMuted}`}>อัปเดตล่าสุด: {APP_UPDATE_NOTE}</p>
           </div>
         </div>
         <div className="flex flex-wrap justify-center gap-2 sm:gap-3 w-full xl:w-auto">
@@ -2562,9 +2668,13 @@ function MainApp() {
                 </button>
               )}
 
-              <div className={`hidden xl:flex items-center gap-2 px-4 py-3 rounded-xl border font-bold text-sm ${isDarkMode ? 'bg-slate-900/40 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`} title={`เข้าสู่ระบบโดย ${currentAccountLabel}`}>
+              <button type="button" onClick={() => setShowMyAccountModal(true)} className={`hidden xl:flex items-center gap-2 px-4 py-3 rounded-xl border font-bold text-sm transition-colors ${isDarkMode ? 'bg-slate-900/40 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`} title={`เข้าสู่ระบบโดย ${currentAccountLabel}`}>
                 👤 {currentAccountLabel}
-              </div>
+              </button>
+
+              <button type="button" onClick={handleLockScreen} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors flex ${isDarkMode ? 'bg-slate-900/40 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`} title="ล็อกหน้าจอชั่วคราว">
+                <Icons.Lock className="w-5 h-5" /><span className="hidden sm:inline">ล็อก</span>
+              </button>
 
               <button type="button" onClick={handleLogout} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors flex ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-800/60 border border-rose-800' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'}`} title="ออกจากระบบ">
                 <Icons.Unlock className="w-5 h-5" />
@@ -2619,6 +2729,16 @@ function MainApp() {
                 <div className="font-black text-lg flex items-center gap-2"><Icons.Tag className="w-5 h-5" /> ของส่วนตัว</div>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูอุปกรณ์ BYOD แยกตามเจ้าของ</p>
               </button>
+              <button type="button" onClick={() => { setShowMoreMenu(false); setShowMyAccountModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                <div className="font-black text-lg flex items-center gap-2"><Icons.Users className="w-5 h-5" /> บัญชีของฉัน</div>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูสิทธิ์และเปลี่ยน PIN ของตัวเอง</p>
+              </button>
+              {canDeleteItems && (
+                <button type="button" onClick={() => { setShowMoreMenu(false); setShowTrashModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                  <div className="font-black text-lg flex items-center gap-2"><Icons.Trash className="w-5 h-5" /> ถังขยะอุปกรณ์</div>
+                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>กู้คืนอุปกรณ์ที่ลบผิด หรือลบถาวร</p>
+                </button>
+              )}
               {canViewAudit && (
                 <button type="button" onClick={() => { setShowMoreMenu(false); setShowAuditModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
                   <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> ประวัติการทำงาน</div>
@@ -2631,6 +2751,82 @@ function MainApp() {
                   <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Export / Restore / ล้างประวัติ</p>
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* บัญชีของฉัน */}
+      {showMyAccountModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden ${theme.cardBg}`}>
+            <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
+                  <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-600'}`}><Icons.Users className="w-6 h-6" /></div>
+                  บัญชีของฉัน
+                </h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูสิทธิ์ปัจจุบันและเปลี่ยน PIN ของตัวเอง</p>
+              </div>
+              <button type="button" onClick={() => setShowMyAccountModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`text-sm font-bold mb-1 ${theme.textMuted}`}>เข้าสู่ระบบเป็น</div>
+                <div className={`text-2xl font-black ${theme.textTitle}`}>{currentFullAccount?.name || currentAccountLabel}</div>
+                <div className={`mt-2 text-sm font-bold ${theme.textMuted}`}>@{currentFullAccount?.username || currentOperator?.username || '-'} • <span className={`px-2 py-1 rounded-lg border ${roleBadgeClass(currentAccountRole)}`}>{roleLabel(currentAccountRole)}</span></div>
+              </div>
+
+              <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                <h4 className={`font-black text-lg mb-4 ${theme.textTitle}`}>เปลี่ยน PIN</h4>
+                <div className="space-y-3">
+                  <input type="password" className={`w-full px-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="PIN เดิม" value={myPinForm.oldPin} onChange={e => setMyPinForm({...myPinForm, oldPin: e.target.value})} />
+                  <input type="password" className={`w-full px-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="PIN ใหม่" value={myPinForm.newPin} onChange={e => setMyPinForm({...myPinForm, newPin: e.target.value})} />
+                  <input type="password" className={`w-full px-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="ยืนยัน PIN ใหม่" value={myPinForm.confirmPin} onChange={e => setMyPinForm({...myPinForm, confirmPin: e.target.value})} />
+                </div>
+                <p className={`text-xs font-bold mt-3 ${theme.textMuted}`}>* ระบบจะไม่รับ PIN ที่เดาง่าย เช่น 1234, 0000, 1111</p>
+                <button type="button" onClick={handleChangeOwnPin} className="w-full mt-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black">บันทึก PIN ใหม่</button>
+                <button type="button" onClick={handleLockScreen} className={`w-full mt-3 py-3 rounded-xl font-black border ${theme.btnSecondary}`}>ล็อกหน้าจอทันที</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ถังขยะอุปกรณ์ */}
+      {showTrashModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
+            <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
+                  <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-rose-900/50 text-rose-300' : 'bg-rose-100 text-rose-600'}`}><Icons.Trash className="w-6 h-6" /></div>
+                  ถังขยะอุปกรณ์
+                </h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รายการที่ถูกลบจะถูกซ่อนไว้ก่อน สามารถกู้คืนได้ หรือให้บัญชีกลางลบถาวร</p>
+              </div>
+              <button type="button" onClick={() => setShowTrashModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-3">
+              {deletedItems.length === 0 ? (
+                <div className={`text-center py-12 font-bold text-xl flex flex-col items-center gap-3 ${theme.textMuted}`}>
+                  <Icons.CheckCircle className="w-12 h-12" />
+                  ถังขยะว่าง ไม่มีอุปกรณ์ที่ถูกลบ
+                </div>
+              ) : deletedItems.map(item => (
+                <div key={item.id} className={`p-4 rounded-2xl border flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="min-w-0">
+                    <div className={`font-black text-lg truncate ${theme.textTitle}`}>{item.name}</div>
+                    <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N.: {item.sn || '-'} • หมวดหมู่: {item.category || '-'} • ที่เก็บ: {item.location || '-'}</div>
+                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ลบเมื่อ: {item.deletedAt ? new Date(item.deletedAt).toLocaleString('th-TH') : '-'} • โดย: {item.deletedBy || '-'}</div>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button type="button" onClick={() => handleRestoreTrashItem(item)} className="px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center gap-2"><Icons.CheckCircle className="w-5 h-5" /> กู้คืน</button>
+                    <button type="button" onClick={() => handlePermanentDeleteTrashItem(item)} className="px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black flex items-center gap-2"><Icons.Trash className="w-4 h-4" /> ลบถาวร</button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -3567,7 +3763,7 @@ function MainApp() {
                     <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Users className="w-6 h-6 text-indigo-500"/> จัดการบัญชีพนักงาน</h4>
                     <p className={`text-sm font-bold ${theme.textMuted}`}>บัญชีกลางสามารถเพิ่ม แก้ไข ปิดใช้งาน หรือลบบัญชีพนักงานได้ ใช้สำหรับระบุตัวผู้ทำรายการในระบบและ Audit Log</p>
                     <p className={`text-xs mt-2 font-bold ${isDarkMode ? 'text-amber-300' : 'text-amber-700'}`}>* เวอร์ชันทดลองนี้เป็นระบบล็อกอินภายในของเว็บ ยังไม่ใช่ Firebase Auth แบบองค์กร</p>
-                    <p className={`text-xs mt-1 font-bold ${isDarkMode ? 'text-indigo-200' : 'text-indigo-700'}`}>* ระบบจะกัน PIN ที่เดาง่ายเกินไป และออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง</p>
+                    <p className={`text-xs mt-1 font-bold ${isDarkMode ? 'text-indigo-200' : 'text-indigo-700'}`}>* ระบบจะกัน PIN ที่เดาง่ายเกินไป ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง และไม่แสดง PIN เดิมบนหน้าจอ</p>
                   </div>
 
                   <div className={`p-5 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
@@ -3581,10 +3777,17 @@ function MainApp() {
                         <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>Username</label>
                         <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="เช่น sirichai" value={accountForm.username} onChange={e => setAccountForm({...accountForm, username: e.target.value})} disabled={!canManageAccounts} />
                       </div>
-                      <div>
-                        <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>{editingAccountId ? 'PIN ใหม่ (ไม่กรอก = ใช้เดิม)' : 'PIN สำหรับเข้าสู่ระบบ'}</label>
-                        <input type="password" className={`w-full px-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="อย่างน้อย 4 ตัว" value={accountForm.pin} onChange={e => setAccountForm({...accountForm, pin: e.target.value})} disabled={!canManageAccounts} />
-                      </div>
+                      {!editingAccountId ? (
+                        <div>
+                          <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>PIN สำหรับเข้าสู่ระบบ</label>
+                          <input type="password" className={`w-full px-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="อย่างน้อย 4 ตัว" value={accountForm.pin} onChange={e => setAccountForm({...accountForm, pin: e.target.value})} disabled={!canManageAccounts} />
+                        </div>
+                      ) : (
+                        <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-slate-900/40 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+                          <div className="font-black mb-1">PIN ถูกซ่อนไว้เพื่อความปลอดภัย</div>
+                          <div className={`text-xs font-bold ${theme.textMuted}`}>หากต้องการเปลี่ยนรหัส ให้ใช้ปุ่ม “รีเซ็ต PIN” ในรายการบัญชีด้านล่าง</div>
+                        </div>
+                      )}
                       <div>
                         <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>สิทธิ์</label>
                         <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} value={accountForm.role} onChange={e => setAccountForm({...accountForm, role: e.target.value})} disabled={!canManageAccounts}>
@@ -3619,7 +3822,7 @@ function MainApp() {
                         <div className="flex gap-2 shrink-0">
                           <button type="button" onClick={() => openEditAccountForm(acc)} className={`px-4 py-2 rounded-xl font-bold ${isDarkMode ? 'bg-blue-900/40 text-blue-300 hover:bg-blue-800' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>แก้ไข</button>
                           <button type="button" onClick={() => handleResetAccountPin(acc)} disabled={!canManageAccounts || (acc.role === 'owner' && currentAccountRole !== 'owner')} className={`px-4 py-2 rounded-xl font-bold ${(!canManageAccounts || (acc.role === 'owner' && currentAccountRole !== 'owner')) ? (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed') : (isDarkMode ? 'bg-amber-900/40 text-amber-300 hover:bg-amber-800' : 'bg-amber-50 text-amber-600 hover:bg-amber-100')}`}>รีเซ็ต PIN</button>
-                          <button type="button" onClick={() => handleDeleteAccount(acc)} disabled={!canManageAccounts || String(acc.username || '').toLowerCase() === 'admin'} className={`px-4 py-2 rounded-xl font-bold ${(!canManageAccounts || String(acc.username || '').toLowerCase() === 'admin') ? (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed') : (isDarkMode ? 'bg-rose-900/40 text-rose-300 hover:bg-rose-800' : 'bg-rose-50 text-rose-600 hover:bg-rose-100')}`}>ลบ</button>
+                          <button type="button" onClick={() => handleDeleteAccount(acc)} disabled={!canManageAccounts || String(acc.username || '').toLowerCase() === 'admin' || acc.active === false} className={`px-4 py-2 rounded-xl font-bold ${(!canManageAccounts || String(acc.username || '').toLowerCase() === 'admin' || acc.active === false) ? (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed') : (isDarkMode ? 'bg-rose-900/40 text-rose-300 hover:bg-rose-800' : 'bg-rose-50 text-rose-600 hover:bg-rose-100')}`}>ปิดใช้งาน</button>
                         </div>
                       </div>
                     ))}
@@ -4371,14 +4574,14 @@ function MainApp() {
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
           <div className={`rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl ${theme.cardBg}`}>
             <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isDarkMode ? 'bg-rose-900/40 text-rose-500' : 'bg-rose-100 text-rose-500'}`}><Icons.Trash className="w-10 h-10" /></div>
-            <h3 className={`text-2xl font-black mb-2 ${theme.textTitle}`}>ลบอุปกรณ์?</h3>
+            <h3 className={`text-2xl font-black mb-2 ${theme.textTitle}`}>ย้ายเข้าถังขยะ?</h3>
             <p className={`mb-6 text-lg ${theme.textMuted}`}>
-              คุณแน่ใจหรือไม่ที่จะลบ<br/>
+              รายการนี้จะถูกซ่อนจากตารางหลัก แต่ยังสามารถกู้คืนได้จากเมนูถังขยะ<br/>
               <span className="font-bold text-rose-500 text-xl block mt-2">"{itemToDelete.name}"</span>
             </p>
             <div className="flex gap-3">
               <button type="button" onClick={() => setItemToDelete(null)} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={handleDeleteItem} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/20 text-lg hover:bg-rose-500">ยืนยันการลบ</button>
+              <button type="button" onClick={handleDeleteItem} className="flex-1 py-4 bg-rose-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/20 text-lg hover:bg-rose-500">ย้ายเข้าถังขยะ</button>
             </div>
           </div>
         </div>
