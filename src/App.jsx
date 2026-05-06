@@ -183,6 +183,18 @@ function MainApp() {
   const [isBusy, setIsBusy] = useState(false);
   const [toasts, setToasts] = useState([]);
 
+  // 🧭 Final Operations Pack: ปฏิทิน / ตรวจนับ / แจ้งซ่อม / ศูนย์ติดตาม / จอทีวี
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [showStockCountModal, setShowStockCountModal] = useState(false);
+  const [stockCountFoundIds, setStockCountFoundIds] = useState([]);
+  const [stockCountInput, setStockCountInput] = useState('');
+  const [showActionCenterModal, setShowActionCenterModal] = useState(false);
+  const [showRepairModal, setShowRepairModal] = useState(false);
+  const [repairTargetId, setRepairTargetId] = useState(null);
+  const [repairForm, setRepairForm] = useState({ issueDate: '', problem: '', reporter: '', sentTo: '', cost: '', doneDate: '', note: '', markAvailable: false });
+  const [returnInspection, setReturnInspection] = useState({});
+  const [showTvDashboardModal, setShowTvDashboardModal] = useState(false);
+
   // 🖨️ สถานะสำหรับ Print & Scan QR Code
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [qrPrintSize, setQrPrintSize] = useState('normal');
@@ -770,6 +782,77 @@ S.N.: ${item.sn || '-'}
     };
   }, [items, todayKey, todayMs]);
 
+  const calendarDays = useMemo(() => {
+    const map = {};
+    const addEvent = (dateKey, event) => {
+      if (!dateKey) return;
+      if (!map[dateKey]) map[dateKey] = [];
+      map[dateKey].push(event);
+    };
+
+    items.forEach((item) => {
+      if ((item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn) {
+        addEvent(getDateKey(item.expectedReturn), {
+          type: item.status === 'out-for-event' ? 'event-return' : 'borrow-return',
+          title: item.status === 'out-for-event' ? `คืนจากงาน: ${item.currentEvent || '-'}` : `คืนจากผู้ยืม: ${item.currentBorrower || '-'}`,
+          itemName: item.name,
+          sn: item.sn,
+          status: item.status
+        });
+      }
+    });
+
+    (settingsOptions.prepLists || []).forEach((prep) => {
+      addEvent(getDateKey(prep.useDate), {
+        type: 'prep',
+        title: `เตรียมของ: ${prep.name || '-'}`,
+        itemName: `${(prep.itemIds || []).length} รายการ`,
+        staff: prep.staff,
+        status: prep.status || 'pending'
+      });
+    });
+
+    return Object.entries(map)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(0, 45)
+      .map(([date, events]) => ({ date, events }));
+  }, [items, settingsOptions.prepLists]);
+
+  const actionCenterData = useMemo(() => {
+    const dueToday = todayFollowup.dueToday || [];
+    const overdue = todayFollowup.overdue || [];
+    const maintenance = items.filter(i => i.status === 'maintenance' && !i.isDeleted);
+    const untagged = items.filter(i => !i.qrTagged && !i.isDeleted);
+    const deleted = items.filter(i => i.isDeleted);
+    const prepIncomplete = (settingsOptions.prepLists || []).filter(p => (p.status || 'pending') !== 'completed' && (p.checkedIds || []).length < (p.itemIds || []).length);
+    const brokenBoxes = (settingsOptions.storageBoxes || []).map(box => {
+      const itemIds = box.itemIds || [];
+      const missingIds = itemIds.filter(id => !items.find(i => i.id === id && !i.isDeleted));
+      return { ...box, missingIds };
+    }).filter(box => (box.missingIds || []).length > 0);
+
+    return {
+      overdue,
+      dueToday,
+      maintenance,
+      untagged,
+      deleted,
+      prepIncomplete,
+      brokenBoxes,
+      total: overdue.length + dueToday.length + maintenance.length + untagged.length + deleted.length + prepIncomplete.length + brokenBoxes.length
+    };
+  }, [items, settingsOptions.prepLists, settingsOptions.storageBoxes, todayFollowup]);
+
+  const stockCountStats = useMemo(() => {
+    const activeItems = items.filter(i => !i.isDeleted);
+    const foundSet = new Set(stockCountFoundIds);
+    const found = activeItems.filter(i => foundSet.has(i.id));
+    const notFound = activeItems.filter(i => !foundSet.has(i.id) && i.status === 'available');
+    const out = activeItems.filter(i => i.status === 'borrowed' || i.status === 'out-for-event');
+    const maintenance = activeItems.filter(i => i.status === 'maintenance');
+    return { activeItems, found, notFound, out, maintenance };
+  }, [items, stockCountFoundIds]);
+
   const sortedBundleItems = useMemo(() => {
     if (!showBundleManager) return [];
     const search = bundleSearchTerm.toLowerCase().trim();
@@ -882,6 +965,65 @@ S.N.: ${item.sn || '-'}
       itemCount: items.length
     };
   }, [items, settingsOptions, auditLogs, isDarkMode]);
+
+  const handleStockCountScan = () => {
+    const val = String(stockCountInput || '').trim();
+    if (!val) return;
+    const found = items.find(i => !i.isDeleted && (i.id === val || String(i.sn || '').toLowerCase() === val.toLowerCase() || String(i.name || '').toLowerCase() === val.toLowerCase()));
+    if (!found) {
+      notify('ไม่พบอุปกรณ์', `ไม่พบรหัส/ชื่อ: ${val}`, 'error');
+      setStockCountInput('');
+      return;
+    }
+    setStockCountFoundIds(prev => prev.includes(found.id) ? prev : [...prev, found.id]);
+    notify('ตรวจพบแล้ว', found.name, 'success');
+    setStockCountInput('');
+  };
+
+  const openRepairForItem = (item) => {
+    if (!item) return;
+    setRepairTargetId(item.id);
+    setRepairForm({ issueDate: new Date().toISOString().slice(0, 10), problem: '', reporter: currentAccountLabel || '', sentTo: '', cost: '', doneDate: '', note: '', markAvailable: false });
+    setShowRepairModal(true);
+  };
+
+  const handleSaveRepair = async () => {
+    const item = items.find(i => i.id === repairTargetId);
+    if (!user || !item) return;
+    if (!String(repairForm.problem || '').trim()) {
+      notify('กรอกอาการก่อน', 'กรุณาระบุอาการเสียหรือสิ่งที่ต้องซ่อม', 'warning');
+      return;
+    }
+    const repairEntry = {
+      type: repairForm.markAvailable ? 'repair-done' : 'repair',
+      date: new Date().toISOString(),
+      issueDate: repairForm.issueDate || new Date().toISOString().slice(0, 10),
+      problem: repairForm.problem,
+      reporter: repairForm.reporter || currentAccountLabel,
+      sentTo: repairForm.sentTo || '',
+      cost: repairForm.cost || '',
+      doneDate: repairForm.doneDate || '',
+      note: repairForm.note || '',
+      operatorName: currentAccountLabel
+    };
+    const newHistory = [...(item.history || []), repairEntry];
+    const repairLogs = [...(item.repairLogs || []), repairEntry];
+    const newStatus = repairForm.markAvailable ? 'available' : 'maintenance';
+    await setDoc(getItemDoc(item.id), { status: newStatus, history: newHistory, repairLogs, updatedAt: new Date().toISOString(), updatedBy: currentAccountLabel }, { merge: true });
+    logAction(repairForm.markAvailable ? 'ปิดงานซ่อม' : 'แจ้งซ่อม', item.name, `${repairForm.problem}\nผู้แจ้ง: ${repairForm.reporter || currentAccountLabel}`);
+    notify('บันทึกงานซ่อมแล้ว', item.name, 'success');
+    setShowRepairModal(false);
+    setRepairTargetId(null);
+  };
+
+  const applyProblemFilter = (type) => {
+    setShowActionCenterModal(false);
+    setQuickProblemOnly(false);
+    if (type === 'overdue') { setFilterStatus('all'); setSearchTerm(''); return setShowTodayModal(true); }
+    if (type === 'maintenance') { setFilterStatus('maintenance'); setSearchTerm(''); return; }
+    if (type === 'untagged') { setFilterQrTagged('untagged'); return; }
+    if (type === 'deleted') { setShowTrashModal(true); return; }
+  };
 
   const handleSave = async () => {
     if (!canAddEditItems) return alert('❌ บัญชีนี้ไม่มีสิทธิ์เพิ่มหรือแก้ไขอุปกรณ์');
@@ -1181,8 +1323,19 @@ S.N.: ${item.sn || '-'}
         const item = items.find(i => i.id === id);
         if (!item || (item.status !== 'borrowed' && item.status !== 'out-for-event')) return Promise.resolve();
         returnedNames.push(item.name);
-        const newHistory = [...(item.history || []), newHistoryEntry];
-        return setDoc(getItemDoc(id), { status: 'available', currentBorrower: null, currentEvent: null, currentNote: null, expectedReturn: null, history: newHistory }, { merge: true });
+        const inspection = returnInspection[id] || { condition: 'ปกติ', note: '' };
+        const itemHistoryEntry = { ...newHistoryEntry, inspection, operatorName: currentAccountLabel };
+        const newHistory = [...(item.history || []), itemHistoryEntry];
+        const shouldMaintenance = ['มีรอย/ต้องตรวจเพิ่ม', 'ชำรุด', 'คืนไม่ครบ'].includes(inspection.condition);
+        return setDoc(getItemDoc(id), {
+          status: shouldMaintenance ? 'maintenance' : 'available',
+          currentBorrower: null, currentEvent: null, currentNote: null, expectedReturn: null,
+          returnCondition: inspection.condition,
+          returnNote: inspection.note || '',
+          history: newHistory,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentAccountLabel
+        }, { merge: true });
       });
       await Promise.all(promises);
 
@@ -1192,6 +1345,7 @@ S.N.: ${item.sn || '-'}
       setReturnChecklist([]);
       setSelectedItems([]); 
       setReturnData({ staff: '', newStaff: '' });
+      setReturnInspection({});
       alert('✅ รับคืนอุปกรณ์เรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
@@ -2888,6 +3042,24 @@ S.N.: ${item.sn || '-'}
                   <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Export / Restore / ล้างประวัติ</p>
                 </button>
               )}
+              <button type="button" onClick={() => { setShowMoreMenu(false); setShowActionCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                <div className="font-black text-lg flex items-center gap-2"><Icons.Alert className="w-5 h-5" /> ของที่ต้องจัดการ</div>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมของเลยกำหนด ชำรุด ยังไม่ติด QR และงานที่ต้องตาม</p>
+              </button>
+              <button type="button" onClick={() => { setShowMoreMenu(false); setShowCalendarModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ปฏิทินงาน/คืนของ</div>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูรายการเตรียมของและกำหนดคืนตามวันที่</p>
+              </button>
+              {canUseOperationalTools && (
+                <button type="button" onClick={() => { setShowMoreMenu(false); setShowStockCountModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                  <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> ตรวจนับสต๊อก</div>
+                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เดินสแกน QR เพื่อเทียบของจริงกับข้อมูลในเว็บ</p>
+                </button>
+              )}
+              <button type="button" onClick={() => { setShowMoreMenu(false); setShowTvDashboardModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                <div className="font-black text-lg flex items-center gap-2"><Icons.Monitor className="w-5 h-5" /> จอทีวีศูนย์</div>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หน้ารวมตัวเลขใหญ่ เหมาะกับเปิดค้างบนจอ</p>
+              </button>
               <button type="button" onClick={() => { setShowMoreMenu(false); setShowHelpModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
                 <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> คู่มือใช้งาน</div>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปวิธีใช้เว็บแบบสั้น ๆ สำหรับคนในศูนย์</p>
@@ -3269,6 +3441,9 @@ S.N.: ${item.sn || '-'}
                       <div className="flex items-center justify-center gap-2">
                         <button type="button" onClick={(e) => { e.stopPropagation(); setShowHistory(item.id); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${theme.btnCancel}`} title="ประวัติ"><Icons.History className="w-5 h-5" /></button>
                         <button type="button" onClick={(e) => { e.stopPropagation(); copyItemSummary(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${theme.btnCancel}`} title="คัดลอกข้อมูลอุปกรณ์"><Icons.ClipboardList className="w-5 h-5" /></button>
+                        {canUseOperationalTools && (
+                          <button type="button" onClick={(e) => { e.stopPropagation(); openRepairForItem(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="แจ้งซ่อม/บันทึกปัญหา"><Icons.Alert className="w-5 h-5" /></button>
+                        )}
                         
                         {canUseOperationalTools && (
                           <>
@@ -4692,6 +4867,17 @@ S.N.: ${item.sn || '-'}
                         {item.internalNote && <span className={`text-xs font-bold block mt-1 px-2 py-1 rounded-lg ${isDarkMode ? 'bg-amber-900/30 text-amber-300 border border-amber-800/50' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>โน้ตภายใน: {item.internalNote}</span>}
                       </span>
                       {item.owner && <span className={`text-[10px] px-2 py-0.5 rounded font-bold shrink-0 ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>👤 {item.owner}</span>}
+                      {isChecked && (
+                        <div className="w-full sm:w-56 space-y-2" onClick={(e) => e.stopPropagation()}>
+                          <select className={`w-full px-3 py-2 rounded-lg text-xs font-bold border ${theme.input}`} value={(returnInspection[id]?.condition) || 'ปกติ'} onChange={(e) => setReturnInspection(prev => ({...prev, [id]: {...(prev[id] || {}), condition: e.target.value}}))}>
+                            <option value="ปกติ">ปกติ</option>
+                            <option value="มีรอย/ต้องตรวจเพิ่ม">มีรอย/ต้องตรวจเพิ่ม</option>
+                            <option value="ชำรุด">ชำรุด</option>
+                            <option value="คืนไม่ครบ">คืนไม่ครบ</option>
+                          </select>
+                          <input className={`w-full px-3 py-2 rounded-lg text-xs font-bold border ${theme.input}`} placeholder="หมายเหตุหลังคืน" value={(returnInspection[id]?.note) || ''} onChange={(e) => setReturnInspection(prev => ({...prev, [id]: {...(prev[id] || {}), note: e.target.value}}))} />
+                        </div>
+                      )}
                     </label>
                   );
                 })}
@@ -4973,6 +5159,193 @@ S.N.: ${item.sn || '-'}
               <button type="button" onClick={() => confirmCloseIfDirty(true, () => setShowForm(false))} className={`flex-1 py-4 font-bold rounded-xl transition-colors text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button type="button" onClick={() => runWithBusy(handleSave)} disabled={isBusy} className={`flex-1 py-4 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-colors text-lg ${isBusy ? 'bg-blue-400 cursor-wait' : 'bg-blue-600 hover:bg-blue-500'}`}>{isBusy ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}</button>
             </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* 🧭 Modal ศูนย์รวมของที่ต้องจัดการ */}
+      {showActionCenterModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden ${theme.cardBg}`}>
+            <div className={`flex justify-between items-start gap-4 p-6 border-b ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.Alert className="w-6 h-6 text-rose-500" /> ของที่ต้องจัดการ</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมรายการที่ควรตาม/ตรวจ/แก้ไขในที่เดียว</p>
+              </div>
+              <button onClick={() => setShowActionCenterModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 overflow-y-auto custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                ['เลยกำหนดคืน', actionCenterData.overdue, 'overdue', 'text-rose-500'],
+                ['ต้องคืนวันนี้', actionCenterData.dueToday, 'overdue', 'text-amber-500'],
+                ['ชำรุด/ส่งซ่อม', actionCenterData.maintenance, 'maintenance', 'text-rose-500'],
+                ['ยังไม่ติด QR', actionCenterData.untagged, 'untagged', 'text-blue-500']
+              ].map(([title, list, type, tone]) => (
+                <div key={title} className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700 bg-slate-900/40' : 'border-slate-200 bg-slate-50'}`}>
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <h4 className={`font-black text-lg ${theme.textTitle}`}>{title}</h4>
+                    <button onClick={() => applyProblemFilter(type)} className={`text-xs font-black px-3 py-1.5 rounded-lg ${theme.btnCancel}`}>ดู/กรอง</button>
+                  </div>
+                  <div className={`text-4xl font-black mb-2 ${tone}`}>{list.length}</div>
+                  <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+                    {list.slice(0, 8).map(i => <div key={i.id} className={`text-sm font-bold px-3 py-2 rounded-xl ${isDarkMode ? 'bg-slate-800 text-slate-200' : 'bg-white text-slate-700'}`}>{i.name} <span className={theme.textMuted}>{i.sn ? `• ${i.sn}` : ''}</span></div>)}
+                    {list.length === 0 && <div className={`text-sm font-bold ${theme.textMuted}`}>ไม่มีรายการ</div>}
+                  </div>
+                </div>
+              ))}
+              <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700 bg-slate-900/40' : 'border-slate-200 bg-slate-50'}`}>
+                <h4 className={`font-black text-lg ${theme.textTitle}`}>รายการเตรียมของยังไม่ครบ</h4>
+                <div className="text-4xl font-black my-2 text-sky-500">{actionCenterData.prepIncomplete.length}</div>
+                {actionCenterData.prepIncomplete.slice(0, 8).map(p => <div key={p.id} className={`text-sm font-bold px-3 py-2 rounded-xl mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>{p.name} • {(p.checkedIds||[]).length}/{(p.itemIds||[]).length}</div>)}
+              </div>
+              <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700 bg-slate-900/40' : 'border-slate-200 bg-slate-50'}`}>
+                <h4 className={`font-black text-lg ${theme.textTitle}`}>กล่องที่มีรายการหายจากระบบ</h4>
+                <div className="text-4xl font-black my-2 text-cyan-500">{actionCenterData.brokenBoxes.length}</div>
+                {actionCenterData.brokenBoxes.slice(0, 8).map(b => <div key={b.id} className={`text-sm font-bold px-3 py-2 rounded-xl mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>{b.name} • หาย {(b.missingIds||[]).length} รายการ</div>)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📅 Modal ปฏิทินงาน / กำหนดคืน */}
+      {showCalendarModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden ${theme.cardBg}`}>
+            <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
+              <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.History className="w-6 h-6 text-sky-500" /> ปฏิทินงาน / กำหนดคืน</h3>
+              <button onClick={() => setShowCalendarModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 overflow-y-auto custom-scrollbar space-y-4">
+              {calendarDays.length === 0 && <div className={`text-center py-12 font-black text-xl ${theme.textMuted}`}>ยังไม่มีกำหนดคืนหรือรายการเตรียมของ</div>}
+              {calendarDays.map(day => (
+                <div key={day.date} className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700 bg-slate-900/40' : 'border-slate-200 bg-slate-50'}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className={`font-black text-lg ${theme.textTitle}`}>{new Date(day.date).toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h4>
+                    <span className={`text-xs font-black px-3 py-1 rounded-full ${theme.btnCancel}`}>{day.events.length} รายการ</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {day.events.map((ev, idx) => (
+                      <div key={idx} className={`p-3 rounded-xl border ${ev.type === 'prep' ? (isDarkMode ? 'bg-sky-900/20 border-sky-800' : 'bg-sky-50 border-sky-200') : ev.type === 'event-return' ? (isDarkMode ? 'bg-orange-900/20 border-orange-800' : 'bg-orange-50 border-orange-200') : (isDarkMode ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200')}`}>
+                        <div className={`font-black ${theme.textTitle}`}>{ev.title}</div>
+                        <div className={`text-sm font-bold ${theme.textMuted}`}>{ev.itemName}{ev.sn ? ` • ${ev.sn}` : ''}{ev.staff ? ` • ${ev.staff}` : ''}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔎 Modal ตรวจนับสต๊อก */}
+      {showStockCountModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden ${theme.cardBg}`}>
+            <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.QrCode className="w-6 h-6 text-amber-500" /> โหมดตรวจนับสต๊อก</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เดินสแกน QR/S.N. ของจริง ระบบจะเทียบกับรายการในเว็บ</p>
+              </div>
+              <button onClick={() => setShowStockCountModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div className={`p-4 rounded-2xl border text-center ${theme.cardBg}`}><div className="text-sm font-bold text-slate-500">ทั้งหมด</div><div className="text-3xl font-black text-blue-500">{stockCountStats.activeItems.length}</div></div>
+                <div className={`p-4 rounded-2xl border text-center ${theme.cardBg}`}><div className="text-sm font-bold text-slate-500">พบแล้ว</div><div className="text-3xl font-black text-emerald-500">{stockCountStats.found.length}</div></div>
+                <div className={`p-4 rounded-2xl border text-center ${theme.cardBg}`}><div className="text-sm font-bold text-slate-500">ยังไม่พบ</div><div className="text-3xl font-black text-amber-500">{stockCountStats.notFound.length}</div></div>
+                <div className={`p-4 rounded-2xl border text-center ${theme.cardBg}`}><div className="text-sm font-bold text-slate-500">ยืม/ออกงาน</div><div className="text-3xl font-black text-purple-500">{stockCountStats.out.length}</div></div>
+                <div className={`p-4 rounded-2xl border text-center ${theme.cardBg}`}><div className="text-sm font-bold text-slate-500">ซ่อม</div><div className="text-3xl font-black text-rose-500">{stockCountStats.maintenance.length}</div></div>
+              </div>
+              <form onSubmit={(e) => { e.preventDefault(); handleStockCountScan(); }} className="flex flex-col sm:flex-row gap-3">
+                <input value={stockCountInput} onChange={(e) => setStockCountInput(e.target.value)} className={`flex-1 px-4 py-4 rounded-xl font-bold text-lg border ${theme.input}`} placeholder="สแกน QR / พิมพ์ S.N. / ชื่ออุปกรณ์" autoFocus />
+                <button className="px-6 py-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black">บันทึกว่าพบ</button>
+                <button type="button" onClick={() => setStockCountFoundIds([])} className={`px-6 py-4 rounded-xl font-black border ${theme.btnSecondary}`}>เริ่มใหม่</button>
+              </form>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+                  <h4 className={`font-black mb-3 ${theme.textTitle}`}>พบแล้วล่าสุด</h4>
+                  <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar">
+                    {stockCountStats.found.slice(-30).reverse().map(i => <div key={i.id} className={`p-3 rounded-xl font-bold ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>✅ {i.name} <span className={theme.textMuted}>{i.sn || ''}</span></div>)}
+                    {stockCountStats.found.length === 0 && <div className={`font-bold ${theme.textMuted}`}>ยังไม่ได้สแกนรายการใด</div>}
+                  </div>
+                </div>
+                <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+                  <h4 className={`font-black mb-3 ${theme.textTitle}`}>ยังไม่พบ (เฉพาะของพร้อมใช้งาน)</h4>
+                  <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar">
+                    {stockCountStats.notFound.slice(0, 60).map(i => <div key={i.id} className={`p-3 rounded-xl font-bold ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>□ {i.name} <span className={theme.textMuted}>{i.sn || ''}</span></div>)}
+                    {stockCountStats.notFound.length === 0 && <div className={`font-bold text-emerald-500`}>ครบแล้วในกลุ่มพร้อมใช้งาน</div>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🛠️ Modal แจ้งซ่อม / ประวัติซ่อม */}
+      {showRepairModal && (() => {
+        const repairItem = items.find(i => i.id === repairTargetId);
+        if (!repairItem) return null;
+        return (
+          <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
+            <div className={`rounded-3xl shadow-2xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden ${theme.cardBg}`}>
+              <div className={`flex justify-between items-start gap-4 p-6 border-b ${theme.divide}`}>
+                <div>
+                  <h3 className={`text-2xl font-black ${theme.textTitle}`}>แจ้งซ่อม / บันทึกปัญหา</h3>
+                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{repairItem.name} • {repairItem.sn || '-'}</p>
+                </div>
+                <button onClick={() => setShowRepairModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+              </div>
+              <div className="p-6 overflow-y-auto custom-scrollbar space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>วันที่พบปัญหา</span><input type="date" className={`w-full px-4 py-3 rounded-xl border ${theme.input}`} value={repairForm.issueDate} onChange={e => setRepairForm({...repairForm, issueDate: e.target.value})} /></label>
+                  <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>ผู้แจ้ง</span><input className={`w-full px-4 py-3 rounded-xl border ${theme.input}`} value={repairForm.reporter} onChange={e => setRepairForm({...repairForm, reporter: e.target.value})} /></label>
+                </div>
+                <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>อาการเสีย / สิ่งที่ต้องตรวจ <span className="text-rose-500">*</span></span><textarea rows="3" className={`w-full px-4 py-3 rounded-xl border resize-none ${theme.input}`} value={repairForm.problem} onChange={e => setRepairForm({...repairForm, problem: e.target.value})} placeholder="เช่น หัวไมค์หลวม / ช่อง HDMI กระพริบ / แบตเสื่อม" /></label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <input className={`px-4 py-3 rounded-xl border ${theme.input}`} placeholder="ส่งซ่อมที่ไหน" value={repairForm.sentTo} onChange={e => setRepairForm({...repairForm, sentTo: e.target.value})} />
+                  <input className={`px-4 py-3 rounded-xl border ${theme.input}`} placeholder="ค่าใช้จ่าย" value={repairForm.cost} onChange={e => setRepairForm({...repairForm, cost: e.target.value})} />
+                  <input type="date" className={`px-4 py-3 rounded-xl border ${theme.input}`} value={repairForm.doneDate} onChange={e => setRepairForm({...repairForm, doneDate: e.target.value})} />
+                </div>
+                <textarea rows="2" className={`w-full px-4 py-3 rounded-xl border resize-none ${theme.input}`} placeholder="หมายเหตุเพิ่มเติม" value={repairForm.note} onChange={e => setRepairForm({...repairForm, note: e.target.value})} />
+                <label className={`flex items-center gap-3 p-4 rounded-xl border ${theme.btnSecondary}`}><input type="checkbox" className="w-5 h-5 accent-emerald-500" checked={repairForm.markAvailable} onChange={e => setRepairForm({...repairForm, markAvailable: e.target.checked})} /><span className="font-bold">ซ่อมเสร็จแล้ว เปลี่ยนสถานะกลับเป็นพร้อมใช้งาน</span></label>
+                <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700 bg-slate-900/40' : 'border-slate-200 bg-slate-50'}`}>
+                  <h4 className={`font-black mb-3 ${theme.textTitle}`}>ประวัติซ่อมล่าสุด</h4>
+                  {(repairItem.repairLogs || []).slice(-5).reverse().map((r, idx) => <div key={idx} className={`text-sm font-bold mb-2 p-3 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>{r.issueDate || '-'} • {r.problem} <span className={theme.textMuted}>โดย {r.reporter || '-'}</span></div>)}
+                  {!(repairItem.repairLogs || []).length && <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีประวัติซ่อม</div>}
+                </div>
+              </div>
+              <div className={`p-5 border-t flex gap-3 ${theme.divide}`}>
+                <button onClick={() => setShowRepairModal(false)} className={`flex-1 py-3 rounded-xl font-bold ${theme.btnCancel}`}>ยกเลิก</button>
+                <button onClick={() => runWithBusy(handleSaveRepair)} disabled={isBusy} className={`flex-1 py-3 rounded-xl font-black text-white ${isBusy ? 'bg-rose-400 cursor-wait' : 'bg-rose-600 hover:bg-rose-500'}`}>{isBusy ? 'กำลังบันทึก...' : 'บันทึกงานซ่อม'}</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 📺 Modal จอทีวีศูนย์ */}
+      {showTvDashboardModal && (
+        <div className={`fixed inset-0 z-[10000] p-6 sm:p-10 overflow-y-auto ${isDarkMode ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-3xl sm:text-5xl font-black">MDEC-Stock Dashboard</h1>
+              <p className={`font-bold mt-1 ${theme.textMuted}`}>ภาพรวมสำหรับเปิดค้างบนจอศูนย์ • {currentTime.toLocaleTimeString('th-TH')}</p>
+            </div>
+            <button onClick={() => setShowTvDashboardModal(false)} className="px-5 py-3 rounded-2xl bg-rose-600 text-white font-black">ปิด</button>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+            {[['ทั้งหมด', stats.all, 'text-blue-500'], ['พร้อมใช้', stats.available, 'text-emerald-500'], ['ถูกยืม', stats.borrowed, 'text-purple-500'], ['ออกงาน', stats.outForEvent, 'text-orange-500'], ['ชำรุด', stats.maintenance, 'text-rose-500'], ['ต้องจัดการ', actionCenterData.total, 'text-amber-500']].map(([label, value, tone]) => (
+              <div key={label} className={`p-5 rounded-3xl border shadow-sm text-center ${theme.cardBg}`}><div className="text-sm font-black opacity-70">{label}</div><div className={`text-5xl font-black ${tone}`}>{value}</div></div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div className={`rounded-3xl border p-5 ${theme.cardBg}`}><h2 className="text-2xl font-black mb-3">ต้องคืนวันนี้</h2>{todayFollowup.dueToday.slice(0,8).map(i => <div key={i.id} className="text-xl font-bold py-2 border-b border-slate-200/30">{i.name}</div>)}{!todayFollowup.dueToday.length && <div className="text-xl font-bold opacity-60">ไม่มีรายการ</div>}</div>
+            <div className={`rounded-3xl border p-5 ${theme.cardBg}`}><h2 className="text-2xl font-black mb-3">เลยกำหนดคืน</h2>{todayFollowup.overdue.slice(0,8).map(i => <div key={i.id} className="text-xl font-bold py-2 text-rose-500 border-b border-slate-200/30">{i.name}</div>)}{!todayFollowup.overdue.length && <div className="text-xl font-bold opacity-60">ไม่มีรายการ</div>}</div>
+            <div className={`rounded-3xl border p-5 ${theme.cardBg}`}><h2 className="text-2xl font-black mb-3">งาน/เตรียมของใกล้ถึง</h2>{calendarDays.slice(0,5).map(d => <div key={d.date} className="py-2 border-b border-slate-200/30"><div className="font-black">{new Date(d.date).toLocaleDateString('th-TH')}</div><div className="font-bold opacity-70">{d.events.length} รายการ</div></div>)}</div>
           </div>
         </div>
       )}
