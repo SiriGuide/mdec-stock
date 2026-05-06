@@ -90,7 +90,8 @@ function MainApp() {
     bundles: [],
     storageBoxes: [],
     prepLists: [],
-    backupMeta: {}
+    backupMeta: {},
+    accounts: []
   });
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -116,6 +117,13 @@ function MainApp() {
   const [user, setUser] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const [pin, setPin] = useState('');
+  const [loginUsername, setLoginUsername] = useState('admin');
+  const [currentOperator, setCurrentOperator] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('mdec_operator') || 'null'); }
+    catch (e) { return null; }
+  });
+  const [accountForm, setAccountForm] = useState({ id: null, name: '', username: '', pin: '', role: 'staff', active: true });
+  const [editingAccountId, setEditingAccountId] = useState(null);
   const [firebaseError, setFirebaseError] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
@@ -282,7 +290,8 @@ function MainApp() {
           bundles: data.bundles || [],
           storageBoxes: data.storageBoxes || [],
           prepLists: data.prepLists || [],
-          backupMeta: data.backupMeta || {}
+          backupMeta: data.backupMeta || {},
+          accounts: data.accounts || []
         });
       } else {
         const defaultSettings = {
@@ -292,7 +301,8 @@ function MainApp() {
           bundles: [],
           storageBoxes: [],
           prepLists: [],
-          backupMeta: {} 
+          backupMeta: {},
+          accounts: [] 
         };
         setDoc(settingsRef, defaultSettings).catch(e => console.log("Init settings failed:", e));
       }
@@ -321,11 +331,120 @@ function MainApp() {
     }
   }, [user, showAuditModal, showCommandCenter]);
 
+  const getEffectiveAccounts = () => {
+    const savedAccounts = Array.isArray(settingsOptions.accounts) ? settingsOptions.accounts : [];
+    const hasCentral = savedAccounts.some(acc => String(acc.username || '').toLowerCase() === 'admin');
+    const centralAccount = { id: 'central_admin', name: 'บัญชีกลาง', username: 'admin', pin: ADMIN_PIN, role: 'owner', active: true, builtIn: true };
+    return hasCentral ? savedAccounts : [centralAccount, ...savedAccounts];
+  };
+
+  const currentAccountLabel = currentOperator?.name || (isAdmin ? 'แอดมิน' : 'ผู้ใช้งานทั่วไป');
+  const currentAccountRole = currentOperator?.role || (isAdmin ? 'owner' : 'viewer');
+  const canManageAccounts = isAdmin && (currentAccountRole === 'owner' || currentAccountRole === 'admin');
+
+  const roleLabel = (role) => {
+    if (role === 'owner') return 'บัญชีกลาง';
+    if (role === 'admin') return 'ผู้ดูแล';
+    if (role === 'staff') return 'เจ้าหน้าที่';
+    return 'ดูอย่างเดียว';
+  };
+
+  const roleBadgeClass = (role) => {
+    if (role === 'owner') return isDarkMode ? 'bg-blue-900/50 text-blue-300 border-blue-800' : 'bg-blue-100 text-blue-700 border-blue-200';
+    if (role === 'admin') return isDarkMode ? 'bg-purple-900/50 text-purple-300 border-purple-800' : 'bg-purple-100 text-purple-700 border-purple-200';
+    if (role === 'staff') return isDarkMode ? 'bg-emerald-900/50 text-emerald-300 border-emerald-800' : 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    return isDarkMode ? 'bg-slate-700 text-slate-300 border-slate-600' : 'bg-slate-100 text-slate-600 border-slate-200';
+  };
+
+  const openNewAccountForm = () => {
+    setEditingAccountId(null);
+    setAccountForm({ id: null, name: '', username: '', pin: '', role: 'staff', active: true });
+  };
+
+  const openEditAccountForm = (account) => {
+    setEditingAccountId(account.id);
+    setAccountForm({
+      id: account.id,
+      name: account.name || '',
+      username: account.username || '',
+      pin: '',
+      role: account.role || 'staff',
+      active: account.active !== false,
+      builtIn: !!account.builtIn
+    });
+  };
+
+  const handleSaveAccount = async () => {
+    if (!user || !canManageAccounts) return alert('❌ เฉพาะบัญชีกลาง/ผู้ดูแลเท่านั้นที่จัดการบัญชีได้');
+    const name = String(accountForm.name || '').trim();
+    const username = String(accountForm.username || '').trim().toLowerCase();
+    const pinInput = String(accountForm.pin || '').trim();
+
+    if (!name || !username) return alert('❌ กรุณากรอกชื่อพนักงานและชื่อผู้ใช้');
+    if (!editingAccountId && !pinInput) return alert('❌ กรุณาตั้งรหัส PIN สำหรับบัญชีใหม่');
+    if (pinInput && pinInput.length < 4) return alert('❌ PIN ควรมีอย่างน้อย 4 ตัวอักษร/ตัวเลข');
+
+    const effective = getEffectiveAccounts();
+    const duplicate = effective.some(acc => String(acc.username || '').toLowerCase() === username && acc.id !== editingAccountId);
+    if (duplicate) return alert('❌ ชื่อผู้ใช้นี้มีอยู่แล้ว กรุณาใช้ชื่ออื่น');
+
+    let nextAccounts = Array.isArray(settingsOptions.accounts) ? [...settingsOptions.accounts] : [];
+    if (!nextAccounts.some(acc => String(acc.username || '').toLowerCase() === 'admin')) {
+      nextAccounts.unshift({ id: 'central_admin', name: 'บัญชีกลาง', username: 'admin', pin: ADMIN_PIN, role: 'owner', active: true });
+    }
+
+    if (editingAccountId) {
+      nextAccounts = nextAccounts.map(acc => {
+        if (acc.id !== editingAccountId) return acc;
+        return {
+          ...acc,
+          name,
+          username,
+          role: accountForm.role || 'staff',
+          active: accountForm.active !== false,
+          pin: pinInput ? pinInput : acc.pin,
+          updatedAt: new Date().toISOString()
+        };
+      });
+    } else {
+      nextAccounts.push({
+        id: `acc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        name,
+        username,
+        pin: pinInput,
+        role: accountForm.role || 'staff',
+        active: accountForm.active !== false,
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    const updatedSettings = { ...settingsOptions, accounts: nextAccounts };
+    setSettingsOptions(updatedSettings);
+    await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
+    await logAction(editingAccountId ? 'แก้ไขบัญชีผู้ใช้' : 'เพิ่มบัญชีผู้ใช้', name, `Username: ${username} / สิทธิ์: ${roleLabel(accountForm.role)}`);
+    openNewAccountForm();
+    alert(editingAccountId ? '✅ แก้ไขบัญชีเรียบร้อยแล้ว' : '✅ เพิ่มบัญชีพนักงานเรียบร้อยแล้ว');
+  };
+
+  const handleDeleteAccount = async (account) => {
+    if (!user || !canManageAccounts) return alert('❌ เฉพาะบัญชีกลาง/ผู้ดูแลเท่านั้นที่จัดการบัญชีได้');
+    if (!account || !account.id) return;
+    if (currentOperator?.id === account.id) return alert('❌ ไม่สามารถลบบัญชีที่กำลังใช้งานอยู่ได้');
+    if (String(account.username || '').toLowerCase() === 'admin') return alert('❌ ไม่ควรลบบัญชีกลาง admin');
+    if (!confirm(`ยืนยันลบบัญชี "${account.name}" หรือไม่?\n\nการลบนี้ไม่กระทบประวัติการยืม-คืนเดิม`)) return;
+    const nextAccounts = (Array.isArray(settingsOptions.accounts) ? settingsOptions.accounts : []).filter(acc => acc.id !== account.id);
+    const updatedSettings = { ...settingsOptions, accounts: nextAccounts };
+    setSettingsOptions(updatedSettings);
+    await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
+    await logAction('ลบบัญชีผู้ใช้', account.name || account.username, `ลบบัญชี username: ${account.username}`);
+    alert('✅ ลบบัญชีเรียบร้อยแล้ว');
+  };
+
   const logAction = async (actionType, targetName, details) => {
     if (!user) return;
     try {
       await addDoc(getAuditCol(), {
-        timestamp: new Date().toISOString(), action: actionType, target: targetName, details: details, user: "Admin" 
+        timestamp: new Date().toISOString(), action: actionType, target: targetName, details: details, user: currentOperator?.name || "Admin" 
       });
     } catch (e) {
       console.error("Audit Log Error:", e);
@@ -1343,21 +1462,54 @@ function MainApp() {
   };
 
   const handleLogin = () => {
-    if (pin === ADMIN_PIN) { 
-      setIsAdmin(true); 
-      try { localStorage.setItem('mdec_admin', 'true'); } catch(e) {}
-      setShowLogin(false); 
-      setPin(''); 
-    } else { 
-      alert('รหัสผ่านไม่ถูกต้อง'); 
-      setPin(''); 
+    const usernameInput = String(loginUsername || '').trim().toLowerCase();
+    const pinInput = String(pin || '').trim();
+    const effectiveAccounts = getEffectiveAccounts();
+    const foundAccount = effectiveAccounts.find(acc => {
+      return acc && acc.active !== false &&
+        String(acc.username || '').trim().toLowerCase() === usernameInput &&
+        String(acc.pin || '') === pinInput;
+    });
+
+    // รองรับรหัสเดิมไว้ก่อน: ถ้าพิมพ์ PIN เดิมโดยไม่กรอก username จะเข้าด้วยบัญชีกลาง
+    const legacyCentral = !foundAccount && !usernameInput && pinInput === ADMIN_PIN
+      ? { id: 'central_admin', name: 'บัญชีกลาง', username: 'admin', role: 'owner', active: true }
+      : null;
+
+    const loginAccount = foundAccount || legacyCentral;
+    if (loginAccount) {
+      const safeAccount = {
+        id: loginAccount.id,
+        name: loginAccount.name || loginAccount.username || 'ผู้ใช้งาน',
+        username: loginAccount.username || 'admin',
+        role: loginAccount.role || 'staff'
+      };
+      setCurrentOperator(safeAccount);
+      setIsAdmin(true);
+      try {
+        localStorage.setItem('mdec_admin', 'true');
+        localStorage.setItem('mdec_operator', JSON.stringify(safeAccount));
+      } catch(e) {}
+      setShowLogin(false);
+      setPin('');
+      setLoginUsername(safeAccount.username || 'admin');
+      logAction('เข้าสู่ระบบ', safeAccount.name, `เข้าสู่ระบบด้วยบัญชี ${safeAccount.username}`);
+    } else {
+      alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+      setPin('');
     }
   };
 
   const handleLogout = () => {
+    const logoutName = currentOperator?.name || 'Admin';
+    logAction('ออกจากระบบ', logoutName, 'ออกจากระบบจัดการ');
     setIsAdmin(false);
+    setCurrentOperator(null);
     setSelectedItems([]);
-    try { localStorage.removeItem('mdec_admin'); } catch(e) {}
+    try {
+      localStorage.removeItem('mdec_admin');
+      localStorage.removeItem('mdec_operator');
+    } catch(e) {}
   };
 
   const markSelectedQrTagged = async () => {
@@ -2325,7 +2477,11 @@ function MainApp() {
                 <Icons.ViewGrid className="w-5 h-5" /><span className="hidden sm:inline">เพิ่มเติม</span>
               </button>
 
-              <button type="button" onClick={handleLogout} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors flex ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-800/60 border border-rose-800' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'}`} title="ออกจากระบบแอดมิน">
+              <div className={`hidden xl:flex items-center gap-2 px-4 py-3 rounded-xl border font-bold text-sm ${isDarkMode ? 'bg-slate-900/40 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`} title={`เข้าสู่ระบบโดย ${currentAccountLabel}`}>
+                👤 {currentAccountLabel}
+              </div>
+
+              <button type="button" onClick={handleLogout} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors flex ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-800/60 border border-rose-800' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'}`} title="ออกจากระบบ">
                 <Icons.Unlock className="w-5 h-5" />
               </button>
             </>
@@ -3311,11 +3467,74 @@ function MainApp() {
               <button type="button" onClick={() => {setSettingsTab('categories'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'categories' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>หมวดหมู่</button>
               <button type="button" onClick={() => {setSettingsTab('locations'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'locations' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>สถานที่</button>
               <button type="button" onClick={() => {setSettingsTab('staff'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'staff' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>เจ้าหน้าที่</button>
+              <button type="button" onClick={() => {setSettingsTab('accounts'); setEditingSettingItem(null); setNewSettingItem(''); openNewAccountForm();}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'accounts' ? 'text-indigo-500 border-indigo-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>บัญชีผู้ใช้</button>
               <button type="button" onClick={() => {setSettingsTab('database'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'database' ? 'text-emerald-500 border-emerald-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>ฐานข้อมูล</button>
             </div>
             
             <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
-              {settingsTab === 'database' ? (
+              {settingsTab === 'accounts' ? (
+                <div className="p-6 space-y-6">
+                  <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-indigo-900/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
+                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Users className="w-6 h-6 text-indigo-500"/> จัดการบัญชีพนักงาน</h4>
+                    <p className={`text-sm font-bold ${theme.textMuted}`}>บัญชีกลางสามารถเพิ่ม แก้ไข ปิดใช้งาน หรือลบบัญชีพนักงานได้ ใช้สำหรับระบุตัวผู้ทำรายการในระบบและ Audit Log</p>
+                    <p className={`text-xs mt-2 font-bold ${isDarkMode ? 'text-amber-300' : 'text-amber-700'}`}>* เวอร์ชันทดลองนี้เป็นระบบล็อกอินภายในของเว็บ ยังไม่ใช่ Firebase Auth แบบองค์กร</p>
+                  </div>
+
+                  <div className={`p-5 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <h5 className={`font-black text-lg mb-4 ${theme.textTitle}`}>{editingAccountId ? 'แก้ไขบัญชี' : 'เพิ่มบัญชีพนักงานใหม่'}</h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>ชื่อพนักงาน</label>
+                        <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="เช่น ครูศิริชัย" value={accountForm.name} onChange={e => setAccountForm({...accountForm, name: e.target.value})} disabled={!canManageAccounts} />
+                      </div>
+                      <div>
+                        <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>Username</label>
+                        <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="เช่น sirichai" value={accountForm.username} onChange={e => setAccountForm({...accountForm, username: e.target.value})} disabled={!canManageAccounts} />
+                      </div>
+                      <div>
+                        <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>{editingAccountId ? 'PIN ใหม่ (ไม่กรอก = ใช้เดิม)' : 'PIN สำหรับเข้าสู่ระบบ'}</label>
+                        <input type="password" className={`w-full px-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="อย่างน้อย 4 ตัว" value={accountForm.pin} onChange={e => setAccountForm({...accountForm, pin: e.target.value})} disabled={!canManageAccounts} />
+                      </div>
+                      <div>
+                        <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>สิทธิ์</label>
+                        <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} value={accountForm.role} onChange={e => setAccountForm({...accountForm, role: e.target.value})} disabled={!canManageAccounts}>
+                          <option value="owner">บัญชีกลาง</option>
+                          <option value="admin">ผู้ดูแล</option>
+                          <option value="staff">เจ้าหน้าที่</option>
+                          <option value="viewer">ดูอย่างเดียว</option>
+                        </select>
+                      </div>
+                      <label className={`sm:col-span-2 flex items-center gap-3 p-3 rounded-xl border cursor-pointer ${isDarkMode ? 'bg-slate-900/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <input type="checkbox" className="w-5 h-5 accent-indigo-600" checked={accountForm.active !== false} onChange={e => setAccountForm({...accountForm, active: e.target.checked})} disabled={!canManageAccounts} />
+                        <span className={`font-bold ${theme.textMain}`}>เปิดใช้งานบัญชีนี้</span>
+                      </label>
+                    </div>
+                    <div className="flex gap-3 mt-5">
+                      {editingAccountId && <button type="button" onClick={openNewAccountForm} className={`flex-1 py-3 font-bold rounded-xl ${theme.btnCancel}`}>ยกเลิกแก้ไข</button>}
+                      <button type="button" onClick={handleSaveAccount} disabled={!canManageAccounts} className={`flex-[2] py-3 font-black rounded-xl text-white ${canManageAccounts ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-slate-400 cursor-not-allowed'}`}>{editingAccountId ? 'บันทึกการแก้ไขบัญชี' : 'เพิ่มบัญชีพนักงาน'}</button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {getEffectiveAccounts().map((acc) => (
+                      <div key={acc.id} className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <span className={`font-black text-lg truncate ${theme.textTitle}`}>{acc.name || acc.username}</span>
+                            <span className={`text-xs px-2 py-1 rounded-lg border font-black ${roleBadgeClass(acc.role)}`}>{roleLabel(acc.role)}</span>
+                            {acc.active === false && <span className="text-xs px-2 py-1 rounded-lg bg-rose-100 text-rose-700 border border-rose-200 font-black">ปิดใช้งาน</span>}
+                          </div>
+                          <div className={`text-sm font-bold ${theme.textMuted}`}>@{acc.username} {currentOperator?.id === acc.id ? '• กำลังใช้งานอยู่' : ''}</div>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <button type="button" onClick={() => openEditAccountForm(acc)} className={`px-4 py-2 rounded-xl font-bold ${isDarkMode ? 'bg-blue-900/40 text-blue-300 hover:bg-blue-800' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>แก้ไข</button>
+                          <button type="button" onClick={() => handleDeleteAccount(acc)} disabled={!canManageAccounts || String(acc.username || '').toLowerCase() === 'admin'} className={`px-4 py-2 rounded-xl font-bold ${(!canManageAccounts || String(acc.username || '').toLowerCase() === 'admin') ? (isDarkMode ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed') : (isDarkMode ? 'bg-rose-900/40 text-rose-300 hover:bg-rose-800' : 'bg-rose-50 text-rose-600 hover:bg-rose-100')}`}>ลบ</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : settingsTab === 'database' ? (
                 <div className="p-6 space-y-6">
                   <div className={`p-6 rounded-2xl border shadow-sm ${databaseStorageEstimate.cardTone}`}>
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
@@ -4210,8 +4429,21 @@ function MainApp() {
       {showLogin && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
           <div className={`rounded-3xl p-8 max-w-sm w-full shadow-2xl ${theme.cardBg}`}>
-            <h3 className={`text-2xl font-black mb-6 text-center ${theme.textTitle}`}>เข้าสู่ระบบจัดการ</h3>
-            <input type="password" autoFocus className={`w-full px-4 py-4 border rounded-xl font-bold text-center text-3xl tracking-widest outline-none mb-6 ${theme.input}`} maxLength={8} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
+            <h3 className={`text-2xl font-black mb-2 text-center ${theme.textTitle}`}>เข้าสู่ระบบจัดการ</h3>
+            <p className={`text-sm font-bold text-center mb-6 ${theme.textMuted}`}>ใช้บัญชีพนักงาน หรือบัญชีกลาง admin</p>
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>Username</label>
+                <input type="text" autoFocus className={`w-full px-4 py-3 border rounded-xl font-bold outline-none text-lg ${theme.input}`} placeholder="เช่น admin" value={loginUsername} onChange={e => setLoginUsername(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
+              </div>
+              <div>
+                <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>PIN / รหัสผ่าน</label>
+                <input type="password" className={`w-full px-4 py-4 border rounded-xl font-bold text-center text-3xl tracking-widest outline-none ${theme.input}`} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
+              </div>
+              <div className={`p-3 rounded-xl border text-xs font-bold ${isDarkMode ? 'bg-slate-900/40 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                ค่าเริ่มต้น: username <span className="font-black">admin</span> ใช้ PIN เดิมของระบบ จากนั้นไปที่ ตั้งค่า → บัญชีผู้ใช้ เพื่อเพิ่มบัญชีพนักงาน
+              </div>
+            </div>
             <div className="flex gap-3">
               <button type="button" onClick={() => setShowLogin(false)} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button type="button" onClick={handleLogin} className="flex-1 py-4 bg-blue-600 text-white font-bold rounded-xl text-lg hover:bg-blue-500">เข้าสู่ระบบ</button>
