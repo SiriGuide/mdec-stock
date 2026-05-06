@@ -30,8 +30,8 @@ const getItemDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'd
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v21.5 Final Polish';
-const APP_UPDATE_NOTE = 'บัญชีกลาง + ถังขยะ + กล่อง + เตรียมของ';
+const APP_VERSION = 'v22.0 Ready-to-Use Pack';
+const APP_UPDATE_NOTE = 'Final Pack: Toast + กันพลาด + คู่มือ + เช็กก่อนใช้งาน';
 
 const Icons = {
   Plus: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
@@ -174,6 +174,14 @@ function MainApp() {
   const [showTrashModal, setShowTrashModal] = useState(false);
   const [showMyAccountModal, setShowMyAccountModal] = useState(false);
   const [myPinForm, setMyPinForm] = useState({ oldPin: '', newPin: '', confirmPin: '' });
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showReadyChecklistModal, setShowReadyChecklistModal] = useState(false);
+  const [showAnnualCleanupModal, setShowAnnualCleanupModal] = useState(false);
+  const [quickProblemOnly, setQuickProblemOnly] = useState(false);
+  const [auditFilter, setAuditFilter] = useState('all');
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isBusy, setIsBusy] = useState(false);
+  const [toasts, setToasts] = useState([]);
 
   // 🖨️ สถานะสำหรับ Print & Scan QR Code
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -258,6 +266,32 @@ function MainApp() {
     statCard: isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800',
   };
 
+  const pushToast = (message, type = 'info', title = '') => {
+    const id = `toast_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const raw = String(message || '');
+    let clean = raw.replace(/^[✅❌⚠️🚨]+\s*/u, '').trim();
+    const inferredType = type !== 'info' ? type : raw.includes('❌') || raw.includes('🚨') ? 'error' : raw.includes('⚠') ? 'warning' : raw.includes('✅') ? 'success' : 'info';
+    setToasts(prev => [...prev.slice(-3), { id, title: title || (inferredType === 'success' ? 'สำเร็จ' : inferredType === 'error' ? 'เกิดข้อผิดพลาด' : inferredType === 'warning' ? 'แจ้งเตือน' : 'ข้อมูล'), message: clean, type: inferredType }]);
+    window.setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4200);
+  };
+
+  useEffect(() => {
+    const originalAlert = window.alert;
+    window.alert = (message) => pushToast(String(message || ''), 'info');
+    return () => { window.alert = originalAlert; };
+  }, []);
+
+  const runWithBusy = async (task) => {
+    if (isBusy) return;
+    setIsBusy(true);
+    try { await task(); }
+    finally { setIsBusy(false); }
+  };
+
+  const confirmCloseIfDirty = (isDirty, closeFn) => {
+    if (!isDirty || window.confirm('ข้อมูลยังไม่ได้บันทึก ต้องการปิดหน้าต่างนี้จริงหรือไม่?')) closeFn();
+  };
+
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -282,9 +316,11 @@ function MainApp() {
       snapshot.forEach((docSnap) => { loadedItems.push({ ...docSnap.data(), id: docSnap.id }); });
       setItems(loadedItems);
       setFirebaseError(false);
+      setIsInitialLoading(false);
     }, (error) => {
       console.error(error);
       setFirebaseError(true);
+      setIsInitialLoading(false);
     });
 
     const unsubscribeSettings = onSnapshot(settingsRef, (docSnap) => {
@@ -550,6 +586,15 @@ function MainApp() {
     }
   };
 
+  const todayMs = new Date().setHours(0,0,0,0);
+
+  const isProblemItem = (item) => {
+    if (!item || item.isDeleted) return false;
+    const isLate = (item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
+    const missingInfo = !String(item.sn || '').trim() || !String(item.category || '').trim() || !String(item.location || '').trim();
+    return isLate || item.status === 'maintenance' || !item.qrTagged || missingInfo;
+  };
+
   const filteredItems = useMemo(() => {
     let result = items.filter(item => {
       if (item && item.isDeleted) return false;
@@ -566,8 +611,9 @@ function MainApp() {
       const matchStatus = filterStatus === 'all' || String(item.status) === String(filterStatus);
       const matchLocation = filterLocation === 'all' || String(item.location) === String(filterLocation);
       const matchQrTagged = filterQrTagged === 'all' || (filterQrTagged === 'tagged' && !!item.qrTagged) || (filterQrTagged === 'untagged' && !item.qrTagged);
+      const matchProblem = !quickProblemOnly || isProblemItem(item);
       
-      return matchSearch && matchDept && matchCategory && matchStatus && matchLocation && matchQrTagged;
+      return matchSearch && matchDept && matchCategory && matchStatus && matchLocation && matchQrTagged && matchProblem;
     });
 
     result.sort((a, b) => {
@@ -578,9 +624,65 @@ function MainApp() {
       } catch (e) { return 0; }
     });
     return result;
-  }, [items, searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterQrTagged]);
+  }, [items, searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterQrTagged, quickProblemOnly, todayMs]);
 
-  const todayMs = new Date().setHours(0,0,0,0);
+  const hasActiveFilters = !!searchTerm || filterDept !== 'all' || filterCategory !== 'all' || filterStatus !== 'all' || filterLocation !== 'all' || filterQrTagged !== 'all' || quickProblemOnly;
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setFilterDept('all');
+    setFilterCategory('all');
+    setFilterStatus('all');
+    setFilterLocation('all');
+    setFilterQrTagged('all');
+    setQuickProblemOnly(false);
+  };
+
+  const copyItemSummary = async (item) => {
+    if (!item) return;
+    const statusLabel = (STATUSES.find(s => s.id === item.status)?.label || item.status || '-');
+    const text = `${item.name || '-'}
+S.N.: ${item.sn || '-'}
+สถานะ: ${statusLabel}
+หมวดหมู่: ${item.category || '-'}
+ที่เก็บ: ${item.location || '-'}
+กล่อง: ${item.storageBoxName || '-'}${item.currentBorrower ? `
+ผู้ยืม: ${item.currentBorrower}` : ''}${item.currentEvent ? `
+ออกงาน: ${item.currentEvent}` : ''}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      pushToast('คัดลอกข้อมูลอุปกรณ์เรียบร้อยแล้ว', 'success');
+    } catch (e) {
+      window.prompt('คัดลอกข้อความนี้ได้เลย', text);
+    }
+  };
+
+  const auditFilterOptions = [
+    { id: 'all', label: 'ทั้งหมด' },
+    { id: 'add', label: 'เพิ่ม/นำเข้า' },
+    { id: 'edit', label: 'แก้ไข' },
+    { id: 'borrow', label: 'ยืม' },
+    { id: 'event', label: 'ออกงาน' },
+    { id: 'return', label: 'รับคืน' },
+    { id: 'delete', label: 'ลบ/กู้คืน' },
+    { id: 'account', label: 'บัญชีผู้ใช้' },
+  ];
+
+  const filteredAuditLogs = useMemo(() => {
+    if (auditFilter === 'all') return auditLogs;
+    return auditLogs.filter(log => {
+      const action = String(log.action || '');
+      if (auditFilter === 'add') return action.includes('เพิ่ม') || action.includes('นำเข้า');
+      if (auditFilter === 'edit') return action.includes('แก้');
+      if (auditFilter === 'borrow') return action.includes('ยืม');
+      if (auditFilter === 'event') return action.includes('ออกงาน');
+      if (auditFilter === 'return') return action.includes('คืน');
+      if (auditFilter === 'delete') return action.includes('ลบ') || action.includes('กู้คืน');
+      if (auditFilter === 'account') return action.includes('บัญชี');
+      return true;
+    });
+  }, [auditLogs, auditFilter]);
+
   const overdueItems = items.filter(item => {
     if (item && item.isDeleted) return false;
     if ((item.status !== 'borrowed' && item.status !== 'out-for-event') || !item.expectedReturn) return false;
@@ -1455,6 +1557,18 @@ function MainApp() {
     await logAction('สำรองประวัติยืม-คืน CSV', 'ส่งออก ' + rows.length + ' รายการประวัติ', 'ดาวน์โหลดประวัติการยืม-คืนพร้อมวันเวลาเป็นไฟล์ CSV');
     await saveBackupTimestamp('historyCsv');
     if (rows.length === 0) alert('ℹ️ ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติยืม-คืนในระบบ');
+  };
+
+  const exportItemHistoryCSV = (item) => {
+    if (!item) return;
+    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ลำดับ', 'ประเภท', 'วันเวลาทำรายการ', 'ผู้ทำรายการในระบบ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ'];
+    const rows = (Array.isArray(item.history) ? item.history : []).map((h, index) => {
+      const historyType = h.type === 'borrow' ? 'ยืมออก' : h.type === 'event' ? 'ออกงาน' : h.type === 'return' ? 'รับคืน' : (h.type || '-');
+      return [item.name || '-', item.sn || '-', index + 1, historyType, formatBackupDateTime(h.date), h.operatorName || h.performedBy || '-', h.borrower || h.eventName || '-', h.staffOut || '-', h.staffIn || '-', h.expectedReturn || '-', h.note || '-'];
+    });
+    backupDownloadCSV(`MDEC_Item_History_${(item.sn || item.id || 'item').replace(/[^a-zA-Z0-9_-]/g, '_')}_${getBackupFileTag()}.csv`, headers, rows);
+    if (rows.length === 0) pushToast('ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติของอุปกรณ์นี้', 'warning');
+    else pushToast('ดาวน์โหลดประวัติอุปกรณ์นี้เรียบร้อยแล้ว', 'success');
   };
 
   const exportFullBackupJSON = async () => {
@@ -2616,6 +2730,16 @@ function MainApp() {
         </div>
       )}
 
+      {isInitialLoading && (
+        <div className={`w-full mb-6 p-5 rounded-2xl shadow-sm border flex items-center gap-4 ${theme.cardBg}`}>
+          <div className="w-10 h-10 rounded-full bg-blue-600/10 text-blue-500 flex items-center justify-center animate-pulse"><Icons.Package className="w-6 h-6" /></div>
+          <div>
+            <div className={`font-black text-lg ${theme.textTitle}`}>กำลังโหลดข้อมูลสต๊อก...</div>
+            <div className={`text-sm font-bold ${theme.textMuted}`}>ระบบกำลังดึงรายการอุปกรณ์และการตั้งค่าจาก Firebase</div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className={`w-full flex flex-col xl:flex-row justify-between items-center mb-8 gap-4 p-6 rounded-2xl shadow-md border transition-colors ${theme.cardBg}`}>
         <div className="flex items-center gap-4">
@@ -2690,6 +2814,19 @@ function MainApp() {
         </div>
       </div>
 
+      {isLoggedIn && (
+        <div className={`w-full mb-6 p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-white/80 border-slate-200'}`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>👤</div>
+            <div>
+              <div className={`font-black ${theme.textTitle}`}>เข้าสู่ระบบโดย: {currentAccountLabel}</div>
+              <div className={`text-sm font-bold ${theme.textMuted}`}>สิทธิ์: {roleLabel(currentAccountRole)} • กด “ล็อก” เมื่อต้องออกจากโต๊ะชั่วคราว</div>
+            </div>
+          </div>
+          <div className={`text-xs font-black px-3 py-2 rounded-xl border ${roleBadgeClass(currentAccountRole)}`}>{currentFullAccount?.username ? '@' + currentFullAccount.username : 'บัญชีภายใน'}</div>
+        </div>
+      )}
+
       {/* เมนูเพิ่มเติม: รวมปุ่มรองเพื่อลดความรกของหัวเว็บ */}
       {showMoreMenu && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
@@ -2751,11 +2888,74 @@ function MainApp() {
                   <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Export / Restore / ล้างประวัติ</p>
                 </button>
               )}
+              <button type="button" onClick={() => { setShowMoreMenu(false); setShowHelpModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> คู่มือใช้งาน</div>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปวิธีใช้เว็บแบบสั้น ๆ สำหรับคนในศูนย์</p>
+              </button>
+              <button type="button" onClick={() => { setShowMoreMenu(false); setShowReadyChecklistModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                <div className="font-black text-lg flex items-center gap-2"><Icons.CheckCircle className="w-5 h-5" /> เช็กก่อนใช้งานจริง</div>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Checklist สำหรับทดสอบระบบก่อนปล่อยให้ทีมใช้</p>
+              </button>
             </div>
           </div>
         </div>
       )}
 
+
+      {/* คู่มือใช้งานสั้น ๆ */}
+      {showHelpModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden ${theme.cardBg}`}>
+            <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.ClipboardList className="w-6 h-6 text-blue-500" /> คู่มือใช้งาน MDEC-Stock</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปขั้นตอนหลักแบบสั้น ๆ สำหรับใช้งานภายในศูนย์</p>
+              </div>
+              <button type="button" onClick={() => setShowHelpModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                ['1. เพิ่มอุปกรณ์', 'กดเพิ่มอุปกรณ์ กรอกชื่อ / S.N. / หมวดหมู่ / ที่เก็บ แล้วบันทึก'],
+                ['2. พิมพ์ QR', 'เลือกรายการจากตาราง แล้วกดพิมพ์ QR เลือกแบบ/ขนาดก่อนสั่งพิมพ์'],
+                ['3. ยืม / ออกงาน', 'เลือกของที่พร้อมใช้งาน กด ยืมออก หรือ ออกงาน แล้วติ๊กเช็กลิสต์ก่อนยืนยัน'],
+                ['4. รับคืน', 'เลือกของที่ถูกยืมหรือออกงาน กดรับคืน แล้วเช็กของเข้ากล่องก่อนบันทึก'],
+                ['5. กล่องเก็บของ', 'ใช้เมนูกล่องเก็บของเพื่อจัดของเป็นกล่องและพิมพ์ฉลากกล่องล่าสุด'],
+                ['6. รายการเตรียมของ', 'สร้างรายการเตรียมของล่วงหน้า ยังไม่เปลี่ยนสถานะจนกว่าจะยืนยันออกงาน'],
+                ['7. สำรองข้อมูล', 'กดสำรอง JSON และ CSV ก่อนล้างประวัติหรือก่อนอัปเดตใหญ่'],
+                ['8. ล้างประวัติรายปี', 'ใช้หลังสำรองแล้วเท่านั้น ระบบล้างเฉพาะ history ไม่ลบอุปกรณ์']
+              ].map(([title, desc]) => (
+                <div key={title} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`font-black ${theme.textTitle}`}>{title}</div>
+                  <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* เช็กลิสต์ก่อนใช้งานจริง */}
+      {showReadyChecklistModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden ${theme.cardBg}`}>
+            <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.CheckCircle className="w-6 h-6 text-emerald-500" /> Checklist ก่อนเปิดใช้จริง</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ลองไล่เช็กกับอุปกรณ์จริง 20–30 ชิ้นแรกก่อนติด QR ทั้งศูนย์</p>
+              </div>
+              <button type="button" onClick={() => setShowReadyChecklistModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 space-y-3">
+              {['เพิ่มอุปกรณ์ใหม่', 'แก้ไขข้อมูลอุปกรณ์', 'ยืมอุปกรณ์', 'นำออกงาน', 'รับคืนอุปกรณ์', 'พิมพ์ QR', 'สร้าง/แก้ไขกล่องเก็บของ', 'พิมพ์ฉลากกล่อง', 'สร้างรายการเตรียมของ', 'สำรอง JSON', 'กู้คืนจากถังขยะ', 'ล็อกหน้าจอและเข้าสู่ระบบใหม่'].map((item) => (
+                <label key={item} className={`flex items-center gap-3 p-3 rounded-xl border ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <input type="checkbox" className="w-5 h-5 accent-emerald-600" />
+                  <span className={`font-bold ${theme.textMain}`}>{item}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* บัญชีของฉัน */}
       {showMyAccountModal && (
@@ -2921,6 +3121,11 @@ function MainApp() {
             </select>
           </div>
 
+          <div className="flex gap-2 w-full xl:w-auto">
+            <button type="button" onClick={() => setQuickProblemOnly(!quickProblemOnly)} className={`flex-1 xl:flex-none px-4 py-4 rounded-xl font-black border transition-colors whitespace-nowrap ${quickProblemOnly ? 'bg-rose-600 text-white border-rose-600 shadow-md' : theme.btnSecondary}`}>ของที่ต้องจัดการ</button>
+            {hasActiveFilters && <button type="button" onClick={clearAllFilters} className={`flex-1 xl:flex-none px-4 py-4 rounded-xl font-black border transition-colors whitespace-nowrap ${theme.btnSecondary}`}>ล้างตัวกรอง</button>}
+          </div>
+
           {canAddEditItems && (
             <div className="flex gap-2 w-full xl:w-auto">
               <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '' }); setShowForm(true); }} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}><Icons.Plus className="w-5 h-5" /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span></button>
@@ -2974,7 +3179,14 @@ function MainApp() {
             </thead>
             <tbody className={`divide-y transition-colors ${theme.divide}`}>
               {filteredItems.length === 0 ? (
-                <tr><td colSpan={canUseOperationalTools ? 7 : 6} className={`px-4 py-12 text-center font-bold text-xl ${theme.textMuted}`}>ไม่พบข้อมูลที่ค้นหา</td></tr>
+                <tr><td colSpan={canUseOperationalTools ? 7 : 6} className={`px-4 py-12 text-center font-bold text-xl ${theme.textMuted}`}>
+                  <div className="flex flex-col items-center gap-2">
+                    <Icons.Search className="w-10 h-10 opacity-50" />
+                    <div>ไม่พบอุปกรณ์ที่ค้นหา</div>
+                    <div className="text-sm font-bold opacity-80">ลองล้างตัวกรอง หรือค้นหาด้วย S.N. / ชื่อกล่อง / สถานที่</div>
+                    {hasActiveFilters && <button type="button" onClick={clearAllFilters} className="mt-2 px-4 py-2 rounded-xl bg-blue-600 text-white font-black text-sm">ล้างตัวกรองทั้งหมด</button>}
+                  </div>
+                </td></tr>
               ) : filteredItems.map((item, index) => {
                 const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
                 const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
@@ -2984,7 +3196,7 @@ function MainApp() {
                 
                 const isOverdue = (isBorrowed || isEvent) && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
                 const rowBg = isOverdue ? (isDarkMode ? 'bg-rose-900/20 hover:bg-rose-900/40' : 'bg-rose-50 hover:bg-rose-100') : theme.trHover;
-                const rowBorder = isOverdue ? 'border-l-4 border-l-rose-500' : '';
+                const rowBorder = isOverdue ? 'border-l-4 border-l-rose-500' : isEvent ? 'border-l-4 border-l-orange-400' : isBorrowed ? 'border-l-4 border-l-purple-400' : item.status === 'maintenance' ? 'border-l-4 border-l-rose-700' : '';
                 
                 return (
                   <tr key={`${item.id}_${index}`} className={`group transition-colors text-lg ${rowBg} ${rowBorder}`}>
@@ -3026,6 +3238,7 @@ function MainApp() {
                         {isOverdue && <span className="bg-rose-500 text-white text-xs px-2 py-1 rounded-md font-bold shadow-sm">เลยกำหนดคืน!</span>}
                       </div>
                       {item.sn && <div className={`text-base mt-1 font-mono ${theme.textMuted}`}>S.N.: {item.sn}</div>}
+                      {(item.updatedBy || item.updatedAt) && <div className={`text-xs mt-1 font-bold ${theme.textMuted}`}>แก้ไขล่าสุด: {item.updatedBy || '-'} {item.updatedAt ? `• ${new Date(item.updatedAt).toLocaleString('th-TH', { hour12: false })}` : ''}</div>}
 
                       {(isBorrowed || isEvent) && (
                         <div className={`text-base mt-2 p-2 rounded-lg border inline-block ${isOverdue ? (isDarkMode ? 'bg-rose-900/30 border-rose-800' : 'bg-rose-100 border-rose-200') : isEvent ? (isDarkMode ? 'bg-orange-900/30 border-orange-800' : 'bg-orange-50 border-orange-100') : (isDarkMode ? 'bg-purple-900/30 border-purple-800' : 'bg-purple-50 border-purple-100')}`}>
@@ -3055,6 +3268,7 @@ function MainApp() {
                     <td className="px-4 py-4">
                       <div className="flex items-center justify-center gap-2">
                         <button type="button" onClick={(e) => { e.stopPropagation(); setShowHistory(item.id); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${theme.btnCancel}`} title="ประวัติ"><Icons.History className="w-5 h-5" /></button>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); copyItemSummary(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${theme.btnCancel}`} title="คัดลอกข้อมูลอุปกรณ์"><Icons.ClipboardList className="w-5 h-5" /></button>
                         
                         {canUseOperationalTools && (
                           <>
@@ -3830,6 +4044,10 @@ function MainApp() {
                 </div>
               ) : settingsTab === 'database' ? (
                 <div className="p-6 space-y-6">
+                  <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+                    <div className="font-black text-base mb-1">คำแนะนำก่อนจัดการฐานข้อมูล</div>
+                    <div className="text-sm font-bold">ควรกด “สำรองข้อมูลทั้งหมด JSON” และ “สำรองประวัติยืม-คืน CSV” ก่อนล้างประวัติหรือกู้คืนข้อมูลทุกครั้ง</div>
+                  </div>
                   <div className={`p-6 rounded-2xl border shadow-sm ${databaseStorageEstimate.cardTone}`}>
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
                       <div>
@@ -3897,6 +4115,14 @@ function MainApp() {
                       </button>
                     </div>
 
+                    <div className={`mt-5 p-4 rounded-xl border ${isDarkMode ? 'bg-slate-900/30 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <h5 className={`text-base font-black mb-1 flex items-center gap-2 ${theme.textTitle}`}>
+                        <Icons.CheckCircle className="w-4 h-4 text-emerald-500" /> Checklist ปิดปีการศึกษา
+                      </h5>
+                      <p className={`text-xs mb-3 font-bold ${theme.textMuted}`}>ใช้เช็กก่อนสำรองและล้างประวัติรายปี เพื่อกันพลาด</p>
+                      <button type="button" onClick={() => setShowAnnualCleanupModal(true)} className={`w-full py-3 rounded-xl font-black border ${theme.btnSecondary}`}>เปิด Checklist ปิดปีการศึกษา</button>
+                    </div>
+
                     <div className={`mt-5 p-4 rounded-xl border ${isDarkMode ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-200'}`}>
                       <h5 className={`text-base font-black mb-1 flex items-center gap-2 ${isDarkMode ? 'text-rose-300' : 'text-rose-700'}`}>
                         <Icons.Trash className="w-4 h-4" /> ล้างประวัติยืม-คืนทั้งหมด
@@ -3951,6 +4177,27 @@ function MainApp() {
             <div className={`p-4 border-t shrink-0 ${theme.divide}`}>
               <button type="button" onClick={() => { setShowSettings(false); setEditingSettingItem(null); setNewSettingItem(''); }} className={`w-full py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Checklist ปิดปีการศึกษา */}
+      {showAnnualCleanupModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
+          <div className={`rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl ${theme.cardBg}`}>
+            <div className="flex justify-between items-center mb-5">
+              <h3 className={`text-2xl font-black ${theme.textTitle}`}>Checklist ปิดปีการศึกษา</h3>
+              <button type="button" onClick={() => setShowAnnualCleanupModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-3">
+              {['สำรองข้อมูลทั้งหมด JSON แล้ว', 'สำรองประวัติยืม-คืน CSV แล้ว', 'เปิดไฟล์สำรองเช็กแล้วว่าอ่านได้', 'ตรวจว่าของที่ยืม/ออกงานถูกคืนครบแล้ว', 'ตรวจกล่องเก็บของและฉลากกล่องแล้ว', 'พร้อมล้างประวัติยืม-คืนรายปี'].map(item => (
+                <label key={item} className={`flex items-center gap-3 p-3 rounded-xl border ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <input type="checkbox" className="w-5 h-5 accent-emerald-600" />
+                  <span className={`font-bold ${theme.textMain}`}>{item}</span>
+                </label>
+              ))}
+            </div>
+            <div className={`mt-5 p-3 rounded-xl border text-sm font-bold ${isDarkMode ? 'bg-rose-900/20 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>เมื่อติ๊กครบแล้ว ค่อยกลับไปกด “ล้างประวัติยืม-คืนทั้งหมด” ในหน้า ฐานข้อมูล</div>
           </div>
         </div>
       )}
@@ -4480,10 +4727,15 @@ function MainApp() {
               <h3 className={`text-xl sm:text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.ClipboardList className="w-6 h-6 text-blue-500"/> ประวัติการทำงานส่วนกลาง</h3>
               <button type="button" onClick={() => setShowAuditModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
+            <div className="p-4 border-b flex flex-wrap gap-2 items-center">
+              {auditFilterOptions.map(opt => (
+                <button key={opt.id} type="button" onClick={() => setAuditFilter(opt.id)} className={`px-3 py-2 rounded-xl text-sm font-black border ${auditFilter === opt.id ? 'bg-blue-600 border-blue-600 text-white' : theme.btnSecondary}`}>{opt.label}</button>
+              ))}
+            </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
-              {auditLogs.length === 0 ? (
-                <div className={`text-center py-10 font-bold text-xl ${theme.textMuted}`}>ยังไม่มีประวัติการทำงานใดๆ</div>
-              ) : auditLogs.map((log) => {
+              {filteredAuditLogs.length === 0 ? (
+                <div className={`text-center py-10 font-bold text-xl ${theme.textMuted}`}>ยังไม่มีประวัติการทำงานในตัวกรองนี้</div>
+              ) : filteredAuditLogs.map((log) => {
                 let badgeColor = 'bg-slate-200 text-slate-700';
                 const action = log.action || '';
                 let icon = '📌';
@@ -4519,9 +4771,12 @@ function MainApp() {
       {showHistory && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full max-h-[80vh] flex flex-col shadow-2xl ${theme.cardBg}`}>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-6 gap-3">
               <h3 className={`text-2xl font-black ${theme.textTitle}`}>ประวัติการยืม-คืน</h3>
-              <button type="button" onClick={() => setShowHistory(null)} className={`p-2 hover:text-blue-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
+              <div className="flex items-center gap-2">
+                {items.find(i => i.id === showHistory) && <button type="button" onClick={() => exportItemHistoryCSV(items.find(i => i.id === showHistory))} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>Export CSV</button>}
+                <button type="button" onClick={() => setShowHistory(null)} className={`p-2 hover:text-blue-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
               {(() => {
@@ -4593,7 +4848,7 @@ function MainApp() {
           <div className={`rounded-3xl p-6 sm:p-8 max-w-xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black ${theme.textTitle}`}>{formData.id ? 'แก้ไขข้อมูล' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
-              <button type="button" onClick={() => setShowForm(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
+              <button type="button" onClick={() => confirmCloseIfDirty(true, () => setShowForm(false))} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               
@@ -4715,12 +4970,25 @@ function MainApp() {
               </div>
             </div>
             <div className="flex gap-3 mt-8">
-              <button type="button" onClick={() => setShowForm(false)} className={`flex-1 py-4 font-bold rounded-xl transition-colors text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={handleSave} className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-colors text-lg">บันทึกข้อมูล</button>
+              <button type="button" onClick={() => confirmCloseIfDirty(true, () => setShowForm(false))} className={`flex-1 py-4 font-bold rounded-xl transition-colors text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={() => runWithBusy(handleSave)} disabled={isBusy} className={`flex-1 py-4 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-colors text-lg ${isBusy ? 'bg-blue-400 cursor-wait' : 'bg-blue-600 hover:bg-blue-500'}`}>{isBusy ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}</button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Toast แจ้งเตือนแบบไม่ขัดจังหวะ */}
+      <div className="fixed top-4 right-4 z-[12000] space-y-3 w-[92vw] max-w-sm pointer-events-none">
+        {toasts.map((toast) => {
+          const tone = toast.type === 'success' ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : toast.type === 'error' ? 'border-rose-300 bg-rose-50 text-rose-800' : toast.type === 'warning' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-blue-300 bg-blue-50 text-blue-800';
+          return (
+            <div key={toast.id} className={`pointer-events-auto rounded-2xl border p-4 shadow-xl ${tone}`}>
+              <div className="font-black">{toast.title}</div>
+              {toast.message && <div className="text-sm font-bold mt-1 opacity-90 whitespace-pre-line">{toast.message}</div>}
+            </div>
+          );
+        })}
+      </div>
 
       {/* Login Modal */}
       {showLogin && (
