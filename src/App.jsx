@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc, getDocs } from "firebase/firestore";
+import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, addDoc, getDocs, getDoc } from "firebase/firestore";
 
 // ⚠️ ใช้ Firebase Config ของคุณโดยตรง
 const myFirebaseConfig = {
@@ -26,12 +26,14 @@ const getItemsCol = () => IS_CANVAS ? collection(db, 'artifacts', APP_ID, 'publi
 const getSettingsDoc = () => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'settings', 'global') : doc(db, 'mdec_stock', 'shared_data', 'settings', 'global');
 const getAuditCol = () => IS_CANVAS ? collection(db, 'artifacts', APP_ID, 'public', 'data', 'audit_logs') : collection(db, 'mdec_stock', 'shared_data', 'audit_logs');
 const getItemDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'items', id) : doc(db, 'mdec_stock', 'shared_data', 'items', id);
+const getProofsCol = () => IS_CANVAS ? collection(db, 'artifacts', APP_ID, 'public', 'data', 'proofs') : collection(db, 'mdec_stock', 'shared_data', 'proofs');
+const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'proofs', id) : doc(db, 'mdec_stock', 'shared_data', 'proofs', id);
 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.1 UX Reorganize';
-const APP_UPDATE_NOTE = 'จัดเมนูใหม่ + ศูนย์ติดตามงาน + โหมดง่าย/เต็มระบบ';
+const APP_VERSION = 'v22.2 Proof Photos No Storage';
+const APP_UPDATE_NOTE = 'หลักฐานรูปภาพใน Firestore + ย่อไฟล์อัตโนมัติ + ไม่ใช้ Firebase Storage';
 
 const Icons = {
   Plus: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
@@ -193,6 +195,11 @@ function MainApp() {
   const [repairTargetId, setRepairTargetId] = useState(null);
   const [repairForm, setRepairForm] = useState({ issueDate: '', problem: '', reporter: '', sentTo: '', cost: '', doneDate: '', note: '', markAvailable: false });
   const [returnInspection, setReturnInspection] = useState({});
+  const [borrowProofFiles, setBorrowProofFiles] = useState([]);
+  const [eventProofFiles, setEventProofFiles] = useState([]);
+  const [returnProofFiles, setReturnProofFiles] = useState([]);
+  const [proofAttachTarget, setProofAttachTarget] = useState(null);
+  const [proofAttachFiles, setProofAttachFiles] = useState([]);
   const [showTvDashboardModal, setShowTvDashboardModal] = useState(false);
   const [showTrackingCenterModal, setShowTrackingCenterModal] = useState(false);
   const [trackingTab, setTrackingTab] = useState('today');
@@ -318,6 +325,310 @@ function MainApp() {
     if (!isDirty || window.confirm('ข้อมูลยังไม่ได้บันทึก ต้องการปิดหน้าต่างนี้จริงหรือไม่?')) closeFn();
   };
 
+
+  const getProofLocationText = async () => {
+    if (!navigator?.geolocation) return 'ไม่ระบุตำแหน่ง';
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve(`พิกัด GPS: ${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`),
+        () => resolve('ไม่ระบุตำแหน่ง'),
+        { enableHighAccuracy: true, timeout: 4500, maximumAge: 60000 }
+      );
+    });
+  };
+
+  const loadImageFromFile = (file) => new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('ไม่สามารถอ่านไฟล์รูปภาพได้')); };
+    img.src = url;
+  });
+
+  const canvasToJpegBlob = (canvas, quality = 0.7) => new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+
+  const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+
+  const formatProofBytes = (bytes) => {
+    const n = Number(bytes) || 0;
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / 1024 / 1024).toFixed(2)} MB`;
+  };
+
+  const drawStampedProofCanvas = (img, maxSide, contextLabel, timestampText, locationText) => {
+    const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+    const width = Math.max(1, Math.round(img.width * scale));
+    const height = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const stripHeight = Math.max(82, Math.round(height * 0.12));
+    const y = Math.max(0, height - stripHeight);
+    ctx.fillStyle = 'rgba(0,0,0,0.70)';
+    ctx.fillRect(0, y, width, stripHeight);
+    const pad = Math.max(14, Math.round(width * 0.024));
+    const fontBig = Math.max(18, Math.round(width * 0.030));
+    const fontSmall = Math.max(14, Math.round(width * 0.021));
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `700 ${fontBig}px sans-serif`;
+    ctx.fillText(`MDEC STOCK • ${contextLabel}`, pad, y + Math.round(stripHeight * 0.35));
+    ctx.font = `600 ${fontSmall}px sans-serif`;
+    ctx.fillText(`เวลา: ${timestampText}`, pad, y + Math.round(stripHeight * 0.62));
+    ctx.fillText(locationText, pad, y + Math.round(stripHeight * 0.85));
+    return canvas;
+  };
+
+  const createStampedProofData = async (file, contextLabel = 'หลักฐาน') => {
+    if (!file || !String(file.type || '').startsWith('image/')) {
+      throw new Error('รองรับเฉพาะไฟล์รูปภาพเท่านั้น');
+    }
+    const img = await loadImageFromFile(file);
+    const locationText = await getProofLocationText();
+    const now = new Date();
+    const timestampText = now.toLocaleString('th-TH', { hour12: false });
+
+    const targetBytes = 180 * 1024;
+    let maxSide = 1000;
+    let quality = 0.68;
+    let canvas = null;
+    let blob = null;
+
+    for (let round = 0; round < 12; round++) {
+      canvas = drawStampedProofCanvas(img, maxSide, contextLabel, timestampText, locationText);
+      blob = await canvasToJpegBlob(canvas, quality);
+      if (!blob) throw new Error('ไม่สามารถสร้างไฟล์หลักฐานได้');
+      if (blob.size <= targetBytes) break;
+      if (quality > 0.40) {
+        quality = Math.max(0.38, quality - 0.08);
+      } else if (maxSide > 560) {
+        maxSide = Math.max(560, maxSide - 160);
+        quality = 0.62;
+      } else {
+        break;
+      }
+    }
+
+    const dataUrl = await blobToDataUrl(blob);
+    const thumbCanvas = drawStampedProofCanvas(img, 320, contextLabel, timestampText, locationText);
+    const thumbBlob = await canvasToJpegBlob(thumbCanvas, 0.55);
+    const thumbUrl = thumbBlob ? await blobToDataUrl(thumbBlob) : dataUrl;
+
+    return {
+      dataUrl,
+      thumbUrl,
+      sizeBytes: blob.size,
+      thumbBytes: thumbBlob?.size || 0,
+      sizeText: formatProofBytes(blob.size),
+      timestampText,
+      locationText,
+      createdAt: now.toISOString()
+    };
+  };
+
+  const uploadProofFiles = async (files, contextLabel = 'หลักฐาน') => {
+    const selected = Array.from(files || []).filter(Boolean);
+    if (selected.length === 0) return [];
+    const limited = selected.slice(0, 3);
+    if (selected.length > 3) pushToast('เลือกรูปได้สูงสุดครั้งละ 3 รูป เพื่อลดพื้นที่จัดเก็บ', 'warning');
+    const proofList = [];
+    let totalStoredBytes = 0;
+
+    for (const file of limited) {
+      const stamped = await createStampedProofData(file, contextLabel);
+      const proofId = `proof_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const proofDoc = {
+        id: proofId,
+        dataUrl: stamped.dataUrl,
+        thumbUrl: stamped.thumbUrl,
+        originalName: file.name || 'camera.jpg',
+        createdAt: stamped.createdAt,
+        timestampText: stamped.timestampText,
+        locationText: stamped.locationText,
+        createdBy: currentAccountLabel,
+        contextLabel,
+        storageType: 'firestore-doc-base64',
+        sizeBytes: stamped.sizeBytes,
+        thumbBytes: stamped.thumbBytes,
+        sizeText: stamped.sizeText,
+        appId: APP_ID
+      };
+      await setDoc(getProofDoc(proofId), proofDoc);
+      totalStoredBytes += Number(stamped.sizeBytes || 0) + Number(stamped.thumbBytes || 0);
+      proofList.push({
+        id: proofId,
+        proofDocId: proofId,
+        thumbUrl: stamped.thumbUrl,
+        originalName: file.name || 'camera.jpg',
+        createdAt: stamped.createdAt,
+        timestampText: stamped.timestampText,
+        locationText: stamped.locationText,
+        createdBy: currentAccountLabel,
+        contextLabel,
+        storageType: 'firestore-doc-base64',
+        sizeBytes: stamped.sizeBytes,
+        sizeText: stamped.sizeText
+      });
+    }
+
+    if (proofList.length > 0) {
+      try {
+        const oldMeta = settingsOptions.proofStorageMeta || {};
+        const newMeta = {
+          ...oldMeta,
+          count: (Number(oldMeta.count) || 0) + proofList.length,
+          totalBytes: (Number(oldMeta.totalBytes) || 0) + totalStoredBytes,
+          updatedAt: new Date().toISOString()
+        };
+        const newSettings = { ...settingsOptions, proofStorageMeta: newMeta };
+        setSettingsOptions(newSettings);
+        await setDoc(getSettingsDoc(), newSettings, { merge: true });
+      } catch (metaError) {
+        console.warn('Proof storage meta update failed:', metaError);
+      }
+    }
+    return proofList;
+  };
+
+  const uploadProofsOrConfirm = async (files, contextLabel) => {
+    const selected = Array.from(files || []).filter(Boolean);
+    if (selected.length === 0) return [];
+    try {
+      return await uploadProofFiles(selected, contextLabel);
+    } catch (error) {
+      console.error('Proof upload failed:', error);
+      const proceed = window.confirm(`อัปโหลดหลักฐานรูปภาพไม่สำเร็จ\n${error.message || ''}\n\nต้องการบันทึกรายการต่อโดยไม่มีรูปหลักฐานหรือไม่?`);
+      if (!proceed) throw error;
+      return [];
+    }
+  };
+
+  const renderProofUploader = (label, proofFiles, setProofFiles, tone = 'blue') => {
+    const toneClass = tone === 'purple'
+      ? (isDarkMode ? 'bg-purple-900/20 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-800')
+      : tone === 'orange'
+      ? (isDarkMode ? 'bg-orange-900/20 border-orange-800 text-orange-300' : 'bg-orange-50 border-orange-200 text-orange-800')
+      : (isDarkMode ? 'bg-emerald-900/20 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800');
+    return (
+      <div className={`p-4 rounded-xl border ${toneClass}`}>
+        <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>📷 {label} <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่บังคับ)</span></label>
+        <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>เลือกไฟล์รูป หรือถ่ายด้วยกล้องมือถือ ระบบจะย่อไฟล์ ประทับเวลา และพิกัด GPS ลงบนรูปถ้าอนุญาตตำแหน่ง แล้วเก็บไว้ใน Firestore โดยไม่ใช้ Firebase Storage</p>
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple
+          className={`w-full text-sm font-bold rounded-xl border p-3 ${theme.input}`}
+          onChange={(e) => setProofFiles(Array.from(e.target.files || []))}
+        />
+        {proofFiles.length > 0 && (
+          <div className="mt-3 space-y-1">
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs font-black">เลือกรูปแล้ว {proofFiles.length} รูป</span>
+              <button type="button" onClick={() => setProofFiles([])} className={`text-xs font-black px-2 py-1 rounded-lg ${theme.btnCancel}`}>ล้างรูป</button>
+            </div>
+            {proofFiles.slice(0, 3).map((f, idx) => <div key={idx} className="text-[11px] font-bold truncate opacity-80">• {f.name || `รูปจากกล้อง ${idx + 1}`}</div>)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const openProofImage = async (proof) => {
+    try {
+      if (!proof) return;
+      if (proof.url && (String(proof.url).startsWith('http') || String(proof.url).startsWith('data:'))) {
+        window.open(proof.url, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      const proofId = proof.proofDocId || proof.id;
+      if (!proofId) return alert('ไม่พบรหัสรูปหลักฐาน');
+      const win = window.open('', '_blank');
+      if (win) {
+        win.document.write('<html><head><title>กำลังโหลดหลักฐาน...</title></head><body style="font-family:sans-serif;padding:24px;">กำลังโหลดรูปหลักฐาน...</body></html>');
+      }
+      const snap = await getDoc(getProofDoc(proofId));
+      if (!snap.exists()) {
+        if (win) win.document.body.innerHTML = '<p>ไม่พบรูปหลักฐานในฐานข้อมูล</p>';
+        else alert('ไม่พบรูปหลักฐานในฐานข้อมูล');
+        return;
+      }
+      const data = snap.data();
+      const src = data.dataUrl || data.url;
+      if (!src) throw new Error('เอกสารหลักฐานไม่มีข้อมูลรูปภาพ');
+      const caption = `${data.contextLabel || 'หลักฐาน'} | ${data.timestampText || ''} | ${data.locationText || ''}`;
+      if (win) {
+        win.document.open();
+        win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>MDEC Proof</title></head><body style="margin:0;background:#111;color:#fff;font-family:sans-serif;"><div style="padding:12px 16px;background:#000;font-size:14px;font-weight:700;">${caption.replace(/</g, '&lt;')}</div><img src="${src}" style="display:block;max-width:100%;height:auto;margin:0 auto;" /></body></html>`);
+        win.document.close();
+      } else {
+        window.open(src, '_blank', 'noopener,noreferrer');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('เปิดรูปหลักฐานไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  const renderProofGallery = (proofs = []) => {
+    const list = Array.isArray(proofs) ? proofs : [];
+    if (list.length === 0) return null;
+    return (
+      <div className="mt-4">
+        <div className={`text-sm font-black mb-2 ${theme.textTitle}`}>หลักฐานรูปภาพ ({list.length})</div>
+        <div className="grid grid-cols-2 gap-2">
+          {list.map((p, idx) => {
+            const previewSrc = p.thumbUrl || p.url || '';
+            return (
+              <button key={p.id || idx} type="button" onClick={() => openProofImage(p)} className={`block text-left rounded-xl overflow-hidden border ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'}`} title="เปิดรูปหลักฐาน">
+                {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-28 object-cover" /> : <div className={`w-full h-28 flex items-center justify-center text-xs font-black ${theme.textMuted}`}>คลิกเพื่อเปิดรูป</div>}
+                <div className={`p-2 text-[10px] font-bold leading-tight ${theme.textMuted}`}>
+                  <div className="truncate">{p.timestampText || (p.createdAt ? new Date(p.createdAt).toLocaleString('th-TH') : 'ไม่ระบุเวลา')}</div>
+                  <div className="truncate">{p.locationText || 'ไม่ระบุตำแหน่ง'}</div>
+                  <div className="truncate">โดย: {p.createdBy || '-'}</div>
+                  {p.sizeText && <div className="truncate">ขนาด: {p.sizeText}</div>}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const handleAttachProofsToHistory = async () => {
+    if (!proofAttachTarget || proofAttachFiles.length === 0) return alert('กรุณาเลือกรูปหลักฐานอย่างน้อย 1 รูป');
+    const item = items.find(i => i.id === proofAttachTarget.itemId);
+    if (!item) return alert('ไม่พบอุปกรณ์ที่ต้องการเพิ่มหลักฐาน');
+    const history = Array.isArray(item.history) ? [...item.history] : [];
+    const historyIndex = Number(proofAttachTarget.historyIndex);
+    if (!history[historyIndex]) return alert('ไม่พบประวัติรายการนี้');
+    try {
+      setIsBusy(true);
+      const typeLabel = history[historyIndex].type === 'borrow' ? 'หลักฐานการยืม' : history[historyIndex].type === 'event' ? 'หลักฐานออกงาน' : 'หลักฐานรับคืน';
+      const uploadedProofs = await uploadProofFiles(proofAttachFiles, `${typeLabel} • ${item.name || ''}`);
+      history[historyIndex] = { ...history[historyIndex], proofs: [...(history[historyIndex].proofs || []), ...uploadedProofs] };
+      await setDoc(getItemDoc(item.id), { history, updatedAt: new Date().toISOString(), updatedBy: currentAccountLabel }, { merge: true });
+      await logAction('เพิ่มหลักฐานรูปภาพ', item.name || '-', `เพิ่มหลักฐาน ${uploadedProofs.length} รูป ในประวัติรายการที่ ${historyIndex + 1}`);
+      setProofAttachTarget(null);
+      setProofAttachFiles([]);
+      pushToast('เพิ่มหลักฐานรูปภาพเรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ เพิ่มหลักฐานไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -360,6 +671,7 @@ function MainApp() {
           storageBoxes: data.storageBoxes || [],
           prepLists: data.prepLists || [],
           backupMeta: data.backupMeta || {},
+          proofStorageMeta: data.proofStorageMeta || {},
           accounts: data.accounts || []
         });
       } else {
@@ -908,11 +1220,14 @@ S.N.: ${item.sn || '-'}
     const boxCount = (settingsOptions.storageBoxes || []).length;
     const prepCount = (settingsOptions.prepLists || []).length;
     const bundleCount = (settingsOptions.bundles || []).length;
+    const proofMeta = settingsOptions.proofStorageMeta || {};
+    const proofStorageBytes = Number(proofMeta.totalBytes || 0);
+    const proofImageCount = Number(proofMeta.count || 0);
     const payload = {
       items,
       settings: settingsOptions,
       auditLogs: auditLogs || [],
-      summary: { historyCount, boxCount, prepCount, bundleCount }
+      summary: { historyCount, boxCount, prepCount, bundleCount, proofImageCount, proofStorageBytes }
     };
     let rawBytes = 0;
     try {
@@ -922,7 +1237,7 @@ S.N.: ${item.sn || '-'}
     }
 
     // ประเมินเผื่อ overhead ของ Firestore/Index/metadata เพื่อให้ปลอดภัยกว่าไฟล์ JSON ดิบ
-    const estimatedBytes = Math.ceil((rawBytes * 1.45) + (items.length * 900) + (historyCount * 350) + (boxCount * 700) + (prepCount * 700) + ((auditLogs || []).length * 450));
+    const estimatedBytes = Math.ceil((rawBytes * 1.45) + proofStorageBytes + (items.length * 900) + (historyCount * 350) + (boxCount * 700) + (prepCount * 700) + ((auditLogs || []).length * 450));
     const limitBytes = 1024 * 1024 * 1024; // อิงแผนฟรี 1GB ที่ผู้ใช้ใช้งานอยู่
     const percent = Math.min(100, Math.max(0, (estimatedBytes / limitBytes) * 100));
 
@@ -976,7 +1291,9 @@ S.N.: ${item.sn || '-'}
       prepCount,
       bundleCount,
       auditCount: (auditLogs || []).length,
-      itemCount: items.length
+      itemCount: items.length,
+      proofImageCount,
+      proofStorageText: formatBytes(proofStorageBytes)
     };
   }, [items, settingsOptions, auditLogs, isDarkMode]);
 
@@ -1189,6 +1506,7 @@ S.N.: ${item.sn || '-'}
     e.stopPropagation();
     try {
       setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' }); 
+      setBorrowProofFiles([]);
       setBorrowTargetIds([item.id]);
       setPackingChecklist([]);
     } catch (err) { alert("ระบบขัดข้อง: " + err.message); }
@@ -1198,6 +1516,7 @@ S.N.: ${item.sn || '-'}
     e.stopPropagation();
     try {
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' }); 
+      setEventProofFiles([]);
       setEventTargetIds([item.id]);
       setEventChecklist([]);
     } catch (err) { alert("ระบบขัดข้อง: " + err.message); }
@@ -1228,10 +1547,11 @@ S.N.: ${item.sn || '-'}
       }
     } catch (e) { console.error("Settings error:", e); }
     
-    const newHistoryEntry = { type: 'borrow', date: new Date().toISOString(), borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff, note: borrowData.note, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
     const borrowedNames = [];
 
     try {
+      const uploadedProofs = await uploadProofsOrConfirm(borrowProofFiles, `หลักฐานการยืม • ${borrowData.borrower || ''}`);
+      const newHistoryEntry = { type: 'borrow', date: new Date().toISOString(), borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff, note: borrowData.note, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
       const promises = packingChecklist.map(id => {
         const item = items.find(i => i.id === id);
         if (!item || item.status !== 'available') return Promise.resolve(); 
@@ -1257,6 +1577,7 @@ S.N.: ${item.sn || '-'}
       setPackingChecklist([]);
       setSelectedItems([]); 
       setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '', note: '' });
+      setBorrowProofFiles([]);
       alert('✅ บันทึกการยืมเรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
@@ -1280,10 +1601,11 @@ S.N.: ${item.sn || '-'}
       }
     } catch (e) { console.error("Settings error:", e); }
     
-    const newHistoryEntry = { type: 'event', date: new Date().toISOString(), eventName: eventData.eventName, expectedReturn: eventData.returnDate, staffOut: finalStaff, note: eventData.note, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
     const eventNames = [];
 
     try {
+      const uploadedProofs = await uploadProofsOrConfirm(eventProofFiles, `หลักฐานออกงาน • ${eventData.eventName || ''}`);
+      const newHistoryEntry = { type: 'event', date: new Date().toISOString(), eventName: eventData.eventName, expectedReturn: eventData.returnDate, staffOut: finalStaff, note: eventData.note, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
       const promises = eventChecklist.map(id => {
         const item = items.find(i => i.id === id);
         if (!item || item.status !== 'available') return Promise.resolve(); 
@@ -1309,6 +1631,7 @@ S.N.: ${item.sn || '-'}
       setEventChecklist([]);
       setSelectedItems([]); 
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
+      setEventProofFiles([]);
       alert('✅ บันทึกการนำออกงานเรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
@@ -1329,10 +1652,11 @@ S.N.: ${item.sn || '-'}
       }
     } catch (e) { console.error("Settings error:", e); }
     
-    const newHistoryEntry = { type: 'return', date: new Date().toISOString(), staffIn: finalStaff, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
     const returnedNames = [];
 
     try {
+      const uploadedProofs = await uploadProofsOrConfirm(returnProofFiles, `หลักฐานรับคืน • ${finalStaff || ''}`);
+      const newHistoryEntry = { type: 'return', date: new Date().toISOString(), staffIn: finalStaff, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
       const promises = returnChecklist.map(id => {
         const item = items.find(i => i.id === id);
         if (!item || (item.status !== 'borrowed' && item.status !== 'out-for-event')) return Promise.resolve();
@@ -1360,6 +1684,7 @@ S.N.: ${item.sn || '-'}
       setSelectedItems([]); 
       setReturnData({ staff: '', newStaff: '' });
       setReturnInspection({});
+      setReturnProofFiles([]);
       alert('✅ รับคืนอุปกรณ์เรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
@@ -1423,6 +1748,7 @@ S.N.: ${item.sn || '-'}
       setBorrowTargetIds([...availableIds]);
       setPackingChecklist([]);
       setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' });
+      setBorrowProofFiles([]);
       setShowBundleModal(false);
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
@@ -1440,6 +1766,7 @@ S.N.: ${item.sn || '-'}
       setEventTargetIds([...availableIds]);
       setEventChecklist([]);
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
+      setEventProofFiles([]);
       setShowBundleModal(false);
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
@@ -1712,13 +2039,13 @@ S.N.: ${item.sn || '-'}
   };
 
   const exportHistoryCSV = async () => {
-    const headers = ['รหัสเอกสารอุปกรณ์', 'ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'ลำดับประวัติ', 'ประเภทประวัติ', 'วันเวลาทำรายการ', 'ผู้ทำรายการในระบบ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'สถานะปัจจุบัน'];
+    const headers = ['รหัสเอกสารอุปกรณ์', 'ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'ลำดับประวัติ', 'ประเภทประวัติ', 'วันเวลาทำรายการ', 'ผู้ทำรายการในระบบ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'ลิงก์หลักฐาน', 'สถานะปัจจุบัน'];
     const rows = [];
     items.forEach(item => {
       const historyList = Array.isArray(item.history) ? item.history : [];
       historyList.forEach((h, index) => {
         const historyType = h.type === 'borrow' ? 'ยืมออก' : h.type === 'event' ? 'ออกงาน' : h.type === 'return' ? 'รับคืน' : (h.type || '-');
-        rows.push([item.id || '-', item.name || '-', item.sn || '-', item.department || '-', item.category || '-', item.location || '-', index + 1, historyType, formatBackupDateTime(h.date), h.operatorName || h.performedBy || '-', h.borrower || h.eventName || '-', h.staffOut || '-', h.staffIn || '-', h.expectedReturn || '-', h.note || '-', getBackupStatusLabel(item.status)]);
+        rows.push([item.id || '-', item.name || '-', item.sn || '-', item.department || '-', item.category || '-', item.location || '-', index + 1, historyType, formatBackupDateTime(h.date), h.operatorName || h.performedBy || '-', h.borrower || h.eventName || '-', h.staffOut || '-', h.staffIn || '-', h.expectedReturn || '-', h.note || '-', Array.isArray(h.proofs) ? h.proofs.length : 0, Array.isArray(h.proofs) ? h.proofs.map(p => p.storageType === 'firestore-doc-base64' ? (p.originalName || p.id || 'รูปในระบบ') : (p.url || p.id || '-')).join(' | ') : '-' , getBackupStatusLabel(item.status)]);
       });
     });
     backupDownloadCSV('MDEC_Borrow_Return_History_' + getBackupFileTag() + '.csv', headers, rows);
@@ -1729,10 +2056,10 @@ S.N.: ${item.sn || '-'}
 
   const exportItemHistoryCSV = (item) => {
     if (!item) return;
-    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ลำดับ', 'ประเภท', 'วันเวลาทำรายการ', 'ผู้ทำรายการในระบบ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ'];
+    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ลำดับ', 'ประเภท', 'วันเวลาทำรายการ', 'ผู้ทำรายการในระบบ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'ลิงก์หลักฐาน'];
     const rows = (Array.isArray(item.history) ? item.history : []).map((h, index) => {
       const historyType = h.type === 'borrow' ? 'ยืมออก' : h.type === 'event' ? 'ออกงาน' : h.type === 'return' ? 'รับคืน' : (h.type || '-');
-      return [item.name || '-', item.sn || '-', index + 1, historyType, formatBackupDateTime(h.date), h.operatorName || h.performedBy || '-', h.borrower || h.eventName || '-', h.staffOut || '-', h.staffIn || '-', h.expectedReturn || '-', h.note || '-'];
+      return [item.name || '-', item.sn || '-', index + 1, historyType, formatBackupDateTime(h.date), h.operatorName || h.performedBy || '-', h.borrower || h.eventName || '-', h.staffOut || '-', h.staffIn || '-', h.expectedReturn || '-', h.note || '-', Array.isArray(h.proofs) ? h.proofs.length : 0, Array.isArray(h.proofs) ? h.proofs.map(p => p.storageType === 'firestore-doc-base64' ? (p.originalName || p.id || 'รูปในระบบ') : (p.url || p.id || '-')).join(' | ') : '-' ];
     });
     backupDownloadCSV(`MDEC_Item_History_${(item.sn || item.id || 'item').replace(/[^a-zA-Z0-9_-]/g, '_')}_${getBackupFileTag()}.csv`, headers, rows);
     if (rows.length === 0) pushToast('ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติของอุปกรณ์นี้', 'warning');
@@ -1750,6 +2077,15 @@ S.N.: ${item.sn || '-'}
         console.warn('Audit backup warning:', auditError);
         latestAuditLogs = auditLogs;
       }
+      let proofDocs = [];
+      try {
+        const proofSnapshot = await getDocs(getProofsCol());
+        proofSnapshot.forEach((docSnap) => proofDocs.push({ id: docSnap.id, ...docSnap.data() }));
+      } catch (proofError) {
+        console.warn('Proof backup warning:', proofError);
+        proofDocs = [];
+      }
+      const proofBytes = proofDocs.reduce((sum, p) => sum + (Number(p.sizeBytes) || 0) + (Number(p.thumbBytes) || 0), 0);
       const historyCount = items.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.length : 0), 0);
       const payload = {
         appName: 'MDEC-Stock',
@@ -1757,15 +2093,16 @@ S.N.: ${item.sn || '-'}
         backupVersion: 1,
         exportedAt: new Date().toISOString(),
         exportedAtTH: new Date().toLocaleString('th-TH', { hour12: false }),
-        summary: { totalItems: items.length, totalHistoryEntries: historyCount, totalAuditLogs: latestAuditLogs.length, totalBundles: (settingsOptions.bundles || []).length, totalCategories: (settingsOptions.categories || []).length, totalLocations: (settingsOptions.locations || []).length, totalStaff: (settingsOptions.staff || []).length, totalAccounts: (settingsOptions.accounts || []).length },
+        summary: { totalItems: items.length, totalHistoryEntries: historyCount, totalProofImages: proofDocs.length, estimatedProofBytes: proofBytes, totalAuditLogs: latestAuditLogs.length, totalBundles: (settingsOptions.bundles || []).length, totalCategories: (settingsOptions.categories || []).length, totalLocations: (settingsOptions.locations || []).length, totalStaff: (settingsOptions.staff || []).length, totalAccounts: (settingsOptions.accounts || []).length },
         settings: settingsOptions,
         items: items,
-        auditLogs: latestAuditLogs
+        auditLogs: latestAuditLogs,
+        proofs: proofDocs
       };
       backupDownloadTextFile('MDEC_Full_Backup_' + getBackupFileTag() + '.json', JSON.stringify(payload, null, 2), 'application/json;charset=utf-8;');
-      await logAction('สำรองข้อมูลทั้งหมด JSON', 'สำรอง ' + items.length + ' อุปกรณ์ / ' + historyCount + ' ประวัติ', 'ดาวน์โหลดข้อมูลทั้งระบบเป็นไฟล์ JSON รวมประวัติยืม-คืน');
+      await logAction('สำรองข้อมูลทั้งหมด JSON', 'สำรอง ' + items.length + ' อุปกรณ์ / ' + historyCount + ' ประวัติ', 'ดาวน์โหลดข้อมูลทั้งระบบเป็นไฟล์ JSON รวมประวัติยืม-คืนและรูปหลักฐาน');
       await saveBackupTimestamp('fullJson');
-      alert('✅ สำรองข้อมูลทั้งหมดเรียบร้อยแล้ว! ไฟล์ JSON นี้เก็บรายการอุปกรณ์ การตั้งค่า เซ็ตอุปกรณ์ ประวัติยืม-คืน และประวัติการทำงาน');
+      alert('✅ สำรองข้อมูลทั้งหมดเรียบร้อยแล้ว! ไฟล์ JSON นี้เก็บรายการอุปกรณ์ การตั้งค่า เซ็ตอุปกรณ์ ประวัติยืม-คืน ประวัติการทำงาน และรูปหลักฐาน');
     } catch (error) {
       console.error(error);
       alert('❌ สำรองข้อมูลทั้งหมดไม่สำเร็จ: ' + error.message);
@@ -1804,6 +2141,18 @@ S.N.: ${item.sn || '-'}
           await setDoc(getSettingsDoc(), data.settings, { merge: true });
         }
 
+        let restoredProofCount = 0;
+        if (Array.isArray(data.proofs)) {
+          for (const proof of data.proofs) {
+            if (!proof || !proof.id) continue;
+            const proofId = proof.id;
+            const proofData = { ...proof };
+            delete proofData.id;
+            await setDoc(getProofDoc(proofId), proofData, { merge: true });
+            restoredProofCount++;
+          }
+        }
+
         let restoredCount = 0;
         for (const item of data.items) {
           if (!item || !item.id) continue;
@@ -1814,9 +2163,9 @@ S.N.: ${item.sn || '-'}
           restoredCount++;
         }
 
-        await logAction('กู้คืนข้อมูลจาก JSON', 'กู้คืน ' + restoredCount + ' อุปกรณ์', 'กู้คืนแบบปลอดภัย: เขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON โดยไม่ลบอุปกรณ์ที่ไม่มีในไฟล์');
+        await logAction('กู้คืนข้อมูลจาก JSON', 'กู้คืน ' + restoredCount + ' อุปกรณ์ / ' + restoredProofCount + ' รูปหลักฐาน', 'กู้คืนแบบปลอดภัย: เขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON โดยไม่ลบอุปกรณ์ที่ไม่มีในไฟล์');
         await saveBackupTimestamp('restoreJson');
-        alert('✅ กู้คืนข้อมูลจาก JSON เรียบร้อยแล้ว ' + restoredCount + ' รายการ\nระบบไม่ได้ลบอุปกรณ์ที่ไม่มีในไฟล์สำรอง');
+        alert('✅ กู้คืนข้อมูลจาก JSON เรียบร้อยแล้ว ' + restoredCount + ' รายการ และรูปหลักฐาน ' + restoredProofCount + ' รูป\nระบบไม่ได้ลบอุปกรณ์ที่ไม่มีในไฟล์สำรอง');
       } catch (error) {
         console.error(error);
         alert('❌ กู้คืนข้อมูลไม่สำเร็จ: ' + error.message);
@@ -4264,7 +4613,7 @@ S.N.: ${item.sn || '-'}
                       <div className={`h-full rounded-full transition-all duration-500 ${databaseStorageEstimate.barClass}`} style={{ width: `${Math.max(databaseStorageEstimate.percent, databaseStorageEstimate.percent > 0 ? 1 : 0)}%` }}></div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
                       <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900/40 border-slate-700' : 'bg-white border-slate-200'}`}>
                         <div className={`text-xs font-bold ${theme.textMuted}`}>ใช้ไปประมาณ</div>
                         <div className={`text-lg font-black ${databaseStorageEstimate.textTone}`}>{databaseStorageEstimate.percentText}</div>
@@ -4281,10 +4630,15 @@ S.N.: ${item.sn || '-'}
                         <div className={`text-xs font-bold ${theme.textMuted}`}>ประวัติยืม-คืน</div>
                         <div className={`text-lg font-black ${theme.textTitle}`}>{databaseStorageEstimate.historyCount} รายการ</div>
                       </div>
+                      <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`text-xs font-bold ${theme.textMuted}`}>รูปหลักฐาน</div>
+                        <div className={`text-lg font-black ${theme.textTitle}`}>{databaseStorageEstimate.proofImageCount} รูป</div>
+                        <div className={`text-[10px] font-bold ${theme.textMuted}`}>{databaseStorageEstimate.proofStorageText}</div>
+                      </div>
                     </div>
 
                     <p className={`text-xs mt-3 font-bold ${theme.textMuted}`}>
-                      * เป็นค่าประมาณเพื่อช่วยดูแนวโน้ม ไม่ใช่ตัวเลข Usage จริงจาก Firebase Console โดยตรง ถ้าเริ่มเกิน 75% ควรสำรอง JSON/CSV และล้างประวัติรายปี
+                      * เป็นค่าประมาณเพื่อช่วยดูแนวโน้ม ไม่ใช่ตัวเลข Usage จริงจาก Firebase Console โดยตรง ถ้าเริ่มเกิน 75% ควรสำรอง JSON/CSV และล้างประวัติรายปี ส่วนรูปหลักฐานจะถูกย่อไฟล์ก่อนเก็บ
                     </p>
                   </div>
 
@@ -4299,7 +4653,7 @@ S.N.: ${item.sn || '-'}
                         <Icons.History className="w-5 h-5"/> ประวัติยืม-คืน CSV
                       </button>
                     </div>
-                    <p className={`text-xs mt-3 font-bold ${theme.textMuted}`}>* ไฟล์ JSON เก็บรายการอุปกรณ์ การตั้งค่า เซ็ตอุปกรณ์ ของส่วนตัว ประวัติยืม-คืน และ Audit Log เหมาะสำหรับสำรองรายปี</p>
+                    <p className={`text-xs mt-3 font-bold ${theme.textMuted}`}>* ไฟล์ JSON เก็บรายการอุปกรณ์ การตั้งค่า เซ็ตอุปกรณ์ ของส่วนตัว ประวัติยืม-คืน Audit Log และรูปหลักฐาน เหมาะสำหรับสำรองรายปี</p>
                     <div className={`mt-3 p-3 rounded-xl border text-xs font-bold ${isDarkMode ? 'bg-slate-900/40 border-slate-700 text-slate-300' : 'bg-white border-blue-100 text-slate-600'}`}>
                       สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่มีข้อมูลการสำรองในระบบ'}
                     </div>
@@ -4640,7 +4994,7 @@ S.N.: ${item.sn || '-'}
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.UserPlus className="text-purple-500 w-6 h-6" /> บันทึกการให้ยืม</h3>
-              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); setBorrowProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             
             <div className="space-y-4 mb-6">
@@ -4671,6 +5025,7 @@ S.N.: ${item.sn || '-'}
                 <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>หมายเหตุ <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่บังคับ)</span></label>
                 <textarea className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-purple-500 resize-none ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} rows="2" placeholder="เช่น ยืมไปถ่าย MV, ขาตั้งมีรอยถลอก..." value={borrowData.note || ''} onChange={e => setBorrowData({...borrowData, note: e.target.value})}></textarea>
               </div>
+              {renderProofUploader('หลักฐานการยืม', borrowProofFiles, setBorrowProofFiles, 'purple')}
             </div>
 
             <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
@@ -4715,7 +5070,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className="flex gap-3">
-              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); setBorrowProofFiles([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button 
                 type="button" 
                 onClick={handleBorrow} 
@@ -4741,7 +5096,7 @@ S.N.: ${item.sn || '-'}
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.Truck className="text-orange-500 w-6 h-6" /> นำอุปกรณ์ออกงาน</h3>
-              <button type="button" onClick={() => { setEventTargetIds([]); setEventChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+              <button type="button" onClick={() => { setEventTargetIds([]); setEventChecklist([]); setEventProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             
             <div className="space-y-4 mb-6">
@@ -4772,6 +5127,7 @@ S.N.: ${item.sn || '-'}
                 <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>สถานที่ / หมายเหตุ <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่บังคับ)</span></label>
                 <textarea className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-orange-500 resize-none ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} rows="2" placeholder="เช่น สถานที่จัดงาน, เบอร์โทรติดต่อ..." value={eventData.note || ''} onChange={e => setEventData({...eventData, note: e.target.value})}></textarea>
               </div>
+              {renderProofUploader('หลักฐานการนำออกงาน', eventProofFiles, setEventProofFiles, 'orange')}
             </div>
 
             <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
@@ -4816,7 +5172,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className="flex gap-3">
-              <button type="button" onClick={() => { setEventTargetIds([]); setEventChecklist([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={() => { setEventTargetIds([]); setEventChecklist([]); setEventProofFiles([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button 
                 type="button" 
                 onClick={handleEventOut} 
@@ -4842,7 +5198,7 @@ S.N.: ${item.sn || '-'}
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.CheckCircle className="text-emerald-500 w-6 h-6" /> บันทึกรับคืนอุปกรณ์</h3>
-              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); setReturnProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             
             <div className="mb-6">
@@ -4857,6 +5213,9 @@ S.N.: ${item.sn || '-'}
                 <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-emerald-500 ${isDarkMode ? 'bg-emerald-900/20 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-300 text-emerald-800'}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่..." value={returnData.newStaff || ''} onChange={e => setReturnData({...returnData, newStaff: e.target.value})} />
               </div>
             )}
+            <div className="mb-6">
+              {renderProofUploader('หลักฐานการรับคืน', returnProofFiles, setReturnProofFiles, 'emerald')}
+            </div>
 
             <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
               <div className="flex justify-between items-center mb-3">
@@ -4911,7 +5270,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className="flex gap-3">
-              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); setReturnProofFiles([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button 
                 type="button" 
                 onClick={handleReturn} 
@@ -4997,11 +5356,11 @@ S.N.: ${item.sn || '-'}
                 if (historyList.length === 0) {
                   return <div className={`text-center py-8 font-bold text-xl ${theme.textMuted}`}>ยังไม่มีประวัติการใช้งาน</div>;
                 }
-                return historyList.slice().reverse().map((h, idx) => {
+                return historyList.map((entry, originalIndex) => ({ entry, originalIndex })).reverse().map(({ entry: h, originalIndex }) => {
                   const isBorrow = h.type === 'borrow';
                   const isEvent = h.type === 'event';
                   return (
-                    <div key={idx} className={`p-5 rounded-xl border ${isBorrow ? (isDarkMode ? 'bg-purple-900/20 border-purple-800/50' : 'bg-purple-50 border-purple-100') : isEvent ? (isDarkMode ? 'bg-orange-900/20 border-orange-800/50' : 'bg-orange-50 border-orange-100') : (isDarkMode ? 'bg-emerald-900/20 border-emerald-800/50' : 'bg-emerald-50 border-emerald-100')}`}>
+                    <div key={originalIndex} className={`p-5 rounded-xl border ${isBorrow ? (isDarkMode ? 'bg-purple-900/20 border-purple-800/50' : 'bg-purple-50 border-purple-100') : isEvent ? (isDarkMode ? 'bg-orange-900/20 border-orange-800/50' : 'bg-orange-50 border-orange-100') : (isDarkMode ? 'bg-emerald-900/20 border-emerald-800/50' : 'bg-emerald-50 border-emerald-100')}`}>
                       <div className="flex items-center gap-3 mb-3">
                         <span className={`text-sm font-black px-3 py-1.5 rounded-md ${isBorrow ? (isDarkMode ? 'bg-purple-900/50 text-purple-400' : 'bg-purple-200 text-purple-700') : isEvent ? (isDarkMode ? 'bg-orange-900/50 text-orange-400' : 'bg-orange-200 text-orange-700') : (isDarkMode ? 'bg-emerald-900/50 text-emerald-400' : 'bg-emerald-200 text-emerald-700')}`}>{isBorrow ? 'ยืมออก' : isEvent ? 'ออกงาน' : 'รับคืน'}</span>
                         <span className={`text-base font-bold ${theme.textMuted}`}>{h.date ? new Date(h.date).toLocaleString('th-TH') : '-'}</span>
@@ -5024,6 +5383,10 @@ S.N.: ${item.sn || '-'}
                       ) : (
                         <div className={`text-lg ${theme.textMain}`}><p><span className={`font-bold ${theme.textTitle}`}>ผู้รับคืน (จนท.):</span> {h.staffIn || '-'}</p></div>
                       )}
+                      {renderProofGallery(h.proofs)}
+                      {canUseOperationalTools && (
+                        <button type="button" onClick={() => { setProofAttachTarget({ itemId: historyItem.id, historyIndex: originalIndex }); setProofAttachFiles([]); }} className={`mt-4 w-full px-4 py-3 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>+ เพิ่มรูปหลักฐานย้อนหลัง</button>
+                      )}
                     </div>
                   );
                 });
@@ -5031,6 +5394,23 @@ S.N.: ${item.sn || '-'}
             </div>
             <div className={`mt-6 pt-4 border-t ${theme.divide}`}>
               <button type="button" onClick={() => setShowHistory(null)} className={`w-full py-4 font-bold rounded-xl transition-colors text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📷 Modal เพิ่มหลักฐานย้อนหลัง */}
+      {proofAttachTarget && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[10000]`}>
+          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl ${theme.cardBg}`}>
+            <div className="flex justify-between items-center mb-5">
+              <h3 className={`text-xl font-black ${theme.textTitle}`}>เพิ่มรูปหลักฐานย้อนหลัง</h3>
+              <button type="button" onClick={() => { setProofAttachTarget(null); setProofAttachFiles([]); }} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            {renderProofUploader('รูปหลักฐานย้อนหลัง', proofAttachFiles, setProofAttachFiles, 'blue')}
+            <div className="flex gap-3 mt-6">
+              <button type="button" onClick={() => { setProofAttachTarget(null); setProofAttachFiles([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={() => runWithBusy(handleAttachProofsToHistory)} disabled={isBusy || proofAttachFiles.length === 0} className={`flex-1 py-4 font-bold rounded-xl text-lg text-white ${isBusy || proofAttachFiles.length === 0 ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}>{isBusy ? 'กำลังอัปโหลด...' : 'บันทึกหลักฐาน'}</button>
             </div>
           </div>
         </div>
