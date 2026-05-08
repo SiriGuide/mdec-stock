@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.10 Clean Category & Live Dashboard';
-const APP_UPDATE_NOTE = 'ยุบหมวดหมู่ให้สะอาดขึ้น และปรับ Dashboard ให้เห็นของที่กำลังถูกยืม/ออกงานทันที';
+const APP_VERSION = 'v22.11 Proof Deduplicate Pack';
+const APP_UPDATE_NOTE = 'จัดกลุ่มรูปหลักฐานซ้ำใน Gallery ให้เห็นรูปจริง 1 ใบ พร้อมบอกว่าเกี่ยวข้องกับอุปกรณ์ใดบ้าง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -216,6 +216,7 @@ function MainApp() {
   const [showProofCenterModal, setShowProofCenterModal] = useState(false);
   const [proofCenterFilter, setProofCenterFilter] = useState('all');
   const [proofCenterSearch, setProofCenterSearch] = useState('');
+  const [expandedProofGroupId, setExpandedProofGroupId] = useState(null);
   const [showSystemHealthModal, setShowSystemHealthModal] = useState(false);
   const [showMonthlyReportModal, setShowMonthlyReportModal] = useState(false);
   const [monthlyReportMonth, setMonthlyReportMonth] = useState(() => {
@@ -1441,6 +1442,93 @@ S.N.: ${item.sn || '-'}
       return matchType && (!keyword || haystack.includes(keyword));
     });
   }, [allProofEntries, proofCenterFilter, proofCenterSearch]);
+
+  const dedupedProofGroups = useMemo(() => {
+    const groups = new Map();
+
+    allProofEntries.forEach((entry) => {
+      const proof = entry.proof || {};
+      const groupKey = String(
+        proof.proofDocId ||
+        proof.id ||
+        proof.docId ||
+        `${proof.createdAt || entry.date || 'nodate'}_${proof.originalName || ''}_${proof.sizeBytes || ''}_${String(proof.thumbUrl || proof.url || '').slice(0, 96)}`
+      );
+
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, {
+          groupId: groupKey,
+          proof,
+          representative: entry,
+          entries: [],
+          itemRefs: [],
+          itemRefKeys: new Set(),
+          typeLabels: new Set(),
+          historyTypes: new Set(),
+          searchText: ''
+        });
+      }
+
+      const group = groups.get(groupKey);
+      group.entries.push(entry);
+      group.typeLabels.add(entry.typeLabel || 'อื่น ๆ');
+      group.historyTypes.add(entry.historyType || 'other');
+
+      const itemKey = entry.itemId || entry.sn || entry.itemName || `item_${group.entries.length}`;
+      if (!group.itemRefKeys.has(itemKey)) {
+        group.itemRefKeys.add(itemKey);
+        group.itemRefs.push({
+          itemId: entry.itemId,
+          itemName: entry.itemName || '-',
+          sn: entry.sn || '-',
+          subject: entry.subject || '-',
+          typeLabel: entry.typeLabel || '-',
+          historyType: entry.historyType || 'other',
+          date: entry.date || entry.proof?.createdAt || ''
+        });
+      }
+    });
+
+    return Array.from(groups.values()).map((group) => {
+      const searchText = [
+        group.representative?.itemName,
+        group.representative?.sn,
+        group.representative?.subject,
+        group.representative?.staff,
+        group.representative?.storageBoxName,
+        group.representative?.note,
+        ...group.itemRefs.flatMap(ref => [ref.itemName, ref.sn, ref.subject, ref.typeLabel])
+      ].filter(Boolean).join(' ').toLowerCase();
+
+      const sortedEntries = group.entries.slice().sort((a, b) => new Date(b.date || b.proof?.createdAt || 0) - new Date(a.date || a.proof?.createdAt || 0));
+      const representative = sortedEntries[0] || group.representative;
+      return {
+        ...group,
+        entries: sortedEntries,
+        representative,
+        proof: representative?.proof || group.proof,
+        typeLabels: Array.from(group.typeLabels),
+        historyTypes: Array.from(group.historyTypes),
+        searchText,
+        firstDate: representative?.date || representative?.proof?.createdAt || ''
+      };
+    }).sort((a, b) => new Date(b.firstDate || 0) - new Date(a.firstDate || 0));
+  }, [allProofEntries]);
+
+  const filteredProofGroups = useMemo(() => {
+    const keyword = String(proofCenterSearch || '').toLowerCase().trim();
+    return dedupedProofGroups.filter((group) => {
+      const matchType = proofCenterFilter === 'all' || group.historyTypes.includes(proofCenterFilter) || (proofCenterFilter === 'repair' && group.historyTypes.some(t => String(t).includes('repair')));
+      return matchType && (!keyword || group.searchText.includes(keyword));
+    });
+  }, [dedupedProofGroups, proofCenterFilter, proofCenterSearch]);
+
+  const proofDuplicateStats = useMemo(() => {
+    const linkCount = filteredProofGroups.reduce((sum, group) => sum + group.entries.length, 0);
+    const itemLinkCount = filteredProofGroups.reduce((sum, group) => sum + group.itemRefs.length, 0);
+    const duplicateLinks = Math.max(0, linkCount - filteredProofGroups.length);
+    return { realImages: filteredProofGroups.length, linkCount, itemLinkCount, duplicateLinks };
+  }, [filteredProofGroups]);
 
   const proofStorageForecast = useMemo(() => {
     const proofBytes = Number(settingsOptions.proofStorageMeta?.totalBytes || 0);
@@ -6607,7 +6695,7 @@ S.N.: ${item.sn || '-'}
             <div className={`p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
               <div>
                 <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-lg">📷</span> ศูนย์หลักฐานรูปภาพ</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูรูปหลักฐานจากทุกอุปกรณ์ ไม่ต้องเข้าไปเปิดประวัติทีละชิ้น</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แสดงแบบรวมรูปซ้ำ: รูปเดียวกันที่ผูกกับหลายอุปกรณ์จะแสดงเป็น 1 ใบ พร้อมบอกว่าเกี่ยวข้องกับอุปกรณ์ใดบ้าง</p>
               </div>
               <button type="button" onClick={() => setShowProofCenterModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -6620,27 +6708,64 @@ S.N.: ${item.sn || '-'}
                 <option value="return">รับคืน</option>
                 <option value="repair">แจ้งซ่อม</option>
               </select>
-              <div className={`p-3 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>พบ {filteredProofEntries.length.toLocaleString('th-TH')} รูป จากทั้งหมด {allProofEntries.length.toLocaleString('th-TH')} รูป</div>
+              <div className={`p-3 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>
+                พบ {proofDuplicateStats.realImages.toLocaleString('th-TH')} รูปจริง • เชื่อมโยง {proofDuplicateStats.itemLinkCount.toLocaleString('th-TH')} อุปกรณ์/รายการ
+              </div>
+            </div>
+            <div className={`px-5 py-3 border-b text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950/50 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+              จากข้อมูลเดิมมีการแสดงผล {proofDuplicateStats.linkCount.toLocaleString('th-TH')} จุดเชื่อมโยง ระบบรวมรูปซ้ำออกไป {proofDuplicateStats.duplicateLinks.toLocaleString('th-TH')} จุด เพื่อให้ Gallery สะอาดขึ้น
             </div>
             <div className="p-5 overflow-y-auto custom-scrollbar flex-1">
-              {filteredProofEntries.length === 0 ? (
+              {filteredProofGroups.length === 0 ? (
                 <div className={`text-center py-16 font-black text-xl ${theme.textMuted}`}>ยังไม่มีรูปหลักฐาน หรือไม่พบจากคำค้นหา</div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {filteredProofEntries.map((entry) => {
-                    const previewSrc = entry.proof?.thumbUrl || entry.proof?.url || '';
+                  {filteredProofGroups.map((group) => {
+                    const entry = group.representative || {};
+                    const proof = group.proof || {};
+                    const previewSrc = proof.thumbUrl || proof.url || '';
+                    const expanded = expandedProofGroupId === group.groupId;
                     return (
-                      <button key={entry.id} type="button" onClick={() => openProofImage(entry.proof)} className={`rounded-[1.35rem] border overflow-hidden text-left hover:scale-[1.015] hover:-translate-y-1 hover:shadow-xl transition-all ${isDarkMode ? 'bg-slate-950 border-slate-700 shadow-black/20' : 'bg-white border-slate-100 shadow-slate-200/70'}`}>
-                        {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-44 object-cover" /> : <div className={`w-full h-40 flex items-center justify-center font-black ${theme.textMuted}`}>คลิกเพื่อเปิดรูป</div>}
-                        <div className="p-3 space-y-1">
-                          <div className={`font-black truncate ${theme.textTitle}`}>{entry.itemName}</div>
-                          <div className={`text-xs font-bold ${theme.textMuted}`}>S.N.: {entry.sn}</div>
-                          <div className={`inline-block text-xs px-2 py-1 rounded-lg font-black ${entry.historyType === 'borrow' ? 'bg-purple-100 text-purple-700' : entry.historyType === 'event' ? 'bg-orange-100 text-orange-700' : entry.historyType === 'return' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>{entry.typeLabel}</div>
-                          <div className={`text-xs font-bold ${theme.textMuted}`}>เรื่อง: {entry.subject}</div>
-                          <div className={`text-xs font-bold ${theme.textMuted}`}>เวลา: {entry.proof?.timestampText || (entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-')}</div>
-                          <div className={`text-xs font-bold ${theme.textMuted}`}>โดย: {entry.proof?.createdBy || entry.staff || '-'}</div>
+                      <div key={group.groupId} className={`rounded-[1.35rem] border overflow-hidden text-left hover:shadow-xl transition-all ${isDarkMode ? 'bg-slate-950 border-slate-700 shadow-black/20' : 'bg-white border-slate-100 shadow-slate-200/70'}`}>
+                        <button type="button" onClick={() => openProofImage(proof)} className="block w-full text-left">
+                          <div className="relative">
+                            {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-44 object-cover" /> : <div className={`w-full h-40 flex items-center justify-center font-black ${theme.textMuted}`}>คลิกเพื่อเปิดรูป</div>}
+                            {group.itemRefs.length > 1 && (
+                              <div className="absolute left-3 top-3 px-3 py-1.5 rounded-full bg-black/70 text-white text-xs font-black backdrop-blur-sm">
+                                รูปเดียว • {group.itemRefs.length} อุปกรณ์
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-3 space-y-1">
+                            <div className={`font-black truncate ${theme.textTitle}`}>{group.itemRefs.length > 1 ? `เกี่ยวข้องกับ ${group.itemRefs.length} อุปกรณ์` : (entry.itemName || '-')}</div>
+                            <div className={`text-xs font-bold ${theme.textMuted}`}>{group.itemRefs.map(ref => ref.itemName).slice(0, 2).join(' • ')}{group.itemRefs.length > 2 ? ` +${group.itemRefs.length - 2}` : ''}</div>
+                            <div className="flex flex-wrap gap-1">
+                              {group.typeLabels.slice(0, 3).map((label) => (
+                                <span key={label} className={`inline-block text-xs px-2 py-1 rounded-lg font-black ${label === 'ยืม' ? 'bg-purple-100 text-purple-700' : label === 'ออกงาน' ? 'bg-orange-100 text-orange-700' : label === 'รับคืน' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>{label}</span>
+                              ))}
+                            </div>
+                            <div className={`text-xs font-bold ${theme.textMuted}`}>เรื่อง: {entry.subject || '-'}</div>
+                            <div className={`text-xs font-bold ${theme.textMuted}`}>เวลา: {proof.timestampText || (entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-')}</div>
+                            <div className={`text-xs font-bold ${theme.textMuted}`}>โดย: {proof.createdBy || entry.staff || '-'}</div>
+                          </div>
+                        </button>
+
+                        <div className={`px-3 pb-3 ${theme.textMuted}`}>
+                          <button type="button" onClick={() => setExpandedProofGroupId(expanded ? null : group.groupId)} className={`w-full py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>
+                            {expanded ? 'ซ่อนรายการที่เกี่ยวข้อง' : `ดูรายการที่เกี่ยวข้อง (${group.itemRefs.length})`}
+                          </button>
+                          {expanded && (
+                            <div className="mt-2 space-y-1.5">
+                              {group.itemRefs.map((ref, idx) => (
+                                <button key={`${group.groupId}_${ref.itemId || idx}`} type="button" onClick={() => { setShowProofCenterModal(false); setShowHistory(ref.itemId); }} className={`w-full p-2 rounded-xl border text-left ${isDarkMode ? 'bg-slate-900 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-white'}`}>
+                                  <div className={`font-black text-xs truncate ${theme.textTitle}`}>{ref.itemName}</div>
+                                  <div className={`text-[11px] font-bold truncate ${theme.textMuted}`}>S.N. {ref.sn} • {ref.typeLabel} • {ref.subject}</div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
