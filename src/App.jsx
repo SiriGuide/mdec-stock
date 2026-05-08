@@ -32,8 +32,10 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.4 Stability & Evidence Pack';
-const APP_UPDATE_NOTE = 'โหมดประหยัดพื้นที่รูปหลักฐาน + ศูนย์หลักฐาน + ตรวจสุขภาพระบบ + รายงานประจำเดือน';
+const APP_VERSION = 'v22.5 Premium UI Polish';
+const APP_UPDATE_NOTE = 'ปรับหน้าตาแบบพรีเมียม + รองรับโลโก้ศูนย์ + Dashboard/ตาราง/Gallery สวยขึ้น';
+// วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
+const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
 
 const Icons = {
@@ -119,6 +121,7 @@ function MainApp() {
     try { return localStorage.getItem('mdec_theme') === 'dark'; }
     catch(e) { return false; }
   });
+  const [brandLogoError, setBrandLogoError] = useState(false);
 
   const [showCommandCenter, setShowCommandCenter] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -295,17 +298,17 @@ function MainApp() {
   }, [showScanModal]);
 
   const theme = {
-    mainBg: isDarkMode ? 'bg-slate-900' : 'bg-slate-100',
+    mainBg: isDarkMode ? 'bg-slate-950 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.20),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.12),_transparent_28%)]' : 'bg-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.16),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.12),_transparent_30%)]',
     textMain: isDarkMode ? 'text-slate-100' : 'text-slate-800',
     textTitle: isDarkMode ? 'text-white' : 'text-slate-900',
     textMuted: isDarkMode ? 'text-slate-400' : 'text-slate-500',
-    cardBg: isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200',
-    input: isDarkMode ? 'bg-slate-900 border-slate-600 text-white focus:ring-blue-500' : 'bg-slate-50 border-slate-300 text-slate-700 focus:ring-blue-500',
-    th: isDarkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-slate-200 border-slate-300 text-slate-700',
+    cardBg: isDarkMode ? 'bg-slate-900/90 border-slate-700/80 shadow-black/20' : 'bg-white/95 border-slate-200/80 shadow-slate-200/60',
+    input: isDarkMode ? 'bg-slate-950/80 border-slate-700 text-white focus:ring-blue-500 focus:border-blue-500' : 'bg-white border-slate-200 text-slate-700 focus:ring-blue-500 focus:border-blue-500',
+    th: isDarkMode ? 'bg-slate-950/80 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-600',
     trHover: isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50',
     divide: isDarkMode ? 'divide-slate-700' : 'divide-slate-100',
-    btnSecondary: isDarkMode ? 'bg-slate-700 text-slate-200 hover:bg-slate-600 border-slate-600' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-300',
-    btnCancel: isDarkMode ? 'bg-slate-700 text-slate-200 hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+    btnSecondary: isDarkMode ? 'bg-slate-800/90 text-slate-200 hover:bg-slate-700 border-slate-700 hover:border-slate-600' : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200 hover:border-blue-200',
+    btnCancel: isDarkMode ? 'bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700' : 'bg-slate-50 text-slate-700 hover:bg-white border border-slate-200',
     modalOverlay: isDarkMode ? 'bg-black/70' : 'bg-slate-900/40',
     statCard: isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800',
   };
@@ -3409,77 +3412,87 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
-      {/* Header */}
-      <div className={`w-full flex flex-col xl:flex-row justify-between items-center mb-8 gap-4 p-6 rounded-2xl shadow-md border transition-colors ${theme.cardBg}`}>
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg"><Icons.Package className="w-8 h-8" /></div>
-          <div>
-            <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${theme.textTitle}`}>
-              MDEC-Stock 
-              <span className="text-xs sm:text-sm font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg ml-2 align-middle border border-blue-200 shadow-sm">{APP_VERSION}</span>
-            </h1>
-            <p className={`font-medium text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดีย</p>
-            <p className={`font-bold text-xs sm:text-sm ${theme.textMuted}`}>อัปเดตล่าสุด: {APP_UPDATE_NOTE}</p>
+      {/* Header - Premium Polish */}
+      <div className={`w-full mb-8 rounded-[2rem] border overflow-hidden shadow-2xl transition-colors ${isDarkMode ? 'bg-slate-900/90 border-slate-700/80 shadow-black/30' : 'bg-white/95 border-white shadow-slate-200/80'}`}>
+        <div className={`h-2 ${isDarkMode ? 'bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500' : 'bg-gradient-to-r from-blue-600 via-sky-400 to-indigo-500'}`} />
+        <div className={`flex flex-col xl:flex-row justify-between items-center gap-5 p-5 sm:p-6 ${isDarkMode ? 'bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.18),_transparent_32%)]' : 'bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.10),_transparent_32%)]'}`}>
+          <div className="flex items-center gap-4 w-full xl:w-auto min-w-0">
+            <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-3xl flex items-center justify-center overflow-hidden shrink-0 shadow-xl ring-4 ${isDarkMode ? 'bg-slate-950 ring-blue-500/20 border border-slate-700' : 'bg-white ring-blue-100 border border-slate-100'}`}>
+              {!brandLogoError ? (
+                <img src={ORG_LOGO_SRC} alt="MDEC Logo" className="w-full h-full object-contain p-2" onError={() => setBrandLogoError(true)} />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center"><Icons.Package className="w-9 h-9" /></div>
+              )}
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span className={`text-[11px] font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-blue-600'}`}>Educational Multimedia Center</span>
+                <span className={`text-[11px] font-black px-2 py-1 rounded-full border ${isDarkMode ? 'bg-blue-950/50 text-blue-300 border-blue-800' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>{APP_VERSION}</span>
+              </div>
+              <h1 className={`text-3xl sm:text-4xl font-black tracking-tight leading-tight ${theme.textTitle}`}>MDEC-Stock</h1>
+              <p className={`font-bold text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดียทางการศึกษา</p>
+              <p className={`font-bold text-xs sm:text-sm mt-1 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>อัปเดตล่าสุด: {APP_UPDATE_NOTE}</p>
+            </div>
           </div>
-        </div>
-        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 w-full xl:w-auto">
-          <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className={`flex items-center justify-center p-3 font-bold rounded-xl transition-colors shadow-sm ${theme.btnCancel}`} title={isDarkMode ? "เปลี่ยนเป็นโหมดสว่าง" : "เปลี่ยนเป็นโหมดกลางคืน"}>
-            {isDarkMode ? <Icons.Sun className="w-5 h-5" /> : <Icons.Moon className="w-5 h-5" />}
-          </button>
-
-          {isLoggedIn && (
-            <>
-              {canUseOperationalTools && (
-                <button type="button" onClick={() => setShowScanModal(true)} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-black rounded-xl transition-colors flex shadow-md ${isDarkMode ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`} title="เปิดโหมดสแกน QR Code/Barcode">
-                  <Icons.QrCode className="w-5 h-5" /><span className="hidden sm:inline">โหมดสแกน</span>
-                </button>
-              )}
-
-              <button type="button" onClick={() => setShowCommandCenter(true)} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors flex ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-800/60 border border-emerald-800' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`} title="เปิดหน้าจอควบคุมรวม (Dashboard)">
-                <Icons.Monitor className="w-5 h-5" /><span className="hidden sm:inline">Dashboard</span>
-              </button>
-
-              {canUseOperationalTools && (
-                <button type="button" onClick={() => setShowStorageBoxesModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-3 font-black rounded-xl shadow-md transition-colors text-base whitespace-nowrap ${isDarkMode ? 'bg-cyan-600 text-white hover:bg-cyan-500' : 'bg-cyan-600 text-white hover:bg-cyan-700'}`}>
-                  <Icons.Folder className="w-5 h-5" /> กล่องเก็บของ
-                </button>
-              )}
-
-              <button type="button" onClick={() => openTrackingCenter('today')} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-3 font-black rounded-xl shadow-md transition-colors text-base whitespace-nowrap ${isDarkMode ? 'bg-sky-600 text-white hover:bg-sky-500' : 'bg-sky-600 text-white hover:bg-sky-700'}`} title="รวมวันนี้ / ของที่ต้องจัดการ / ปฏิทิน">
-                <Icons.History className="w-5 h-5" /> ศูนย์ติดตาม
-              </button>
-
-              {canManageSystem && (
-                <button type="button" onClick={() => { setSettingsTab('categories'); setShowSettings(true); }} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors shadow-sm ${theme.btnCancel}`}>
-                  <Icons.Settings className="w-5 h-5" /><span className="hidden sm:inline">ตั้งค่า</span>
-                </button>
-              )}
-
-              {canUseOperationalTools && (
-                <button type="button" onClick={() => setShowMoreMenu(true)} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 font-black rounded-xl transition-colors shadow-sm border ${theme.btnSecondary}`} title="เมนูเพิ่มเติม">
-                  <Icons.ViewGrid className="w-5 h-5" /><span className="hidden sm:inline">เพิ่มเติม</span>
-                </button>
-              )}
-
-              <button type="button" onClick={() => setShowMyAccountModal(true)} className={`hidden xl:flex items-center gap-2 px-4 py-3 rounded-xl border font-bold text-sm transition-colors ${isDarkMode ? 'bg-slate-900/40 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`} title={`เข้าสู่ระบบโดย ${currentAccountLabel}`}>
-                👤 {currentAccountLabel}
-              </button>
-
-              <button type="button" onClick={handleLockScreen} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors flex ${isDarkMode ? 'bg-slate-900/40 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`} title="ล็อกหน้าจอชั่วคราว">
-                <Icons.Lock className="w-5 h-5" /><span className="hidden sm:inline">ล็อก</span>
-              </button>
-
-              <button type="button" onClick={handleLogout} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors flex ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-800/60 border border-rose-800' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'}`} title="ออกจากระบบ">
-                <Icons.Unlock className="w-5 h-5" />
-              </button>
-            </>
-          )}
-          
-          {!isAdmin && (
-            <button type="button" onClick={() => setShowLogin(true)} className={`flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 font-bold rounded-xl transition-colors shadow-md flex ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-slate-800 text-white hover:bg-slate-700'}`}>
-              <Icons.Lock className="w-5 h-5" /><span className="hidden sm:inline">เข้าสู่ระบบจัดการ</span>
+          <div className="flex flex-wrap justify-center xl:justify-end gap-2 sm:gap-3 w-full xl:w-auto">
+            <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className={`flex items-center justify-center p-3 font-bold rounded-2xl transition-all shadow-sm hover:-translate-y-0.5 ${theme.btnCancel}`} title={isDarkMode ? "เปลี่ยนเป็นโหมดสว่าง" : "เปลี่ยนเป็นโหมดกลางคืน"}>
+              {isDarkMode ? <Icons.Sun className="w-5 h-5" /> : <Icons.Moon className="w-5 h-5" />}
             </button>
-          )}
+
+            {isLoggedIn && (
+              <>
+                {canUseOperationalTools && (
+                  <button type="button" onClick={() => setShowScanModal(true)} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-black rounded-2xl transition-all flex shadow-lg hover:-translate-y-0.5 ${isDarkMode ? 'bg-gradient-to-r from-amber-600 to-orange-500 text-white' : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'}`} title="เปิดโหมดสแกน QR Code/Barcode">
+                    <Icons.QrCode className="w-5 h-5" /><span className="hidden sm:inline">โหมดสแกน</span>
+                  </button>
+                )}
+
+                <button type="button" onClick={() => setShowCommandCenter(true)} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-2xl transition-all flex hover:-translate-y-0.5 ${isDarkMode ? 'bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900 border border-emerald-800' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-100'}`} title="เปิดหน้าจอควบคุมรวม (Dashboard)">
+                  <Icons.Monitor className="w-5 h-5" /><span className="hidden sm:inline">Dashboard</span>
+                </button>
+
+                {canUseOperationalTools && (
+                  <button type="button" onClick={() => setShowStorageBoxesModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-3 font-black rounded-2xl shadow-lg transition-all text-base whitespace-nowrap hover:-translate-y-0.5 ${isDarkMode ? 'bg-gradient-to-r from-cyan-700 to-sky-600 text-white' : 'bg-gradient-to-r from-cyan-600 to-sky-600 text-white'}`}>
+                    <Icons.Folder className="w-5 h-5" /> กล่องเก็บของ
+                  </button>
+                )}
+
+                <button type="button" onClick={() => openTrackingCenter('today')} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-3 font-black rounded-2xl shadow-lg transition-all text-base whitespace-nowrap hover:-translate-y-0.5 ${isDarkMode ? 'bg-gradient-to-r from-blue-700 to-indigo-600 text-white' : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'}`} title="รวมวันนี้ / ของที่ต้องจัดการ / ปฏิทิน">
+                  <Icons.History className="w-5 h-5" /> ศูนย์ติดตาม
+                </button>
+
+                {canManageSystem && (
+                  <button type="button" onClick={() => { setSettingsTab('categories'); setShowSettings(true); }} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 font-bold rounded-2xl transition-all shadow-sm hover:-translate-y-0.5 ${theme.btnCancel}`}>
+                    <Icons.Settings className="w-5 h-5" /><span className="hidden sm:inline">ตั้งค่า</span>
+                  </button>
+                )}
+
+                {canUseOperationalTools && (
+                  <button type="button" onClick={() => setShowMoreMenu(true)} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 font-black rounded-2xl transition-all shadow-sm border hover:-translate-y-0.5 ${theme.btnSecondary}`} title="เมนูเพิ่มเติม">
+                    <Icons.ViewGrid className="w-5 h-5" /><span className="hidden sm:inline">เพิ่มเติม</span>
+                  </button>
+                )}
+
+                <button type="button" onClick={() => setShowMyAccountModal(true)} className={`hidden xl:flex items-center gap-2 px-4 py-3 rounded-2xl border font-bold text-sm transition-all hover:-translate-y-0.5 ${isDarkMode ? 'bg-slate-950/60 border-slate-700 text-slate-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`} title={`เข้าสู่ระบบโดย ${currentAccountLabel}`}>
+                  👤 {currentAccountLabel}
+                </button>
+
+                <button type="button" onClick={handleLockScreen} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-2xl transition-all flex hover:-translate-y-0.5 ${isDarkMode ? 'bg-slate-950/60 border border-slate-700 text-slate-300 hover:bg-slate-800' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`} title="ล็อกหน้าจอชั่วคราว">
+                  <Icons.Lock className="w-5 h-5" /><span className="hidden sm:inline">ล็อก</span>
+                </button>
+
+                <button type="button" onClick={handleLogout} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-2xl transition-all flex hover:-translate-y-0.5 ${isDarkMode ? 'bg-rose-950/60 text-rose-300 hover:bg-rose-900 border border-rose-800' : 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100'}`} title="ออกจากระบบ">
+                  <Icons.Unlock className="w-5 h-5" />
+                </button>
+              </>
+            )}
+            
+            {!isAdmin && (
+              <button type="button" onClick={() => setShowLogin(true)} className={`flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 font-bold rounded-2xl transition-all shadow-lg flex hover:-translate-y-0.5 ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-slate-900 text-white hover:bg-slate-800'}`}>
+                <Icons.Lock className="w-5 h-5" /><span className="hidden sm:inline">เข้าสู่ระบบจัดการ</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -3499,7 +3512,7 @@ S.N.: ${item.sn || '-'}
       {/* เมนูเพิ่มเติม: จัดหมวดใหม่ + โหมดง่าย/เต็มระบบ */}
       {showMoreMenu && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden ${theme.cardBg}`}>
+          <div className={`rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden border ${isDarkMode ? 'bg-slate-900/95 border-slate-700 shadow-black/40' : 'bg-white/95 border-white shadow-slate-200/80'}`}>
             <div className={`flex justify-between items-start gap-4 p-6 border-b ${theme.divide}`}>
               <div>
                 <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
@@ -3528,19 +3541,19 @@ S.N.: ${item.sn || '-'}
               <div>
                 <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.History className="w-5 h-5 text-sky-500" /> งานประจำวัน</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <button type="button" onClick={() => { setShowMoreMenu(false); openTrackingCenter('today'); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); openTrackingCenter('today'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                     <div className="font-black text-lg">ศูนย์ติดตามงาน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>วันนี้ / ต้องจัดการ / ปฏิทิน รวมในหน้าเดียว</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowQuickReturnModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowQuickReturnModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Users className="w-5 h-5" /> ติดตามของรอคืน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูตามผู้ยืมหรือชื่องาน</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowPrepListsModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowPrepListsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายการเตรียมของ</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>วางแผนจัดของล่วงหน้า</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setProofCenterFilter('all'); setProofCenterSearch(''); setShowProofCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setProofCenterFilter('all'); setProofCenterSearch(''); setShowProofCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Camera className="w-5 h-5" /> หลักฐานรูปภาพ</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูรูปหลักฐานทั้งหมดจากทุกอุปกรณ์</p>
                   </button>
@@ -3550,26 +3563,26 @@ S.N.: ${item.sn || '-'}
               <div>
                 <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Package className="w-5 h-5 text-blue-500" /> อุปกรณ์และสต๊อก</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowStorageBoxesModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowStorageBoxesModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Folder className="w-5 h-5" /> กล่องเก็บของ</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดู/แก้ไข/พิมพ์ฉลากกล่อง</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Layers className="w-5 h-5" /> จัดการเซ็ต</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สร้าง/แก้ไขชุดอุปกรณ์</p>
                   </button>
                   {(settingsOptions.bundles && settingsOptions.bundles.length > 0) && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowBundleModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowBundleModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.Package className="w-5 h-5" /> ใช้งานเซ็ต</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ยืม/ออกงาน/รับคืนเป็นชุด</p>
                     </button>
                   )}
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowPersonalItemsModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowPersonalItemsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Tag className="w-5 h-5" /> ของส่วนตัว</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูอุปกรณ์ BYOD แยกตามเจ้าของ</p>
                   </button>
                   {isFullMode && canUseOperationalTools && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowStockCountModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowStockCountModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> ตรวจนับสต๊อก</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เดินสแกน QR เทียบของจริงกับระบบ</p>
                     </button>
@@ -3581,19 +3594,19 @@ S.N.: ${item.sn || '-'}
                 <div>
                   <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Alert className="w-5 h-5 text-rose-500" /> ซ่อมบำรุงและเครื่องมือขั้นสูง</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowActionCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowActionCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.Alert className="w-5 h-5" /> ของที่ต้องจัดการ</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ของเลยกำหนด ชำรุด ยังไม่ติด QR</p>
                     </button>
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowCalendarModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowCalendarModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ปฏิทินงานเดี่ยว</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เปิดเฉพาะปฏิทินแบบเต็มหน้า</p>
                     </button>
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowTvDashboardModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowTvDashboardModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.Monitor className="w-5 h-5" /> จอทีวีศูนย์</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หน้าตัวเลขใหญ่สำหรับเปิดค้างบนจอ</p>
                     </button>
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowMonthlyReportModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowMonthlyReportModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายงานประจำเดือน</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปยืม/คืน/ออกงาน/ซ่อม</p>
                     </button>
@@ -3604,35 +3617,35 @@ S.N.: ${item.sn || '-'}
               <div>
                 <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Settings className="w-5 h-5 text-slate-500" /> ผู้ใช้และระบบ</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowMyAccountModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowMyAccountModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Users className="w-5 h-5" /> บัญชีของฉัน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูสิทธิ์และเปลี่ยน PIN</p>
                   </button>
                   {canManageSystem && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setSettingsTab('database'); setShowSettings(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setSettingsTab('database'); setShowSettings(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.Download className="w-5 h-5" /> สำรองข้อมูล</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Export / Restore / ล้างประวัติ</p>
                     </button>
                   )}
                   {canManageSystem && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowSystemHealthModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowSystemHealthModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.CheckCircle className="w-5 h-5" /> ตรวจสุขภาพระบบ</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูพื้นที่ฐานข้อมูล รูปหลักฐาน และสถานะสำคัญ</p>
                     </button>
                   )}
                   {isFullMode && canDeleteItems && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowTrashModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowTrashModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.Trash className="w-5 h-5" /> ถังขยะอุปกรณ์</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>กู้คืนอุปกรณ์ที่ลบผิด</p>
                     </button>
                   )}
                   {isFullMode && canViewAudit && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowAuditModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowAuditModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> ประวัติการทำงาน</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Audit log ของระบบ</p>
                     </button>
                   )}
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowHelpModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowHelpModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> คู่มือใช้งาน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปวิธีใช้เว็บแบบสั้น ๆ</p>
                   </button>
@@ -3654,32 +3667,38 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
-      {/* 📊 Main Stats Grid */}
-      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6 mb-8">
-        <div className={`p-5 rounded-2xl shadow-md border-t-4 border-blue-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
-          <span className={`font-bold text-sm sm:text-base mb-1 ${theme.textMuted}`}>อุปกรณ์ทั้งหมด</span>
-          <span className="text-4xl sm:text-5xl font-black text-blue-500">{stats.all}</span>
-        </div>
-        <div className={`p-5 rounded-2xl shadow-md border-t-4 border-emerald-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
-          <span className={`font-bold text-sm sm:text-base mb-1 ${theme.textMuted}`}>พร้อมใช้งาน</span>
-          <span className="text-4xl sm:text-5xl font-black text-emerald-500">{stats.available}</span>
-        </div>
-        <div className={`p-5 rounded-2xl shadow-md border-t-4 border-amber-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
-          <span className={`font-bold text-sm sm:text-base mb-1 ${theme.textMuted}`}>กำลังใช้งาน</span>
-          <span className="text-4xl sm:text-5xl font-black text-amber-500">{stats.inUse}</span>
-        </div>
-        <div className={`p-5 rounded-2xl shadow-md border-t-4 border-purple-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
-          <span className={`font-bold text-sm sm:text-base mb-1 ${theme.textMuted}`}>กำลังถูกยืม</span>
-          <span className="text-4xl sm:text-5xl font-black text-purple-500">{stats.borrowed}</span>
-        </div>
-        <div className={`p-5 rounded-2xl shadow-md border-t-4 border-orange-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
-          <span className={`font-bold text-sm sm:text-base mb-1 flex items-center gap-1 ${theme.textMuted}`}>🚚 ออกงาน</span>
-          <span className="text-4xl sm:text-5xl font-black text-orange-500">{stats.outForEvent}</span>
-        </div>
-        <div className={`p-5 rounded-2xl shadow-md border-t-4 border-rose-500 flex flex-col items-center justify-center text-center transition-colors ${theme.cardBg}`}>
-          <span className={`font-bold text-sm sm:text-base mb-1 ${theme.textMuted}`}>ส่งซ่อม/ชำรุด</span>
-          <span className="text-4xl sm:text-5xl font-black text-rose-500">{stats.maintenance}</span>
-        </div>
+      {/* 📊 Main Stats Grid - Premium Cards */}
+      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-5 mb-8">
+        {[
+          ['อุปกรณ์ทั้งหมด', stats.all, 'blue', '📦', 'จากข้อมูลทั้งหมด'],
+          ['พร้อมใช้งาน', stats.available, 'emerald', '✅', 'พร้อมหยิบใช้งาน'],
+          ['กำลังใช้งาน', stats.inUse, 'amber', '⚙️', 'กำลังใช้งานอยู่'],
+          ['กำลังถูกยืม', stats.borrowed, 'purple', '📤', 'รอรับคืน'],
+          ['ออกงาน', stats.outForEvent, 'orange', '🚚', 'อยู่นอกศูนย์'],
+          ['ส่งซ่อม/ชำรุด', stats.maintenance, 'rose', '🛠️', 'ต้องติดตาม']
+        ].map(([label, value, tone, emoji, caption]) => {
+          const toneMap = {
+            blue: isDarkMode ? 'from-blue-950/80 to-slate-900 border-blue-800/70 text-blue-300' : 'from-blue-50 to-white border-blue-100 text-blue-600',
+            emerald: isDarkMode ? 'from-emerald-950/70 to-slate-900 border-emerald-800/70 text-emerald-300' : 'from-emerald-50 to-white border-emerald-100 text-emerald-600',
+            amber: isDarkMode ? 'from-amber-950/70 to-slate-900 border-amber-800/70 text-amber-300' : 'from-amber-50 to-white border-amber-100 text-amber-600',
+            purple: isDarkMode ? 'from-purple-950/70 to-slate-900 border-purple-800/70 text-purple-300' : 'from-purple-50 to-white border-purple-100 text-purple-600',
+            orange: isDarkMode ? 'from-orange-950/70 to-slate-900 border-orange-800/70 text-orange-300' : 'from-orange-50 to-white border-orange-100 text-orange-600',
+            rose: isDarkMode ? 'from-rose-950/70 to-slate-900 border-rose-800/70 text-rose-300' : 'from-rose-50 to-white border-rose-100 text-rose-600'
+          };
+          return (
+            <div key={label} className={`relative overflow-hidden p-5 rounded-[1.5rem] border bg-gradient-to-br shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl ${toneMap[tone]}`}>
+              <div className="absolute -right-3 -top-3 text-6xl opacity-10 font-black">{emoji}</div>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <span className={`font-black text-xs sm:text-sm tracking-wide ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{label}</span>
+                  <div className="text-4xl sm:text-5xl font-black mt-1 leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
+                </div>
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg shadow-sm ${isDarkMode ? 'bg-white/5' : 'bg-white/80'}`}>{emoji}</div>
+              </div>
+              <div className={`mt-3 text-[11px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{caption}</div>
+            </div>
+          );
+        })}
       </div>
 
       {/* ส่วนของหลอดหมวดหมู่ */}
@@ -3690,7 +3709,7 @@ S.N.: ${item.sn || '-'}
       </div>
       <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-8">
         {categoryStats.map(c => (
-          <div key={c.label} className={`p-4 rounded-xl shadow-sm border flex flex-col transition-colors ${theme.cardBg}`}>
+          <div key={c.label} className={`p-4 rounded-2xl shadow-sm hover:shadow-md border flex flex-col transition-all hover:-translate-y-0.5 ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-2">
               <span className={`font-bold text-base sm:text-lg truncate pr-2 ${theme.textTitle}`} title={c.label}>{c.label}</span>
               <span className={`text-xs font-bold px-2 py-1 rounded-md shrink-0 ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>พร้อมใช้</span>
@@ -3760,11 +3779,18 @@ S.N.: ${item.sn || '-'}
       </div>
 
       {/* 📋 Table / List */}
-      <div className={`w-full rounded-2xl shadow-md border overflow-hidden relative transition-colors ${theme.cardBg}`}>
+      <div className={`w-full rounded-[1.75rem] shadow-xl border overflow-hidden relative transition-colors ${theme.cardBg}`}>
+        <div className={`px-5 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${theme.divide}`}>
+          <div>
+            <div className={`font-black text-xl ${theme.textTitle}`}>รายการอุปกรณ์</div>
+            <div className={`text-sm font-bold ${theme.textMuted}`}>พบ {filteredItems.length.toLocaleString('th-TH')} รายการ • เลือกแล้ว {selectedItems.length.toLocaleString('th-TH')} รายการ</div>
+          </div>
+          <div className={`text-xs font-black px-3 py-2 rounded-full border ${isDarkMode ? 'bg-slate-950/70 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>Premium Table View</div>
+        </div>
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
-              <tr className={`border-b text-lg transition-colors ${theme.th}`}>
+              <tr className={`border-b text-sm uppercase tracking-wide transition-colors ${theme.th}`}>
                 {canUseOperationalTools && (
                   <th className="px-4 py-4 text-center w-14">
                     <input 
@@ -3811,7 +3837,7 @@ S.N.: ${item.sn || '-'}
                 const rowBorder = isOverdue ? 'border-l-4 border-l-rose-500' : isEvent ? 'border-l-4 border-l-orange-400' : isBorrowed ? 'border-l-4 border-l-purple-400' : item.status === 'maintenance' ? 'border-l-4 border-l-rose-700' : '';
                 
                 return (
-                  <tr key={`${item.id}_${index}`} className={`group transition-colors text-lg ${rowBg} ${rowBorder}`}>
+                  <tr key={`${item.id}_${index}`} className={`group transition-all text-lg ${rowBg} ${rowBorder} hover:shadow-[inset_4px_0_0_rgba(59,130,246,0.45)]`}>
 
                     {canUseOperationalTools && (
                       <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
@@ -5964,10 +5990,10 @@ S.N.: ${item.sn || '-'}
       {/* ศูนย์หลักฐานรูปภาพทั้งหมด */}
       {showProofCenterModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[92vh] ${theme.cardBg}`}>
+          <div className={`rounded-[2rem] shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900/95 border-slate-700 shadow-black/40' : 'bg-white/95 border-white shadow-slate-200/80'}`}>
             <div className={`p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
               <div>
-                <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}>📷 ศูนย์หลักฐานรูปภาพ</h3>
+                <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-lg">📷</span> ศูนย์หลักฐานรูปภาพ</h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูรูปหลักฐานจากทุกอุปกรณ์ ไม่ต้องเข้าไปเปิดประวัติทีละชิ้น</p>
               </div>
               <button type="button" onClick={() => setShowProofCenterModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
@@ -5991,8 +6017,8 @@ S.N.: ${item.sn || '-'}
                   {filteredProofEntries.map((entry) => {
                     const previewSrc = entry.proof?.thumbUrl || entry.proof?.url || '';
                     return (
-                      <button key={entry.id} type="button" onClick={() => openProofImage(entry.proof)} className={`rounded-2xl border overflow-hidden text-left hover:scale-[1.01] transition-transform ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-40 object-cover" /> : <div className={`w-full h-40 flex items-center justify-center font-black ${theme.textMuted}`}>คลิกเพื่อเปิดรูป</div>}
+                      <button key={entry.id} type="button" onClick={() => openProofImage(entry.proof)} className={`rounded-[1.35rem] border overflow-hidden text-left hover:scale-[1.015] hover:-translate-y-1 hover:shadow-xl transition-all ${isDarkMode ? 'bg-slate-950 border-slate-700 shadow-black/20' : 'bg-white border-slate-100 shadow-slate-200/70'}`}>
+                        {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-44 object-cover" /> : <div className={`w-full h-40 flex items-center justify-center font-black ${theme.textMuted}`}>คลิกเพื่อเปิดรูป</div>}
                         <div className="p-3 space-y-1">
                           <div className={`font-black truncate ${theme.textTitle}`}>{entry.itemName}</div>
                           <div className={`text-xs font-bold ${theme.textMuted}`}>S.N.: {entry.sn}</div>
