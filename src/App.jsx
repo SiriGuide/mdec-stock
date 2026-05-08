@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.9 Daily Workflow Polish';
-const APP_UPDATE_NOTE = 'ปรับหน้าใช้งานประจำวัน Quick Action / Recent Activity / รายละเอียดอุปกรณ์ ให้สะอาดและใช้งานจริงง่ายขึ้น';
+const APP_VERSION = 'v22.10 Clean Category & Live Dashboard';
+const APP_UPDATE_NOTE = 'ยุบหมวดหมู่ให้สะอาดขึ้น และปรับ Dashboard ให้เห็นของที่กำลังถูกยืม/ออกงานทันที';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -180,6 +180,7 @@ function MainApp() {
   const [printSlipData, setPrintSlipData] = useState(null);
   const [showPersonalItemsModal, setShowPersonalItemsModal] = useState(false);
   const [showEmptyCategories, setShowEmptyCategories] = useState(false);
+  const [showCategorySummary, setShowCategorySummary] = useState(() => { try { return localStorage.getItem('mdec_show_category_summary') === 'true'; } catch(e) { return false; } });
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -294,6 +295,10 @@ function MainApp() {
       document.body.style.backgroundColor = '#f1f5f9'; 
     }
   }, [isDarkMode]);
+
+  useEffect(() => {
+    try { localStorage.setItem('mdec_show_category_summary', showCategorySummary ? 'true' : 'false'); } catch(e) {}
+  }, [showCategorySummary]);
 
   useEffect(() => {
     if (showScanModal && scanInputRef.current) {
@@ -1213,6 +1218,20 @@ S.N.: ${item.sn || '-'}
     if ((item.status !== 'borrowed' && item.status !== 'out-for-event') || !item.expectedReturn) return false;
     return new Date(item.expectedReturn).getTime() < todayMs;
   });
+
+  const currentBorrowedItems = useMemo(() => {
+    return items
+      .filter(item => item && !item.isDeleted && item.status === 'borrowed')
+      .slice()
+      .sort((a, b) => new Date(a.expectedReturn || '9999-12-31') - new Date(b.expectedReturn || '9999-12-31'));
+  }, [items]);
+
+  const currentEventItems = useMemo(() => {
+    return items
+      .filter(item => item && !item.isDeleted && item.status === 'out-for-event')
+      .slice()
+      .sort((a, b) => new Date(a.expectedReturn || '9999-12-31') - new Date(b.expectedReturn || '9999-12-31'));
+  }, [items]);
 
   const todayDateKey = new Date().toLocaleDateString('en-CA');
   const dueTodayItems = useMemo(() => {
@@ -3534,31 +3553,52 @@ S.N.: ${item.sn || '-'}
               </div>
             </div>
             
-            {overdueItems.length > 0 ? (
-              <div className={`border-2 p-5 rounded-3xl flex-1 flex flex-col shadow-sm animate-[pulse_3s_ease-in-out_infinite] ${isDarkMode ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-200'}`}>
-                <h3 className={`font-black mb-3 flex items-center gap-2 text-lg ${isDarkMode ? 'text-rose-400' : 'text-rose-600'}`}>
-                  <Icons.Alert className="w-6 h-6" /> อุปกรณ์เลยกำหนดคืน! ({overdueItems.length})
+            <div className={`border p-5 rounded-3xl flex-1 flex flex-col shadow-sm ${isDarkMode ? 'bg-slate-900/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h3 className={`font-black flex items-center gap-2 text-lg ${ccTheme.titleText}`}>
+                  <Icons.Truck className="w-6 h-6" /> กำลังอยู่นอกศูนย์
                 </h3>
-                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
-                  {overdueItems.map(i => (
-                    <div key={i.id} className={`text-base px-4 py-3 rounded-2xl border shadow-sm flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 transition-colors ${isDarkMode ? 'bg-slate-800 border-rose-900/50 text-rose-300 hover:bg-slate-700' : 'bg-white border-rose-100 text-rose-700 hover:bg-rose-50'}`}>
-                      <span className="font-bold truncate">{i.name}</span> 
-                      <span className={`text-sm font-semibold px-2 py-1 rounded-lg whitespace-nowrap ${isDarkMode ? 'bg-rose-900/40 text-rose-400' : 'bg-rose-50 text-rose-500'}`}>
-                        {i.status === 'out-for-event' ? 'งาน: ' : 'ผู้ยืม: '} {i.currentBorrower || i.currentEvent}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <span className={`px-3 py-1 rounded-full text-sm font-black border ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                  {currentBorrowedItems.length + currentEventItems.length} รายการ
+                </span>
               </div>
-            ) : (
-              <div className={`border p-5 rounded-3xl flex-1 flex flex-col items-center justify-center shadow-sm ${isDarkMode ? 'bg-emerald-900/10 border-emerald-800/50' : 'bg-emerald-50 border-emerald-100'}`}>
-                 <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 shadow-sm ${isDarkMode ? 'bg-slate-800 text-emerald-500' : 'bg-white text-emerald-400'}`}>
-                   <Icons.CheckCircle className="w-10 h-10" />
-                 </div>
-                 <span className={`font-black text-xl ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>ไม่มีอุปกรณ์เลยกำหนด</span>
-                 <span className={`font-medium text-base mt-1 ${isDarkMode ? 'text-emerald-500/70' : 'text-emerald-500'}`}>ยอดเยี่ยมมาก! ทุกคนคืนของตรงเวลา 🎉</span>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <button type="button" onClick={() => openTrackingCenter('today')} className={`p-3 rounded-2xl border text-left ${isDarkMode ? 'bg-purple-950/25 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-100 text-purple-700'}`}>
+                  <div className="text-3xl font-black">{currentBorrowedItems.length}</div>
+                  <div className="text-xs font-black mt-1">ถูกยืมอยู่</div>
+                </button>
+                <button type="button" onClick={() => openTrackingCenter('today')} className={`p-3 rounded-2xl border text-left ${isDarkMode ? 'bg-orange-950/25 border-orange-800 text-orange-300' : 'bg-orange-50 border-orange-100 text-orange-700'}`}>
+                  <div className="text-3xl font-black">{currentEventItems.length}</div>
+                  <div className="text-xs font-black mt-1">ออกงาน/ออกกอง</div>
+                </button>
               </div>
-            )}
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+                {[...currentBorrowedItems.map(i => ({...i, _kind: 'borrow'})), ...currentEventItems.map(i => ({...i, _kind: 'event'}))].slice(0, 12).map(i => {
+                  const isLate = i.expectedReturn && new Date(i.expectedReturn).getTime() < todayMs;
+                  return (
+                    <button key={`${i._kind}_${i.id}`} type="button" onClick={() => setShowHistory(i.id)} className={`w-full text-left text-base px-4 py-3 rounded-2xl border shadow-sm flex flex-col gap-1 transition-colors ${isLate ? (isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-700') : (i._kind === 'event' ? (isDarkMode ? 'bg-orange-950/20 border-orange-800/60 text-orange-200' : 'bg-orange-50 border-orange-100 text-orange-700') : (isDarkMode ? 'bg-purple-950/20 border-purple-800/60 text-purple-200' : 'bg-purple-50 border-purple-100 text-purple-700'))}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-black truncate">{i.name}</span>
+                        <span className={`text-[11px] font-black px-2 py-1 rounded-lg shrink-0 ${isLate ? 'bg-rose-600 text-white' : i._kind === 'event' ? 'bg-orange-500 text-white' : 'bg-purple-600 text-white'}`}>
+                          {isLate ? 'เลยกำหนด' : i._kind === 'event' ? 'ออกงาน' : 'ยืม'}
+                        </span>
+                      </div>
+                      <div className={`text-xs font-bold truncate ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {i._kind === 'event' ? `งาน: ${i.currentEvent || '-'}` : `ผู้ยืม: ${i.currentBorrower || '-'}`} • กำหนดคืน {i.expectedReturn ? new Date(i.expectedReturn).toLocaleDateString('th-TH') : '-'}
+                      </div>
+                    </button>
+                  );
+                })}
+                {(currentBorrowedItems.length + currentEventItems.length) === 0 && (
+                  <div className={`text-center py-8 font-bold ${ccTheme.textMuted}`}>
+                    <Icons.CheckCircle className="w-12 h-12 mx-auto mb-2 text-emerald-500" />
+                    ตอนนี้ไม่มีอุปกรณ์ถูกยืมหรือออกงาน
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className={`border p-6 rounded-3xl flex flex-col h-full overflow-hidden shadow-sm ${ccTheme.card}`}>
@@ -3986,26 +4026,60 @@ S.N.: ${item.sn || '-'}
         })}
       </div>
 
-      {/* ส่วนของหลอดหมวดหมู่ */}
-      <div className="w-full flex justify-end mb-2 pr-2">
-        <button type="button" onClick={() => setShowEmptyCategories(!showEmptyCategories)} className={`text-sm font-bold hover:text-blue-500 flex items-center gap-1 transition-colors ${theme.textMuted}`}>
-          {showEmptyCategories ? <><Icons.EyeOff className="w-4 h-4"/> ซ่อนหมวดหมู่ที่ว่าง (0 ชิ้น)</> : <><Icons.Eye className="w-4 h-4"/> แสดงหมวดหมู่ทั้งหมด</>}
-        </button>
-      </div>
-      <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-8">
-        {categoryStats.map(c => (
-          <div key={c.label} className={`p-4 rounded-2xl shadow-sm hover:shadow-md border flex flex-col transition-all hover:-translate-y-0.5 ${theme.cardBg}`}>
-            <div className="flex justify-between items-center mb-2">
-              <span className={`font-bold text-base sm:text-lg truncate pr-2 ${theme.textTitle}`} title={c.label}>{c.label}</span>
-              <span className={`text-xs font-bold px-2 py-1 rounded-md shrink-0 ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>พร้อมใช้</span>
+      {/* ส่วนสรุปหมวดหมู่แบบยุบได้ */}
+      <div className={`w-full mb-8 rounded-[1.75rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
+        <div className={`px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${showCategorySummary ? `border-b ${theme.divide}` : ''}`}>
+          <div className="min-w-0">
+            <div className={`font-black text-xl ${theme.textTitle}`}>สรุปหมวดหมู่</div>
+            <div className={`text-sm font-bold ${theme.textMuted}`}>
+              {categoryStats.length.toLocaleString('th-TH')} หมวดหมู่ • พร้อมใช้งาน {stats.available.toLocaleString('th-TH')} / {stats.all.toLocaleString('th-TH')} ชิ้น
             </div>
-            <div className="flex justify-between items-baseline mb-2">
-              <div><span className={`text-3xl font-black ${theme.textTitle}`}>{c.data.total}</span><span className={`text-sm font-bold ml-1 ${theme.textMuted}`}>ชิ้น</span></div>
-              <span className="text-2xl font-bold text-emerald-500">{c.data.available}</span>
-            </div>
-            <div className={`w-full h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-700' : 'bg-slate-100'}`}><div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${c.data.total === 0 ? 0 : (c.data.available / c.data.total) * 100}%` }}></div></div>
           </div>
-        ))}
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setShowEmptyCategories(!showEmptyCategories)} className={`px-4 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>
+              {showEmptyCategories ? 'ซ่อนหมวดว่าง' : 'รวมหมวดว่าง'}
+            </button>
+            <button type="button" onClick={() => setShowCategorySummary(!showCategorySummary)} className={`px-4 py-2 rounded-xl text-sm font-black border ${showCategorySummary ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>
+              {showCategorySummary ? 'ซ่อนรายละเอียดหมวดหมู่' : 'ดูรายละเอียดหมวดหมู่'}
+            </button>
+          </div>
+        </div>
+
+        {!showCategorySummary ? (
+          <div className="px-5 pb-5">
+            <div className={`w-full h-3 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
+              <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full" style={{ width: `${stats.all === 0 ? 0 : Math.round((stats.available / stats.all) * 100)}%` }}></div>
+            </div>
+            <div className={`mt-3 flex flex-wrap gap-2 text-xs font-black ${theme.textMuted}`}>
+              {categoryStats.filter(c => c.data.total > 0).slice(0, 6).map(c => (
+                <span key={c.label} className={`px-3 py-1.5 rounded-full border ${isDarkMode ? 'bg-slate-950/50 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                  {c.label}: {c.data.available}/{c.data.total}
+                </span>
+              ))}
+              {categoryStats.filter(c => c.data.total > 0).length > 6 && (
+                <span className={`px-3 py-1.5 rounded-full border ${isDarkMode ? 'bg-slate-950/50 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                  +{categoryStats.filter(c => c.data.total > 0).length - 6} หมวด
+                </span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {categoryStats.map(c => (
+              <div key={c.label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="flex justify-between items-start gap-3 mb-2">
+                  <span className={`font-black text-base truncate ${theme.textTitle}`} title={c.label}>{c.label}</span>
+                  <span className={`text-xs font-black px-2 py-1 rounded-lg shrink-0 ${isDarkMode ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
+                    {c.data.available}/{c.data.total}
+                  </span>
+                </div>
+                <div className={`w-full h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>
+                  <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${c.data.total === 0 ? 0 : (c.data.available / c.data.total) * 100}%` }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Filters & Search */}
