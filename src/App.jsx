@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.11 Proof Deduplicate Pack';
-const APP_UPDATE_NOTE = 'จัดกลุ่มรูปหลักฐานซ้ำใน Gallery ให้เห็นรูปจริง 1 ใบ พร้อมบอกว่าเกี่ยวข้องกับอุปกรณ์ใดบ้าง';
+const APP_VERSION = 'v22.12 My Account Modal Fix';
+const APP_UPDATE_NOTE = 'แก้ปุ่มบัญชีของฉันให้เปิดหน้าต่างข้อมูลบัญชีและเปลี่ยน PIN ได้จริง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -3814,7 +3814,7 @@ S.N.: ${item.sn || '-'}
                   </button>
                 )}
 
-                <button type="button" onClick={() => setShowMyAccountModal(true)} className={`hidden xl:flex items-center gap-2 px-4 py-3 rounded-2xl border font-bold text-sm transition-all hover:-translate-y-0.5 ${isDarkMode ? 'bg-slate-950/60 border-slate-700 text-slate-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`} title={`เข้าสู่ระบบโดย ${currentAccountLabel}`}>
+                <button type="button" onClick={() => { setMyPinForm({ oldPin: '', newPin: '', confirmPin: '' }); setShowMyAccountModal(true); }} className={`hidden xl:flex items-center gap-2 px-4 py-3 rounded-2xl border font-bold text-sm transition-all hover:-translate-y-0.5 ${isDarkMode ? 'bg-slate-950/60 border-slate-700 text-slate-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`} title={`เข้าสู่ระบบโดย ${currentAccountLabel}`}>
                   👤 {currentAccountLabel}
                 </button>
 
@@ -3958,7 +3958,7 @@ S.N.: ${item.sn || '-'}
               <div>
                 <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Settings className="w-5 h-5 text-slate-500" /> ผู้ใช้และระบบ</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowMyAccountModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setMyPinForm({ oldPin: '', newPin: '', confirmPin: '' }); setShowMyAccountModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Users className="w-5 h-5" /> บัญชีของฉัน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูสิทธิ์และเปลี่ยน PIN</p>
                   </button>
@@ -6329,6 +6329,102 @@ S.N.: ${item.sn || '-'}
           </div>
         </div>
       )}
+
+      {/* 👤 Modal บัญชีของฉัน */}
+      {showMyAccountModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[10000]`}>
+          <div className={`rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900/95 border-slate-700 shadow-black/40' : 'bg-white/95 border-white shadow-slate-200/80'}`}>
+            <div className={`p-6 border-b flex justify-between items-start gap-4 ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
+                  <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center shadow-lg">👤</span>
+                  บัญชีของฉัน
+                </h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูสิทธิ์การใช้งาน และเปลี่ยน PIN ของตัวเอง</p>
+              </div>
+              <button type="button" onClick={() => setShowMyAccountModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
+              <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className={`text-xs font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>Current Account</div>
+                    <div className={`text-2xl font-black mt-1 truncate ${theme.textTitle}`}>{currentFullAccount?.name || currentAccountLabel || '-'}</div>
+                    <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Username: {currentFullAccount?.username || currentOperator?.username || '-'}</div>
+                  </div>
+                  <span className={`shrink-0 px-3 py-1.5 rounded-xl text-sm font-black border ${roleBadgeClass(currentFullAccount?.role || currentAccountRole)}`}>
+                    {roleLabel(currentFullAccount?.role || currentAccountRole)}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900/60 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className={`text-xs font-bold ${theme.textMuted}`}>สถานะบัญชี</div>
+                    <div className={`font-black ${currentFullAccount?.active === false ? 'text-rose-500' : 'text-emerald-500'}`}>{currentFullAccount?.active === false ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}</div>
+                  </div>
+                  <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900/60 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className={`text-xs font-bold ${theme.textMuted}`}>สิทธิ์หลัก</div>
+                    <div className={`font-black ${theme.textTitle}`}>{canManageSystem ? 'จัดการระบบ' : canUseOperationalTools ? 'ใช้งาน/ทำรายการ' : 'ดูอย่างเดียว'}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-blue-950/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
+                <div className={`font-black text-lg mb-2 ${theme.textTitle}`}>เปลี่ยน PIN ของตัวเอง</div>
+                <p className={`text-xs font-bold mb-4 ${theme.textMuted}`}>เจ้าหน้าที่สามารถเปลี่ยน PIN ของตัวเองได้ แต่การเปลี่ยน Username ต้องให้บัญชีกลาง/ผู้ดูแลแก้ให้ เพื่อไม่ให้ประวัติรายการสับสน</p>
+
+                <div className="space-y-3">
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
+                    placeholder="PIN เดิม"
+                    value={myPinForm.oldPin}
+                    onChange={(e) => setMyPinForm(prev => ({ ...prev, oldPin: e.target.value }))}
+                  />
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
+                    placeholder="PIN ใหม่"
+                    value={myPinForm.newPin}
+                    onChange={(e) => setMyPinForm(prev => ({ ...prev, newPin: e.target.value }))}
+                  />
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
+                    placeholder="ยืนยัน PIN ใหม่"
+                    value={myPinForm.confirmPin}
+                    onChange={(e) => setMyPinForm(prev => ({ ...prev, confirmPin: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleChangeOwnPin(); }}
+                  />
+                  <button type="button" onClick={handleChangeOwnPin} className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black shadow-lg">
+                    บันทึก PIN ใหม่
+                  </button>
+                </div>
+              </div>
+
+              {canManageAccounts && (
+                <button
+                  type="button"
+                  onClick={() => { setShowMyAccountModal(false); setSettingsTab('accounts'); setShowSettings(true); }}
+                  className={`w-full p-4 rounded-2xl border text-left font-bold ${theme.btnSecondary}`}
+                >
+                  <div className={`font-black ${theme.textTitle}`}>ไปหน้าจัดการบัญชีผู้ใช้</div>
+                  <div className={`text-sm mt-1 ${theme.textMuted}`}>เพิ่ม / แก้ไข Username / รีเซ็ต PIN / ปิดใช้งานบัญชี</div>
+                </button>
+              )}
+            </div>
+
+            <div className={`p-4 border-t ${theme.divide}`}>
+              <button type="button" onClick={() => setShowMyAccountModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* 📷 Modal เพิ่มหลักฐานย้อนหลัง */}
       {proofAttachTarget && (
