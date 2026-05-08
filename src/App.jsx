@@ -32,8 +32,9 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.2 Proof Photos No Storage';
-const APP_UPDATE_NOTE = 'หลักฐานรูปภาพใน Firestore + ย่อไฟล์อัตโนมัติ + ไม่ใช้ Firebase Storage';
+const APP_VERSION = 'v22.4 Stability & Evidence Pack';
+const APP_UPDATE_NOTE = 'โหมดประหยัดพื้นที่รูปหลักฐาน + ศูนย์หลักฐาน + ตรวจสุขภาพระบบ + รายงานประจำเดือน';
+const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
 
 const Icons = {
   Plus: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
@@ -97,6 +98,8 @@ function MainApp() {
     storageBoxes: [],
     prepLists: [],
     backupMeta: {},
+    proofStorageMeta: {},
+    proofSettings: DEFAULT_PROOF_SETTINGS,
     accounts: []
   });
 
@@ -177,7 +180,6 @@ function MainApp() {
   const [showMyAccountModal, setShowMyAccountModal] = useState(false);
   const [myPinForm, setMyPinForm] = useState({ oldPin: '', newPin: '', confirmPin: '' });
   const [showHelpModal, setShowHelpModal] = useState(false);
-  const [showReadyChecklistModal, setShowReadyChecklistModal] = useState(false);
   const [showAnnualCleanupModal, setShowAnnualCleanupModal] = useState(false);
   const [quickProblemOnly, setQuickProblemOnly] = useState(false);
   const [auditFilter, setAuditFilter] = useState('all');
@@ -203,6 +205,15 @@ function MainApp() {
   const [showTvDashboardModal, setShowTvDashboardModal] = useState(false);
   const [showTrackingCenterModal, setShowTrackingCenterModal] = useState(false);
   const [trackingTab, setTrackingTab] = useState('today');
+  const [showProofCenterModal, setShowProofCenterModal] = useState(false);
+  const [proofCenterFilter, setProofCenterFilter] = useState('all');
+  const [proofCenterSearch, setProofCenterSearch] = useState('');
+  const [showSystemHealthModal, setShowSystemHealthModal] = useState(false);
+  const [showMonthlyReportModal, setShowMonthlyReportModal] = useState(false);
+  const [monthlyReportMonth, setMonthlyReportMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [uiMode, setUiMode] = useState(() => {
     try { return localStorage.getItem('mdec_ui_mode') || 'easy'; } catch(e) { return 'easy'; }
   });
@@ -396,8 +407,11 @@ function MainApp() {
     const now = new Date();
     const timestampText = now.toLocaleString('th-TH', { hour12: false });
 
-    const targetBytes = 180 * 1024;
-    let maxSide = 1000;
+    const proofSettings = { ...DEFAULT_PROOF_SETTINGS, ...(settingsOptions.proofSettings || {}) };
+    const targetBytes = Math.max(60, Number(proofSettings.targetKB) || 150) * 1024;
+    const warnBytes = Math.max(targetBytes, Number(proofSettings.warnKB) || 250) * 1024;
+    const maxBytes = Math.max(warnBytes, Number(proofSettings.maxKB) || 500) * 1024;
+    let maxSide = Math.max(560, Math.min(1400, Number(proofSettings.maxSide) || 1000));
     let quality = 0.68;
     let canvas = null;
     let blob = null;
@@ -415,6 +429,13 @@ function MainApp() {
       } else {
         break;
       }
+    }
+
+    if (blob.size > maxBytes) {
+      throw new Error(`รูปหลักฐานยังใหญ่เกิน ${proofSettings.maxKB || 500} KB หลังบีบอัด กรุณาถ่ายใหม่หรือเลือกรูปที่เล็กลง`);
+    }
+    if (blob.size > warnBytes) {
+      pushToast(`รูปหลักฐานนี้มีขนาด ${formatProofBytes(blob.size)} ใกล้เกินค่าที่แนะนำ`, 'warning');
     }
 
     const dataUrl = await blobToDataUrl(blob);
@@ -437,8 +458,10 @@ function MainApp() {
   const uploadProofFiles = async (files, contextLabel = 'หลักฐาน') => {
     const selected = Array.from(files || []).filter(Boolean);
     if (selected.length === 0) return [];
-    const limited = selected.slice(0, 3);
-    if (selected.length > 3) pushToast('เลือกรูปได้สูงสุดครั้งละ 3 รูป เพื่อลดพื้นที่จัดเก็บ', 'warning');
+    const proofSettings = { ...DEFAULT_PROOF_SETTINGS, ...(settingsOptions.proofSettings || {}) };
+    const maxImages = Math.max(1, Math.min(5, Number(proofSettings.maxImagesPerAction) || 3));
+    const limited = selected.slice(0, maxImages);
+    if (selected.length > maxImages) pushToast(`เลือกรูปได้สูงสุดครั้งละ ${maxImages} รูป เพื่อลดพื้นที่จัดเก็บ`, 'warning');
     const proofList = [];
     let totalStoredBytes = 0;
 
@@ -511,6 +534,15 @@ function MainApp() {
     }
   };
 
+  const requireProofIfNeeded = (type, files) => {
+    const requirement = getProofRequirement(type);
+    if (requirement !== 'required') return true;
+    if (Array.from(files || []).filter(Boolean).length > 0) return true;
+    const label = type === 'borrow' ? 'การยืม' : type === 'event' ? 'การนำออกงาน' : 'การรับคืน';
+    pushToast(`กติกาปัจจุบันกำหนดให้ต้องแนบรูปหลักฐานสำหรับ${label}`, 'warning');
+    return false;
+  };
+
   const renderProofUploader = (label, proofFiles, setProofFiles, tone = 'blue') => {
     const toneClass = tone === 'purple'
       ? (isDarkMode ? 'bg-purple-900/20 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-800')
@@ -520,7 +552,7 @@ function MainApp() {
     return (
       <div className={`p-4 rounded-xl border ${toneClass}`}>
         <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>📷 {label} <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่บังคับ)</span></label>
-        <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>เลือกไฟล์รูป หรือถ่ายด้วยกล้องมือถือ ระบบจะย่อไฟล์ ประทับเวลา และพิกัด GPS ลงบนรูปถ้าอนุญาตตำแหน่ง แล้วเก็บไว้ใน Firestore โดยไม่ใช้ Firebase Storage</p>
+        <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>เลือกไฟล์รูป หรือถ่ายด้วยกล้องมือถือ ระบบจะย่อไฟล์ ประทับเวลา และพิกัด GPS ลงบนรูปถ้าอนุญาตตำแหน่ง แล้วเก็บไว้ใน Firestore โดยไม่ใช้ Firebase Storage • เป้าหมายประมาณ {activeProofSettings.targetKB} KB/รูป • สูงสุด {activeProofSettings.maxImagesPerAction} รูป/ครั้ง</p>
         <input
           type="file"
           accept="image/*"
@@ -672,6 +704,7 @@ function MainApp() {
           prepLists: data.prepLists || [],
           backupMeta: data.backupMeta || {},
           proofStorageMeta: data.proofStorageMeta || {},
+          proofSettings: { ...DEFAULT_PROOF_SETTINGS, ...(data.proofSettings || {}) },
           accounts: data.accounts || []
         });
       } else {
@@ -683,6 +716,8 @@ function MainApp() {
           storageBoxes: [],
           prepLists: [],
           backupMeta: {},
+          proofStorageMeta: {},
+          proofSettings: DEFAULT_PROOF_SETTINGS,
           accounts: [] 
         };
         setDoc(settingsRef, defaultSettings).catch(e => console.log("Init settings failed:", e));
@@ -729,6 +764,33 @@ function MainApp() {
   const canAddEditItems = canUseOperationalTools;
   const canDeleteItems = isAdmin && (currentAccountRole === 'owner' || currentAccountRole === 'admin');
   const currentFullAccount = getEffectiveAccounts().find(acc => acc.id === currentOperator?.id || String(acc.username || '').toLowerCase() === String(currentOperator?.username || '').toLowerCase()) || currentOperator;
+  const activeProofSettings = { ...DEFAULT_PROOF_SETTINGS, ...(settingsOptions.proofSettings || {}) };
+  const proofRequirementLabel = (value) => value === 'required' ? 'บังคับ' : value === 'recommended' ? 'แนะนำ' : 'ไม่บังคับ';
+  const getProofRequirement = (type) => {
+    const key = type === 'borrow' ? 'borrowRequirement' : type === 'event' ? 'eventRequirement' : 'returnRequirement';
+    return activeProofSettings[key] || 'recommended';
+  };
+  const updateProofSettings = async (patch) => {
+    if (!canManageSystem) return pushToast('คุณไม่มีสิทธิ์แก้ไขกติกาหลักฐาน', 'warning');
+    const merged = { ...activeProofSettings, ...patch };
+    const cleaned = {
+      ...merged,
+      targetKB: Math.max(60, Math.min(300, Number(merged.targetKB) || DEFAULT_PROOF_SETTINGS.targetKB)),
+      warnKB: Math.max(80, Math.min(600, Number(merged.warnKB) || DEFAULT_PROOF_SETTINGS.warnKB)),
+      maxKB: Math.max(120, Math.min(900, Number(merged.maxKB) || DEFAULT_PROOF_SETTINGS.maxKB)),
+      maxImagesPerAction: Math.max(1, Math.min(5, Number(merged.maxImagesPerAction) || DEFAULT_PROOF_SETTINGS.maxImagesPerAction)),
+      maxSide: Math.max(560, Math.min(1400, Number(merged.maxSide) || DEFAULT_PROOF_SETTINGS.maxSide))
+    };
+    const newSettings = { ...settingsOptions, proofSettings: cleaned };
+    setSettingsOptions(newSettings);
+    try {
+      await setDoc(getSettingsDoc(), newSettings, { merge: true });
+      pushToast('บันทึกกติกาหลักฐานแล้ว', 'success');
+    } catch (e) {
+      pushToast('บันทึกกติกาหลักฐานไม่สำเร็จ: ' + e.message, 'error');
+    }
+  };
+
   const deletedItems = useMemo(() => {
     return items
       .filter(item => item && item.isDeleted)
@@ -1169,6 +1231,93 @@ S.N.: ${item.sn || '-'}
     };
   }, [items, settingsOptions.prepLists, settingsOptions.storageBoxes, todayFollowup]);
 
+  const getItemProofCount = (item) => (Array.isArray(item?.history) ? item.history : []).reduce((sum, h) => sum + (Array.isArray(h.proofs) ? h.proofs.length : 0), 0);
+
+  const allProofEntries = useMemo(() => {
+    const entries = [];
+    items.filter(i => i && !i.isDeleted).forEach((item) => {
+      (Array.isArray(item.history) ? item.history : []).forEach((h, historyIndex) => {
+        const proofs = Array.isArray(h.proofs) ? h.proofs : [];
+        proofs.forEach((proof, proofIndex) => {
+          const type = h.type || 'other';
+          const typeLabel = type === 'borrow' ? 'ยืม' : type === 'event' ? 'ออกงาน' : type === 'return' ? 'รับคืน' : type === 'repair' || type === 'repair-done' ? 'ซ่อม' : 'อื่น ๆ';
+          entries.push({
+            id: `${item.id}_${historyIndex}_${proof.id || proofIndex}`,
+            itemId: item.id,
+            itemName: item.name || '-',
+            sn: item.sn || '-',
+            department: item.department || '-',
+            category: item.category || '-',
+            location: item.location || '-',
+            storageBoxName: item.storageBoxName || '',
+            historyIndex,
+            historyType: type,
+            typeLabel,
+            date: h.date || proof.createdAt || '',
+            subject: h.borrower || h.eventName || h.problem || h.staffIn || '-',
+            staff: h.staffOut || h.staffIn || h.operatorName || proof.createdBy || '-',
+            note: h.note || h.problem || '',
+            proof
+          });
+        });
+      });
+    });
+    return entries.sort((a, b) => new Date(b.date || b.proof?.createdAt || 0) - new Date(a.date || a.proof?.createdAt || 0));
+  }, [items]);
+
+  const filteredProofEntries = useMemo(() => {
+    const keyword = String(proofCenterSearch || '').toLowerCase().trim();
+    return allProofEntries.filter((entry) => {
+      const matchType = proofCenterFilter === 'all' || entry.historyType === proofCenterFilter;
+      const haystack = `${entry.itemName} ${entry.sn} ${entry.subject} ${entry.staff} ${entry.storageBoxName} ${entry.note}`.toLowerCase();
+      return matchType && (!keyword || haystack.includes(keyword));
+    });
+  }, [allProofEntries, proofCenterFilter, proofCenterSearch]);
+
+  const proofStorageForecast = useMemo(() => {
+    const proofBytes = Number(settingsOptions.proofStorageMeta?.totalBytes || 0);
+    const proofCount = Number(settingsOptions.proofStorageMeta?.count || allProofEntries.length || 0);
+    const avgBytes = proofCount > 0 ? proofBytes / proofCount : (Number(activeProofSettings.targetKB || 150) * 1024);
+    const limitBytes = 1024 * 1024 * 1024;
+    const safeBytes = 800 * 1024 * 1024;
+    const usedEstimate = Number(settingsOptions.proofStorageMeta?.totalBytes || 0) + (items.length * 1400);
+    const remainingSafe = Math.max(0, safeBytes - usedEstimate);
+    const remainingByAvg = avgBytes > 0 ? Math.floor(remainingSafe / avgBytes) : 0;
+    return { proofBytes, proofCount, avgBytes, remainingSafe, remainingByAvg };
+  }, [settingsOptions.proofStorageMeta, allProofEntries.length, activeProofSettings.targetKB]);
+
+  const monthlyReportData = useMemo(() => {
+    const monthKey = monthlyReportMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const historyEntries = [];
+    items.filter(i => i && !i.isDeleted).forEach((item) => {
+      (Array.isArray(item.history) ? item.history : []).forEach((h) => {
+        const dKey = getDateKey(h.date || h.issueDate || h.createdAt || '');
+        if (String(dKey || '').startsWith(monthKey)) historyEntries.push({ item, h });
+      });
+    });
+    const countType = (type) => historyEntries.filter(e => e.h.type === type).length;
+    const useMap = {};
+    historyEntries.filter(e => ['borrow','event','return'].includes(e.h.type)).forEach(({item}) => {
+      const key = item.id;
+      if (!useMap[key]) useMap[key] = { item, count: 0 };
+      useMap[key].count += 1;
+    });
+    const repairItems = historyEntries.filter(e => String(e.h.type || '').includes('repair'));
+    return {
+      monthKey,
+      total: historyEntries.length,
+      borrow: countType('borrow'),
+      event: countType('event'),
+      return: countType('return'),
+      repairs: repairItems.length,
+      proofs: historyEntries.reduce((sum, e) => sum + (Array.isArray(e.h.proofs) ? e.h.proofs.length : 0), 0),
+      topUsed: Object.values(useMap).sort((a, b) => b.count - a.count).slice(0, 8),
+      overdueNow: overdueItems.length,
+      maintenanceNow: items.filter(i => i.status === 'maintenance' && !i.isDeleted).length
+    };
+  }, [items, monthlyReportMonth, overdueItems.length]);
+
+
   const stockCountStats = useMemo(() => {
     const activeItems = items.filter(i => !i.isDeleted);
     const foundSet = new Set(stockCountFoundIds);
@@ -1550,6 +1699,7 @@ S.N.: ${item.sn || '-'}
     const borrowedNames = [];
 
     try {
+      if (!requireProofIfNeeded('borrow', borrowProofFiles)) return;
       const uploadedProofs = await uploadProofsOrConfirm(borrowProofFiles, `หลักฐานการยืม • ${borrowData.borrower || ''}`);
       const newHistoryEntry = { type: 'borrow', date: new Date().toISOString(), borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff, note: borrowData.note, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
       const promises = packingChecklist.map(id => {
@@ -1604,6 +1754,7 @@ S.N.: ${item.sn || '-'}
     const eventNames = [];
 
     try {
+      if (!requireProofIfNeeded('event', eventProofFiles)) return;
       const uploadedProofs = await uploadProofsOrConfirm(eventProofFiles, `หลักฐานออกงาน • ${eventData.eventName || ''}`);
       const newHistoryEntry = { type: 'event', date: new Date().toISOString(), eventName: eventData.eventName, expectedReturn: eventData.returnDate, staffOut: finalStaff, note: eventData.note, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
       const promises = eventChecklist.map(id => {
@@ -1655,6 +1806,7 @@ S.N.: ${item.sn || '-'}
     const returnedNames = [];
 
     try {
+      if (!requireProofIfNeeded('return', returnProofFiles)) return;
       const uploadedProofs = await uploadProofsOrConfirm(returnProofFiles, `หลักฐานรับคืน • ${finalStaff || ''}`);
       const newHistoryEntry = { type: 'return', date: new Date().toISOString(), staffIn: finalStaff, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
       const promises = returnChecklist.map(id => {
@@ -3388,6 +3540,10 @@ S.N.: ${item.sn || '-'}
                     <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายการเตรียมของ</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>วางแผนจัดของล่วงหน้า</p>
                   </button>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setProofCenterFilter('all'); setProofCenterSearch(''); setShowProofCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.Camera className="w-5 h-5" /> หลักฐานรูปภาพ</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูรูปหลักฐานทั้งหมดจากทุกอุปกรณ์</p>
+                  </button>
                 </div>
               </div>
 
@@ -3437,6 +3593,10 @@ S.N.: ${item.sn || '-'}
                       <div className="font-black text-lg flex items-center gap-2"><Icons.Monitor className="w-5 h-5" /> จอทีวีศูนย์</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หน้าตัวเลขใหญ่สำหรับเปิดค้างบนจอ</p>
                     </button>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowMonthlyReportModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                      <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายงานประจำเดือน</div>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปยืม/คืน/ออกงาน/ซ่อม</p>
+                    </button>
                   </div>
                 </div>
               )}
@@ -3452,6 +3612,12 @@ S.N.: ${item.sn || '-'}
                     <button type="button" onClick={() => { setShowMoreMenu(false); setSettingsTab('database'); setShowSettings(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.Download className="w-5 h-5" /> สำรองข้อมูล</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Export / Restore / ล้างประวัติ</p>
+                    </button>
+                  )}
+                  {canManageSystem && (
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowSystemHealthModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
+                      <div className="font-black text-lg flex items-center gap-2"><Icons.CheckCircle className="w-5 h-5" /> ตรวจสุขภาพระบบ</div>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูพื้นที่ฐานข้อมูล รูปหลักฐาน และสถานะสำคัญ</p>
                     </button>
                   )}
                   {isFullMode && canDeleteItems && (
@@ -3470,12 +3636,6 @@ S.N.: ${item.sn || '-'}
                     <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> คู่มือใช้งาน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปวิธีใช้เว็บแบบสั้น ๆ</p>
                   </button>
-                  {isFullMode && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowReadyChecklistModal(true); }} className={`p-4 rounded-2xl text-left border transition-colors ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.CheckCircle className="w-5 h-5" /> เช็กระบบ</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Checklist สำหรับทดสอบหลังอัปเดต</p>
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -3644,6 +3804,7 @@ S.N.: ${item.sn || '-'}
                 const isBorrowed = item.status === 'borrowed';
                 const isEvent = item.status === 'out-for-event';
                 const qty = Number(item.quantity) || 1;
+                const proofCount = getItemProofCount(item);
                 
                 const isOverdue = (isBorrowed || isEvent) && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
                 const rowBg = isOverdue ? (isDarkMode ? 'bg-rose-900/20 hover:bg-rose-900/40' : 'bg-rose-50 hover:bg-rose-100') : theme.trHover;
@@ -3680,6 +3841,9 @@ S.N.: ${item.sn || '-'}
                         )}
                         {item.storageBoxName && (
                           <span className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-cyan-900/40 text-cyan-400' : 'bg-cyan-100 text-cyan-700'}`}>📦 {item.storageBoxName}</span>
+                        )}
+                        {proofCount > 0 && (
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setProofCenterSearch(item.sn || item.name || ''); setProofCenterFilter('all'); setShowProofCenterModal(true); }} className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-pink-900/40 text-pink-300 hover:bg-pink-800' : 'bg-pink-100 text-pink-700 hover:bg-pink-200'}`}>📷 {proofCount}</button>
                         )}
                         {item.qrTagged ? (
                           <span className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400' : 'bg-emerald-100 text-emerald-700'}`}>QR ติดแล้ว</span>
@@ -4418,7 +4582,7 @@ S.N.: ${item.sn || '-'}
               ))}
             </div>
             <div className={`p-4 border-t ${theme.divide}`}>
-              <p className={`text-sm text-center font-bold ${theme.textMuted}`}>* กดปุ่มรับคืนกลุ่มนี้ ระบบจะดึงของทั้งหมดไปเข้าหน้าเช็คลิสต์ตรวจของเข้ากล่องให้ทันที (ทยอยคืนบางส่วนได้)</p>
+              <p className={`text-sm text-center font-bold ${theme.textMuted}`}>* กดปุ่มรับคืนกลุ่มนี้ ระบบจะดึงของทั้งหมดไปหน้ารับคืนให้ทันที</p>
             </div>
           </div>
         </div>
@@ -4518,6 +4682,7 @@ S.N.: ${item.sn || '-'}
               <button type="button" onClick={() => {setSettingsTab('staff'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'staff' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>เจ้าหน้าที่</button>
               <button type="button" onClick={() => {setSettingsTab('accounts'); setEditingSettingItem(null); setNewSettingItem(''); openNewAccountForm();}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'accounts' ? 'text-indigo-500 border-indigo-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>บัญชีผู้ใช้</button>
               <button type="button" onClick={() => {setSettingsTab('database'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'database' ? 'text-emerald-500 border-emerald-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>ฐานข้อมูล</button>
+              <button type="button" onClick={() => {setSettingsTab('proofs'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'proofs' ? 'text-pink-500 border-pink-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>หลักฐาน</button>
             </div>
             
             <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
@@ -4705,6 +4870,45 @@ S.N.: ${item.sn || '-'}
                     <button onClick={() => fileInputRef.current?.click()} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-lg">
                       <Icons.Upload className="w-5 h-5"/> เลือกไฟล์ CSV
                     </button>
+                  </div>
+                </div>
+              ) : settingsTab === 'proofs' ? (
+                <div className="p-6 space-y-5">
+                  <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-pink-900/20 border-pink-800' : 'bg-pink-50 border-pink-200'}`}>
+                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}>📷 กติกาหลักฐานรูปภาพ</h4>
+                    <p className={`text-sm font-bold ${theme.textMuted}`}>ใช้ควบคุมการย่อรูปและการบังคับแนบหลักฐาน เพื่อให้ฐานข้อมูล 1GB อยู่ได้ยาวขึ้น</p>
+                  </div>
+
+                  <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 rounded-2xl border ${theme.cardBg}`}>
+                    <label className="block"><span className={`block text-sm font-bold mb-1 ${theme.textMuted}`}>ขนาดเป้าหมายต่อรูป (KB)</span><input type="number" min="60" max="300" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={activeProofSettings.targetKB} onChange={e => updateProofSettings({ targetKB: e.target.value })} /></label>
+                    <label className="block"><span className={`block text-sm font-bold mb-1 ${theme.textMuted}`}>เตือนเมื่อเกิน (KB)</span><input type="number" min="80" max="600" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={activeProofSettings.warnKB} onChange={e => updateProofSettings({ warnKB: e.target.value })} /></label>
+                    <label className="block"><span className={`block text-sm font-bold mb-1 ${theme.textMuted}`}>ห้ามบันทึกถ้าเกิน (KB)</span><input type="number" min="120" max="900" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={activeProofSettings.maxKB} onChange={e => updateProofSettings({ maxKB: e.target.value })} /></label>
+                    <label className="block"><span className={`block text-sm font-bold mb-1 ${theme.textMuted}`}>จำนวนรูปสูงสุดต่อครั้ง</span><input type="number" min="1" max="5" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={activeProofSettings.maxImagesPerAction} onChange={e => updateProofSettings({ maxImagesPerAction: e.target.value })} /></label>
+                  </div>
+
+                  <div className={`p-5 rounded-2xl border ${theme.cardBg}`}>
+                    <h5 className={`font-black text-lg mb-3 ${theme.textTitle}`}>บังคับ/แนะนำหลักฐานตามประเภทงาน</h5>
+                    {[['borrowRequirement','ยืมอุปกรณ์'], ['eventRequirement','นำออกงาน'], ['returnRequirement','รับคืน']].map(([key,label]) => (
+                      <div key={key} className="flex items-center justify-between gap-3 py-2">
+                        <div className={`font-bold ${theme.textTitle}`}>{label}</div>
+                        <select className={`px-3 py-2 rounded-xl border font-bold ${theme.input}`} value={activeProofSettings[key]} onChange={e => updateProofSettings({ [key]: e.target.value })}>
+                          <option value="optional">ไม่บังคับ</option>
+                          <option value="recommended">แนะนำแต่ไม่บังคับ</option>
+                          <option value="required">บังคับแนบรูป</option>
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <h5 className={`font-black text-lg mb-3 ${theme.textTitle}`}>สถานะรูปหลักฐาน</h5>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className={`p-3 rounded-xl border ${theme.btnSecondary}`}><div className={`text-xs font-bold ${theme.textMuted}`}>จำนวนรูป</div><div className={`text-2xl font-black ${theme.textTitle}`}>{databaseStorageEstimate.proofImageCount}</div></div>
+                      <div className={`p-3 rounded-xl border ${theme.btnSecondary}`}><div className={`text-xs font-bold ${theme.textMuted}`}>พื้นที่รูป</div><div className={`text-2xl font-black ${theme.textTitle}`}>{databaseStorageEstimate.proofStorageText}</div></div>
+                      <div className={`p-3 rounded-xl border ${theme.btnSecondary}`}><div className={`text-xs font-bold ${theme.textMuted}`}>เฉลี่ย/รูป</div><div className={`text-2xl font-black ${theme.textTitle}`}>{formatProofBytes(proofStorageForecast.avgBytes || 0)}</div></div>
+                      <div className={`p-3 rounded-xl border ${theme.btnSecondary}`}><div className={`text-xs font-bold ${theme.textMuted}`}>ยังพอเพิ่มได้ประมาณ</div><div className={`text-2xl font-black ${theme.textTitle}`}>{proofStorageForecast.remainingByAvg.toLocaleString('th-TH')} รูป</div></div>
+                    </div>
+                    <p className={`text-xs font-bold mt-3 ${theme.textMuted}`}>แนะนำถ่ายภาพรวมต่อรายการยืม/คืน/ออกงาน ไม่ถ่ายทุกชิ้น เพื่อให้พื้นที่อยู่ได้ทั้งปี</p>
                   </div>
                 </div>
               ) : (
@@ -5756,6 +5960,129 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
+
+      {/* ศูนย์หลักฐานรูปภาพทั้งหมด */}
+      {showProofCenterModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[92vh] ${theme.cardBg}`}>
+            <div className={`p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}>📷 ศูนย์หลักฐานรูปภาพ</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูรูปหลักฐานจากทุกอุปกรณ์ ไม่ต้องเข้าไปเปิดประวัติทีละชิ้น</p>
+              </div>
+              <button type="button" onClick={() => setShowProofCenterModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className={`p-4 border-b grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
+              <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหา ชื่ออุปกรณ์ / S.N. / ผู้ยืม / งาน / กล่อง" value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} />
+              <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={proofCenterFilter} onChange={e => setProofCenterFilter(e.target.value)}>
+                <option value="all">หลักฐานทั้งหมด</option>
+                <option value="borrow">การยืม</option>
+                <option value="event">ออกงาน</option>
+                <option value="return">รับคืน</option>
+                <option value="repair">แจ้งซ่อม</option>
+              </select>
+              <div className={`p-3 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>พบ {filteredProofEntries.length.toLocaleString('th-TH')} รูป จากทั้งหมด {allProofEntries.length.toLocaleString('th-TH')} รูป</div>
+            </div>
+            <div className="p-5 overflow-y-auto custom-scrollbar flex-1">
+              {filteredProofEntries.length === 0 ? (
+                <div className={`text-center py-16 font-black text-xl ${theme.textMuted}`}>ยังไม่มีรูปหลักฐาน หรือไม่พบจากคำค้นหา</div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filteredProofEntries.map((entry) => {
+                    const previewSrc = entry.proof?.thumbUrl || entry.proof?.url || '';
+                    return (
+                      <button key={entry.id} type="button" onClick={() => openProofImage(entry.proof)} className={`rounded-2xl border overflow-hidden text-left hover:scale-[1.01] transition-transform ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-40 object-cover" /> : <div className={`w-full h-40 flex items-center justify-center font-black ${theme.textMuted}`}>คลิกเพื่อเปิดรูป</div>}
+                        <div className="p-3 space-y-1">
+                          <div className={`font-black truncate ${theme.textTitle}`}>{entry.itemName}</div>
+                          <div className={`text-xs font-bold ${theme.textMuted}`}>S.N.: {entry.sn}</div>
+                          <div className={`inline-block text-xs px-2 py-1 rounded-lg font-black ${entry.historyType === 'borrow' ? 'bg-purple-100 text-purple-700' : entry.historyType === 'event' ? 'bg-orange-100 text-orange-700' : entry.historyType === 'return' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>{entry.typeLabel}</div>
+                          <div className={`text-xs font-bold ${theme.textMuted}`}>เรื่อง: {entry.subject}</div>
+                          <div className={`text-xs font-bold ${theme.textMuted}`}>เวลา: {entry.proof?.timestampText || (entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-')}</div>
+                          <div className={`text-xs font-bold ${theme.textMuted}`}>โดย: {entry.proof?.createdBy || entry.staff || '-'}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className={`p-4 border-t ${theme.divide}`}><button type="button" onClick={() => setShowProofCenterModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* ตรวจสุขภาพระบบ */}
+      {showSystemHealthModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
+            <div className={`p-6 border-b flex justify-between items-start gap-4 ${theme.divide}`}>
+              <div><h3 className={`text-2xl font-black ${theme.textTitle}`}>ตรวจสุขภาพระบบ</h3><p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ภาพรวมฐานข้อมูล รูปหลักฐาน และรายการที่ต้องติดตาม</p></div>
+              <button type="button" onClick={() => setShowSystemHealthModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
+              <div className={`p-5 rounded-2xl border ${databaseStorageEstimate.cardTone}`}>
+                <div className="flex justify-between gap-3 mb-3"><div className={`font-black text-lg ${databaseStorageEstimate.textTone}`}>พื้นที่ฐานข้อมูลโดยประมาณ: {databaseStorageEstimate.label}</div><div className={`font-black ${databaseStorageEstimate.textTone}`}>{databaseStorageEstimate.percentText}</div></div>
+                <div className={`h-4 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}><div className={`h-full ${databaseStorageEstimate.barClass}`} style={{ width: databaseStorageEstimate.percentText === '<0.1%' ? '0.4%' : databaseStorageEstimate.percentText }} /></div>
+                <div className={`text-xs mt-2 font-bold ${theme.textMuted}`}>{databaseStorageEstimate.estimatedText} / {databaseStorageEstimate.limitText}</div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  ['อุปกรณ์', databaseStorageEstimate.itemCount],
+                  ['ประวัติ', databaseStorageEstimate.historyCount],
+                  ['รูปหลักฐาน', databaseStorageEstimate.proofImageCount],
+                  ['ของเลยกำหนด', overdueItems.length],
+                  ['ชำรุด/ส่งซ่อม', items.filter(i => i.status === 'maintenance' && !i.isDeleted).length],
+                  ['ยังไม่ติด QR', items.filter(i => !i.qrTagged && !i.isDeleted).length],
+                  ['กล่องเก็บของ', databaseStorageEstimate.boxCount],
+                  ['รายการเตรียมของ', databaseStorageEstimate.prepCount]
+                ].map(([label,value]) => <div key={label} className={`p-4 rounded-2xl border ${theme.btnSecondary}`}><div className={`text-xs font-bold ${theme.textMuted}`}>{label}</div><div className={`text-2xl font-black ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div></div>)}
+              </div>
+              <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-pink-900/20 border-pink-800' : 'bg-pink-50 border-pink-200'}`}>
+                <div className={`font-black mb-2 ${theme.textTitle}`}>โหมดประหยัดพื้นที่หลักฐาน</div>
+                <div className={`text-sm font-bold ${theme.textMuted}`}>เป้าหมาย {activeProofSettings.targetKB} KB/รูป • เตือนเมื่อเกิน {activeProofSettings.warnKB} KB • ไม่ให้บันทึกถ้าเกิน {activeProofSettings.maxKB} KB • ประมาณว่ายังเพิ่มได้ {proofStorageForecast.remainingByAvg.toLocaleString('th-TH')} รูปก่อนถึงโซนปลอดภัย 800MB</div>
+              </div>
+            </div>
+            <div className={`p-4 border-t ${theme.divide}`}><button type="button" onClick={() => setShowSystemHealthModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* รายงานประจำเดือน */}
+      {showMonthlyReportModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
+            <div className={`p-6 border-b flex justify-between items-start gap-4 ${theme.divide}`}>
+              <div><h3 className={`text-2xl font-black ${theme.textTitle}`}>รายงานประจำเดือน</h3><p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปการใช้งานอุปกรณ์จากประวัติในระบบ</p></div>
+              <button type="button" onClick={() => setShowMonthlyReportModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
+              <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                <label className={`font-black ${theme.textTitle}`}>เลือกเดือน</label>
+                <input type="month" className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={monthlyReportMonth} onChange={e => setMonthlyReportMonth(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  ['ยืม', monthlyReportData.borrow, 'bg-purple-100 text-purple-700'],
+                  ['ออกงาน', monthlyReportData.event, 'bg-orange-100 text-orange-700'],
+                  ['รับคืน', monthlyReportData.return, 'bg-emerald-100 text-emerald-700'],
+                  ['แจ้งซ่อม', monthlyReportData.repairs, 'bg-rose-100 text-rose-700'],
+                  ['ประวัติรวม', monthlyReportData.total, 'bg-slate-100 text-slate-700'],
+                  ['รูปหลักฐาน', monthlyReportData.proofs, 'bg-pink-100 text-pink-700'],
+                  ['เลยกำหนดตอนนี้', monthlyReportData.overdueNow, 'bg-red-100 text-red-700'],
+                  ['ชำรุดตอนนี้', monthlyReportData.maintenanceNow, 'bg-amber-100 text-amber-700']
+                ].map(([label,value,tone]) => <div key={label} className={`p-4 rounded-2xl border ${tone}`}><div className="text-xs font-bold opacity-80">{label}</div><div className="text-3xl font-black">{Number(value || 0).toLocaleString('th-TH')}</div></div>)}
+              </div>
+              <div className={`p-5 rounded-2xl border ${theme.cardBg}`}>
+                <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>อุปกรณ์ที่ถูกใช้งานบ่อยในเดือนนี้</h4>
+                {monthlyReportData.topUsed.length === 0 ? <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีรายการในเดือนนี้</div> : monthlyReportData.topUsed.map((row, idx) => <div key={row.item.id} className={`flex justify-between gap-3 py-2 border-b ${theme.divide}`}><div className="font-bold">{idx + 1}. {row.item.name} <span className={`text-xs ${theme.textMuted}`}>S.N. {row.item.sn || '-'}</span></div><div className="font-black">{row.count} ครั้ง</div></div>)}
+              </div>
+            </div>
+            <div className={`p-4 border-t ${theme.divide}`}><button type="button" onClick={() => setShowMonthlyReportModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button></div>
+          </div>
+        </div>
+      )}
+
       {/* Toast แจ้งเตือนแบบไม่ขัดจังหวะ */}
       <div className="fixed top-4 right-4 z-[12000] space-y-3 w-[92vw] max-w-sm pointer-events-none">
         {toasts.map((toast) => {
@@ -5801,7 +6128,8 @@ S.N.: ${item.sn || '-'}
 
 function TodayPanel({ title, color, items, empty, isDarkMode, theme }) {
   const palette = { amber: isDarkMode ? 'bg-amber-900/20 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800', rose: isDarkMode ? 'bg-rose-900/20 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-800', purple: isDarkMode ? 'bg-purple-900/20 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-800' };
-  return (<div className={`rounded-2xl border p-4 flex flex-col min-h-[300px] ${palette[color] || palette.purple}`}><h4 className="text-xl font-black mb-3 flex justify-between items-center"><span>{title}</span><span className="text-sm px-2 py-1 rounded-lg bg-white/40">{items.length}</span></h4><div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">{items.length === 0 ? (<div className={`h-full flex items-center justify-center text-center font-bold ${theme.textMuted}`}>{empty}</div>) : items.map(item => (<div key={item.id} className={`p-3 rounded-xl border shadow-sm ${isDarkMode ? 'bg-slate-800/70 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}><div className="font-black truncate">{item.name}</div><div className="text-xs font-bold opacity-80 mt-1">{item.status === 'out-for-event' ? 'งาน' : 'ผู้ยืม'}: {item.currentBorrower || item.currentEvent || '-'}</div><div className="text-xs font-bold opacity-80">กำหนดคืน: {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</div>{item.internalNote && <div className="text-xs font-bold mt-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">โน้ต: {item.internalNote}</div>}</div>))}</div></div>);
+  const proofCountOf = (item) => (Array.isArray(item?.history) ? item.history : []).reduce((sum, h) => sum + (Array.isArray(h.proofs) ? h.proofs.length : 0), 0);
+  return (<div className={`rounded-2xl border p-4 flex flex-col min-h-[300px] ${palette[color] || palette.purple}`}><h4 className="text-xl font-black mb-3 flex justify-between items-center"><span>{title}</span><span className="text-sm px-2 py-1 rounded-lg bg-white/40">{items.length}</span></h4><div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">{items.length === 0 ? (<div className={`h-full flex items-center justify-center text-center font-bold ${theme.textMuted}`}>{empty}</div>) : items.map(item => { const pc = proofCountOf(item); return (<div key={item.id} className={`p-3 rounded-xl border shadow-sm ${isDarkMode ? 'bg-slate-800/70 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}><div className="font-black truncate">{item.name}</div><div className="text-xs font-bold opacity-80 mt-1">{item.status === 'out-for-event' ? 'งาน' : 'ผู้ยืม'}: {item.currentBorrower || item.currentEvent || '-'}</div><div className="text-xs font-bold opacity-80">กำหนดคืน: {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</div>{pc > 0 && <div className="text-xs font-black mt-2 inline-block px-2 py-1 rounded-lg bg-pink-500/10 border border-pink-500/20">📷 หลักฐาน {pc} รูป</div>}{item.internalNote && <div className="text-xs font-bold mt-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">โน้ต: {item.internalNote}</div>}</div>);})}</div></div>);
 }
 
 class ErrorBoundary extends React.Component {
