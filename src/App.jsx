@@ -32,11 +32,13 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.6.1 Soft Brand Identity';
-const APP_UPDATE_NOTE = 'ปรับโลโก้ใน QR / ใบยืม / ฉลาก ให้ดูนุ่มขึ้น ไม่มีกรอบดำหนา และยังคงเอกลักษณ์ MDEC';
+const APP_VERSION = 'v22.9 Daily Workflow Polish';
+const APP_UPDATE_NOTE = 'ปรับหน้าใช้งานประจำวัน Quick Action / Recent Activity / รายละเอียดอุปกรณ์ ให้สะอาดและใช้งานจริงง่ายขึ้น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
+const DEFAULT_DOCUMENT_SETTINGS = { qrLogo: true, slipLogo: true, boxLabelLogo: true, proofStamp: true, watermark: true, logoSize: 'normal', printTone: 'official' };
+const DEFAULT_UI_SETTINGS = { density: 'comfortable', cleanMode: true, mobileCards: true, reduceEffects: false };
 
 const Icons = {
   Plus: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
@@ -102,6 +104,8 @@ function MainApp() {
     backupMeta: {},
     proofStorageMeta: {},
     proofSettings: DEFAULT_PROOF_SETTINGS,
+    documentSettings: DEFAULT_DOCUMENT_SETTINGS,
+    uiSettings: DEFAULT_UI_SETTINGS,
     accounts: []
   });
 
@@ -318,7 +322,7 @@ function MainApp() {
   const renderOrgLogoBox = ({ className = '', imgClassName = 'w-full h-full object-contain', fallbackIconClass = 'w-5 h-5' } = {}) => (
     <div className={`bg-white overflow-hidden flex items-center justify-center shrink-0 ${className}`}>
       {!brandLogoError ? (
-        <img src={ORG_LOGO_SRC} alt="MDEC Logo" className={imgClassName} onError={() => setBrandLogoError(true)} />
+        <img src={ORG_LOGO_SRC} alt="MDEC Logo" className={`${imgClassName} ${logoScaleClass}`} onError={() => setBrandLogoError(true)} />
       ) : (
         <div className="w-full h-full bg-gradient-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center rounded-inherit">
           <Icons.Package className={fallbackIconClass} />
@@ -354,6 +358,61 @@ function MainApp() {
       )}
     </div>
   );
+
+
+  const documentBrandSettings = { ...DEFAULT_DOCUMENT_SETTINGS, ...(settingsOptions.documentSettings || {}) };
+  const showDocumentLogo = (area) => documentBrandSettings?.[area] !== false;
+  const logoScaleClass = documentBrandSettings.logoSize === 'large' ? 'scale-110' : documentBrandSettings.logoSize === 'small' ? 'scale-90' : '';
+  const isInkSavingDocument = documentBrandSettings.printTone === 'ink';
+
+  const makeDocumentRef = (prefix = 'DOC') => {
+    const d = new Date();
+    const buddhistYear = d.getFullYear() + 543;
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hour = String(d.getHours()).padStart(2, '0');
+    const minute = String(d.getMinutes()).padStart(2, '0');
+    const second = String(d.getSeconds()).padStart(2, '0');
+    return `${prefix}-${buddhistYear}${month}${day}-${hour}${minute}${second}`;
+  };
+
+  const saveDocumentSettings = async (patch = {}) => {
+    const nextDocumentSettings = { ...DEFAULT_DOCUMENT_SETTINGS, ...(settingsOptions.documentSettings || {}), ...patch };
+    const nextSettings = { ...settingsOptions, documentSettings: nextDocumentSettings };
+    setSettingsOptions(nextSettings);
+    try {
+      await setDoc(getSettingsDoc(), nextSettings);
+      pushToast('บันทึกการตั้งค่าเอกสาร/โลโก้เรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ บันทึกการตั้งค่าเอกสารไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  const uiDisplaySettings = { ...DEFAULT_UI_SETTINGS, ...(settingsOptions.uiSettings || {}) };
+  const isCompactUi = uiDisplaySettings.density === 'compact';
+  const isComfortableUi = !isCompactUi;
+  const cleanModeEnabled = uiDisplaySettings.cleanMode !== false;
+  const mobileCardsEnabled = uiDisplaySettings.mobileCards !== false;
+  const reduceEffectsEnabled = uiDisplaySettings.reduceEffects === true;
+  const pagePaddingClass = isCompactUi ? 'p-3 sm:p-5 pb-28' : 'p-4 sm:p-8 pb-32';
+  const panelPaddingClass = isCompactUi ? 'p-4 sm:p-5' : 'p-5 sm:p-6';
+  const controlPaddingClass = isCompactUi ? 'py-3' : 'py-4';
+  const rowTextSizeClass = isCompactUi ? 'text-base' : 'text-lg';
+  const cardGapClass = isCompactUi ? 'gap-3' : 'gap-4';
+
+  const saveUiSettings = async (patch = {}) => {
+    const nextUiSettings = { ...DEFAULT_UI_SETTINGS, ...(settingsOptions.uiSettings || {}), ...patch };
+    const nextSettings = { ...settingsOptions, uiSettings: nextUiSettings };
+    setSettingsOptions(nextSettings);
+    try {
+      await setDoc(getSettingsDoc(), nextSettings);
+      pushToast('บันทึกการตั้งค่าการแสดงผลเรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ บันทึกการตั้งค่าการแสดงผลไม่สำเร็จ: ' + error.message);
+    }
+  };
 
   const pushToast = (message, type = 'info', title = '') => {
     const id = `toast_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -426,6 +485,23 @@ function MainApp() {
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0, width, height);
+
+    if (showDocumentLogo('proofStamp')) {
+      const badgePad = Math.max(10, Math.round(width * 0.018));
+      const badgeW = Math.max(170, Math.round(width * 0.25));
+      const badgeH = Math.max(42, Math.round(width * 0.055));
+      ctx.fillStyle = 'rgba(255,255,255,0.88)';
+      ctx.fillRect(badgePad, badgePad, badgeW, badgeH);
+      ctx.strokeStyle = 'rgba(37,99,235,0.45)';
+      ctx.lineWidth = Math.max(2, Math.round(width * 0.002));
+      ctx.strokeRect(badgePad, badgePad, badgeW, badgeH);
+      ctx.fillStyle = '#1d4ed8';
+      ctx.font = `800 ${Math.max(14, Math.round(width * 0.018))}px sans-serif`;
+      ctx.fillText('MDEC STOCK', badgePad + Math.round(badgeH * 0.35), badgePad + Math.round(badgeH * 0.45));
+      ctx.fillStyle = '#334155';
+      ctx.font = `700 ${Math.max(10, Math.round(width * 0.013))}px sans-serif`;
+      ctx.fillText('ศูนย์มัลติมีเดียทางการศึกษา', badgePad + Math.round(badgeH * 0.35), badgePad + Math.round(badgeH * 0.78));
+    }
 
     const stripHeight = Math.max(82, Math.round(height * 0.12));
     const y = Math.max(0, height - stripHeight);
@@ -750,6 +826,8 @@ function MainApp() {
           backupMeta: data.backupMeta || {},
           proofStorageMeta: data.proofStorageMeta || {},
           proofSettings: { ...DEFAULT_PROOF_SETTINGS, ...(data.proofSettings || {}) },
+          documentSettings: { ...DEFAULT_DOCUMENT_SETTINGS, ...(data.documentSettings || {}) },
+          uiSettings: { ...DEFAULT_UI_SETTINGS, ...(data.uiSettings || {}) },
           accounts: data.accounts || []
         });
       } else {
@@ -763,6 +841,8 @@ function MainApp() {
           backupMeta: {},
           proofStorageMeta: {},
           proofSettings: DEFAULT_PROOF_SETTINGS,
+          documentSettings: DEFAULT_DOCUMENT_SETTINGS,
+          uiSettings: DEFAULT_UI_SETTINGS,
           accounts: [] 
         };
         setDoc(settingsRef, defaultSettings).catch(e => console.log("Init settings failed:", e));
@@ -1133,6 +1213,30 @@ S.N.: ${item.sn || '-'}
     if ((item.status !== 'borrowed' && item.status !== 'out-for-event') || !item.expectedReturn) return false;
     return new Date(item.expectedReturn).getTime() < todayMs;
   });
+
+  const todayDateKey = new Date().toLocaleDateString('en-CA');
+  const dueTodayItems = useMemo(() => {
+    return items.filter(item => {
+      if (!item || item.isDeleted) return false;
+      if (item.status !== 'borrowed' && item.status !== 'out-for-event') return false;
+      return String(item.expectedReturn || '') === todayDateKey;
+    });
+  }, [items, todayDateKey]);
+
+  const prepTodayLists = useMemo(() => {
+    return (settingsOptions.prepLists || []).filter(prep => String(prep.useDate || '') === todayDateKey && prep.status !== 'done');
+  }, [settingsOptions.prepLists, todayDateKey]);
+
+  const dailyIssueItems = useMemo(() => {
+    return items.filter(item => !item?.isDeleted && (item.status === 'maintenance' || isProblemItem(item))).slice(0, 8);
+  }, [items, todayMs]);
+
+  const recentActivity = useMemo(() => {
+    return (auditLogs || [])
+      .slice()
+      .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
+      .slice(0, 6);
+  }, [auditLogs]);
 
   const selectableItems = useMemo(() => {
     return filteredItems.filter(i => i.status === 'available' || i.status === 'borrowed' || i.status === 'out-for-event');
@@ -1716,6 +1820,27 @@ S.N.: ${item.sn || '-'}
     } catch (err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
+  const openAddItemForm = () => {
+    setFormData({
+      id: '',
+      name: '',
+      sn: '',
+      department: 'ภาพนิ่ง',
+      category: '',
+      newCategory: '',
+      location: '',
+      newLocation: '',
+      status: 'available',
+      quantity: 1,
+      owner: '',
+      newOwner: '',
+      isPersonalItem: false,
+      qrTagged: false,
+      internalNote: ''
+    });
+    setShowForm(true);
+  };
+
   const checkPersonalItemsWarning = (selectedIds) => {
     const personalItems = selectedIds.map(id => items.find(i => i.id === id)).filter(i => i && i.owner);
     if (personalItems.length > 0) {
@@ -1760,7 +1885,7 @@ S.N.: ${item.sn || '-'}
       setPrintSlipData({
         type: 'borrow',
         title: 'ใบยืมอุปกรณ์',
-        ref: `BR-${new Date().getTime()}`,
+        ref: makeDocumentRef('BR'),
         date: new Date().toISOString(),
         borrower: borrowData.borrower,
         staffOut: finalStaff,
@@ -1815,7 +1940,7 @@ S.N.: ${item.sn || '-'}
       setPrintSlipData({
         type: 'event',
         title: 'ใบนำอุปกรณ์ออกงาน',
-        ref: `EV-${new Date().getTime()}`,
+        ref: makeDocumentRef('EV'),
         date: new Date().toISOString(),
         borrower: eventData.eventName,
         staffOut: finalStaff,
@@ -2776,7 +2901,7 @@ S.N.: ${item.sn || '-'}
     setPrintSlipData({
       type: 'prep',
       title: 'ใบเตรียมของ',
-      ref: `PREP-${new Date().getTime()}`,
+      ref: makeDocumentRef('PREP'),
       date: new Date().toISOString(),
       borrower: prep.name || '-',
       staffOut: prep.staff || '-',
@@ -2986,7 +3111,7 @@ S.N.: ${item.sn || '-'}
                       <div className={`${boxPreset.meta} font-bold mt-1`}>ศูนย์มัลติมีเดียทางการศึกษา</div>
                       <div className={`${boxPreset.meta} font-black mt-1`}>ทรัพย์สินของ MDEC • ใช้ภายในศูนย์</div>
                     </div>
-                    {renderOrgLogoBox({ className: 'w-20 h-12 rounded-2xl border border-slate-300 px-2 py-1.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-5 h-5' })}
+                    {showDocumentLogo('boxLabelLogo') && renderOrgLogoBox({ className: 'w-20 h-12 rounded-2xl border border-slate-300 px-2 py-1.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-5 h-5' })}
                   </div>
                 </div>
                 <div className="shrink-0 border border-slate-300 bg-slate-50 rounded-xl px-3 py-2 text-center min-w-[58px] print:min-w-[48px]">
@@ -3037,7 +3162,7 @@ S.N.: ${item.sn || '-'}
 
             <div className="border-t border-slate-300 bg-slate-50 px-4 py-2 print:px-3 print:py-1.5 flex justify-between items-center gap-3 text-[10px] print:text-[7pt] font-black">
               <div className="flex items-center gap-2 min-w-0">
-                {renderOrgLogoBox({ className: 'w-12 h-7 rounded-lg border border-slate-300 px-1.5 py-1', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                {showDocumentLogo('boxLabelLogo') && renderOrgLogoBox({ className: 'w-12 h-7 rounded-lg border border-slate-300 px-1.5 py-1', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
                 <span className="truncate">ตรวจเช็กก่อนใช้งานและหลังเก็บทุกครั้ง • ทรัพย์สินของ MDEC</span>
               </div>
               <span className="shrink-0">พิมพ์วันที่ {new Date().toLocaleDateString('th-TH')}</span>
@@ -3208,7 +3333,7 @@ S.N.: ${item.sn || '-'}
                 return (
                    <div key={id} className={`qr-plain-card border border-slate-300 flex flex-col items-center justify-center text-center break-inside-avoid print:border-solid print:border-slate-400 rounded-xl print:rounded-none relative print:min-h-0 ${qrPreset.card}`}>
                       <div className="absolute left-1.5 top-1.5 print:left-1 print:top-1">
-                        {renderOrgLogoBox({ className: 'w-10 h-6 print:w-8 print:h-5 rounded-md border border-slate-200 px-1 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                        {showDocumentLogo('qrLogo') && renderOrgLogoBox({ className: 'w-10 h-6 print:w-8 print:h-5 rounded-md border border-slate-200 px-1 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
                       </div>
                       <div className="absolute right-1.5 top-1.5 text-[8px] print:text-[6px] font-black tracking-wide text-blue-700 border border-blue-200 bg-blue-50 rounded px-1 py-0.5">MDEC</div>
                       <img src={`https://api.qrserver.com/v1/create-qr-code/?size=${qrPreset.qrServer}x${qrPreset.qrServer}&data=${encodeURIComponent(item.id)}`} alt="QR" className={`${qrPreset.qrClass} object-contain mb-1.5 mt-3`} />
@@ -3230,7 +3355,7 @@ S.N.: ${item.sn || '-'}
                    <div key={id} className={`qr-label-card border border-slate-900 rounded-xl flex flex-col bg-white text-slate-900 break-inside-avoid shadow-sm print:rounded-none overflow-hidden ${qrPreset.labelCard}`}>
                       <div className="flex items-center justify-between gap-2 border-b border-slate-300 pb-1 mb-1.5 print:pb-0.5 print:mb-1">
                         <div className="flex items-center gap-2 min-w-0">
-                          {renderOrgLogoBox({ className: 'w-12 h-7 print:w-10 print:h-6 rounded-lg border border-slate-200 px-1.5 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                          {showDocumentLogo('qrLogo') && renderOrgLogoBox({ className: 'w-12 h-7 print:w-10 print:h-6 rounded-lg border border-slate-200 px-1.5 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
                           <div className="leading-tight min-w-0">
                             <div className={`${qrPreset.labelTitleClass} font-black tracking-wide text-blue-700`}>MDEC STOCK</div>
                             <div className="text-[9px] print:text-[6.5px] font-bold text-slate-500 truncate">ศูนย์มัลติมีเดียทางการศึกษา</div>
@@ -3261,7 +3386,7 @@ S.N.: ${item.sn || '-'}
                         </div>
                       ) : (
                         <div className="mt-1.5 print:mt-0.5 flex items-center gap-1 text-[8px] print:text-[6px] font-black bg-blue-50 border border-blue-200 text-blue-700 px-1.5 py-0.5 rounded-md truncate">
-                          {renderOrgLogoBox({ className: 'w-7 h-4 print:w-6 print:h-3.5 rounded-sm border border-blue-100 px-0.5 py-0.5', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-2.5 h-2.5' })}
+                          {showDocumentLogo('qrLogo') && renderOrgLogoBox({ className: 'w-7 h-4 print:w-6 print:h-3.5 rounded-sm border border-blue-100 px-0.5 py-0.5', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-2.5 h-2.5' })}
                           <span className="truncate">ทรัพย์สินศูนย์มัลติมีเดีย</span>
                         </div>
                       )}
@@ -3277,16 +3402,16 @@ S.N.: ${item.sn || '-'}
   if (printSlipData) {
     const isPrepSlip = printSlipData.type === 'prep';
     return (
-      <div className="bg-slate-100 min-h-screen font-sans text-slate-900 print:bg-white">
+      <div className={`min-h-screen font-sans text-slate-900 print:bg-white ${isInkSavingDocument ? "bg-white" : "bg-slate-100"}`}>
         <div className="print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
           <h2 className="font-bold text-xl flex items-center gap-2"><Icons.Printer className="w-6 h-6" /> {printSlipData.title}</h2>
           <div className="flex gap-3"><button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors"><Icons.Printer className="w-5 h-5"/> {isPrepSlip ? 'พิมพ์ใบเตรียมของ' : 'พิมพ์ใบยืม'}</button><button onClick={() => setPrintSlipData(null)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button></div>
         </div>
         <div className="pt-24 print:pt-0 p-6 print:p-0 max-w-4xl mx-auto"><div className="relative overflow-hidden bg-white p-8 print:p-6 shadow-xl print:shadow-none border border-slate-200 print:border-0 rounded-2xl print:rounded-none">
-          {!brandLogoError && <img src={ORG_LOGO_SRC} alt="MDEC Watermark" className="absolute right-8 top-8 w-40 opacity-[0.045] pointer-events-none select-none" onError={() => setBrandLogoError(true)} />}
+          {showDocumentLogo('watermark') && !isInkSavingDocument && !brandLogoError && <img src={ORG_LOGO_SRC} alt="MDEC Watermark" className="absolute right-8 top-8 w-40 opacity-[0.045] pointer-events-none select-none" onError={() => setBrandLogoError(true)} />}
           <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6 gap-4 relative z-[1]">
             <div className="min-w-0">
-              {renderOrgSignature({
+              {showDocumentLogo('slipLogo') ? renderOrgSignature({
                 title: printSlipData.title,
                 subtitle: 'ศูนย์มัลติมีเดียทางการศึกษา (MDEC)',
                 compact: false,
@@ -3295,7 +3420,12 @@ S.N.: ${item.sn || '-'}
                 subtitleClass: 'text-slate-600 text-sm',
                 textWrapClass: 'min-w-0',
                 logoClassName: 'w-28 h-16 rounded-2xl border border-slate-200 px-3 py-2 shadow-sm'
-              })}
+              }) : (
+                <div className="leading-tight mb-2">
+                  <h1 className="text-3xl font-black text-slate-900">{printSlipData.title}</h1>
+                  <p className="text-sm font-bold text-slate-600">ศูนย์มัลติมีเดียทางการศึกษา (MDEC)</p>
+                </div>
+              )}
               <p className="text-sm font-black text-blue-700">เอกสารจากระบบ MDEC-Stock • ศูนย์มัลติมีเดียทางการศึกษา</p>
               {isPrepSlip && <p className="text-sm font-bold mt-1 text-slate-600">ใช้สำหรับเช็กรายการอุปกรณ์ก่อนนำออกงานจริง</p>}
             </div>
@@ -3307,7 +3437,7 @@ S.N.: ${item.sn || '-'}
           <div className="grid grid-cols-2 gap-12 mt-14 text-center font-bold relative z-[1]"><div><div className="border-b border-slate-900 h-12 mb-2"></div><div>{isPrepSlip ? 'ลงชื่อผู้เตรียมของ' : 'ลงชื่อผู้ยืม / ผู้รับผิดชอบงาน'}</div></div><div><div className="border-b border-slate-900 h-12 mb-2"></div><div>{isPrepSlip ? 'ลงชื่อผู้ตรวจรายการ' : 'ลงชื่อเจ้าหน้าที่ผู้ให้ยืม'}</div></div></div>
           <div className="mt-10 pt-3 border-t border-slate-200 flex items-center justify-between gap-3 text-[11px] font-bold text-slate-500 relative z-[1]">
             <div className="flex items-center gap-2 min-w-0">
-              {renderOrgLogoBox({ className: 'w-16 h-9 rounded-xl border border-slate-200 px-2 py-1 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+              {showDocumentLogo('slipLogo') && renderOrgLogoBox({ className: 'w-16 h-9 rounded-xl border border-slate-200 px-2 py-1 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
               <span className="truncate">เอกสารนี้ออกโดยระบบ MDEC-Stock เพื่อแสดงความเป็นเจ้าของและใช้ประกอบการยืม-คืนภายในศูนย์</span>
             </div>
             <span className="shrink-0">{APP_VERSION}</span>
@@ -3474,7 +3604,7 @@ S.N.: ${item.sn || '-'}
   }
 
   return (
-    <div className={`min-h-screen font-sans p-4 sm:p-8 pb-32 transition-colors duration-300 ${theme.mainBg} ${theme.textMain}`}>
+    <div className={`min-h-screen font-sans ${pagePaddingClass} transition-colors duration-300 ${theme.mainBg} ${theme.textMain}`}>
       {firebaseError && (
         <div className="w-full mb-6 bg-rose-100 border-l-4 border-rose-500 text-rose-800 p-5 rounded-r-xl shadow-md flex items-start gap-4">
           <Icons.Alert className="w-8 h-8 shrink-0 text-rose-600" />
@@ -3750,6 +3880,78 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
+
+      {/* ⚡ Daily Quick Actions */}
+      <div className={`w-full mb-8 rounded-[2rem] border shadow-xl overflow-hidden ${theme.cardBg}`}>
+        <div className={`p-5 sm:p-6 border-b ${theme.divide}`}>
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              <div className={`text-sm font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-blue-600'}`}>Daily Workflow</div>
+              <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>เริ่มงานวันนี้จากตรงนี้</h2>
+              <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>รวมปุ่มที่ใช้บ่อยที่สุดไว้ด้านบน ลดการไล่หาเมนูตอนทำงานจริง</p>
+            </div>
+            <div className={`text-xs font-black px-3 py-2 rounded-full border ${isDarkMode ? 'bg-slate-950/70 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+              {APP_VERSION}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5 sm:p-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+          {canUseOperationalTools && (
+            <button type="button" onClick={() => setShowScanModal(true)} className="group p-4 rounded-3xl bg-gradient-to-br from-amber-500 to-orange-500 text-white text-left shadow-lg hover:-translate-y-0.5 transition-all">
+              <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center mb-3"><Icons.QrCode className="w-5 h-5" /></div>
+              <div className="font-black text-lg">สแกน QR</div>
+              <div className="text-xs font-bold text-white/80 mt-1">ค้นหา/ทำรายการเร็ว</div>
+            </button>
+          )}
+          {canAddEditItems && (
+            <button type="button" onClick={openAddItemForm} className={`group p-4 rounded-3xl text-left border shadow-sm hover:-translate-y-0.5 transition-all ${isDarkMode ? 'bg-blue-950/40 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-100 text-blue-700'}`}>
+              <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-3"><Icons.Plus className="w-5 h-5" /></div>
+              <div className="font-black text-lg">เพิ่มอุปกรณ์</div>
+              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ของใหม่เข้าระบบ</div>
+            </button>
+          )}
+          <button type="button" onClick={() => openTrackingCenter('today')} className={`group p-4 rounded-3xl text-left border shadow-sm hover:-translate-y-0.5 transition-all ${isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
+            <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mb-3"><Icons.CheckCircle className="w-5 h-5" /></div>
+            <div className="font-black text-lg">ศูนย์ติดตามงาน</div>
+            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>วันนี้ / ต้องจัดการ</div>
+          </button>
+          <button type="button" onClick={() => setShowQuickReturnModal(true)} className={`group p-4 rounded-3xl text-left border shadow-sm hover:-translate-y-0.5 transition-all ${isDarkMode ? 'bg-purple-950/40 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-100 text-purple-700'}`}>
+            <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center mb-3"><Icons.Users className="w-5 h-5" /></div>
+            <div className="font-black text-lg">ติดตามของรอคืน</div>
+            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ดูตามผู้ยืม/งาน</div>
+          </button>
+          <button type="button" onClick={() => { setProofCenterFilter('all'); setProofCenterSearch(''); setShowProofCenterModal(true); }} className={`group p-4 rounded-3xl text-left border shadow-sm hover:-translate-y-0.5 transition-all ${isDarkMode ? 'bg-pink-950/40 border-pink-800 text-pink-200' : 'bg-pink-50 border-pink-100 text-pink-700'}`}>
+            <div className="w-10 h-10 rounded-2xl bg-pink-600 text-white flex items-center justify-center mb-3"><Icons.Camera className="w-5 h-5" /></div>
+            <div className="font-black text-lg">หลักฐานรูปภาพ</div>
+            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>รวมรูปทุกอุปกรณ์</div>
+          </button>
+        </div>
+
+        <div className={`px-5 sm:px-6 pb-5 sm:pb-6 grid grid-cols-2 lg:grid-cols-4 gap-3`}>
+          {[
+            ['ต้องคืนวันนี้', dueTodayItems.length, 'emerald', () => openTrackingCenter('today')],
+            ['เลยกำหนดคืน', overdueItems.length, 'rose', () => openTrackingCenter('issues')],
+            ['รายการเตรียมของวันนี้', prepTodayLists.length, 'blue', () => setShowPrepListsModal(true)],
+            ['ของที่ต้องจัดการ', dailyIssueItems.length, 'amber', () => { setQuickProblemOnly(true); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }]
+          ].map(([label, value, tone, action]) => {
+            const cls = {
+              emerald: isDarkMode ? 'bg-emerald-950/30 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-100 text-emerald-700',
+              rose: isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-100 text-rose-700',
+              blue: isDarkMode ? 'bg-blue-950/30 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-100 text-blue-700',
+              amber: isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-100 text-amber-700'
+            }[tone];
+            return (
+              <button key={label} type="button" onClick={action} className={`p-4 rounded-2xl border text-left hover:-translate-y-0.5 transition-all ${cls}`}>
+                <div className="text-3xl font-black leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
+                <div className="text-xs sm:text-sm font-black mt-2">{label}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+
       {/* 📊 Main Stats Grid - Premium Cards */}
       <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-5 mb-8">
         {[
@@ -3807,7 +4009,7 @@ S.N.: ${item.sn || '-'}
       </div>
 
       {/* Filters & Search */}
-      <div className={`w-full flex flex-col gap-4 p-5 sm:p-6 rounded-2xl shadow-md border mb-6 transition-colors ${theme.cardBg}`}>
+      <div className={`w-full flex flex-col gap-4 ${panelPaddingClass} rounded-2xl shadow-md border mb-6 transition-colors ${theme.cardBg}`}>
         <div className="flex flex-col xl:flex-row gap-4 items-center w-full">
           <div className="relative flex-1 w-full">
             <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${theme.textMuted}`}><Icons.Search className="w-5 h-5" /></div>
@@ -3815,19 +4017,19 @@ S.N.: ${item.sn || '-'}
           </div>
           
           <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto">
-            <select className={`flex-1 px-4 py-4 rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterLocation} onChange={e => setFilterLocation(e.target.value)}>
+            <select className={`flex-1 px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterLocation} onChange={e => setFilterLocation(e.target.value)}>
               <option value="all">สถานที่/ห้อง ทั้งหมด</option>
               {(settingsOptions.locations || []).filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <select className={`flex-1 px-4 py-4 rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+            <select className={`flex-1 px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
               <option value="all">หมวดหมู่ทั้งหมด</option>
               {(settingsOptions.categories || []).filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <select className={`flex-1 px-4 py-4 rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+            <select className={`flex-1 px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
               <option value="all">สถานะทั้งหมด</option>
               {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
-            <select className={`flex-1 px-4 py-4 rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterQrTagged} onChange={e => setFilterQrTagged(e.target.value)}>
+            <select className={`flex-1 px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterQrTagged} onChange={e => setFilterQrTagged(e.target.value)}>
               <option value="all">QR ทั้งหมด</option>
               <option value="tagged">ติด QR แล้ว</option>
               <option value="untagged">ยังไม่ติด QR</option>
@@ -3835,25 +4037,25 @@ S.N.: ${item.sn || '-'}
           </div>
 
           <div className="flex gap-2 w-full xl:w-auto">
-            <button type="button" onClick={() => setQuickProblemOnly(!quickProblemOnly)} className={`flex-1 xl:flex-none px-4 py-4 rounded-xl font-black border transition-colors whitespace-nowrap ${quickProblemOnly ? 'bg-rose-600 text-white border-rose-600 shadow-md' : theme.btnSecondary}`}>ของที่ต้องจัดการ</button>
-            {hasActiveFilters && <button type="button" onClick={clearAllFilters} className={`flex-1 xl:flex-none px-4 py-4 rounded-xl font-black border transition-colors whitespace-nowrap ${theme.btnSecondary}`}>ล้างตัวกรอง</button>}
+            <button type="button" onClick={() => setQuickProblemOnly(!quickProblemOnly)} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${quickProblemOnly ? 'bg-rose-600 text-white border-rose-600 shadow-md' : theme.btnSecondary}`}>ของที่ต้องจัดการ</button>
+            {hasActiveFilters && <button type="button" onClick={clearAllFilters} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${theme.btnSecondary}`}>ล้างตัวกรอง</button>}
           </div>
 
           {canAddEditItems && (
             <div className="flex gap-2 w-full xl:w-auto">
-              <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '' }); setShowForm(true); }} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}><Icons.Plus className="w-5 h-5" /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span></button>
+              <button type="button" onClick={openAddItemForm} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 ${controlPaddingClass} font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}><Icons.Plus className="w-5 h-5" /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span></button>
             </div>
           )}
         </div>
 
         <div className="flex gap-2 overflow-x-auto w-full pb-2 custom-scrollbar">
-          <button type="button" onClick={() => setFilterDept('all')} className={`flex items-center justify-center gap-2 whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all border ${filterDept === 'all' ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-800 border-slate-800 text-white shadow-md') : theme.btnSecondary}`}>
+          <button type="button" onClick={() => setFilterDept('all')} className={`flex items-center justify-center gap-2 whitespace-nowrap px-6 ${controlPaddingClass} rounded-xl font-bold text-lg transition-all border ${filterDept === 'all' ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-800 border-slate-800 text-white shadow-md') : theme.btnSecondary}`}>
             ทั้งหมด <Icons.ViewGrid className="w-5 h-5" />
           </button>
           {DEPARTMENTS.map(d => {
             const IconComponent = Icons[d.iconName];
             return (
-              <button type="button" key={d.id} onClick={() => setFilterDept(d.id)} className={`flex items-center justify-center gap-2 whitespace-nowrap px-6 py-4 rounded-xl font-bold text-lg transition-all border ${filterDept === d.id ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-800 border-slate-800 text-white shadow-md') : theme.btnSecondary}`}>
+              <button type="button" key={d.id} onClick={() => setFilterDept(d.id)} className={`flex items-center justify-center gap-2 whitespace-nowrap px-6 ${controlPaddingClass} rounded-xl font-bold text-lg transition-all border ${filterDept === d.id ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-800 border-slate-800 text-white shadow-md') : theme.btnSecondary}`}>
                 {d.label} {IconComponent && <IconComponent className="w-5 h-5" />}
               </button>
             );
@@ -3868,9 +4070,78 @@ S.N.: ${item.sn || '-'}
             <div className={`font-black text-xl ${theme.textTitle}`}>รายการอุปกรณ์</div>
             <div className={`text-sm font-bold ${theme.textMuted}`}>พบ {filteredItems.length.toLocaleString('th-TH')} รายการ • เลือกแล้ว {selectedItems.length.toLocaleString('th-TH')} รายการ</div>
           </div>
-          <div className={`text-xs font-black px-3 py-2 rounded-full border ${isDarkMode ? 'bg-slate-950/70 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>Premium Table View</div>
+          <div className={`text-xs font-black px-3 py-2 rounded-full border ${isDarkMode ? 'bg-slate-950/70 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>{mobileCardsEnabled ? 'Clean List / Mobile Cards' : 'Premium Table View'}</div>
         </div>
-        <div className="overflow-x-auto custom-scrollbar">
+
+        {mobileCardsEnabled && (
+          <div className={`lg:hidden ${isCompactUi ? 'p-3' : 'p-4'} space-y-3`}>
+            {filteredItems.length === 0 ? (
+              <div className={`rounded-2xl border p-8 text-center font-bold ${isDarkMode ? 'bg-slate-900/40 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                <Icons.Search className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <div className="text-lg font-black">ไม่พบอุปกรณ์ที่ค้นหา</div>
+                <div className="text-sm mt-1">ลองล้างตัวกรอง หรือค้นหาด้วย S.N. / ชื่อกล่อง / สถานที่</div>
+                {hasActiveFilters && <button type="button" onClick={clearAllFilters} className="mt-3 px-4 py-2 rounded-xl bg-blue-600 text-white font-black text-sm">ล้างตัวกรองทั้งหมด</button>}
+              </div>
+            ) : filteredItems.map((item, index) => {
+              const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
+              const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
+              const isBorrowed = item.status === 'borrowed';
+              const isEvent = item.status === 'out-for-event';
+              const qty = Number(item.quantity) || 1;
+              const proofCount = getItemProofCount(item);
+              const isOverdue = (isBorrowed || isEvent) && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
+              const canSelectThis = item.status === 'available' || isBorrowed || isEvent;
+              return (
+                <div key={`mobile_${item.id}_${index}`} className={`rounded-3xl border shadow-sm overflow-hidden ${isOverdue ? (isDarkMode ? 'bg-rose-950/30 border-rose-800' : 'bg-rose-50 border-rose-200') : (isDarkMode ? 'bg-slate-900/70 border-slate-700' : 'bg-white border-slate-200')}`}>
+                  <div className={`p-4 ${isOverdue ? 'border-l-4 border-rose-500' : isEvent ? 'border-l-4 border-orange-400' : isBorrowed ? 'border-l-4 border-purple-400' : item.status === 'maintenance' ? 'border-l-4 border-rose-700' : 'border-l-4 border-blue-200'}`}>
+                    <div className="flex items-start gap-3">
+                      {canUseOperationalTools && (
+                        <input
+                          type="checkbox"
+                          className="w-5 h-5 mt-1 rounded cursor-pointer accent-indigo-600 shrink-0"
+                          checked={selectedItems.includes(item.id)}
+                          disabled={!canSelectThis}
+                          onChange={() => setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id])}
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className={`font-black text-lg leading-tight ${theme.textTitle}`}>{item.name}</div>
+                        <div className={`mt-1 text-xs font-bold ${theme.textMuted}`}>
+                          {item.sn ? `S.N. ${item.sn}` : 'ไม่มี S.N.'} • {item.category || '-'} • {item.location || '-'}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? deptInfo.darkColor : deptInfo.color}`}>{deptInfo.label}</span>
+                          {qty > 1 && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>x{qty}</span>}
+                          {item.storageBoxName && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-50 text-cyan-700'}`}>📦 {item.storageBoxName}</span>}
+                          {proofCount > 0 && <button type="button" onClick={() => { setProofCenterSearch(item.sn || item.name || ''); setProofCenterFilter('all'); setShowProofCenterModal(true); }} className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-pink-900/40 text-pink-300' : 'bg-pink-50 text-pink-700'}`}>📷 {proofCount}</button>}
+                          {isOverdue && <span className="px-2.5 py-1 rounded-full text-xs font-black bg-rose-600 text-white">เลยกำหนดคืน</span>}
+                        </div>
+                        {(isBorrowed || isEvent) && (
+                          <div className={`mt-3 rounded-2xl border p-3 text-sm font-bold ${isOverdue ? (isDarkMode ? 'bg-rose-900/30 border-rose-800 text-rose-300' : 'bg-rose-100 border-rose-200 text-rose-700') : isEvent ? (isDarkMode ? 'bg-orange-900/30 border-orange-800 text-orange-300' : 'bg-orange-50 border-orange-100 text-orange-700') : (isDarkMode ? 'bg-purple-900/30 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-100 text-purple-700')}`}>
+                            <div>{isEvent ? `ออกงาน: ${item.currentEvent || '-'}` : `ผู้ยืม: ${item.currentBorrower || '-'}`}</div>
+                            <div className="text-xs mt-1 opacity-80">กำหนดคืน: {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>รายละเอียด</button>
+                      <button type="button" onClick={() => copyItemSummary(item)} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>คัดลอก</button>
+                      {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowBorrow(e, item)} className="px-3 py-2.5 rounded-xl font-black text-sm bg-purple-600 text-white">ยืม</button>}
+                      {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowEvent(e, item)} className="px-3 py-2.5 rounded-xl font-black text-sm bg-orange-500 text-white">ออกงาน</button>}
+                      {canUseOperationalTools && (isBorrowed || isEvent) && <button type="button" onClick={() => { setReturnData({ staff: '', newStaff: '' }); setReturnTargetIds([item.id]); setReturnChecklist([]); }} className="col-span-2 px-3 py-2.5 rounded-xl font-black text-sm bg-emerald-600 text-white">รับคืน</button>}
+                      {canAddEditItems && <button type="button" onClick={() => { setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newOwner: item.owner || '', isPersonalItem: !!item.owner }); setShowForm(true); }} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>แก้ไข</button>}
+                      {canUseOperationalTools && <button type="button" onClick={() => openRepairForItem(item)} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${isDarkMode ? 'bg-rose-900/30 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>แจ้งซ่อม</button>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="hidden lg:block overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr className={`border-b text-sm uppercase tracking-wide transition-colors ${theme.th}`}>
@@ -3920,7 +4191,7 @@ S.N.: ${item.sn || '-'}
                 const rowBorder = isOverdue ? 'border-l-4 border-l-rose-500' : isEvent ? 'border-l-4 border-l-orange-400' : isBorrowed ? 'border-l-4 border-l-purple-400' : item.status === 'maintenance' ? 'border-l-4 border-l-rose-700' : '';
                 
                 return (
-                  <tr key={`${item.id}_${index}`} className={`group transition-all text-lg ${rowBg} ${rowBorder} hover:shadow-[inset_4px_0_0_rgba(59,130,246,0.45)]`}>
+                  <tr key={`${item.id}_${index}`} className={`group transition-all ${rowTextSizeClass} ${rowBg} ${rowBorder} hover:shadow-[inset_4px_0_0_rgba(59,130,246,0.45)]`}>
 
                     {canUseOperationalTools && (
                       <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
@@ -4682,7 +4953,7 @@ S.N.: ${item.sn || '-'}
                         setReturnData({ staff: '', newStaff: '' });
                         setShowQuickReturnModal(false);
                       }}
-                      className={`px-6 py-4 font-black rounded-xl transition-colors whitespace-nowrap flex items-center justify-center gap-2 ${isDarkMode ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'}`}
+                      className={`px-6 ${controlPaddingClass} font-black rounded-xl transition-colors whitespace-nowrap flex items-center justify-center gap-2 ${isDarkMode ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'}`}
                     >
                       <Icons.CheckCircle className="w-5 h-5"/> รับคืนกลุ่มนี้
                     </button>
@@ -4792,6 +5063,8 @@ S.N.: ${item.sn || '-'}
               <button type="button" onClick={() => {setSettingsTab('accounts'); setEditingSettingItem(null); setNewSettingItem(''); openNewAccountForm();}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'accounts' ? 'text-indigo-500 border-indigo-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>บัญชีผู้ใช้</button>
               <button type="button" onClick={() => {setSettingsTab('database'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'database' ? 'text-emerald-500 border-emerald-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>ฐานข้อมูล</button>
               <button type="button" onClick={() => {setSettingsTab('proofs'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'proofs' ? 'text-pink-500 border-pink-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>หลักฐาน</button>
+              <button type="button" onClick={() => {setSettingsTab('documents'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'documents' ? 'text-sky-500 border-sky-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>เอกสาร/โลโก้</button>
+              <button type="button" onClick={() => {setSettingsTab('display'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'display' ? 'text-teal-500 border-teal-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>การแสดงผล</button>
             </div>
             
             <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
@@ -4864,6 +5137,143 @@ S.N.: ${item.sn || '-'}
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              ) : settingsTab === 'display' ? (
+                <div className="p-6 space-y-6">
+                  <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-teal-900/20 border-teal-800' : 'bg-teal-50 border-teal-200'}`}>
+                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.ViewGrid className="w-6 h-6 text-teal-500"/> ตั้งค่าการแสดงผล</h4>
+                    <p className={`text-sm font-bold ${theme.textMuted}`}>ปรับหน้าเว็บให้เหมาะกับการใช้งานจริง เลือกได้ว่าจะเน้นโล่งสบายตาหรือเห็นข้อมูลเยอะขึ้น</p>
+                  </div>
+
+                  <div className={`p-5 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>ความแน่นของหน้าจอ</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        ['comfortable', 'Comfortable', 'ช่องว่างเยอะ ปุ่มใหญ่ ใช้งานสบาย'],
+                        ['compact', 'Compact', 'เห็นข้อมูลมากขึ้น เหมาะกับคอม']
+                      ].map(([value, title, desc]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => saveUiSettings({ density: value })}
+                          className={`text-left p-4 rounded-2xl border transition-all ${uiDisplaySettings.density === value ? 'bg-teal-600 text-white border-teal-600 shadow-lg' : theme.btnSecondary}`}
+                        >
+                          <div className="font-black text-lg">{title}</div>
+                          <div className={`text-xs font-bold mt-1 ${uiDisplaySettings.density === value ? 'text-teal-50' : theme.textMuted}`}>{desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    {[
+                      ['mobileCards', 'ใช้ Card View บนมือถือ', 'เปลี่ยนรายการอุปกรณ์จากตารางเป็นการ์ด อ่านง่ายและกดปุ่มง่ายขึ้นบนมือถือ'],
+                      ['cleanMode', 'โหมดสะอาดตา', 'ลดความรู้สึกรกของหน้าแรกและเน้นปุ่มหลักที่ใช้บ่อย'],
+                      ['reduceEffects', 'ลดเงา/เอฟเฟกต์', 'เหมาะกับเครื่องที่ช้าหรืออยากได้หน้าตาเรียบกว่าเดิม']
+                    ].map(([key, title, desc]) => (
+                      <label key={key} className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <input
+                          type="checkbox"
+                          className="w-5 h-5 mt-1 accent-teal-600 shrink-0"
+                          checked={uiDisplaySettings[key] !== false}
+                          onChange={(e) => saveUiSettings({ [key]: e.target.checked })}
+                        />
+                        <span className="min-w-0">
+                          <span className={`block font-black ${theme.textTitle}`}>{title}</span>
+                          <span className={`block text-sm font-bold mt-1 ${theme.textMuted}`}>{desc}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
+                    <div className={`font-black mb-2 ${theme.textTitle}`}>แนะนำสำหรับศูนย์ MDEC</div>
+                    <div className={`text-sm font-bold ${theme.textMuted}`}>ใช้ Comfortable + Card View บนมือถือ สำหรับเจ้าหน้าที่ทั่วไป และใช้ Compact บนคอมของบัญชีกลางเมื่อต้องจัดการข้อมูลจำนวนมาก</div>
+                  </div>
+                </div>
+              ) : settingsTab === 'documents' ? (
+                <div className="p-6 space-y-6">
+                  <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-sky-900/20 border-sky-800' : 'bg-sky-50 border-sky-200'}`}>
+                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Printer className="w-6 h-6 text-sky-500"/> ตั้งค่าเอกสารและโลโก้</h4>
+                    <p className={`text-sm font-bold ${theme.textMuted}`}>เลือกได้ว่าโลโก้ MDEC จะแสดงบน QR ใบยืม ฉลากกล่อง รูปหลักฐาน และ watermark มากน้อยแค่ไหน โดยไม่ต้องแก้โค้ดใหม่</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    {[
+                      ['qrLogo', 'แสดงโลโก้บน QR และฉลาก QR', 'เหมาะกับการยืนยันว่า QR นี้เป็นทรัพย์สินของศูนย์'],
+                      ['slipLogo', 'แสดงโลโก้บนใบยืม / ใบเตรียมของ', 'ทำให้เอกสารดูเป็นทางการและเป็นของ MDEC'],
+                      ['boxLabelLogo', 'แสดงโลโก้บนฉลากกล่อง', 'เหมาะกับฉลากกล่องหรือบรรจุภัณฑ์'],
+                      ['proofStamp', 'ประทับตรา MDEC บนรูปหลักฐาน', 'ใช้กับรูปหลักฐานยืม-คืนที่ถ่ายผ่านเว็บ'],
+                      ['watermark', 'แสดง watermark จาง ๆ บนเอกสาร', 'ทำให้ใบยืม/ใบเตรียมของดูเป็นเอกสารระบบ']
+                    ].map(([key, title, desc]) => (
+                      <label key={key} className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <input
+                          type="checkbox"
+                          className="w-5 h-5 mt-1 accent-sky-600 shrink-0"
+                          checked={documentBrandSettings[key] !== false}
+                          onChange={(e) => saveDocumentSettings({ [key]: e.target.checked })}
+                        />
+                        <span className="min-w-0">
+                          <span className={`block font-black ${theme.textTitle}`}>{title}</span>
+                          <span className={`block text-sm font-bold mt-1 ${theme.textMuted}`}>{desc}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className={`p-5 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>ขนาดโลโก้บนเอกสาร</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        ['small', 'เล็ก'],
+                        ['normal', 'ปกติ'],
+                        ['large', 'ใหญ่']
+                      ].map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => saveDocumentSettings({ logoSize: value })}
+                          className={`px-3 py-3 rounded-xl font-black border ${documentBrandSettings.logoSize === value ? 'bg-sky-600 text-white border-sky-600' : theme.btnSecondary}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className={`p-5 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>โทนเอกสารตอนพิมพ์</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        ['official', 'ทางการ มีโลโก้/Watermark'],
+                        ['ink', 'ประหยัดหมึก ลดพื้นหลัง']
+                      ].map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => saveDocumentSettings({ printTone: value })}
+                          className={`px-3 py-3 rounded-xl font-black border ${documentBrandSettings.printTone === value ? 'bg-sky-600 text-white border-sky-600' : theme.btnSecondary}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className={`text-xs font-bold mt-3 ${theme.textMuted}`}>แนะนำ: ใช้ “ทางการ” สำหรับเอกสารแนบงานหรือส่งผู้บริหาร และใช้ “ประหยัดหมึก” สำหรับเอกสารภายในที่พิมพ์บ่อย</p>
+                  </div>
+
+                  <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
+                    <div className={`font-black mb-2 ${theme.textTitle}`}>ตัวอย่างภาพลักษณ์</div>
+                    <div className={`rounded-2xl p-5 border bg-white text-slate-900 ${isDarkMode ? 'border-blue-800' : 'border-blue-100'}`}>
+                      <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
+                        {showDocumentLogo('slipLogo') ? renderOrgSignature({ title: 'ใบยืมอุปกรณ์', subtitle: 'ศูนย์มัลติมีเดียทางการศึกษา', titleClass: 'text-slate-900 text-xl', subtitleClass: 'text-slate-500', logoClassName: 'w-24 h-14 rounded-2xl border border-slate-200 px-3 py-2 shadow-sm' }) : <div className="font-black text-2xl">ใบยืมอุปกรณ์</div>}
+                        <div className="text-right text-sm font-black text-slate-500">{makeDocumentRef('BR')}</div>
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                        <div className="rounded-xl border border-slate-200 p-3"><div className="text-slate-400 font-bold">ผู้ยืม</div><div className="font-black">ตัวอย่างผู้ยืม</div></div>
+                        <div className="rounded-xl border border-slate-200 p-3"><div className="text-slate-400 font-bold">เจ้าหน้าที่</div><div className="font-black">{currentAccountLabel}</div></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : settingsTab === 'database' ? (
@@ -5654,15 +6064,61 @@ S.N.: ${item.sn || '-'}
       {/* History Modal ของแต่ละอุปกรณ์ */}
       {showHistory && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full max-h-[80vh] flex flex-col shadow-2xl ${theme.cardBg}`}>
+          <div className={`rounded-3xl p-6 sm:p-8 max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6 gap-3">
-              <h3 className={`text-2xl font-black ${theme.textTitle}`}>ประวัติการยืม-คืน</h3>
+              <h3 className={`text-2xl font-black ${theme.textTitle}`}>รายละเอียดและประวัติอุปกรณ์</h3>
               <div className="flex items-center gap-2">
                 {items.find(i => i.id === showHistory) && <button type="button" onClick={() => exportItemHistoryCSV(items.find(i => i.id === showHistory))} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>Export CSV</button>}
                 <button type="button" onClick={() => setShowHistory(null)} className={`p-2 hover:text-blue-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
               </div>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
+              {(() => {
+                const detailItem = items.find(i => i.id === showHistory);
+                if (!detailItem) return null;
+                const detailStatus = STATUSES.find(s => s.id === detailItem.status) || STATUSES[0];
+                const detailDept = DEPARTMENTS.find(d => d.id === detailItem.department) || DEPARTMENTS[0];
+                const latestHistory = (detailItem.history || []).slice(-1)[0];
+                const detailProofCount = getItemProofCount(detailItem);
+                return (
+                  <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className={`text-2xl font-black leading-tight ${theme.textTitle}`}>{detailItem.name || '-'}</div>
+                        <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {detailItem.sn || '-'} • {detailItem.category || '-'} • {detailItem.location || '-'}</div>
+                      </div>
+                      <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-xl text-sm font-black border ${isDarkMode ? detailStatus.darkColor : detailStatus.color}`}>{detailStatus.label}</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+                      <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`text-xs font-bold ${theme.textMuted}`}>ฝ่าย</div>
+                        <div className={`font-black truncate ${theme.textTitle}`}>{detailDept.label || detailItem.department || '-'}</div>
+                      </div>
+                      <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`text-xs font-bold ${theme.textMuted}`}>กล่อง</div>
+                        <div className={`font-black truncate ${theme.textTitle}`}>{detailItem.storageBoxName || '-'}</div>
+                      </div>
+                      <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`text-xs font-bold ${theme.textMuted}`}>หลักฐาน</div>
+                        <div className={`font-black ${theme.textTitle}`}>📷 {detailProofCount} รูป</div>
+                      </div>
+                      <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`text-xs font-bold ${theme.textMuted}`}>QR</div>
+                        <div className={`font-black ${detailItem.qrTagged ? 'text-emerald-500' : 'text-amber-500'}`}>{detailItem.qrTagged ? 'ติดแล้ว' : 'ยังไม่ติด'}</div>
+                      </div>
+                    </div>
+                    {latestHistory && <div className={`mt-4 text-sm font-bold ${theme.textMuted}`}>ประวัติล่าสุด: {latestHistory.type === 'borrow' ? 'ยืม' : latestHistory.type === 'event' ? 'ออกงาน' : latestHistory.type === 'return' ? 'รับคืน' : latestHistory.type || '-'} • {latestHistory.date ? new Date(latestHistory.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>}
+                    {detailItem.internalNote && <div className={`mt-3 p-3 rounded-2xl border text-sm font-bold ${isDarkMode ? 'bg-amber-950/20 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>โน้ตภายใน: {detailItem.internalNote}</div>}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+                      {canUseOperationalTools && detailItem.status === 'available' && <button type="button" onClick={(e) => { setShowHistory(null); handleOpenRowBorrow(e, detailItem); }} className="px-3 py-2.5 rounded-xl font-black text-sm bg-purple-600 text-white">ยืม</button>}
+                      {canUseOperationalTools && detailItem.status === 'available' && <button type="button" onClick={(e) => { setShowHistory(null); handleOpenRowEvent(e, detailItem); }} className="px-3 py-2.5 rounded-xl font-black text-sm bg-orange-500 text-white">ออกงาน</button>}
+                      {canUseOperationalTools && (detailItem.status === 'borrowed' || detailItem.status === 'out-for-event') && <button type="button" onClick={() => { setShowHistory(null); openReturnForItems([detailItem.id]); }} className="px-3 py-2.5 rounded-xl font-black text-sm bg-emerald-600 text-white">รับคืน</button>}
+                      <button type="button" onClick={() => copyItemSummary(detailItem)} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>คัดลอก</button>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {(() => {
                 const historyItem = items.find(i => i.id === showHistory);
                 const historyList = historyItem?.history || [];
