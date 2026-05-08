@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.5 Premium UI Polish';
-const APP_UPDATE_NOTE = 'ปรับหน้าตาแบบพรีเมียม + รองรับโลโก้ศูนย์ + Dashboard/ตาราง/Gallery สวยขึ้น';
+const APP_VERSION = 'v22.6 Brand Identity Pack';
+const APP_UPDATE_NOTE = 'เพิ่มตราโลโก้ MDEC ใน QR / ใบยืม / ฉลากต่างๆ + ปรับภาพลักษณ์เอกสารให้เป็นของศูนย์ชัดเจน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -312,6 +312,48 @@ function MainApp() {
     modalOverlay: isDarkMode ? 'bg-black/70' : 'bg-slate-900/40',
     statCard: isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800',
   };
+
+
+
+  const renderOrgLogoBox = ({ className = '', imgClassName = 'w-full h-full object-contain', fallbackIconClass = 'w-5 h-5' } = {}) => (
+    <div className={`bg-white overflow-hidden flex items-center justify-center shrink-0 ${className}`}>
+      {!brandLogoError ? (
+        <img src={ORG_LOGO_SRC} alt="MDEC Logo" className={imgClassName} onError={() => setBrandLogoError(true)} />
+      ) : (
+        <div className="w-full h-full bg-gradient-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center rounded-inherit">
+          <Icons.Package className={fallbackIconClass} />
+        </div>
+      )}
+    </div>
+  );
+
+  const renderOrgSignature = ({
+    title = 'MDEC-Stock',
+    subtitle = 'ศูนย์มัลติมีเดียทางการศึกษา',
+    compact = false,
+    noText = false,
+    containerClass = '',
+    titleClass = '',
+    subtitleClass = '',
+    textWrapClass = '',
+    logoClassName = ''
+  } = {}) => (
+    <div className={`flex items-center ${compact ? 'gap-2' : 'gap-3'} ${containerClass}`}>
+      {renderOrgLogoBox({
+        className: logoClassName || (compact
+          ? 'w-16 h-10 rounded-xl border border-slate-300 px-2 py-1'
+          : 'w-24 h-14 rounded-2xl border border-slate-300 px-3 py-2'),
+        imgClassName: 'w-full h-full object-contain',
+        fallbackIconClass: compact ? 'w-4 h-4' : 'w-6 h-6'
+      })}
+      {!noText && (
+        <div className={`min-w-0 leading-tight ${textWrapClass}`}>
+          <div className={`font-black tracking-wide ${compact ? 'text-[10px]' : 'text-sm'} ${titleClass}`}>{title}</div>
+          <div className={`font-bold ${compact ? 'text-[9px]' : 'text-xs'} ${subtitleClass}`}>{subtitle}</div>
+        </div>
+      )}
+    </div>
+  );
 
   const pushToast = (message, type = 'info', title = '') => {
     const id = `toast_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -2937,9 +2979,15 @@ S.N.: ${item.sn || '-'}
             <div className="border-b-[3px] border-black px-4 py-3 print:px-3 print:py-2">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className={`${boxPreset.meta} font-black tracking-[0.18em] uppercase leading-none`}>MDEC STORAGE BOX</div>
-                  <div className={`${boxPreset.title} font-black leading-tight mt-1 break-words`}>{boxLabelTitle || 'กล่องอุปกรณ์ MDEC'}</div>
-                  <div className={`${boxPreset.meta} font-bold mt-1`}>ศูนย์มัลติมีเดียทางการศึกษา</div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className={`${boxPreset.meta} font-black tracking-[0.18em] uppercase leading-none`}>MDEC STORAGE BOX</div>
+                      <div className={`${boxPreset.title} font-black leading-tight mt-1 break-words`}>{boxLabelTitle || 'กล่องอุปกรณ์ MDEC'}</div>
+                      <div className={`${boxPreset.meta} font-bold mt-1`}>ศูนย์มัลติมีเดียทางการศึกษา</div>
+                      <div className={`${boxPreset.meta} font-black mt-1`}>ทรัพย์สินของ MDEC • ใช้ภายในศูนย์</div>
+                    </div>
+                    {renderOrgLogoBox({ className: 'w-20 h-12 rounded-2xl border-[2px] border-black px-2 py-1.5', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-5 h-5' })}
+                  </div>
                 </div>
                 <div className="shrink-0 border-[2px] border-black px-3 py-2 text-center min-w-[58px] print:min-w-[48px]">
                   <div className="text-3xl print:text-[20pt] font-black leading-none">{selectedLabelItems.length}</div>
@@ -2987,8 +3035,11 @@ S.N.: ${item.sn || '-'}
               )}
             </div>
 
-            <div className="border-t-[2px] border-black px-4 py-2 print:px-3 print:py-1.5 flex justify-between gap-3 text-[10px] print:text-[7pt] font-black">
-              <span>ตรวจเช็กก่อนใช้งานและหลังเก็บทุกครั้ง</span>
+            <div className="border-t-[2px] border-black px-4 py-2 print:px-3 print:py-1.5 flex justify-between items-center gap-3 text-[10px] print:text-[7pt] font-black">
+              <div className="flex items-center gap-2 min-w-0">
+                {renderOrgLogoBox({ className: 'w-12 h-7 rounded-lg border border-black px-1.5 py-1', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                <span className="truncate">ตรวจเช็กก่อนใช้งานและหลังเก็บทุกครั้ง • ทรัพย์สินของ MDEC</span>
+              </div>
               <span className="shrink-0">พิมพ์วันที่ {new Date().toLocaleDateString('th-TH')}</span>
             </div>
           </div>
@@ -3156,10 +3207,14 @@ S.N.: ${item.sn || '-'}
                 if(!item) return null;
                 return (
                    <div key={id} className={`qr-plain-card border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-center break-inside-avoid print:border-solid print:border-black rounded-xl print:rounded-none relative print:min-h-0 ${qrPreset.card}`}>
-                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=${qrPreset.qrServer}x${qrPreset.qrServer}&data=${encodeURIComponent(item.id)}`} alt="QR" className={`${qrPreset.qrClass} object-contain mb-1.5`} />
+                      <div className="absolute left-1.5 top-1.5 print:left-1 print:top-1">
+                        {renderOrgLogoBox({ className: 'w-9 h-6 print:w-7 print:h-5 rounded-md border border-slate-300 px-1 py-0.5', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                      </div>
+                      <div className="absolute right-1.5 top-1.5 text-[8px] print:text-[6px] font-black tracking-wide text-blue-700 border border-blue-200 bg-blue-50 rounded px-1 py-0.5">MDEC</div>
+                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=${qrPreset.qrServer}x${qrPreset.qrServer}&data=${encodeURIComponent(item.id)}`} alt="QR" className={`${qrPreset.qrClass} object-contain mb-1.5 mt-3`} />
                       <span className={`${qrPreset.nameClass} font-black leading-tight line-clamp-2 w-full`}>{item.name}</span>
                       <span className={`${qrPreset.snClass} font-bold text-gray-600 mt-1`}>{item.sn}</span>
-                      {item.owner && <span className="text-[9px] font-bold bg-gray-200 px-1 rounded mt-1">👤 {item.owner}</span>}
+                      {item.owner ? <span className="text-[9px] font-bold bg-gray-200 px-1 rounded mt-1">👤 {item.owner}</span> : <span className="text-[8px] font-black text-blue-700 mt-1">ทรัพย์สิน MDEC</span>}
                    </div>
                 )
              })}
@@ -3174,9 +3229,12 @@ S.N.: ${item.sn || '-'}
                 return (
                    <div key={id} className={`qr-label-card border border-slate-900 rounded-xl flex flex-col bg-white text-slate-900 break-inside-avoid shadow-sm print:rounded-none overflow-hidden ${qrPreset.labelCard}`}>
                       <div className="flex items-center justify-between gap-2 border-b border-slate-300 pb-1 mb-1.5 print:pb-0.5 print:mb-1">
-                        <div className="leading-tight min-w-0">
-                          <div className={`${qrPreset.labelTitleClass} font-black tracking-wide text-blue-700`}>MDEC STOCK</div>
-                          <div className="text-[9px] print:text-[6.5px] font-bold text-slate-500 truncate">ศูนย์มัลติมีเดียทางการศึกษา</div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          {renderOrgLogoBox({ className: 'w-11 h-7 print:w-9 print:h-6 rounded-lg border border-slate-300 px-1.5 py-0.5', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                          <div className="leading-tight min-w-0">
+                            <div className={`${qrPreset.labelTitleClass} font-black tracking-wide text-blue-700`}>MDEC STOCK</div>
+                            <div className="text-[9px] print:text-[6.5px] font-bold text-slate-500 truncate">ศูนย์มัลติมีเดียทางการศึกษา</div>
+                          </div>
                         </div>
                         <div className="text-[8px] print:text-[6px] font-black border border-blue-700 text-blue-700 px-1 py-0.5 rounded-md shrink-0">QR</div>
                       </div>
@@ -3202,8 +3260,9 @@ S.N.: ${item.sn || '-'}
                           ของส่วนตัว: {item.owner}
                         </div>
                       ) : (
-                        <div className="mt-1.5 print:mt-0.5 text-[8px] print:text-[6px] font-black bg-blue-50 border border-blue-200 text-blue-700 px-1.5 py-0.5 rounded-md truncate">
-                          ทรัพย์สินศูนย์มัลติมีเดีย
+                        <div className="mt-1.5 print:mt-0.5 flex items-center gap-1 text-[8px] print:text-[6px] font-black bg-blue-50 border border-blue-200 text-blue-700 px-1.5 py-0.5 rounded-md truncate">
+                          {renderOrgLogoBox({ className: 'w-7 h-4 print:w-6 print:h-3.5 rounded-sm border border-blue-200 px-0.5 py-0.5', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-2.5 h-2.5' })}
+                          <span className="truncate">ทรัพย์สินศูนย์มัลติมีเดีย</span>
                         </div>
                       )}
                    </div>
@@ -3223,12 +3282,36 @@ S.N.: ${item.sn || '-'}
           <h2 className="font-bold text-xl flex items-center gap-2"><Icons.Printer className="w-6 h-6" /> {printSlipData.title}</h2>
           <div className="flex gap-3"><button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors"><Icons.Printer className="w-5 h-5"/> {isPrepSlip ? 'พิมพ์ใบเตรียมของ' : 'พิมพ์ใบยืม'}</button><button onClick={() => setPrintSlipData(null)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button></div>
         </div>
-        <div className="pt-24 print:pt-0 p-6 print:p-0 max-w-4xl mx-auto"><div className="bg-white p-8 print:p-6 shadow-xl print:shadow-none border border-slate-200 print:border-0 rounded-2xl print:rounded-none">
-          <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6"><div><h1 className="text-3xl font-black">{printSlipData.title}</h1><p className="text-base font-bold mt-1">ศูนย์มัลติมีเดียทางการศึกษา (MDEC)</p>{isPrepSlip && <p className="text-sm font-bold mt-1 text-slate-600">ใช้สำหรับเช็กรายการอุปกรณ์ก่อนนำออกงานจริง</p>}</div><div className="text-right text-sm font-bold"><div>เลขที่: {printSlipData.ref}</div><div>วันที่ออกเอกสาร: {new Date(printSlipData.date).toLocaleString('th-TH', { hour12: false })}</div></div></div>
-          <div className="grid grid-cols-2 gap-4 mb-6 text-base"><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">{isPrepSlip ? 'ชื่องาน / รายการเตรียมของ' : 'ผู้ยืม / ชื่องาน'}</div><div className="font-black text-lg">{printSlipData.borrower || '-'}</div></div><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">{isPrepSlip ? 'ผู้รับผิดชอบ' : 'เจ้าหน้าที่ผู้ให้ยืม / ผู้นำออก'}</div><div className="font-black text-lg">{printSlipData.staffOut || '-'}</div></div><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">{isPrepSlip ? 'วันที่ใช้งาน' : 'กำหนดคืน'}</div><div className="font-black text-lg">{printSlipData.expectedReturn ? new Date(printSlipData.expectedReturn).toLocaleDateString('th-TH') : '-'}</div></div><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">หมายเหตุ</div><div className="font-bold">{printSlipData.note || '-'}</div></div></div>
+        <div className="pt-24 print:pt-0 p-6 print:p-0 max-w-4xl mx-auto"><div className="relative overflow-hidden bg-white p-8 print:p-6 shadow-xl print:shadow-none border border-slate-200 print:border-0 rounded-2xl print:rounded-none">
+          {!brandLogoError && <img src={ORG_LOGO_SRC} alt="MDEC Watermark" className="absolute right-6 top-8 w-44 opacity-[0.06] pointer-events-none select-none" onError={() => setBrandLogoError(true)} />}
+          <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6 gap-4 relative z-[1]">
+            <div className="min-w-0">
+              {renderOrgSignature({
+                title: printSlipData.title,
+                subtitle: 'ศูนย์มัลติมีเดียทางการศึกษา (MDEC)',
+                compact: false,
+                containerClass: 'mb-2',
+                titleClass: 'text-slate-900 text-3xl',
+                subtitleClass: 'text-slate-600 text-sm',
+                textWrapClass: 'min-w-0',
+                logoClassName: 'w-24 h-14 rounded-2xl border border-slate-300 px-3 py-2'
+              })}
+              <p className="text-sm font-black text-blue-700">เอกสารจากระบบ MDEC-Stock • ใช้ภายในหน่วยงาน</p>
+              {isPrepSlip && <p className="text-sm font-bold mt-1 text-slate-600">ใช้สำหรับเช็กรายการอุปกรณ์ก่อนนำออกงานจริง</p>}
+            </div>
+            <div className="text-right text-sm font-bold shrink-0 relative z-[1]"><div>เลขที่: {printSlipData.ref}</div><div>วันที่ออกเอกสาร: {new Date(printSlipData.date).toLocaleString('th-TH', { hour12: false })}</div></div>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mb-6 text-base relative z-[1]"><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">{isPrepSlip ? 'ชื่องาน / รายการเตรียมของ' : 'ผู้ยืม / ชื่องาน'}</div><div className="font-black text-lg">{printSlipData.borrower || '-'}</div></div><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">{isPrepSlip ? 'ผู้รับผิดชอบ' : 'เจ้าหน้าที่ผู้ให้ยืม / ผู้นำออก'}</div><div className="font-black text-lg">{printSlipData.staffOut || '-'}</div></div><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">{isPrepSlip ? 'วันที่ใช้งาน' : 'กำหนดคืน'}</div><div className="font-black text-lg">{printSlipData.expectedReturn ? new Date(printSlipData.expectedReturn).toLocaleDateString('th-TH') : '-'}</div></div><div className="border rounded-xl p-4"><div className="text-slate-500 font-bold text-sm">หมายเหตุ</div><div className="font-bold">{printSlipData.note || '-'}</div></div></div>
           <table className="w-full border-collapse mb-8 text-sm"><thead><tr className="bg-slate-900 text-white">{isPrepSlip && <th className="border border-slate-900 px-3 py-2 text-left w-16">เช็ก</th>}<th className="border border-slate-900 px-3 py-2 text-left w-12">#</th><th className="border border-slate-900 px-3 py-2 text-left">ชื่ออุปกรณ์</th><th className="border border-slate-900 px-3 py-2 text-left">S.N.</th><th className="border border-slate-900 px-3 py-2 text-left">หมวดหมู่</th>{isPrepSlip && <th className="border border-slate-900 px-3 py-2 text-left">กล่อง/ที่เก็บ</th>}<th className="border border-slate-900 px-3 py-2 text-left">หมายเหตุภายใน</th></tr></thead><tbody>{(printSlipData.items || []).map((item, index) => (<tr key={item.id || index}>{isPrepSlip && <td className="border px-3 py-2 text-center text-lg font-black">□</td>}<td className="border px-3 py-2 font-bold">{index + 1}</td><td className="border px-3 py-2 font-bold">{item.name || '-'}</td><td className="border px-3 py-2">{item.sn || '-'}</td><td className="border px-3 py-2">{item.category || '-'}</td>{isPrepSlip && <td className="border px-3 py-2 text-xs">{item.storageBoxName || '-'}</td>}<td className="border px-3 py-2 text-xs">{item.internalNote || '-'}</td></tr>))}</tbody></table>
           {isPrepSlip && <div className="border-2 border-dashed border-slate-400 rounded-xl p-4 mb-8 text-sm font-bold"><div className="font-black mb-2">หมายเหตุขณะเตรียมของ</div><div className="h-16"></div></div>}
-          <div className="grid grid-cols-2 gap-12 mt-14 text-center font-bold"><div><div className="border-b border-slate-900 h-12 mb-2"></div><div>{isPrepSlip ? 'ลงชื่อผู้เตรียมของ' : 'ลงชื่อผู้ยืม / ผู้รับผิดชอบงาน'}</div></div><div><div className="border-b border-slate-900 h-12 mb-2"></div><div>{isPrepSlip ? 'ลงชื่อผู้ตรวจรายการ' : 'ลงชื่อเจ้าหน้าที่ผู้ให้ยืม'}</div></div></div>
+          <div className="grid grid-cols-2 gap-12 mt-14 text-center font-bold relative z-[1]"><div><div className="border-b border-slate-900 h-12 mb-2"></div><div>{isPrepSlip ? 'ลงชื่อผู้เตรียมของ' : 'ลงชื่อผู้ยืม / ผู้รับผิดชอบงาน'}</div></div><div><div className="border-b border-slate-900 h-12 mb-2"></div><div>{isPrepSlip ? 'ลงชื่อผู้ตรวจรายการ' : 'ลงชื่อเจ้าหน้าที่ผู้ให้ยืม'}</div></div></div>
+          <div className="mt-10 pt-3 border-t border-slate-200 flex items-center justify-between gap-3 text-[11px] font-bold text-slate-500 relative z-[1]">
+            <div className="flex items-center gap-2 min-w-0">
+              {renderOrgLogoBox({ className: 'w-14 h-8 rounded-lg border border-slate-300 px-1.5 py-1', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+              <span className="truncate">เอกสารนี้ออกโดยระบบ MDEC-Stock เพื่อแสดงความเป็นเจ้าของและใช้ประกอบการยืม-คืนภายในศูนย์</span>
+            </div>
+            <span className="shrink-0">{APP_VERSION}</span>
+          </div>
         </div></div>
       </div>
     );
@@ -3417,11 +3500,11 @@ S.N.: ${item.sn || '-'}
         <div className={`h-2 ${isDarkMode ? 'bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500' : 'bg-gradient-to-r from-blue-600 via-sky-400 to-indigo-500'}`} />
         <div className={`flex flex-col xl:flex-row justify-between items-center gap-5 p-5 sm:p-6 ${isDarkMode ? 'bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.18),_transparent_32%)]' : 'bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.10),_transparent_32%)]'}`}>
           <div className="flex items-center gap-4 w-full xl:w-auto min-w-0">
-            <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-3xl flex items-center justify-center overflow-hidden shrink-0 shadow-xl ring-4 ${isDarkMode ? 'bg-slate-950 ring-blue-500/20 border border-slate-700' : 'bg-white ring-blue-100 border border-slate-100'}`}>
+            <div className={`w-36 sm:w-44 md:w-52 h-16 sm:h-20 rounded-[1.4rem] flex items-center justify-center overflow-hidden shrink-0 shadow-xl ring-4 bg-white ring-cyan-300/20 border border-white/80 px-4 py-3`}>
               {!brandLogoError ? (
-                <img src={ORG_LOGO_SRC} alt="MDEC Logo" className="w-full h-full object-contain p-2" onError={() => setBrandLogoError(true)} />
+                <img src={ORG_LOGO_SRC} alt="MDEC Logo" className="w-full h-full object-contain drop-shadow-sm" onError={() => setBrandLogoError(true)} />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center"><Icons.Package className="w-9 h-9" /></div>
+                <div className="w-full h-full rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center"><Icons.Package className="w-9 h-9" /></div>
               )}
             </div>
             <div className="min-w-0">
@@ -3429,7 +3512,7 @@ S.N.: ${item.sn || '-'}
                 <span className={`text-[11px] font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-blue-600'}`}>Educational Multimedia Center</span>
                 <span className={`text-[11px] font-black px-2 py-1 rounded-full border ${isDarkMode ? 'bg-blue-950/50 text-blue-300 border-blue-800' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>{APP_VERSION}</span>
               </div>
-              <h1 className={`text-3xl sm:text-4xl font-black tracking-tight leading-tight ${theme.textTitle}`}>MDEC-Stock</h1>
+              <h1 className={`text-2xl sm:text-4xl font-black tracking-tight leading-tight ${theme.textTitle}`}>MDEC-Stock</h1>
               <p className={`font-bold text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดียทางการศึกษา</p>
               <p className={`font-bold text-xs sm:text-sm mt-1 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>อัปเดตล่าสุด: {APP_UPDATE_NOTE}</p>
             </div>
