@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.12 My Account Modal Fix';
-const APP_UPDATE_NOTE = 'แก้ปุ่มบัญชีของฉันให้เปิดหน้าต่างข้อมูลบัญชีและเปลี่ยน PIN ได้จริง';
+const APP_VERSION = 'v22.14 Proof Replace & Help Fix';
+const APP_UPDATE_NOTE = 'เพิ่มแก้ไข/แทนที่/ลบรูปหลักฐาน และแก้ปุ่มคู่มือใช้งานให้เปิดหน้าคู่มือได้จริง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -217,6 +217,9 @@ function MainApp() {
   const [proofCenterFilter, setProofCenterFilter] = useState('all');
   const [proofCenterSearch, setProofCenterSearch] = useState('');
   const [expandedProofGroupId, setExpandedProofGroupId] = useState(null);
+  const [proofEditTarget, setProofEditTarget] = useState(null);
+  const [proofEditForm, setProofEditForm] = useState({ contextLabel: '', note: '' });
+  const [proofEditReplaceFiles, setProofEditReplaceFiles] = useState([]);
   const [showSystemHealthModal, setShowSystemHealthModal] = useState(false);
   const [showMonthlyReportModal, setShowMonthlyReportModal] = useState(false);
   const [monthlyReportMonth, setMonthlyReportMonth] = useState(() => {
@@ -783,6 +786,179 @@ function MainApp() {
     } catch (error) {
       console.error(error);
       alert('❌ เพิ่มหลักฐานไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const openProofEditModal = (group) => {
+    if (!group) return;
+    const proof = group.proof || {};
+    const representative = group.representative || {};
+    setProofEditTarget(group);
+    setProofEditForm({
+      contextLabel: proof.contextLabel || representative.typeLabel || 'หลักฐาน',
+      note: proof.note || representative.note || ''
+    });
+    setProofEditReplaceFiles([]);
+  };
+
+  const updateProofReferencesInItems = async (targetProofKey, updater) => {
+    const updateTasks = [];
+    items.filter(item => item && !item.isDeleted).forEach((item) => {
+      let changed = false;
+      const history = (Array.isArray(item.history) ? item.history : []).map((h) => {
+        const proofs = Array.isArray(h.proofs) ? h.proofs : [];
+        const nextProofs = proofs.map((proof) => {
+          if (getProofUniqueKey(proof) !== targetProofKey) return proof;
+          changed = true;
+          return updater(proof, h, item);
+        }).filter(Boolean);
+        return changed && nextProofs !== proofs ? { ...h, proofs: nextProofs } : h;
+      });
+      if (changed) {
+        updateTasks.push(setDoc(getItemDoc(item.id), {
+          history,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentAccountLabel
+        }, { merge: true }));
+      }
+    });
+    await Promise.all(updateTasks);
+    return updateTasks.length;
+  };
+
+  const handleSaveProofEdit = async () => {
+    if (!proofEditTarget) return;
+    if (!canUseOperationalTools) return alert('บัญชีนี้ไม่มีสิทธิ์แก้ไขรูปหลักฐาน');
+    const targetKey = proofEditTarget.groupId;
+    const proofDocId = proofEditTarget.proof?.proofDocId || proofEditTarget.proof?.id || proofEditTarget.groupId;
+    const cleanedContextLabel = String(proofEditForm.contextLabel || '').trim() || 'หลักฐาน';
+    const cleanedNote = String(proofEditForm.note || '').trim();
+    const updatedFields = {
+      contextLabel: cleanedContextLabel,
+      note: cleanedNote,
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentAccountLabel
+    };
+
+    try {
+      setIsBusy(true);
+      let affectedItems = 0;
+      const replaceFile = Array.from(proofEditReplaceFiles || []).filter(Boolean)[0];
+
+      if (replaceFile) {
+        const replacementList = await uploadProofFiles([replaceFile], cleanedContextLabel);
+        const replacement = {
+          ...(replacementList[0] || {}),
+          contextLabel: cleanedContextLabel,
+          note: cleanedNote,
+          replacedFrom: proofDocId || targetKey,
+          replacedAt: new Date().toISOString(),
+          replacedBy: currentAccountLabel
+        };
+        if (!replacement.id && !replacement.proofDocId) throw new Error('ไม่สามารถสร้างรูปหลักฐานใหม่ได้');
+
+        const newProofDocId = replacement.proofDocId || replacement.id;
+        try {
+          await setDoc(getProofDoc(newProofDocId), {
+            contextLabel: cleanedContextLabel,
+            note: cleanedNote,
+            replacedFrom: proofDocId || targetKey,
+            updatedAt: new Date().toISOString(),
+            updatedBy: currentAccountLabel
+          }, { merge: true });
+        } catch (newProofDocError) {
+          console.warn('New proof doc meta update skipped:', newProofDocError);
+        }
+
+        affectedItems = await updateProofReferencesInItems(targetKey, () => replacement);
+
+        try {
+          if (proofDocId && proofDocId !== newProofDocId) await deleteDoc(getProofDoc(proofDocId));
+        } catch (proofDocError) {
+          console.warn('Old proof doc delete skipped:', proofDocError);
+        }
+
+        try {
+          const oldMeta = settingsOptions.proofStorageMeta || {};
+          const bytesToRemove = (Number(proofEditTarget.proof?.sizeBytes) || 0) + (Number(proofEditTarget.proof?.thumbBytes) || 0);
+          const newMeta = {
+            ...oldMeta,
+            count: Math.max(0, Number(oldMeta.count) || 0),
+            totalBytes: Math.max(0, (Number(oldMeta.totalBytes) || 0) - bytesToRemove),
+            updatedAt: new Date().toISOString()
+          };
+          await setDoc(getSettingsDoc(), { proofStorageMeta: newMeta }, { merge: true });
+          setSettingsOptions(prev => ({ ...prev, proofStorageMeta: newMeta }));
+        } catch (metaError) {
+          console.warn('Proof replacement meta update skipped:', metaError);
+        }
+
+        await logAction('แทนที่รูปหลักฐาน', cleanedContextLabel, `แทนที่รูปหลักฐานที่เชื่อมโยงกับ ${affectedItems} อุปกรณ์/รายการ`);
+        pushToast('แทนที่รูปหลักฐานเรียบร้อยแล้ว', 'success');
+      } else {
+        affectedItems = await updateProofReferencesInItems(targetKey, (proof) => ({ ...proof, ...updatedFields }));
+        try {
+          if (proofDocId) await setDoc(getProofDoc(proofDocId), updatedFields, { merge: true });
+        } catch (proofDocError) {
+          console.warn('Proof doc edit skipped:', proofDocError);
+        }
+        await logAction('แก้ไขข้อมูลรูปหลักฐาน', cleanedContextLabel, `แก้ไขข้อมูลรูปหลักฐานที่เชื่อมโยงกับ ${affectedItems} อุปกรณ์/รายการ`);
+        pushToast('แก้ไขข้อมูลรูปหลักฐานเรียบร้อยแล้ว', 'success');
+      }
+
+      setProofEditTarget(null);
+      setProofEditForm({ contextLabel: '', note: '' });
+      setProofEditReplaceFiles([]);
+    } catch (error) {
+      console.error(error);
+      alert('❌ แก้ไขรูปหลักฐานไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleDeleteProofGroup = async (group) => {
+    if (!group) return;
+    if (!canUseOperationalTools) return alert('บัญชีนี้ไม่มีสิทธิ์ลบรูปหลักฐาน');
+    const targetKey = group.groupId;
+    const proofDocId = group.proof?.proofDocId || group.proof?.id || group.groupId;
+    const linkedItems = group.itemRefs?.length || group.entries?.length || 1;
+    const ok = window.confirm(`ต้องการลบรูปหลักฐานนี้จริงหรือไม่?\n\nรูปนี้เกี่ยวข้องกับ ${linkedItems} อุปกรณ์/รายการ\nเมื่อลบแล้ว รูปจะถูกถอดออกจากประวัติที่เกี่ยวข้องทั้งหมด และไม่สามารถกู้คืนจากระบบได้`);
+    if (!ok) return;
+
+    try {
+      setIsBusy(true);
+      const affectedItems = await updateProofReferencesInItems(targetKey, () => null);
+
+      try {
+        if (proofDocId) await deleteDoc(getProofDoc(proofDocId));
+      } catch (proofDocError) {
+        console.warn('Proof doc delete skipped:', proofDocError);
+      }
+
+      try {
+        const oldMeta = settingsOptions.proofStorageMeta || {};
+        const bytesToRemove = (Number(group.proof?.sizeBytes) || 0) + (Number(group.proof?.thumbBytes) || 0);
+        const newMeta = {
+          ...oldMeta,
+          count: Math.max(0, (Number(oldMeta.count) || 0) - 1),
+          totalBytes: Math.max(0, (Number(oldMeta.totalBytes) || 0) - bytesToRemove),
+          updatedAt: new Date().toISOString()
+        };
+        await setDoc(getSettingsDoc(), { proofStorageMeta: newMeta }, { merge: true });
+        setSettingsOptions(prev => ({ ...prev, proofStorageMeta: newMeta }));
+      } catch (metaError) {
+        console.warn('Proof meta update skipped:', metaError);
+      }
+
+      await logAction('ลบรูปหลักฐาน', group.representative?.itemName || 'รูปหลักฐาน', `ลบรูปหลักฐานที่เชื่อมโยงกับ ${affectedItems} อุปกรณ์/รายการ`);
+      setExpandedProofGroupId(null);
+      pushToast('ลบรูปหลักฐานเรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ ลบรูปหลักฐานไม่สำเร็จ: ' + error.message);
     } finally {
       setIsBusy(false);
     }
@@ -1400,6 +1576,13 @@ S.N.: ${item.sn || '-'}
     };
   }, [items, settingsOptions.prepLists, settingsOptions.storageBoxes, todayFollowup]);
 
+  const getProofUniqueKey = (proof = {}) => String(
+    proof.proofDocId ||
+    proof.id ||
+    proof.docId ||
+    `${proof.createdAt || 'nodate'}_${proof.originalName || ''}_${proof.sizeBytes || ''}_${String(proof.thumbUrl || proof.url || '').slice(0, 96)}`
+  );
+
   const getItemProofCount = (item) => (Array.isArray(item?.history) ? item.history : []).reduce((sum, h) => sum + (Array.isArray(h.proofs) ? h.proofs.length : 0), 0);
 
   const allProofEntries = useMemo(() => {
@@ -1448,12 +1631,7 @@ S.N.: ${item.sn || '-'}
 
     allProofEntries.forEach((entry) => {
       const proof = entry.proof || {};
-      const groupKey = String(
-        proof.proofDocId ||
-        proof.id ||
-        proof.docId ||
-        `${proof.createdAt || entry.date || 'nodate'}_${proof.originalName || ''}_${proof.sizeBytes || ''}_${String(proof.thumbUrl || proof.url || '').slice(0, 96)}`
-      );
+      const groupKey = getProofUniqueKey(proof);
 
       if (!groups.has(groupKey)) {
         groups.set(groupKey, {
@@ -6843,6 +7021,7 @@ S.N.: ${item.sn || '-'}
                             <div className={`text-xs font-bold ${theme.textMuted}`}>เรื่อง: {entry.subject || '-'}</div>
                             <div className={`text-xs font-bold ${theme.textMuted}`}>เวลา: {proof.timestampText || (entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-')}</div>
                             <div className={`text-xs font-bold ${theme.textMuted}`}>โดย: {proof.createdBy || entry.staff || '-'}</div>
+                            {proof.note && <div className={`text-xs font-bold ${theme.textMuted}`}>หมายเหตุ: {proof.note}</div>}
                           </div>
                         </button>
 
@@ -6850,6 +7029,12 @@ S.N.: ${item.sn || '-'}
                           <button type="button" onClick={() => setExpandedProofGroupId(expanded ? null : group.groupId)} className={`w-full py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>
                             {expanded ? 'ซ่อนรายการที่เกี่ยวข้อง' : `ดูรายการที่เกี่ยวข้อง (${group.itemRefs.length})`}
                           </button>
+                          {canUseOperationalTools && (
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                              <button type="button" onClick={() => openProofEditModal(group)} className={`py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>แก้ไขข้อมูล</button>
+                              <button type="button" onClick={() => handleDeleteProofGroup(group)} className="py-2 rounded-xl border text-xs font-black bg-rose-600 text-white border-rose-600 hover:bg-rose-700">ลบรูปนี้</button>
+                            </div>
+                          )}
                           {expanded && (
                             <div className="mt-2 space-y-1.5">
                               {group.itemRefs.map((ref, idx) => (
@@ -6871,6 +7056,113 @@ S.N.: ${item.sn || '-'}
           </div>
         </div>
       )}
+
+      {/* Modal แก้ไขข้อมูลรูปหลักฐาน */}
+      {proofEditTarget && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[10020]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border ${theme.cardBg}`}>
+            <div className={`p-6 border-b flex justify-between items-start gap-4 ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl font-black ${theme.textTitle}`}>แก้ไขข้อมูลรูปหลักฐาน</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แก้ชื่อ/หมายเหตุของรูปนี้ โดยไม่ต้องอัปโหลดรูปใหม่</p>
+              </div>
+              <button type="button" onClick={() => { setProofEditTarget(null); setProofEditForm({ contextLabel: '', note: '' }); setProofEditReplaceFiles([]); }} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>ชื่อ / ประเภทหลักฐาน</label>
+                <input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={proofEditForm.contextLabel} onChange={e => setProofEditForm(prev => ({ ...prev, contextLabel: e.target.value }))} placeholder="เช่น หลักฐานการยืม / หลักฐานรับคืน" />
+              </div>
+              <div>
+                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>หมายเหตุรูปภาพ</label>
+                <textarea className={`w-full px-4 py-3 rounded-xl border font-bold min-h-[110px] ${theme.input}`} value={proofEditForm.note} onChange={e => setProofEditForm(prev => ({ ...prev, note: e.target.value }))} placeholder="เช่น รูปนี้เป็นภาพรวมของรายการยืมชุดลำโพง..." />
+              </div>
+              <div className={`p-4 rounded-2xl border text-sm font-bold ${isDarkMode ? 'bg-slate-950/40 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                รูปนี้เชื่อมโยงกับ {Number(proofEditTarget.itemRefs?.length || proofEditTarget.entries?.length || 1).toLocaleString('th-TH')} อุปกรณ์/รายการ การแก้ไขจะอัปเดตข้อมูลรูปนี้ในทุกจุดที่เกี่ยวข้อง
+              </div>
+            </div>
+            <div className={`p-4 border-t grid grid-cols-2 gap-2 ${theme.divide}`}>
+              <button type="button" onClick={() => { setProofEditTarget(null); setProofEditForm({ contextLabel: '', note: '' }); }} className={`py-3 rounded-xl font-black ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={handleSaveProofEdit} disabled={isBusy} className="py-3 rounded-xl font-black bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60">บันทึก</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal คู่มือใช้งาน */}
+      {showHelpModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[10010]`}>
+          <div className={`rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh] border ${theme.cardBg}`}>
+            <div className={`p-6 border-b flex flex-col sm:flex-row sm:items-start justify-between gap-4 ${theme.divide}`}>
+              <div>
+                <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}>
+                  <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white flex items-center justify-center shadow-lg">?</span>
+                  คู่มือใช้งาน MDEC-Stock
+                </h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปวิธีใช้แบบสั้น ๆ สำหรับเจ้าหน้าที่และผู้ดูแลระบบ</p>
+              </div>
+              <button type="button" onClick={() => setShowHelpModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  ['เริ่มงานประจำวัน', 'เปิด Daily Workflow เพื่อสแกน QR, เพิ่มอุปกรณ์, ดูของรอคืน และหลักฐานรูปภาพ'],
+                  ['ยืม / ออกงาน', 'เลือกอุปกรณ์ → กดยืมหรือออกงาน → กรอกผู้รับผิดชอบ → แนบรูปหลักฐานถ้าต้องการ → บันทึก'],
+                  ['รับคืน', 'เปิดศูนย์ติดตามงานหรือรายละเอียดอุปกรณ์ → กดรับคืน → ตรวจสภาพ → แนบหลักฐานรับคืนได้']
+                ].map(([title, desc], idx) => (
+                  <div key={title} className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black mb-3">{idx + 1}</div>
+                    <div className={`font-black text-lg ${theme.textTitle}`}>{title}</div>
+                    <p className={`text-sm font-bold mt-2 ${theme.textMuted}`}>{desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-pink-950/20 border-pink-800' : 'bg-pink-50 border-pink-200'}`}>
+                <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>📷 การจัดการรูปหลักฐาน</h4>
+                <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-bold ${theme.textMuted}`}>
+                  <div>• รูปหลักฐานไม่บังคับ ยกเว้นผู้ดูแลตั้งค่าให้บังคับ</div>
+                  <div>• ระบบจะย่อรูปและประทับเวลา/พิกัดให้เอง</div>
+                  <div>• รูปเดียวที่ผูกหลายอุปกรณ์จะแสดงรวมเป็น 1 ใบใน Gallery</div>
+                  <div>• เจ้าหน้าที่สามารถแก้ชื่อ/หมายเหตุ แทนที่รูปใหม่ หรือลบรูปหลักฐานที่อัปโหลดผิดได้</div>
+                </div>
+              </div>
+
+              <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200'}`}>
+                <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>✅ วิธีลบรูปทดลองที่อัปโหลดผิด</h4>
+                <ol className={`list-decimal pl-5 space-y-2 text-sm font-bold ${theme.textMuted}`}>
+                  <li>เปิดเมนู <b>เพิ่มเติม → หลักฐานรูปภาพ</b></li>
+                  <li>ค้นหารูปจากชื่ออุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน</li>
+                  <li>กดปุ่ม <b>ลบรูปนี้</b> ใต้รูปที่ต้องการลบ</li>
+                  <li>ยืนยันการลบ ระบบจะถอดรูปออกจากประวัติอุปกรณ์ที่เกี่ยวข้องทั้งหมด</li>
+                </ol>
+              </div>
+
+              <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950/40 border-slate-700' : 'bg-white border-slate-200'}`}>
+                <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>สิทธิ์การใช้งานโดยย่อ</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {[
+                    ['บัญชีกลาง', 'จัดการทุกอย่าง เพิ่ม/ปิดบัญชี ตั้งค่า และล้าง/สำรองข้อมูล'],
+                    ['ผู้ดูแล', 'จัดการอุปกรณ์ ผู้ใช้ และงานหลักได้เกือบทั้งหมด'],
+                    ['เจ้าหน้าที่', 'เพิ่ม/แก้ไขอุปกรณ์ ยืม คืน ออกงาน และจัดการหลักฐานได้']
+                  ].map(([role, desc]) => (
+                    <div key={role} className={`p-4 rounded-2xl border ${theme.btnSecondary}`}>
+                      <div className={`font-black ${theme.textTitle}`}>{role}</div>
+                      <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className={`p-4 border-t ${theme.divide}`}>
+              <button type="button" onClick={() => setShowHelpModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดคู่มือ</button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* ตรวจสุขภาพระบบ */}
       {showSystemHealthModal && (
