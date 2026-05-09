@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.18 Scanner Direct Edit & Checklist Scan';
-const APP_UPDATE_NOTE = 'สแกน QR แล้วแก้ไขอุปกรณ์ได้ทันที และเพิ่มสแกน QR เพื่อเช็กของในขั้นตอนยืม/ออกงาน/รับคืน';
+const APP_VERSION = 'v22.19 QR Label Quiet Zone Polish';
+const APP_UPDATE_NOTE = 'ปรับฉลาก QR ให้เว้นขอบขาวรอบ QR ชัดขึ้น ย้ายโลโก้ออกจากพื้นที่สแกน และลดโอกาสสแกนไม่ติด';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -3602,7 +3602,7 @@ S.N.: ${item.sn || '-'}
         qrClass: 'w-44 h-44 print:w-40 print:h-40',
         qrServer: 320,
         printCardWidth: '58mm',
-        printCardHeight: '66mm',
+        printCardHeight: '70mm',
         printQrSize: '46mm',
         nameClass: 'text-base',
         snClass: 'text-xs',
@@ -3634,7 +3634,8 @@ S.N.: ${item.sn || '-'}
              .qr-label-card, .qr-plain-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; }
              .qr-plain-grid { grid-template-columns: repeat(auto-fill, var(--qr-card-width)) !important; justify-content: start !important; align-items: start !important; gap: 2mm !important; }
              .qr-plain-card { width: var(--qr-card-width) !important; min-height: var(--qr-card-height) !important; padding: 1.2mm !important; box-sizing: border-box !important; }
-             .qr-plain-card img { width: var(--qr-image-size) !important; height: var(--qr-image-size) !important; margin-bottom: 1mm !important; }
+             .qr-plain-card .qr-code-image { width: var(--qr-image-size) !important; height: var(--qr-image-size) !important; margin-bottom: 1mm !important; }
+             .qr-plain-card .qr-brand-logo img, .qr-label-card .qr-brand-logo img { width: 100% !important; height: 100% !important; }
            }
          `}</style>
          <div className="print:hidden p-4 bg-slate-800 text-white flex flex-col xl:flex-row justify-between items-center fixed top-0 w-full z-50 shadow-md gap-3">
@@ -3695,7 +3696,7 @@ S.N.: ${item.sn || '-'}
                </div>
 
                <div className="w-full text-xs sm:text-sm font-bold text-slate-300 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-3">
-                 แนะนำ: ถ้าติดอุปกรณ์ที่ต้องสแกนบ่อย ให้ใช้ขนาด <b>สแกนง่ายมาก</b> และเว้นขอบขาวรอบ QR ให้ชัด ลดโอกาสสแกนไม่ติดจากแสงสะท้อนหรือกล้องโฟกัสไม่ทัน
+                 แนะนำ: ถ้าติดอุปกรณ์ที่ต้องสแกนบ่อย ให้ใช้ขนาด <b>สแกนง่ายมาก</b> ระบบจะเว้น <b>Quiet Zone</b> หรือขอบขาวรอบ QR ให้โล่งขึ้น และย้ายโลโก้ออกจากพื้นที่สแกน เพื่อลดปัญหาสแกนไม่ติด
                </div>
 
                <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
@@ -3717,13 +3718,17 @@ S.N.: ${item.sn || '-'}
                 const item = items.find(i => i.id === id);
                 if(!item) return null;
                 return (
-                   <div key={id} className={`qr-plain-card border border-slate-300 flex flex-col items-center justify-center text-center break-inside-avoid print:border-solid print:border-slate-400 rounded-xl print:rounded-none relative print:min-h-0 ${qrPreset.card}`}>
-                      <div className="absolute left-1.5 top-1.5 print:left-1 print:top-1">
-                        {showDocumentLogo('qrLogo') && renderOrgLogoBox({ className: 'w-10 h-6 print:w-8 print:h-5 rounded-md border border-slate-200 px-1 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                   <div key={id} className={`qr-plain-card border border-slate-300 flex flex-col items-center text-center break-inside-avoid print:border-solid print:border-slate-400 rounded-xl print:rounded-none relative print:min-h-0 bg-white ${qrPreset.card}`}>
+                      <div className="w-full flex items-center justify-between gap-2 mb-2 print:mb-1">
+                        <div className="qr-brand-logo">
+                          {showDocumentLogo('qrLogo') && renderOrgLogoBox({ className: 'w-12 h-7 print:w-10 print:h-6 rounded-lg border border-slate-200 px-1.5 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                        </div>
+                        <div className="text-[9px] print:text-[6.5px] font-black tracking-wide text-blue-700 border border-blue-200 bg-blue-50 rounded-lg px-2 py-1">MDEC ASSET</div>
                       </div>
-                      <div className="absolute right-1.5 top-1.5 text-[8px] print:text-[6px] font-black tracking-wide text-blue-700 border border-blue-200 bg-blue-50 rounded px-1 py-0.5">MDEC</div>
-                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=${qrPreset.qrServer}x${qrPreset.qrServer}&data=${encodeURIComponent(item.id)}`} alt="QR" className={`${qrPreset.qrClass} object-contain mb-1.5 mt-3`} />
-                      <span className={`${qrPreset.nameClass} font-black leading-tight line-clamp-2 w-full`}>{item.name}</span>
+                      <div className="qr-safe-zone bg-white p-2.5 print:p-1.5 rounded-xl border border-white shadow-none">
+                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=${qrPreset.qrServer}x${qrPreset.qrServer}&margin=4&data=${encodeURIComponent(item.id)}`} alt="QR" className={`qr-code-image ${qrPreset.qrClass} object-contain block`} />
+                      </div>
+                      <span className={`${qrPreset.nameClass} font-black leading-tight line-clamp-2 w-full mt-1.5`}>{item.name}</span>
                       <span className={`${qrPreset.snClass} font-bold text-gray-600 mt-1`}>{item.sn}</span>
                       {item.owner ? <span className="text-[9px] font-bold bg-gray-200 px-1 rounded mt-1">👤 {item.owner}</span> : <span className="text-[8px] font-black text-blue-700 mt-1">ทรัพย์สิน MDEC</span>}
                    </div>
@@ -3738,24 +3743,28 @@ S.N.: ${item.sn || '-'}
                 const deptInfo = DEPARTMENTS.find(d => d.id === item.department);
                 const qrValue = encodeURIComponent(item.id || item.sn || item.name || 'MDEC-STOCK');
                 return (
-                   <div key={id} className={`qr-label-card border border-slate-900 rounded-xl flex flex-col bg-white text-slate-900 break-inside-avoid shadow-sm print:rounded-none overflow-hidden ${qrPreset.labelCard}`}>
-                      <div className="flex items-center justify-between gap-2 border-b border-slate-300 pb-1 mb-1.5 print:pb-0.5 print:mb-1">
+                   <div key={id} className={`qr-label-card border border-slate-300 rounded-xl flex flex-col bg-white text-slate-900 break-inside-avoid shadow-sm print:rounded-none overflow-hidden ${qrPreset.labelCard}`}>
+                      <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-1.5 mb-2 print:pb-0.5 print:mb-1">
                         <div className="flex items-center gap-2 min-w-0">
-                          {showDocumentLogo('qrLogo') && renderOrgLogoBox({ className: 'w-12 h-7 print:w-10 print:h-6 rounded-lg border border-slate-200 px-1.5 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                          <div className="qr-brand-logo">
+                            {showDocumentLogo('qrLogo') && renderOrgLogoBox({ className: 'w-12 h-7 print:w-10 print:h-6 rounded-lg border border-slate-200 px-1.5 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                          </div>
                           <div className="leading-tight min-w-0">
                             <div className={`${qrPreset.labelTitleClass} font-black tracking-wide text-blue-700`}>MDEC STOCK</div>
                             <div className="text-[9px] print:text-[6.5px] font-bold text-slate-500 truncate">ศูนย์มัลติมีเดียทางการศึกษา</div>
                           </div>
                         </div>
-                        <div className="text-[8px] print:text-[6px] font-black border border-blue-700 text-blue-700 px-1 py-0.5 rounded-md shrink-0">QR</div>
+                        <div className="text-[8px] print:text-[6px] font-black border border-blue-200 bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md shrink-0">QR SAFE</div>
                       </div>
 
                       <div className="flex gap-2 items-stretch">
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=${qrPreset.labelQrServer}x${qrPreset.labelQrServer}&margin=1&data=${qrValue}`}
-                          alt="QR"
-                          className={`${qrPreset.labelQrClass} object-contain shrink-0 border border-slate-300 rounded-md p-0.5 bg-white`}
-                        />
+                        <div className="qr-safe-zone bg-white p-2 print:p-1 rounded-lg border border-slate-200 shrink-0">
+                          <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=${qrPreset.labelQrServer}x${qrPreset.labelQrServer}&margin=4&data=${qrValue}`}
+                            alt="QR"
+                            className={`qr-code-image ${qrPreset.labelQrClass} object-contain block bg-white`}
+                          />
+                        </div>
                         <div className="min-w-0 flex-1 leading-tight rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 print:px-1 print:py-1">
                           <div className={`${qrPreset.labelTitleClass} font-black line-clamp-2 text-slate-950`}>{item.name}</div>
                           <div className={`mt-1 grid grid-cols-[auto_1fr] gap-x-1 gap-y-0.5 ${qrPreset.labelTextClass} font-bold`}>
@@ -7446,7 +7455,7 @@ S.N.: ${item.sn || '-'}
                   <div>• ให้ QR อยู่ในกรอบสแกน และอย่าให้ชิดขอบจอจนเกินไป</div>
                   <div>• หลีกเลี่ยงแสงสะท้อนจากสติ๊กเกอร์เงา หรือถ่ายในที่แสงสว่างพอ</div>
                   <div>• ถ้าสแกนไม่ติด ให้ใช้ช่อง “กรอกรหัสเอง” ในหน้าสแกน</div>
-                  <div>• ตอนพิมพ์ QR แนะนำใช้ขนาด “สแกนง่ายมาก” สำหรับอุปกรณ์ที่ต้องหยิบใช้บ่อย</div>
+                  <div>• ตอนพิมพ์ QR แนะนำใช้ขนาด “สแกนง่ายมาก” และอย่าให้โลโก้/เส้นกรอบเข้าใกล้ QR เกินไป</div>
                 </div>
               </div>
 
