@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.15 Clean Navigation & QR Reliability';
-const APP_UPDATE_NOTE = 'จัดเมนูใหม่ให้สะอาดขึ้น รวมฟังก์ชันที่คล้ายกัน และปรับโหมดสแกน QR ให้สแกนติดง่ายขึ้น';
+const APP_VERSION = 'v22.16 Final Usability Cleanup';
+const APP_UPDATE_NOTE = 'เก็บงานหน้าหลัก ลดปุ่มรก รวมหลักฐานในประวัติ ปรับ QR ให้สแกนง่าย และขยายคู่มือในเว็บ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -241,7 +241,7 @@ function MainApp() {
 
   // 🖨️ สถานะสำหรับ Print & Scan QR Code
   const [showPrintModal, setShowPrintModal] = useState(false);
-  const [qrPrintSize, setQrPrintSize] = useState('normal');
+  const [qrPrintSize, setQrPrintSize] = useState('scanEasy');
   const [qrPrintMode, setQrPrintMode] = useState('plain');
   const [qrPrintColumns, setQrPrintColumns] = useState('auto');
   const [showBoxLabelPrintModal, setShowBoxLabelPrintModal] = useState(false);
@@ -737,31 +737,34 @@ function MainApp() {
       }
     } catch (error) {
       console.error(error);
-      alert('เปิดรูปหลักฐานไม่สำเร็จ: ' + error.message);
+      alert('เปิดรูปหลักฐานไม่ได้: ' + error.message);
     }
   };
 
-  const renderProofGallery = (proofs = []) => {
+  const renderProofGallery = (proofs = [], itemKeyword = '') => {
     const list = Array.isArray(proofs) ? proofs : [];
     if (list.length === 0) return null;
+    const first = list[0] || {};
+    const previewSrc = first.thumbUrl || first.url || '';
+    const openProofCenterFromHistory = () => {
+      setProofCenterSearch(itemKeyword || first.contextLabel || first.originalName || '');
+      setProofCenterFilter('all');
+      setShowProofCenterModal(true);
+    };
     return (
-      <div className="mt-4">
-        <div className={`text-sm font-black mb-2 ${theme.textTitle}`}>หลักฐานรูปภาพ ({list.length})</div>
-        <div className="grid grid-cols-2 gap-2">
-          {list.map((p, idx) => {
-            const previewSrc = p.thumbUrl || p.url || '';
-            return (
-              <button key={p.id || idx} type="button" onClick={() => openProofImage(p)} className={`block text-left rounded-xl overflow-hidden border ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'}`} title="เปิดรูปหลักฐาน">
-                {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-28 object-cover" /> : <div className={`w-full h-28 flex items-center justify-center text-xs font-black ${theme.textMuted}`}>คลิกเพื่อเปิดรูป</div>}
-                <div className={`p-2 text-[10px] font-bold leading-tight ${theme.textMuted}`}>
-                  <div className="truncate">{p.timestampText || (p.createdAt ? new Date(p.createdAt).toLocaleString('th-TH') : 'ไม่ระบุเวลา')}</div>
-                  <div className="truncate">{p.locationText || 'ไม่ระบุตำแหน่ง'}</div>
-                  <div className="truncate">โดย: {p.createdBy || '-'}</div>
-                  {p.sizeText && <div className="truncate">ขนาด: {p.sizeText}</div>}
-                </div>
-              </button>
-            );
-          })}
+      <div className={`mt-4 p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => openProofImage(first)} className={`w-20 h-16 rounded-xl overflow-hidden border shrink-0 ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'}`} title="เปิดรูปแรก">
+            {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-cover" /> : <div className={`w-full h-full flex items-center justify-center text-xs font-black ${theme.textMuted}`}>รูป</div>}
+          </button>
+          <div className="min-w-0 flex-1">
+            <div className={`text-sm font-black ${theme.textTitle}`}>มีหลักฐานรูปภาพ {list.length.toLocaleString('th-TH')} รูป</div>
+            <div className={`text-xs font-bold truncate ${theme.textMuted}`}>{first.timestampText || (first.createdAt ? new Date(first.createdAt).toLocaleString('th-TH') : 'ไม่ระบุเวลา')} • โดย {first.createdBy || '-'}</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          <button type="button" onClick={() => openProofImage(first)} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>เปิดรูปแรก</button>
+          <button type="button" onClick={openProofCenterFromHistory} className="px-3 py-2 rounded-xl text-xs font-black bg-pink-600 text-white">ดูในศูนย์หลักฐาน</button>
         </div>
       </div>
     );
@@ -926,7 +929,7 @@ function MainApp() {
     const targetKey = group.groupId;
     const proofDocId = group.proof?.proofDocId || group.proof?.id || group.groupId;
     const linkedItems = group.itemRefs?.length || group.entries?.length || 1;
-    const ok = window.confirm(`ต้องการลบรูปหลักฐานนี้จริงหรือไม่?\n\nรูปนี้เกี่ยวข้องกับ ${linkedItems} อุปกรณ์/รายการ\nเมื่อลบแล้ว รูปจะถูกถอดออกจากประวัติที่เกี่ยวข้องทั้งหมด และไม่สามารถกู้คืนจากระบบได้`);
+    const ok = window.confirm(`คุณกำลังลบรูปหลักฐานนี้\n\nรูปนี้เกี่ยวข้องกับ ${linkedItems} อุปกรณ์/รายการ\nเมื่อลบแล้ว รูปจะหายจากประวัติทั้งหมดที่เกี่ยวข้อง และไม่สามารถกู้คืนจากระบบได้\n\nต้องการลบต่อหรือไม่?`);
     if (!ok) return;
 
     try {
@@ -3633,6 +3636,10 @@ S.N.: ${item.sn || '-'}
                  ))}
                </div>
 
+               <div className="w-full text-xs sm:text-sm font-bold text-slate-300 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-3">
+                 แนะนำ: ถ้าติดอุปกรณ์ที่ต้องสแกนบ่อย ให้ใช้ขนาด <b>สแกนง่ายมาก</b> และเว้นขอบขาวรอบ QR ให้ชัด ลดโอกาสสแกนไม่ติดจากแสงสะท้อนหรือกล้องโฟกัสไม่ทัน
+               </div>
+
                <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
                  <Icons.Printer className="w-5 h-5"/> สั่งพิมพ์
                </button>
@@ -4489,12 +4496,17 @@ S.N.: ${item.sn || '-'}
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>รายละเอียด</button>
-                      <button type="button" onClick={() => copyItemSummary(item)} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>คัดลอก</button>
                       {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowBorrow(e, item)} className="px-3 py-2.5 rounded-xl font-black text-sm bg-purple-600 text-white">ยืม</button>}
+                      {canUseOperationalTools && (isBorrowed || isEvent) && <button type="button" onClick={() => { setReturnData({ staff: '', newStaff: '' }); setReturnTargetIds([item.id]); setReturnChecklist([]); }} className="px-3 py-2.5 rounded-xl font-black text-sm bg-emerald-600 text-white">รับคืน</button>}
                       {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowEvent(e, item)} className="px-3 py-2.5 rounded-xl font-black text-sm bg-orange-500 text-white">ออกงาน</button>}
-                      {canUseOperationalTools && (isBorrowed || isEvent) && <button type="button" onClick={() => { setReturnData({ staff: '', newStaff: '' }); setReturnTargetIds([item.id]); setReturnChecklist([]); }} className="col-span-2 px-3 py-2.5 rounded-xl font-black text-sm bg-emerald-600 text-white">รับคืน</button>}
-                      {canAddEditItems && <button type="button" onClick={() => { setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newOwner: item.owner || '', isPersonalItem: !!item.owner }); setShowForm(true); }} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>แก้ไข</button>}
-                      {canUseOperationalTools && <button type="button" onClick={() => openRepairForItem(item)} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${isDarkMode ? 'bg-rose-900/30 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>แจ้งซ่อม</button>}
+                      <details className={`col-span-2 rounded-xl border ${isDarkMode ? 'border-slate-700 bg-slate-950/30' : 'border-slate-200 bg-slate-50'}`}>
+                        <summary className={`list-none cursor-pointer px-3 py-2.5 rounded-xl font-black text-sm text-center ${theme.textTitle}`}>จัดการเพิ่มเติม</summary>
+                        <div className="grid grid-cols-2 gap-2 p-2 pt-0">
+                          <button type="button" onClick={() => copyItemSummary(item)} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>คัดลอก</button>
+                          {canAddEditItems && <button type="button" onClick={() => { setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newOwner: item.owner || '', isPersonalItem: !!item.owner }); setShowForm(true); }} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>แก้ไข</button>}
+                          {canUseOperationalTools && <button type="button" onClick={() => openRepairForItem(item)} className={`col-span-2 px-3 py-2.5 rounded-xl font-black text-sm border ${isDarkMode ? 'bg-rose-900/30 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>แจ้งซ่อม/บันทึกปัญหา</button>}
+                        </div>
+                      </details>
                     </div>
                   </div>
                 </div>
@@ -6540,7 +6552,7 @@ S.N.: ${item.sn || '-'}
                       ) : (
                         <div className={`text-lg ${theme.textMain}`}><p><span className={`font-bold ${theme.textTitle}`}>ผู้รับคืน (จนท.):</span> {h.staffIn || '-'}</p></div>
                       )}
-                      {renderProofGallery(h.proofs)}
+                      {renderProofGallery(h.proofs, historyItem?.sn || historyItem?.name || '')}
                       {canUseOperationalTools && (
                         <button type="button" onClick={() => { setProofAttachTarget({ itemId: historyItem.id, historyIndex: originalIndex }); setProofAttachFiles([]); }} className={`mt-4 w-full px-4 py-3 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>+ เพิ่มรูปหลักฐานย้อนหลัง</button>
                       )}
@@ -7185,6 +7197,26 @@ S.N.: ${item.sn || '-'}
                   <li>กดปุ่ม <b>ลบรูปนี้</b> ใต้รูปที่ต้องการลบ</li>
                   <li>ยืนยันการลบ ระบบจะถอดรูปออกจากประวัติอุปกรณ์ที่เกี่ยวข้องทั้งหมด</li>
                 </ol>
+              </div>
+
+              <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-blue-950/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
+                <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>🔎 วิธีสแกน QR ให้ติดง่าย</h4>
+                <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-bold ${theme.textMuted}`}>
+                  <div>• ให้ QR อยู่ในกรอบสแกน และอย่าให้ชิดขอบจอจนเกินไป</div>
+                  <div>• หลีกเลี่ยงแสงสะท้อนจากสติ๊กเกอร์เงา หรือถ่ายในที่แสงสว่างพอ</div>
+                  <div>• ถ้าสแกนไม่ติด ให้ใช้ช่อง “กรอกรหัสเอง” ในหน้าสแกน</div>
+                  <div>• ตอนพิมพ์ QR แนะนำใช้ขนาด “สแกนง่ายมาก” สำหรับอุปกรณ์ที่ต้องหยิบใช้บ่อย</div>
+                </div>
+              </div>
+
+              <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
+                <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>🧭 ชื่อเมนูหลักที่ใช้ในระบบ</h4>
+                <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-bold ${theme.textMuted}`}>
+                  <div><b>ศูนย์ติดตามงาน</b> = ดูของรอคืน ออกงานอยู่ วันนี้ และเลยกำหนด</div>
+                  <div><b>ศูนย์หลักฐานรูปภาพ</b> = ดู แก้ไข แทนที่ หรือลบรูปหลักฐาน</div>
+                  <div><b>จัดเก็บและจัดชุด</b> = กล่องเก็บของ เซ็ตอุปกรณ์ และรายการเตรียมของ</div>
+                  <div><b>เอกสารและฉลาก</b> = QR ฉลากกล่อง ใบยืม และตั้งค่าโลโก้เอกสาร</div>
+                </div>
               </div>
 
               <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950/40 border-slate-700' : 'bg-white border-slate-200'}`}>
