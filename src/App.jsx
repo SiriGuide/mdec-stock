@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.16 Final Usability Cleanup';
-const APP_UPDATE_NOTE = 'เก็บงานหน้าหลัก ลดปุ่มรก รวมหลักฐานในประวัติ ปรับ QR ให้สแกนง่าย และขยายคู่มือในเว็บ';
+const APP_VERSION = 'v22.17 Bulk Action Bar Cleanup';
+const APP_UPDATE_NOTE = 'ปรับแถบคำสั่งรายการที่เลือกให้สะอาดขึ้น รวมปุ่มรองไว้ในเมนูเพิ่มเติม และใช้งานบนมือถือได้ดีขึ้น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -4673,25 +4673,130 @@ S.N.: ${item.sn || '-'}
         </div>
       </div>
 
-      {/* 🛒 Floating Action Bar */}
-      {canUseOperationalTools && selectedItems.length > 0 && (
-        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 backdrop-blur-xl px-4 py-4 sm:px-6 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] flex items-center gap-4 sm:gap-6 z-40 w-[95%] max-w-4xl justify-between animate-[slideUp_0.3s_ease-out] border-2 ${isDarkMode ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-white/90 border-slate-100 text-slate-800'}`}>
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="bg-indigo-600 text-white font-black w-10 h-10 rounded-full flex items-center justify-center shadow-inner text-lg">{selectedItems.length}</div>
-            <span className="font-bold text-lg hidden lg:inline whitespace-nowrap">รายการที่เลือก</span>
+      {/* 🛒 Bulk Selection Action Bar */}
+      {canUseOperationalTools && selectedItems.length > 0 && (() => {
+        const selectedActiveItems = selectedItems.map(id => items.find(item => item.id === id)).filter(Boolean);
+        const availableCount = selectedActiveItems.filter(item => item.status === 'available').length;
+        const returnableCount = selectedActiveItems.filter(item => item.status === 'borrowed' || item.status === 'out-for-event').length;
+        const maintenanceCount = selectedActiveItems.filter(item => item.status === 'maintenance').length;
+        const hasAvailable = availableCount > 0;
+        const hasReturnable = returnableCount > 0;
+        const selectionHint = [
+          hasAvailable ? `${availableCount} พร้อมใช้งาน` : '',
+          hasReturnable ? `${returnableCount} รอคืน` : '',
+          maintenanceCount ? `${maintenanceCount} ซ่อม/ชำรุด` : ''
+        ].filter(Boolean).join(' • ');
+
+        const secondaryButtonClass = `w-full px-4 py-3 rounded-2xl font-black text-sm border flex items-center gap-3 text-left transition-colors ${isDarkMode ? 'bg-slate-950 hover:bg-slate-800 border-slate-700 text-slate-200' : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'}`;
+
+        return (
+          <div className="fixed inset-x-3 bottom-4 sm:bottom-6 z-40 flex justify-center pointer-events-none">
+            <div className={`pointer-events-auto w-full max-w-4xl rounded-[1.75rem] border shadow-[0_20px_70px_rgba(0,0,0,0.28)] backdrop-blur-2xl p-3 sm:p-4 animate-[slideUp_0.3s_ease-out] ${isDarkMode ? 'bg-slate-950/92 border-slate-700 text-white' : 'bg-white/95 border-slate-200 text-slate-900'}`}>
+              <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4">
+                <div className="flex items-center justify-between gap-3 lg:w-72 shrink-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="bg-indigo-600 text-white font-black w-11 h-11 rounded-2xl flex items-center justify-center shadow-inner text-lg shrink-0">{selectedItems.length}</div>
+                    <div className="min-w-0">
+                      <div className={`font-black leading-tight ${theme.textTitle}`}>รายการที่เลือก</div>
+                      <div className={`text-xs font-bold truncate ${theme.textMuted}`}>{selectionHint || 'พร้อมทำรายการแบบกลุ่ม'}</div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedItems([])}
+                    className={`lg:hidden w-10 h-10 rounded-2xl flex items-center justify-center border ${theme.btnSecondary}`}
+                    title="ล้างการเลือก"
+                  >
+                    <Icons.X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap lg:flex-nowrap gap-2 flex-1">
+                  {hasAvailable && (
+                    <button
+                      type="button"
+                      onClick={handleOpenBatchBorrow}
+                      className="px-4 py-3 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-black shadow-md flex items-center justify-center gap-2 text-sm sm:text-base transition-colors"
+                      title={`ยืมเฉพาะรายการที่พร้อมใช้งาน ${availableCount} รายการ`}
+                    >
+                      <Icons.UserPlus className="w-5 h-5" />
+                      <span>ยืม{availableCount > 1 ? ` ${availableCount}` : ''}</span>
+                    </button>
+                  )}
+
+                  {hasAvailable && (
+                    <button
+                      type="button"
+                      onClick={handleOpenBatchEvent}
+                      className="px-4 py-3 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-black shadow-md flex items-center justify-center gap-2 text-sm sm:text-base transition-colors"
+                      title={`ออกงานเฉพาะรายการที่พร้อมใช้งาน ${availableCount} รายการ`}
+                    >
+                      <Icons.Truck className="w-5 h-5" />
+                      <span>ออกงาน{availableCount > 1 ? ` ${availableCount}` : ''}</span>
+                    </button>
+                  )}
+
+                  {hasReturnable && (
+                    <button
+                      type="button"
+                      onClick={handleOpenBatchReturn}
+                      className={`${hasAvailable ? '' : 'col-span-2'} px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-md flex items-center justify-center gap-2 text-sm sm:text-base transition-colors`}
+                      title={`รับคืนเฉพาะรายการที่กำลังถูกยืมหรือออกงาน ${returnableCount} รายการ`}
+                    >
+                      <Icons.CheckCircle className="w-5 h-5" />
+                      <span>รับคืน{returnableCount > 1 ? ` ${returnableCount}` : ''}</span>
+                    </button>
+                  )}
+
+                  {!hasAvailable && !hasReturnable && (
+                    <div className={`col-span-2 px-4 py-3 rounded-2xl border text-center font-black text-sm ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                      รายการที่เลือกยังทำรายการยืม/คืนไม่ได้
+                    </div>
+                  )}
+
+                  <details className="relative col-span-2 sm:col-span-1">
+                    <summary className={`list-none cursor-pointer px-4 py-3 rounded-2xl font-black border flex items-center justify-center gap-2 text-sm sm:text-base ${theme.btnSecondary}`}>
+                      <span>เพิ่มเติม</span>
+                      <span className="text-lg leading-none">⋯</span>
+                    </summary>
+                    <div className={`absolute right-0 bottom-full mb-3 w-[min(82vw,330px)] rounded-3xl border shadow-2xl p-3 space-y-2 ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <button type="button" onClick={() => setShowPrintModal(true)} className={secondaryButtonClass}>
+                        <Icons.QrCode className="w-5 h-5 shrink-0" />
+                        <span><span className="block">พิมพ์ QR / ฉลาก</span><span className={`block text-xs font-bold ${theme.textMuted}`}>พิมพ์ให้รายการที่เลือก</span></span>
+                      </button>
+                      <button type="button" onClick={() => { setBoxLabelTitle('กล่องอุปกรณ์ MDEC'); setBoxLabelNote(''); setShowStorageBoxAssignModal(true); }} className={secondaryButtonClass}>
+                        <Icons.Folder className="w-5 h-5 shrink-0" />
+                        <span><span className="block">เพิ่มเข้ากล่อง</span><span className={`block text-xs font-bold ${theme.textMuted}`}>จัดเก็บรายการที่เลือก</span></span>
+                      </button>
+                      <button type="button" onClick={handleCreateBundleFromSelection} className={secondaryButtonClass}>
+                        <Icons.Layers className="w-5 h-5 shrink-0" />
+                        <span><span className="block">จัดเซ็ต</span><span className={`block text-xs font-bold ${theme.textMuted}`}>บันทึกเป็นชุดอุปกรณ์</span></span>
+                      </button>
+                      <button type="button" onClick={openPrepAssignFromSelection} className={secondaryButtonClass}>
+                        <Icons.ClipboardList className="w-5 h-5 shrink-0" />
+                        <span><span className="block">เตรียมของ</span><span className={`block text-xs font-bold ${theme.textMuted}`}>สร้างรายการเตรียมของ</span></span>
+                      </button>
+                      <button type="button" onClick={() => setSelectedItems([])} className={`w-full px-4 py-3 rounded-2xl font-black text-sm border flex items-center gap-3 text-left ${isDarkMode ? 'bg-rose-950/30 hover:bg-rose-900 border-rose-800 text-rose-300' : 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700'}`}>
+                        <Icons.X className="w-5 h-5 shrink-0" />
+                        <span>ล้างการเลือกทั้งหมด</span>
+                      </button>
+                    </div>
+                  </details>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedItems([])}
+                    className={`hidden lg:flex w-12 h-12 rounded-2xl items-center justify-center border ${theme.btnSecondary}`}
+                    title="ล้างการเลือก"
+                  >
+                    <Icons.X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex gap-2 sm:gap-3 overflow-x-auto custom-scrollbar">
-            <button onClick={() => setShowPrintModal(true)} className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.QrCode className="w-5 h-5"/> <span className="hidden sm:inline">พิมพ์ QR</span></button>
-            <button onClick={() => { setBoxLabelTitle('กล่องอุปกรณ์ MDEC'); setBoxLabelNote(''); setShowStorageBoxAssignModal(true); }} className="px-4 py-3 bg-cyan-700 hover:bg-cyan-600 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Folder className="w-5 h-5"/> <span className="hidden sm:inline">สร้าง/เพิ่มเข้ากล่อง</span></button>
-            <button onClick={handleCreateBundleFromSelection} className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Layers className="w-5 h-5"/> <span className="hidden sm:inline">จัดเซ็ต</span></button>
-            <button onClick={openPrepAssignFromSelection} className="px-4 py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.ClipboardList className="w-5 h-5"/> <span className="hidden sm:inline">เตรียมของ</span></button>
-            <button onClick={handleOpenBatchBorrow} className="px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.UserPlus className="w-5 h-5"/> <span className="hidden sm:inline">ยืมออก</span></button>
-            <button onClick={handleOpenBatchEvent} className="px-4 py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.Truck className="w-5 h-5"/> <span className="hidden sm:inline">ออกงาน</span></button>
-            <button onClick={handleOpenBatchReturn} className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold transition-colors shadow-md flex items-center gap-2 text-base whitespace-nowrap"><Icons.CheckCircle className="w-5 h-5"/> <span className="hidden sm:inline">รับคืน</span></button>
-            <button onClick={() => setSelectedItems([])} className={`px-4 py-3 rounded-2xl font-bold transition-colors border shrink-0 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600'}`}><Icons.X className="w-5 h-5" /></button>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 📦 Modal สร้าง/เพิ่มเข้ากล่องเก็บของ */}
       {showStorageBoxAssignModal && (
