@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.24 Clean Filter Project Room UX';
-const APP_UPDATE_NOTE = 'จัดหน้า filter ให้โล่งขึ้น ทำระบบโครงการให้เข้าถึงง่าย และปรับมุมมองแยกห้องให้ใช้เฉพาะฝ่ายห้องประชุม';
+const APP_VERSION = 'v22.26 Settings & Layout Cleanup';
+const APP_UPDATE_NOTE = 'เก็บงานหน้าเว็บให้โล่งขึ้น ยุบปุ่มฝ่ายไว้ในตัวกรอง และปรับหน้าตั้งค่าเป็นเมนูด้านข้างอ่านง่าย';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -197,6 +197,7 @@ function MainApp() {
   const [printSlipData, setPrintSlipData] = useState(null);
   const [showPersonalItemsModal, setShowPersonalItemsModal] = useState(false);
   const [showProjectsModal, setShowProjectsModal] = useState(false);
+  const [quickProjectName, setQuickProjectName] = useState('');
   const [showRoomView, setShowRoomView] = useState(false);
   const [expandedRooms, setExpandedRooms] = useState({});
   const [showEmptyCategories, setShowEmptyCategories] = useState(false);
@@ -1418,6 +1419,38 @@ function MainApp() {
     return Object.values(map).sort((a, b) => String(a.name).localeCompare(String(b.name), 'th', { numeric: true }));
   }, [items]);
 
+  const handleAddProjectQuick = async () => {
+    const name = String(quickProjectName || '').trim();
+    if (!name) {
+      pushToast('กรุณาพิมพ์ชื่อโครงการก่อน', 'warning');
+      return;
+    }
+    if (!canAddEditItems && !canManageSystem) {
+      alert('บัญชีนี้ไม่มีสิทธิ์เพิ่มโครงการ');
+      return;
+    }
+    try {
+      const currentProjects = Array.isArray(settingsOptions.projects) ? settingsOptions.projects : [];
+      const normalized = currentProjects.filter(p => p && p !== 'อื่นๆ');
+      if (normalized.some(p => String(p).trim() === name)) {
+        pushToast('มีชื่อโครงการนี้อยู่แล้ว', 'warning');
+        setFilterProject(name);
+        return;
+      }
+      const updatedProjects = [...new Set([...normalized, name, 'อื่นๆ'])];
+      const updatedSettings = { ...settingsOptions, projects: updatedProjects };
+      setSettingsOptions(updatedSettings);
+      await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
+      setQuickProjectName('');
+      setFilterProject(name);
+      await logAction('เพิ่มโครงการ', name, 'เพิ่มชื่อโครงการจากหน้าโครงการ');
+      pushToast('เพิ่มโครงการเรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ เพิ่มโครงการไม่สำเร็จ: ' + error.message);
+    }
+  };
+
   const roomGroups = useMemo(() => {
     const map = {};
     filteredItems.filter(isMeetingRoomItem).forEach((item) => {
@@ -1470,6 +1503,22 @@ S.N.: ${item.sn || '-'}
     { id: 'delete', label: 'ลบ/กู้คืน' },
     { id: 'account', label: 'บัญชีผู้ใช้' },
   ];
+
+  const settingsNavItems = [
+    { id: 'categories', label: 'หมวดหมู่', desc: 'รายการหมวดอุปกรณ์', icon: Icons.Tag, group: 'ข้อมูลพื้นฐาน' },
+    { id: 'locations', label: 'สถานที่ / ห้อง', desc: 'ที่เก็บและห้องประชุม', icon: Icons.Folder, group: 'ข้อมูลพื้นฐาน' },
+    { id: 'staff', label: 'เจ้าหน้าที่', desc: 'รายชื่อผู้ทำรายการ', icon: Icons.Users, group: 'ข้อมูลพื้นฐาน' },
+    { id: 'accounts', label: 'บัญชีผู้ใช้', desc: 'ล็อกอินและสิทธิ์', icon: Icons.UserPlus, group: 'ผู้ใช้งาน' },
+    { id: 'display', label: 'การแสดงผล', desc: 'ความแน่น / การ์ด / เอฟเฟกต์', icon: Icons.Monitor, group: 'หน้าตาเว็บ' },
+    { id: 'documents', label: 'เอกสาร / โลโก้', desc: 'ใบยืม ฉลาก QR และโลโก้', icon: Icons.Printer, group: 'เอกสาร' },
+    { id: 'proofs', label: 'หลักฐานรูปภาพ', desc: 'กติกาการแนบรูป', icon: Icons.Camera, group: 'หลักฐาน' },
+    { id: 'database', label: 'ฐานข้อมูล / สำรอง', desc: 'Backup, Restore, Cleanup', icon: Icons.Database, group: 'ระบบ' },
+  ];
+
+  const resetSettingsFormState = () => {
+    setEditingSettingItem(null);
+    setNewSettingItem('');
+  };
 
   const filteredAuditLogs = useMemo(() => {
     if (auditFilter === 'all') return auditLogs;
@@ -4971,7 +5020,7 @@ S.N.: ${item.sn || '-'}
           </div>
 
           <div className="flex gap-2 w-full xl:w-auto">
-            <button type="button" onClick={() => setShowProjectsModal(true)} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${filterProject !== 'all' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : theme.btnSecondary}`}>โครงการ</button>
+            <button type="button" onClick={() => setShowProjectsModal(true)} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${filterProject !== 'all' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : theme.btnSecondary}`}>โครงการ / เพิ่มโครงการ</button>
             <button type="button" onClick={openMeetingRoomView} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${showRoomView ? 'bg-sky-600 text-white border-sky-600 shadow-md' : theme.btnSecondary}`}>แยกห้องประชุม</button>
             <button type="button" onClick={() => setQuickProblemOnly(!quickProblemOnly)} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${quickProblemOnly ? 'bg-rose-600 text-white border-rose-600 shadow-md' : theme.btnSecondary}`}>ของที่ต้องจัดการ</button>
             {hasActiveFilters && <button type="button" onClick={clearAllFilters} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${theme.btnSecondary}`}>ล้างตัวกรอง</button>}
@@ -5008,6 +5057,12 @@ S.N.: ${item.sn || '-'}
           </div>
         </details>
 
+        <details className={`w-full rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+          <summary className={`cursor-pointer list-none px-4 py-3 font-black flex items-center justify-between gap-3 ${theme.textTitle}`}>
+            <span>ฝ่าย / แผนก <span className={`text-xs font-bold ${theme.textMuted}`}>{filterDept === 'all' ? 'ทั้งหมด' : filterDept}</span></span>
+            <span className={`text-xs px-2 py-1 rounded-full border ${theme.btnSecondary}`}>เลือกฝ่าย</span>
+          </summary>
+          <div className={`p-3 border-t ${theme.divide}`}>
         <div className="flex gap-2 overflow-x-auto w-full pb-2 custom-scrollbar">
           <button type="button" onClick={() => setFilterDept('all')} className={`flex items-center justify-center gap-2 whitespace-nowrap px-6 ${controlPaddingClass} rounded-xl font-bold text-lg transition-all border ${filterDept === 'all' ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-800 border-slate-800 text-white shadow-md') : theme.btnSecondary}`}>
             ทั้งหมด <Icons.ViewGrid className="w-5 h-5" />
@@ -5021,6 +5076,8 @@ S.N.: ${item.sn || '-'}
             );
           })}
         </div>
+          </div>
+        </details>
       </div>
 
       {/* 🏫 Meeting Room Department Group View */}
@@ -6305,19 +6362,45 @@ S.N.: ${item.sn || '-'}
       {/* Settings Modal (การตั้งค่าทั่วไป + ฐานข้อมูล) */}
       {showSettings && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] transition-all duration-300 ${theme.cardBg}`}>
-            <div className={`flex border-b overflow-x-auto custom-scrollbar shrink-0 ${theme.divide}`}>
-              <button type="button" onClick={() => {setSettingsTab('categories'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'categories' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>หมวดหมู่</button>
-              <button type="button" onClick={() => {setSettingsTab('locations'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'locations' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>สถานที่</button>
-              <button type="button" onClick={() => {setSettingsTab('staff'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'staff' ? 'text-blue-500 border-blue-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>เจ้าหน้าที่</button>
-              <button type="button" onClick={() => {setSettingsTab('accounts'); setEditingSettingItem(null); setNewSettingItem(''); openNewAccountForm();}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'accounts' ? 'text-indigo-500 border-indigo-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>บัญชีผู้ใช้</button>
-              <button type="button" onClick={() => {setSettingsTab('database'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'database' ? 'text-emerald-500 border-emerald-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>ฐานข้อมูล</button>
-              <button type="button" onClick={() => {setSettingsTab('proofs'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'proofs' ? 'text-pink-500 border-pink-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>หลักฐาน</button>
-              <button type="button" onClick={() => {setSettingsTab('documents'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'documents' ? 'text-sky-500 border-sky-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>เอกสาร/โลโก้</button>
-              <button type="button" onClick={() => {setSettingsTab('display'); setEditingSettingItem(null); setNewSettingItem('');}} className={`flex-1 whitespace-nowrap px-4 py-4 font-bold text-lg border-b-2 ${settingsTab === 'display' ? 'text-teal-500 border-teal-500' : `${theme.textMuted} border-transparent ${theme.trHover}`}`}>การแสดงผล</button>
+          <div className={`rounded-[2rem] shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[92vh] transition-all duration-300 border ${theme.cardBg}`}>
+            <div className={`p-5 border-b shrink-0 flex items-start justify-between gap-4 ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl sm:text-3xl font-black ${theme.textTitle}`}>ตั้งค่าระบบ</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมการตั้งค่าที่ใช้บ่อยไว้เป็นหมวดด้านซ้าย ลดการเลื่อนหาเมนูยาว ๆ</p>
+              </div>
+              <button type="button" onClick={() => { setShowSettings(false); resetSettingsFormState(); }} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
-            
-            <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
+
+            <div className="flex flex-col lg:flex-row flex-1 min-h-0">
+              <aside className={`lg:w-72 shrink-0 border-b lg:border-b-0 lg:border-r p-3 ${theme.divide}`}>
+                <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto custom-scrollbar pb-1 lg:pb-0 lg:max-h-[72vh]">
+                  {settingsNavItems.map((nav, idx) => {
+                    const Icon = nav.icon || Icons.Settings;
+                    const active = settingsTab === nav.id;
+                    const showGroup = idx === 0 || settingsNavItems[idx - 1].group !== nav.group;
+                    return (
+                      <div key={nav.id} className="lg:w-full shrink-0">
+                        {showGroup && <div className={`hidden lg:block text-[11px] font-black uppercase tracking-wide px-3 pt-2 pb-1 ${theme.textMuted}`}>{nav.group}</div>}
+                        <button
+                          type="button"
+                          onClick={() => { setSettingsTab(nav.id); resetSettingsFormState(); if (nav.id === 'accounts') openNewAccountForm(); }}
+                          className={`w-full min-w-[190px] lg:min-w-0 p-3 rounded-2xl border text-left transition-all ${active ? (isDarkMode ? 'bg-blue-600 border-blue-500 text-white shadow-lg' : 'bg-blue-600 border-blue-600 text-white shadow-lg') : theme.btnSecondary}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Icon className="w-5 h-5 shrink-0" />
+                            <div className="min-w-0">
+                              <div className="font-black truncate">{nav.label}</div>
+                              <div className={`text-xs font-bold truncate ${active ? 'text-blue-100' : theme.textMuted}`}>{nav.desc}</div>
+                            </div>
+                          </div>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </aside>
+
+              <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
               {settingsTab === 'accounts' ? (
                 <div className="p-6 space-y-6">
                   <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-indigo-900/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
@@ -6703,10 +6786,11 @@ S.N.: ${item.sn || '-'}
                   </div>
                 </div>
               )}
+              </div>
             </div>
 
             <div className={`p-4 border-t shrink-0 ${theme.divide}`}>
-              <button type="button" onClick={() => { setShowSettings(false); setEditingSettingItem(null); setNewSettingItem(''); }} className={`w-full py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+              <button type="button" onClick={() => { setShowSettings(false); resetSettingsFormState(); }} className={`w-full py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
             </div>
           </div>
         </div>
@@ -7945,12 +8029,41 @@ S.N.: ${item.sn || '-'}
             <div className={`p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
               <div>
                 <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white flex items-center justify-center shadow-lg">🗂️</span> โครงการ / แหล่งที่มาอุปกรณ์</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>กด “กรอง” เพื่อดูของในโครงการนั้น หรือกด “เปลี่ยนโครงการ” ที่รายการอุปกรณ์ได้ทันที</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เพิ่มชื่อโครงการก่อน แล้วค่อยเลือกโครงการนั้นในหน้าเพิ่ม/แก้ไขอุปกรณ์ หรือกด “กรอง” เพื่อดูของในโครงการ</p>
               </div>
               <button type="button" onClick={() => setShowProjectsModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
 
             <div className="p-5 overflow-y-auto custom-scrollbar flex-1">
+              <div className={`mb-5 p-5 rounded-3xl border ${isDarkMode ? 'bg-indigo-950/25 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
+                <div className="flex flex-col lg:flex-row lg:items-end gap-3">
+                  <div className="flex-1">
+                    <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>เพิ่มโครงการใหม่</label>
+                    <input
+                      className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
+                      placeholder="เช่น โครงการจัดซื้ออุปกรณ์ห้องประชุม ปี 2569"
+                      value={quickProjectName}
+                      onChange={e => setQuickProjectName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleAddProjectQuick(); }}
+                    />
+                    <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>หลังเพิ่มแล้ว ชื่อโครงการจะไปอยู่ในช่อง “โครงการ / แหล่งที่มา” ตอนเพิ่มหรือแก้ไขอุปกรณ์</p>
+                  </div>
+                  <button type="button" onClick={handleAddProjectQuick} className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black shadow-md whitespace-nowrap">
+                    + เพิ่มโครงการ
+                  </button>
+                </div>
+                <div className={`mt-4 p-3 rounded-2xl border text-xs font-bold ${isDarkMode ? 'bg-slate-950/35 border-slate-700 text-slate-300' : 'bg-white/70 border-indigo-100 text-slate-600'}`}>
+                  วิธีใช้แบบง่าย: 1) เพิ่มชื่อโครงการ 2) เปิดรายการอุปกรณ์ที่ต้องการ 3) กดแก้ไข 4) เลือกโครงการ 5) บันทึก
+                </div>
+              </div>
+
+              {filterProject !== 'all' && (
+                <div className={`mb-4 p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800 text-indigo-200' : 'bg-indigo-50 border-indigo-200 text-indigo-700'}`}>
+                  <div className="font-black">กำลังกรองโครงการ: {filterProject}</div>
+                  <button type="button" onClick={() => setFilterProject('all')} className={`px-3 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>ยกเลิกกรองโครงการ</button>
+                </div>
+              )}
+
               {projectStats.length === 0 ? (
                 <div className={`text-center py-16 font-black text-xl ${theme.textMuted}`}>ยังไม่มีข้อมูลโครงการ</div>
               ) : (
