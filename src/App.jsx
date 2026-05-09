@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.26 Settings & Layout Cleanup';
-const APP_UPDATE_NOTE = 'เก็บงานหน้าเว็บให้โล่งขึ้น ยุบปุ่มฝ่ายไว้ในตัวกรอง และปรับหน้าตั้งค่าเป็นเมนูด้านข้างอ่านง่าย';
+const APP_VERSION = 'v22.27 Mobile & Settings Cleanup';
+const APP_UPDATE_NOTE = 'เก็บงานมือถือให้ใช้ง่ายขึ้น ซ่อนตัวกรองยาวไว้ในแผงมือถือ และปรับหน้าตั้งค่าให้ใช้ Select บนมือถือแทนเมนูยาว';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -5001,10 +5001,10 @@ S.N.: ${item.sn || '-'}
         <div className="flex flex-col xl:flex-row gap-4 items-center w-full">
           <div className="relative flex-1 w-full">
             <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${theme.textMuted}`}><Icons.Search className="w-5 h-5" /></div>
-            <input type="text" className={`w-full pl-12 pr-4 py-4 rounded-xl text-lg font-bold outline-none transition-all border ${theme.input}`} placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่, เจ้าของ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <input type="text" className={`w-full pl-12 pr-4 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-bold outline-none transition-all border ${theme.input}`} placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่, เจ้าของ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           
-          <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto">
+          <div className="hidden lg:flex flex-col md:flex-row gap-3 w-full xl:w-auto">
             <select className={`flex-1 px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterLocation} onChange={e => setFilterLocation(e.target.value)}>
               <option value="all">สถานที่/ห้อง ทั้งหมด</option>
               {(settingsOptions.locations || []).filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
@@ -5019,7 +5019,7 @@ S.N.: ${item.sn || '-'}
             </select>
           </div>
 
-          <div className="flex gap-2 w-full xl:w-auto">
+          <div className="hidden lg:flex gap-2 w-full xl:w-auto">
             <button type="button" onClick={() => setShowProjectsModal(true)} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${filterProject !== 'all' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : theme.btnSecondary}`}>โครงการ / เพิ่มโครงการ</button>
             <button type="button" onClick={openMeetingRoomView} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${showRoomView ? 'bg-sky-600 text-white border-sky-600 shadow-md' : theme.btnSecondary}`}>แยกห้องประชุม</button>
             <button type="button" onClick={() => setQuickProblemOnly(!quickProblemOnly)} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${quickProblemOnly ? 'bg-rose-600 text-white border-rose-600 shadow-md' : theme.btnSecondary}`}>ของที่ต้องจัดการ</button>
@@ -5033,7 +5033,62 @@ S.N.: ${item.sn || '-'}
           )}
         </div>
 
-        <details className={`w-full rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+        <details className={`lg:hidden w-full rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+          <summary className={`cursor-pointer list-none px-4 py-3 font-black flex items-center justify-between gap-3 ${theme.textTitle}`}>
+            <span>ตัวกรองและเมนูเร็ว</span>
+            <span className={`text-xs px-2 py-1 rounded-full border ${theme.btnSecondary}`}>
+              {hasActiveFilters ? 'มีตัวกรอง' : 'เปิด'}
+            </span>
+          </summary>
+          <div className={`p-3 border-t space-y-3 ${theme.divide}`}>
+            <div className="grid grid-cols-1 gap-3">
+              <select className={`px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterLocation} onChange={e => setFilterLocation(e.target.value)}>
+                <option value="all">สถานที่/ห้อง ทั้งหมด</option>
+                {(settingsOptions.locations || []).filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select className={`px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+                <option value="all">หมวดหมู่ทั้งหมด</option>
+                {(settingsOptions.categories || []).filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select className={`px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                <option value="all">สถานะทั้งหมด</option>
+                {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
+              <select className={`px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterDept} onChange={e => setFilterDept(e.target.value)}>
+                <option value="all">ฝ่าย/แผนก ทั้งหมด</option>
+                {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
+              </select>
+              <select className={`px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterProject} onChange={e => setFilterProject(e.target.value)}>
+                <option value="all">โครงการทั้งหมด</option>
+                {projectOptions.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setShowProjectsModal(true)} className={`px-3 py-3 rounded-xl font-black border ${filterProject !== 'all' ? 'bg-indigo-600 text-white border-indigo-600' : theme.btnSecondary}`}>โครงการ</button>
+              <button type="button" onClick={openMeetingRoomView} className={`px-3 py-3 rounded-xl font-black border ${showRoomView ? 'bg-sky-600 text-white border-sky-600' : theme.btnSecondary}`}>ห้องประชุม</button>
+              <button type="button" onClick={() => setQuickProblemOnly(!quickProblemOnly)} className={`px-3 py-3 rounded-xl font-black border ${quickProblemOnly ? 'bg-rose-600 text-white border-rose-600' : theme.btnSecondary}`}>ต้องจัดการ</button>
+              <button type="button" onClick={clearAllFilters} className={`px-3 py-3 rounded-xl font-black border ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
+            </div>
+
+            <details className={`rounded-xl border overflow-hidden ${isDarkMode ? 'border-slate-700 bg-slate-900/40' : 'border-slate-200 bg-white'}`}>
+              <summary className={`cursor-pointer list-none px-3 py-2.5 text-sm font-black ${theme.textTitle}`}>ตัวกรองละเอียด</summary>
+              <div className={`p-3 border-t grid grid-cols-1 gap-3 ${theme.divide}`}>
+                <select className={`px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterAssetStatus} onChange={e => setFilterAssetStatus(e.target.value)}>
+                  <option value="all">สถานะพัสดุทั้งหมด</option>
+                  {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                </select>
+                <select className={`px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterQrTagged} onChange={e => setFilterQrTagged(e.target.value)}>
+                  <option value="all">QR ทั้งหมด</option>
+                  <option value="tagged">ติด QR แล้ว</option>
+                  <option value="untagged">ยังไม่ติด QR</option>
+                </select>
+              </div>
+            </details>
+          </div>
+        </details>
+
+        <details className={`hidden lg:block w-full rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
           <summary className={`cursor-pointer list-none px-4 py-3 font-black flex items-center justify-between gap-3 ${theme.textTitle}`}>
             <span>ตัวกรองเพิ่มเติม <span className={`text-xs font-bold ${theme.textMuted}`}>โครงการ / สถานะพัสดุ / QR</span></span>
             <span className={`text-xs px-2 py-1 rounded-full border ${theme.btnSecondary}`}>
@@ -5057,7 +5112,7 @@ S.N.: ${item.sn || '-'}
           </div>
         </details>
 
-        <details className={`w-full rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+        <details className={`hidden lg:block w-full rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
           <summary className={`cursor-pointer list-none px-4 py-3 font-black flex items-center justify-between gap-3 ${theme.textTitle}`}>
             <span>ฝ่าย / แผนก <span className={`text-xs font-bold ${theme.textMuted}`}>{filterDept === 'all' ? 'ทั้งหมด' : filterDept}</span></span>
             <span className={`text-xs px-2 py-1 rounded-full border ${theme.btnSecondary}`}>เลือกฝ่าย</span>
@@ -6372,7 +6427,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className="flex flex-col lg:flex-row flex-1 min-h-0">
-              <aside className={`lg:w-72 shrink-0 border-b lg:border-b-0 lg:border-r p-3 ${theme.divide}`}>
+              <aside className={`hidden lg:block lg:w-72 shrink-0 border-r p-3 ${theme.divide}`}>
                 <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto custom-scrollbar pb-1 lg:pb-0 lg:max-h-[72vh]">
                   {settingsNavItems.map((nav, idx) => {
                     const Icon = nav.icon || Icons.Settings;
@@ -6401,6 +6456,19 @@ S.N.: ${item.sn || '-'}
               </aside>
 
               <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
+                <div className={`lg:hidden p-3 border-b ${theme.divide}`}>
+                  <label className={`block text-xs font-black mb-2 ${theme.textMuted}`}>เลือกหมวดตั้งค่า</label>
+                  <select
+                    className={`w-full px-4 py-3 rounded-xl border font-black ${theme.input}`}
+                    value={settingsTab}
+                    onChange={(e) => { setSettingsTab(e.target.value); resetSettingsFormState(); if (e.target.value === 'accounts') openNewAccountForm(); }}
+                  >
+                    {settingsNavItems.map(nav => <option key={nav.id} value={nav.id}>{nav.label}</option>)}
+                  </select>
+                  <div className={`mt-2 text-xs font-bold ${theme.textMuted}`}>
+                    {settingsNavItems.find(nav => nav.id === settingsTab)?.desc || 'ตั้งค่าระบบ'}
+                  </div>
+                </div>
               {settingsTab === 'accounts' ? (
                 <div className="p-6 space-y-6">
                   <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-indigo-900/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
