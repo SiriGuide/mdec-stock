@@ -28,12 +28,14 @@ const getAuditCol = () => IS_CANVAS ? collection(db, 'artifacts', APP_ID, 'publi
 const getItemDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'items', id) : doc(db, 'mdec_stock', 'shared_data', 'items', id);
 const getProofsCol = () => IS_CANVAS ? collection(db, 'artifacts', APP_ID, 'public', 'data', 'proofs') : collection(db, 'mdec_stock', 'shared_data', 'proofs');
 const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'proofs', id) : doc(db, 'mdec_stock', 'shared_data', 'proofs', id);
+const getBorrowDocsCol = () => IS_CANVAS ? collection(db, 'artifacts', APP_ID, 'public', 'data', 'borrow_documents') : collection(db, 'mdec_stock', 'shared_data', 'borrow_documents');
+const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'borrow_documents', id) : doc(db, 'mdec_stock', 'shared_data', 'borrow_documents', id);
 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.34 Ultra Clean Minimal Polish';
-const APP_UPDATE_NOTE = 'ขัดดีไซน์ให้คลีนขึ้นอีก ลดสี/เงาที่เยอะเกินไป ปรับหน้าแรก การ์ด สถิติ ตั้งค่า และงานพิมพ์ให้มินิมอลกว่าเดิม';
+const APP_VERSION = 'v22.36 Borrow Document Archive Pack';
+const APP_UPDATE_NOTE = 'เพิ่มแฟ้มเอกสารย้อนหลัง เก็บใบยืม/ใบนำออกงานแบบ Snapshot ค้นหาและพิมพ์ย้อนหลังได้';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -196,6 +198,10 @@ function MainApp() {
   const [showTodayModal, setShowTodayModal] = useState(false);
   const [printSlipData, setPrintSlipData] = useState(null);
   const [printProjectData, setPrintProjectData] = useState(null);
+  const [borrowDocuments, setBorrowDocuments] = useState([]);
+  const [showBorrowDocsModal, setShowBorrowDocsModal] = useState(false);
+  const [borrowDocSearch, setBorrowDocSearch] = useState('');
+  const [borrowDocFilter, setBorrowDocFilter] = useState('all');
   const [showPersonalItemsModal, setShowPersonalItemsModal] = useState(false);
   const [showProjectsModal, setShowProjectsModal] = useState(false);
   const [quickProjectName, setQuickProjectName] = useState('');
@@ -418,6 +424,58 @@ function MainApp() {
     const minute = String(d.getMinutes()).padStart(2, '0');
     const second = String(d.getSeconds()).padStart(2, '0');
     return `${prefix}-${buddhistYear}${month}${day}-${hour}${minute}${second}`;
+  };
+
+  const makeBorrowDocumentSnapshot = ({ type = 'borrow', ref, date, subject, staffOut, expectedReturn, note, selectedItems = [], proofs = [] }) => {
+    const title = type === 'event' ? 'ใบนำอุปกรณ์ออกงาน' : 'ใบยืมอุปกรณ์';
+    return {
+      id: ref,
+      ref,
+      type,
+      title,
+      date,
+      createdAt: date,
+      borrower: subject,
+      staffOut,
+      expectedReturn,
+      note: note || '',
+      itemIds: selectedItems.map(i => i.id),
+      returnedItemIds: [],
+      status: 'active',
+      statusLabel: 'รอคืน',
+      proofs,
+      items: selectedItems.map(i => ({
+        id: i.id,
+        name: i.name || '-',
+        sn: i.sn || '-',
+        category: i.category || '-',
+        location: i.location || '-',
+        department: i.department || '-',
+        project: i.project || '',
+        storageBoxName: i.storageBoxName || '',
+        internalNote: i.internalNote || '',
+        quantity: i.quantity || 1
+      })),
+      operatorId: currentOperator?.id || null,
+      operatorName: currentOperator?.name || staffOut || currentAccountLabel || 'Admin',
+      source: 'MDEC-Stock'
+    };
+  };
+
+  const openBorrowDocumentPrint = (docData) => {
+    if (!docData) return;
+    setPrintSlipData({
+      type: docData.type || 'borrow',
+      title: docData.title || (docData.type === 'event' ? 'ใบนำอุปกรณ์ออกงาน' : 'ใบยืมอุปกรณ์'),
+      ref: docData.ref || docData.id || makeDocumentRef('DOC'),
+      date: docData.date || docData.createdAt || new Date().toISOString(),
+      borrower: docData.borrower || docData.eventName || '-',
+      staffOut: docData.staffOut || '-',
+      expectedReturn: docData.expectedReturn || '',
+      note: docData.note || '',
+      items: Array.isArray(docData.items) ? docData.items : [],
+      archivedStatus: docData.status || 'active'
+    });
   };
 
   const saveDocumentSettings = async (patch = {}) => {
@@ -1020,6 +1078,16 @@ function MainApp() {
     if (!user) return;
     const itemsRef = getItemsCol();
     const settingsRef = getSettingsDoc();
+    const borrowDocsRef = getBorrowDocsCol();
+
+    const unsubscribeBorrowDocs = onSnapshot(borrowDocsRef, (snapshot) => {
+      const docs = [];
+      snapshot.forEach((docSnap) => docs.push({ id: docSnap.id, ...docSnap.data() }));
+      docs.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0));
+      setBorrowDocuments(docs);
+    }, (error) => {
+      console.warn('Borrow document archive snapshot skipped:', error);
+    });
 
     const unsubscribeItems = onSnapshot(itemsRef, (snapshot) => {
       const loadedItems = [];
@@ -1075,6 +1143,7 @@ function MainApp() {
     return () => {
       unsubscribeItems();
       unsubscribeSettings();
+      unsubscribeBorrowDocs();
     };
   }, [user]);
 
@@ -1430,6 +1499,22 @@ function MainApp() {
     return chips;
   }, [searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterProject, filterAssetStatus, filterQrTagged, quickProblemOnly]);
 
+  const filteredBorrowDocuments = useMemo(() => {
+    const q = String(borrowDocSearch || '').trim().toLowerCase();
+    return (borrowDocuments || []).filter(doc => {
+      const status = doc.status || 'active';
+      const matchFilter = borrowDocFilter === 'all' || status === borrowDocFilter || doc.type === borrowDocFilter;
+      if (!matchFilter) return false;
+      if (!q) return true;
+      const itemText = (doc.items || []).map(i => `${i.name || ''} ${i.sn || ''} ${i.category || ''} ${i.location || ''}`).join(' ');
+      return String(doc.ref || '').toLowerCase().includes(q) ||
+             String(doc.borrower || '').toLowerCase().includes(q) ||
+             String(doc.staffOut || '').toLowerCase().includes(q) ||
+             String(doc.note || '').toLowerCase().includes(q) ||
+             itemText.toLowerCase().includes(q);
+    });
+  }, [borrowDocuments, borrowDocSearch, borrowDocFilter]);
+
   const clearAllFilters = () => {
     setSearchTerm('');
     setFilterDept('all');
@@ -1718,6 +1803,16 @@ S.N.: ${item.sn || '-'}
     { id: 'delete', label: 'ลบ/กู้คืน' },
     { id: 'account', label: 'บัญชีผู้ใช้' },
   ];
+
+  const ui = {
+    modalShell: `rounded-[2rem] shadow-2xl w-full overflow-hidden flex flex-col max-h-[92vh] border ${theme.cardBg}`,
+    modalHeader: `p-5 sm:p-6 border-b flex items-start justify-between gap-4 ${theme.divide}`,
+    modalBody: 'p-4 sm:p-5 overflow-y-auto custom-scrollbar flex-1',
+    emptyBox: `rounded-[1.75rem] border p-8 sm:p-10 text-center ${isDarkMode ? 'bg-slate-950/35 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`,
+    softPanel: `rounded-[1.75rem] border ${isDarkMode ? 'bg-slate-950/35 border-slate-800' : 'bg-slate-50 border-slate-200'}`,
+    primaryBtn: 'bg-blue-600 hover:bg-blue-500 text-white font-black',
+    dangerBtn: 'bg-rose-600 hover:bg-rose-500 text-white font-black'
+  };
 
   const settingsNavItems = [
     { id: 'categories', label: 'หมวดหมู่', desc: 'รายการหมวดอุปกรณ์', icon: Icons.Tag, group: 'ข้อมูลพื้นฐาน' },
@@ -2547,28 +2642,30 @@ S.N.: ${item.sn || '-'}
     try {
       if (!requireProofIfNeeded('borrow', borrowProofFiles)) return;
       const uploadedProofs = await uploadProofsOrConfirm(borrowProofFiles, `หลักฐานการยืม • ${borrowData.borrower || ''}`);
-      const newHistoryEntry = { type: 'borrow', date: new Date().toISOString(), borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff, note: borrowData.note, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
-      const promises = packingChecklist.map(id => {
-        const item = items.find(i => i.id === id);
-        if (!item || item.status !== 'available') return Promise.resolve(); 
-        borrowedNames.push(item.name);
-        const newHistory = [...(item.history || []), newHistoryEntry];
-        return setDoc(getItemDoc(id), { status: 'borrowed', currentBorrower: borrowData.borrower, expectedReturn: borrowData.returnDate, currentNote: borrowData.note, history: newHistory }, { merge: true });
-      });
-      await Promise.all(promises);
-      
-      logAction('ให้ยืมอุปกรณ์', `ทำรายการ ${packingChecklist.length} ชิ้น`, `ยืมโดย: ${borrowData.borrower} (จนท.ผู้ให้ยืม: ${finalStaff})\nรายการ: ${borrowedNames.join(', ')}`);
-      setPrintSlipData({
+      const docDate = new Date().toISOString();
+      const docRef = makeDocumentRef('BR');
+      const selectedBorrowItems = packingChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
+      const documentSnapshot = makeBorrowDocumentSnapshot({
         type: 'borrow',
-        title: 'ใบยืมอุปกรณ์',
-        ref: makeDocumentRef('BR'),
-        date: new Date().toISOString(),
-        borrower: borrowData.borrower,
+        ref: docRef,
+        date: docDate,
+        subject: borrowData.borrower,
         staffOut: finalStaff,
         expectedReturn: borrowData.returnDate,
         note: borrowData.note,
-        items: packingChecklist.map(id => items.find(i => i.id === id)).filter(Boolean).map(i => ({ id: i.id, name: i.name, sn: i.sn, category: i.category, internalNote: i.internalNote }))
+        selectedItems: selectedBorrowItems,
+        proofs: uploadedProofs
       });
+      const newHistoryEntry = { type: 'borrow', date: docDate, documentId: docRef, documentRef: docRef, borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff, note: borrowData.note, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
+      const promises = selectedBorrowItems.map(item => {
+        borrowedNames.push(item.name);
+        const newHistory = [...(item.history || []), newHistoryEntry];
+        return setDoc(getItemDoc(item.id), { status: 'borrowed', currentBorrower: borrowData.borrower, expectedReturn: borrowData.returnDate, currentNote: borrowData.note, history: newHistory }, { merge: true });
+      });
+      await Promise.all([setDoc(getBorrowDoc(docRef), documentSnapshot, { merge: true }), ...promises]);
+
+      logAction('ให้ยืมอุปกรณ์', `ทำรายการ ${selectedBorrowItems.length} ชิ้น`, `เลขที่เอกสาร: ${docRef}\nยืมโดย: ${borrowData.borrower} (จนท.ผู้ให้ยืม: ${finalStaff})\nรายการ: ${borrowedNames.join(', ')}`);
+      setPrintSlipData(documentSnapshot);
       setBorrowTargetIds([]);
       setPackingChecklist([]);
       setSelectedItems([]); 
@@ -2602,28 +2699,30 @@ S.N.: ${item.sn || '-'}
     try {
       if (!requireProofIfNeeded('event', eventProofFiles)) return;
       const uploadedProofs = await uploadProofsOrConfirm(eventProofFiles, `หลักฐานออกงาน • ${eventData.eventName || ''}`);
-      const newHistoryEntry = { type: 'event', date: new Date().toISOString(), eventName: eventData.eventName, expectedReturn: eventData.returnDate, staffOut: finalStaff, note: eventData.note, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
-      const promises = eventChecklist.map(id => {
-        const item = items.find(i => i.id === id);
-        if (!item || item.status !== 'available') return Promise.resolve(); 
-        eventNames.push(item.name);
-        const newHistory = [...(item.history || []), newHistoryEntry];
-        return setDoc(getItemDoc(id), { status: 'out-for-event', currentEvent: eventData.eventName, expectedReturn: eventData.returnDate, currentNote: eventData.note, history: newHistory }, { merge: true });
-      });
-      await Promise.all(promises);
-      
-      logAction('นำออกงาน', `ทำรายการ ${eventChecklist.length} ชิ้น`, `ชื่องาน: ${eventData.eventName} (ผู้นำออก: ${finalStaff})\nรายการ: ${eventNames.join(', ')}`);
-      setPrintSlipData({
+      const docDate = new Date().toISOString();
+      const docRef = makeDocumentRef('EV');
+      const selectedEventItems = eventChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
+      const documentSnapshot = makeBorrowDocumentSnapshot({
         type: 'event',
-        title: 'ใบนำอุปกรณ์ออกงาน',
-        ref: makeDocumentRef('EV'),
-        date: new Date().toISOString(),
-        borrower: eventData.eventName,
+        ref: docRef,
+        date: docDate,
+        subject: eventData.eventName,
         staffOut: finalStaff,
         expectedReturn: eventData.returnDate,
         note: eventData.note,
-        items: eventChecklist.map(id => items.find(i => i.id === id)).filter(Boolean).map(i => ({ id: i.id, name: i.name, sn: i.sn, category: i.category, internalNote: i.internalNote }))
+        selectedItems: selectedEventItems,
+        proofs: uploadedProofs
       });
+      const newHistoryEntry = { type: 'event', date: docDate, documentId: docRef, documentRef: docRef, eventName: eventData.eventName, expectedReturn: eventData.returnDate, staffOut: finalStaff, note: eventData.note, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
+      const promises = selectedEventItems.map(item => {
+        eventNames.push(item.name);
+        const newHistory = [...(item.history || []), newHistoryEntry];
+        return setDoc(getItemDoc(item.id), { status: 'out-for-event', currentEvent: eventData.eventName, expectedReturn: eventData.returnDate, currentNote: eventData.note, history: newHistory }, { merge: true });
+      });
+      await Promise.all([setDoc(getBorrowDoc(docRef), documentSnapshot, { merge: true }), ...promises]);
+
+      logAction('นำออกงาน', `ทำรายการ ${selectedEventItems.length} ชิ้น`, `เลขที่เอกสาร: ${docRef}\nชื่องาน: ${eventData.eventName} (ผู้นำออก: ${finalStaff})\nรายการ: ${eventNames.join(', ')}`);
+      setPrintSlipData(documentSnapshot);
       setEventTargetIds([]);
       setEventChecklist([]);
       setSelectedItems([]); 
@@ -2674,6 +2773,33 @@ S.N.: ${item.sn || '-'}
         }, { merge: true });
       });
       await Promise.all(promises);
+
+      const returnedSet = new Set(returnChecklist);
+      const activeArchiveDocs = (borrowDocuments || []).filter(doc => {
+        const ids = Array.isArray(doc.itemIds) ? doc.itemIds : [];
+        const isOpen = !doc.status || doc.status === 'active' || doc.status === 'partial';
+        return isOpen && ids.some(id => returnedSet.has(id));
+      });
+      if (activeArchiveDocs.length > 0) {
+        const archiveUpdates = activeArchiveDocs.map(docData => {
+          const ids = Array.isArray(docData.itemIds) ? docData.itemIds : [];
+          const oldReturned = new Set(Array.isArray(docData.returnedItemIds) ? docData.returnedItemIds : []);
+          ids.forEach(id => { if (returnedSet.has(id)) oldReturned.add(id); });
+          const returnedItemIds = Array.from(oldReturned);
+          const isClosed = ids.length > 0 && returnedItemIds.length >= ids.length;
+          return setDoc(getBorrowDoc(docData.id || docData.ref), {
+            returnedItemIds,
+            status: isClosed ? 'closed' : 'partial',
+            statusLabel: isClosed ? 'คืนครบแล้ว' : 'คืนบางส่วน',
+            returnedAt: isClosed ? new Date().toISOString() : (docData.returnedAt || null),
+            returnStaff: finalStaff,
+            lastReturnProofs: uploadedProofs,
+            updatedAt: new Date().toISOString(),
+            updatedBy: currentAccountLabel
+          }, { merge: true });
+        });
+        await Promise.all(archiveUpdates);
+      }
 
       logAction('รับคืนอุปกรณ์', `ทำรายการ ${returnChecklist.length} ชิ้น`, `จนท.ผู้รับคืน: ${finalStaff}\nรายการ: ${returnedNames.join(', ')}`);
 
@@ -3191,6 +3317,7 @@ S.N.: ${item.sn || '-'}
         totalHistoryProofLinks: historyProofCount,
         estimatedProofBytes: proofBytes,
         totalAuditLogs: latestAuditLogs.length,
+        totalBorrowDocuments: (borrowDocuments || []).length,
         totalBundles: (settingsOptions.bundles || []).length,
         totalCategories: (settingsOptions.categories || []).length,
         totalLocations: (settingsOptions.locations || []).length,
@@ -3201,6 +3328,7 @@ S.N.: ${item.sn || '-'}
       settings: settingsOptions,
       items: items,
       auditLogs: latestAuditLogs,
+      borrowDocuments: borrowDocuments || [],
       proofs: proofDocs
     };
 
@@ -4206,7 +4334,7 @@ S.N.: ${item.sn || '-'}
               <Icons.Folder className="w-6 h-6" /> พิมพ์ฉลากกล่องเก็บของ ({selectedLabelItems.length} รายการ)
             </h2>
             <p className="text-slate-300 text-sm font-bold mt-1">
-              ฉลากใหม่อ่านง่ายขึ้น: ตัดคำไทยดีขึ้น แยก S.N. ชัด และเลือกโหมดพิมพ์ได้
+              ตัวอย่างนี้คือฉลากที่จะพิมพ์จริง เลือกขนาด/โหมด/ช่องเช็ก/QR ได้จากแถบนี้
             </p>
           </div>
 
@@ -4304,6 +4432,7 @@ S.N.: ${item.sn || '-'}
               {selectedLabelItems.length === 0 ? (
                 <div className="border-2 border-dashed border-black p-8 text-center font-black text-slate-500">
                   ยังไม่ได้เลือกอุปกรณ์สำหรับทำฉลากกล่อง
+กลับไปเลือกอุปกรณ์หรือเลือกกล่องก่อนพิมพ์
                 </div>
               ) : (
                 <div className={`${boxPreset.maxPreviewHeight} overflow-hidden print:max-h-none`}>
@@ -4340,7 +4469,7 @@ S.N.: ${item.sn || '-'}
             <div className={`${isInkMode ? 'border-t-2 border-black bg-white' : 'border-t border-slate-300 bg-slate-50'} px-4 py-2 print:px-3 print:py-1.5 flex justify-between items-center gap-3 text-[10px] print:text-[7pt] font-black`}>
               <div className="flex items-center gap-2 min-w-0">
                 {!isInkMode && showDocumentLogo('boxLabelLogo') && renderOrgLogoBox({ className: 'w-12 h-7 rounded-lg border border-slate-300 px-1.5 py-1', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
-                <span className="truncate">กรุณาตรวจเช็กก่อนใช้งานและหลังเก็บคืนทุกครั้ง • ทรัพย์สินของ MDEC</span>
+                <span className="truncate">กรุณาตรวจเช็กก่อนใช้งานและหลังเก็บคืนทุกครั้ง • ทรัพย์สินของศูนย์ MDEC</span>
               </div>
               <span className="shrink-0">พิมพ์วันที่ {new Date().toLocaleDateString('th-TH')}</span>
             </div>
@@ -4613,7 +4742,10 @@ S.N.: ${item.sn || '-'}
     return (
       <div className={`min-h-screen font-sans text-slate-900 print:bg-white ${isInkSavingDocument ? "bg-white" : "bg-slate-100"}`}>
         <div className="print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
-          <h2 className="font-bold text-xl flex items-center gap-2"><Icons.Printer className="w-6 h-6" /> รายงานโครงการ</h2>
+          <div>
+            <h2 className="font-bold text-xl flex items-center gap-2"><Icons.Printer className="w-6 h-6" /> รายงานโครงการ</h2>
+            <p className="text-slate-300 text-sm font-bold mt-1">ตัวอย่างนี้คือหน้าที่จะพิมพ์จริง ปรับข้อมูลโครงการได้จาก Project Manager</p>
+          </div>
           <div className="flex gap-3">
             <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors"><Icons.Printer className="w-5 h-5"/> พิมพ์รายงาน</button>
             <button onClick={() => setPrintProjectData(null)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button>
@@ -4678,7 +4810,8 @@ S.N.: ${item.sn || '-'}
               </thead>
               <tbody>
                 {projectItems.length === 0 ? (
-                  <tr><td colSpan="8" className="border px-3 py-8 text-center font-bold text-slate-500">ยังไม่มีอุปกรณ์ในโครงการนี้</td></tr>
+                  <tr><td colSpan="8" className="border px-3 py-8 text-center font-bold text-slate-500">ยังไม่มีอุปกรณ์ในโครงการนี้
+กด “เพิ่มของ” เพื่อเลือกอุปกรณ์เข้าโครงการ</td></tr>
                 ) : projectItems.map((item, index) => (
                   <tr key={item.id || index}>
                     <td className="border px-3 py-2 font-bold">{index + 1}</td>
@@ -4701,7 +4834,7 @@ S.N.: ${item.sn || '-'}
             <div className="mt-10 pt-3 border-t border-slate-200 flex items-center justify-between gap-3 text-[11px] font-bold text-slate-500 relative z-[1]">
               <div className="flex items-center gap-2 min-w-0">
                 {showDocumentLogo('slipLogo') && renderOrgLogoBox({ className: 'w-16 h-9 rounded-xl border border-slate-200 px-2 py-1 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
-                <span className="truncate">เอกสารนี้ออกโดยระบบ MDEC-Stock สำหรับตรวจรายการอุปกรณ์ในโครงการ</span>
+                <span className="truncate">เอกสารนี้ออกโดยระบบ MDEC-Stock สำหรับตรวจรายการอุปกรณ์ตามโครงการและประกอบงานพัสดุภายในศูนย์</span>
               </div>
               <span className="shrink-0">{APP_VERSION}</span>
             </div>
@@ -4716,7 +4849,10 @@ S.N.: ${item.sn || '-'}
     return (
       <div className={`min-h-screen font-sans text-slate-900 print:bg-white ${isInkSavingDocument ? "bg-white" : "bg-slate-100"}`}>
         <div className="print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
-          <h2 className="font-bold text-xl flex items-center gap-2"><Icons.Printer className="w-6 h-6" /> {printSlipData.title}</h2>
+          <div>
+            <h2 className="font-bold text-xl flex items-center gap-2"><Icons.Printer className="w-6 h-6" /> {printSlipData.title}</h2>
+            <p className="text-slate-300 text-sm font-bold mt-1">ตัวอย่างนี้คือเอกสารที่จะพิมพ์จริง ตรวจข้อมูลก่อนกดพิมพ์</p>
+          </div>
           <div className="flex gap-3"><button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors"><Icons.Printer className="w-5 h-5"/> {isPrepSlip ? 'พิมพ์ใบเตรียมของ' : 'พิมพ์ใบยืม'}</button><button onClick={() => setPrintSlipData(null)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button></div>
         </div>
         <div className="pt-24 print:pt-0 p-6 print:p-0 max-w-4xl mx-auto"><div className="relative overflow-hidden bg-white p-8 print:p-6 shadow-xl print:shadow-none border border-slate-200 print:border-0 rounded-2xl print:rounded-none">
@@ -5065,9 +5201,9 @@ S.N.: ${item.sn || '-'}
                   <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
                     <Icons.ViewGrid className="w-6 h-6" />
                   </div>
-                  เมนูรวมระบบ
+                  เมนูเพิ่มเติม
                 </h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมเมนูที่หน้าที่คล้ายกันไว้ด้วยกัน เพื่อลดความรกของเว็บ</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมเครื่องมือสำคัญเป็นหมวด ใช้เหมือน Dashboard ย่อยของระบบ</p>
               </div>
               <button type="button" onClick={() => setShowMoreMenu(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -5084,20 +5220,35 @@ S.N.: ${item.sn || '-'}
                 </div>
               </div>
 
+              <div className="more-menu-overview grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                  ['งานค้าง', overdueItems.length + currentBorrowedItems.length + currentEventItems.length, 'ติดตามยืม/ออกงาน'],
+                  ['หลักฐาน', proofCenterStats.total, 'รูปหลักฐานทั้งหมด'],
+                  ['โครงการ', projectStats.length, 'จัดกลุ่มอุปกรณ์'],
+                  ['กล่อง/เซ็ต', (settingsOptions.storageBoxes || []).length + (settingsOptions.bundles || []).length, 'จัดเก็บและจัดชุด']
+                ].map(([label, value, desc]) => (
+                  <div key={label} className={`p-4 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-950/30 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
+                    <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
+                  </div>
+                ))}
+              </div>
+
               <div>
                 <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.History className="w-5 h-5 text-sky-500" /> งานประจำวัน</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <button type="button" onClick={() => { setShowMoreMenu(false); openTrackingCenter('today'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); openTrackingCenter('today'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ศูนย์ติดตามงาน</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>วันนี้ / รอคืน / ออกงาน / เลยกำหนด / ปฏิทิน</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูงานค้างและรายการวันนี้</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); openSelectionScanner({ camera: true }); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); openSelectionScanner({ camera: true }); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> โหมดสแกนเร็ว</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เปิดกล้องสแกน QR ทันที พร้อมกรอบช่วยสแกน</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เปิดสแกน QR อย่างรวดเร็ว</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setProofCenterFilter('all'); setProofCenterSearch(''); setShowProofCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setProofCenterFilter('all'); setProofCenterSearch(''); setShowProofCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Camera className="w-5 h-5" /> หลักฐานรูปภาพ</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดู / แก้ไข / แทนที่ / ลบรูปหลักฐาน</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมรูปหลักฐานทั้งหมด</p>
                   </button>
                 </div>
               </div>
@@ -5105,28 +5256,28 @@ S.N.: ${item.sn || '-'}
               <div>
                 <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Folder className="w-5 h-5 text-cyan-500" /> จัดเก็บและจัดชุดอุปกรณ์</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowStorageBoxesModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowStorageBoxesModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Folder className="w-5 h-5" /> กล่องเก็บของ</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดู/แก้ไขกล่องและพิมพ์ฉลากกล่อง</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดของตามกล่องและพิมพ์ฉลาก</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Layers className="w-5 h-5" /> เซ็ตอุปกรณ์</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สร้าง/แก้ไขชุดอุปกรณ์ และใช้งานเป็นชุด</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดอุปกรณ์เป็นเซ็ต</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowPrepListsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowPrepListsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายการเตรียมของ</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>วางแผนจัดของล่วงหน้าและพิมพ์ใบเตรียมของ</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เตรียมของก่อนออกงาน</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowPersonalItemsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowPersonalItemsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Tag className="w-5 h-5" /> ของส่วนตัว</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูอุปกรณ์ BYOD แยกตามเจ้าของ</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แยกอุปกรณ์ตามเจ้าของ</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowProjectsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowProjectsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Database className="w-5 h-5" /> โครงการ</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูอุปกรณ์ตามโครงการ / งานพัสดุแบบง่าย</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดกลุ่มตามโครงการจัดซื้อ</p>
                   </button>
                   {isFullMode && canUseOperationalTools && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowStockCountModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowStockCountModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> ตรวจนับสต๊อก</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เดินสแกน QR เทียบของจริงกับระบบ</p>
                     </button>
@@ -5137,15 +5288,15 @@ S.N.: ${item.sn || '-'}
               <div>
                 <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Printer className="w-5 h-5 text-indigo-500" /> เอกสารและฉลาก</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowPrintModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowPrintModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> QR / สติ๊กเกอร์อุปกรณ์</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกขนาด QR รวมถึงโหมด “สแกนง่ายมาก”</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>พิมพ์ QR และสติ๊กเกอร์</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowBoxLabelPrintModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowBoxLabelPrintModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Folder className="w-5 h-5" /> ฉลากกล่อง</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>พิมพ์ฉลากกล่องพร้อมโลโก้ MDEC</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setSettingsTab('documents'); setShowSettings(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setSettingsTab('documents'); setShowSettings(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Settings className="w-5 h-5" /> ตั้งค่าเอกสาร/โลโก้</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เปิด/ปิดโลโก้ ลายน้ำ และโหมดประหยัดหมึก</p>
                   </button>
@@ -5155,33 +5306,33 @@ S.N.: ${item.sn || '-'}
               <div>
                 <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Monitor className="w-5 h-5 text-emerald-500" /> ระบบและรายงาน</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowMonthlyReportModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowMonthlyReportModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายงานประจำเดือน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปการยืม คืน ออกงาน และหลักฐาน</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowSystemHealthModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowSystemHealthModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Alert className="w-5 h-5" /> ตรวจสุขภาพระบบ</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูพื้นที่ฐานข้อมูล รูปหลักฐาน และสถานะระบบ</p>
                   </button>
                   {canManageSystem && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowBackupCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowBackupCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.Database className="w-5 h-5" /> ศูนย์สำรองข้อมูล</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>JSON / Google Sheets CSV / HTML รูปหลักฐาน</p>
                     </button>
                   )}
                   {isFullMode && canViewAudit && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowAuditModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowAuditModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ประวัติการทำงาน</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Audit log ของระบบ</p>
                     </button>
                   )}
                   {isFullMode && canManageSystem && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowTrashModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowTrashModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.Trash className="w-5 h-5" /> ถังขยะ</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>กู้คืนอุปกรณ์ที่ลบผิด</p>
                     </button>
                   )}
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowHelpModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowHelpModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> คู่มือใช้งาน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปวิธีใช้เว็บแบบสั้น ๆ</p>
                   </button>
@@ -5521,7 +5672,7 @@ S.N.: ${item.sn || '-'}
                 </div>
               </div>
 
-              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-4 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-950/35 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input type="checkbox" className="w-5 h-5 accent-rose-600" checked={!!quickProblemOnly} onChange={e => setQuickProblemOnly(e.target.checked)} />
                   <span className={`font-black ${theme.textTitle}`}>แสดงเฉพาะของที่ต้องจัดการ</span>
@@ -6837,7 +6988,7 @@ S.N.: ${item.sn || '-'}
             <div className={`p-5 border-b shrink-0 flex items-start justify-between gap-4 ${theme.divide}`}>
               <div>
                 <h3 className={`text-2xl sm:text-3xl font-black ${theme.textTitle}`}>ตั้งค่าระบบ</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกหมวดจากการ์ดด้านบน ใช้งานเหมือนเมนูเพิ่มเติม ไม่ต้องเลื่อนแท็บยาว ๆ</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกหมวดจากการ์ดด้านบน ทุกหมวดใช้โครงเดียวกันเพื่อให้หาเมนูง่ายขึ้น</p>
               </div>
               <button type="button" onClick={() => { setShowSettings(false); resetSettingsFormState(); }} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -8585,7 +8736,8 @@ S.N.: ${item.sn || '-'}
 
               {filteredProjectStats.length === 0 ? (
                 <div className={`text-center py-16 rounded-3xl border font-black text-xl ${isDarkMode ? 'bg-slate-950/35 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-                  ยังไม่มีโครงการที่ตรงกับการค้นหา
+                  ไม่พบโครงการที่ตรงกับการค้นหา
+ลองล้างคำค้น หรือเพิ่มโครงการใหม่ด้านบน
                 </div>
               ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -8612,7 +8764,8 @@ S.N.: ${item.sn || '-'}
 
                         <div className="p-4">
                           {project.items.length === 0 ? (
-                            <div className={`p-6 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ยังไม่มีอุปกรณ์ในโครงการนี้</div>
+                            <div className={`p-6 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ยังไม่มีอุปกรณ์ในโครงการนี้
+กด “เพิ่มของ” เพื่อเลือกอุปกรณ์เข้าโครงการ</div>
                           ) : (
                             <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
                               {project.items.map((item) => {
