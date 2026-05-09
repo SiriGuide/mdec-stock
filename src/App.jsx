@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.23 One-Stop Backup Center';
-const APP_UPDATE_NOTE = 'เพิ่มศูนย์สำรองข้อมูลแบบครบชุด ดาวน์โหลด JSON สำหรับกู้คืน CSV สำหรับ Google Sheets และ HTML Gallery สำหรับดูรูปหลักฐาน';
+const APP_VERSION = 'v22.24 Clean Filter Project Room UX';
+const APP_UPDATE_NOTE = 'จัดหน้า filter ให้โล่งขึ้น ทำระบบโครงการให้เข้าถึงง่าย และปรับมุมมองแยกห้องให้ใช้เฉพาะฝ่ายห้องประชุม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -1333,6 +1333,21 @@ function MainApp() {
 
   const getAssetStatusInfo = (id) => ASSET_STATUSES.find(s => s.id === (id || 'active')) || ASSET_STATUSES[0];
 
+  const isMeetingRoomItem = (item) => {
+    const dept = String(item?.department || '').toLowerCase();
+    const deptLabel = String(DEPARTMENTS.find(d => d.id === item?.department)?.label || '').toLowerCase();
+    return dept.includes('ห้องประชุม') || deptLabel.includes('ห้องประชุม');
+  };
+
+  const openMeetingRoomView = () => {
+    const next = !showRoomView;
+    setShowRoomView(next);
+    if (next) {
+      setFilterDept('all');
+      setFilterLocation('all');
+    }
+  };
+
   const isProblemItem = (item) => {
     if (!item || item.isDeleted) return false;
     const isLate = (item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
@@ -1405,7 +1420,7 @@ function MainApp() {
 
   const roomGroups = useMemo(() => {
     const map = {};
-    filteredItems.forEach((item) => {
+    filteredItems.filter(isMeetingRoomItem).forEach((item) => {
       const roomName = String(item.location || 'ไม่ระบุห้อง/สถานที่').trim() || 'ไม่ระบุห้อง/สถานที่';
       if (!map[roomName]) {
         map[roomName] = { name: roomName, total: 0, available: 0, borrowed: 0, event: 0, maintenance: 0, items: [] };
@@ -4953,23 +4968,11 @@ S.N.: ${item.sn || '-'}
               <option value="all">สถานะทั้งหมด</option>
               {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
-            <select className={`flex-1 px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterProject} onChange={e => setFilterProject(e.target.value)}>
-              <option value="all">โครงการทั้งหมด</option>
-              {projectOptions.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select className={`flex-1 px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterAssetStatus} onChange={e => setFilterAssetStatus(e.target.value)}>
-              <option value="all">สถานะพัสดุทั้งหมด</option>
-              {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-            </select>
-            <select className={`flex-1 px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterQrTagged} onChange={e => setFilterQrTagged(e.target.value)}>
-              <option value="all">QR ทั้งหมด</option>
-              <option value="tagged">ติด QR แล้ว</option>
-              <option value="untagged">ยังไม่ติด QR</option>
-            </select>
           </div>
 
           <div className="flex gap-2 w-full xl:w-auto">
-            <button type="button" onClick={() => setShowRoomView(!showRoomView)} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${showRoomView ? 'bg-sky-600 text-white border-sky-600 shadow-md' : theme.btnSecondary}`}>แยกตามห้อง</button>
+            <button type="button" onClick={() => setShowProjectsModal(true)} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${filterProject !== 'all' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : theme.btnSecondary}`}>โครงการ</button>
+            <button type="button" onClick={openMeetingRoomView} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${showRoomView ? 'bg-sky-600 text-white border-sky-600 shadow-md' : theme.btnSecondary}`}>แยกห้องประชุม</button>
             <button type="button" onClick={() => setQuickProblemOnly(!quickProblemOnly)} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${quickProblemOnly ? 'bg-rose-600 text-white border-rose-600 shadow-md' : theme.btnSecondary}`}>ของที่ต้องจัดการ</button>
             {hasActiveFilters && <button type="button" onClick={clearAllFilters} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${theme.btnSecondary}`}>ล้างตัวกรอง</button>}
           </div>
@@ -4980,6 +4983,30 @@ S.N.: ${item.sn || '-'}
             </div>
           )}
         </div>
+
+        <details className={`w-full rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+          <summary className={`cursor-pointer list-none px-4 py-3 font-black flex items-center justify-between gap-3 ${theme.textTitle}`}>
+            <span>ตัวกรองเพิ่มเติม <span className={`text-xs font-bold ${theme.textMuted}`}>โครงการ / สถานะพัสดุ / QR</span></span>
+            <span className={`text-xs px-2 py-1 rounded-full border ${theme.btnSecondary}`}>
+              {[filterProject !== 'all', filterAssetStatus !== 'all', filterQrTagged !== 'all'].filter(Boolean).length || 'ปิด'}
+            </span>
+          </summary>
+          <div className={`p-3 border-t grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
+            <select className={`px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterProject} onChange={e => setFilterProject(e.target.value)}>
+              <option value="all">โครงการทั้งหมด</option>
+              {projectOptions.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select className={`px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterAssetStatus} onChange={e => setFilterAssetStatus(e.target.value)}>
+              <option value="all">สถานะพัสดุทั้งหมด</option>
+              {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
+            <select className={`px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterQrTagged} onChange={e => setFilterQrTagged(e.target.value)}>
+              <option value="all">QR ทั้งหมด</option>
+              <option value="tagged">ติด QR แล้ว</option>
+              <option value="untagged">ยังไม่ติด QR</option>
+            </select>
+          </div>
+        </details>
 
         <div className="flex gap-2 overflow-x-auto w-full pb-2 custom-scrollbar">
           <button type="button" onClick={() => setFilterDept('all')} className={`flex items-center justify-center gap-2 whitespace-nowrap px-6 ${controlPaddingClass} rounded-xl font-bold text-lg transition-all border ${filterDept === 'all' ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-800 border-slate-800 text-white shadow-md') : theme.btnSecondary}`}>
@@ -4996,20 +5023,20 @@ S.N.: ${item.sn || '-'}
         </div>
       </div>
 
-      {/* 🏫 Meeting Room Group View */}
+      {/* 🏫 Meeting Room Department Group View */}
       {showRoomView && (
         <div className={`w-full rounded-[1.75rem] shadow-xl border overflow-hidden relative transition-colors mb-8 ${theme.cardBg}`}>
           <div className={`px-5 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
             <div>
-              <div className={`font-black text-xl ${theme.textTitle}`}>มุมมองแยกตามห้อง / สถานที่</div>
-              <div className={`text-sm font-bold ${theme.textMuted}`}>พบ {roomGroups.length.toLocaleString('th-TH')} ห้อง/สถานที่ • {filteredItems.length.toLocaleString('th-TH')} รายการ</div>
+              <div className={`font-black text-xl ${theme.textTitle}`}>มุมมองแยกตามห้องประชุม</div>
+              <div className={`text-sm font-bold ${theme.textMuted}`}>พบ {roomGroups.length.toLocaleString('th-TH')} ห้องประชุม/สถานที่ • {roomGroups.reduce((sum, room) => sum + room.total, 0).toLocaleString('th-TH')} รายการในฝ่ายห้องประชุม</div>
             </div>
-            <button type="button" onClick={() => setShowRoomView(false)} className={`px-4 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>กลับมุมมองปกติ</button>
+            <button type="button" onClick={() => setShowRoomView(false)} className={`px-4 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>กลับรายการทั้งหมด</button>
           </div>
 
           <div className="p-4 sm:p-5 space-y-4">
             {roomGroups.length === 0 ? (
-              <div className={`rounded-2xl border p-10 text-center font-black ${theme.textMuted}`}>ไม่พบอุปกรณ์ในเงื่อนไขนี้</div>
+              <div className={`rounded-2xl border p-10 text-center font-black ${theme.textMuted}`}>ไม่พบอุปกรณ์ในฝ่ายห้องประชุมตามเงื่อนไขนี้</div>
             ) : roomGroups.map((room) => {
               const expanded = expandedRooms[room.name] !== false;
               return (
@@ -7918,7 +7945,7 @@ S.N.: ${item.sn || '-'}
             <div className={`p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
               <div>
                 <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white flex items-center justify-center shadow-lg">🗂️</span> โครงการ / แหล่งที่มาอุปกรณ์</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูว่าแต่ละโครงการมีอุปกรณ์อะไรบ้าง และเปลี่ยนโครงการได้ง่าย ๆ จากหน้าแก้ไขอุปกรณ์</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>กด “กรอง” เพื่อดูของในโครงการนั้น หรือกด “เปลี่ยนโครงการ” ที่รายการอุปกรณ์ได้ทันที</p>
               </div>
               <button type="button" onClick={() => setShowProjectsModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
