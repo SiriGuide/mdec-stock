@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.28 Clean Main & Settings Menu';
-const APP_UPDATE_NOTE = 'ลดความรกหน้าแรก ย้ายโครงการ/ของต้องจัดการไปไว้ในเมนูเพิ่มเติม และปรับตั้งค่าเป็นเมนูการ์ดแบบไม่ต้องเลื่อนด้านข้าง';
+const APP_VERSION = 'v22.30 Final UX Polish Pack';
+const APP_UPDATE_NOTE = 'เก็บงานรอบใหญ่: ชิปตัวกรอง, เพิ่มของเข้าโครงการหลายชิ้น, ฟอร์มเป็นหมวด, ป้ายข้อมูลไม่ครบ และแถบมือถือ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -198,6 +198,10 @@ function MainApp() {
   const [showPersonalItemsModal, setShowPersonalItemsModal] = useState(false);
   const [showProjectsModal, setShowProjectsModal] = useState(false);
   const [quickProjectName, setQuickProjectName] = useState('');
+  const [showProjectAssignModal, setShowProjectAssignModal] = useState(false);
+  const [projectAssignTarget, setProjectAssignTarget] = useState('');
+  const [projectAssignSelectedIds, setProjectAssignSelectedIds] = useState([]);
+  const [projectAssignSearch, setProjectAssignSearch] = useState('');
   const [showRoomView, setShowRoomView] = useState(false);
   const [expandedRooms, setExpandedRooms] = useState({});
   const [showEmptyCategories, setShowEmptyCategories] = useState(false);
@@ -211,6 +215,7 @@ function MainApp() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showAnnualCleanupModal, setShowAnnualCleanupModal] = useState(false);
   const [showBackupCenterModal, setShowBackupCenterModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const [quickProblemOnly, setQuickProblemOnly] = useState(false);
   const [auditFilter, setAuditFilter] = useState('all');
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -1334,6 +1339,18 @@ function MainApp() {
 
   const getAssetStatusInfo = (id) => ASSET_STATUSES.find(s => s.id === (id || 'active')) || ASSET_STATUSES[0];
 
+  const getMissingDataLabels = (item = {}) => {
+    const missing = [];
+    if (!String(item.name || '').trim()) missing.push('ชื่อ');
+    if (!String(item.sn || '').trim()) missing.push('S.N.');
+    if (!String(item.category || '').trim()) missing.push('หมวดหมู่');
+    if (!String(item.location || '').trim()) missing.push('สถานที่');
+    if (!String(item.department || '').trim()) missing.push('ฝ่าย');
+    if (!String(item.project || '').trim()) missing.push('โครงการ');
+    if (!item.qrTagged) missing.push('QR');
+    return missing;
+  };
+
   const isMeetingRoomItem = (item) => {
     const dept = String(item?.department || '').toLowerCase();
     const deptLabel = String(DEPARTMENTS.find(d => d.id === item?.department)?.label || '').toLowerCase();
@@ -1352,8 +1369,8 @@ function MainApp() {
   const isProblemItem = (item) => {
     if (!item || item.isDeleted) return false;
     const isLate = (item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
-    const missingInfo = !String(item.sn || '').trim() || !String(item.category || '').trim() || !String(item.location || '').trim();
-    return isLate || item.status === 'maintenance' || !item.qrTagged || missingInfo;
+    const missingInfo = getMissingDataLabels(item).length > 0;
+    return isLate || item.status === 'maintenance' || missingInfo;
   };
 
   const filteredItems = useMemo(() => {
@@ -1391,6 +1408,22 @@ function MainApp() {
   }, [items, searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterProject, filterAssetStatus, filterQrTagged, quickProblemOnly, todayMs]);
 
   const hasActiveFilters = !!searchTerm || filterDept !== 'all' || filterCategory !== 'all' || filterStatus !== 'all' || filterLocation !== 'all' || filterProject !== 'all' || filterAssetStatus !== 'all' || filterQrTagged !== 'all' || quickProblemOnly;
+
+  const activeFilterCount = [!!searchTerm, filterDept !== 'all', filterCategory !== 'all', filterStatus !== 'all', filterLocation !== 'all', filterProject !== 'all', filterAssetStatus !== 'all', filterQrTagged !== 'all', quickProblemOnly].filter(Boolean).length;
+
+  const activeFilterChips = useMemo(() => {
+    const chips = [];
+    if (searchTerm) chips.push({ id: 'search', label: `ค้นหา: ${searchTerm}`, clear: () => setSearchTerm('') });
+    if (filterDept !== 'all') chips.push({ id: 'dept', label: `ฝ่าย: ${DEPARTMENTS.find(d => d.id === filterDept)?.label || filterDept}`, clear: () => setFilterDept('all') });
+    if (filterLocation !== 'all') chips.push({ id: 'location', label: `ห้อง/ที่เก็บ: ${filterLocation}`, clear: () => setFilterLocation('all') });
+    if (filterCategory !== 'all') chips.push({ id: 'category', label: `หมวด: ${filterCategory}`, clear: () => setFilterCategory('all') });
+    if (filterStatus !== 'all') chips.push({ id: 'status', label: `สถานะ: ${STATUSES.find(s => s.id === filterStatus)?.label || filterStatus}`, clear: () => setFilterStatus('all') });
+    if (filterProject !== 'all') chips.push({ id: 'project', label: `โครงการ: ${filterProject}`, clear: () => setFilterProject('all') });
+    if (filterAssetStatus !== 'all') chips.push({ id: 'asset', label: `พัสดุ: ${getAssetStatusInfo(filterAssetStatus).label}`, clear: () => setFilterAssetStatus('all') });
+    if (filterQrTagged !== 'all') chips.push({ id: 'qr', label: filterQrTagged === 'tagged' ? 'ติด QR แล้ว' : 'ยังไม่ติด QR', clear: () => setFilterQrTagged('all') });
+    if (quickProblemOnly) chips.push({ id: 'problem', label: 'ของที่ต้องจัดการ', clear: () => setQuickProblemOnly(false) });
+    return chips;
+  }, [searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterProject, filterAssetStatus, filterQrTagged, quickProblemOnly]);
 
   const clearAllFilters = () => {
     setSearchTerm('');
@@ -1448,6 +1481,85 @@ function MainApp() {
     } catch (error) {
       console.error(error);
       alert('❌ เพิ่มโครงการไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+
+  const projectAssignCandidateItems = useMemo(() => {
+    const search = String(projectAssignSearch || '').toLowerCase().trim();
+    return items
+      .filter(item => item && !item.isDeleted)
+      .filter(item => {
+        if (!search) return true;
+        return String(item.name || '').toLowerCase().includes(search) ||
+               String(item.sn || '').toLowerCase().includes(search) ||
+               String(item.category || '').toLowerCase().includes(search) ||
+               String(item.location || '').toLowerCase().includes(search) ||
+               String(item.project || '').toLowerCase().includes(search);
+      })
+      .sort((a, b) => {
+        const aSelected = projectAssignSelectedIds.includes(a.id);
+        const bSelected = projectAssignSelectedIds.includes(b.id);
+        if (aSelected && !bSelected) return -1;
+        if (!aSelected && bSelected) return 1;
+        return String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true });
+      });
+  }, [items, projectAssignSearch, projectAssignSelectedIds]);
+
+  const openProjectAssign = (projectName) => {
+    const name = String(projectName || '').trim();
+    if (!name || name === 'ไม่ระบุโครงการ') {
+      pushToast('เลือกหรือเพิ่มชื่อโครงการก่อน', 'warning');
+      return;
+    }
+    setProjectAssignTarget(name);
+    setProjectAssignSearch('');
+    setProjectAssignSelectedIds(items.filter(item => item && !item.isDeleted && String(item.project || '') === name).map(item => item.id));
+    setShowProjectAssignModal(true);
+  };
+
+  const toggleProjectAssignItem = (itemId) => {
+    setProjectAssignSelectedIds(prev => prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]);
+  };
+
+  const handleSaveProjectAssignment = async () => {
+    if (!projectAssignTarget) return alert('กรุณาเลือกโครงการ');
+    if (!canAddEditItems && !canManageSystem) return alert('บัญชีนี้ไม่มีสิทธิ์จัดอุปกรณ์เข้าโครงการ');
+    const selectedSet = new Set(projectAssignSelectedIds);
+    const targetItems = items.filter(item => item && !item.isDeleted && selectedSet.has(item.id));
+    if (targetItems.length === 0) {
+      alert('ยังไม่ได้เลือกอุปกรณ์เข้าโครงการนี้');
+      return;
+    }
+    try {
+      await Promise.all(targetItems.map(item => {
+        const oldProject = item.project || 'ไม่ระบุโครงการ';
+        const projectChanged = String(oldProject || '') !== String(projectAssignTarget || '');
+        const history = Array.isArray(item.history) ? [...item.history] : [];
+        if (projectChanged) {
+          history.push({
+            type: 'projectChange',
+            date: new Date().toISOString(),
+            fromProject: oldProject,
+            toProject: projectAssignTarget,
+            staff: currentOperator?.name || 'Admin',
+            note: 'จัดอุปกรณ์เข้าโครงการจากหน้าโครงการ'
+          });
+        }
+        return setDoc(getItemDoc(item.id), {
+          project: projectAssignTarget,
+          history,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentOperator?.name || 'Admin'
+        }, { merge: true });
+      }));
+      await logAction('จัดอุปกรณ์เข้าโครงการ', projectAssignTarget, `เพิ่ม/ผูกอุปกรณ์ ${targetItems.length} รายการเข้าโครงการ`);
+      setFilterProject(projectAssignTarget);
+      setShowProjectAssignModal(false);
+      pushToast(`จัดอุปกรณ์เข้าโครงการ ${targetItems.length} รายการแล้ว`, 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ จัดอุปกรณ์เข้าโครงการไม่สำเร็จ: ' + error.message);
     }
   };
 
@@ -4998,138 +5110,177 @@ S.N.: ${item.sn || '-'}
 
       {/* Filters & Search */}
       <div className={`w-full flex flex-col gap-4 ${panelPaddingClass} rounded-2xl shadow-md border mb-6 transition-colors ${theme.cardBg}`}>
-        <div className="flex flex-col xl:flex-row gap-4 items-center w-full">
+        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center w-full">
           <div className="relative flex-1 w-full">
             <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${theme.textMuted}`}><Icons.Search className="w-5 h-5" /></div>
-            <input type="text" className={`w-full pl-12 pr-4 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-bold outline-none transition-all border ${theme.input}`} placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่, เจ้าของ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-          </div>
-          
-          <div className="hidden lg:flex flex-col md:flex-row gap-3 w-full xl:w-auto">
-            <select className={`flex-1 px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterLocation} onChange={e => setFilterLocation(e.target.value)}>
-              <option value="all">สถานที่/ห้อง ทั้งหมด</option>
-              {(settingsOptions.locations || []).filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select className={`flex-1 px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
-              <option value="all">หมวดหมู่ทั้งหมด</option>
-              {(settingsOptions.categories || []).filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select className={`flex-1 px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-              <option value="all">สถานะทั้งหมด</option>
-              {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-            </select>
+            <input
+              type="text"
+              className={`w-full pl-12 pr-4 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-bold outline-none transition-all border ${theme.input}`}
+              placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่, เจ้าของ..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
-          {hasActiveFilters && (
-            <div className="hidden lg:flex gap-2 w-full xl:w-auto">
-              <button type="button" onClick={clearAllFilters} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
-            </div>
-          )}
-
-          {canAddEditItems && (
-            <div className="flex gap-2 w-full xl:w-auto">
-              <button type="button" onClick={openAddItemForm} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 ${controlPaddingClass} font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}><Icons.Plus className="w-5 h-5" /> <span className="hidden sm:inline">เพิ่มอุปกรณ์</span></button>
-            </div>
-          )}
-        </div>
-
-        <details className={`lg:hidden w-full rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-          <summary className={`cursor-pointer list-none px-4 py-3 font-black flex items-center justify-between gap-3 ${theme.textTitle}`}>
-            <span>ตัวกรองและเมนูเร็ว</span>
-            <span className={`text-xs px-2 py-1 rounded-full border ${theme.btnSecondary}`}>
-              {hasActiveFilters ? 'มีตัวกรอง' : 'เปิด'}
-            </span>
-          </summary>
-          <div className={`p-3 border-t space-y-3 ${theme.divide}`}>
-            <div className="grid grid-cols-1 gap-3">
-              <select className={`px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterLocation} onChange={e => setFilterLocation(e.target.value)}>
-                <option value="all">สถานที่/ห้อง ทั้งหมด</option>
-                {(settingsOptions.locations || []).filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <select className={`px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
-                <option value="all">หมวดหมู่ทั้งหมด</option>
-                {(settingsOptions.categories || []).filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <select className={`px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                <option value="all">สถานะทั้งหมด</option>
-                {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-              </select>
-              <select className={`px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-                <option value="all">ฝ่าย/แผนก ทั้งหมด</option>
-                {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
-              </select>
-              <select className={`px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterProject} onChange={e => setFilterProject(e.target.value)}>
-                <option value="all">โครงการทั้งหมด</option>
-                {projectOptions.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-
+          <div className="grid grid-cols-2 lg:flex gap-2 w-full lg:w-auto">
+            <button
+              type="button"
+              onClick={() => setShowFilterModal(true)}
+              className={`px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap flex items-center justify-center gap-2 ${activeFilterCount > 0 ? 'bg-blue-600 text-white border-blue-600 shadow-md' : theme.btnSecondary}`}
+            >
+              <Icons.Settings className="w-5 h-5" />
+              ตัวกรอง{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+            </button>
             {hasActiveFilters && (
-              <button type="button" onClick={clearAllFilters} className={`w-full px-3 py-3 rounded-xl font-black border ${theme.btnSecondary}`}>ล้างตัวกรองทั้งหมด</button>
+              <button type="button" onClick={clearAllFilters} className={`px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
             )}
-
-            <details className={`rounded-xl border overflow-hidden ${isDarkMode ? 'border-slate-700 bg-slate-900/40' : 'border-slate-200 bg-white'}`}>
-              <summary className={`cursor-pointer list-none px-3 py-2.5 text-sm font-black ${theme.textTitle}`}>ตัวกรองละเอียด</summary>
-              <div className={`p-3 border-t grid grid-cols-1 gap-3 ${theme.divide}`}>
-                <select className={`px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterAssetStatus} onChange={e => setFilterAssetStatus(e.target.value)}>
-                  <option value="all">สถานะพัสดุทั้งหมด</option>
-                  {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
-                <select className={`px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterQrTagged} onChange={e => setFilterQrTagged(e.target.value)}>
-                  <option value="all">QR ทั้งหมด</option>
-                  <option value="tagged">ติด QR แล้ว</option>
-                  <option value="untagged">ยังไม่ติด QR</option>
-                </select>
-              </div>
-            </details>
-          </div>
-        </details>
-
-        <details className={`hidden lg:block w-full rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-          <summary className={`cursor-pointer list-none px-4 py-3 font-black flex items-center justify-between gap-3 ${theme.textTitle}`}>
-            <span>ตัวกรองเพิ่มเติม <span className={`text-xs font-bold ${theme.textMuted}`}>โครงการ / สถานะพัสดุ / QR</span></span>
-            <span className={`text-xs px-2 py-1 rounded-full border ${theme.btnSecondary}`}>
-              {[filterProject !== 'all', filterAssetStatus !== 'all', filterQrTagged !== 'all'].filter(Boolean).length || 'ปิด'}
-            </span>
-          </summary>
-          <div className={`p-3 border-t grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
-            <select className={`px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterProject} onChange={e => setFilterProject(e.target.value)}>
-              <option value="all">โครงการทั้งหมด</option>
-              {projectOptions.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select className={`px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterAssetStatus} onChange={e => setFilterAssetStatus(e.target.value)}>
-              <option value="all">สถานะพัสดุทั้งหมด</option>
-              {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-            </select>
-            <select className={`px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterQrTagged} onChange={e => setFilterQrTagged(e.target.value)}>
-              <option value="all">QR ทั้งหมด</option>
-              <option value="tagged">ติด QR แล้ว</option>
-              <option value="untagged">ยังไม่ติด QR</option>
-            </select>
-          </div>
-        </details>
-
-        <details className={`hidden lg:block w-full rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-          <summary className={`cursor-pointer list-none px-4 py-3 font-black flex items-center justify-between gap-3 ${theme.textTitle}`}>
-            <span>ฝ่าย / แผนก <span className={`text-xs font-bold ${theme.textMuted}`}>{filterDept === 'all' ? 'ทั้งหมด' : filterDept}</span></span>
-            <span className={`text-xs px-2 py-1 rounded-full border ${theme.btnSecondary}`}>เลือกฝ่าย</span>
-          </summary>
-          <div className={`p-3 border-t ${theme.divide}`}>
-        <div className="flex gap-2 overflow-x-auto w-full pb-2 custom-scrollbar">
-          <button type="button" onClick={() => setFilterDept('all')} className={`flex items-center justify-center gap-2 whitespace-nowrap px-6 ${controlPaddingClass} rounded-xl font-bold text-lg transition-all border ${filterDept === 'all' ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-800 border-slate-800 text-white shadow-md') : theme.btnSecondary}`}>
-            ทั้งหมด <Icons.ViewGrid className="w-5 h-5" />
-          </button>
-          {DEPARTMENTS.map(d => {
-            const IconComponent = Icons[d.iconName];
-            return (
-              <button type="button" key={d.id} onClick={() => setFilterDept(d.id)} className={`flex items-center justify-center gap-2 whitespace-nowrap px-6 ${controlPaddingClass} rounded-xl font-bold text-lg transition-all border ${filterDept === d.id ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-800 border-slate-800 text-white shadow-md') : theme.btnSecondary}`}>
-                {d.label} {IconComponent && <IconComponent className="w-5 h-5" />}
+            {canAddEditItems && (
+              <button
+                type="button"
+                onClick={openAddItemForm}
+                className={`col-span-2 lg:col-span-1 flex items-center justify-center gap-2 px-6 ${controlPaddingClass} font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+              >
+                <Icons.Plus className="w-5 h-5" /> เพิ่มอุปกรณ์
               </button>
-            );
-          })}
-        </div>
+            )}
           </div>
-        </details>
+        </div>
+
+        {activeFilterChips.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {activeFilterChips.map(chip => (
+              <button
+                key={chip.id}
+                type="button"
+                onClick={chip.clear}
+                className={`px-3 py-2 rounded-full border text-xs sm:text-sm font-black flex items-center gap-2 ${isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-200 hover:bg-blue-900' : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'}`}
+                title="กดเพื่อลบตัวกรองนี้"
+              >
+                {chip.label}<span className="opacity-70">×</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`px-4 py-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${theme.divide}`}>
+            <div className={`font-black ${theme.textTitle}`}>
+              ฝ่าย / แผนก <span className={`text-xs font-bold ${theme.textMuted}`}>{filterDept === 'all' ? 'ทั้งหมด' : filterDept}</span>
+            </div>
+            <div className={`text-xs font-bold ${theme.textMuted}`}>
+              เลือก “ห้องประชุม” แล้วระบบจะแยกอุปกรณ์ตามห้องให้อัตโนมัติ
+            </div>
+          </div>
+          <div className="p-3 flex gap-2 overflow-x-auto w-full custom-scrollbar">
+            <button
+              type="button"
+              onClick={() => { setFilterDept('all'); setShowRoomView(false); }}
+              className={`flex items-center justify-center gap-2 whitespace-nowrap px-5 py-3 rounded-xl font-black transition-all border ${filterDept === 'all' ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-800 border-slate-800 text-white shadow-md') : theme.btnSecondary}`}
+            >
+              ทั้งหมด <Icons.ViewGrid className="w-5 h-5" />
+            </button>
+            {DEPARTMENTS.map(d => {
+              const IconComponent = Icons[d.iconName];
+              return (
+                <button
+                  type="button"
+                  key={d.id}
+                  onClick={() => { setFilterDept(d.id); if (d.id !== 'ห้องประชุม') setShowRoomView(false); }}
+                  className={`flex items-center justify-center gap-2 whitespace-nowrap px-5 py-3 rounded-xl font-black transition-all border ${filterDept === d.id ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-blue-600 border-blue-600 text-white shadow-md') : theme.btnSecondary}`}
+                >
+                  {d.label} {IconComponent && <IconComponent className="w-5 h-5" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
+
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-[2rem] shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[92vh] border ${theme.cardBg}`}>
+            <div className={`p-5 border-b flex items-start justify-between gap-4 ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl sm:text-3xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.Settings className="w-7 h-7 text-blue-500" /> ตัวกรองข้อมูล</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมตัวกรองทั้งหมดไว้ที่นี่ หน้าแรกจะได้ไม่รก</p>
+              </div>
+              <button type="button" onClick={() => setShowFilterModal(false)} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="p-5 overflow-y-auto custom-scrollbar space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-black mb-2 ${theme.textMuted}`}>สถานที่ / ห้อง</label>
+                  <select className={`w-full px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterLocation} onChange={e => setFilterLocation(e.target.value)}>
+                    <option value="all">สถานที่/ห้อง ทั้งหมด</option>
+                    {(settingsOptions.locations || []).filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-sm font-black mb-2 ${theme.textMuted}`}>หมวดหมู่</label>
+                  <select className={`w-full px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+                    <option value="all">หมวดหมู่ทั้งหมด</option>
+                    {(settingsOptions.categories || []).filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-sm font-black mb-2 ${theme.textMuted}`}>สถานะใช้งาน</label>
+                  <select className={`w-full px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                    <option value="all">สถานะทั้งหมด</option>
+                    {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-sm font-black mb-2 ${theme.textMuted}`}>โครงการ</label>
+                  <div className="flex gap-2">
+                    <select className={`flex-1 px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterProject} onChange={e => setFilterProject(e.target.value)}>
+                      <option value="all">โครงการทั้งหมด</option>
+                      {projectOptions.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <button type="button" onClick={() => { setShowFilterModal(false); setShowProjectsModal(true); }} className="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black whitespace-nowrap">จัดการ</button>
+                  </div>
+                </div>
+                <div>
+                  <label className={`block text-sm font-black mb-2 ${theme.textMuted}`}>สถานะพัสดุ</label>
+                  <select className={`w-full px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterAssetStatus} onChange={e => setFilterAssetStatus(e.target.value)}>
+                    <option value="all">สถานะพัสดุทั้งหมด</option>
+                    {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-sm font-black mb-2 ${theme.textMuted}`}>QR Code</label>
+                  <select className={`w-full px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterQrTagged} onChange={e => setFilterQrTagged(e.target.value)}>
+                    <option value="all">QR ทั้งหมด</option>
+                    <option value="tagged">ติด QR แล้ว</option>
+                    <option value="untagged">ยังไม่ติด QR</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" className="w-5 h-5 accent-rose-600" checked={!!quickProblemOnly} onChange={e => setQuickProblemOnly(e.target.checked)} />
+                  <span className={`font-black ${theme.textTitle}`}>แสดงเฉพาะของที่ต้องจัดการ</span>
+                </label>
+                <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>เช่น ของเลยกำหนดคืน อยู่ระหว่างซ่อม ยังไม่ติด QR หรือข้อมูลไม่ครบ</p>
+              </div>
+
+              {hasActiveFilters && (
+                <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+                  <div className="font-black">กำลังใช้ตัวกรอง {activeFilterCount} รายการ</div>
+                  <button type="button" onClick={clearAllFilters} className={`px-4 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างตัวกรองทั้งหมด</button>
+                </div>
+              )}
+            </div>
+
+            <div className={`p-4 border-t grid grid-cols-2 gap-3 ${theme.divide}`}>
+              <button type="button" onClick={() => setShowFilterModal(false)} className={`py-3 rounded-xl font-black ${theme.btnCancel}`}>ปิด</button>
+              <button type="button" onClick={() => setShowFilterModal(false)} className="py-3 rounded-xl font-black bg-blue-600 hover:bg-blue-500 text-white">ใช้ตัวกรอง</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 🏫 Meeting Room Department Group View */}
       {(showRoomView || filterDept === 'ห้องประชุม') && (
@@ -5220,6 +5371,7 @@ S.N.: ${item.sn || '-'}
               const isEvent = item.status === 'out-for-event';
               const qty = Number(item.quantity) || 1;
               const proofCount = getItemProofCount(item);
+              const missingLabels = getMissingDataLabels(item);
               const isOverdue = (isBorrowed || isEvent) && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
               const canSelectThis = item.status === 'available' || isBorrowed || isEvent;
               return (
@@ -5247,6 +5399,7 @@ S.N.: ${item.sn || '-'}
                           {item.storageBoxName && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-50 text-cyan-700'}`}>📦 {item.storageBoxName}</span>}
                           {item.project && <button type="button" onClick={() => setFilterProject(item.project)} className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-indigo-900/40 text-indigo-300' : 'bg-indigo-50 text-indigo-700'}`}>🗂️ {item.project}</button>}
                           {item.assetStatus && item.assetStatus !== 'active' && <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? getAssetStatusInfo(item.assetStatus).darkColor : getAssetStatusInfo(item.assetStatus).color}`}>{getAssetStatusInfo(item.assetStatus).label}</span>}
+                          {missingLabels.length > 0 && <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>ข้อมูลไม่ครบ {missingLabels.length}</span>}
                           {proofCount > 0 && <button type="button" onClick={() => { setProofCenterSearch(item.sn || item.name || ''); setProofCenterFilter('all'); setShowProofCenterModal(true); }} className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-pink-900/40 text-pink-300' : 'bg-pink-50 text-pink-700'}`}>📷 {proofCount}</button>}
                           {isOverdue && <span className="px-2.5 py-1 rounded-full text-xs font-black bg-rose-600 text-white">เลยกำหนดคืน</span>}
                         </div>
@@ -5323,6 +5476,7 @@ S.N.: ${item.sn || '-'}
                 const isEvent = item.status === 'out-for-event';
                 const qty = Number(item.quantity) || 1;
                 const proofCount = getItemProofCount(item);
+                const missingLabels = getMissingDataLabels(item);
                 
                 const isOverdue = (isBorrowed || isEvent) && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
                 const rowBg = isOverdue ? (isDarkMode ? 'bg-rose-900/20 hover:bg-rose-900/40' : 'bg-rose-50 hover:bg-rose-100') : theme.trHover;
@@ -5365,6 +5519,9 @@ S.N.: ${item.sn || '-'}
                         )}
                         {item.assetStatus && item.assetStatus !== 'active' && (
                           <span className={`text-sm px-2 py-1 rounded-md shadow-sm border ${isDarkMode ? getAssetStatusInfo(item.assetStatus).darkColor : getAssetStatusInfo(item.assetStatus).color}`}>{getAssetStatusInfo(item.assetStatus).label}</span>
+                        )}
+                        {missingLabels.length > 0 && (
+                          <span className={`text-sm px-2 py-1 rounded-md shadow-sm border ${isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`} title={`ขาด: ${missingLabels.join(', ')}`}>ข้อมูลไม่ครบ {missingLabels.length}</span>
                         )}
                         {proofCount > 0 && (
                           <button type="button" onClick={(e) => { e.stopPropagation(); setProofCenterSearch(item.sn || item.name || ''); setProofCenterFilter('all'); setShowProofCenterModal(true); }} className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-pink-900/40 text-pink-300 hover:bg-pink-800' : 'bg-pink-100 text-pink-700 hover:bg-pink-200'}`}>📷 {proofCount}</button>
@@ -7763,138 +7920,158 @@ S.N.: ${item.sn || '-'}
       {/* Add/Edit Form */}
       {showForm && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl ${theme.cardBg}`}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className={`text-2xl font-black ${theme.textTitle}`}>{formData.id ? 'แก้ไขข้อมูล' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
+          <div className={`rounded-[2rem] p-5 sm:p-7 max-w-2xl w-full max-h-[92vh] overflow-y-auto custom-scrollbar shadow-2xl border ${theme.cardBg}`}>
+            <div className="flex justify-between items-start gap-4 mb-5">
+              <div>
+                <h3 className={`text-2xl sm:text-3xl font-black ${theme.textTitle}`}>{formData.id ? 'แก้ไขข้อมูลอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
+                <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>แบ่งข้อมูลเป็นหมวด เพื่อกรอกง่ายและลดความผิดพลาด</p>
+              </div>
               <button type="button" onClick={() => confirmCloseIfDirty(true, () => setShowForm(false))} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              
-              {/* 🏷️ กล่องเลือกว่าเป็นของส่วนตัว */}
-              <div className={`sm:col-span-2 p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                <label className={`flex items-center gap-3 cursor-pointer ${theme.textTitle}`}>
-                  <input type="checkbox" className="w-5 h-5 accent-fuchsia-500 rounded cursor-pointer" 
-                    checked={formData.isPersonalItem} 
-                    onChange={e => {
-                      const isChecked = e.target.checked;
-                      setFormData({
-                        ...formData, 
-                        isPersonalItem: isChecked, 
-                        owner: isChecked ? (formData.owner || '') : '',
-                        newOwner: ''
-                      });
-                    }} 
-                  />
-                  <span className="font-bold text-lg">👤 ระบุว่าเป็น "ของส่วนตัว" (Personal Item)</span>
-                </label>
-                
-                {formData.isPersonalItem && (
-                  <div className="mt-4 pl-8 space-y-4">
-                    <div>
-                      <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>เลือกชื่อเจ้าของ <span className="text-rose-500">*</span></label>
-                      <select 
-                        className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-fuchsia-500 ${theme.input}`} 
-                        value={formData.owner || ''} 
-                        onChange={e => setFormData({...formData, owner: e.target.value, newOwner: e.target.value !== 'อื่นๆ' ? '' : formData.newOwner})}
-                      >
-                        <option value="" disabled>-- เลือกชื่อเจ้าของ --</option>
-                        {(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
+
+            <div className="space-y-5">
+              <section className={`p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>1. ข้อมูลหลัก</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>ชื่ออุปกรณ์ <span className="text-rose-500">*</span></label>
+                    <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น กล้อง Sony A7IV" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>รหัส S.N. <span className="text-rose-500">*</span></label>
+                    <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น CAM-001" value={formData.sn || ''} onChange={e => setFormData({...formData, sn: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>จำนวนชิ้น</label>
+                    <input type="number" min="1" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.quantity || 1} onChange={e => setFormData({...formData, quantity: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>ฝ่ายที่รับผิดชอบ</label>
+                    <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.department || ''} onChange={e => setFormData({...formData, department: e.target.value})}>
+                      {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>หมวดหมู่อุปกรณ์</label>
+                    <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.category || ''} onChange={e => setFormData({...formData, category: e.target.value, newCategory: e.target.value !== 'อื่นๆ' ? '' : formData.newCategory})}>
+                      <option value="" disabled>-- เลือกหมวดหมู่ --</option>
+                      {(settingsOptions.categories || []).map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  {formData.category === 'อื่นๆ' && (
+                    <div className="sm:col-span-2">
+                      <label className="block text-base font-bold text-blue-500 mb-2">เพิ่มหมวดหมู่ใหม่ / พิมพ์ระบุเอง</label>
+                      <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-800'}`} placeholder="พิมพ์ชื่อหมวดหมู่ใหม่..." value={formData.newCategory || ''} onChange={e => setFormData({...formData, newCategory: e.target.value})} />
                     </div>
-                    {formData.owner === 'อื่นๆ' && (
-                      <div className="animate-[slideDown_0.2s_ease-out]">
-                        <input 
-                          type="text" 
-                          autoFocus 
-                          className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-fuchsia-500 ${isDarkMode ? 'bg-fuchsia-900/20 border-fuchsia-800 text-fuchsia-300' : 'bg-fuchsia-50 border-fuchsia-300 text-fuchsia-800'}`} 
-                          placeholder="พิมพ์ชื่อเจ้าของใหม่..." 
-                          value={formData.newOwner || ''} 
-                          onChange={e => setFormData({...formData, newOwner: e.target.value})} 
-                        />
+                  )}
+                </div>
+              </section>
+
+              <section className={`p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
+                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>2. ที่เก็บ / โครงการ / พัสดุ</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>สถานที่จัดเก็บ / ห้อง</label>
+                    <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.location || ''} onChange={e => setFormData({...formData, location: e.target.value, newLocation: e.target.value !== 'อื่นๆ' ? '' : formData.newLocation})}>
+                      <option value="" disabled>-- เลือกสถานที่ --</option>
+                      {(settingsOptions.locations || []).map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  {formData.location === 'อื่นๆ' && (
+                    <div className="sm:col-span-2">
+                      <label className="block text-base font-bold text-blue-500 mb-2">เพิ่มสถานที่ใหม่ / พิมพ์ระบุเอง</label>
+                      <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-800'}`} placeholder="พิมพ์ชื่อสถานที่จัดเก็บใหม่..." value={formData.newLocation || ''} onChange={e => setFormData({...formData, newLocation: e.target.value})} />
+                    </div>
+                  )}
+                  <div className="sm:col-span-2">
+                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>โครงการ / แหล่งที่มา</label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <select className={`flex-1 px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.project || ''} onChange={e => setFormData({...formData, project: e.target.value, newProject: e.target.value !== 'อื่นๆ' ? '' : formData.newProject})}>
+                        <option value="">-- ไม่ระบุโครงการ --</option>
+                        {projectOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <button type="button" onClick={() => setShowProjectsModal(true)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>จัดการโครงการ</button>
+                    </div>
+                    <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>โครงการใช้สำหรับจัดกลุ่มอุปกรณ์ตามแหล่งที่มา/จัดซื้อ</p>
+                  </div>
+                  {formData.project === 'อื่นๆ' && (
+                    <div className="sm:col-span-2">
+                      <label className="block text-base font-bold text-blue-500 mb-2">เพิ่มชื่อโครงการใหม่ / พิมพ์ระบุเอง</label>
+                      <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-800'}`} placeholder="เช่น โครงการจัดซื้ออุปกรณ์ถ่ายภาพ ปี 2569" value={formData.newProject || ''} onChange={e => setFormData({...formData, newProject: e.target.value})} />
+                    </div>
+                  )}
+                  <div>
+                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>สถานะใช้งาน</label>
+                    <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.status || 'available'} onChange={e => setFormData({...formData, status: e.target.value})}>
+                      {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>สถานะพัสดุ</label>
+                    <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.assetStatus || 'active'} onChange={e => setFormData({...formData, assetStatus: e.target.value})}>
+                      {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                    </select>
+                    <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>สถานะพัสดุใช้ตรวจพัสดุ เช่น ใช้งานอยู่ / จำหน่ายแล้ว / สูญหาย</p>
+                  </div>
+                </div>
+              </section>
+
+              <section className={`p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950/30 border-slate-700' : 'bg-white border-slate-200'}`}>
+                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>3. รายละเอียดเพิ่มเติม</div>
+                <div className="space-y-4">
+                  <div className={`p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <label className={`flex items-center gap-3 cursor-pointer ${theme.textTitle}`}>
+                      <input type="checkbox" className="w-5 h-5 accent-emerald-500 rounded cursor-pointer" checked={!!formData.qrTagged} onChange={e => setFormData({...formData, qrTagged: e.target.checked})} />
+                      <span className="font-bold text-lg">▦ ติด QR แล้ว</span>
+                    </label>
+                    <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>ใช้ช่วยกรองรายการที่ยังไม่ได้ติดสติ๊กเกอร์ QR ตอนเตรียมอุปกรณ์จริง</p>
+                  </div>
+
+                  <div className={`p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <label className={`flex items-center gap-3 cursor-pointer ${theme.textTitle}`}>
+                      <input type="checkbox" className="w-5 h-5 accent-fuchsia-500 rounded cursor-pointer" checked={formData.isPersonalItem} onChange={e => {
+                        const isChecked = e.target.checked;
+                        setFormData({...formData, isPersonalItem: isChecked, owner: isChecked ? (formData.owner || '') : '', newOwner: ''});
+                      }} />
+                      <span className="font-bold text-lg">👤 ระบุว่าเป็น "ของส่วนตัว" (Personal Item)</span>
+                    </label>
+                    {formData.isPersonalItem && (
+                      <div className="mt-4 space-y-4">
+                        <div>
+                          <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>เลือกชื่อเจ้าของ <span className="text-rose-500">*</span></label>
+                          <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-fuchsia-500 ${theme.input}`} value={formData.owner || ''} onChange={e => setFormData({...formData, owner: e.target.value, newOwner: e.target.value !== 'อื่นๆ' ? '' : formData.newOwner})}>
+                            <option value="" disabled>-- เลือกชื่อเจ้าของ --</option>
+                            {(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                        {formData.owner === 'อื่นๆ' && (
+                          <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-fuchsia-500 ${isDarkMode ? 'bg-fuchsia-900/20 border-fuchsia-800 text-fuchsia-300' : 'bg-fuchsia-50 border-fuchsia-300 text-fuchsia-800'}`} placeholder="พิมพ์ชื่อเจ้าของใหม่..." value={formData.newOwner || ''} onChange={e => setFormData({...formData, newOwner: e.target.value})} />
+                        )}
                       </div>
                     )}
                   </div>
-                )}
-              </div>
 
-              <div className="sm:col-span-2">
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ชื่ออุปกรณ์ <span className="text-rose-500">*</span></label>
-                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น กล้อง Sony A7IV" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
-              </div>
-              
-              <div>
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ฝ่ายที่รับผิดชอบ</label>
-                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.department || ''} onChange={e => setFormData({...formData, department: e.target.value})}>
-                  {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>จำนวนชิ้น</label>
-                <input type="number" min="1" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.quantity || 1} onChange={e => setFormData({...formData, quantity: e.target.value})} />
-              </div>
-              
-              <div>
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>หมวดหมู่อุปกรณ์</label>
-                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.category || ''} onChange={e => setFormData({...formData, category: e.target.value, newCategory: e.target.value !== 'อื่นๆ' ? '' : formData.newCategory})}>
-                  <option value="" disabled>-- เลือกหมวดหมู่ --</option>
-                  {(settingsOptions.categories || []).map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>รหัส S.N. <span className="text-rose-500">*</span></label>
-                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น CAM-001 (บังคับกรอก)" value={formData.sn || ''} onChange={e => setFormData({...formData, sn: e.target.value})} />
-              </div>
+                  <div>
+                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>หมายเหตุภายใน / โน้ตอุปกรณ์ <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่แสดงบน QR)</span></label>
+                    <textarea className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border resize-none ${theme.input}`} rows="3" placeholder="เช่น แบตเสื่อมเร็ว, ช่อง HDMI หลวม, ใช้กับสายเฉพาะรุ่น..." value={formData.internalNote || ''} onChange={e => setFormData({...formData, internalNote: e.target.value})}></textarea>
+                  </div>
 
-              {formData.category === 'อื่นๆ' && (
-                <div className="sm:col-span-2">
-                  <label className="block text-base sm:text-lg font-bold text-blue-500 mb-2">เพิ่มหมวดหมู่ใหม่ / พิมพ์ระบุเอง</label>
-                  <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-800'}`} placeholder="พิมพ์ชื่อหมวดหมู่ใหม่..." value={formData.newCategory || ''} onChange={e => setFormData({...formData, newCategory: e.target.value})} />
+                  {getMissingDataLabels(formData).length > 0 && (
+                    <div className={`p-3 rounded-2xl border text-sm font-black ${isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                      ข้อมูลที่ยังควรเติม: {getMissingDataLabels(formData).join(', ')}
+                    </div>
+                  )}
                 </div>
-              )}
-              
-              <div className="sm:col-span-2">
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>สถานที่จัดเก็บ / ห้อง</label>
-                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.location || ''} onChange={e => setFormData({...formData, location: e.target.value, newLocation: e.target.value !== 'อื่นๆ' ? '' : formData.newLocation})}>
-                  <option value="" disabled>-- เลือกสถานที่ --</option>
-                  {(settingsOptions.locations || []).map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
-              {formData.location === 'อื่นๆ' && (
-                <div className="sm:col-span-2">
-                  <label className="block text-base sm:text-lg font-bold text-blue-500 mb-2">เพิ่มสถานที่ใหม่ / พิมพ์ระบุเอง</label>
-                  <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-800'}`} placeholder="พิมพ์ชื่อสถานที่จัดเก็บใหม่..." value={formData.newLocation || ''} onChange={e => setFormData({...formData, newLocation: e.target.value})} />
-                </div>
-              )}
-              
-              <div className="sm:col-span-2">
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>หมายเหตุภายใน / โน้ตอุปกรณ์ <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่แสดงบน QR)</span></label>
-                <textarea className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border resize-none ${theme.input}`} rows="3" placeholder="เช่น แบตเสื่อมเร็ว, ช่อง HDMI หลวม, ใช้กับสายเฉพาะรุ่น..." value={formData.internalNote || ''} onChange={e => setFormData({...formData, internalNote: e.target.value})}></textarea>
-              </div>
-
-              <div className={`sm:col-span-2 p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                <label className={`flex items-center gap-3 cursor-pointer ${theme.textTitle}`}>
-                  <input type="checkbox" className="w-5 h-5 accent-emerald-500 rounded cursor-pointer" checked={!!formData.qrTagged} onChange={e => setFormData({...formData, qrTagged: e.target.checked})} />
-                  <span className="font-bold text-lg">▦ ติด QR แล้ว</span>
-                </label>
-                <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>ใช้ช่วยกรองรายการที่ยังไม่ได้ติดสติ๊กเกอร์ QR ตอนเตรียมอุปกรณ์จริง</p>
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>สถานะ</label>
-                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.status || 'available'} onChange={e => setFormData({...formData, status: e.target.value})}>
-                  {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
-              </div>
+              </section>
             </div>
-            <div className="flex gap-3 mt-8">
+
+            <div className="flex gap-3 mt-6">
               <button type="button" onClick={() => confirmCloseIfDirty(true, () => setShowForm(false))} className={`flex-1 py-4 font-bold rounded-xl transition-colors text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button type="button" onClick={() => runWithBusy(handleSave)} disabled={isBusy} className={`flex-1 py-4 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-colors text-lg ${isBusy ? 'bg-blue-400 cursor-wait' : 'bg-blue-600 hover:bg-blue-500'}`}>{isBusy ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}</button>
             </div>
           </div>
         </div>
       )}
-
 
       {/* 🧭 Modal ศูนย์รวมของที่ต้องจัดการ */}
       {showActionCenterModal && (
@@ -8090,7 +8267,7 @@ S.N.: ${item.sn || '-'}
             <div className={`p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
               <div>
                 <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white flex items-center justify-center shadow-lg">🗂️</span> โครงการ / แหล่งที่มาอุปกรณ์</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เพิ่มชื่อโครงการก่อน แล้วค่อยเลือกโครงการนั้นในหน้าเพิ่ม/แก้ไขอุปกรณ์ หรือกด “กรอง” เพื่อดูของในโครงการ</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้สำหรับจัดกลุ่มอุปกรณ์ตามโครงการจัดซื้อหรือแหล่งที่มา เพิ่มชื่อโครงการ แล้วนำไปเลือกในหน้าแก้ไขอุปกรณ์ได้เลย</p>
               </div>
               <button type="button" onClick={() => setShowProjectsModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -8118,6 +8295,21 @@ S.N.: ${item.sn || '-'}
                 </div>
               </div>
 
+              <div className="mb-5 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div className={`font-black ${theme.textTitle}`}>1. เพิ่มชื่อโครงการ</div>
+                  <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>สร้างชื่อโครงการไว้ก่อน เช่น “จัดซื้อห้องประชุม 2569”</p>
+                </div>
+                <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div className={`font-black ${theme.textTitle}`}>2. ผูกกับอุปกรณ์</div>
+                  <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>กดแก้ไขอุปกรณ์ แล้วเลือกชื่อโครงการในช่อง “โครงการ / แหล่งที่มา”</p>
+                </div>
+                <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div className={`font-black ${theme.textTitle}`}>3. ดูของตามโครงการ</div>
+                  <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>กดปุ่ม “กรอง” บนการ์ดโครงการ เพื่อดูว่าโครงการนั้นมีอะไรบ้าง</p>
+                </div>
+              </div>
+
               {filterProject !== 'all' && (
                 <div className={`mb-4 p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800 text-indigo-200' : 'bg-indigo-50 border-indigo-200 text-indigo-700'}`}>
                   <div className="font-black">กำลังกรองโครงการ: {filterProject}</div>
@@ -8137,7 +8329,10 @@ S.N.: ${item.sn || '-'}
                             <div className={`font-black text-xl truncate ${theme.textTitle}`}>{project.name}</div>
                             <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ทั้งหมด {project.total} รายการ • ใช้งานอยู่ {project.active || 0} • จำหน่ายแล้ว {project.disposed || 0} • สูญหาย {project.lost || 0}</div>
                           </div>
-                          <button type="button" onClick={() => { setFilterProject(project.name); setShowProjectsModal(false); }} className="px-3 py-2 rounded-xl text-sm font-black bg-indigo-600 text-white shrink-0">กรอง</button>
+                          <div className="flex gap-2 shrink-0">
+                            {canAddEditItems && project.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectAssign(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">เพิ่มของ</button>}
+                            <button type="button" onClick={() => { setFilterProject(project.name); setShowProjectsModal(false); }} className="px-3 py-2 rounded-xl text-sm font-black bg-indigo-600 text-white">กรอง</button>
+                          </div>
                         </div>
                       </div>
                       <div className="p-4 space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
@@ -8172,6 +8367,54 @@ S.N.: ${item.sn || '-'}
 
             <div className={`p-4 border-t ${theme.divide}`}>
               <button type="button" onClick={() => setShowProjectsModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* Modal เพิ่มอุปกรณ์เข้าโครงการ */}
+      {showProjectAssignModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9995]`}>
+          <div className={`rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh] border ${theme.cardBg}`}>
+            <div className={`p-5 border-b flex flex-col sm:flex-row sm:items-start justify-between gap-4 ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl sm:text-3xl font-black ${theme.textTitle}`}>เพิ่มอุปกรณ์เข้าโครงการ</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>โครงการ: <span className="text-indigo-500">{projectAssignTarget}</span> • เลือกหลายรายการแล้วบันทึกทีเดียว</p>
+              </div>
+              <button type="button" onClick={() => setShowProjectAssignModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-4 border-b grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
+              <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / หมวดหมู่ / ห้อง" value={projectAssignSearch} onChange={e => setProjectAssignSearch(e.target.value)} />
+              <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>เลือกแล้ว {projectAssignSelectedIds.length.toLocaleString('th-TH')} รายการ</div>
+            </div>
+            <div className="p-4 overflow-y-auto custom-scrollbar flex-1">
+              {projectAssignCandidateItems.length === 0 ? (
+                <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบอุปกรณ์ที่ค้นหา</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {projectAssignCandidateItems.map(item => {
+                    const checked = projectAssignSelectedIds.includes(item.id);
+                    const already = String(item.project || '') === String(projectAssignTarget || '');
+                    return (
+                      <button key={item.id} type="button" onClick={() => toggleProjectAssignItem(item.id)} className={`p-4 rounded-2xl border text-left transition-all ${checked ? (isDarkMode ? 'bg-indigo-950/50 border-indigo-600 text-indigo-200' : 'bg-indigo-50 border-indigo-300 text-indigo-800') : theme.btnSecondary}`}>
+                        <div className="flex items-start gap-3">
+                          <input type="checkbox" readOnly checked={checked} className="w-5 h-5 mt-1 accent-indigo-600" />
+                          <div className="min-w-0 flex-1">
+                            <div className="font-black truncate">{item.name}</div>
+                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • {item.location || '-'}</div>
+                            <div className={`text-xs font-bold mt-2 ${already ? 'text-emerald-500' : theme.textMuted}`}>{already ? 'อยู่ในโครงการนี้แล้ว' : `ปัจจุบัน: ${item.project || 'ไม่ระบุโครงการ'}`}</div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className={`p-4 border-t grid grid-cols-2 gap-3 ${theme.divide}`}>
+              <button type="button" onClick={() => setShowProjectAssignModal(false)} className={`py-3 rounded-xl font-black ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={() => runWithBusy(handleSaveProjectAssignment)} disabled={isBusy} className={`py-3 rounded-xl font-black text-white ${isBusy ? 'bg-indigo-400 cursor-wait' : 'bg-indigo-600 hover:bg-indigo-500'}`}>{isBusy ? 'กำลังบันทึก...' : 'บันทึกเข้าโครงการ'}</button>
             </div>
           </div>
         </div>
