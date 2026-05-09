@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.17.1 Fix More Menu Icon Error';
-const APP_UPDATE_NOTE = 'แก้ปัญหากดเมนูเพิ่มเติมแล้วเกิด React error จากไอคอน Database ที่ยังไม่ได้ประกาศ';
+const APP_VERSION = 'v22.18 Scanner Direct Edit & Checklist Scan';
+const APP_UPDATE_NOTE = 'สแกน QR แล้วแก้ไขอุปกรณ์ได้ทันที และเพิ่มสแกน QR เพื่อเช็กของในขั้นตอนยืม/ออกงาน/รับคืน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -265,6 +265,8 @@ function MainApp() {
   const [showScanModal, setShowScanModal] = useState(false);
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
+  const [scanMode, setScanMode] = useState('select'); // select | borrowChecklist | eventChecklist | returnChecklist
+  const [lastScannedItemId, setLastScannedItemId] = useState(null);
   const scanInputRef = useRef(null);
   const scanCooldownRef = useRef(false);
 
@@ -2402,6 +2404,31 @@ S.N.: ${item.sn || '-'}
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
+  const openItemEditor = (item) => {
+    if (!item) return;
+    setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newOwner: item.owner || '', isPersonalItem: !!item.owner });
+    setShowForm(true);
+  };
+
+  const openSelectionScanner = ({ camera = false } = {}) => {
+    setScanMode('select');
+    setUseCamera(camera);
+    setShowScanModal(true);
+  };
+
+  const openChecklistScanner = (mode) => {
+    setScanMode(mode);
+    setUseCamera(true);
+    setShowScanModal(true);
+  };
+
+  const getScanModeInfo = () => {
+    if (scanMode === 'borrowChecklist') return { title: 'สแกนเช็กก่อนปล่อยยืม', desc: 'สแกน QR ของอุปกรณ์ในรายการยืม เพื่อเช็กแทนการติ๊กเอง', tone: 'purple' };
+    if (scanMode === 'eventChecklist') return { title: 'สแกนเช็กของขึ้นงาน', desc: 'สแกน QR ของอุปกรณ์ในรายการออกงาน เพื่อเช็กแทนการติ๊กเอง', tone: 'orange' };
+    if (scanMode === 'returnChecklist') return { title: 'สแกนเช็กตอนรับคืน', desc: 'สแกน QR ของอุปกรณ์ที่นำมาคืน เพื่อเช็กแทนการติ๊กเอง', tone: 'emerald' };
+    return { title: 'โหมดสแกน QR', desc: 'สแกน QR เพื่อเลือกอุปกรณ์ แล้วกดดูรายละเอียดหรือแก้ไขได้ทันที', tone: 'amber' };
+  };
+
   const handleOpenBatchBorrow = () => {
     try {
       const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
@@ -2454,18 +2481,44 @@ S.N.: ${item.sn || '-'}
 
     const currentItems = itemsRefForScan.current || [];
     const foundItem = currentItems.find(i => i.id === val || (i.sn && i.sn.toLowerCase() === val.toLowerCase()));
-    
+
     if (foundItem) {
-      setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-      setScanMessage({ text: `✅ เพิ่ม "${foundItem.name}" ลงตะกร้าแล้ว`, type: 'success' });
-      try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
-      try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
+      setLastScannedItemId(foundItem.id);
+      const markChecklist = (targetIds, currentChecklist, setChecklist, label) => {
+        if (!targetIds.includes(foundItem.id)) {
+          setScanMessage({ text: `⚠️ "${foundItem.name}" ไม่อยู่ในเช็กลิสต์${label}`, type: 'error' });
+          try { if (navigator?.vibrate) navigator.vibrate([60, 40, 60]); } catch(e){}
+          return;
+        }
+        if (currentChecklist.includes(foundItem.id)) {
+          setScanMessage({ text: `✅ "${foundItem.name}" เช็กไว้แล้ว`, type: 'success' });
+          try { if (navigator?.vibrate) navigator.vibrate(50); } catch(e){}
+          return;
+        }
+        setChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+        setScanMessage({ text: `✅ เช็ก "${foundItem.name}" แล้ว`, type: 'success' });
+        try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
+        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
+      };
+
+      if (scanMode === 'borrowChecklist') {
+        markChecklist(borrowTargetIds, packingChecklist, setPackingChecklist, 'ก่อนปล่อยยืม');
+      } else if (scanMode === 'eventChecklist') {
+        markChecklist(eventTargetIds, eventChecklist, setEventChecklist, 'ออกงาน');
+      } else if (scanMode === 'returnChecklist') {
+        markChecklist(returnTargetIds, returnChecklist, setReturnChecklist, 'รับคืน');
+      } else {
+        setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+        setScanMessage({ text: `✅ พบ "${foundItem.name}" เลือกไว้แล้ว`, type: 'success' });
+        try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
+        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
+      }
     } else {
       setScanMessage({ text: `❌ ไม่พบรหัส "${val}" ในระบบ`, type: 'error' });
       try { if (navigator?.vibrate) navigator.vibrate([60, 40, 60]); } catch(e){}
       try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
     }
-    
+
     setScanInput('');
     setTimeout(() => setScanMessage({ text: '', type: '' }), 3400);
   };
@@ -4009,7 +4062,7 @@ S.N.: ${item.sn || '-'}
             {isLoggedIn && (
               <>
                 {canUseOperationalTools && (
-                  <button type="button" onClick={() => setShowScanModal(true)} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-black rounded-2xl transition-all flex shadow-lg hover:-translate-y-0.5 ${isDarkMode ? 'bg-gradient-to-r from-amber-600 to-orange-500 text-white' : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'}`} title="เปิดโหมดสแกน QR Code/Barcode">
+                  <button type="button" onClick={() => openSelectionScanner()} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-black rounded-2xl transition-all flex shadow-lg hover:-translate-y-0.5 ${isDarkMode ? 'bg-gradient-to-r from-amber-600 to-orange-500 text-white' : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'}`} title="เปิดโหมดสแกน QR Code/Barcode">
                     <Icons.QrCode className="w-5 h-5" /><span className="hidden sm:inline">โหมดสแกน</span>
                   </button>
                 )}
@@ -4112,7 +4165,7 @@ S.N.: ${item.sn || '-'}
                     <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ศูนย์ติดตามงาน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>วันนี้ / รอคืน / ออกงาน / เลยกำหนด / ปฏิทิน</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setUseCamera(true); setShowScanModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); openSelectionScanner({ camera: true }); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> โหมดสแกนเร็ว</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เปิดกล้องสแกน QR ทันที พร้อมกรอบช่วยสแกน</p>
                   </button>
@@ -4238,7 +4291,7 @@ S.N.: ${item.sn || '-'}
 
         <div className="p-5 sm:p-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
           {canUseOperationalTools && (
-            <button type="button" onClick={() => setShowScanModal(true)} className="group p-4 rounded-3xl bg-gradient-to-br from-amber-500 to-orange-500 text-white text-left shadow-lg hover:-translate-y-0.5 transition-all">
+            <button type="button" onClick={() => openSelectionScanner()} className="group p-4 rounded-3xl bg-gradient-to-br from-amber-500 to-orange-500 text-white text-left shadow-lg hover:-translate-y-0.5 transition-all">
               <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center mb-3"><Icons.QrCode className="w-5 h-5" /></div>
               <div className="font-black text-lg">สแกน QR</div>
               <div className="text-xs font-bold text-white/80 mt-1">ค้นหา/ทำรายการเร็ว</div>
@@ -4508,7 +4561,7 @@ S.N.: ${item.sn || '-'}
                         <summary className={`list-none cursor-pointer px-3 py-2.5 rounded-xl font-black text-sm text-center ${theme.textTitle}`}>จัดการเพิ่มเติม</summary>
                         <div className="grid grid-cols-2 gap-2 p-2 pt-0">
                           <button type="button" onClick={() => copyItemSummary(item)} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>คัดลอก</button>
-                          {canAddEditItems && <button type="button" onClick={() => { setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newOwner: item.owner || '', isPersonalItem: !!item.owner }); setShowForm(true); }} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>แก้ไข</button>}
+                          {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>แก้ไข</button>}
                           {canUseOperationalTools && <button type="button" onClick={() => openRepairForItem(item)} className={`col-span-2 px-3 py-2.5 rounded-xl font-black text-sm border ${isDarkMode ? 'bg-rose-900/30 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>แจ้งซ่อม/บันทึกปัญหา</button>}
                         </div>
                       </details>
@@ -4664,7 +4717,7 @@ S.N.: ${item.sn || '-'}
                               setReturnChecklist([]);
                             }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle className="w-5 h-5" /></button>}
                             
-                            {canAddEditItems && <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newOwner: item.owner || '', isPersonalItem: !!item.owner }); setShowForm(true); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>}
+                            {canAddEditItems && <button type="button" onClick={(e) => { e.stopPropagation(); openItemEditor(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>}
                             {canDeleteItems && <button type="button" onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="ลบ"><Icons.Trash className="w-4 h-4" /></button>}
                           </>
                         )}
@@ -4686,6 +4739,7 @@ S.N.: ${item.sn || '-'}
         const maintenanceCount = selectedActiveItems.filter(item => item.status === 'maintenance').length;
         const hasAvailable = availableCount > 0;
         const hasReturnable = returnableCount > 0;
+        const singleSelectedItem = selectedActiveItems.length === 1 ? selectedActiveItems[0] : null;
         const selectionHint = [
           hasAvailable ? `${availableCount} พร้อมใช้งาน` : '',
           hasReturnable ? `${returnableCount} รอคืน` : '',
@@ -4717,6 +4771,30 @@ S.N.: ${item.sn || '-'}
                 </div>
 
                 <div className="grid grid-cols-2 sm:flex sm:flex-wrap lg:flex-nowrap gap-2 flex-1">
+                  {singleSelectedItem && (
+                    <button
+                      type="button"
+                      onClick={() => setShowHistory(singleSelectedItem.id)}
+                      className={`px-4 py-3 rounded-2xl font-black shadow-md flex items-center justify-center gap-2 text-sm sm:text-base transition-colors border ${theme.btnSecondary}`}
+                      title="ดูรายละเอียดอุปกรณ์ที่เลือก"
+                    >
+                      <Icons.History className="w-5 h-5" />
+                      <span>รายละเอียด</span>
+                    </button>
+                  )}
+
+                  {singleSelectedItem && canAddEditItems && (
+                    <button
+                      type="button"
+                      onClick={() => openItemEditor(singleSelectedItem)}
+                      className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-md flex items-center justify-center gap-2 text-sm sm:text-base transition-colors"
+                      title="แก้ไขข้อมูลอุปกรณ์ที่เลือก"
+                    >
+                      <Icons.Edit className="w-5 h-5" />
+                      <span>แก้ไข</span>
+                    </button>
+                  )}
+
                   {hasAvailable && (
                     <button
                       type="button"
@@ -5052,9 +5130,9 @@ S.N.: ${item.sn || '-'}
             
             <div className="flex-1 overflow-y-auto custom-scrollbar">
               <h3 className={`text-2xl font-black mb-2 mt-2 relative z-10 flex justify-center items-center gap-2 ${theme.textTitle}`}>
-                <Icons.QrCode className="w-8 h-8 text-amber-500" /> โหมดสแกน QR
+                <Icons.QrCode className="w-8 h-8 text-amber-500" /> {getScanModeInfo().title}
               </h3>
-              <p className={`text-sm font-bold mb-4 ${theme.textMuted}`}>สแกนติดง่ายขึ้น: ให้ QR อยู่กลางกรอบประมาณ 70–80% ของกรอบ หลีกเลี่ยงแสงสะท้อน และถือให้นิ่ง 1–2 วินาที</p>
+              <p className={`text-sm font-bold mb-4 ${theme.textMuted}`}>{getScanModeInfo().desc} • สแกนติดง่ายขึ้น: ให้ QR อยู่กลางกรอบประมาณ 70–80% และถือให้นิ่ง 1–2 วินาที</p>
 
               <div className="flex justify-center gap-2 mb-4 relative z-10">
                 <button type="button" onClick={() => setUseCamera(false)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${!useCamera ? 'bg-amber-500 text-white' : theme.btnSecondary}`}>
@@ -5080,7 +5158,7 @@ S.N.: ${item.sn || '-'}
                       onChange={e => setScanInput(e.target.value)} 
                       autoFocus
                     />
-                    <button type="submit" className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black shadow-md">เพิ่มเข้าตะกร้า</button>
+                    <button type="submit" className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black shadow-md">{scanMode === 'select' ? 'เลือกอุปกรณ์นี้' : 'สแกนเช็กอุปกรณ์นี้'}</button>
                   </form>
                 </>
               ) : (
@@ -5105,7 +5183,7 @@ S.N.: ${item.sn || '-'}
                       value={scanInput}
                       onChange={e => setScanInput(e.target.value)}
                     />
-                    <button type="submit" className="px-4 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black">เพิ่ม</button>
+                    <button type="submit" className="px-4 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black">{scanMode === 'select' ? 'เลือก' : 'เช็ก'}</button>
                   </form>
                 </div>
               )}
@@ -5118,8 +5196,31 @@ S.N.: ${item.sn || '-'}
                  )}
               </div>
 
+              {lastScannedItemId && (() => {
+                const scannedItem = items.find(i => i.id === lastScannedItemId);
+                if (!scannedItem) return null;
+                const statusInfo = STATUSES.find(s => s.id === scannedItem.status) || STATUSES[0];
+                return (
+                  <div className={`mt-2 mb-3 p-4 rounded-3xl border text-left ${isDarkMode ? 'bg-slate-950/60 border-slate-700' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className={`font-black text-lg truncate ${theme.textTitle}`}>{scannedItem.name}</div>
+                        <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {scannedItem.sn || '-'} • {scannedItem.category || '-'}</div>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-black border shrink-0 ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                    </div>
+                    {scanMode === 'select' && (
+                      <div className="grid grid-cols-2 gap-2 mt-3">
+                        <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); setShowHistory(scannedItem.id); }} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>ดูรายละเอียด</button>
+                        {canAddEditItems && <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); openItemEditor(scannedItem); }} className="px-3 py-2.5 rounded-xl font-black text-sm bg-blue-600 text-white">แก้ไขข้อมูล</button>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div className={`mt-2 grid grid-cols-3 gap-2 text-xs font-black ${theme.textMuted}`}>
-                <div className={`p-2 rounded-xl border ${theme.btnSecondary}`}>เลือกแล้ว {selectedItems.length}</div>
+                <div className={`p-2 rounded-xl border ${theme.btnSecondary}`}>{scanMode === 'select' ? `เลือกแล้ว ${selectedItems.length}` : 'เช็กด้วย QR'}</div>
                 <div className={`p-2 rounded-xl border ${theme.btnSecondary}`}>กันสแกนซ้ำ</div>
                 <div className={`p-2 rounded-xl border ${theme.btnSecondary}`}>มีสั่น/เสียง</div>
               </div>
@@ -6266,16 +6367,26 @@ S.N.: ${item.sn || '-'}
                 <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                   <Icons.ClipboardList className="w-5 h-5" /> เช็คลิสต์ก่อนปล่อยยืม ({packingChecklist.length}/{borrowTargetIds.length})
                 </h4>
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    if (packingChecklist.length === borrowTargetIds.length) setPackingChecklist([]);
-                    else setPackingChecklist([...borrowTargetIds]);
-                  }}
-                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-purple-900/40 hover:bg-purple-800 text-purple-400' : 'bg-purple-100 hover:bg-purple-200 text-purple-700'}`}
-                >
-                  {packingChecklist.length === borrowTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openChecklistScanner('borrowChecklist')}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 ${isDarkMode ? 'bg-amber-900/40 hover:bg-amber-800 text-amber-300' : 'bg-amber-100 hover:bg-amber-200 text-amber-700'}`}
+                    title="สแกน QR เพื่อเช็กของแทนการติ๊กเอง"
+                  >
+                    <Icons.QrCode className="w-4 h-4" /> สแกนเช็ก
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      if (packingChecklist.length === borrowTargetIds.length) setPackingChecklist([]);
+                      else setPackingChecklist([...borrowTargetIds]);
+                    }}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-purple-900/40 hover:bg-purple-800 text-purple-400' : 'bg-purple-100 hover:bg-purple-200 text-purple-700'}`}
+                  >
+                    {packingChecklist.length === borrowTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                  </button>
+                </div>
               </div>
               <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
                 {borrowTargetIds.map(id => {
@@ -6368,16 +6479,26 @@ S.N.: ${item.sn || '-'}
                 <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                   <Icons.ClipboardList className="w-5 h-5" /> เช็คของขึ้นรถ ({eventChecklist.length}/{eventTargetIds.length})
                 </h4>
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    if (eventChecklist.length === eventTargetIds.length) setEventChecklist([]);
-                    else setEventChecklist([...eventTargetIds]);
-                  }}
-                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-orange-900/40 hover:bg-orange-800 text-orange-400' : 'bg-orange-100 hover:bg-orange-200 text-orange-700'}`}
-                >
-                  {eventChecklist.length === eventTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openChecklistScanner('eventChecklist')}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 ${isDarkMode ? 'bg-amber-900/40 hover:bg-amber-800 text-amber-300' : 'bg-amber-100 hover:bg-amber-200 text-amber-700'}`}
+                    title="สแกน QR เพื่อเช็กของขึ้นงานแทนการติ๊กเอง"
+                  >
+                    <Icons.QrCode className="w-4 h-4" /> สแกนเช็ก
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      if (eventChecklist.length === eventTargetIds.length) setEventChecklist([]);
+                      else setEventChecklist([...eventTargetIds]);
+                    }}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-orange-900/40 hover:bg-orange-800 text-orange-400' : 'bg-orange-100 hover:bg-orange-200 text-orange-700'}`}
+                  >
+                    {eventChecklist.length === eventTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                  </button>
+                </div>
               </div>
               <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
                 {eventTargetIds.map(id => {
@@ -6455,16 +6576,26 @@ S.N.: ${item.sn || '-'}
                 <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                   <Icons.ClipboardList className="w-5 h-5" /> เช็คลิสต์ของเข้ากล่อง ({returnChecklist.length}/{returnTargetIds.length})
                 </h4>
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    if (returnChecklist.length === returnTargetIds.length) setReturnChecklist([]);
-                    else setReturnChecklist([...returnTargetIds]);
-                  }}
-                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-emerald-900/40 hover:bg-emerald-800 text-emerald-400' : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700'}`}
-                >
-                  {returnChecklist.length === returnTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openChecklistScanner('returnChecklist')}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 ${isDarkMode ? 'bg-amber-900/40 hover:bg-amber-800 text-amber-300' : 'bg-amber-100 hover:bg-amber-200 text-amber-700'}`}
+                    title="สแกน QR เพื่อเช็กของตอนรับคืนแทนการติ๊กเอง"
+                  >
+                    <Icons.QrCode className="w-4 h-4" /> สแกนเช็ก
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      if (returnChecklist.length === returnTargetIds.length) setReturnChecklist([]);
+                      else setReturnChecklist([...returnTargetIds]);
+                    }}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-emerald-900/40 hover:bg-emerald-800 text-emerald-400' : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700'}`}
+                  >
+                    {returnChecklist.length === returnTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                  </button>
+                </div>
               </div>
               <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
                 {returnTargetIds.map(id => {
