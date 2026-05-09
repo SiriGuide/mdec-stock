@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.27 Mobile & Settings Cleanup';
-const APP_UPDATE_NOTE = 'เก็บงานมือถือให้ใช้ง่ายขึ้น ซ่อนตัวกรองยาวไว้ในแผงมือถือ และปรับหน้าตั้งค่าให้ใช้ Select บนมือถือแทนเมนูยาว';
+const APP_VERSION = 'v22.28 Clean Main & Settings Menu';
+const APP_UPDATE_NOTE = 'ลดความรกหน้าแรก ย้ายโครงการ/ของต้องจัดการไปไว้ในเมนูเพิ่มเติม และปรับตั้งค่าเป็นเมนูการ์ดแบบไม่ต้องเลื่อนด้านข้าง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -5019,12 +5019,11 @@ S.N.: ${item.sn || '-'}
             </select>
           </div>
 
-          <div className="hidden lg:flex gap-2 w-full xl:w-auto">
-            <button type="button" onClick={() => setShowProjectsModal(true)} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${filterProject !== 'all' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : theme.btnSecondary}`}>โครงการ / เพิ่มโครงการ</button>
-            <button type="button" onClick={openMeetingRoomView} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${showRoomView ? 'bg-sky-600 text-white border-sky-600 shadow-md' : theme.btnSecondary}`}>แยกห้องประชุม</button>
-            <button type="button" onClick={() => setQuickProblemOnly(!quickProblemOnly)} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${quickProblemOnly ? 'bg-rose-600 text-white border-rose-600 shadow-md' : theme.btnSecondary}`}>ของที่ต้องจัดการ</button>
-            {hasActiveFilters && <button type="button" onClick={clearAllFilters} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${theme.btnSecondary}`}>ล้างตัวกรอง</button>}
-          </div>
+          {hasActiveFilters && (
+            <div className="hidden lg:flex gap-2 w-full xl:w-auto">
+              <button type="button" onClick={clearAllFilters} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
+            </div>
+          )}
 
           {canAddEditItems && (
             <div className="flex gap-2 w-full xl:w-auto">
@@ -5064,12 +5063,9 @@ S.N.: ${item.sn || '-'}
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => setShowProjectsModal(true)} className={`px-3 py-3 rounded-xl font-black border ${filterProject !== 'all' ? 'bg-indigo-600 text-white border-indigo-600' : theme.btnSecondary}`}>โครงการ</button>
-              <button type="button" onClick={openMeetingRoomView} className={`px-3 py-3 rounded-xl font-black border ${showRoomView ? 'bg-sky-600 text-white border-sky-600' : theme.btnSecondary}`}>ห้องประชุม</button>
-              <button type="button" onClick={() => setQuickProblemOnly(!quickProblemOnly)} className={`px-3 py-3 rounded-xl font-black border ${quickProblemOnly ? 'bg-rose-600 text-white border-rose-600' : theme.btnSecondary}`}>ต้องจัดการ</button>
-              <button type="button" onClick={clearAllFilters} className={`px-3 py-3 rounded-xl font-black border ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
-            </div>
+            {hasActiveFilters && (
+              <button type="button" onClick={clearAllFilters} className={`w-full px-3 py-3 rounded-xl font-black border ${theme.btnSecondary}`}>ล้างตัวกรองทั้งหมด</button>
+            )}
 
             <details className={`rounded-xl border overflow-hidden ${isDarkMode ? 'border-slate-700 bg-slate-900/40' : 'border-slate-200 bg-white'}`}>
               <summary className={`cursor-pointer list-none px-3 py-2.5 text-sm font-black ${theme.textTitle}`}>ตัวกรองละเอียด</summary>
@@ -5136,14 +5132,14 @@ S.N.: ${item.sn || '-'}
       </div>
 
       {/* 🏫 Meeting Room Department Group View */}
-      {showRoomView && (
+      {(showRoomView || filterDept === 'ห้องประชุม') && (
         <div className={`w-full rounded-[1.75rem] shadow-xl border overflow-hidden relative transition-colors mb-8 ${theme.cardBg}`}>
           <div className={`px-5 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
             <div>
-              <div className={`font-black text-xl ${theme.textTitle}`}>มุมมองแยกตามห้องประชุม</div>
+              <div className={`font-black text-xl ${theme.textTitle}`}>ฝ่ายห้องประชุม: แยกตามห้อง</div>
               <div className={`text-sm font-bold ${theme.textMuted}`}>พบ {roomGroups.length.toLocaleString('th-TH')} ห้องประชุม/สถานที่ • {roomGroups.reduce((sum, room) => sum + room.total, 0).toLocaleString('th-TH')} รายการในฝ่ายห้องประชุม</div>
             </div>
-            <button type="button" onClick={() => setShowRoomView(false)} className={`px-4 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>กลับรายการทั้งหมด</button>
+            <button type="button" onClick={() => { setShowRoomView(false); if (filterDept === 'ห้องประชุม') setFilterDept('all'); }} className={`px-4 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>กลับรายการทั้งหมด</button>
           </div>
 
           <div className="p-4 sm:p-5 space-y-4">
@@ -5196,7 +5192,7 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
-      {!showRoomView && (
+      {!(showRoomView || filterDept === 'ห้องประชุม') && (
         <>
       {/* 📋 Table / List */}
       <div className={`w-full rounded-[1.75rem] shadow-xl border overflow-hidden relative transition-colors ${theme.cardBg}`}>
@@ -6421,41 +6417,37 @@ S.N.: ${item.sn || '-'}
             <div className={`p-5 border-b shrink-0 flex items-start justify-between gap-4 ${theme.divide}`}>
               <div>
                 <h3 className={`text-2xl sm:text-3xl font-black ${theme.textTitle}`}>ตั้งค่าระบบ</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมการตั้งค่าที่ใช้บ่อยไว้เป็นหมวดด้านซ้าย ลดการเลื่อนหาเมนูยาว ๆ</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกหมวดจากการ์ดด้านบน ใช้งานเหมือนเมนูเพิ่มเติม ไม่ต้องเลื่อนแท็บยาว ๆ</p>
               </div>
               <button type="button" onClick={() => { setShowSettings(false); resetSettingsFormState(); }} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
 
             <div className="flex flex-col lg:flex-row flex-1 min-h-0">
-              <aside className={`hidden lg:block lg:w-72 shrink-0 border-r p-3 ${theme.divide}`}>
-                <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto custom-scrollbar pb-1 lg:pb-0 lg:max-h-[72vh]">
-                  {settingsNavItems.map((nav, idx) => {
-                    const Icon = nav.icon || Icons.Settings;
-                    const active = settingsTab === nav.id;
-                    const showGroup = idx === 0 || settingsNavItems[idx - 1].group !== nav.group;
-                    return (
-                      <div key={nav.id} className="lg:w-full shrink-0">
-                        {showGroup && <div className={`hidden lg:block text-[11px] font-black uppercase tracking-wide px-3 pt-2 pb-1 ${theme.textMuted}`}>{nav.group}</div>}
+              <div className="flex flex-col flex-1 min-h-0">
+                <div className={`p-3 sm:p-4 border-b ${theme.divide}`}>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {settingsNavItems.map((nav) => {
+                      const Icon = nav.icon || Icons.Settings;
+                      const active = settingsTab === nav.id;
+                      return (
                         <button
+                          key={nav.id}
                           type="button"
                           onClick={() => { setSettingsTab(nav.id); resetSettingsFormState(); if (nav.id === 'accounts') openNewAccountForm(); }}
-                          className={`w-full min-w-[190px] lg:min-w-0 p-3 rounded-2xl border text-left transition-all ${active ? (isDarkMode ? 'bg-blue-600 border-blue-500 text-white shadow-lg' : 'bg-blue-600 border-blue-600 text-white shadow-lg') : theme.btnSecondary}`}
+                          className={`p-3 rounded-2xl border text-left transition-all ${active ? (isDarkMode ? 'bg-blue-600 border-blue-500 text-white shadow-lg' : 'bg-blue-600 border-blue-600 text-white shadow-lg') : theme.btnSecondary}`}
                         >
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
                             <Icon className="w-5 h-5 shrink-0" />
-                            <div className="min-w-0">
-                              <div className="font-black truncate">{nav.label}</div>
-                              <div className={`text-xs font-bold truncate ${active ? 'text-blue-100' : theme.textMuted}`}>{nav.desc}</div>
-                            </div>
+                            <div className="font-black truncate text-sm sm:text-base">{nav.label}</div>
                           </div>
+                          <div className={`hidden sm:block text-xs font-bold truncate mt-1 ${active ? 'text-blue-100' : theme.textMuted}`}>{nav.desc}</div>
                         </button>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </aside>
 
-              <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
+                <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
                 <div className={`lg:hidden p-3 border-b ${theme.divide}`}>
                   <label className={`block text-xs font-black mb-2 ${theme.textMuted}`}>เลือกหมวดตั้งค่า</label>
                   <select
@@ -6854,6 +6846,7 @@ S.N.: ${item.sn || '-'}
                   </div>
                 </div>
               )}
+              </div>
               </div>
             </div>
 
