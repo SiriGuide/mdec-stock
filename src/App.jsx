@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.36 Borrow Document Archive Pack';
-const APP_UPDATE_NOTE = 'เพิ่มแฟ้มเอกสารย้อนหลัง เก็บใบยืม/ใบนำออกงานแบบ Snapshot ค้นหาและพิมพ์ย้อนหลังได้';
+const APP_VERSION = 'v22.36.1 Borrow Document Archive Hotfix';
+const APP_UPDATE_NOTE = 'แก้ปัญหาเมนูเพิ่มเติมเด้ง ReferenceError proofCenterStats และคงระบบเอกสารย้อนหลังไว้ครบ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -5223,7 +5223,7 @@ S.N.: ${item.sn || '-'}
               <div className="more-menu-overview grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
                   ['งานค้าง', overdueItems.length + currentBorrowedItems.length + currentEventItems.length, 'ติดตามยืม/ออกงาน'],
-                  ['หลักฐาน', proofCenterStats.total, 'รูปหลักฐานทั้งหมด'],
+                  ['หลักฐาน', items.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.reduce((s, h) => s + (Array.isArray(h.proofs) ? h.proofs.length : 0), 0) : 0), 0), 'รูปหลักฐานทั้งหมด'],
                   ['โครงการ', projectStats.length, 'จัดกลุ่มอุปกรณ์'],
                   ['กล่อง/เซ็ต', (settingsOptions.storageBoxes || []).length + (settingsOptions.bundles || []).length, 'จัดเก็บและจัดชุด']
                 ].map(([label, value, desc]) => (
