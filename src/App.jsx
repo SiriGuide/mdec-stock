@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.32 Project Manager & Print Reports';
-const APP_UPDATE_NOTE = 'ปรับระบบโครงการให้เป็น Project Manager คล้ายกล่อง/เซ็ต เพิ่มของเข้าโครงการทีละหลายชิ้น เปลี่ยนชื่อ และพิมพ์รายงานโครงการได้';
+const APP_VERSION = 'v22.33 Minimal Modern UI & Print Polish Pack';
+const APP_UPDATE_NOTE = 'ปรับเว็บให้มินิมอลทันสมัยขึ้น และเก็บงานฉลาก/เอกสารพิมพ์ให้สวย อ่านง่าย ไม่ตัดคำไทยกลางคำ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -284,6 +284,9 @@ function MainApp() {
   const [prepOpenId, setPrepOpenId] = useState(null);
   const [prepForm, setPrepForm] = useState({ id: null, name: '', useDate: '', staff: '', note: '', itemIds: [], checkedIds: [], status: 'pending' });
   const [boxLabelSize, setBoxLabelSize] = useState('normal');
+  const [boxLabelStyle, setBoxLabelStyle] = useState('premium');
+  const [boxLabelShowChecks, setBoxLabelShowChecks] = useState(true);
+  const [boxLabelShowQr, setBoxLabelShowQr] = useState(true);
   const [boxLabelTitle, setBoxLabelTitle] = useState('กล่องอุปกรณ์ MDEC');
   const [boxLabelNote, setBoxLabelNote] = useState('');
   const [showScanModal, setShowScanModal] = useState(false);
@@ -343,11 +346,11 @@ function MainApp() {
   }, [showScanModal]);
 
   const theme = {
-    mainBg: isDarkMode ? 'bg-slate-950 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.20),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.12),_transparent_28%)]' : 'bg-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.16),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.12),_transparent_30%)]',
+    mainBg: isDarkMode ? 'bg-slate-950 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.12),_transparent_32%)]' : 'bg-slate-50 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.08),_transparent_32%)]',
     textMain: isDarkMode ? 'text-slate-100' : 'text-slate-800',
     textTitle: isDarkMode ? 'text-white' : 'text-slate-900',
     textMuted: isDarkMode ? 'text-slate-400' : 'text-slate-500',
-    cardBg: isDarkMode ? 'bg-slate-900/90 border-slate-700/80 shadow-black/20' : 'bg-white/95 border-slate-200/80 shadow-slate-200/60',
+    cardBg: isDarkMode ? 'bg-slate-900/88 border-slate-700/70 shadow-black/20' : 'bg-white/95 border-slate-200/70 shadow-slate-200/45',
     input: isDarkMode ? 'bg-slate-950/80 border-slate-700 text-white focus:ring-blue-500 focus:border-blue-500' : 'bg-white border-slate-200 text-slate-700 focus:ring-blue-500 focus:border-blue-500',
     th: isDarkMode ? 'bg-slate-950/80 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-600',
     trHover: isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50',
@@ -4118,91 +4121,122 @@ S.N.: ${item.sn || '-'}
       small: {
         label: 'เล็ก',
         desc: 'กล่องเล็ก / ถุงอุปกรณ์',
-        outerStyle: { width: '90mm', minHeight: '56mm' },
-        title: 'text-[20px] print:text-[16pt]',
-        meta: 'text-[11px] print:text-[8pt]',
-        itemText: 'text-[12px] print:text-[8pt]',
+        outerStyle: { width: '92mm', minHeight: '58mm' },
+        title: 'text-[18px] print:text-[14pt]',
+        titleLong: 'text-[16px] print:text-[12pt]',
+        meta: 'text-[10px] print:text-[7pt]',
+        itemText: 'text-[11px] print:text-[7.5pt]',
         gridClass: 'grid-cols-1',
-        maxPreviewHeight: 'max-h-[175px]',
+        maxPreviewHeight: 'max-h-[190px]',
         bodyPadding: 'p-3 print:p-2',
+        qr: 'w-14 h-14 print:w-11 print:h-11',
+        qrServer: 120
       },
       normal: {
         label: 'ปกติ',
         desc: 'กล่องอุปกรณ์ทั่วไป',
-        outerStyle: { width: '125mm', minHeight: '78mm' },
-        title: 'text-[28px] print:text-[21pt]',
-        meta: 'text-[12px] print:text-[9pt]',
-        itemText: 'text-[14px] print:text-[9.5pt]',
+        outerStyle: { width: '128mm', minHeight: '82mm' },
+        title: 'text-[26px] print:text-[20pt]',
+        titleLong: 'text-[22px] print:text-[17pt]',
+        meta: 'text-[12px] print:text-[8.5pt]',
+        itemText: 'text-[13px] print:text-[9pt]',
         gridClass: 'grid-cols-1 sm:grid-cols-2',
-        maxPreviewHeight: 'max-h-[265px]',
+        maxPreviewHeight: 'max-h-[285px]',
         bodyPadding: 'p-4 print:p-3',
+        qr: 'w-16 h-16 print:w-13 print:h-13',
+        qrServer: 150
       },
       large: {
         label: 'ใหญ่',
         desc: 'กล่องใหญ่ / ลังเก็บของ',
-        outerStyle: { width: '170mm', minHeight: '108mm' },
-        title: 'text-[36px] print:text-[28pt]',
-        meta: 'text-[14px] print:text-[10pt]',
-        itemText: 'text-[16px] print:text-[11pt]',
+        outerStyle: { width: '172mm', minHeight: '112mm' },
+        title: 'text-[34px] print:text-[26pt]',
+        titleLong: 'text-[28px] print:text-[22pt]',
+        meta: 'text-[13px] print:text-[9.5pt]',
+        itemText: 'text-[15px] print:text-[10pt]',
         gridClass: 'grid-cols-1 sm:grid-cols-2',
-        maxPreviewHeight: 'max-h-[390px]',
+        maxPreviewHeight: 'max-h-[410px]',
         bodyPadding: 'p-5 print:p-4',
+        qr: 'w-20 h-20 print:w-16 print:h-16',
+        qrServer: 180
       }
     };
     const boxPreset = boxLabelSizePresets[boxLabelSize] || boxLabelSizePresets.normal;
-    const groupedByCategory = selectedLabelItems.reduce((acc, item) => {
-      const key = item.category || 'ไม่ระบุหมวดหมู่';
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(item);
-      return acc;
-    }, {});
+    const isInkMode = boxLabelStyle === 'ink';
+    const titleText = boxLabelTitle || 'กล่องอุปกรณ์ MDEC';
+    const titleClass = titleText.length > 28 ? boxPreset.titleLong : boxPreset.title;
+    const boxQrData = encodeURIComponent(`MDEC-BOX|${titleText}|${selectedLabelItems.map(i => i.id || i.sn || i.name).join(',')}`);
+    const groupedByCategory = selectedLabelItems
+      .slice()
+      .sort((a, b) => String(a.category || '').localeCompare(String(b.category || ''), 'th', { numeric: true }) || String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true }))
+      .reduce((acc, item) => {
+        const key = item.category || 'ไม่ระบุหมวดหมู่';
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(item);
+        return acc;
+      }, {});
 
     return (
       <div className="bg-slate-100 min-h-screen font-sans text-black print:bg-white">
         <style>{`
+          .thai-keep {
+            word-break: keep-all;
+            overflow-wrap: normal;
+            line-break: strict;
+          }
+          .thai-soft {
+            word-break: keep-all;
+            overflow-wrap: anywhere;
+            line-break: strict;
+          }
           @media print {
-            @page { size: A4; margin: 9mm; }
+            @page { size: A4; margin: 8mm; }
             body { background: white !important; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            .box-label-toolbar { display: none !important; }
+            .box-label-toolbar, .box-label-controls { display: none !important; }
             .box-label-page { padding: 0 !important; }
             .box-storage-label { box-shadow: none !important; break-inside: avoid; page-break-inside: avoid; }
+            .box-item-card { break-inside: avoid; page-break-inside: avoid; }
           }
         `}</style>
 
-        <div className="box-label-toolbar print:hidden p-4 bg-slate-800 text-white flex flex-col xl:flex-row justify-between items-center fixed top-0 w-full z-50 shadow-md gap-3">
+        <div className="box-label-toolbar print:hidden p-4 bg-slate-900 text-white flex flex-col xl:flex-row justify-between items-center fixed top-0 w-full z-50 shadow-md gap-3">
           <div>
-            <h2 className="font-bold text-xl flex items-center gap-2">
-              <Icons.Folder className="w-6 h-6" /> โหมดพิมพ์ฉลากกล่องเก็บของ ({selectedLabelItems.length} รายการ)
+            <h2 className="font-black text-xl flex items-center gap-2">
+              <Icons.Folder className="w-6 h-6" /> พิมพ์ฉลากกล่องเก็บของ ({selectedLabelItems.length} รายการ)
             </h2>
             <p className="text-slate-300 text-sm font-bold mt-1">
-              พิมพ์จากข้อมูลกล่องเก็บของล่าสุดเท่านั้น: ถ้าแก้รายการในกล่องแล้วกดพิมพ์ใหม่ ฉลากจะตรงกับข้อมูลปัจจุบัน
+              ปรับใหม่: ตัดคำไทยสวยขึ้น / แยกชื่อกับ S.N. / มีโหมดประหยัดหมึกและช่องเช็กของ
             </p>
           </div>
 
           <div className="flex flex-wrap justify-center gap-3">
-            <div className="flex bg-slate-700/80 p-1 rounded-xl gap-1">
+            <div className="flex bg-slate-800 p-1 rounded-xl gap-1">
               {Object.entries(boxLabelSizePresets).map(([key, preset]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setBoxLabelSize(key)}
-                  className={`px-4 py-2 rounded-lg font-black transition-colors ${boxLabelSize === key ? 'bg-white text-slate-900 shadow' : 'text-slate-200 hover:bg-slate-600'}`}
+                  className={`px-4 py-2 rounded-lg font-black transition-colors ${boxLabelSize === key ? 'bg-white text-slate-900 shadow' : 'text-slate-200 hover:bg-slate-700'}`}
                   title={preset.desc}
                 >
                   {preset.label}
                 </button>
               ))}
             </div>
-            <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
+            <div className="flex bg-slate-800 p-1 rounded-xl gap-1">
+              <button type="button" onClick={() => setBoxLabelStyle('premium')} className={`px-4 py-2 rounded-lg font-black transition-colors ${boxLabelStyle === 'premium' ? 'bg-blue-500 text-white shadow' : 'text-slate-200 hover:bg-slate-700'}`}>สวยงาม</button>
+              <button type="button" onClick={() => setBoxLabelStyle('ink')} className={`px-4 py-2 rounded-lg font-black transition-colors ${boxLabelStyle === 'ink' ? 'bg-white text-slate-900 shadow' : 'text-slate-200 hover:bg-slate-700'}`}>ประหยัดหมึก</button>
+            </div>
+            <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-black flex items-center gap-2 transition-colors">
               <Icons.Printer className="w-5 h-5"/> พิมพ์ฉลาก
             </button>
-            <button onClick={() => { setShowBoxLabelPrintModal(false); setShowStorageBoxesModal(true); }} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">กลับหน้ากล่อง</button>
+            <button onClick={() => { setShowBoxLabelPrintModal(false); setShowStorageBoxesModal(true); }} className="bg-slate-700 hover:bg-slate-600 px-6 py-2.5 rounded-xl font-black transition-colors">กลับหน้ากล่อง</button>
           </div>
         </div>
 
-        <div className="box-label-page pt-52 xl:pt-36 p-8 flex flex-col items-center gap-6 print:pt-0 print:p-0">
-          <div className="print:hidden w-full max-w-3xl bg-white border border-slate-200 rounded-2xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="box-label-page pt-60 xl:pt-40 p-8 flex flex-col items-center gap-6 print:pt-0 print:p-0">
+          <div className="box-label-controls print:hidden w-full max-w-4xl bg-white border border-slate-200 rounded-2xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-3">
             <label className="block">
               <span className="block text-sm font-black text-slate-600 mb-1">ชื่อหัวฉลาก</span>
               <input
@@ -4221,32 +4255,48 @@ S.N.: ${item.sn || '-'}
                 placeholder="เช่น เก็บหลังงานทุกครั้ง / ห้ามแยกชุด"
               />
             </label>
+            <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 font-black text-slate-700">
+              <input type="checkbox" className="w-5 h-5 accent-slate-900" checked={boxLabelShowChecks} onChange={e => setBoxLabelShowChecks(e.target.checked)} />
+              แสดงช่องเช็กของ
+            </label>
+            <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 font-black text-slate-700">
+              <input type="checkbox" className="w-5 h-5 accent-slate-900" checked={boxLabelShowQr} onChange={e => setBoxLabelShowQr(e.target.checked)} />
+              แสดง QR กล่อง
+            </label>
           </div>
 
-          <div className="box-storage-label bg-white border border-slate-300 text-black shadow-xl" style={boxPreset.outerStyle}>
-            <div className="border-b border-slate-300 px-4 py-3 print:px-3 print:py-2 bg-gradient-to-r from-slate-50 to-white">
+          <div className={`box-storage-label bg-white text-black shadow-xl ${isInkMode ? 'border-2 border-black' : 'border border-slate-300'}`} style={boxPreset.outerStyle}>
+            <div className={`${isInkMode ? 'border-b-2 border-black bg-white' : 'border-b border-slate-300 bg-gradient-to-r from-slate-50 to-white'} px-4 py-3 print:px-3 print:py-2`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <div className={`${boxPreset.meta} font-black tracking-[0.18em] uppercase leading-none`}>MDEC STORAGE BOX</div>
-                      <div className={`${boxPreset.title} font-black leading-tight mt-1 break-words`}>{boxLabelTitle || 'กล่องอุปกรณ์ MDEC'}</div>
-                      <div className={`${boxPreset.meta} font-bold mt-1`}>ศูนย์มัลติมีเดียทางการศึกษา</div>
-                      <div className={`${boxPreset.meta} font-black mt-1`}>ทรัพย์สินของ MDEC • ใช้ภายในศูนย์</div>
+                      <div className={`${boxPreset.meta} font-black tracking-[0.18em] uppercase leading-none text-slate-900`}>MDEC STORAGE BOX</div>
+                      <div className={`${titleClass} font-black leading-[1.12] mt-1 thai-keep`}>{titleText}</div>
+                      <div className={`${boxPreset.meta} font-bold mt-2 text-slate-700`}>รายการอุปกรณ์ประจำกล่อง • ศูนย์มัลติมีเดียทางการศึกษา</div>
+                      <div className={`${boxPreset.meta} font-black mt-1 text-slate-900`}>ทรัพย์สินของ MDEC • ใช้ภายในศูนย์</div>
                     </div>
-                    {showDocumentLogo('boxLabelLogo') && renderOrgLogoBox({ className: 'w-20 h-12 rounded-2xl border border-slate-300 px-2 py-1.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-5 h-5' })}
+                    {!isInkMode && showDocumentLogo('boxLabelLogo') && renderOrgLogoBox({ className: 'w-20 h-12 rounded-2xl border border-slate-300 px-2 py-1.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-5 h-5' })}
                   </div>
                 </div>
-                <div className="shrink-0 border border-slate-300 bg-slate-50 rounded-xl px-3 py-2 text-center min-w-[58px] print:min-w-[48px]">
-                  <div className="text-3xl print:text-[20pt] font-black leading-none">{selectedLabelItems.length}</div>
-                  <div className="text-[10px] print:text-[7pt] font-black leading-tight">รายการ</div>
+
+                <div className="shrink-0 flex flex-col items-end gap-2">
+                  <div className={`${isInkMode ? 'border-2 border-black bg-white' : 'border border-slate-300 bg-slate-50'} rounded-xl px-3 py-2 text-center min-w-[58px] print:min-w-[48px]`}>
+                    <div className="text-3xl print:text-[20pt] font-black leading-none">{selectedLabelItems.length}</div>
+                    <div className="text-[10px] print:text-[7pt] font-black leading-tight">รายการ</div>
+                  </div>
+                  {boxLabelShowQr && (
+                    <div className={`${isInkMode ? 'border-2 border-black' : 'border border-slate-300'} bg-white rounded-xl p-1.5`}>
+                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=${boxPreset.qrServer}x${boxPreset.qrServer}&margin=2&data=${boxQrData}`} alt="Box QR" className={`${boxPreset.qr} object-contain block`} />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className={`${boxPreset.bodyPadding}`}>
               {boxLabelNote && (
-                <div className={`${boxPreset.meta} mb-3 border border-slate-300 bg-slate-50 rounded-xl px-3 py-2 font-black leading-tight`}>
+                <div className={`${boxPreset.meta} mb-3 border ${isInkMode ? 'border-black bg-white' : 'border-slate-300 bg-slate-50'} rounded-xl px-3 py-2 font-black leading-tight thai-soft`}>
                   หมายเหตุ: {boxLabelNote}
                 </div>
               )}
@@ -4259,19 +4309,23 @@ S.N.: ${item.sn || '-'}
                 <div className={`${boxPreset.maxPreviewHeight} overflow-hidden print:max-h-none`}>
                   <div className={`grid ${boxPreset.gridClass} gap-x-5 gap-y-3`}>
                     {Object.entries(groupedByCategory).map(([category, group]) => (
-                      <div key={category} className="break-inside-avoid border border-black">
-                        <div className={`${boxPreset.meta} font-black bg-slate-100 border-b border-slate-300 px-2 py-1 flex justify-between gap-2`}>
-                          <span className="truncate">{category}</span>
+                      <div key={category} className={`box-item-card break-inside-avoid ${isInkMode ? 'border-2 border-black' : 'border border-slate-300'}`}>
+                        <div className={`${boxPreset.meta} font-black ${isInkMode ? 'bg-white border-b-2 border-black' : 'bg-slate-100 border-b border-slate-300'} px-2 py-1 flex justify-between gap-2`}>
+                          <span className="thai-keep">{category}</span>
                           <span className="shrink-0">{group.length} ชิ้น</span>
                         </div>
                         <ol className="divide-y divide-slate-200">
                           {group.map((item, index) => (
-                            <li key={item.id || `${category}_${index}`} className={`${boxPreset.itemText} font-bold leading-tight flex gap-2 px-2 py-1.5`}>
-                              <span className="font-black shrink-0 w-5 text-right">{index + 1}.</span>
-                              <span className="min-w-0 break-words">
-                                <span className="font-black">{item.name || '-'}</span>
-                                {item.sn && <span className="font-bold"> • S.N. {item.sn}</span>}
-                                {Number(item.quantity) > 1 && <span className="font-black"> ×{item.quantity}</span>}
+                            <li key={item.id || `${category}_${index}`} className={`${boxPreset.itemText} font-bold leading-tight grid ${boxLabelShowChecks ? 'grid-cols-[20px_24px_1fr]' : 'grid-cols-[24px_1fr]'} gap-2 px-2 py-1.5`}>
+                              {boxLabelShowChecks && <span className="font-black text-center">□</span>}
+                              <span className="font-black text-right">{index + 1}.</span>
+                              <span className="min-w-0 thai-soft">
+                                <span className="block font-black">{item.name || '-'}</span>
+                                <span className="block font-bold text-slate-700">
+                                  S.N. {item.sn || '-'}
+                                  {Number(item.quantity) > 1 ? ` • จำนวน ${item.quantity}` : ''}
+                                  {item.location ? ` • ${item.location}` : ''}
+                                </span>
                               </span>
                             </li>
                           ))}
@@ -4283,10 +4337,10 @@ S.N.: ${item.sn || '-'}
               )}
             </div>
 
-            <div className="border-t border-slate-300 bg-slate-50 px-4 py-2 print:px-3 print:py-1.5 flex justify-between items-center gap-3 text-[10px] print:text-[7pt] font-black">
+            <div className={`${isInkMode ? 'border-t-2 border-black bg-white' : 'border-t border-slate-300 bg-slate-50'} px-4 py-2 print:px-3 print:py-1.5 flex justify-between items-center gap-3 text-[10px] print:text-[7pt] font-black`}>
               <div className="flex items-center gap-2 min-w-0">
-                {showDocumentLogo('boxLabelLogo') && renderOrgLogoBox({ className: 'w-12 h-7 rounded-lg border border-slate-300 px-1.5 py-1', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
-                <span className="truncate">ตรวจเช็กก่อนใช้งานและหลังเก็บทุกครั้ง • ทรัพย์สินของ MDEC</span>
+                {!isInkMode && showDocumentLogo('boxLabelLogo') && renderOrgLogoBox({ className: 'w-12 h-7 rounded-lg border border-slate-300 px-1.5 py-1', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                <span className="truncate">กรุณาตรวจเช็กก่อนใช้งานและหลังเก็บคืนทุกครั้ง • ทรัพย์สินของ MDEC</span>
               </div>
               <span className="shrink-0">พิมพ์วันที่ {new Date().toLocaleDateString('th-TH')}</span>
             </div>
@@ -4611,7 +4665,7 @@ S.N.: ${item.sn || '-'}
 
             <table className="w-full border-collapse mb-8 text-sm relative z-[1]">
               <thead>
-                <tr className="bg-slate-900 text-white">
+                <tr className="bg-slate-900 text-white text-[12px]">
                   <th className="border border-slate-900 px-3 py-2 text-left w-12">#</th>
                   <th className="border border-slate-900 px-3 py-2 text-left">ชื่ออุปกรณ์</th>
                   <th className="border border-slate-900 px-3 py-2 text-left">S.N.</th>
@@ -5157,7 +5211,7 @@ S.N.: ${item.sn || '-'}
           <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
               <div className={`text-sm font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-blue-600'}`}>Daily Workflow</div>
-              <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>เริ่มงานวันนี้จากตรงนี้</h2>
+              <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>เริ่มงานวันนี้จากตรงนี้</h2>
               <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>รวมปุ่มที่ใช้บ่อยที่สุดไว้ด้านบน ลดการไล่หาเมนูตอนทำงานจริง</p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -5171,7 +5225,7 @@ S.N.: ${item.sn || '-'}
           </div>
         </div>
 
-        <div className="p-5 sm:p-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+        <div className="p-4 sm:p-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2.5">
           {canUseOperationalTools && (
             <button type="button" onClick={() => openSelectionScanner()} className="group relative overflow-hidden p-4 sm:p-5 rounded-[1.6rem] bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 text-white text-left shadow-xl hover:-translate-y-1 hover:shadow-2xl transition-all">
               <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center mb-3"><Icons.QrCode className="w-5 h-5" /></div>
@@ -5203,7 +5257,7 @@ S.N.: ${item.sn || '-'}
           </button>
         </div>
 
-        <div className={`px-5 sm:px-6 pb-5 sm:pb-6 grid grid-cols-2 lg:grid-cols-4 gap-3`}>
+        <div className={`px-4 sm:px-5 pb-4 sm:pb-5 grid grid-cols-2 lg:grid-cols-4 gap-2.5`}>
           {[
             ['ต้องคืนวันนี้', dueTodayItems.length, 'emerald', () => openTrackingCenter('today')],
             ['เลยกำหนดคืน', overdueItems.length, 'rose', () => openTrackingCenter('issues')],
@@ -6451,7 +6505,7 @@ S.N.: ${item.sn || '-'}
       {showStorageBoxEditor && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-[9995]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-6xl flex flex-col h-[92vh] sm:h-[88vh] overflow-hidden ${theme.cardBg}`}>
-            <div className={`flex justify-between items-start gap-4 p-5 sm:p-6 border-b shrink-0 ${theme.divide}`}>
+            <div className={`flex justify-between items-start gap-4 p-4 sm:p-5 border-b shrink-0 ${theme.divide}`}>
               <div className="min-w-0">
                 <h3 className={`text-xl sm:text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
                   <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-cyan-900/50 text-cyan-400' : 'bg-cyan-100 text-cyan-600'}`}><Icons.Folder className="w-6 h-6"/></div>
