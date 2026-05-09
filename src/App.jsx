@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.33 Minimal Modern UI & Print Polish Pack';
-const APP_UPDATE_NOTE = 'ปรับเว็บให้มินิมอลทันสมัยขึ้น และเก็บงานฉลาก/เอกสารพิมพ์ให้สวย อ่านง่าย ไม่ตัดคำไทยกลางคำ';
+const APP_VERSION = 'v22.34 Ultra Clean Minimal Polish';
+const APP_UPDATE_NOTE = 'ขัดดีไซน์ให้คลีนขึ้นอีก ลดสี/เงาที่เยอะเกินไป ปรับหน้าแรก การ์ด สถิติ ตั้งค่า และงานพิมพ์ให้มินิมอลกว่าเดิม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -346,11 +346,11 @@ function MainApp() {
   }, [showScanModal]);
 
   const theme = {
-    mainBg: isDarkMode ? 'bg-slate-950 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.12),_transparent_32%)]' : 'bg-slate-50 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.08),_transparent_32%)]',
+    mainBg: isDarkMode ? 'bg-slate-950' : 'bg-slate-50',
     textMain: isDarkMode ? 'text-slate-100' : 'text-slate-800',
     textTitle: isDarkMode ? 'text-white' : 'text-slate-900',
     textMuted: isDarkMode ? 'text-slate-400' : 'text-slate-500',
-    cardBg: isDarkMode ? 'bg-slate-900/88 border-slate-700/70 shadow-black/20' : 'bg-white/95 border-slate-200/70 shadow-slate-200/45',
+    cardBg: isDarkMode ? 'bg-slate-900/90 border-slate-800 shadow-black/20' : 'bg-white border-slate-200 shadow-slate-200/35',
     input: isDarkMode ? 'bg-slate-950/80 border-slate-700 text-white focus:ring-blue-500 focus:border-blue-500' : 'bg-white border-slate-200 text-slate-700 focus:ring-blue-500 focus:border-blue-500',
     th: isDarkMode ? 'bg-slate-950/80 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-600',
     trHover: isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50',
@@ -4200,13 +4200,13 @@ S.N.: ${item.sn || '-'}
           }
         `}</style>
 
-        <div className="box-label-toolbar print:hidden p-4 bg-slate-900 text-white flex flex-col xl:flex-row justify-between items-center fixed top-0 w-full z-50 shadow-md gap-3">
+        <div className="box-label-toolbar print:hidden p-4 bg-slate-950 text-white flex flex-col xl:flex-row justify-between items-center fixed top-0 w-full z-50 shadow-md gap-3">
           <div>
             <h2 className="font-black text-xl flex items-center gap-2">
               <Icons.Folder className="w-6 h-6" /> พิมพ์ฉลากกล่องเก็บของ ({selectedLabelItems.length} รายการ)
             </h2>
             <p className="text-slate-300 text-sm font-bold mt-1">
-              ปรับใหม่: ตัดคำไทยสวยขึ้น / แยกชื่อกับ S.N. / มีโหมดประหยัดหมึกและช่องเช็กของ
+              ฉลากใหม่อ่านง่ายขึ้น: ตัดคำไทยดีขึ้น แยก S.N. ชัด และเลือกโหมดพิมพ์ได้
             </p>
           </div>
 
@@ -4937,7 +4937,7 @@ S.N.: ${item.sn || '-'}
   }
 
   return (
-    <div className={`min-h-screen font-sans ${pagePaddingClass} pb-28 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 ${theme.mainBg} ${theme.textMain}`}>
+    <div className={`min-h-screen font-sans ${pagePaddingClass} pb-28 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain}`}>
       {firebaseError && (
         <div className="w-full mb-6 bg-rose-100 border-l-4 border-rose-500 text-rose-800 p-5 rounded-r-xl shadow-md flex items-start gap-4">
           <Icons.Alert className="w-8 h-8 shrink-0 text-rose-600" />
@@ -5205,14 +5205,14 @@ S.N.: ${item.sn || '-'}
 
 
       {/* ⚡ Daily Quick Actions */}
-      <div className={`w-full mb-8 rounded-[2rem] border shadow-2xl overflow-hidden relative ${theme.cardBg}`}>
-        <div className={`relative p-5 sm:p-7 border-b overflow-hidden ${theme.divide}`}>
-          <div className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.22),transparent_35%),radial-gradient(circle_at_top_right,rgba(236,72,153,0.12),transparent_32%)]' : 'bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.13),transparent_35%),radial-gradient(circle_at_top_right,rgba(236,72,153,0.10),transparent_32%)]'}`}></div>
+      <div className={`w-full mb-6 rounded-[1.75rem] border shadow-sm overflow-hidden relative ${theme.cardBg}`}>
+        <div className={`relative p-4 sm:p-5 border-b overflow-hidden ${theme.divide}`}>
+          <div className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'bg-slate-950/10' : 'bg-slate-50/40'}`}></div>
           <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
-              <div className={`text-sm font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-blue-600'}`}>Daily Workflow</div>
-              <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>เริ่มงานวันนี้จากตรงนี้</h2>
-              <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>รวมปุ่มที่ใช้บ่อยที่สุดไว้ด้านบน ลดการไล่หาเมนูตอนทำงานจริง</p>
+              <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>MDEC COMMAND</div>
+              <h2 className={`text-xl sm:text-2xl font-black mt-1 tracking-tight ${theme.textTitle}`}>เริ่มงานวันนี้</h2>
+              <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>ปุ่มสำคัญสำหรับงานประจำวัน จัดให้สั้นและกดง่าย</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <div className={`text-xs font-black px-3 py-2 rounded-full border ${isDarkMode ? 'bg-slate-950/70 border-slate-700 text-slate-300' : 'bg-white/80 border-slate-200 text-slate-600'}`}>
@@ -5227,30 +5227,30 @@ S.N.: ${item.sn || '-'}
 
         <div className="p-4 sm:p-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2.5">
           {canUseOperationalTools && (
-            <button type="button" onClick={() => openSelectionScanner()} className="group relative overflow-hidden p-4 sm:p-5 rounded-[1.6rem] bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 text-white text-left shadow-xl hover:-translate-y-1 hover:shadow-2xl transition-all">
+            <button type="button" onClick={() => openSelectionScanner()} className={`group relative overflow-hidden p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-900 border-slate-900 text-white'}`}>
               <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center mb-3"><Icons.QrCode className="w-5 h-5" /></div>
               <div className="font-black text-lg">สแกน QR</div>
               <div className="text-xs font-bold text-white/80 mt-1">ค้นหา/ทำรายการเร็ว</div>
             </button>
           )}
           {canAddEditItems && (
-            <button type="button" onClick={openAddItemForm} className={`group p-4 sm:p-5 rounded-[1.6rem] text-left border shadow-sm hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] transition-all ${isDarkMode ? 'bg-blue-950/40 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-100 text-blue-700'}`}>
+            <button type="button" onClick={openAddItemForm} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-blue-950/40 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-100 text-blue-700'}`}>
               <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-3"><Icons.Plus className="w-5 h-5" /></div>
               <div className="font-black text-lg">เพิ่มอุปกรณ์</div>
               <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ของใหม่เข้าระบบ</div>
             </button>
           )}
-          <button type="button" onClick={() => openTrackingCenter('today')} className={`group p-4 sm:p-5 rounded-[1.6rem] text-left border shadow-sm hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] transition-all ${isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
+          <button type="button" onClick={() => openTrackingCenter('today')} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
             <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mb-3"><Icons.CheckCircle className="w-5 h-5" /></div>
             <div className="font-black text-lg">ศูนย์ติดตามงาน</div>
             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>วันนี้ / ต้องจัดการ</div>
           </button>
-          <button type="button" onClick={() => setShowQuickReturnModal(true)} className={`group p-4 sm:p-5 rounded-[1.6rem] text-left border shadow-sm hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] transition-all ${isDarkMode ? 'bg-purple-950/40 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-100 text-purple-700'}`}>
+          <button type="button" onClick={() => setShowQuickReturnModal(true)} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-purple-950/40 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-100 text-purple-700'}`}>
             <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center mb-3"><Icons.Users className="w-5 h-5" /></div>
             <div className="font-black text-lg">ติดตามของรอคืน</div>
             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ดูตามผู้ยืม/งาน</div>
           </button>
-          <button type="button" onClick={() => { setProofCenterFilter('all'); setProofCenterSearch(''); setShowProofCenterModal(true); }} className={`group p-4 sm:p-5 rounded-[1.6rem] text-left border shadow-sm hover:-translate-y-1 hover:shadow-xl hover:scale-[1.01] transition-all ${isDarkMode ? 'bg-pink-950/40 border-pink-800 text-pink-200' : 'bg-pink-50 border-pink-100 text-pink-700'}`}>
+          <button type="button" onClick={() => { setProofCenterFilter('all'); setProofCenterSearch(''); setShowProofCenterModal(true); }} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-pink-950/40 border-pink-800 text-pink-200' : 'bg-pink-50 border-pink-100 text-pink-700'}`}>
             <div className="w-10 h-10 rounded-2xl bg-pink-600 text-white flex items-center justify-center mb-3"><Icons.Camera className="w-5 h-5" /></div>
             <div className="font-black text-lg">หลักฐานรูปภาพ</div>
             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>รวมรูปทุกอุปกรณ์</div>
@@ -5271,7 +5271,7 @@ S.N.: ${item.sn || '-'}
               amber: isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-100 text-amber-700'
             }[tone];
             return (
-              <button key={label} type="button" onClick={action} className={`p-4 rounded-2xl border text-left hover:-translate-y-0.5 transition-all ${cls}`}>
+              <button key={label} type="button" onClick={action} className={`p-3.5 rounded-2xl border text-left hover:-translate-y-0.5 transition-all shadow-sm ${cls}`}>
                 <div className="text-3xl font-black leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
                 <div className="text-xs sm:text-sm font-black mt-2">{label}</div>
               </button>
@@ -5282,7 +5282,7 @@ S.N.: ${item.sn || '-'}
 
 
       {/* 📊 Main Stats Grid - Premium Cards */}
-      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-5 mb-8">
+      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-6">
         {[
           ['อุปกรณ์ทั้งหมด', stats.all, 'blue', '📦', 'จากข้อมูลทั้งหมด'],
           ['พร้อมใช้งาน', stats.available, 'emerald', '✅', 'พร้อมหยิบใช้งาน'],
@@ -5292,20 +5292,20 @@ S.N.: ${item.sn || '-'}
           ['ส่งซ่อม/ชำรุด', stats.maintenance, 'rose', '🛠️', 'ต้องติดตาม']
         ].map(([label, value, tone, emoji, caption]) => {
           const toneMap = {
-            blue: isDarkMode ? 'from-blue-950/80 to-slate-900 border-blue-800/70 text-blue-300' : 'from-blue-50 to-white border-blue-100 text-blue-600',
-            emerald: isDarkMode ? 'from-emerald-950/70 to-slate-900 border-emerald-800/70 text-emerald-300' : 'from-emerald-50 to-white border-emerald-100 text-emerald-600',
-            amber: isDarkMode ? 'from-amber-950/70 to-slate-900 border-amber-800/70 text-amber-300' : 'from-amber-50 to-white border-amber-100 text-amber-600',
-            purple: isDarkMode ? 'from-purple-950/70 to-slate-900 border-purple-800/70 text-purple-300' : 'from-purple-50 to-white border-purple-100 text-purple-600',
-            orange: isDarkMode ? 'from-orange-950/70 to-slate-900 border-orange-800/70 text-orange-300' : 'from-orange-50 to-white border-orange-100 text-orange-600',
-            rose: isDarkMode ? 'from-rose-950/70 to-slate-900 border-rose-800/70 text-rose-300' : 'from-rose-50 to-white border-rose-100 text-rose-600'
+            blue: isDarkMode ? 'bg-slate-900 border-slate-800 text-blue-300' : 'bg-white border-slate-200 text-blue-600',
+            emerald: isDarkMode ? 'bg-slate-900 border-slate-800 text-emerald-300' : 'bg-white border-slate-200 text-emerald-600',
+            amber: isDarkMode ? 'bg-slate-900 border-slate-800 text-amber-300' : 'bg-white border-slate-200 text-amber-600',
+            purple: isDarkMode ? 'bg-slate-900 border-slate-800 text-purple-300' : 'bg-white border-slate-200 text-purple-600',
+            orange: isDarkMode ? 'bg-slate-900 border-slate-800 text-orange-300' : 'bg-white border-slate-200 text-orange-600',
+            rose: isDarkMode ? 'bg-slate-900 border-slate-800 text-rose-300' : 'bg-white border-slate-200 text-rose-600'
           };
           return (
-            <div key={label} className={`relative overflow-hidden p-5 rounded-[1.65rem] border bg-gradient-to-br shadow-lg transition-all hover:-translate-y-1 hover:shadow-2xl hover:scale-[1.01] ${toneMap[tone]}`}>
+            <div key={label} className={`relative overflow-hidden p-4 rounded-2xl border shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${toneMap[tone]}`}>
               <div className="absolute -right-3 -top-3 text-6xl opacity-10 font-black">{emoji}</div>
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <span className={`font-black text-xs sm:text-sm tracking-wide ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{label}</span>
-                  <div className="text-4xl sm:text-5xl font-black mt-1 leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
+                  <div className="text-3xl sm:text-4xl font-black mt-1 leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
                 </div>
                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg shadow-sm ${isDarkMode ? 'bg-white/5' : 'bg-white/80'}`}>{emoji}</div>
               </div>
@@ -5316,7 +5316,7 @@ S.N.: ${item.sn || '-'}
       </div>
 
       {/* ส่วนสรุปหมวดหมู่แบบยุบได้ */}
-      <div className={`w-full mb-8 rounded-[1.75rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
+      <div className={`w-full mb-6 rounded-2xl border shadow-sm overflow-hidden ${theme.cardBg}`}>
         <div className={`px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${showCategorySummary ? `border-b ${theme.divide}` : ''}`}>
           <div className="min-w-0">
             <div className={`font-black text-xl ${theme.textTitle}`}>สรุปหมวดหมู่</div>
@@ -5372,7 +5372,7 @@ S.N.: ${item.sn || '-'}
       </div>
 
       {/* Filters & Search */}
-      <div className={`w-full flex flex-col gap-4 ${panelPaddingClass} rounded-[1.75rem] shadow-xl border mb-6 transition-colors ${theme.cardBg}`}>
+      <div className={`w-full flex flex-col gap-4 ${panelPaddingClass} rounded-2xl shadow-sm border mb-6 transition-colors ${theme.cardBg}`}>
         <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center w-full">
           <div className="relative flex-1 w-full">
             <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${theme.textMuted}`}><Icons.Search className="w-5 h-5" /></div>
@@ -5521,7 +5521,7 @@ S.N.: ${item.sn || '-'}
                 </div>
               </div>
 
-              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input type="checkbox" className="w-5 h-5 accent-rose-600" checked={!!quickProblemOnly} onChange={e => setQuickProblemOnly(e.target.checked)} />
                   <span className={`font-black ${theme.textTitle}`}>แสดงเฉพาะของที่ต้องจัดการ</span>
@@ -6854,7 +6854,7 @@ S.N.: ${item.sn || '-'}
                           key={nav.id}
                           type="button"
                           onClick={() => { setSettingsTab(nav.id); resetSettingsFormState(); if (nav.id === 'accounts') openNewAccountForm(); }}
-                          className={`p-3 rounded-2xl border text-left transition-all hover:-translate-y-0.5 hover:shadow-lg ${active ? (isDarkMode ? 'bg-gradient-to-br from-blue-600 to-indigo-600 border-blue-500 text-white shadow-lg' : 'bg-gradient-to-br from-blue-600 to-indigo-600 border-blue-600 text-white shadow-lg') : theme.btnSecondary}`}
+                          className={`p-3 rounded-2xl border text-left transition-all hover:-translate-y-0.5 hover:shadow-lg ${active ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-blue-600 border-blue-600 text-white shadow-md') : theme.btnSecondary}`}
                         >
                           <div className="flex items-center gap-2">
                             <Icon className="w-5 h-5 shrink-0" />
@@ -6870,7 +6870,7 @@ S.N.: ${item.sn || '-'}
                 <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
                             <div className={`px-5 sm:px-6 pt-5 pb-0`}>
                 <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                  <div className={`text-xs font-black tracking-[0.14em] uppercase ${theme.textMuted}`}>Settings Section</div>
+                  <div className={`text-xs font-black tracking-[0.14em] uppercase ${theme.textMuted}`}>หมวดตั้งค่า</div>
                   <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.label || 'ตั้งค่าระบบ'}</div>
                   <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.desc || 'จัดการระบบ'}</div>
                 </div>
@@ -8525,15 +8525,15 @@ S.N.: ${item.sn || '-'}
               <div>
                 <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}>
                   <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white flex items-center justify-center shadow-lg">🗂️</span>
-                  Project Manager / จัดการโครงการ
+                  จัดการโครงการ
                 </h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้งานคล้าย “กล่องเก็บของ/เซ็ตอุปกรณ์” — เพิ่มโครงการ จัดของเข้าโครงการ และพิมพ์รายงานได้</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เพิ่มโครงการ จัดอุปกรณ์เข้าโครงการ และพิมพ์รายงานได้จากหน้าเดียว</p>
               </div>
               <button type="button" onClick={() => setShowProjectsModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
 
             <div className="p-5 overflow-y-auto custom-scrollbar flex-1 space-y-5">
-              <div className={`p-5 rounded-[1.75rem] border shadow-sm ${isDarkMode ? 'bg-gradient-to-br from-indigo-950/40 to-slate-950/20 border-indigo-800' : 'bg-gradient-to-br from-indigo-50 to-white border-indigo-200'}`}>
+              <div className={`p-5 rounded-[1.75rem] border shadow-sm ${isDarkMode ? 'bg-slate-950/35 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-end">
                   <div>
                     <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>สร้างโครงการใหม่</label>
