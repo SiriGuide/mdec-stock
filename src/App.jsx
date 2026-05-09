@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.31 Ultra Premium UI Polish';
-const APP_UPDATE_NOTE = 'ขัด UI รอบใหญ่ให้พรีเมียมขึ้น: หน้าแรกเนียนขึ้น การ์ดสวยขึ้น ตั้งค่าสะอาดขึ้น และมือถือไม่โดนแถบล่างบัง';
+const APP_VERSION = 'v22.32 Project Manager & Print Reports';
+const APP_UPDATE_NOTE = 'ปรับระบบโครงการให้เป็น Project Manager คล้ายกล่อง/เซ็ต เพิ่มของเข้าโครงการทีละหลายชิ้น เปลี่ยนชื่อ และพิมพ์รายงานโครงการได้';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -195,9 +195,11 @@ function MainApp() {
   const [showQuickReturnModal, setShowQuickReturnModal] = useState(false);
   const [showTodayModal, setShowTodayModal] = useState(false);
   const [printSlipData, setPrintSlipData] = useState(null);
+  const [printProjectData, setPrintProjectData] = useState(null);
   const [showPersonalItemsModal, setShowPersonalItemsModal] = useState(false);
   const [showProjectsModal, setShowProjectsModal] = useState(false);
   const [quickProjectName, setQuickProjectName] = useState('');
+  const [projectManagerSearch, setProjectManagerSearch] = useState('');
   const [showProjectAssignModal, setShowProjectAssignModal] = useState(false);
   const [projectAssignTarget, setProjectAssignTarget] = useState('');
   const [projectAssignSelectedIds, setProjectAssignSelectedIds] = useState([]);
@@ -1452,6 +1454,20 @@ function MainApp() {
     return Object.values(map).sort((a, b) => String(a.name).localeCompare(String(b.name), 'th', { numeric: true }));
   }, [items]);
 
+  const filteredProjectStats = useMemo(() => {
+    const q = String(projectManagerSearch || '').trim().toLowerCase();
+    if (!q) return projectStats;
+    return projectStats.filter(project => {
+      return String(project.name || '').toLowerCase().includes(q) ||
+             (project.items || []).some(item =>
+               String(item.name || '').toLowerCase().includes(q) ||
+               String(item.sn || '').toLowerCase().includes(q) ||
+               String(item.location || '').toLowerCase().includes(q) ||
+               String(item.category || '').toLowerCase().includes(q)
+             );
+    });
+  }, [projectStats, projectManagerSearch]);
+
   const handleAddProjectQuick = async () => {
     const name = String(quickProjectName || '').trim();
     if (!name) {
@@ -1560,6 +1576,90 @@ function MainApp() {
     } catch (error) {
       console.error(error);
       alert('❌ จัดอุปกรณ์เข้าโครงการไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  const openProjectPrint = (projectName) => {
+    const project = projectStats.find(p => String(p.name) === String(projectName)) || { name: projectName, items: [], total: 0 };
+    setPrintProjectData({
+      name: project.name,
+      date: new Date().toISOString(),
+      ref: `PROJECT-${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}-${String(project.name || '').slice(0, 12)}`,
+      items: (project.items || []).slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true })),
+      total: project.total || 0,
+      active: project.active || 0,
+      disposed: project.disposed || 0,
+      lost: project.lost || 0,
+      pending_disposal: project.pending_disposal || 0
+    });
+  };
+
+  const handleRenameProject = async (oldName) => {
+    if (!canAddEditItems && !canManageSystem) return alert('บัญชีนี้ไม่มีสิทธิ์แก้ไขโครงการ');
+    if (!oldName || oldName === 'ไม่ระบุโครงการ') return alert('ไม่สามารถเปลี่ยนชื่อ “ไม่ระบุโครงการ” ได้');
+    const newName = prompt(`เปลี่ยนชื่อโครงการ\nจาก: ${oldName}\nเป็น:`, oldName);
+    const clean = String(newName || '').trim();
+    if (!clean || clean === oldName) return;
+    if (projectOptions.some(p => p !== oldName && String(p).trim() === clean)) {
+      return alert('มีชื่อโครงการนี้อยู่แล้ว');
+    }
+    try {
+      setIsBusy(true);
+      const currentProjects = Array.isArray(settingsOptions.projects) ? settingsOptions.projects : [];
+      const updatedProjects = [...new Set(currentProjects.map(p => p === oldName ? clean : p).filter(Boolean))];
+      if (!updatedProjects.includes('อื่นๆ')) updatedProjects.push('อื่นๆ');
+      const updatedSettings = { ...settingsOptions, projects: updatedProjects };
+      setSettingsOptions(updatedSettings);
+      await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
+
+      const affectedItems = items.filter(item => item && !item.isDeleted && String(item.project || '') === String(oldName));
+      await Promise.all(affectedItems.map(item => {
+        const history = Array.isArray(item.history) ? [...item.history] : [];
+        history.push({
+          type: 'projectChange',
+          date: new Date().toISOString(),
+          fromProject: oldName,
+          toProject: clean,
+          staff: currentOperator?.name || 'Admin',
+          note: 'เปลี่ยนชื่อโครงการจาก Project Manager'
+        });
+        return setDoc(getItemDoc(item.id), {
+          project: clean,
+          history,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentOperator?.name || 'Admin'
+        }, { merge: true });
+      }));
+
+      if (filterProject === oldName) setFilterProject(clean);
+      await logAction('เปลี่ยนชื่อโครงการ', clean, `จาก ${oldName} เป็น ${clean} / กระทบอุปกรณ์ ${affectedItems.length} รายการ`);
+      pushToast('เปลี่ยนชื่อโครงการเรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ เปลี่ยนชื่อโครงการไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleDeleteEmptyProject = async (projectName) => {
+    if (!canManageSystem && !canAddEditItems) return alert('บัญชีนี้ไม่มีสิทธิ์ลบชื่อโครงการ');
+    if (!projectName || projectName === 'ไม่ระบุโครงการ') return alert('ไม่สามารถลบ “ไม่ระบุโครงการ” ได้');
+    const project = projectStats.find(p => String(p.name) === String(projectName));
+    if (project && project.total > 0) {
+      return alert('โครงการนี้ยังมีอุปกรณ์อยู่ กรุณาย้าย/ลบการผูกอุปกรณ์ออกก่อน จึงจะลบชื่อโครงการได้');
+    }
+    if (!confirm(`ลบชื่อโครงการ "${projectName}" ออกจากรายการหรือไม่?`)) return;
+    try {
+      const updatedProjects = (settingsOptions.projects || []).filter(p => p !== projectName);
+      const updatedSettings = { ...settingsOptions, projects: updatedProjects.includes('อื่นๆ') ? updatedProjects : [...updatedProjects, 'อื่นๆ'] };
+      setSettingsOptions(updatedSettings);
+      await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
+      await logAction('ลบชื่อโครงการ', projectName, 'ลบชื่อโครงการที่ไม่มีอุปกรณ์ผูกอยู่');
+      pushToast('ลบชื่อโครงการแล้ว', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ ลบชื่อโครงการไม่สำเร็จ: ' + error.message);
     }
   };
 
@@ -4450,6 +4550,109 @@ S.N.: ${item.sn || '-'}
              })}
            </div>
          )}
+      </div>
+    );
+  }
+
+  if (printProjectData) {
+    const projectItems = printProjectData.items || [];
+    return (
+      <div className={`min-h-screen font-sans text-slate-900 print:bg-white ${isInkSavingDocument ? "bg-white" : "bg-slate-100"}`}>
+        <div className="print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
+          <h2 className="font-bold text-xl flex items-center gap-2"><Icons.Printer className="w-6 h-6" /> รายงานโครงการ</h2>
+          <div className="flex gap-3">
+            <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors"><Icons.Printer className="w-5 h-5"/> พิมพ์รายงาน</button>
+            <button onClick={() => setPrintProjectData(null)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button>
+          </div>
+        </div>
+        <div className="pt-24 print:pt-0 p-6 print:p-0 max-w-5xl mx-auto">
+          <div className="relative overflow-hidden bg-white p-8 print:p-6 shadow-xl print:shadow-none border border-slate-200 print:border-0 rounded-2xl print:rounded-none">
+            {showDocumentLogo('watermark') && !isInkSavingDocument && !brandLogoError && <img src={ORG_LOGO_SRC} alt="MDEC Watermark" className="absolute right-8 top-8 w-44 opacity-[0.045] pointer-events-none select-none" onError={() => setBrandLogoError(true)} />}
+            <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6 gap-4 relative z-[1]">
+              <div className="min-w-0">
+                {showDocumentLogo('slipLogo') ? renderOrgSignature({
+                  title: 'รายงานอุปกรณ์ตามโครงการ',
+                  subtitle: 'ศูนย์มัลติมีเดียทางการศึกษา (MDEC)',
+                  compact: false,
+                  containerClass: 'mb-2',
+                  titleClass: 'text-slate-900 text-3xl',
+                  subtitleClass: 'text-slate-600 text-sm',
+                  textWrapClass: 'min-w-0',
+                  logoClassName: 'w-28 h-16 rounded-2xl border border-slate-200 px-3 py-2 shadow-sm'
+                }) : (
+                  <div className="leading-tight mb-2">
+                    <h1 className="text-3xl font-black text-slate-900">รายงานอุปกรณ์ตามโครงการ</h1>
+                    <p className="text-sm font-bold text-slate-600">ศูนย์มัลติมีเดียทางการศึกษา (MDEC)</p>
+                  </div>
+                )}
+                <p className="text-lg font-black text-blue-700">โครงการ: {printProjectData.name}</p>
+                <p className="text-sm font-bold text-slate-600">เอกสารจากระบบ MDEC-Stock • ใช้สำหรับตรวจพัสดุ/ตรวจโครงการ</p>
+              </div>
+              <div className="text-right text-sm font-bold shrink-0 relative z-[1]">
+                <div>เลขที่: {printProjectData.ref}</div>
+                <div>วันที่ออกเอกสาร: {new Date(printProjectData.date).toLocaleString('th-TH', { hour12: false })}</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-5 gap-3 mb-6 relative z-[1]">
+              {[
+                ['ทั้งหมด', printProjectData.total || projectItems.length],
+                ['ใช้งานอยู่', printProjectData.active || 0],
+                ['จำหน่ายแล้ว', printProjectData.disposed || 0],
+                ['สูญหาย', printProjectData.lost || 0],
+                ['ชำรุดรอจำหน่าย', printProjectData.pending_disposal || 0]
+              ].map(([label, value]) => (
+                <div key={label} className="border rounded-xl p-3 text-center">
+                  <div className="text-2xl font-black text-slate-900">{Number(value || 0).toLocaleString('th-TH')}</div>
+                  <div className="text-xs font-bold text-slate-500">{label}</div>
+                </div>
+              ))}
+            </div>
+
+            <table className="w-full border-collapse mb-8 text-sm relative z-[1]">
+              <thead>
+                <tr className="bg-slate-900 text-white">
+                  <th className="border border-slate-900 px-3 py-2 text-left w-12">#</th>
+                  <th className="border border-slate-900 px-3 py-2 text-left">ชื่ออุปกรณ์</th>
+                  <th className="border border-slate-900 px-3 py-2 text-left">S.N.</th>
+                  <th className="border border-slate-900 px-3 py-2 text-left">หมวดหมู่</th>
+                  <th className="border border-slate-900 px-3 py-2 text-left">สถานที่/ห้อง</th>
+                  <th className="border border-slate-900 px-3 py-2 text-left">สถานะใช้งาน</th>
+                  <th className="border border-slate-900 px-3 py-2 text-left">สถานะพัสดุ</th>
+                  <th className="border border-slate-900 px-3 py-2 text-left">หมายเหตุ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projectItems.length === 0 ? (
+                  <tr><td colSpan="8" className="border px-3 py-8 text-center font-bold text-slate-500">ยังไม่มีอุปกรณ์ในโครงการนี้</td></tr>
+                ) : projectItems.map((item, index) => (
+                  <tr key={item.id || index}>
+                    <td className="border px-3 py-2 font-bold">{index + 1}</td>
+                    <td className="border px-3 py-2 font-bold">{item.name || '-'}</td>
+                    <td className="border px-3 py-2">{item.sn || '-'}</td>
+                    <td className="border px-3 py-2">{item.category || '-'}</td>
+                    <td className="border px-3 py-2">{item.location || '-'}</td>
+                    <td className="border px-3 py-2">{STATUSES.find(s => s.id === item.status)?.label || item.status || '-'}</td>
+                    <td className="border px-3 py-2">{getAssetStatusInfo(item.assetStatus).label}</td>
+                    <td className="border px-3 py-2 text-xs">{item.internalNote || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="grid grid-cols-2 gap-12 mt-14 text-center font-bold relative z-[1]">
+              <div><div className="border-b border-slate-900 h-12 mb-2"></div><div>ลงชื่อผู้ตรวจรายการ</div></div>
+              <div><div className="border-b border-slate-900 h-12 mb-2"></div><div>ลงชื่อผู้รับผิดชอบโครงการ</div></div>
+            </div>
+            <div className="mt-10 pt-3 border-t border-slate-200 flex items-center justify-between gap-3 text-[11px] font-bold text-slate-500 relative z-[1]">
+              <div className="flex items-center gap-2 min-w-0">
+                {showDocumentLogo('slipLogo') && renderOrgLogoBox({ className: 'w-16 h-9 rounded-xl border border-slate-200 px-2 py-1 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                <span className="truncate">เอกสารนี้ออกโดยระบบ MDEC-Stock สำหรับตรวจรายการอุปกรณ์ในโครงการ</span>
+              </div>
+              <span className="shrink-0">{APP_VERSION}</span>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -8260,23 +8463,26 @@ S.N.: ${item.sn || '-'}
       )}
 
 
-      {/* 🗂️ Modal โครงการ / แหล่งที่มาอุปกรณ์ */}
+      {/* 🗂️ Project Manager */}
       {showProjectsModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-[2rem] shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900/95 border-slate-700 shadow-black/40' : 'bg-white/95 border-white shadow-slate-200/80'}`}>
+          <div className={`rounded-[2rem] shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900/95 border-slate-700 shadow-black/40' : 'bg-white/95 border-white shadow-slate-200/80'}`}>
             <div className={`p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
               <div>
-                <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white flex items-center justify-center shadow-lg">🗂️</span> โครงการ / แหล่งที่มาอุปกรณ์</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้สำหรับจัดกลุ่มอุปกรณ์ตามโครงการจัดซื้อหรือแหล่งที่มา เพิ่มชื่อโครงการ แล้วนำไปเลือกในหน้าแก้ไขอุปกรณ์ได้เลย</p>
+                <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}>
+                  <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white flex items-center justify-center shadow-lg">🗂️</span>
+                  Project Manager / จัดการโครงการ
+                </h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้งานคล้าย “กล่องเก็บของ/เซ็ตอุปกรณ์” — เพิ่มโครงการ จัดของเข้าโครงการ และพิมพ์รายงานได้</p>
               </div>
               <button type="button" onClick={() => setShowProjectsModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
 
-            <div className="p-5 overflow-y-auto custom-scrollbar flex-1">
-              <div className={`mb-5 p-5 rounded-[1.75rem] border shadow-sm ${isDarkMode ? 'bg-gradient-to-br from-indigo-950/40 to-slate-950/20 border-indigo-800' : 'bg-gradient-to-br from-indigo-50 to-white border-indigo-200'}`}>
-                <div className="flex flex-col lg:flex-row lg:items-end gap-3">
-                  <div className="flex-1">
-                    <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>เพิ่มโครงการใหม่</label>
+            <div className="p-5 overflow-y-auto custom-scrollbar flex-1 space-y-5">
+              <div className={`p-5 rounded-[1.75rem] border shadow-sm ${isDarkMode ? 'bg-gradient-to-br from-indigo-950/40 to-slate-950/20 border-indigo-800' : 'bg-gradient-to-br from-indigo-50 to-white border-indigo-200'}`}>
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-end">
+                  <div>
+                    <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>สร้างโครงการใหม่</label>
                     <input
                       className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
                       placeholder="เช่น โครงการจัดซื้ออุปกรณ์ห้องประชุม ปี 2569"
@@ -8284,94 +8490,121 @@ S.N.: ${item.sn || '-'}
                       onChange={e => setQuickProjectName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') handleAddProjectQuick(); }}
                     />
-                    <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>หลังเพิ่มแล้ว ชื่อโครงการจะไปอยู่ในช่อง “โครงการ / แหล่งที่มา” ตอนเพิ่มหรือแก้ไขอุปกรณ์</p>
+                    <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>สร้างชื่อโครงการก่อน แล้วกด “เพิ่มของ” เพื่อเลือกอุปกรณ์เข้าโครงการได้หลายชิ้น</p>
                   </div>
                   <button type="button" onClick={handleAddProjectQuick} className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black shadow-md whitespace-nowrap">
                     + เพิ่มโครงการ
                   </button>
                 </div>
-                <div className={`mt-4 p-3 rounded-2xl border text-xs font-bold ${isDarkMode ? 'bg-slate-950/35 border-slate-700 text-slate-300' : 'bg-white/70 border-indigo-100 text-slate-600'}`}>
-                  วิธีใช้แบบง่าย: 1) เพิ่มชื่อโครงการ 2) เปิดรายการอุปกรณ์ที่ต้องการ 3) กดแก้ไข 4) เลือกโครงการ 5) บันทึก
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`text-xs font-bold ${theme.textMuted}`}>โครงการทั้งหมด</div>
+                  <div className="text-3xl font-black text-indigo-500">{projectStats.length.toLocaleString('th-TH')}</div>
+                </div>
+                <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`text-xs font-bold ${theme.textMuted}`}>อุปกรณ์ในโครงการ</div>
+                  <div className="text-3xl font-black text-blue-500">{projectStats.reduce((s,p)=>s+(p.total||0),0).toLocaleString('th-TH')}</div>
+                </div>
+                <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`text-xs font-bold ${theme.textMuted}`}>จำหน่ายแล้ว</div>
+                  <div className="text-3xl font-black text-slate-500">{projectStats.reduce((s,p)=>s+(p.disposed||0),0).toLocaleString('th-TH')}</div>
+                </div>
+                <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`text-xs font-bold ${theme.textMuted}`}>สูญหาย/รอจำหน่าย</div>
+                  <div className="text-3xl font-black text-rose-500">{projectStats.reduce((s,p)=>s+(p.lost||0)+(p.pending_disposal||0),0).toLocaleString('th-TH')}</div>
                 </div>
               </div>
 
-              <div className="mb-5 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-white border-slate-200'}`}>
-                  <div className={`font-black ${theme.textTitle}`}>1. เพิ่มชื่อโครงการ</div>
-                  <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>สร้างชื่อโครงการไว้ก่อน เช่น “จัดซื้อห้องประชุม 2569”</p>
-                </div>
-                <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-white border-slate-200'}`}>
-                  <div className={`font-black ${theme.textTitle}`}>2. ผูกกับอุปกรณ์</div>
-                  <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>กดแก้ไขอุปกรณ์ แล้วเลือกชื่อโครงการในช่อง “โครงการ / แหล่งที่มา”</p>
-                </div>
-                <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-white border-slate-200'}`}>
-                  <div className={`font-black ${theme.textTitle}`}>3. ดูของตามโครงการ</div>
-                  <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>กดปุ่ม “กรอง” บนการ์ดโครงการ เพื่อดูว่าโครงการนั้นมีอะไรบ้าง</p>
-                </div>
+              <div className={`p-4 rounded-2xl border grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาโครงการ / อุปกรณ์ / S.N. / ห้อง" value={projectManagerSearch} onChange={e => setProjectManagerSearch(e.target.value)} />
+                <button type="button" onClick={() => setProjectManagerSearch('')} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างค้นหา</button>
               </div>
 
               {filterProject !== 'all' && (
-                <div className={`mb-4 p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800 text-indigo-200' : 'bg-indigo-50 border-indigo-200 text-indigo-700'}`}>
+                <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800 text-indigo-200' : 'bg-indigo-50 border-indigo-200 text-indigo-700'}`}>
                   <div className="font-black">กำลังกรองโครงการ: {filterProject}</div>
                   <button type="button" onClick={() => setFilterProject('all')} className={`px-3 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>ยกเลิกกรองโครงการ</button>
                 </div>
               )}
 
-              {projectStats.length === 0 ? (
-                <div className={`text-center py-16 font-black text-xl ${theme.textMuted}`}>ยังไม่มีข้อมูลโครงการ</div>
+              {filteredProjectStats.length === 0 ? (
+                <div className={`text-center py-16 rounded-3xl border font-black text-xl ${isDarkMode ? 'bg-slate-950/35 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                  ยังไม่มีโครงการที่ตรงกับการค้นหา
+                </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {projectStats.map((project) => (
-                    <div key={project.name} className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className={`p-5 border-b ${theme.divide}`}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className={`font-black text-xl truncate ${theme.textTitle}`}>{project.name}</div>
-                            <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ทั้งหมด {project.total} รายการ • ใช้งานอยู่ {project.active || 0} • จำหน่ายแล้ว {project.disposed || 0} • สูญหาย {project.lost || 0}</div>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  {filteredProjectStats.map((project) => {
+                    const progress = project.total ? Math.round(((project.active || 0) / project.total) * 100) : 0;
+                    return (
+                      <div key={project.name} className={`rounded-[1.75rem] border overflow-hidden shadow-sm ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`p-5 border-b ${theme.divide}`}>
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className={`font-black text-xl truncate ${theme.textTitle}`}>{project.name}</div>
+                              <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ทั้งหมด {project.total} รายการ • ใช้งานอยู่ {project.active || 0} • จำหน่ายแล้ว {project.disposed || 0} • สูญหาย {project.lost || 0}</div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 shrink-0">
+                              {canAddEditItems && project.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectAssign(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 hover:bg-blue-500 text-white">เพิ่มของ</button>}
+                              <button type="button" onClick={() => openProjectPrint(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 text-white">พิมพ์</button>
+                              <button type="button" onClick={() => { setFilterProject(project.name); setShowProjectsModal(false); }} className="px-3 py-2 rounded-xl text-sm font-black bg-indigo-600 hover:bg-indigo-500 text-white">กรอง</button>
+                            </div>
                           </div>
-                          <div className="flex gap-2 shrink-0">
-                            {canAddEditItems && project.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectAssign(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">เพิ่มของ</button>}
-                            <button type="button" onClick={() => { setFilterProject(project.name); setShowProjectsModal(false); }} className="px-3 py-2 rounded-xl text-sm font-black bg-indigo-600 text-white">กรอง</button>
+                          <div className={`mt-4 h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                            <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full transition-all" style={{ width: `${progress}%` }}></div>
+                          </div>
+                        </div>
+
+                        <div className="p-4">
+                          {project.items.length === 0 ? (
+                            <div className={`p-6 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ยังไม่มีอุปกรณ์ในโครงการนี้</div>
+                          ) : (
+                            <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
+                              {project.items.map((item) => {
+                                const assetInfo = getAssetStatusInfo(item.assetStatus);
+                                const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
+                                return (
+                                  <div key={item.id} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
+                                        <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'} • {item.category || '-'}</div>
+                                      </div>
+                                      <div className="flex flex-col gap-1 items-end shrink-0">
+                                        <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                                        <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? assetInfo.darkColor : assetInfo.color}`}>{assetInfo.label}</span>
+                                      </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
+                                      <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>
+                                      {canAddEditItems && <button type="button" onClick={() => { setShowProjectsModal(false); openItemEditor(item); }} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">แก้ไข</button>}
+                                      <button type="button" onClick={() => copyItemSummary(item)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>คัดลอก</button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          <div className={`mt-4 pt-4 border-t flex flex-wrap gap-2 ${theme.divide}`}>
+                            {canAddEditItems && project.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => handleRenameProject(project.name)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>เปลี่ยนชื่อ</button>}
+                            {canAddEditItems && project.name !== 'ไม่ระบุโครงการ' && project.total === 0 && <button type="button" onClick={() => handleDeleteEmptyProject(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-rose-600 text-white">ลบโครงการว่าง</button>}
                           </div>
                         </div>
                       </div>
-                      <div className="p-4 space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
-                        {project.items.map((item) => {
-                          const assetInfo = getAssetStatusInfo(item.assetStatus);
-                          const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
-                          return (
-                            <div key={item.id} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0">
-                                  <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
-                                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'}</div>
-                                </div>
-                                <div className="flex flex-col gap-1 items-end shrink-0">
-                                  <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
-                                  <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? assetInfo.darkColor : assetInfo.color}`}>{assetInfo.label}</span>
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-2 gap-2 mt-3">
-                                <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>
-                                {canAddEditItems && <button type="button" onClick={() => { setShowProjectsModal(false); openItemEditor(item); }} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">เปลี่ยนโครงการ</button>}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
 
             <div className={`p-4 border-t ${theme.divide}`}>
-              <button type="button" onClick={() => setShowProjectsModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+              <button type="button" onClick={() => setShowProjectsModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิด Project Manager</button>
             </div>
           </div>
         </div>
       )}
-
 
       {/* Modal เพิ่มอุปกรณ์เข้าโครงการ */}
       {showProjectAssignModal && (
