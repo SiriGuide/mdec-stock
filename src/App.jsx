@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.19 QR Label Quiet Zone Polish';
-const APP_UPDATE_NOTE = 'ปรับฉลาก QR ให้เว้นขอบขาวรอบ QR ชัดขึ้น ย้ายโลโก้ออกจากพื้นที่สแกน และลดโอกาสสแกนไม่ติด';
+const APP_VERSION = 'v22.23 One-Stop Backup Center';
+const APP_UPDATE_NOTE = 'เพิ่มศูนย์สำรองข้อมูลแบบครบชุด ดาวน์โหลด JSON สำหรับกู้คืน CSV สำหรับ Google Sheets และ HTML Gallery สำหรับดูรูปหลักฐาน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -97,11 +97,21 @@ const DEPARTMENTS = [
   { id: 'ob-live', label: 'OB-LIVE', color: 'bg-violet-100 text-violet-700', darkColor: 'bg-violet-900/40 text-violet-400', iconName: 'Signal', iconColor: 'text-violet-500' }
 ];
 
+
+const ASSET_STATUSES = [
+  { id: 'active', label: 'ใช้งานอยู่', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', darkColor: 'bg-emerald-900/35 text-emerald-300 border-emerald-800' },
+  { id: 'disposed', label: 'จำหน่ายแล้ว', color: 'bg-slate-100 text-slate-600 border-slate-200', darkColor: 'bg-slate-800 text-slate-300 border-slate-700' },
+  { id: 'lost', label: 'สูญหาย', color: 'bg-rose-100 text-rose-700 border-rose-200', darkColor: 'bg-rose-900/35 text-rose-300 border-rose-800' },
+  { id: 'pending_disposal', label: 'ชำรุดรอจำหน่าย', color: 'bg-amber-100 text-amber-700 border-amber-200', darkColor: 'bg-amber-900/35 text-amber-300 border-amber-800' }
+];
+
+
 function MainApp() {
   const [items, setItems] = useState([]);
   const [settingsOptions, setSettingsOptions] = useState({
     categories: ['กล้อง', 'เลนส์', 'ไมโครโฟน', 'ชุดลำโพง', 'ถ่าน/แบต', 'สายไฟ', 'อื่นๆ'],
-    locations: ['ตู้ A1', 'ห้องเก็บของ 2', 'ห้องประชุม 1', 'อื่นๆ'],
+    locations: ['ตู้ A1', 'ห้องเก็บของ 2', 'ห้องประชุมราชพฤกษ์', 'ห้องประชุมสุพรรณิการ์', 'Project Base Learning', 'Arena 1', 'Arena 2', 'อื่นๆ'],
+    projects: ['ไม่ระบุโครงการ', 'อื่นๆ'],
     staff: ['แอดมิน', 'อื่นๆ'],
     bundles: [],
     storageBoxes: [],
@@ -119,6 +129,8 @@ function MainApp() {
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterLocation, setFilterLocation] = useState('all');
+  const [filterProject, setFilterProject] = useState('all');
+  const [filterAssetStatus, setFilterAssetStatus] = useState('all');
   const [filterQrTagged, setFilterQrTagged] = useState('all');
 
   const [isAdmin, setIsAdmin] = useState(() => {
@@ -148,7 +160,7 @@ function MainApp() {
   const [firebaseError, setFirebaseError] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '' });
+  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '' });
   
   const [itemToDelete, setItemToDelete] = useState(null); 
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
@@ -184,6 +196,9 @@ function MainApp() {
   const [showTodayModal, setShowTodayModal] = useState(false);
   const [printSlipData, setPrintSlipData] = useState(null);
   const [showPersonalItemsModal, setShowPersonalItemsModal] = useState(false);
+  const [showProjectsModal, setShowProjectsModal] = useState(false);
+  const [showRoomView, setShowRoomView] = useState(false);
+  const [expandedRooms, setExpandedRooms] = useState({});
   const [showEmptyCategories, setShowEmptyCategories] = useState(false);
   const [showCategorySummary, setShowCategorySummary] = useState(() => { try { return localStorage.getItem('mdec_show_category_summary') === 'true'; } catch(e) { return false; } });
   const [showAuditModal, setShowAuditModal] = useState(false);
@@ -194,6 +209,7 @@ function MainApp() {
   const [myPinForm, setMyPinForm] = useState({ oldPin: '', newPin: '', confirmPin: '' });
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showAnnualCleanupModal, setShowAnnualCleanupModal] = useState(false);
+  const [showBackupCenterModal, setShowBackupCenterModal] = useState(false);
   const [quickProblemOnly, setQuickProblemOnly] = useState(false);
   const [auditFilter, setAuditFilter] = useState('all');
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -737,7 +753,7 @@ function MainApp() {
       const caption = `${data.contextLabel || 'หลักฐาน'} | ${data.timestampText || ''} | ${data.locationText || ''}`;
       if (win) {
         win.document.open();
-        win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>MDEC Proof</title></head><body style="margin:0;background:#111;color:#fff;font-family:sans-serif;"><div style="padding:12px 16px;background:#000;font-size:14px;font-weight:700;">${caption.replace(/</g, '&lt;')}</div><img src="${src}" style="display:block;max-width:100%;height:auto;margin:0 auto;" /></body></html>`);
+        win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>MDEC Proof</title></head><body style="margin:0;background:#111;color:#fff;font-family:sans-serif;"><div style="padding:12px 16px;background:#000;font-size:14px;font-weight:700;">${caption.replace(/</g, '&lt;')}</div><div style="height:calc(100vh - 52px);display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box;"><img src="${src}" style="display:block;max-width:100%;max-height:100%;object-fit:contain;margin:0 auto;" /></div></body></html>`);
         win.document.close();
       } else {
         window.open(src, '_blank', 'noopener,noreferrer');
@@ -762,7 +778,7 @@ function MainApp() {
       <div className={`mt-4 p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => openProofImage(first)} className={`w-20 h-16 rounded-xl overflow-hidden border shrink-0 ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'}`} title="เปิดรูปแรก">
-            {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-cover" /> : <div className={`w-full h-full flex items-center justify-center text-xs font-black ${theme.textMuted}`}>รูป</div>}
+            {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-contain bg-slate-100" /> : <div className={`w-full h-full flex items-center justify-center text-xs font-black ${theme.textMuted}`}>รูป</div>}
           </button>
           <div className="min-w-0 flex-1">
             <div className={`text-sm font-black ${theme.textTitle}`}>มีหลักฐานรูปภาพ {list.length.toLocaleString('th-TH')} รูป</div>
@@ -1306,6 +1322,17 @@ function MainApp() {
 
   const todayMs = new Date().setHours(0,0,0,0);
 
+  const projectOptions = useMemo(() => {
+    const fromSettings = Array.isArray(settingsOptions.projects) ? settingsOptions.projects : [];
+    const fromItems = items.map(i => String(i.project || '').trim()).filter(Boolean);
+    const merged = [...new Set([...fromSettings, ...fromItems])].filter(Boolean);
+    const withoutOther = merged.filter(p => p !== 'อื่นๆ');
+    const base = withoutOther.length ? withoutOther : ['ไม่ระบุโครงการ'];
+    return [...new Set([...base, 'อื่นๆ'])];
+  }, [settingsOptions.projects, items]);
+
+  const getAssetStatusInfo = (id) => ASSET_STATUSES.find(s => s.id === (id || 'active')) || ASSET_STATUSES[0];
+
   const isProblemItem = (item) => {
     if (!item || item.isDeleted) return false;
     const isLate = (item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
@@ -1322,16 +1349,19 @@ function MainApp() {
                           (item.sn && String(item.sn).toLowerCase().includes(searchLower)) || 
                           (item.location && String(item.location).toLowerCase().includes(searchLower)) ||
                           (item.storageBoxName && String(item.storageBoxName).toLowerCase().includes(searchLower)) ||
+                          (item.project && String(item.project).toLowerCase().includes(searchLower)) ||
                           (item.owner && String(item.owner).toLowerCase().includes(searchLower)); 
                           
       const matchDept = filterDept === 'all' || String(item.department) === String(filterDept);
       const matchCategory = filterCategory === 'all' || String(item.category) === String(filterCategory);
       const matchStatus = filterStatus === 'all' || String(item.status) === String(filterStatus);
       const matchLocation = filterLocation === 'all' || String(item.location) === String(filterLocation);
+      const matchProject = filterProject === 'all' || String(item.project || '') === String(filterProject);
+      const matchAssetStatus = filterAssetStatus === 'all' || String(item.assetStatus || 'active') === String(filterAssetStatus);
       const matchQrTagged = filterQrTagged === 'all' || (filterQrTagged === 'tagged' && !!item.qrTagged) || (filterQrTagged === 'untagged' && !item.qrTagged);
       const matchProblem = !quickProblemOnly || isProblemItem(item);
       
-      return matchSearch && matchDept && matchCategory && matchStatus && matchLocation && matchQrTagged && matchProblem;
+      return matchSearch && matchDept && matchCategory && matchStatus && matchLocation && matchProject && matchAssetStatus && matchQrTagged && matchProblem;
     });
 
     result.sort((a, b) => {
@@ -1342,9 +1372,9 @@ function MainApp() {
       } catch (e) { return 0; }
     });
     return result;
-  }, [items, searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterQrTagged, quickProblemOnly, todayMs]);
+  }, [items, searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterProject, filterAssetStatus, filterQrTagged, quickProblemOnly, todayMs]);
 
-  const hasActiveFilters = !!searchTerm || filterDept !== 'all' || filterCategory !== 'all' || filterStatus !== 'all' || filterLocation !== 'all' || filterQrTagged !== 'all' || quickProblemOnly;
+  const hasActiveFilters = !!searchTerm || filterDept !== 'all' || filterCategory !== 'all' || filterStatus !== 'all' || filterLocation !== 'all' || filterProject !== 'all' || filterAssetStatus !== 'all' || filterQrTagged !== 'all' || quickProblemOnly;
 
   const clearAllFilters = () => {
     setSearchTerm('');
@@ -1352,8 +1382,46 @@ function MainApp() {
     setFilterCategory('all');
     setFilterStatus('all');
     setFilterLocation('all');
+    setFilterProject('all');
+    setFilterAssetStatus('all');
     setFilterQrTagged('all');
     setQuickProblemOnly(false);
+  };
+
+  const projectStats = useMemo(() => {
+    const map = {};
+    items.filter(item => item && !item.isDeleted).forEach((item) => {
+      const projectName = String(item.project || 'ไม่ระบุโครงการ').trim() || 'ไม่ระบุโครงการ';
+      if (!map[projectName]) {
+        map[projectName] = { name: projectName, total: 0, active: 0, disposed: 0, lost: 0, pending_disposal: 0, items: [] };
+      }
+      const assetStatus = item.assetStatus || 'active';
+      map[projectName].total += 1;
+      map[projectName][assetStatus] = (map[projectName][assetStatus] || 0) + 1;
+      map[projectName].items.push(item);
+    });
+    return Object.values(map).sort((a, b) => String(a.name).localeCompare(String(b.name), 'th', { numeric: true }));
+  }, [items]);
+
+  const roomGroups = useMemo(() => {
+    const map = {};
+    filteredItems.forEach((item) => {
+      const roomName = String(item.location || 'ไม่ระบุห้อง/สถานที่').trim() || 'ไม่ระบุห้อง/สถานที่';
+      if (!map[roomName]) {
+        map[roomName] = { name: roomName, total: 0, available: 0, borrowed: 0, event: 0, maintenance: 0, items: [] };
+      }
+      map[roomName].total += 1;
+      if (item.status === 'available') map[roomName].available += 1;
+      if (item.status === 'borrowed') map[roomName].borrowed += 1;
+      if (item.status === 'out-for-event') map[roomName].event += 1;
+      if (item.status === 'maintenance') map[roomName].maintenance += 1;
+      map[roomName].items.push(item);
+    });
+    return Object.values(map).sort((a, b) => String(a.name).localeCompare(String(b.name), 'th', { numeric: true }));
+  }, [filteredItems]);
+
+  const toggleRoomExpanded = (roomName) => {
+    setExpandedRooms(prev => ({ ...prev, [roomName]: prev[roomName] === false ? true : false }));
   };
 
   const copyItemSummary = async (item) => {
@@ -1364,7 +1432,9 @@ S.N.: ${item.sn || '-'}
 สถานะ: ${statusLabel}
 หมวดหมู่: ${item.category || '-'}
 ที่เก็บ: ${item.location || '-'}
-กล่อง: ${item.storageBoxName || '-'}${item.currentBorrower ? `
+กล่อง: ${item.storageBoxName || '-'}
+โครงการ: ${item.project || '-'}
+สถานะพัสดุ: ${getAssetStatusInfo(item.assetStatus).label}${item.currentBorrower ? `
 ผู้ยืม: ${item.currentBorrower}` : ''}${item.currentEvent ? `
 ออกงาน: ${item.currentEvent}` : ''}`;
     try {
@@ -1984,6 +2054,17 @@ S.N.: ${item.sn || '-'}
         settingsChanged = true;
       }
 
+      let finalProject = formData.project || '';
+      if (formData.project === 'อื่นๆ' && (formData.newProject || '').trim()) {
+        finalProject = formData.newProject.trim();
+        currentSettings.projects = [...new Set([...(currentSettings.projects || []).filter(c => c !== 'อื่นๆ'), finalProject, 'อื่นๆ'])];
+        settingsChanged = true;
+      }
+      if (finalProject && finalProject !== 'อื่นๆ') {
+        currentSettings.projects = [...new Set([...(currentSettings.projects || []).filter(c => c !== 'อื่นๆ'), finalProject, 'อื่นๆ'])];
+        settingsChanged = true;
+      }
+
       let finalOwner = '';
       if (formData.isPersonalItem) {
         if (formData.owner === 'อื่นๆ') {
@@ -2010,7 +2091,9 @@ S.N.: ${item.sn || '-'}
       const itemData = { 
         ...formData, 
         category: finalCategory, 
-        location: finalLocation, 
+        location: finalLocation,
+        project: finalProject,
+        assetStatus: formData.assetStatus || 'active',
         owner: finalOwner,
         quantity: Number(formData.quantity) || 1, 
         updatedAt: new Date().toISOString(),
@@ -2018,6 +2101,7 @@ S.N.: ${item.sn || '-'}
       };
       delete itemData.newCategory;
       delete itemData.newLocation;
+      delete itemData.newProject;
       delete itemData.newOwner;
       delete itemData.isPersonalItem;
       
@@ -2025,8 +2109,22 @@ S.N.: ${item.sn || '-'}
       delete itemData.id;
       
       if (isEdit) {
+        const oldItem = items.find(item => item.id === formData.id);
+        const projectChanged = String(oldItem?.project || '') !== String(finalProject || '');
+        if (projectChanged) {
+          const history = Array.isArray(oldItem?.history) ? [...oldItem.history] : [];
+          history.push({
+            type: 'projectChange',
+            date: new Date().toISOString(),
+            fromProject: oldItem?.project || 'ไม่ระบุโครงการ',
+            toProject: finalProject || 'ไม่ระบุโครงการ',
+            staff: currentOperator?.name || 'Admin',
+            note: 'เปลี่ยนโครงการแบบง่ายจากหน้าแก้ไขอุปกรณ์'
+          });
+          itemData.history = history;
+        }
         await setDoc(getItemDoc(formData.id), itemData, { merge: true });
-        logAction('แก้ไขข้อมูล', itemData.name, `แก้ไขรายละเอียดอุปกรณ์ S.N.: ${itemData.sn || '-'}`);
+        logAction(projectChanged ? 'เปลี่ยนโครงการอุปกรณ์' : 'แก้ไขข้อมูล', itemData.name, projectChanged ? `ย้ายจาก ${oldItem?.project || 'ไม่ระบุโครงการ'} → ${finalProject || 'ไม่ระบุโครงการ'}` : `แก้ไขรายละเอียดอุปกรณ์ S.N.: ${itemData.sn || '-'}`);
       } else {
         const newId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
         await setDoc(getItemDoc(newId), { ...itemData, createdBy: currentOperator?.name || 'Admin', history: [] });
@@ -2132,7 +2230,10 @@ S.N.: ${item.sn || '-'}
       newOwner: '',
       isPersonalItem: false,
       qrTagged: false,
-      internalNote: ''
+      internalNote: '',
+      project: '',
+      newProject: '',
+      assetStatus: 'active'
     });
     setShowForm(true);
   };
@@ -2406,7 +2507,7 @@ S.N.: ${item.sn || '-'}
 
   const openItemEditor = (item) => {
     if (!item) return;
-    setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newOwner: item.owner || '', isPersonalItem: !!item.owner });
+    setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newProject: '', newOwner: item.owner || '', isPersonalItem: !!item.owner, assetStatus: item.assetStatus || 'active' });
     setShowForm(true);
   };
 
@@ -2486,18 +2587,24 @@ S.N.: ${item.sn || '-'}
       setLastScannedItemId(foundItem.id);
       const markChecklist = (targetIds, currentChecklist, setChecklist, label) => {
         if (!targetIds.includes(foundItem.id)) {
-          setScanMessage({ text: `⚠️ "${foundItem.name}" ไม่อยู่ในเช็กลิสต์${label}`, type: 'error' });
-          try { if (navigator?.vibrate) navigator.vibrate([60, 40, 60]); } catch(e){}
+          setScanMessage({ text: `⚠️ "${foundItem.name}" ไม่ได้อยู่ในเช็กลิสต์${label}`, type: 'error' });
+          try { if (navigator?.vibrate) navigator.vibrate([70, 45, 70]); } catch(e){}
+          try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
           return;
         }
         if (currentChecklist.includes(foundItem.id)) {
-          setScanMessage({ text: `✅ "${foundItem.name}" เช็กไว้แล้ว`, type: 'success' });
+          setScanMessage({ text: `✅ "${foundItem.name}" เช็กไว้แล้ว ไม่ต้องสแกนซ้ำ`, type: 'success' });
           try { if (navigator?.vibrate) navigator.vibrate(50); } catch(e){}
           return;
         }
+        const nextCount = Math.min(targetIds.length, currentChecklist.length + 1);
+        const isComplete = nextCount >= targetIds.length;
         setChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-        setScanMessage({ text: `✅ เช็ก "${foundItem.name}" แล้ว`, type: 'success' });
-        try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
+        setScanMessage({
+          text: isComplete ? `🎉 เช็กครบแล้ว พร้อมยืนยันรายการ` : `✅ เช็ก "${foundItem.name}" แล้ว (${nextCount}/${targetIds.length})`,
+          type: 'success'
+        });
+        try { if (navigator?.vibrate) navigator.vibrate(isComplete ? [90, 40, 120] : 90); } catch(e){}
         try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
       };
 
@@ -2681,6 +2788,21 @@ S.N.: ${item.sn || '-'}
     return String(value);
   };
 
+  const backupFormatBytes = (bytes) => {
+    const n = Number(bytes) || 0;
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(2) + ' MB';
+    return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+  };
+
+  const backupHtmlEscape = (value) => backupSafeText(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
   const backupCsvEscape = (value) => {
     const text = backupSafeText(value);
     const newline = String.fromCharCode(10);
@@ -2709,6 +2831,14 @@ S.N.: ${item.sn || '-'}
     backupDownloadTextFile(filename, bom + csv, 'text/csv;charset=utf-8;');
   };
 
+  const backupDownloadMultipleFiles = (files = []) => {
+    files.filter(Boolean).forEach((file, index) => {
+      setTimeout(() => {
+        backupDownloadTextFile(file.filename, file.content, file.mimeType);
+      }, index * 450);
+    });
+  };
+
   const getBackupStatusLabel = (statusId) => STATUSES.find(s => s.id === statusId)?.label || statusId || '-';
 
   const saveBackupTimestamp = async (type) => {
@@ -2724,15 +2854,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const exportHistoryCSV = async () => {
-    const headers = ['รหัสเอกสารอุปกรณ์', 'ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'ลำดับประวัติ', 'ประเภทประวัติ', 'วันเวลาทำรายการ', 'ผู้ทำรายการในระบบ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'ลิงก์หลักฐาน', 'สถานะปัจจุบัน'];
-    const rows = [];
-    items.forEach(item => {
-      const historyList = Array.isArray(item.history) ? item.history : [];
-      historyList.forEach((h, index) => {
-        const historyType = h.type === 'borrow' ? 'ยืมออก' : h.type === 'event' ? 'ออกงาน' : h.type === 'return' ? 'รับคืน' : (h.type || '-');
-        rows.push([item.id || '-', item.name || '-', item.sn || '-', item.department || '-', item.category || '-', item.location || '-', index + 1, historyType, formatBackupDateTime(h.date), h.operatorName || h.performedBy || '-', h.borrower || h.eventName || '-', h.staffOut || '-', h.staffIn || '-', h.expectedReturn || '-', h.note || '-', Array.isArray(h.proofs) ? h.proofs.length : 0, Array.isArray(h.proofs) ? h.proofs.map(p => p.storageType === 'firestore-doc-base64' ? (p.originalName || p.id || 'รูปในระบบ') : (p.url || p.id || '-')).join(' | ') : '-' , getBackupStatusLabel(item.status)]);
-      });
-    });
+    const { headers, rows } = buildHistoryCsvRows();
     backupDownloadCSV('MDEC_Borrow_Return_History_' + getBackupFileTag() + '.csv', headers, rows);
     await logAction('สำรองประวัติยืม-คืน CSV', 'ส่งออก ' + rows.length + ' รายการประวัติ', 'ดาวน์โหลดประวัติการยืม-คืนพร้อมวันเวลาเป็นไฟล์ CSV');
     await saveBackupTimestamp('historyCsv');
@@ -2751,46 +2873,408 @@ S.N.: ${item.sn || '-'}
     else pushToast('ดาวน์โหลดประวัติอุปกรณ์นี้เรียบร้อยแล้ว', 'success');
   };
 
+  const collectFullBackupPayload = async () => {
+    let latestAuditLogs = [];
+    try {
+      const auditSnapshot = await getDocs(getAuditCol());
+      auditSnapshot.forEach((docSnap) => latestAuditLogs.push({ id: docSnap.id, ...docSnap.data() }));
+      latestAuditLogs.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+    } catch (auditError) {
+      console.warn('Audit backup warning:', auditError);
+      latestAuditLogs = auditLogs;
+    }
+
+    let proofDocs = [];
+    try {
+      const proofSnapshot = await getDocs(getProofsCol());
+      proofSnapshot.forEach((docSnap) => proofDocs.push({ id: docSnap.id, ...docSnap.data() }));
+    } catch (proofError) {
+      console.warn('Proof backup warning:', proofError);
+      proofDocs = [];
+    }
+
+    const proofBytes = proofDocs.reduce((sum, p) => sum + (Number(p.sizeBytes) || 0) + (Number(p.thumbBytes) || 0), 0);
+    const historyCount = items.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.length : 0), 0);
+    const historyProofCount = items.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.reduce((s, h) => s + (Array.isArray(h.proofs) ? h.proofs.length : 0), 0) : 0), 0);
+
+    const payload = {
+      appName: 'MDEC-Stock',
+      backupType: 'full-system-backup',
+      backupVersion: 2,
+      exportedAt: new Date().toISOString(),
+      exportedAtTH: new Date().toLocaleString('th-TH', { hour12: false }),
+      appVersion: APP_VERSION,
+      summary: {
+        totalItems: items.length,
+        activeItems: items.filter(i => !i.isDeleted).length,
+        totalHistoryEntries: historyCount,
+        totalProofImages: proofDocs.length,
+        totalHistoryProofLinks: historyProofCount,
+        estimatedProofBytes: proofBytes,
+        totalAuditLogs: latestAuditLogs.length,
+        totalBundles: (settingsOptions.bundles || []).length,
+        totalCategories: (settingsOptions.categories || []).length,
+        totalLocations: (settingsOptions.locations || []).length,
+        totalProjects: projectStats.length,
+        totalStaff: (settingsOptions.staff || []).length,
+        totalAccounts: (settingsOptions.accounts || []).length
+      },
+      settings: settingsOptions,
+      items: items,
+      auditLogs: latestAuditLogs,
+      proofs: proofDocs
+    };
+
+    return { payload, latestAuditLogs, proofDocs, proofBytes, historyCount, historyProofCount };
+  };
+
+  const buildInventoryCsvRows = () => {
+    const headers = ['รหัสอุปกรณ์', 'ชื่ออุปกรณ์', 'S.N.', 'ฝ่าย', 'หมวดหมู่', 'ห้อง/สถานที่', 'กล่องเก็บของ', 'โครงการ', 'สถานะใช้งาน', 'สถานะพัสดุ', 'จำนวน', 'เจ้าของ/ของส่วนตัว', 'ติด QR แล้ว', 'จำนวนประวัติ', 'จำนวนรูปหลักฐาน', 'ผู้ยืม/งานปัจจุบัน', 'กำหนดคืน', 'หมายเหตุภายใน', 'อัปเดตล่าสุด'];
+    const rows = items.map(item => {
+      const historyList = Array.isArray(item.history) ? item.history : [];
+      const proofCount = historyList.reduce((sum, h) => sum + (Array.isArray(h.proofs) ? h.proofs.length : 0), 0);
+      return [
+        item.id || '-',
+        item.name || '-',
+        item.sn || '-',
+        item.department || '-',
+        item.category || '-',
+        item.location || '-',
+        item.storageBoxName || '-',
+        item.project || 'ไม่ระบุโครงการ',
+        getBackupStatusLabel(item.status),
+        getAssetStatusInfo(item.assetStatus).label,
+        item.quantity || 1,
+        item.owner || '-',
+        item.qrTagged ? 'ติดแล้ว' : 'ยังไม่ติด',
+        historyList.length,
+        proofCount,
+        item.currentBorrower || item.currentEvent || '-',
+        item.expectedReturn || '-',
+        item.internalNote || '-',
+        formatBackupDateTime(item.updatedAt)
+      ];
+    });
+    return { headers, rows };
+  };
+
+  const buildHistoryCsvRows = () => {
+    const headers = ['รหัสเอกสารอุปกรณ์', 'ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'โครงการ', 'สถานะพัสดุ', 'ลำดับประวัติ', 'ประเภทประวัติ', 'วันเวลาทำรายการ', 'ผู้ทำรายการในระบบ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'รหัส/ชื่อหลักฐาน', 'สถานะปัจจุบัน'];
+    const rows = [];
+    items.forEach(item => {
+      const historyList = Array.isArray(item.history) ? item.history : [];
+      historyList.forEach((h, index) => {
+        const historyType = h.type === 'borrow' ? 'ยืมออก' : h.type === 'event' ? 'ออกงาน' : h.type === 'return' ? 'รับคืน' : h.type === 'projectChange' ? 'เปลี่ยนโครงการ' : (h.type || '-');
+        rows.push([
+          item.id || '-',
+          item.name || '-',
+          item.sn || '-',
+          item.department || '-',
+          item.category || '-',
+          item.location || '-',
+          item.project || 'ไม่ระบุโครงการ',
+          getAssetStatusInfo(item.assetStatus).label,
+          index + 1,
+          historyType,
+          formatBackupDateTime(h.date),
+          h.operatorName || h.performedBy || h.staff || '-',
+          h.borrower || h.eventName || `${h.fromProject || ''}${h.toProject ? ' → ' + h.toProject : ''}` || '-',
+          h.staffOut || '-',
+          h.staffIn || '-',
+          h.expectedReturn || '-',
+          h.note || '-',
+          Array.isArray(h.proofs) ? h.proofs.length : 0,
+          Array.isArray(h.proofs) ? h.proofs.map(p => p.proofDocId || p.id || p.originalName || 'รูปในระบบ').join(' | ') : '-',
+          getBackupStatusLabel(item.status)
+        ]);
+      });
+    });
+    return { headers, rows };
+  };
+
+  const buildProjectsCsvRows = () => {
+    const headers = ['โครงการ', 'อุปกรณ์ทั้งหมด', 'ใช้งานอยู่', 'จำหน่ายแล้ว', 'สูญหาย', 'ชำรุดรอจำหน่าย', 'รายการอุปกรณ์'];
+    const rows = projectStats.map(project => [
+      project.name || 'ไม่ระบุโครงการ',
+      project.total || 0,
+      project.active || 0,
+      project.disposed || 0,
+      project.lost || 0,
+      project.pending_disposal || 0,
+      (project.items || []).map(i => `${i.name || '-'} (${i.sn || '-'})`).join(' | ')
+    ]);
+    return { headers, rows };
+  };
+
+  const getProofGroupsForBackup = (proofDocs = []) => {
+    const proofMap = new Map((proofDocs || []).map(p => [String(p.id || p.proofDocId), p]));
+    const groups = new Map();
+
+    items.forEach(item => {
+      (Array.isArray(item.history) ? item.history : []).forEach((h, historyIndex) => {
+        (Array.isArray(h.proofs) ? h.proofs : []).forEach((proofRef, proofIndex) => {
+          const key = String(proofRef.proofDocId || proofRef.id || `${item.id}_${historyIndex}_${proofIndex}`);
+          const proofDoc = proofMap.get(key) || proofRef || {};
+          if (!groups.has(key)) {
+            groups.set(key, {
+              id: key,
+              proof: { ...proofRef, ...proofDoc },
+              entries: [],
+              itemKeys: new Set()
+            });
+          }
+          const group = groups.get(key);
+          const itemKey = item.id || item.sn || item.name || `${historyIndex}_${proofIndex}`;
+          if (!group.itemKeys.has(itemKey)) {
+            group.itemKeys.add(itemKey);
+            group.entries.push({
+              itemId: item.id,
+              itemName: item.name || '-',
+              sn: item.sn || '-',
+              category: item.category || '-',
+              location: item.location || '-',
+              project: item.project || 'ไม่ระบุโครงการ',
+              historyType: h.type || '-',
+              subject: h.borrower || h.eventName || h.note || '-',
+              staff: h.staffOut || h.staffIn || h.staff || h.operatorName || h.performedBy || '-',
+              date: h.date || proofDoc.createdAt || proofRef.createdAt || ''
+            });
+          }
+        });
+      });
+    });
+
+    return Array.from(groups.values()).sort((a, b) => new Date(b.proof.createdAt || b.entries[0]?.date || 0) - new Date(a.proof.createdAt || a.entries[0]?.date || 0));
+  };
+
+  const buildProofIndexCsvRows = (proofDocs = []) => {
+    const groups = getProofGroupsForBackup(proofDocs);
+    const headers = ['รหัสรูปหลักฐาน', 'ชื่อไฟล์', 'ประเภท/บริบท', 'วันที่รูป', 'ผู้บันทึก', 'ตำแหน่ง/พิกัด', 'ขนาด', 'เกี่ยวข้องกับกี่อุปกรณ์', 'อุปกรณ์ที่เกี่ยวข้อง', 'โครงการที่เกี่ยวข้อง', 'หมายเหตุ'];
+    const rows = groups.map(group => {
+      const proof = group.proof || {};
+      return [
+        group.id,
+        proof.originalName || '-',
+        proof.contextLabel || '-',
+        proof.timestampText || formatBackupDateTime(proof.createdAt),
+        proof.createdBy || '-',
+        proof.locationText || '-',
+        proof.sizeText || backupFormatBytes((Number(proof.sizeBytes) || 0) + (Number(proof.thumbBytes) || 0)),
+        group.entries.length,
+        group.entries.map(e => `${e.itemName} (${e.sn})`).join(' | '),
+        [...new Set(group.entries.map(e => e.project || 'ไม่ระบุโครงการ'))].join(' | '),
+        proof.note || '-'
+      ];
+    });
+    return { headers, rows };
+  };
+
+  const buildProofGalleryHTML = (proofDocs = []) => {
+    const groups = getProofGroupsForBackup(proofDocs);
+    const cards = groups.map(group => {
+      const proof = group.proof || {};
+      const imgSrc = proof.dataUrl || proof.url || proof.thumbUrl || '';
+      const type = backupHtmlEscape(proof.contextLabel || 'หลักฐานรูปภาพ');
+      const created = backupHtmlEscape(proof.timestampText || formatBackupDateTime(proof.createdAt));
+      const by = backupHtmlEscape(proof.createdBy || '-');
+      const note = backupHtmlEscape(proof.note || '');
+      const location = backupHtmlEscape(proof.locationText || '');
+      const itemsHtml = group.entries.map(entry => `
+        <li>
+          <b>${backupHtmlEscape(entry.itemName)}</b>
+          <span>S.N. ${backupHtmlEscape(entry.sn)} • ${backupHtmlEscape(entry.location)} • ${backupHtmlEscape(entry.project)}</span>
+        </li>
+      `).join('');
+      return `
+        <article class="card">
+          <div class="photoWrap">
+            ${imgSrc ? `<img src="${imgSrc}" alt="${type}">` : `<div class="noPhoto">ไม่มีรูปในไฟล์สำรอง</div>`}
+          </div>
+          <div class="meta">
+            <div class="badge">${type}</div>
+            <h2>${backupHtmlEscape(group.entries[0]?.subject || proof.originalName || 'หลักฐาน')}</h2>
+            <p><b>เวลา:</b> ${created}</p>
+            <p><b>ผู้บันทึก:</b> ${by}</p>
+            ${location ? `<p><b>สถานที่:</b> ${location}</p>` : ''}
+            ${note ? `<p><b>หมายเหตุ:</b> ${note}</p>` : ''}
+            <p><b>เกี่ยวข้องกับ:</b> ${group.entries.length} อุปกรณ์/รายการ</p>
+            <ul>${itemsHtml}</ul>
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    return `<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MDEC Proof Gallery ${backupHtmlEscape(getBackupFileTag())}</title>
+<style>
+  :root { --bg:#f1f5f9; --card:#ffffff; --text:#0f172a; --muted:#64748b; --blue:#2563eb; --pink:#db2777; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: Arial, "Tahoma", sans-serif; background:var(--bg); color:var(--text); }
+  header { position:sticky; top:0; z-index:10; background:linear-gradient(135deg,#0f172a,#1e40af); color:white; padding:20px; box-shadow:0 10px 30px rgba(15,23,42,.18); }
+  header h1 { margin:0; font-size:24px; font-weight:900; }
+  header p { margin:6px 0 0; color:#dbeafe; font-weight:700; }
+  .summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; padding:18px; }
+  .summary div { background:var(--card); border:1px solid #e2e8f0; border-radius:18px; padding:16px; box-shadow:0 8px 20px rgba(15,23,42,.06); }
+  .summary b { display:block; font-size:24px; color:var(--blue); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:18px; padding:0 18px 24px; }
+  .card { background:var(--card); border:1px solid #e2e8f0; border-radius:24px; overflow:hidden; box-shadow:0 10px 30px rgba(15,23,42,.08); }
+  .photoWrap { height:300px; background:
+    linear-gradient(45deg,rgba(148,163,184,.18) 25%,transparent 25%,transparent 75%,rgba(148,163,184,.18) 75%),
+    linear-gradient(45deg,rgba(148,163,184,.18) 25%,transparent 25%,transparent 75%,rgba(148,163,184,.18) 75%);
+    background-size:20px 20px; background-position:0 0,10px 10px; display:flex; align-items:center; justify-content:center; }
+  .photoWrap img { max-width:100%; max-height:100%; object-fit:contain; display:block; }
+  .noPhoto { color:var(--muted); font-weight:900; }
+  .meta { padding:16px; }
+  .badge { display:inline-block; background:#fce7f3; color:#be185d; border:1px solid #fbcfe8; border-radius:999px; padding:5px 10px; font-size:12px; font-weight:900; }
+  h2 { margin:10px 0; font-size:18px; line-height:1.25; }
+  p { margin:6px 0; color:#334155; font-size:14px; }
+  ul { margin:10px 0 0; padding-left:18px; }
+  li { margin:6px 0; }
+  li span { display:block; color:var(--muted); font-size:12px; margin-top:2px; }
+  footer { padding:18px; color:var(--muted); text-align:center; font-weight:700; }
+  @media print { header { position:static; } .card { break-inside:avoid; } .photoWrap { height:220px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>MDEC Proof Gallery / คลังรูปหลักฐาน</h1>
+  <p>ส่งออกเมื่อ ${backupHtmlEscape(new Date().toLocaleString('th-TH', { hour12:false }))} • เปิดไฟล์นี้ด้วย Chrome/Edge ได้ทันที ไม่ต้องเข้าเว็บ</p>
+</header>
+<section class="summary">
+  <div><b>${groups.length.toLocaleString('th-TH')}</b>รูปหลักฐานจริง</div>
+  <div><b>${groups.reduce((sum,g)=>sum+g.entries.length,0).toLocaleString('th-TH')}</b>จุดเชื่อมโยงกับอุปกรณ์</div>
+  <div><b>${items.length.toLocaleString('th-TH')}</b>อุปกรณ์ในระบบ</div>
+</section>
+<main class="grid">${cards || '<div class="card"><div class="meta"><h2>ยังไม่มีรูปหลักฐาน</h2></div></div>'}</main>
+<footer>MDEC-Stock Backup Gallery • ${backupHtmlEscape(APP_VERSION)}</footer>
+</body>
+</html>`;
+  };
+
+  const buildOneStopBackupFiles = async () => {
+    const collected = await collectFullBackupPayload();
+    const tag = getBackupFileTag();
+    const inventory = buildInventoryCsvRows();
+    const history = buildHistoryCsvRows();
+    const projects = buildProjectsCsvRows();
+    const proofIndex = buildProofIndexCsvRows(collected.proofDocs);
+    const galleryHtml = buildProofGalleryHTML(collected.proofDocs);
+
+    const makeCsvContent = (headers, rows) => {
+      const newline = String.fromCharCode(10);
+      const bom = String.fromCharCode(0xfeff);
+      return bom + [headers, ...rows].map(row => row.map(backupCsvEscape).join(',')).join(newline);
+    };
+
+    const files = [
+      {
+        filename: `MDEC_FULL_BACKUP_${tag}.json`,
+        content: JSON.stringify(collected.payload, null, 2),
+        mimeType: 'application/json;charset=utf-8;'
+      },
+      {
+        filename: `MDEC_INVENTORY_FOR_GOOGLE_SHEETS_${tag}.csv`,
+        content: makeCsvContent(inventory.headers, inventory.rows),
+        mimeType: 'text/csv;charset=utf-8;'
+      },
+      {
+        filename: `MDEC_HISTORY_FOR_GOOGLE_SHEETS_${tag}.csv`,
+        content: makeCsvContent(history.headers, history.rows),
+        mimeType: 'text/csv;charset=utf-8;'
+      },
+      {
+        filename: `MDEC_PROJECTS_FOR_GOOGLE_SHEETS_${tag}.csv`,
+        content: makeCsvContent(projects.headers, projects.rows),
+        mimeType: 'text/csv;charset=utf-8;'
+      },
+      {
+        filename: `MDEC_PROOF_INDEX_FOR_GOOGLE_SHEETS_${tag}.csv`,
+        content: makeCsvContent(proofIndex.headers, proofIndex.rows),
+        mimeType: 'text/csv;charset=utf-8;'
+      },
+      {
+        filename: `MDEC_PROOF_GALLERY_${tag}.html`,
+        content: galleryHtml,
+        mimeType: 'text/html;charset=utf-8;'
+      }
+    ];
+    return { ...collected, files, counts: { inventory: inventory.rows.length, history: history.rows.length, projects: projects.rows.length, proofIndex: proofIndex.rows.length } };
+  };
+
   const exportFullBackupJSON = async () => {
     try {
-      let latestAuditLogs = [];
-      try {
-        const auditSnapshot = await getDocs(getAuditCol());
-        auditSnapshot.forEach((docSnap) => latestAuditLogs.push({ id: docSnap.id, ...docSnap.data() }));
-        latestAuditLogs.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-      } catch (auditError) {
-        console.warn('Audit backup warning:', auditError);
-        latestAuditLogs = auditLogs;
-      }
-      let proofDocs = [];
-      try {
-        const proofSnapshot = await getDocs(getProofsCol());
-        proofSnapshot.forEach((docSnap) => proofDocs.push({ id: docSnap.id, ...docSnap.data() }));
-      } catch (proofError) {
-        console.warn('Proof backup warning:', proofError);
-        proofDocs = [];
-      }
-      const proofBytes = proofDocs.reduce((sum, p) => sum + (Number(p.sizeBytes) || 0) + (Number(p.thumbBytes) || 0), 0);
-      const historyCount = items.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.length : 0), 0);
-      const payload = {
-        appName: 'MDEC-Stock',
-        backupType: 'full-system-backup',
-        backupVersion: 1,
-        exportedAt: new Date().toISOString(),
-        exportedAtTH: new Date().toLocaleString('th-TH', { hour12: false }),
-        summary: { totalItems: items.length, totalHistoryEntries: historyCount, totalProofImages: proofDocs.length, estimatedProofBytes: proofBytes, totalAuditLogs: latestAuditLogs.length, totalBundles: (settingsOptions.bundles || []).length, totalCategories: (settingsOptions.categories || []).length, totalLocations: (settingsOptions.locations || []).length, totalStaff: (settingsOptions.staff || []).length, totalAccounts: (settingsOptions.accounts || []).length },
-        settings: settingsOptions,
-        items: items,
-        auditLogs: latestAuditLogs,
-        proofs: proofDocs
-      };
-      backupDownloadTextFile('MDEC_Full_Backup_' + getBackupFileTag() + '.json', JSON.stringify(payload, null, 2), 'application/json;charset=utf-8;');
-      await logAction('สำรองข้อมูลทั้งหมด JSON', 'สำรอง ' + items.length + ' อุปกรณ์ / ' + historyCount + ' ประวัติ', 'ดาวน์โหลดข้อมูลทั้งระบบเป็นไฟล์ JSON รวมประวัติยืม-คืนและรูปหลักฐาน');
+      const collected = await collectFullBackupPayload();
+      backupDownloadTextFile('MDEC_Full_Backup_' + getBackupFileTag() + '.json', JSON.stringify(collected.payload, null, 2), 'application/json;charset=utf-8;');
+      await logAction('สำรองข้อมูลทั้งหมด JSON', 'สำรอง ' + items.length + ' อุปกรณ์ / ' + collected.historyCount + ' ประวัติ', 'ดาวน์โหลดข้อมูลทั้งระบบเป็นไฟล์ JSON รวมประวัติยืม-คืนและรูปหลักฐาน');
       await saveBackupTimestamp('fullJson');
-      alert('✅ สำรองข้อมูลทั้งหมดเรียบร้อยแล้ว! ไฟล์ JSON นี้เก็บรายการอุปกรณ์ การตั้งค่า เซ็ตอุปกรณ์ ประวัติยืม-คืน ประวัติการทำงาน และรูปหลักฐาน');
+      alert('✅ สำรองข้อมูลทั้งหมดเรียบร้อยแล้ว! ไฟล์ JSON นี้ใช้สำหรับกู้คืนระบบ และมีรูปหลักฐานที่เก็บในระบบรวมอยู่ด้วย');
     } catch (error) {
       console.error(error);
       alert('❌ สำรองข้อมูลทั้งหมดไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  const exportProofGalleryHTML = async () => {
+    try {
+      const collected = await collectFullBackupPayload();
+      backupDownloadTextFile('MDEC_PROOF_GALLERY_' + getBackupFileTag() + '.html', buildProofGalleryHTML(collected.proofDocs), 'text/html;charset=utf-8;');
+      await logAction('สำรองรูปหลักฐาน HTML', 'ส่งออกคลังรูปหลักฐาน ' + collected.proofDocs.length + ' รูป', 'ดาวน์โหลดไฟล์ HTML สำหรับเปิดดูรูปหลักฐานได้ทันที');
+      await saveBackupTimestamp('proofHtml');
+      pushToast('ดาวน์โหลดคลังรูปหลักฐาน HTML แล้ว', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ สำรองรูปหลักฐาน HTML ไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  const exportSheetsCSVPack = async () => {
+    try {
+      const collected = await collectFullBackupPayload();
+      const tag = getBackupFileTag();
+      const inventory = buildInventoryCsvRows();
+      const history = buildHistoryCsvRows();
+      const projects = buildProjectsCsvRows();
+      const proofIndex = buildProofIndexCsvRows(collected.proofDocs);
+      backupDownloadCSV(`MDEC_INVENTORY_FOR_GOOGLE_SHEETS_${tag}.csv`, inventory.headers, inventory.rows);
+      setTimeout(() => backupDownloadCSV(`MDEC_HISTORY_FOR_GOOGLE_SHEETS_${tag}.csv`, history.headers, history.rows), 450);
+      setTimeout(() => backupDownloadCSV(`MDEC_PROJECTS_FOR_GOOGLE_SHEETS_${tag}.csv`, projects.headers, projects.rows), 900);
+      setTimeout(() => backupDownloadCSV(`MDEC_PROOF_INDEX_FOR_GOOGLE_SHEETS_${tag}.csv`, proofIndex.headers, proofIndex.rows), 1350);
+      await logAction('สำรอง CSV สำหรับ Google Sheets', 'ส่งออกตาราง Inventory/History/Projects/Proof Index', 'CSV เปิดใน Google Sheets ได้ แต่ไม่ได้เก็บรูปจริง');
+      await saveBackupTimestamp('sheetsCsv');
+      pushToast('ดาวน์โหลดชุด CSV สำหรับ Google Sheets แล้ว', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ สำรอง CSV ไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  const exportOneStopBackupSet = async () => {
+    try {
+      setIsBusy(true);
+      const backup = await buildOneStopBackupFiles();
+      backupDownloadMultipleFiles(backup.files);
+      await logAction('สำรองข้อมูลครบชุด', `JSON + CSV + HTML Gallery / ${backup.payload.summary.totalItems} อุปกรณ์ / ${backup.proofDocs.length} รูป`, 'ดาวน์โหลดชุดสำรองข้อมูลประจำปีแบบครบชุด');
+      await saveBackupTimestamp('oneStop');
+      alert(
+        '✅ เริ่มดาวน์โหลดชุดสำรองข้อมูลครบแล้ว\\n\\n' +
+        'ควรมีไฟล์ทั้งหมด 6 ไฟล์:\\n' +
+        '1) JSON สำหรับกู้คืนระบบ\\n' +
+        '2) Inventory CSV สำหรับ Google Sheets\\n' +
+        '3) History CSV สำหรับ Google Sheets\\n' +
+        '4) Projects CSV สำหรับ Google Sheets\\n' +
+        '5) Proof Index CSV สำหรับ Google Sheets\\n' +
+        '6) Proof Gallery HTML สำหรับเปิดดูรูปหลักฐาน\\n\\n' +
+        'ถ้าเบราว์เซอร์ถาม ให้กดอนุญาตดาวน์โหลดหลายไฟล์'
+      );
+    } catch (error) {
+      console.error(error);
+      alert('❌ สำรองข้อมูลครบชุดไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
     }
   };
 
@@ -3696,7 +4180,7 @@ S.N.: ${item.sn || '-'}
                </div>
 
                <div className="w-full text-xs sm:text-sm font-bold text-slate-300 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-3">
-                 แนะนำ: ถ้าติดอุปกรณ์ที่ต้องสแกนบ่อย ให้ใช้ขนาด <b>สแกนง่ายมาก</b> ระบบจะเว้น <b>Quiet Zone</b> หรือขอบขาวรอบ QR ให้โล่งขึ้น และย้ายโลโก้ออกจากพื้นที่สแกน เพื่อลดปัญหาสแกนไม่ติด
+                 แนะนำ: ก่อนติดสติ๊กเกอร์จริง ควรทดลองสแกน 1 ดวงก่อนเสมอ และถ้าติดอุปกรณ์ที่ต้องสแกนบ่อย ให้ใช้ขนาด <b>สแกนง่ายมาก</b> ระบบจะเว้น <b>Quiet Zone</b> หรือขอบขาวรอบ QR ให้โล่งขึ้น และย้ายโลโก้ออกจากพื้นที่สแกน เพื่อลดปัญหาสแกนไม่ติด
                </div>
 
                <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
@@ -4204,6 +4688,10 @@ S.N.: ${item.sn || '-'}
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Tag className="w-5 h-5" /> ของส่วนตัว</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูอุปกรณ์ BYOD แยกตามเจ้าของ</p>
                   </button>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowProjectsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.Database className="w-5 h-5" /> โครงการ</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูอุปกรณ์ตามโครงการ / งานพัสดุแบบง่าย</p>
+                  </button>
                   {isFullMode && canUseOperationalTools && (
                     <button type="button" onClick={() => { setShowMoreMenu(false); setShowStockCountModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> ตรวจนับสต๊อก</div>
@@ -4243,9 +4731,9 @@ S.N.: ${item.sn || '-'}
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูพื้นที่ฐานข้อมูล รูปหลักฐาน และสถานะระบบ</p>
                   </button>
                   {canManageSystem && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setSettingsTab('database'); setShowSettings(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.Database className="w-5 h-5" /> สำรอง / กู้คืนข้อมูล</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>JSON / CSV / ล้างประวัติรายปี</p>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowBackupCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
+                      <div className="font-black text-lg flex items-center gap-2"><Icons.Database className="w-5 h-5" /> ศูนย์สำรองข้อมูล</div>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>JSON / Google Sheets CSV / HTML รูปหลักฐาน</p>
                     </button>
                   )}
                   {isFullMode && canViewAudit && (
@@ -4465,6 +4953,14 @@ S.N.: ${item.sn || '-'}
               <option value="all">สถานะทั้งหมด</option>
               {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
+            <select className={`flex-1 px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterProject} onChange={e => setFilterProject(e.target.value)}>
+              <option value="all">โครงการทั้งหมด</option>
+              {projectOptions.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select className={`flex-1 px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterAssetStatus} onChange={e => setFilterAssetStatus(e.target.value)}>
+              <option value="all">สถานะพัสดุทั้งหมด</option>
+              {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
             <select className={`flex-1 px-4 ${controlPaddingClass} rounded-xl text-lg font-bold outline-none border ${theme.input}`} value={filterQrTagged} onChange={e => setFilterQrTagged(e.target.value)}>
               <option value="all">QR ทั้งหมด</option>
               <option value="tagged">ติด QR แล้ว</option>
@@ -4473,6 +4969,7 @@ S.N.: ${item.sn || '-'}
           </div>
 
           <div className="flex gap-2 w-full xl:w-auto">
+            <button type="button" onClick={() => setShowRoomView(!showRoomView)} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${showRoomView ? 'bg-sky-600 text-white border-sky-600 shadow-md' : theme.btnSecondary}`}>แยกตามห้อง</button>
             <button type="button" onClick={() => setQuickProblemOnly(!quickProblemOnly)} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${quickProblemOnly ? 'bg-rose-600 text-white border-rose-600 shadow-md' : theme.btnSecondary}`}>ของที่ต้องจัดการ</button>
             {hasActiveFilters && <button type="button" onClick={clearAllFilters} className={`flex-1 xl:flex-none px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${theme.btnSecondary}`}>ล้างตัวกรอง</button>}
           </div>
@@ -4499,6 +4996,69 @@ S.N.: ${item.sn || '-'}
         </div>
       </div>
 
+      {/* 🏫 Meeting Room Group View */}
+      {showRoomView && (
+        <div className={`w-full rounded-[1.75rem] shadow-xl border overflow-hidden relative transition-colors mb-8 ${theme.cardBg}`}>
+          <div className={`px-5 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
+            <div>
+              <div className={`font-black text-xl ${theme.textTitle}`}>มุมมองแยกตามห้อง / สถานที่</div>
+              <div className={`text-sm font-bold ${theme.textMuted}`}>พบ {roomGroups.length.toLocaleString('th-TH')} ห้อง/สถานที่ • {filteredItems.length.toLocaleString('th-TH')} รายการ</div>
+            </div>
+            <button type="button" onClick={() => setShowRoomView(false)} className={`px-4 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>กลับมุมมองปกติ</button>
+          </div>
+
+          <div className="p-4 sm:p-5 space-y-4">
+            {roomGroups.length === 0 ? (
+              <div className={`rounded-2xl border p-10 text-center font-black ${theme.textMuted}`}>ไม่พบอุปกรณ์ในเงื่อนไขนี้</div>
+            ) : roomGroups.map((room) => {
+              const expanded = expandedRooms[room.name] !== false;
+              return (
+                <div key={room.name} className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900/40' : 'bg-white'}`}>
+                    <button type="button" onClick={() => toggleRoomExpanded(room.name)} className="text-left min-w-0 flex-1">
+                      <div className={`font-black text-xl ${theme.textTitle}`}>{expanded ? '▾' : '▸'} {room.name}</div>
+                      <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>
+                        ทั้งหมด {room.total} • พร้อมใช้ {room.available} • ยืม {room.borrowed} • ออกงาน {room.event} • ซ่อม {room.maintenance}
+                      </div>
+                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" onClick={() => setFilterLocation(room.name)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ดูเฉพาะห้องนี้</button>
+                      <button type="button" onClick={() => { setSelectedItems(room.items.map(i => i.id)); setShowPrintModal(true); }} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">พิมพ์ QR ห้องนี้</button>
+                    </div>
+                  </div>
+
+                  {expanded && (
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                      {room.items.map((item) => {
+                        const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
+                        return (
+                          <div key={item.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className={`font-black text-lg truncate ${theme.textTitle}`}>{item.name}</div>
+                                <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'}</div>
+                                {item.project && <div className={`text-xs font-black mt-2 ${isDarkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>🗂️ {item.project}</div>}
+                              </div>
+                              <span className={`px-2 py-1 rounded-lg text-xs font-black border shrink-0 ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 mt-3">
+                              <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>
+                              {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">แก้ไข</button>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!showRoomView && (
+        <>
       {/* 📋 Table / List */}
       <div className={`w-full rounded-[1.75rem] shadow-xl border overflow-hidden relative transition-colors ${theme.cardBg}`}>
         <div className={`px-5 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${theme.divide}`}>
@@ -4550,6 +5110,8 @@ S.N.: ${item.sn || '-'}
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? deptInfo.darkColor : deptInfo.color}`}>{deptInfo.label}</span>
                           {qty > 1 && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>x{qty}</span>}
                           {item.storageBoxName && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-50 text-cyan-700'}`}>📦 {item.storageBoxName}</span>}
+                          {item.project && <button type="button" onClick={() => setFilterProject(item.project)} className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-indigo-900/40 text-indigo-300' : 'bg-indigo-50 text-indigo-700'}`}>🗂️ {item.project}</button>}
+                          {item.assetStatus && item.assetStatus !== 'active' && <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? getAssetStatusInfo(item.assetStatus).darkColor : getAssetStatusInfo(item.assetStatus).color}`}>{getAssetStatusInfo(item.assetStatus).label}</span>}
                           {proofCount > 0 && <button type="button" onClick={() => { setProofCenterSearch(item.sn || item.name || ''); setProofCenterFilter('all'); setShowProofCenterModal(true); }} className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-pink-900/40 text-pink-300' : 'bg-pink-50 text-pink-700'}`}>📷 {proofCount}</button>}
                           {isOverdue && <span className="px-2.5 py-1 rounded-full text-xs font-black bg-rose-600 text-white">เลยกำหนดคืน</span>}
                         </div>
@@ -4663,6 +5225,12 @@ S.N.: ${item.sn || '-'}
                         {item.storageBoxName && (
                           <span className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-cyan-900/40 text-cyan-400' : 'bg-cyan-100 text-cyan-700'}`}>📦 {item.storageBoxName}</span>
                         )}
+                        {item.project && (
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setFilterProject(item.project); }} className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-indigo-900/40 text-indigo-300 hover:bg-indigo-800' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}>🗂️ {item.project}</button>
+                        )}
+                        {item.assetStatus && item.assetStatus !== 'active' && (
+                          <span className={`text-sm px-2 py-1 rounded-md shadow-sm border ${isDarkMode ? getAssetStatusInfo(item.assetStatus).darkColor : getAssetStatusInfo(item.assetStatus).color}`}>{getAssetStatusInfo(item.assetStatus).label}</span>
+                        )}
                         {proofCount > 0 && (
                           <button type="button" onClick={(e) => { e.stopPropagation(); setProofCenterSearch(item.sn || item.name || ''); setProofCenterFilter('all'); setShowProofCenterModal(true); }} className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-pink-900/40 text-pink-300 hover:bg-pink-800' : 'bg-pink-100 text-pink-700 hover:bg-pink-200'}`}>📷 {proofCount}</button>
                         )}
@@ -4739,6 +5307,8 @@ S.N.: ${item.sn || '-'}
           </table>
         </div>
       </div>
+        </>
+      )}
 
       {/* 🛒 Bulk Selection Action Bar */}
       {canUseOperationalTools && selectedItems.length > 0 && (() => {
@@ -5123,7 +5693,7 @@ S.N.: ${item.sn || '-'}
       {/* 📷 Modal สแกน QR Code */}
       {showScanModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-5 sm:p-7 max-w-xl w-full text-center shadow-2xl relative overflow-hidden flex flex-col max-h-[92vh] ${theme.cardBg}`}>
+          <div className={`rounded-3xl p-4 sm:p-7 max-w-2xl w-full text-center shadow-2xl relative overflow-hidden flex flex-col max-h-[94vh] ${theme.cardBg}`}>
             <style>{`
               #qr-reader button { background-color: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 12px; font-weight: 900; cursor: pointer; margin: 5px; }
               #qr-reader select { padding: 8px; border-radius: 10px; margin: 5px; max-width: 100%; border: 1px solid #ccc; color: black; font-weight: 700; }
@@ -5142,6 +5712,39 @@ S.N.: ${item.sn || '-'}
                 <Icons.QrCode className="w-8 h-8 text-amber-500" /> {getScanModeInfo().title}
               </h3>
               <p className={`text-sm font-bold mb-4 ${theme.textMuted}`}>{getScanModeInfo().desc} • สแกนติดง่ายขึ้น: ให้ QR อยู่กลางกรอบประมาณ 70–80% และถือให้นิ่ง 1–2 วินาที</p>
+
+              {scanMode !== 'select' && (() => {
+                const targetIds = scanMode === 'borrowChecklist' ? borrowTargetIds : scanMode === 'eventChecklist' ? eventTargetIds : returnTargetIds;
+                const checkedIds = scanMode === 'borrowChecklist' ? packingChecklist : scanMode === 'eventChecklist' ? eventChecklist : returnChecklist;
+                const total = targetIds.length || 0;
+                const checked = checkedIds.length || 0;
+                const percent = total === 0 ? 0 : Math.min(100, Math.round((checked / total) * 100));
+                const isComplete = total > 0 && checked >= total;
+                const toneClass = scanMode === 'borrowChecklist'
+                  ? (isDarkMode ? 'bg-purple-950/35 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-800')
+                  : scanMode === 'eventChecklist'
+                    ? (isDarkMode ? 'bg-orange-950/35 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800')
+                    : (isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800');
+                return (
+                  <div className={`mb-4 p-4 rounded-3xl border text-left ${toneClass}`}>
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div className="font-black text-base">{isComplete ? 'เช็กครบแล้ว พร้อมยืนยันรายการ' : `เช็กแล้ว ${checked}/${total} ชิ้น`}</div>
+                      <div className="font-black text-sm">{percent}%</div>
+                    </div>
+                    <div className="w-full h-3 rounded-full bg-black/10 overflow-hidden">
+                      <div className={`h-full rounded-full transition-all duration-500 ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${percent}%` }}></div>
+                    </div>
+                    <div className="mt-2 text-xs font-bold opacity-80">
+                      {isComplete ? 'ปิดหน้าสแกนแล้วกดปุ่มยืนยันรายการด้านล่างได้เลย' : 'สแกน QR ของอุปกรณ์จริงทีละชิ้น ระบบจะเช็กให้เอง'}
+                    </div>
+                    {isComplete && (
+                      <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); }} className="mt-3 w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-md">
+                        กลับไปกดยืนยันรายการ
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="flex justify-center gap-2 mb-4 relative z-10">
                 <button type="button" onClick={() => setUseCamera(false)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${!useCamera ? 'bg-amber-500 text-white' : theme.btnSecondary}`}>
@@ -5900,7 +6503,7 @@ S.N.: ${item.sn || '-'}
                 <div className="p-6 space-y-6">
                   <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
                     <div className="font-black text-base mb-1">คำแนะนำก่อนจัดการฐานข้อมูล</div>
-                    <div className="text-sm font-bold">ควรกด “สำรองข้อมูลทั้งหมด JSON” และ “สำรองประวัติยืม-คืน CSV” ก่อนล้างประวัติหรือกู้คืนข้อมูลทุกครั้ง</div>
+                    <div className="text-sm font-bold">แนะนำให้ใช้ “ศูนย์สำรองข้อมูล” เพื่อดาวน์โหลด JSON สำหรับกู้คืน, CSV สำหรับเปิดใน Google Sheets และ HTML สำหรับดูรูปหลักฐาน ก่อนล้างประวัติทุกครั้ง</div>
                   </div>
                   <div className={`p-6 rounded-2xl border shadow-sm ${databaseStorageEstimate.cardTone}`}>
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
@@ -5947,17 +6550,20 @@ S.N.: ${item.sn || '-'}
                   </div>
 
                   <div className={`p-6 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
-                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-6 h-6 text-blue-500"/> สำรองข้อมูลระบบทั้งหมด</h4>
-                    <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>เพิ่มจากเว็บเดิม: สำรองข้อมูลทั้งหมดเป็น JSON และสำรองประวัติยืม-คืนพร้อมวันเวลาเป็น CSV โดยไม่เปลี่ยนหน้าตาและวิธีใช้งานเดิม</p>
+                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-6 h-6 text-blue-500"/> ศูนย์สำรองข้อมูลครบชุด</h4>
+                    <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>ปุ่มหลักจะดาวน์โหลดครบทั้ง JSON สำหรับกู้คืน, CSV สำหรับ Google Sheets และ HTML สำหรับเปิดดูรูปหลักฐาน</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <button type="button" onClick={exportFullBackupJSON} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
-                        <Icons.Download className="w-5 h-5"/> สำรองทั้งหมด JSON
+                      <button type="button" onClick={() => setShowBackupCenterModal(true)} className="sm:col-span-2 w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
+                        <Icons.Database className="w-5 h-5"/> เปิดศูนย์สำรองข้อมูล
                       </button>
-                      <button type="button" onClick={exportHistoryCSV} className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
-                        <Icons.History className="w-5 h-5"/> ประวัติยืม-คืน CSV
+                      <button type="button" onClick={exportFullBackupJSON} className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
+                        <Icons.Download className="w-5 h-5"/> เฉพาะ JSON
+                      </button>
+                      <button type="button" onClick={exportSheetsCSVPack} className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
+                        <Icons.History className="w-5 h-5"/> เฉพาะ CSV
                       </button>
                     </div>
-                    <p className={`text-xs mt-3 font-bold ${theme.textMuted}`}>* ไฟล์ JSON เก็บรายการอุปกรณ์ การตั้งค่า เซ็ตอุปกรณ์ ของส่วนตัว ประวัติยืม-คืน Audit Log และรูปหลักฐาน เหมาะสำหรับสำรองรายปี</p>
+                    <p className={`text-xs mt-3 font-bold ${theme.textMuted}`}>* CSV เปิดใน Google Sheets ได้แต่ไม่มีรูปจริง ส่วนไฟล์ HTML Gallery ใช้เปิดดูรูปหลักฐานจริงได้ทันที</p>
                     <div className={`mt-3 p-3 rounded-xl border text-xs font-bold ${isDarkMode ? 'bg-slate-900/40 border-slate-700 text-slate-300' : 'bg-white border-blue-100 text-slate-600'}`}>
                       สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่มีข้อมูลการสำรองในระบบ'}
                     </div>
@@ -6088,7 +6694,7 @@ S.N.: ${item.sn || '-'}
               <button type="button" onClick={() => setShowAnnualCleanupModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-3">
-              {['สำรองข้อมูลทั้งหมด JSON แล้ว', 'สำรองประวัติยืม-คืน CSV แล้ว', 'เปิดไฟล์สำรองเช็กแล้วว่าอ่านได้', 'ตรวจว่าของที่ยืม/ออกงานถูกคืนครบแล้ว', 'ตรวจกล่องเก็บของและฉลากกล่องแล้ว', 'พร้อมล้างประวัติยืม-คืนรายปี'].map(item => (
+              {['ดาวน์โหลด JSON สำหรับกู้คืนระบบแล้ว', 'ดาวน์โหลด CSV สำหรับ Google Sheets แล้ว', 'ดาวน์โหลด HTML Gallery สำหรับดูรูปหลักฐานแล้ว', 'เปิดไฟล์ CSV ใน Google Sheets/Excel ตรวจดูได้แล้ว', 'เปิดไฟล์ HTML Gallery แล้วเห็นรูปหลักฐาน', 'ตรวจว่าของที่ยืม/ออกงานถูกคืนครบแล้ว', 'พร้อมล้างประวัติยืม-คืนรายปี'].map(item => (
                 <label key={item} className={`flex items-center gap-3 p-3 rounded-xl border ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                   <input type="checkbox" className="w-5 h-5 accent-emerald-600" />
                   <span className={`font-bold ${theme.textMain}`}>{item}</span>
@@ -6380,7 +6986,7 @@ S.N.: ${item.sn || '-'}
                   <button
                     type="button"
                     onClick={() => openChecklistScanner('borrowChecklist')}
-                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 ${isDarkMode ? 'bg-amber-900/40 hover:bg-amber-800 text-amber-300' : 'bg-amber-100 hover:bg-amber-200 text-amber-700'}`}
+                    className={`text-xs font-black px-3 py-2 rounded-xl transition-colors flex items-center gap-1 shadow-sm ${isDarkMode ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
                     title="สแกน QR เพื่อเช็กของแทนการติ๊กเอง"
                   >
                     <Icons.QrCode className="w-4 h-4" /> สแกนเช็ก
@@ -6395,6 +7001,15 @@ S.N.: ${item.sn || '-'}
                   >
                     {packingChecklist.length === borrowTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
                   </button>
+                </div>
+              </div>
+              <div className={`mb-3 p-3 rounded-2xl border ${packingChecklist.length === borrowTargetIds.length ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700') : (isDarkMode ? 'bg-slate-950/30 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700')}`}>
+                <div className="flex items-center justify-between gap-3 text-xs font-black mb-2">
+                  <span>{packingChecklist.length === borrowTargetIds.length ? 'เช็กครบแล้ว พร้อมยืนยันการยืม' : `เช็กแล้ว ${packingChecklist.length}/${borrowTargetIds.length} ชิ้น`}</span>
+                  <span>{borrowTargetIds.length === 0 ? 0 : Math.round((packingChecklist.length / borrowTargetIds.length) * 100)}%</span>
+                </div>
+                <div className="w-full h-2.5 rounded-full bg-slate-200/70 overflow-hidden">
+                  <div className={`h-full rounded-full transition-all duration-500 ${packingChecklist.length === borrowTargetIds.length ? 'bg-emerald-500' : 'bg-purple-500'}`} style={{ width: `${borrowTargetIds.length === 0 ? 0 : Math.round((packingChecklist.length / borrowTargetIds.length) * 100)}%` }}></div>
                 </div>
               </div>
               <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
@@ -6433,8 +7048,11 @@ S.N.: ${item.sn || '-'}
                 {packingChecklist.length > 0 && packingChecklist.length < borrowTargetIds.length ? `ยืนยันการยืม (${packingChecklist.length} ชิ้น)` : 'ยืนยันการยืม'}
               </button>
             </div>
+            {packingChecklist.length === borrowTargetIds.length && borrowTargetIds.length > 0 && (
+               <p className={`text-xs text-center mt-3 font-black ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>✅ เช็กครบแล้ว พร้อมยืนยันการยืม</p>
+            )}
             {packingChecklist.length < borrowTargetIds.length && packingChecklist.length > 0 && (
-               <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-500'}`}>* อุปกรณ์ที่ไม่ได้ติ๊ก จะไม่ถูกยืมออกไป (ทำรายการบางส่วน)</p>
+               <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-500'}`}>* อุปกรณ์ที่ไม่ได้ติ๊กหรือไม่ได้สแกนเช็ก จะไม่ถูกยืมออกไป (ทำรายการบางส่วน)</p>
             )}
             {packingChecklist.length === 0 && (
                <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>* กรุณาติ๊กเลือกอุปกรณ์อย่างน้อย 1 ชิ้นเพื่อทำรายการ</p>
@@ -6492,7 +7110,7 @@ S.N.: ${item.sn || '-'}
                   <button
                     type="button"
                     onClick={() => openChecklistScanner('eventChecklist')}
-                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 ${isDarkMode ? 'bg-amber-900/40 hover:bg-amber-800 text-amber-300' : 'bg-amber-100 hover:bg-amber-200 text-amber-700'}`}
+                    className={`text-xs font-black px-3 py-2 rounded-xl transition-colors flex items-center gap-1 shadow-sm ${isDarkMode ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
                     title="สแกน QR เพื่อเช็กของขึ้นงานแทนการติ๊กเอง"
                   >
                     <Icons.QrCode className="w-4 h-4" /> สแกนเช็ก
@@ -6507,6 +7125,15 @@ S.N.: ${item.sn || '-'}
                   >
                     {eventChecklist.length === eventTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
                   </button>
+                </div>
+              </div>
+              <div className={`mb-3 p-3 rounded-2xl border ${eventChecklist.length === eventTargetIds.length ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700') : (isDarkMode ? 'bg-slate-950/30 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700')}`}>
+                <div className="flex items-center justify-between gap-3 text-xs font-black mb-2">
+                  <span>{eventChecklist.length === eventTargetIds.length ? 'เช็กครบแล้ว พร้อมยืนยันออกงาน' : `เช็กแล้ว ${eventChecklist.length}/${eventTargetIds.length} ชิ้น`}</span>
+                  <span>{eventTargetIds.length === 0 ? 0 : Math.round((eventChecklist.length / eventTargetIds.length) * 100)}%</span>
+                </div>
+                <div className="w-full h-2.5 rounded-full bg-slate-200/70 overflow-hidden">
+                  <div className={`h-full rounded-full transition-all duration-500 ${eventChecklist.length === eventTargetIds.length ? 'bg-emerald-500' : 'bg-orange-500'}`} style={{ width: `${eventTargetIds.length === 0 ? 0 : Math.round((eventChecklist.length / eventTargetIds.length) * 100)}%` }}></div>
                 </div>
               </div>
               <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
@@ -6545,8 +7172,11 @@ S.N.: ${item.sn || '-'}
                 {eventChecklist.length > 0 && eventChecklist.length < eventTargetIds.length ? `ยืนยันนำออก (${eventChecklist.length} ชิ้น)` : 'ยืนยันการนำออกงาน'}
               </button>
             </div>
+            {eventChecklist.length === eventTargetIds.length && eventTargetIds.length > 0 && (
+               <p className={`text-xs text-center mt-3 font-black ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>✅ เช็กครบแล้ว พร้อมยืนยันการนำออกงาน</p>
+            )}
             {eventChecklist.length < eventTargetIds.length && eventChecklist.length > 0 && (
-               <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-500'}`}>* อุปกรณ์ที่ไม่ได้ติ๊ก จะไม่ถูกนำออกไป (ทำรายการบางส่วน)</p>
+               <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-500'}`}>* อุปกรณ์ที่ไม่ได้ติ๊กหรือไม่ได้สแกนเช็ก จะไม่ถูกนำออกไป (ทำรายการบางส่วน)</p>
             )}
             {eventChecklist.length === 0 && (
                <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>* กรุณาติ๊กเลือกอุปกรณ์อย่างน้อย 1 ชิ้นเพื่อทำรายการ</p>
@@ -6589,7 +7219,7 @@ S.N.: ${item.sn || '-'}
                   <button
                     type="button"
                     onClick={() => openChecklistScanner('returnChecklist')}
-                    className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 ${isDarkMode ? 'bg-amber-900/40 hover:bg-amber-800 text-amber-300' : 'bg-amber-100 hover:bg-amber-200 text-amber-700'}`}
+                    className={`text-xs font-black px-3 py-2 rounded-xl transition-colors flex items-center gap-1 shadow-sm ${isDarkMode ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
                     title="สแกน QR เพื่อเช็กของตอนรับคืนแทนการติ๊กเอง"
                   >
                     <Icons.QrCode className="w-4 h-4" /> สแกนเช็ก
@@ -6604,6 +7234,15 @@ S.N.: ${item.sn || '-'}
                   >
                     {returnChecklist.length === returnTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
                   </button>
+                </div>
+              </div>
+              <div className={`mb-3 p-3 rounded-2xl border ${returnChecklist.length === returnTargetIds.length ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700') : (isDarkMode ? 'bg-slate-950/30 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700')}`}>
+                <div className="flex items-center justify-between gap-3 text-xs font-black mb-2">
+                  <span>{returnChecklist.length === returnTargetIds.length ? 'เช็กครบแล้ว พร้อมยืนยันรับคืน' : `เช็กแล้ว ${returnChecklist.length}/${returnTargetIds.length} ชิ้น`}</span>
+                  <span>{returnTargetIds.length === 0 ? 0 : Math.round((returnChecklist.length / returnTargetIds.length) * 100)}%</span>
+                </div>
+                <div className="w-full h-2.5 rounded-full bg-slate-200/70 overflow-hidden">
+                  <div className={`h-full rounded-full transition-all duration-500 ${returnChecklist.length === returnTargetIds.length ? 'bg-emerald-500' : 'bg-emerald-500'}`} style={{ width: `${returnTargetIds.length === 0 ? 0 : Math.round((returnChecklist.length / returnTargetIds.length) * 100)}%` }}></div>
                 </div>
               </div>
               <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
@@ -7272,6 +7911,72 @@ S.N.: ${item.sn || '-'}
       )}
 
 
+      {/* 🗂️ Modal โครงการ / แหล่งที่มาอุปกรณ์ */}
+      {showProjectsModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-[2rem] shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900/95 border-slate-700 shadow-black/40' : 'bg-white/95 border-white shadow-slate-200/80'}`}>
+            <div className={`p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
+              <div>
+                <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white flex items-center justify-center shadow-lg">🗂️</span> โครงการ / แหล่งที่มาอุปกรณ์</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูว่าแต่ละโครงการมีอุปกรณ์อะไรบ้าง และเปลี่ยนโครงการได้ง่าย ๆ จากหน้าแก้ไขอุปกรณ์</p>
+              </div>
+              <button type="button" onClick={() => setShowProjectsModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="p-5 overflow-y-auto custom-scrollbar flex-1">
+              {projectStats.length === 0 ? (
+                <div className={`text-center py-16 font-black text-xl ${theme.textMuted}`}>ยังไม่มีข้อมูลโครงการ</div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {projectStats.map((project) => (
+                    <div key={project.name} className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className={`p-5 border-b ${theme.divide}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className={`font-black text-xl truncate ${theme.textTitle}`}>{project.name}</div>
+                            <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ทั้งหมด {project.total} รายการ • ใช้งานอยู่ {project.active || 0} • จำหน่ายแล้ว {project.disposed || 0} • สูญหาย {project.lost || 0}</div>
+                          </div>
+                          <button type="button" onClick={() => { setFilterProject(project.name); setShowProjectsModal(false); }} className="px-3 py-2 rounded-xl text-sm font-black bg-indigo-600 text-white shrink-0">กรอง</button>
+                        </div>
+                      </div>
+                      <div className="p-4 space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
+                        {project.items.map((item) => {
+                          const assetInfo = getAssetStatusInfo(item.assetStatus);
+                          const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
+                          return (
+                            <div key={item.id} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
+                                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'}</div>
+                                </div>
+                                <div className="flex flex-col gap-1 items-end shrink-0">
+                                  <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                                  <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? assetInfo.darkColor : assetInfo.color}`}>{assetInfo.label}</span>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 mt-3">
+                                <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>
+                                {canAddEditItems && <button type="button" onClick={() => { setShowProjectsModal(false); openItemEditor(item); }} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">เปลี่ยนโครงการ</button>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className={`p-4 border-t ${theme.divide}`}>
+              <button type="button" onClick={() => setShowProjectsModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
       {/* ศูนย์หลักฐานรูปภาพทั้งหมด */}
       {showProofCenterModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
@@ -7279,7 +7984,7 @@ S.N.: ${item.sn || '-'}
             <div className={`p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
               <div>
                 <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-lg">📷</span> ศูนย์หลักฐานรูปภาพ</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แสดงแบบรวมรูปซ้ำ: รูปเดียวกันที่ผูกกับหลายอุปกรณ์จะแสดงเป็น 1 ใบ พร้อมบอกว่าเกี่ยวข้องกับอุปกรณ์ใดบ้าง</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แสดงแบบรวมรูปซ้ำ และโชว์ภาพเต็มโดยไม่ครอป แม้รูปจะเป็นแนวตั้งหรือแนวนอน</p>
               </div>
               <button type="button" onClick={() => setShowProofCenterModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -7297,7 +8002,7 @@ S.N.: ${item.sn || '-'}
               </div>
             </div>
             <div className={`px-5 py-3 border-b text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950/50 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-              จากข้อมูลเดิมมีการแสดงผล {proofDuplicateStats.linkCount.toLocaleString('th-TH')} จุดเชื่อมโยง ระบบรวมรูปซ้ำออกไป {proofDuplicateStats.duplicateLinks.toLocaleString('th-TH')} จุด เพื่อให้ Gallery สะอาดขึ้น
+              จากข้อมูลเดิมมีการแสดงผล {proofDuplicateStats.linkCount.toLocaleString('th-TH')} จุดเชื่อมโยง ระบบรวมรูปซ้ำออกไป {proofDuplicateStats.duplicateLinks.toLocaleString('th-TH')} จุด • รูปตัวอย่างใช้โหมดภาพเต็ม ไม่ตัดหัว/ตัดขอบ
             </div>
             <div className="p-5 overflow-y-auto custom-scrollbar flex-1">
               {filteredProofGroups.length === 0 ? (
@@ -7307,13 +8012,20 @@ S.N.: ${item.sn || '-'}
                   {filteredProofGroups.map((group) => {
                     const entry = group.representative || {};
                     const proof = group.proof || {};
-                    const previewSrc = proof.thumbUrl || proof.url || '';
+                    const previewSrc = proof.url || proof.thumbUrl || '';
                     const expanded = expandedProofGroupId === group.groupId;
                     return (
                       <div key={group.groupId} className={`rounded-[1.35rem] border overflow-hidden text-left hover:shadow-xl transition-all ${isDarkMode ? 'bg-slate-950 border-slate-700 shadow-black/20' : 'bg-white border-slate-100 shadow-slate-200/70'}`}>
                         <button type="button" onClick={() => openProofImage(proof)} className="block w-full text-left">
                           <div className="relative">
-                            {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-44 object-cover" /> : <div className={`w-full h-40 flex items-center justify-center font-black ${theme.textMuted}`}>คลิกเพื่อเปิดรูป</div>}
+                            {previewSrc ? (
+                              <div className={`w-full h-56 sm:h-60 flex items-center justify-center ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'} bg-[linear-gradient(45deg,rgba(148,163,184,0.12)_25%,transparent_25%,transparent_75%,rgba(148,163,184,0.12)_75%),linear-gradient(45deg,rgba(148,163,184,0.12)_25%,transparent_25%,transparent_75%,rgba(148,163,184,0.12)_75%)] bg-[length:18px_18px] bg-[position:0_0,9px_9px]`}>
+                                <img src={previewSrc} alt="หลักฐาน" className="max-w-full max-h-full object-contain block" loading="lazy" />
+                              </div>
+                            ) : <div className={`w-full h-56 flex items-center justify-center font-black ${theme.textMuted}`}>คลิกเพื่อเปิดรูป</div>}
+                            <div className="absolute right-3 top-3 px-3 py-1.5 rounded-full bg-white/85 text-slate-800 text-xs font-black backdrop-blur-sm border border-white/70">
+                              ภาพเต็ม
+                            </div>
                             {group.itemRefs.length > 1 && (
                               <div className="absolute left-3 top-3 px-3 py-1.5 rounded-full bg-black/70 text-white text-xs font-black backdrop-blur-sm">
                                 รูปเดียว • {group.itemRefs.length} อุปกรณ์
