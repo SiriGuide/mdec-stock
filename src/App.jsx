@@ -32,8 +32,8 @@ const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', '
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.14 Proof Replace & Help Fix';
-const APP_UPDATE_NOTE = 'เพิ่มแก้ไข/แทนที่/ลบรูปหลักฐาน และแก้ปุ่มคู่มือใช้งานให้เปิดหน้าคู่มือได้จริง';
+const APP_VERSION = 'v22.15 Clean Navigation & QR Reliability';
+const APP_UPDATE_NOTE = 'จัดเมนูใหม่ให้สะอาดขึ้น รวมฟังก์ชันที่คล้ายกัน และปรับโหมดสแกน QR ให้สแกนติดง่ายขึ้น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -261,6 +261,7 @@ function MainApp() {
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
   const scanInputRef = useRef(null);
+  const scanCooldownRef = useRef(false);
 
   const [useCamera, setUseCamera] = useState(false);
   const [isScannerLoaded, setIsScannerLoaded] = useState(false);
@@ -2437,23 +2438,28 @@ S.N.: ${item.sn || '-'}
   };
 
   const handleProcessScan = (scannedVal) => {
-    const val = scannedVal.trim();
+    const val = String(scannedVal || '').trim();
     if (!val) return;
+    if (scanCooldownRef.current) return;
+    scanCooldownRef.current = true;
+    window.setTimeout(() => { scanCooldownRef.current = false; }, 950);
 
     const currentItems = itemsRefForScan.current || [];
     const foundItem = currentItems.find(i => i.id === val || (i.sn && i.sn.toLowerCase() === val.toLowerCase()));
     
     if (foundItem) {
       setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-      setScanMessage({ text: `✅ เพิ่ม "${foundItem.name}" ลงตะกร้าแล้ว!`, type: 'success' });
+      setScanMessage({ text: `✅ เพิ่ม "${foundItem.name}" ลงตะกร้าแล้ว`, type: 'success' });
+      try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
       try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
     } else {
-      setScanMessage({ text: `❌ ไม่พบอุปกรณ์รหัส "${val}" ในระบบ`, type: 'error' });
+      setScanMessage({ text: `❌ ไม่พบรหัส "${val}" ในระบบ`, type: 'error' });
+      try { if (navigator?.vibrate) navigator.vibrate([60, 40, 60]); } catch(e){}
       try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
     }
     
     setScanInput('');
-    setTimeout(() => setScanMessage({ text: '', type: '' }), 3000);
+    setTimeout(() => setScanMessage({ text: '', type: '' }), 3400);
   };
 
   const handleScanSubmit = (e) => {
@@ -2466,7 +2472,18 @@ S.N.: ${item.sn || '-'}
     if (showScanModal && useCamera && isScannerLoaded) {
       scanner = new window.Html5QrcodeScanner(
         "qr-reader",
-        { fps: 10, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true },
+        {
+          fps: 12,
+          rememberLastUsedCamera: true,
+          aspectRatio: 1.0,
+          disableFlip: false,
+          videoConstraints: { facingMode: "environment" },
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const minEdge = Math.min(viewfinderWidth || 320, viewfinderHeight || 320);
+            const size = Math.max(220, Math.min(360, Math.floor(minEdge * 0.72)));
+            return { width: size, height: size };
+          }
+        },
         false
       );
       scanner.render(
@@ -3515,6 +3532,25 @@ S.N.: ${item.sn || '-'}
         labelQrServer: 280,
         labelTitleClass: 'text-sm print:text-[10px]',
         labelTextClass: 'text-[10px] print:text-[7.5px]'
+      },
+      scanEasy: {
+        label: 'สแกนง่ายมาก',
+        desc: 'QR ใหญ่พิเศษ เหมาะกับแสงน้อยหรือสแกนผ่านเว็บ',
+        grid: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4',
+        card: 'p-5 min-h-[250px] print:p-3',
+        qrClass: 'w-44 h-44 print:w-40 print:h-40',
+        qrServer: 320,
+        printCardWidth: '58mm',
+        printCardHeight: '66mm',
+        printQrSize: '46mm',
+        nameClass: 'text-base',
+        snClass: 'text-xs',
+        labelGrid: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3',
+        labelCard: 'p-3 print:p-2',
+        labelQrClass: 'w-40 h-40 print:w-36 print:h-36',
+        labelQrServer: 360,
+        labelTitleClass: 'text-base print:text-[11px]',
+        labelTextClass: 'text-xs print:text-[8px]'
       }
     };
     const qrPreset = qrSizePresets[qrPrintSize] || qrSizePresets.normal;
@@ -4028,19 +4064,19 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
-      {/* เมนูเพิ่มเติม: จัดหมวดใหม่ + โหมดง่าย/เต็มระบบ */}
+      {/* เมนูเพิ่มเติม: รวมฟังก์ชันที่คล้ายกันให้เป็นหมวดใหญ่ */}
       {showMoreMenu && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden border ${isDarkMode ? 'bg-slate-900/95 border-slate-700 shadow-black/40' : 'bg-white/95 border-white shadow-slate-200/80'}`}>
+          <div className={`rounded-[2rem] shadow-2xl w-full max-w-6xl overflow-hidden border ${isDarkMode ? 'bg-slate-900/95 border-slate-700 shadow-black/40' : 'bg-white/95 border-white shadow-slate-200/80'}`}>
             <div className={`flex justify-between items-start gap-4 p-6 border-b ${theme.divide}`}>
               <div>
                 <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
                   <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
                     <Icons.ViewGrid className="w-6 h-6" />
                   </div>
-                  เมนูเพิ่มเติม
+                  เมนูรวมระบบ
                 </h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดฟังก์ชันเป็นหมวด เพื่อให้เว็บไม่รกและใช้งานง่ายขึ้น</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมเมนูที่หน้าที่คล้ายกันไว้ด้วยกัน เพื่อลดความรกของเว็บ</p>
               </div>
               <button type="button" onClick={() => setShowMoreMenu(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -4049,7 +4085,7 @@ S.N.: ${item.sn || '-'}
               <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                 <div>
                   <div className={`font-black text-lg ${theme.textTitle}`}>โหมดการแสดงเมนู</div>
-                  <p className={`text-sm font-bold ${theme.textMuted}`}>โหมดง่ายจะแสดงเฉพาะของที่ใช้บ่อย ส่วนโหมดเต็มระบบจะแสดงเครื่องมือขั้นสูงทั้งหมด</p>
+                  <p className={`text-sm font-bold ${theme.textMuted}`}>โหมดง่ายแสดงเฉพาะเมนูที่ใช้บ่อย ส่วนเต็มระบบจะแสดงเครื่องมือขั้นสูงทั้งหมด</p>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <button type="button" onClick={() => updateUiMode('easy')} className={`px-4 py-2 rounded-xl font-black border ${uiMode === 'easy' ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>โหมดง่าย</button>
@@ -4061,41 +4097,35 @@ S.N.: ${item.sn || '-'}
                 <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.History className="w-5 h-5 text-sky-500" /> งานประจำวัน</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <button type="button" onClick={() => { setShowMoreMenu(false); openTrackingCenter('today'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
-                    <div className="font-black text-lg">ศูนย์ติดตามงาน</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>วันนี้ / ต้องจัดการ / ปฏิทิน รวมในหน้าเดียว</p>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ศูนย์ติดตามงาน</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>วันนี้ / รอคืน / ออกงาน / เลยกำหนด / ปฏิทิน</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowQuickReturnModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
-                    <div className="font-black text-lg flex items-center gap-2"><Icons.Users className="w-5 h-5" /> ติดตามของรอคืน</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูตามผู้ยืมหรือชื่องาน</p>
-                  </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowPrepListsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
-                    <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายการเตรียมของ</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>วางแผนจัดของล่วงหน้า</p>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setUseCamera(true); setShowScanModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> โหมดสแกนเร็ว</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เปิดกล้องสแกน QR ทันที พร้อมกรอบช่วยสแกน</p>
                   </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); setProofCenterFilter('all'); setProofCenterSearch(''); setShowProofCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Camera className="w-5 h-5" /> หลักฐานรูปภาพ</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูรูปหลักฐานทั้งหมดจากทุกอุปกรณ์</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดู / แก้ไข / แทนที่ / ลบรูปหลักฐาน</p>
                   </button>
                 </div>
               </div>
 
               <div>
-                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Package className="w-5 h-5 text-blue-500" /> อุปกรณ์และสต๊อก</h4>
+                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Folder className="w-5 h-5 text-cyan-500" /> จัดเก็บและจัดชุดอุปกรณ์</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <button type="button" onClick={() => { setShowMoreMenu(false); setShowStorageBoxesModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Folder className="w-5 h-5" /> กล่องเก็บของ</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดู/แก้ไข/พิมพ์ฉลากกล่อง</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดู/แก้ไขกล่องและพิมพ์ฉลากกล่อง</p>
                   </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
-                    <div className="font-black text-lg flex items-center gap-2"><Icons.Layers className="w-5 h-5" /> จัดการเซ็ต</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สร้าง/แก้ไขชุดอุปกรณ์</p>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.Layers className="w-5 h-5" /> เซ็ตอุปกรณ์</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สร้าง/แก้ไขชุดอุปกรณ์ และใช้งานเป็นชุด</p>
                   </button>
-                  {(settingsOptions.bundles && settingsOptions.bundles.length > 0) && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowBundleModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.Package className="w-5 h-5" /> ใช้งานเซ็ต</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ยืม/ออกงาน/รับคืนเป็นชุด</p>
-                    </button>
-                  )}
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowPrepListsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายการเตรียมของ</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>วางแผนจัดของล่วงหน้าและพิมพ์ใบเตรียมของ</p>
+                  </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); setShowPersonalItemsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Tag className="w-5 h-5" /> ของส่วนตัว</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูอุปกรณ์ BYOD แยกตามเจ้าของ</p>
@@ -4109,59 +4139,51 @@ S.N.: ${item.sn || '-'}
                 </div>
               </div>
 
-              {isFullMode && (
-                <div>
-                  <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Alert className="w-5 h-5 text-rose-500" /> ซ่อมบำรุงและเครื่องมือขั้นสูง</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowActionCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.Alert className="w-5 h-5" /> ของที่ต้องจัดการ</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ของเลยกำหนด ชำรุด ยังไม่ติด QR</p>
-                    </button>
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowCalendarModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ปฏิทินงานเดี่ยว</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เปิดเฉพาะปฏิทินแบบเต็มหน้า</p>
-                    </button>
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowTvDashboardModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.Monitor className="w-5 h-5" /> จอทีวีศูนย์</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หน้าตัวเลขใหญ่สำหรับเปิดค้างบนจอ</p>
-                    </button>
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowMonthlyReportModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายงานประจำเดือน</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปยืม/คืน/ออกงาน/ซ่อม</p>
-                    </button>
-                  </div>
+              <div>
+                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Printer className="w-5 h-5 text-indigo-500" /> เอกสารและฉลาก</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowPrintModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> QR / สติ๊กเกอร์อุปกรณ์</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกขนาด QR รวมถึงโหมด “สแกนง่ายมาก”</p>
+                  </button>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowBoxLabelPrintModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.Folder className="w-5 h-5" /> ฉลากกล่อง</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>พิมพ์ฉลากกล่องพร้อมโลโก้ MDEC</p>
+                  </button>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setSettingsTab('documents'); setShowSettings(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.Settings className="w-5 h-5" /> ตั้งค่าเอกสาร/โลโก้</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เปิด/ปิดโลโก้ ลายน้ำ และโหมดประหยัดหมึก</p>
+                  </button>
                 </div>
-              )}
+              </div>
 
               <div>
-                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Settings className="w-5 h-5 text-slate-500" /> ผู้ใช้และระบบ</h4>
+                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Monitor className="w-5 h-5 text-emerald-500" /> ระบบและรายงาน</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setMyPinForm({ oldPin: '', newPin: '', confirmPin: '' }); setShowMyAccountModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
-                    <div className="font-black text-lg flex items-center gap-2"><Icons.Users className="w-5 h-5" /> บัญชีของฉัน</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูสิทธิ์และเปลี่ยน PIN</p>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowMonthlyReportModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายงานประจำเดือน</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปการยืม คืน ออกงาน และหลักฐาน</p>
+                  </button>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowSystemHealthModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.Alert className="w-5 h-5" /> ตรวจสุขภาพระบบ</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูพื้นที่ฐานข้อมูล รูปหลักฐาน และสถานะระบบ</p>
                   </button>
                   {canManageSystem && (
                     <button type="button" onClick={() => { setShowMoreMenu(false); setSettingsTab('database'); setShowSettings(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.Download className="w-5 h-5" /> สำรองข้อมูล</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Export / Restore / ล้างประวัติ</p>
-                    </button>
-                  )}
-                  {canManageSystem && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowSystemHealthModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.CheckCircle className="w-5 h-5" /> ตรวจสุขภาพระบบ</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูพื้นที่ฐานข้อมูล รูปหลักฐาน และสถานะสำคัญ</p>
-                    </button>
-                  )}
-                  {isFullMode && canDeleteItems && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowTrashModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.Trash className="w-5 h-5" /> ถังขยะอุปกรณ์</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>กู้คืนอุปกรณ์ที่ลบผิด</p>
+                      <div className="font-black text-lg flex items-center gap-2"><Icons.Database className="w-5 h-5" /> สำรอง / กู้คืนข้อมูล</div>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>JSON / CSV / ล้างประวัติรายปี</p>
                     </button>
                   )}
                   {isFullMode && canViewAudit && (
                     <button type="button" onClick={() => { setShowMoreMenu(false); setShowAuditModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> ประวัติการทำงาน</div>
+                      <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ประวัติการทำงาน</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Audit log ของระบบ</p>
+                    </button>
+                  )}
+                  {isFullMode && canManageSystem && (
+                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowTrashModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
+                      <div className="font-black text-lg flex items-center gap-2"><Icons.Trash className="w-5 h-5" /> ถังขยะ</div>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>กู้คืนอุปกรณ์ที่ลบผิด</p>
                     </button>
                   )}
                   <button type="button" onClick={() => { setShowMoreMenu(false); setShowHelpModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-lg ${theme.btnSecondary}`}>
@@ -4892,70 +4914,96 @@ S.N.: ${item.sn || '-'}
       {/* 📷 Modal สแกน QR Code */}
       {showScanModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
+          <div className={`rounded-3xl p-5 sm:p-7 max-w-xl w-full text-center shadow-2xl relative overflow-hidden flex flex-col max-h-[92vh] ${theme.cardBg}`}>
             <style>{`
-              #qr-reader button { background-color: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 5px; }
-              #qr-reader select { padding: 8px; border-radius: 8px; margin: 5px; max-width: 100%; border: 1px solid #ccc; color: black; }
-              #qr-reader { border: none !important; }
+              #qr-reader button { background-color: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 12px; font-weight: 900; cursor: pointer; margin: 5px; }
+              #qr-reader select { padding: 8px; border-radius: 10px; margin: 5px; max-width: 100%; border: 1px solid #ccc; color: black; font-weight: 700; }
+              #qr-reader { border: none !important; width: 100% !important; }
+              #qr-reader video { border-radius: 22px !important; object-fit: cover !important; }
+              #qr-reader__scan_region { border-radius: 22px !important; overflow: hidden !important; }
               #qr-reader__dashboard_section_csr span { color: inherit !important; }
             `}</style>
             
-            <div className="absolute top-0 left-0 w-full h-1 bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-[scan_2s_ease-in-out_infinite] z-0 opacity-70 pointer-events-none"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.8)] animate-[scan_2s_ease-in-out_infinite] z-0 opacity-80 pointer-events-none"></div>
             
             <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); }} className={`absolute top-4 right-4 p-3 hover:bg-rose-500/10 rounded-full hover:text-rose-500 transition-colors z-50 ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
             
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-              <h3 className={`text-2xl font-black mb-4 mt-2 relative z-10 flex justify-center items-center gap-2 ${theme.textTitle}`}>
-                <Icons.QrCode className="w-8 h-8 text-amber-500" /> โหมดสแกนเข้าตะกร้า
+              <h3 className={`text-2xl font-black mb-2 mt-2 relative z-10 flex justify-center items-center gap-2 ${theme.textTitle}`}>
+                <Icons.QrCode className="w-8 h-8 text-amber-500" /> โหมดสแกน QR
               </h3>
+              <p className={`text-sm font-bold mb-4 ${theme.textMuted}`}>สแกนติดง่ายขึ้น: ให้ QR อยู่กลางกรอบประมาณ 70–80% ของกรอบ หลีกเลี่ยงแสงสะท้อน และถือให้นิ่ง 1–2 วินาที</p>
 
               <div className="flex justify-center gap-2 mb-4 relative z-10">
-                <button onClick={() => setUseCamera(false)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${!useCamera ? 'bg-amber-500 text-white' : theme.btnSecondary}`}>
-                  ⌨️ เครื่องยิง / พิมพ์
+                <button type="button" onClick={() => setUseCamera(false)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${!useCamera ? 'bg-amber-500 text-white' : theme.btnSecondary}`}>
+                  ⌨️ ยิง/พิมพ์รหัส
                 </button>
-                <button onClick={() => setUseCamera(true)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${useCamera ? 'bg-amber-500 text-white' : theme.btnSecondary}`}>
+                <button type="button" onClick={() => setUseCamera(true)} className={`px-4 py-2 font-bold rounded-xl transition-colors ${useCamera ? 'bg-amber-500 text-white' : theme.btnSecondary}`}>
                   📷 ใช้กล้องมือถือ
                 </button>
               </div>
               
               {!useCamera ? (
                 <>
-                  <p className={`mb-4 text-sm font-medium relative z-10 ${theme.textMuted}`}>
-                    ใช้เครื่องยิงบาร์โค้ด หรือพิมพ์ S.N. / ID อุปกรณ์ลงในช่องด้านล่าง
-                  </p>
+                  <div className={`mb-4 p-3 rounded-2xl border text-left text-xs font-bold ${isDarkMode ? 'bg-slate-950/60 border-slate-700 text-slate-300' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                    ใช้เครื่องยิงบาร์โค้ด หรือพิมพ์ S.N. / ID อุปกรณ์ แล้วกด Enter
+                  </div>
                   <form onSubmit={handleScanSubmit} className="relative z-10">
                     <input 
                       type="text" 
                       ref={scanInputRef}
-                      className={`w-full px-4 py-4 rounded-xl font-bold text-center text-xl outline-none mb-4 border-2 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 transition-all ${theme.input}`} 
-                      placeholder="สแกน หรือ พิมพ์ที่นี่..." 
+                      className={`w-full px-4 py-5 rounded-2xl font-black text-center text-xl outline-none mb-3 border-2 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 transition-all ${theme.input}`} 
+                      placeholder="สแกน หรือ พิมพ์รหัสที่นี่" 
                       value={scanInput} 
                       onChange={e => setScanInput(e.target.value)} 
                       autoFocus
                     />
-                    <button type="submit" className="hidden">ซ่อนปุ่มซับมิท</button>
+                    <button type="submit" className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black shadow-md">เพิ่มเข้าตะกร้า</button>
                   </form>
                 </>
               ) : (
-                <div className="w-full relative z-10 min-h-[300px] flex flex-col items-center justify-center">
+                <div className="w-full relative z-10 flex flex-col items-center justify-center">
+                  <div className={`w-full mb-3 p-3 rounded-2xl border text-left text-xs font-bold ${isDarkMode ? 'bg-slate-950/60 border-slate-700 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                    <div className="font-black mb-1">เทคนิคให้สแกนติดง่าย</div>
+                    <div>• ให้ QR อยู่ในกรอบ ไม่ชิดขอบ • ถ้าสติกเกอร์เงาให้เอียงเล็กน้อย • ถ้าไม่ติดให้ขยับเข้า/ออกช้า ๆ</div>
+                  </div>
                   {!isScannerLoaded ? (
-                    <div className="animate-pulse text-amber-500 font-bold">กำลังโหลดระบบกล้อง...</div>
+                    <div className="animate-pulse text-amber-500 font-bold py-10">กำลังโหลดระบบกล้อง...</div>
                   ) : (
-                    <div id="qr-reader" className="w-full bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden shadow-inner border-2 border-amber-500/30"></div>
+                    <div className={`w-full rounded-[1.6rem] overflow-hidden border-4 ${isDarkMode ? 'border-amber-500/40 bg-slate-950' : 'border-amber-300 bg-slate-100'}`}>
+                      <div id="qr-reader" className="w-full bg-slate-100 dark:bg-slate-800 overflow-hidden shadow-inner"></div>
+                    </div>
                   )}
+
+                  <form onSubmit={handleScanSubmit} className="w-full mt-3 grid grid-cols-[1fr_auto] gap-2">
+                    <input
+                      type="text"
+                      className={`px-4 py-3 rounded-xl font-bold text-center outline-none border ${theme.input}`}
+                      placeholder="สแกนไม่ติด? พิมพ์รหัส/S.N."
+                      value={scanInput}
+                      onChange={e => setScanInput(e.target.value)}
+                    />
+                    <button type="submit" className="px-4 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black">เพิ่ม</button>
+                  </form>
                 </div>
               )}
 
-              <div className="h-10 relative z-10 mt-4 flex items-center justify-center">
+              <div className="h-12 relative z-10 mt-4 flex items-center justify-center">
                  {scanMessage.text && (
-                   <span className={`font-bold px-5 py-2 rounded-full shadow-md animate-[slideUp_0.2s_ease-out] ${scanMessage.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
+                   <span className={`font-black px-5 py-2.5 rounded-full shadow-md animate-[slideUp_0.2s_ease-out] ${scanMessage.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
                      {scanMessage.text}
                    </span>
                  )}
               </div>
+
+              <div className={`mt-2 grid grid-cols-3 gap-2 text-xs font-black ${theme.textMuted}`}>
+                <div className={`p-2 rounded-xl border ${theme.btnSecondary}`}>เลือกแล้ว {selectedItems.length}</div>
+                <div className={`p-2 rounded-xl border ${theme.btnSecondary}`}>กันสแกนซ้ำ</div>
+                <div className={`p-2 rounded-xl border ${theme.btnSecondary}`}>มีสั่น/เสียง</div>
+              </div>
             </div>
 
-            <div className={`mt-6 pt-4 border-t shrink-0 relative z-10 ${theme.divide}`}>
+            <div className={`mt-5 pt-4 border-t shrink-0 relative z-10 ${theme.divide}`}>
               <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); }} className={`w-full py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
             </div>
           </div>
