@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.49.5 Picker Visual Polish';
-const APP_UPDATE_NOTE = 'ปรับ Dashboard/Command Center บนมือถือให้เรียงอ่านง่าย ไม่ล้น ไม่ใหญ่เกิน และไม่บีบปุ่มแถบบนจนแปลก';
+const APP_VERSION = 'v22.50.0 Final Production Polish Pack';
+const APP_UPDATE_NOTE = 'รวมชุดเก็บงานผลิตจริง: เอกสารพิมพ์ มือถือ รายละเอียดอุปกรณ์ ตั้งค่า empty states และ final UI polish โดยไม่แตะฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -1901,6 +1901,190 @@ function FactoryPolishStyle({ isDarkMode }) {
           box-shadow: none !important;
           border-radius: 0 !important;
           width: 100% !important;
+        }
+      }
+
+
+
+      /* v22.50.0 Final Production Polish Pack: Print / Mobile / Detail / Settings / Empty States */
+      .factory-stock-polish {
+        --mdec-radius-soft: 16px;
+        --mdec-radius-card: 20px;
+        --mdec-line: rgba(148,163,184,.22);
+      }
+      .factory-stock-polish :is(.solid-panel,.workspace-action-card,.operation-workspace-card,.purchase-project-card) {
+        border-width: 1px !important;
+      }
+      .factory-stock-polish :is(.solid-panel,.operation-workspace-card,.purchase-project-card) h2,
+      .factory-stock-polish :is(.solid-panel,.operation-workspace-card,.purchase-project-card) h3 {
+        letter-spacing: -.02em;
+      }
+      .factory-stock-polish :is(.solid-panel,.operation-workspace-card,.purchase-project-card) p {
+        line-height: 1.55;
+      }
+      /* Print & Document polish */
+      .factory-stock-polish .print-preview,
+      .factory-stock-polish .print-sheet,
+      .factory-stock-polish .document-preview,
+      .factory-stock-polish .print-paper-shell {
+        background: #fff !important;
+        color: #0f172a !important;
+        border: 1px solid #dbe3ee !important;
+      }
+      .factory-stock-polish .print-preview :is(th,td),
+      .factory-stock-polish .print-sheet :is(th,td),
+      .factory-stock-polish .document-preview :is(th,td),
+      .factory-stock-polish .print-paper-shell :is(th,td) {
+        line-height: 1.45 !important;
+      }
+      .factory-stock-polish .print-preview th,
+      .factory-stock-polish .print-sheet th,
+      .factory-stock-polish .document-preview th,
+      .factory-stock-polish .print-paper-shell th {
+        background: #f1f5f9 !important;
+        color: #334155 !important;
+        font-weight: 900 !important;
+      }
+      .factory-stock-polish .document-archive-card,
+      .factory-stock-polish .tracking-list-card {
+        min-height: 0 !important;
+      }
+      .factory-stock-polish .document-archive-card button,
+      .factory-stock-polish .tracking-list-card button {
+        min-height: 34px !important;
+      }
+      /* Inventory detail / history modal polish */
+      .factory-stock-polish .history-detail-card,
+      .factory-stock-polish .asset-detail-card,
+      .factory-stock-polish .proof-detail-card {
+        border-radius: var(--mdec-radius-card) !important;
+        overflow: hidden !important;
+      }
+      .factory-stock-polish [role="dialog"] :is(h2,h3) {
+        line-height: 1.18 !important;
+      }
+      .factory-stock-polish [role="dialog"] :is(input:not([type="checkbox"]),select,textarea) {
+        min-height: 40px !important;
+      }
+      .factory-stock-polish [role="dialog"] textarea {
+        min-height: 82px !important;
+      }
+      .factory-stock-polish [role="dialog"] button {
+        min-height: 36px !important;
+      }
+      /* Settings center polish */
+      .factory-stock-polish .settings-panel,
+      .factory-stock-polish .settings-card,
+      .factory-stock-polish .system-settings-card {
+        border-radius: var(--mdec-radius-card) !important;
+        border: 1px solid var(--mdec-line) !important;
+      }
+      .factory-stock-polish .settings-panel button,
+      .factory-stock-polish .settings-card button,
+      .factory-stock-polish .system-settings-card button {
+        min-height: 36px !important;
+      }
+      .factory-stock-polish .settings-tabs,
+      .factory-stock-polish .settings-tabbar {
+        scrollbar-width: thin;
+      }
+      .factory-stock-polish .settings-tabs::-webkit-scrollbar,
+      .factory-stock-polish .settings-tabbar::-webkit-scrollbar {
+        height: 6px;
+      }
+      .factory-stock-polish .settings-tabs::-webkit-scrollbar-thumb,
+      .factory-stock-polish .settings-tabbar::-webkit-scrollbar-thumb {
+        background: rgba(148,163,184,.45);
+        border-radius: 999px;
+      }
+      /* Empty state & warning polish */
+      .factory-stock-polish .empty-state,
+      .factory-stock-polish .warning-state,
+      .factory-stock-polish .no-data-state {
+        border-radius: var(--mdec-radius-card) !important;
+        border-style: dashed !important;
+      }
+      .factory-stock-polish .empty-state svg,
+      .factory-stock-polish .no-data-state svg {
+        opacity: .8;
+      }
+      .factory-stock-polish .status-pill,
+      .factory-stock-polish .badge,
+      .factory-stock-polish [class*="rounded-full"][class*="font-bold"] {
+        white-space: nowrap;
+      }
+      /* Mobile field work polish */
+      @media (max-width: 767px) {
+        .factory-stock-polish {
+          --mdec-radius-soft: 14px;
+          --mdec-radius-card: 16px;
+        }
+        .factory-stock-polish :is(input:not([type="checkbox"]), select, textarea) {
+          font-size: 16px !important; /* prevent iOS zoom */
+        }
+        .factory-stock-polish .factory-top-actions {
+          position: relative !important;
+        }
+        .factory-stock-polish .factory-top-actions button,
+        .factory-stock-polish .factory-top-actions a {
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+        }
+        .factory-stock-polish .solid-panel :is(h2,h3),
+        .factory-stock-polish .operation-workspace-card :is(h2,h3),
+        .factory-stock-polish .purchase-project-card :is(h2,h3) {
+          font-size: 1rem !important;
+        }
+        .factory-stock-polish .document-archive-card,
+        .factory-stock-polish .tracking-list-card,
+        .factory-stock-polish .workspace-action-card {
+          padding: 10px !important;
+        }
+        .factory-stock-polish .print-preview,
+        .factory-stock-polish .print-sheet,
+        .factory-stock-polish .document-preview,
+        .factory-stock-polish .print-paper-shell {
+          width: 100% !important;
+          overflow-x: auto !important;
+          -webkit-overflow-scrolling: touch;
+        }
+        .factory-stock-polish .print-preview table,
+        .factory-stock-polish .print-sheet table,
+        .factory-stock-polish .document-preview table,
+        .factory-stock-polish .print-paper-shell table {
+          min-width: 640px;
+        }
+        .factory-stock-polish [role="dialog"] {
+          align-items: flex-end !important;
+        }
+        .factory-stock-polish [role="dialog"] > div {
+          border-radius: 18px 18px 0 0 !important;
+          max-height: 92dvh !important;
+        }
+      }
+      @media print {
+        .factory-stock-polish .no-print,
+        .no-print,
+        .factory-stock-polish .factory-topbar,
+        .factory-stock-polish .mobile-bottom-nav,
+        .factory-stock-polish aside,
+        .factory-stock-polish .toast,
+        .factory-stock-polish .print-actions-bar {
+          display: none !important;
+        }
+        .factory-stock-polish {
+          background: #fff !important;
+          color: #000 !important;
+        }
+        .factory-stock-polish .print-preview,
+        .factory-stock-polish .print-sheet,
+        .factory-stock-polish .document-preview,
+        .factory-stock-polish .print-paper-shell {
+          border: 0 !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
       }
 
