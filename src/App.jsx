@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.41.2 JSX Hotfix';
-const APP_UPDATE_NOTE = 'แก้ helper ที่หายไปสำหรับ notify และปุ่มรับคืนจากหน้ารายละเอียด พร้อมคง UI checkbox และระบบโครงการจัดซื้อ';
+const APP_VERSION = 'v22.41.3 Clean Box Label';
+const APP_UPDATE_NOTE = 'ปรับฉลากกล่องให้สะอาดขึ้น โดยค่าเริ่มต้นไม่แสดง QR กล่องและช่องเช็กของ แต่ยังเปิดใช้งานได้จากตัวเลือกก่อนพิมพ์';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -673,8 +673,8 @@ function MainApp() {
   const [prepForm, setPrepForm] = useState({ id: null, name: '', useDate: '', staff: '', note: '', itemIds: [], checkedIds: [], status: 'pending' });
   const [boxLabelSize, setBoxLabelSize] = useState('normal');
   const [boxLabelStyle, setBoxLabelStyle] = useState('premium');
-  const [boxLabelShowChecks, setBoxLabelShowChecks] = useState(true);
-  const [boxLabelShowQr, setBoxLabelShowQr] = useState(true);
+  const [boxLabelShowChecks, setBoxLabelShowChecks] = useState(false);
+  const [boxLabelShowQr, setBoxLabelShowQr] = useState(false);
   const [boxLabelTitle, setBoxLabelTitle] = useState('กล่องอุปกรณ์ MDEC');
   const [boxLabelNote, setBoxLabelNote] = useState('');
   const [showScanModal, setShowScanModal] = useState(false);
@@ -5413,7 +5413,7 @@ S.N.: ${item.sn || '-'}
               <Icons.Folder className="w-6 h-6" /> พิมพ์ฉลากกล่องเก็บของ ({selectedLabelItems.length} รายการ)
             </h2>
             <p className="text-slate-300 text-sm font-bold mt-1">
-              ตัวอย่างนี้คือฉลากที่จะพิมพ์จริง เลือกขนาด/โหมด/ช่องเช็ก/QR ได้จากแถบนี้
+              ตัวอย่างนี้คือฉลากที่จะพิมพ์จริง เลือกขนาด/โหมดได้จากแถบนี้ ส่วนช่องเช็กและ QR เป็นตัวเลือกเสริม
             </p>
           </div>
 
@@ -5464,11 +5464,11 @@ S.N.: ${item.sn || '-'}
             </label>
             <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 font-black text-slate-700">
               <input type="checkbox" className="w-5 h-5 accent-slate-900" checked={boxLabelShowChecks} onChange={e => setBoxLabelShowChecks(e.target.checked)} />
-              แสดงช่องเช็กของ
+              แสดงช่องเช็กของ (ตัวเลือกเสริม)
             </label>
             <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 font-black text-slate-700">
               <input type="checkbox" className="w-5 h-5 accent-slate-900" checked={boxLabelShowQr} onChange={e => setBoxLabelShowQr(e.target.checked)} />
-              แสดง QR กล่อง
+              แสดง QR กล่อง (ตัวเลือกเสริม)
             </label>
           </div>
 
