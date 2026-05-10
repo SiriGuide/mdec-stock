@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.48.0 Mission Control Redesign';
+const APP_VERSION = 'v22.49.1 Hybrid Category Location Picker';
 const APP_UPDATE_NOTE = 'ปรับ Dashboard/Command Center บนมือถือให้เรียงอ่านง่าย ไม่ล้น ไม่ใหญ่เกิน และไม่บีบปุ่มแถบบนจนแปลก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -107,6 +107,163 @@ const ASSET_STATUSES = [
   { id: 'pending_disposal', label: 'ชำรุดรอจำหน่าย', color: 'bg-amber-100 text-amber-700 border-amber-200', darkColor: 'bg-amber-900/35 text-amber-300 border-amber-800' }
 ];
 
+
+function SmartOptionInput({
+  label,
+  value,
+  options = [],
+  onChange,
+  placeholder = 'พิมพ์เพื่อค้นหา หรือกดรายการเพื่อเลื่อนเลือก',
+  helper = '',
+  theme = {},
+  isDarkMode = false,
+  icon = '🔎',
+  required = false
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [browseAll, setBrowseAll] = useState(false);
+  const query = String(value || '');
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const cleanOptions = useMemo(() => {
+    return [...new Set((options || [])
+      .map(v => String(v || '').trim())
+      .filter(Boolean)
+      .filter(v => v !== 'อื่นๆ'))]
+      .sort((a, b) => a.localeCompare(b, 'th', { numeric: true }));
+  }, [options]);
+
+  const matchedOptions = useMemo(() => {
+    if (browseAll || !normalizedQuery) return cleanOptions;
+    const starts = cleanOptions.filter(v => v.toLowerCase().startsWith(normalizedQuery));
+    const contains = cleanOptions.filter(v => !v.toLowerCase().startsWith(normalizedQuery) && v.toLowerCase().includes(normalizedQuery));
+    return [...starts, ...contains];
+  }, [cleanOptions, normalizedQuery, browseAll]);
+
+  const exactMatch = cleanOptions.some(v => v.toLowerCase() === normalizedQuery);
+  const inputClass = theme.input || (isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-700');
+  const textTitle = theme.textTitle || (isDarkMode ? 'text-white' : 'text-slate-900');
+  const textMuted = theme.textMuted || (isDarkMode ? 'text-slate-400' : 'text-slate-500');
+  const btnClass = isDarkMode
+    ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700'
+    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50';
+
+  return (
+    <div className="relative smart-combobox-field">
+      <label className={`block text-base font-bold mb-2 ${textTitle}`}>
+        {label} {required && <span className="text-rose-500">*</span>}
+      </label>
+
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1 min-w-0">
+          <span className={`absolute left-4 top-1/2 -translate-y-1/2 text-base pointer-events-none ${textMuted}`}>{icon}</span>
+          <input
+            type="text"
+            className={`w-full pl-11 pr-12 py-3 rounded-xl font-bold outline-none text-lg border ${inputClass}`}
+            placeholder={placeholder}
+            value={query}
+            onFocus={() => {
+              setIsOpen(true);
+              setBrowseAll(false);
+            }}
+            onChange={(e) => {
+              onChange(e.target.value);
+              setBrowseAll(false);
+              setIsOpen(true);
+            }}
+            onBlur={() => window.setTimeout(() => setIsOpen(false), 180)}
+          />
+          {query && (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                onChange('');
+                setBrowseAll(true);
+                setIsOpen(true);
+              }}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl flex items-center justify-center font-black ${isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+              title="ล้างค่า"
+            >×</button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 sm:flex gap-2">
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              setBrowseAll(false);
+              setIsOpen(true);
+            }}
+            className={`px-4 py-3 rounded-xl border font-black text-sm shadow-sm ${btnClass}`}
+            title="ค้นหาจากคำที่พิมพ์"
+          >ค้นหา</button>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              setBrowseAll(true);
+              setIsOpen(true);
+            }}
+            className={`px-4 py-3 rounded-xl border font-black text-sm shadow-sm ${btnClass}`}
+            title="เปิดรายการทั้งหมดเพื่อเลื่อนเลือก"
+          >รายการทั้งหมด</button>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className={`absolute z-[10020] mt-2 w-full rounded-2xl border shadow-2xl overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+          <div className={`px-4 py-2 flex items-center justify-between gap-3 text-[11px] font-black uppercase tracking-wide ${isDarkMode ? 'bg-slate-900 text-slate-400' : 'bg-slate-50 text-slate-500'}`}>
+            <span>{browseAll || !normalizedQuery ? 'เลื่อนเลือกจากรายการทั้งหมด' : 'ผลการค้นหา / กดเลือกได้เลย'}</span>
+            <span>{matchedOptions.length.toLocaleString('th-TH')} รายการ</span>
+          </div>
+          <div className="max-h-72 overflow-y-auto custom-scrollbar p-2 space-y-1">
+            {matchedOptions.map(option => (
+              <button
+                key={option}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onChange(option);
+                  setIsOpen(false);
+                  setBrowseAll(false);
+                }}
+                className={`w-full text-left px-3 py-2.5 rounded-xl font-bold transition-colors ${String(value || '') === option ? 'bg-blue-600 text-white' : isDarkMode ? 'text-slate-200 hover:bg-slate-800' : 'text-slate-700 hover:bg-blue-50'}`}
+              >
+                {option}
+              </button>
+            ))}
+            {normalizedQuery && !exactMatch && !browseAll && (
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onChange(query.trim());
+                  setIsOpen(false);
+                  setBrowseAll(false);
+                }}
+                className={`w-full text-left px-3 py-3 rounded-xl font-black border border-dashed ${isDarkMode ? 'border-blue-800 text-blue-300 bg-blue-950/25 hover:bg-blue-900/30' : 'border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100'}`}
+              >
+                + ใช้ / เพิ่ม “{query.trim()}”
+              </button>
+            )}
+            {!matchedOptions.length && !normalizedQuery && (
+              <div className={`px-3 py-4 text-sm font-bold ${textMuted}`}>ยังไม่มีรายการ ให้พิมพ์ชื่อใหม่ได้เลย</div>
+            )}
+            {!matchedOptions.length && normalizedQuery && !browseAll && (
+              <div className={`px-3 py-4 text-sm font-bold ${textMuted}`}>ไม่พบรายการเดิม กดเพิ่มชื่อใหม่ด้านล่างได้เลย</div>
+            )}
+          </div>
+          <div className={`px-4 py-2 text-[11px] font-bold border-t ${isDarkMode ? 'border-slate-800 text-slate-500' : 'border-slate-100 text-slate-500'}`}>
+            วิธีใช้: พิมพ์เพื่อค้นหา • กด “รายการทั้งหมด” เพื่อเลื่อนเลือก • พิมพ์ชื่อใหม่แล้วบันทึกได้
+          </div>
+        </div>
+      )}
+      {helper && <p className={`text-xs font-bold mt-2 ${textMuted}`}>{helper}</p>}
+    </div>
+  );
+}
 
 function FactoryPolishStyle({ isDarkMode }) {
   return (
@@ -773,6 +930,12 @@ function FactoryPolishStyle({ isDarkMode }) {
         }
       }
 
+
+      .factory-stock-polish .smart-combobox-field input {
+        min-height: 48px;
+      }
+      .factory-stock-polish .smart-combobox-field .custom-scrollbar::-webkit-scrollbar { width: 7px; }
+      .factory-stock-polish .smart-combobox-field .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,.55); border-radius: 999px; }
       @media (max-width: 1023px) {
         .factory-stock-polish .factory-topbar { padding-top: 10px; flex-direction: column; align-items: stretch; }
         .factory-stock-polish .factory-top-actions { justify-content: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -4854,16 +5017,20 @@ S.N.: ${item.sn || '-'}
       let currentSettings = { ...settingsOptions };
       let settingsChanged = false;
 
-      let finalCategory = formData.category || 'อื่นๆ';
+      let finalCategory = String(formData.category || formData.newCategory || '').trim() || 'อื่นๆ';
       if (formData.category === 'อื่นๆ' && (formData.newCategory || '').trim()) {
-        finalCategory = formData.newCategory.trim();
+        finalCategory = String(formData.newCategory || '').trim();
+      }
+      if (finalCategory && finalCategory !== 'อื่นๆ' && !(currentSettings.categories || []).some(c => String(c).trim().toLowerCase() === finalCategory.toLowerCase())) {
         currentSettings.categories = [...new Set([...(currentSettings.categories || []).filter(c => c !== 'อื่นๆ'), finalCategory, 'อื่นๆ'])];
         settingsChanged = true;
       }
 
-      let finalLocation = formData.location || 'อื่นๆ';
+      let finalLocation = String(formData.location || formData.newLocation || '').trim() || 'อื่นๆ';
       if (formData.location === 'อื่นๆ' && (formData.newLocation || '').trim()) {
-        finalLocation = formData.newLocation.trim();
+        finalLocation = String(formData.newLocation || '').trim();
+      }
+      if (finalLocation && finalLocation !== 'อื่นๆ' && !(currentSettings.locations || []).some(c => String(c).trim().toLowerCase() === finalLocation.toLowerCase())) {
         currentSettings.locations = [...new Set([...(currentSettings.locations || []).filter(c => c !== 'อื่นๆ'), finalLocation, 'อื่นๆ'])];
         settingsChanged = true;
       }
@@ -11112,18 +11279,18 @@ S.N.: ${item.sn || '-'}
                     </select>
                   </div>
                   <div>
-                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>หมวดหมู่อุปกรณ์</label>
-                    <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.category || ''} onChange={e => setFormData({...formData, category: e.target.value, newCategory: e.target.value !== 'อื่นๆ' ? '' : formData.newCategory})}>
-                      <option value="" disabled>-- เลือกหมวดหมู่ --</option>
-                      {(settingsOptions.categories || []).map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <SmartOptionInput
+                      label="หมวดหมู่อุปกรณ์"
+                      value={formData.category || ''}
+                      options={settingsOptions.categories || []}
+                      onChange={(value) => setFormData({...formData, category: value, newCategory: ''})}
+                      placeholder="พิมพ์ค้นหา / กดรายการทั้งหมดเพื่อเลื่อนเลือก"
+                      helper="เลือกได้ทั้ง 2 แบบ: พิมพ์ค้นหาเร็ว ๆ หรือกด “รายการทั้งหมด” แล้วเลื่อนเลือกจากรายการเดิม"
+                      theme={theme}
+                      isDarkMode={isDarkMode}
+                      icon="🏷️"
+                    />
                   </div>
-                  {formData.category === 'อื่นๆ' && (
-                    <div className="sm:col-span-2">
-                      <label className="block text-base font-bold text-blue-500 mb-2">เพิ่มหมวดหมู่ใหม่ / พิมพ์ระบุเอง</label>
-                      <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-800'}`} placeholder="พิมพ์ชื่อหมวดหมู่ใหม่..." value={formData.newCategory || ''} onChange={e => setFormData({...formData, newCategory: e.target.value})} />
-                    </div>
-                  )}
                 </div>
               </section>
 
@@ -11131,18 +11298,18 @@ S.N.: ${item.sn || '-'}
                 <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>2. ที่เก็บ / โครงการ / พัสดุ</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
-                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>สถานที่จัดเก็บ / ห้อง</label>
-                    <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.location || ''} onChange={e => setFormData({...formData, location: e.target.value, newLocation: e.target.value !== 'อื่นๆ' ? '' : formData.newLocation})}>
-                      <option value="" disabled>-- เลือกสถานที่ --</option>
-                      {(settingsOptions.locations || []).map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <SmartOptionInput
+                      label="สถานที่จัดเก็บ / ห้อง"
+                      value={formData.location || ''}
+                      options={settingsOptions.locations || []}
+                      onChange={(value) => setFormData({...formData, location: value, newLocation: ''})}
+                      placeholder="พิมพ์ค้นหา หรือกดรายการทั้งหมดเพื่อเลื่อนเลือก"
+                      helper="เลือกได้ทั้งพิมพ์ค้นหาและเลื่อนเลือก ถ้าเป็นสถานที่ใหม่ พิมพ์ชื่อไว้แล้วระบบจะเพิ่มให้ตอนกดบันทึก"
+                      theme={theme}
+                      isDarkMode={isDarkMode}
+                      icon="📍"
+                    />
                   </div>
-                  {formData.location === 'อื่นๆ' && (
-                    <div className="sm:col-span-2">
-                      <label className="block text-base font-bold text-blue-500 mb-2">เพิ่มสถานที่ใหม่ / พิมพ์ระบุเอง</label>
-                      <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-800'}`} placeholder="พิมพ์ชื่อสถานที่จัดเก็บใหม่..." value={formData.newLocation || ''} onChange={e => setFormData({...formData, newLocation: e.target.value})} />
-                    </div>
-                  )}
                   <div className="sm:col-span-2">
                     <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>โครงการ / แหล่งที่มา</label>
                     <div className="flex flex-col sm:flex-row gap-2">
