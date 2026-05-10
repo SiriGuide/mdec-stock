@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.42.1 Project Visibility Hotfix';
-const APP_UPDATE_NOTE = 'แก้หน้าโครงการจัดซื้อให้สร้างแล้วเห็นทันที แม้ยังไม่มีอุปกรณ์ผูกโครงการ และคงหน้ายืม-คืนแบบเต็มหน้า';
+const APP_VERSION = 'v22.42.2 Project Settings Persistence Hotfix';
+const APP_UPDATE_NOTE = 'แก้ระบบโครงการจัดซื้อให้บันทึกแล้วแสดงจริง โดยเก็บ projects/projectMeta จาก Settings snapshot และทำหน้าโครงการให้ง่ายขึ้น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -1553,6 +1553,9 @@ function MainApp() {
           bundles: data.bundles || [],
           storageBoxes: data.storageBoxes || [],
           prepLists: data.prepLists || [],
+          // ✅ สำคัญ: ต้องโหลด projects/projectMeta กลับเข้ามาด้วย ไม่งั้นสร้างโครงการแล้ว onSnapshot จะเขียน state ทับจนเหมือนโครงการหาย
+          projects: Array.isArray(data.projects) ? data.projects : ['อื่นๆ'],
+          projectMeta: data.projectMeta || {},
           backupMeta: data.backupMeta || {},
           proofStorageMeta: data.proofStorageMeta || {},
           proofSettings: { ...DEFAULT_PROOF_SETTINGS, ...(data.proofSettings || {}) },
@@ -1568,6 +1571,8 @@ function MainApp() {
           bundles: [],
           storageBoxes: [],
           prepLists: [],
+          projects: ['อื่นๆ'],
+          projectMeta: {},
           backupMeta: {},
           proofStorageMeta: {},
           proofSettings: DEFAULT_PROOF_SETTINGS,
@@ -2105,50 +2110,68 @@ function MainApp() {
       alert('บัญชีนี้ไม่มีสิทธิ์เพิ่มโครงการ');
       return;
     }
+
     try {
-      const currentProjects = Array.isArray(settingsOptions.projects) ? settingsOptions.projects : [];
-      const normalized = currentProjects.map(p => normalizeProjectName(p)).filter(p => p && p !== 'อื่นๆ');
-      const alreadyExists = normalized.some(p => String(p).trim() === name) || Object.keys(settingsOptions.projectMeta || {}).some(p => normalizeProjectName(p) === name);
-      if (alreadyExists) {
-        pushToast('มีชื่อโครงการนี้อยู่แล้ว เปิดหน้าโครงการนั้นให้แล้ว', 'warning');
-        setProjectManagerSearch('');
-        setActiveWorkspace('projects');
-        setSelectedPurchaseProject(name);
-        setFilterProject(name);
-        return;
-      }
-      const updatedProjects = [...new Set([...normalized, name, 'อื่นๆ'])];
-      const currentMeta = settingsOptions.projectMeta || {};
+      setIsBusy(true);
+      const nowIso = new Date().toISOString();
       const buddhistYear = new Date().getFullYear() + 543;
-      const updatedSettings = {
-        ...settingsOptions,
-        projects: updatedProjects,
-        projectMeta: {
-          ...currentMeta,
-          [name]: {
-            ...(currentMeta[name] || {}),
-            name,
-            fiscalYear: String((currentMeta[name] || {}).fiscalYear || buddhistYear),
-            status: (currentMeta[name] || {}).status || 'draft',
-            createdAt: (currentMeta[name] || {}).createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
+      const currentProjects = Array.isArray(settingsOptions.projects) ? settingsOptions.projects : [];
+      const currentMeta = settingsOptions.projectMeta || {};
+      const normalizedProjects = currentProjects
+        .map(p => normalizeProjectName(p))
+        .filter(p => p && p !== 'อื่นๆ');
+      const existingKey = [...normalizedProjects, ...Object.keys(currentMeta || {}).map(p => normalizeProjectName(p))]
+        .filter(Boolean)
+        .find(p => String(p).trim() === name);
+
+      const nextProjects = [...new Set([...normalizedProjects, existingKey || name, 'อื่นๆ'])];
+      const nextMeta = {
+        ...currentMeta,
+        [existingKey || name]: {
+          ...(currentMeta[existingKey || name] || {}),
+          name: existingKey || name,
+          fiscalYear: String((currentMeta[existingKey || name] || {}).fiscalYear || buddhistYear),
+          budget: String((currentMeta[existingKey || name] || {}).budget || ''),
+          owner: String((currentMeta[existingKey || name] || {}).owner || ''),
+          startDate: (currentMeta[existingKey || name] || {}).startDate || '',
+          endDate: (currentMeta[existingKey || name] || {}).endDate || '',
+          objective: String((currentMeta[existingKey || name] || {}).objective || ''),
+          note: String((currentMeta[existingKey || name] || {}).note || ''),
+          status: (currentMeta[existingKey || name] || {}).status || 'draft',
+          createdAt: (currentMeta[existingKey || name] || {}).createdAt || nowIso,
+          updatedAt: nowIso
         }
       };
+
+      const updatedSettings = {
+        ...settingsOptions,
+        projects: nextProjects,
+        projectMeta: nextMeta
+      };
+
+      // อัปเดตหน้าจอก่อน แล้วค่อยบันทึก Firebase เพื่อให้ผู้ใช้เห็นทันที
       setSettingsOptions(updatedSettings);
       setProjectManagerSearch('');
       setActiveWorkspace('projects');
-      setSelectedPurchaseProject(name);
-      setFilterProject(name);
+      setSelectedPurchaseProject(existingKey || name);
+      setFilterProject('all');
       setQuickProjectName('');
-      await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
-      await logAction('เพิ่มโครงการจัดซื้อ', name, 'เพิ่มชื่อโครงการจัดซื้อ/จัดหาอุปกรณ์จากหน้าโครงการ');
-      pushToast('เพิ่มโครงการจัดซื้อเรียบร้อยแล้ว — โครงการนี้ยังไม่มีอุปกรณ์ผูกอยู่', 'success');
+      await setDoc(getSettingsDoc(), { projects: nextProjects, projectMeta: nextMeta }, { merge: true });
+
+      if (existingKey) {
+        pushToast('มีชื่อโครงการนี้อยู่แล้ว เปิดรายละเอียดให้แล้ว', 'warning');
+      } else {
+        await logAction('เพิ่มโครงการจัดซื้อ', name, 'เพิ่มชื่อโครงการจัดซื้อ/จัดหาอุปกรณ์จากหน้าโครงการ');
+        pushToast('เพิ่มโครงการจัดซื้อเรียบร้อยแล้ว — โครงการนี้ยังไม่มีอุปกรณ์ผูกอยู่', 'success');
+      }
     } catch (error) {
       console.error(error);
       alert('❌ เพิ่มโครงการไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
     }
   };
+
 
   const openProjectMetaEditor = (projectName) => {
     const name = cleanProjectName(projectName);
@@ -2628,7 +2651,7 @@ S.N.: ${item.sn || '-'}
                 />
                 <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>สร้างแล้วโครงการจะไม่หาย แม้ยังไม่มีอุปกรณ์ผูกอยู่ และจะเปิดหน้ารายละเอียดให้ทันที</p>
               </div>
-              <button type="button" onClick={handleAddProjectQuick} className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black shadow-md whitespace-nowrap">บันทึกโครงการ</button>
+              <button type="button" onClick={handleAddProjectQuick} disabled={isBusy} className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-black shadow-md whitespace-nowrap">{isBusy ? 'กำลังบันทึก...' : 'บันทึกโครงการ'}</button>
             </div>
 
             <div className={`rounded-[1.5rem] border p-4 ${isDarkMode ? 'bg-blue-950/20 border-blue-900/50' : 'bg-blue-50 border-blue-100'}`}>
