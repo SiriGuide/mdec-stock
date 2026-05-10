@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.45.0 Form & Detail Polish';
-const APP_UPDATE_NOTE = 'ออกแบบหน้าสแกน QR ใหม่ให้เป็นโหมดหน้างานแบบเต็มจอ ใช้ง่ายทั้งมือถือและคอม พร้อมแยกโหมดกล้อง/กรอกรหัสและแสดงผลสแกนชัดเจน';
+const APP_VERSION = 'v22.46.0 Full Polish Pack';
+const APP_UPDATE_NOTE = 'รวมชุดเก็บงาน Dashboard, Reports, ยืม-คืน, โครงการจัดซื้อ และเอกสารพิมพ์ ให้โปร่ง อ่านง่าย เหมาะกับคอมและมือถือ โดยไม่แตะโครงสร้างฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -782,6 +782,230 @@ function FactoryPolishStyle({ isDarkMode }) {
         .factory-stock-polish .factory-danger-btn,
         .factory-stock-polish .factory-icon-btn { width: 100%; }
       }
+
+
+      /* v22.46.0 Full Polish Pack: Dashboard / Reports / Borrow-Return / Project / Print */
+      .factory-stock-polish .dashboard-polish,
+      .factory-stock-polish .report-polish,
+      .factory-stock-polish .tracking-polish,
+      .factory-stock-polish .borrow-return-polish,
+      .factory-stock-polish .print-polish {
+        background: var(--factory-card) !important;
+        border: 1px solid var(--factory-border) !important;
+        border-radius: 24px !important;
+        box-shadow: var(--factory-shadow-soft) !important;
+      }
+      .factory-stock-polish .solid-workspace > div,
+      .factory-stock-polish .operation-workspace-card,
+      .factory-stock-polish .purchase-project-card,
+      .factory-stock-polish .item-detail-shell,
+      .factory-stock-polish .item-form-shell,
+      .factory-stock-polish .settings-shell {
+        transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+      }
+      .factory-stock-polish .solid-workspace > div:hover,
+      .factory-stock-polish .operation-workspace-card:hover,
+      .factory-stock-polish .purchase-project-card:hover {
+        border-color: rgba(37,99,235,.24) !important;
+      }
+      .factory-stock-polish .workspace-action-card,
+      .factory-stock-polish .operation-workspace-card,
+      .factory-stock-polish .purchase-project-card {
+        overflow: hidden;
+      }
+      .factory-stock-polish .workspace-action-card :is(h2,h3,p),
+      .factory-stock-polish .operation-workspace-card :is(h2,h3,p),
+      .factory-stock-polish .purchase-project-card :is(h2,h3,p) {
+        overflow-wrap: anywhere;
+      }
+      .factory-stock-polish .summary-card,
+      .factory-stock-polish .stat-card,
+      .factory-stock-polish [class*="statCard"],
+      .factory-stock-polish [class*="StatCard"] {
+        border-radius: 22px !important;
+      }
+      .factory-stock-polish .factory-page-title h1,
+      .factory-stock-polish h1,
+      .factory-stock-polish h2,
+      .factory-stock-polish h3 {
+        text-wrap: balance;
+      }
+      .factory-stock-polish .factory-page-title p,
+      .factory-stock-polish .stock-meta-line,
+      .factory-stock-polish p {
+        text-wrap: pretty;
+      }
+      .factory-stock-polish table td,
+      .factory-stock-polish table th {
+        border-color: rgba(148,163,184,.18) !important;
+      }
+      .factory-stock-polish[data-polish-theme="dark"] table td,
+      .factory-stock-polish[data-polish-theme="dark"] table th {
+        border-color: rgba(148,163,184,.14) !important;
+      }
+      .factory-stock-polish .stock-table-compact tbody tr:last-child td {
+        border-bottom: none !important;
+      }
+      .factory-stock-polish .stock-table-compact button,
+      .factory-stock-polish .solid-panel button,
+      .factory-stock-polish .operation-workspace-card button,
+      .factory-stock-polish .purchase-project-card button {
+        min-height: 38px;
+      }
+      .factory-stock-polish .stock-table-compact [class*="rounded-full"],
+      .factory-stock-polish .stock-mobile-card [class*="rounded-full"],
+      .factory-stock-polish .purchase-project-card [class*="rounded-full"] {
+        border: 1px solid rgba(148,163,184,.20);
+      }
+      .factory-stock-polish .operation-workspace-card input:not([type="checkbox"]):not([type="radio"]),
+      .factory-stock-polish .operation-workspace-card select,
+      .factory-stock-polish .operation-workspace-card textarea,
+      .factory-stock-polish .purchase-project-card input:not([type="checkbox"]):not([type="radio"]),
+      .factory-stock-polish .purchase-project-card select,
+      .factory-stock-polish .purchase-project-card textarea {
+        border-radius: 14px !important;
+        min-height: 44px !important;
+      }
+      .factory-stock-polish .operation-workspace-card textarea,
+      .factory-stock-polish .purchase-project-card textarea,
+      .factory-stock-polish .item-form-shell textarea,
+      .factory-stock-polish .settings-shell textarea {
+        min-height: 92px !important;
+      }
+      .factory-stock-polish .operation-workspace-card .custom-scrollbar,
+      .factory-stock-polish .purchase-project-card .custom-scrollbar,
+      .factory-stock-polish .solid-panel .custom-scrollbar {
+        scrollbar-width: thin;
+      }
+      .factory-stock-polish .print-preview,
+      .factory-stock-polish .print-sheet,
+      .factory-stock-polish .document-preview {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border-radius: 18px !important;
+        box-shadow: 0 20px 50px rgba(15,23,42,.10) !important;
+      }
+      .factory-stock-polish .print-preview table,
+      .factory-stock-polish .print-sheet table,
+      .factory-stock-polish .document-preview table {
+        border-collapse: collapse !important;
+      }
+      .factory-stock-polish .print-preview th,
+      .factory-stock-polish .print-sheet th,
+      .factory-stock-polish .document-preview th {
+        background: #f8fafc !important;
+        color: #334155 !important;
+      }
+      .factory-stock-polish .print-preview td,
+      .factory-stock-polish .print-sheet td,
+      .factory-stock-polish .document-preview td {
+        color: #0f172a !important;
+      }
+      @media (max-width: 1023px) {
+        .factory-stock-polish .solid-workspace,
+        .factory-stock-polish main {
+          max-width: 100% !important;
+        }
+        .factory-stock-polish .solid-panel,
+        .factory-stock-polish .operation-workspace-card,
+        .factory-stock-polish .purchase-project-card,
+        .factory-stock-polish .workspace-action-card {
+          border-radius: 20px !important;
+        }
+        .factory-stock-polish .operation-workspace-card,
+        .factory-stock-polish .purchase-project-card {
+          padding: 14px !important;
+        }
+        .factory-stock-polish .operation-workspace-card [class*="grid-cols-2"],
+        .factory-stock-polish .purchase-project-card [class*="grid-cols-2"],
+        .factory-stock-polish .solid-panel [class*="grid-cols-2"] {
+          gap: 10px !important;
+        }
+      }
+      @media (max-width: 767px) {
+        .factory-stock-polish {
+          padding-bottom: 92px !important;
+        }
+        .factory-stock-polish aside {
+          display: none !important;
+        }
+        .factory-stock-polish .solid-workspace {
+          gap: 12px !important;
+        }
+        .factory-stock-polish .solid-panel,
+        .factory-stock-polish .operation-workspace-card,
+        .factory-stock-polish .purchase-project-card,
+        .factory-stock-polish .workspace-action-card {
+          box-shadow: none !important;
+          border-radius: 18px !important;
+        }
+        .factory-stock-polish .workspace-action-card {
+          min-height: auto !important;
+        }
+        .factory-stock-polish .workspace-action-card p {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .factory-stock-polish .stock-mobile-card {
+          box-shadow: none !important;
+          border-color: rgba(148,163,184,.18) !important;
+        }
+        .factory-stock-polish .stock-mobile-card [class*="gap-3"] {
+          gap: 8px !important;
+        }
+        .factory-stock-polish .stock-mobile-card button {
+          min-height: 38px !important;
+          border-radius: 12px !important;
+          font-size: 12px !important;
+        }
+        .factory-stock-polish .stock-mobile-card [class*="text-lg"] {
+          font-size: 15px !important;
+        }
+        .factory-stock-polish .stock-mobile-card [class*="text-sm"] {
+          font-size: 12px !important;
+        }
+        .factory-stock-polish .stock-mobile-card [class*="text-xs"] {
+          font-size: 11px !important;
+        }
+        .factory-stock-polish .operation-workspace-card input:not([type="checkbox"]):not([type="radio"]),
+        .factory-stock-polish .operation-workspace-card select,
+        .factory-stock-polish .operation-workspace-card textarea,
+        .factory-stock-polish .purchase-project-card input:not([type="checkbox"]):not([type="radio"]),
+        .factory-stock-polish .purchase-project-card select,
+        .factory-stock-polish .purchase-project-card textarea {
+          min-height: 42px !important;
+          font-size: 14px !important;
+        }
+        .factory-stock-polish .print-preview,
+        .factory-stock-polish .print-sheet,
+        .factory-stock-polish .document-preview {
+          border-radius: 14px !important;
+          overflow-x: auto;
+        }
+      }
+      @media print {
+        .factory-stock-polish,
+        .factory-stock-polish * {
+          box-shadow: none !important;
+          text-shadow: none !important;
+        }
+        .factory-stock-polish .print-preview,
+        .factory-stock-polish .print-sheet,
+        .factory-stock-polish .document-preview {
+          border-radius: 0 !important;
+          border: 0 !important;
+          box-shadow: none !important;
+        }
+        .factory-stock-polish button,
+        .factory-stock-polish aside,
+        .factory-stock-polish .factory-top-actions,
+        .factory-stock-polish .workspace-tabbar {
+          display: none !important;
+        }
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .factory-stock-polish *, .factory-stock-polish *::before, .factory-stock-polish *::after { transition: none !important; animation: none !important; }
       }
