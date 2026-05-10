@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.40.0 Workspaces + Solid UI';
+const APP_VERSION = 'v22.41.0 Purchase Projects + Checkbox Fix';
 const APP_UPDATE_NOTE = 'ปรับ UI ให้ทึบอ่านง่ายขึ้น เพิ่มหน้าโครงการ/กล่อง/เซ็ตแบบเต็มหน้า และแก้โครงการที่สร้างไว้แต่ยังไม่มีอุปกรณ์ให้แสดงไม่หาย';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -336,6 +336,102 @@ function FactoryPolishStyle({ isDarkMode }) {
       .factory-stock-polish[data-polish-theme="dark"] :is(input, select, textarea) {
         background-color: #020617 !important;
       }
+      /* Checkbox + table divider cleanup: เอาเส้นขาวสั้น ๆ ข้างช่องติ๊กออก */
+      .factory-stock-polish .stock-check {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 20px;
+        height: 20px;
+        min-height: 20px;
+        border-radius: 6px;
+        border: 1.5px solid #94a3b8;
+        background: #f8fafc;
+        display: inline-block;
+        position: relative;
+        cursor: pointer;
+        flex: 0 0 auto;
+        box-shadow: none !important;
+        outline: none !important;
+      }
+      .factory-stock-polish[data-polish-theme="dark"] .stock-check {
+        background: #e2e8f0;
+        border-color: #64748b;
+      }
+      .factory-stock-polish .stock-check::before,
+      .factory-stock-polish .stock-check::after {
+        content: none !important;
+        display: none !important;
+      }
+      .factory-stock-polish .stock-check:checked {
+        background: #4f46e5 !important;
+        border-color: #6366f1 !important;
+      }
+      .factory-stock-polish .stock-check:checked::after {
+        content: "" !important;
+        display: block !important;
+        position: absolute;
+        left: 6px;
+        top: 2px;
+        width: 6px;
+        height: 11px;
+        border: solid #ffffff;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
+      .factory-stock-polish .stock-check:disabled {
+        opacity: .55;
+        cursor: not-allowed;
+        background: #cbd5e1 !important;
+        border-color: #475569 !important;
+      }
+      .factory-stock-polish .stock-check-disabled {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        display: inline-flex;
+        background: #cbd5e1;
+        opacity: .45;
+        box-shadow: none !important;
+      }
+      .factory-stock-polish .stock-select-cell {
+        border-top: 0 !important;
+        box-shadow: none !important;
+        position: relative;
+      }
+      .factory-stock-polish .stock-select-cell::before,
+      .factory-stock-polish .stock-select-cell::after {
+        content: none !important;
+        display: none !important;
+      }
+      .factory-stock-polish .stock-table-compact tbody > tr {
+        border-top: 0 !important;
+      }
+      .factory-stock-polish .stock-table-compact tbody > tr + tr > td:not(.stock-select-cell) {
+        border-top: 1px solid rgba(148,163,184,.18);
+      }
+      .factory-stock-polish[data-polish-theme="dark"] .stock-table-compact tbody > tr + tr > td:not(.stock-select-cell) {
+        border-top-color: rgba(148,163,184,.15);
+      }
+      .factory-stock-polish .stock-mobile-card {
+        isolation: isolate;
+      }
+      .factory-stock-polish .stock-mobile-select-col {
+        width: 32px;
+        min-width: 32px;
+        display: flex;
+        justify-content: center;
+        padding-top: 2px;
+        border: 0 !important;
+        box-shadow: none !important;
+      }
+      .factory-stock-polish .stock-mobile-select-col::before,
+      .factory-stock-polish .stock-mobile-select-col::after {
+        content: none !important;
+        display: none !important;
+      }
+      .factory-stock-polish .purchase-project-card {
+        background: var(--factory-card);
+      }
       @media (max-width: 1023px) {
         .factory-stock-polish .factory-topbar { padding-top: 10px; flex-direction: column; align-items: stretch; }
         .factory-stock-polish .factory-top-actions { justify-content: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -510,6 +606,9 @@ function MainApp() {
     try { return localStorage.getItem('mdec_ui_mode') || 'easy'; } catch(e) { return 'easy'; }
   });
   const [activeWorkspace, setActiveWorkspace] = useState('overview');
+  const [selectedPurchaseProject, setSelectedPurchaseProject] = useState(null);
+  const [projectMetaEditTarget, setProjectMetaEditTarget] = useState(null);
+  const [projectMetaForm, setProjectMetaForm] = useState({ name: '', fiscalYear: '', budget: '', owner: '', startDate: '', endDate: '', objective: '', note: '', status: 'active' });
   const isFullMode = uiMode === 'full';
   const openWorkspace = (workspace = 'overview') => {
     setActiveWorkspace(workspace);
@@ -1786,36 +1885,98 @@ function MainApp() {
     setQuickProblemOnly(false);
   };
 
+  const cleanProjectName = (value) => String(value || '').trim() || 'ไม่ระบุโครงการ';
+  const projectMetaMap = settingsOptions.projectMeta || {};
+  const getProjectMeta = (projectName) => projectMetaMap[cleanProjectName(projectName)] || {};
+  const formatMoney = (value) => {
+    const n = Number(value || 0);
+    if (!Number.isFinite(n) || n <= 0) return '-';
+    return n.toLocaleString('th-TH', { maximumFractionDigits: 0 });
+  };
+  const formatProjectDate = (value) => {
+    if (!value) return '-';
+    try {
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return String(value);
+      return d.toLocaleDateString('th-TH');
+    } catch (e) { return String(value); }
+  };
+
   const projectStats = useMemo(() => {
     const map = {};
+    const metaMap = settingsOptions.projectMeta || {};
     const ensureProject = (projectName) => {
       const name = String(projectName || 'ไม่ระบุโครงการ').trim() || 'ไม่ระบุโครงการ';
       if (!map[name]) {
-        map[name] = { name, total: 0, active: 0, disposed: 0, lost: 0, pending_disposal: 0, items: [] };
+        const meta = metaMap[name] || {};
+        map[name] = {
+          name,
+          meta,
+          total: 0,
+          qtyTotal: 0,
+          active: 0,
+          disposed: 0,
+          lost: 0,
+          pending_disposal: 0,
+          available: 0,
+          borrowed: 0,
+          outForEvent: 0,
+          maintenance: 0,
+          missingData: 0,
+          qrMissing: 0,
+          categories: {},
+          departments: {},
+          locations: {},
+          items: []
+        };
       }
       return map[name];
     };
 
-    // สำคัญ: ชื่อโครงการที่สร้างไว้ใน Settings ต้องแสดงเสมอ แม้ยังไม่มีอุปกรณ์ผูกอยู่
+    // ชื่อโครงการจาก Settings และ projectMeta ต้องแสดงเสมอ แม้ยังไม่มีอุปกรณ์ผูกอยู่
     (Array.isArray(settingsOptions.projects) ? settingsOptions.projects : [])
       .filter(projectName => projectName && projectName !== 'อื่นๆ')
       .forEach(projectName => ensureProject(projectName));
+    Object.keys(metaMap || {}).filter(Boolean).forEach(projectName => ensureProject(projectName));
 
     items.filter(item => item && !item.isDeleted).forEach((item) => {
       const project = ensureProject(item.project || 'ไม่ระบุโครงการ');
       const assetStatus = item.assetStatus || 'active';
+      const qty = Number(item.quantity) || 1;
       project.total += 1;
+      project.qtyTotal += qty;
       project[assetStatus] = (project[assetStatus] || 0) + 1;
+      if (item.status === 'available') project.available += 1;
+      if (item.status === 'borrowed') project.borrowed += 1;
+      if (item.status === 'out-for-event') project.outForEvent += 1;
+      if (item.status === 'maintenance') project.maintenance += 1;
+      if (!item.qrTagged) project.qrMissing += 1;
+      if (getMissingDataLabels(item).length > 0) project.missingData += 1;
+      if (item.category) project.categories[item.category] = (project.categories[item.category] || 0) + 1;
+      if (item.department) project.departments[item.department] = (project.departments[item.department] || 0) + 1;
+      if (item.location) project.locations[item.location] = (project.locations[item.location] || 0) + 1;
       project.items.push(item);
     });
-    return Object.values(map).sort((a, b) => String(a.name).localeCompare(String(b.name), 'th', { numeric: true }));
-  }, [items, settingsOptions.projects]);
+    return Object.values(map).sort((a, b) => {
+      const aYear = String(a.meta?.fiscalYear || '');
+      const bYear = String(b.meta?.fiscalYear || '');
+      if (aYear && bYear && aYear !== bYear) return bYear.localeCompare(aYear, 'th', { numeric: true });
+      if (aYear && !bYear) return -1;
+      if (!aYear && bYear) return 1;
+      return String(a.name).localeCompare(String(b.name), 'th', { numeric: true });
+    });
+  }, [items, settingsOptions.projects, settingsOptions.projectMeta]);
 
   const filteredProjectStats = useMemo(() => {
     const q = String(projectManagerSearch || '').trim().toLowerCase();
     if (!q) return projectStats;
     return projectStats.filter(project => {
+      const meta = project.meta || {};
       return String(project.name || '').toLowerCase().includes(q) ||
+             String(meta.fiscalYear || '').toLowerCase().includes(q) ||
+             String(meta.owner || '').toLowerCase().includes(q) ||
+             String(meta.objective || '').toLowerCase().includes(q) ||
+             String(meta.note || '').toLowerCase().includes(q) ||
              (project.items || []).some(item =>
                String(item.name || '').toLowerCase().includes(q) ||
                String(item.sn || '').toLowerCase().includes(q) ||
@@ -1828,7 +1989,7 @@ function MainApp() {
   const handleAddProjectQuick = async () => {
     const name = String(quickProjectName || '').trim();
     if (!name) {
-      pushToast('กรุณาพิมพ์ชื่อโครงการก่อน', 'warning');
+      pushToast('กรุณาพิมพ์ชื่อโครงการจัดซื้อก่อน', 'warning');
       return;
     }
     if (!canAddEditItems && !canManageSystem) {
@@ -1839,23 +2000,137 @@ function MainApp() {
       const currentProjects = Array.isArray(settingsOptions.projects) ? settingsOptions.projects : [];
       const normalized = currentProjects.filter(p => p && p !== 'อื่นๆ');
       if (normalized.some(p => String(p).trim() === name)) {
-        pushToast('มีชื่อโครงการนี้อยู่แล้ว', 'warning');
+        pushToast('มีชื่อโครงการนี้อยู่แล้ว เปิดหน้าโครงการนั้นให้แล้ว', 'warning');
+        setSelectedPurchaseProject(name);
         setFilterProject(name);
         return;
       }
       const updatedProjects = [...new Set([...normalized, name, 'อื่นๆ'])];
-      const updatedSettings = { ...settingsOptions, projects: updatedProjects };
+      const currentMeta = settingsOptions.projectMeta || {};
+      const buddhistYear = new Date().getFullYear() + 543;
+      const updatedSettings = {
+        ...settingsOptions,
+        projects: updatedProjects,
+        projectMeta: {
+          ...currentMeta,
+          [name]: {
+            ...(currentMeta[name] || {}),
+            name,
+            fiscalYear: String((currentMeta[name] || {}).fiscalYear || buddhistYear),
+            status: (currentMeta[name] || {}).status || 'active',
+            createdAt: (currentMeta[name] || {}).createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        }
+      };
       setSettingsOptions(updatedSettings);
       await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
       setQuickProjectName('');
       setFilterProject(name);
-      await logAction('เพิ่มโครงการ', name, 'เพิ่มชื่อโครงการจากหน้าโครงการ');
-      pushToast('เพิ่มโครงการเรียบร้อยแล้ว', 'success');
+      setSelectedPurchaseProject(name);
+      await logAction('เพิ่มโครงการจัดซื้อ', name, 'เพิ่มชื่อโครงการจัดซื้อ/จัดหาอุปกรณ์จากหน้าโครงการ');
+      pushToast('เพิ่มโครงการจัดซื้อเรียบร้อยแล้ว', 'success');
     } catch (error) {
       console.error(error);
       alert('❌ เพิ่มโครงการไม่สำเร็จ: ' + error.message);
     }
   };
+
+  const openProjectMetaEditor = (projectName) => {
+    const name = cleanProjectName(projectName);
+    if (!name || name === 'ไม่ระบุโครงการ') return alert('ไม่สามารถแก้ไขรายละเอียด “ไม่ระบุโครงการ” ได้');
+    const meta = getProjectMeta(name);
+    setProjectMetaEditTarget(name);
+    setProjectMetaForm({
+      name,
+      fiscalYear: meta.fiscalYear || String(new Date().getFullYear() + 543),
+      budget: meta.budget || '',
+      owner: meta.owner || '',
+      startDate: meta.startDate || '',
+      endDate: meta.endDate || '',
+      objective: meta.objective || '',
+      note: meta.note || '',
+      status: meta.status || 'active'
+    });
+  };
+
+  const closeProjectMetaEditor = () => {
+    setProjectMetaEditTarget(null);
+    setProjectMetaForm({ name: '', fiscalYear: '', budget: '', owner: '', startDate: '', endDate: '', objective: '', note: '', status: 'active' });
+  };
+
+  const handleSaveProjectMeta = async () => {
+    if (!projectMetaEditTarget) return;
+    if (!canAddEditItems && !canManageSystem) return alert('บัญชีนี้ไม่มีสิทธิ์แก้ไขโครงการ');
+    const oldName = cleanProjectName(projectMetaEditTarget);
+    const newName = cleanProjectName(projectMetaForm.name);
+    if (!newName || newName === 'ไม่ระบุโครงการ') return alert('กรุณากรอกชื่อโครงการจัดซื้อให้ถูกต้อง');
+    const currentProjects = Array.isArray(settingsOptions.projects) ? settingsOptions.projects : [];
+    if (newName !== oldName && projectOptions.some(p => p !== oldName && String(p).trim() === newName)) return alert('มีชื่อโครงการนี้อยู่แล้ว');
+
+    try {
+      setIsBusy(true);
+      const nowIso = new Date().toISOString();
+      const currentMeta = { ...(settingsOptions.projectMeta || {}) };
+      const oldMeta = currentMeta[oldName] || {};
+      delete currentMeta[oldName];
+      currentMeta[newName] = {
+        ...oldMeta,
+        name: newName,
+        fiscalYear: String(projectMetaForm.fiscalYear || '').trim(),
+        budget: String(projectMetaForm.budget || '').trim(),
+        owner: String(projectMetaForm.owner || '').trim(),
+        startDate: projectMetaForm.startDate || '',
+        endDate: projectMetaForm.endDate || '',
+        objective: String(projectMetaForm.objective || '').trim(),
+        note: String(projectMetaForm.note || '').trim(),
+        status: projectMetaForm.status || 'active',
+        updatedAt: nowIso,
+        createdAt: oldMeta.createdAt || nowIso
+      };
+      let updatedProjects = currentProjects.map(p => p === oldName ? newName : p).filter(Boolean);
+      if (!updatedProjects.some(p => p === newName)) updatedProjects = [...updatedProjects.filter(p => p !== 'อื่นๆ'), newName, 'อื่นๆ'];
+      updatedProjects = [...new Set(updatedProjects)];
+      if (!updatedProjects.includes('อื่นๆ')) updatedProjects.push('อื่นๆ');
+      const updatedSettings = { ...settingsOptions, projects: updatedProjects, projectMeta: currentMeta };
+      setSettingsOptions(updatedSettings);
+      await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
+
+      if (newName !== oldName) {
+        const affectedItems = items.filter(item => item && !item.isDeleted && String(item.project || '') === String(oldName));
+        await Promise.all(affectedItems.map(item => {
+          const history = Array.isArray(item.history) ? [...item.history] : [];
+          history.push({
+            type: 'projectChange',
+            date: nowIso,
+            fromProject: oldName,
+            toProject: newName,
+            staff: currentOperator?.name || 'Admin',
+            note: 'เปลี่ยนชื่อโครงการจัดซื้อ'
+          });
+          return setDoc(getItemDoc(item.id), { project: newName, history, updatedAt: nowIso, updatedBy: currentOperator?.name || 'Admin' }, { merge: true });
+        }));
+        if (filterProject === oldName) setFilterProject(newName);
+      }
+      setSelectedPurchaseProject(newName);
+      await logAction('บันทึกรายละเอียดโครงการจัดซื้อ', newName, newName !== oldName ? `เปลี่ยนชื่อจาก ${oldName}` : 'แก้ไขรายละเอียดโครงการ');
+      closeProjectMetaEditor();
+      pushToast('บันทึกโครงการจัดซื้อเรียบร้อยแล้ว', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ บันทึกโครงการไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const openNewItemForProject = (projectName) => {
+    const name = cleanProjectName(projectName);
+    setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', assetStatus: 'active', project: name === 'ไม่ระบุโครงการ' ? '' : name, newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '' });
+    setShowForm(true);
+  };
+
+
 
 
   const projectAssignCandidateItems = useMemo(() => {
@@ -1897,7 +2172,7 @@ function MainApp() {
 
   const handleSaveProjectAssignment = async () => {
     if (!projectAssignTarget) return alert('กรุณาเลือกโครงการ');
-    if (!canAddEditItems && !canManageSystem) return alert('บัญชีนี้ไม่มีสิทธิ์จัดอุปกรณ์เข้าโครงการ');
+    if (!canAddEditItems && !canManageSystem) return alert('บัญชีนี้ไม่มีสิทธิ์ผูกอุปกรณ์กับโครงการจัดซื้อ');
     const selectedSet = new Set(projectAssignSelectedIds);
     const currentProjectItems = items.filter(item => item && !item.isDeleted && String(item.project || '') === String(projectAssignTarget || ''));
     const selectedItemsForProject = items.filter(item => item && !item.isDeleted && selectedSet.has(item.id));
@@ -1909,7 +2184,7 @@ function MainApp() {
     const removeCount = currentProjectItems.filter(item => !selectedSet.has(item.id)).length;
 
     if (selectedItemsForProject.length === 0) {
-      const ok = window.confirm('ไม่มีอุปกรณ์ถูกเลือกไว้ในโครงการนี้ ต้องการล้างอุปกรณ์ทั้งหมดออกจากโครงการนี้หรือไม่?');
+      const ok = window.confirm('ไม่มีอุปกรณ์ถูกเลือกไว้ในโครงการนี้ ต้องการล้างอุปกรณ์ทั้งหมดออกจากโครงการจัดซื้อนี้หรือไม่?');
       if (!ok) return;
     }
 
@@ -1928,7 +2203,7 @@ function MainApp() {
             fromProject: oldProject,
             toProject: nextProjectLabel,
             staff: currentOperator?.name || 'Admin',
-            note: willBeInProject ? 'จัดอุปกรณ์เข้าโครงการจากหน้าโครงการ' : 'นำอุปกรณ์ออกจากโครงการจากหน้าโครงการ'
+            note: willBeInProject ? 'ผูกอุปกรณ์เข้ากับโครงการจัดซื้อ' : 'นำอุปกรณ์ออกจากโครงการจัดซื้อ'
           });
         }
         return setDoc(getItemDoc(item.id), {
@@ -1938,13 +2213,13 @@ function MainApp() {
           updatedBy: currentOperator?.name || 'Admin'
         }, { merge: true });
       }));
-      await logAction('จัดอุปกรณ์เข้าโครงการ', projectAssignTarget, `เลือกไว้ ${selectedItemsForProject.length} รายการ / เพิ่มใหม่ ${addCount} / นำออก ${removeCount}`);
+      await logAction('ผูกอุปกรณ์กับโครงการจัดซื้อ', projectAssignTarget, `เลือกไว้ ${selectedItemsForProject.length} รายการ / เพิ่มใหม่ ${addCount} / นำออก ${removeCount}`);
       setFilterProject(selectedItemsForProject.length > 0 ? projectAssignTarget : 'all');
       setShowProjectAssignModal(false);
-      pushToast(`บันทึกโครงการแล้ว: เลือกไว้ ${selectedItemsForProject.length} รายการ${removeCount ? ` / นำออก ${removeCount} รายการ` : ''}`, 'success');
+      pushToast(`บันทึกการผูกอุปกรณ์แล้ว: เลือกไว้ ${selectedItemsForProject.length} รายการ${removeCount ? ` / นำออก ${removeCount} รายการ` : ''}`, 'success');
     } catch (error) {
       console.error(error);
-      alert('❌ จัดอุปกรณ์เข้าโครงการไม่สำเร็จ: ' + error.message);
+      alert('❌ ผูกอุปกรณ์กับโครงการจัดซื้อไม่สำเร็จ: ' + error.message);
     }
   };
 
@@ -1990,7 +2265,7 @@ function MainApp() {
           fromProject: oldName,
           toProject: clean,
           staff: currentOperator?.name || 'Admin',
-          note: 'เปลี่ยนชื่อโครงการจาก Project Manager'
+          note: 'เปลี่ยนชื่อโครงการจัดซื้อจากหน้าโครงการจัดซื้อ'
         });
         return setDoc(getItemDoc(item.id), {
           project: clean,
@@ -2021,10 +2296,13 @@ function MainApp() {
     if (!confirm(`ลบชื่อโครงการ "${projectName}" ออกจากรายการหรือไม่?`)) return;
     try {
       const updatedProjects = (settingsOptions.projects || []).filter(p => p !== projectName);
-      const updatedSettings = { ...settingsOptions, projects: updatedProjects.includes('อื่นๆ') ? updatedProjects : [...updatedProjects, 'อื่นๆ'] };
+      const nextProjectMeta = { ...(settingsOptions.projectMeta || {}) };
+      delete nextProjectMeta[projectName];
+      const updatedSettings = { ...settingsOptions, projects: updatedProjects.includes('อื่นๆ') ? updatedProjects : [...updatedProjects, 'อื่นๆ'], projectMeta: nextProjectMeta };
       setSettingsOptions(updatedSettings);
       await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
-      await logAction('ลบชื่อโครงการ', projectName, 'ลบชื่อโครงการที่ไม่มีอุปกรณ์ผูกอยู่');
+      await logAction('ลบชื่อโครงการจัดซื้อ', projectName, 'ลบชื่อโครงการจัดซื้อที่ไม่มีอุปกรณ์ผูกอยู่');
+      if (selectedPurchaseProject === projectName) setSelectedPurchaseProject(null);
       pushToast('ลบชื่อโครงการแล้ว', 'success');
     } catch (error) {
       console.error(error);
@@ -2103,9 +2381,9 @@ S.N.: ${item.sn || '-'}
       desc: 'ระบบจัดการสต๊อกศูนย์มัลติมีเดียทางการศึกษา'
     },
     projects: {
-      kicker: 'PROJECT WORKSPACE',
-      title: 'ระบบโครงการ',
-      desc: 'จัดกลุ่มอุปกรณ์ตามโครงการ งาน แหล่งที่มา และพิมพ์รายงาน'
+      kicker: 'PURCHASE PROJECTS',
+      title: 'โครงการจัดซื้อ',
+      desc: 'ติดตามแหล่งที่มาของอุปกรณ์ งบประมาณ และรายการที่จัดซื้อเข้าคลัง'
     },
     organize: {
       kicker: 'ORGANIZE WORKSPACE',
@@ -2119,7 +2397,7 @@ S.N.: ${item.sn || '-'}
     <div className={`workspace-tabbar w-full mb-5 rounded-[1.5rem] border shadow-sm p-2 flex gap-2 overflow-x-auto ${theme.cardBg}`}>
       {[
         ['overview', 'ภาพรวม', Icons.Package, 'กลับหน้ารายการทั้งหมด'],
-        ['projects', 'ระบบโครงการ', Icons.Database, `${projectStats.length.toLocaleString('th-TH')} โครงการ`],
+        ['projects', 'โครงการจัดซื้อ', Icons.Database, `${projectStats.length.toLocaleString('th-TH')} โครงการ`],
         ['organize', 'กล่อง / เซ็ต', Icons.Layers, `${(settingsOptions.storageBoxes || []).length} กล่อง • ${(settingsOptions.bundles || []).length} เซ็ต`]
       ].map(([id, label, Icon, desc]) => (
         <button
@@ -2138,143 +2416,317 @@ S.N.: ${item.sn || '-'}
     </div>
   );
 
-  const renderProjectWorkspace = () => (
-    <div className="solid-workspace space-y-5">
-      {renderWorkspaceTabs()}
-      <div className={`rounded-[1.75rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
-        <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-4 ${theme.divide}`}>
-          <div>
-            <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'}`}>PROJECT MANAGER</div>
-            <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>ระบบโครงการแบบเต็มหน้า</h2>
-            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>โครงการที่สร้างไว้จะแสดงตรงนี้เสมอ แม้ยังไม่มีอุปกรณ์ผูกอยู่ เพื่อไม่ให้หาไม่เจออีก</p>
-          </div>
-          <div className="grid grid-cols-2 sm:flex gap-2">
-            <button type="button" onClick={() => { setQuickProjectName(''); document.getElementById('quick-project-input')?.focus(); }} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>+ สร้างโครงการ</button>
-            <button type="button" onClick={() => { setFilterProject('all'); setProjectManagerSearch(''); }} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
-          </div>
-        </div>
+  const renderProjectWorkspace = () => {
+    const selectedProject = projectStats.find(p => String(p.name) === String(selectedPurchaseProject)) || filteredProjectStats[0] || null;
+    const projectItems = selectedProject?.items || [];
+    const meta = selectedProject?.meta || {};
+    const budgetNumber = Number(meta.budget || 0);
+    const isEmptyProject = selectedProject ? (selectedProject.total || 0) === 0 : true;
+    const topCategories = selectedProject ? Object.entries(selectedProject.categories || {}).sort((a,b)=>b[1]-a[1]).slice(0, 6) : [];
+    const topLocations = selectedProject ? Object.entries(selectedProject.locations || {}).sort((a,b)=>b[1]-a[1]).slice(0, 6) : [];
+    const projectStatus = meta.status || (isEmptyProject ? 'draft' : 'active');
+    const statusLabel = projectStatus === 'closed' ? 'ปิดโครงการแล้ว' : projectStatus === 'draft' ? 'แบบร่าง' : 'ใช้งานอยู่';
+    const statusClass = projectStatus === 'closed'
+      ? (isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600')
+      : projectStatus === 'draft'
+        ? (isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700')
+        : (isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700');
 
-        <div className="p-5 sm:p-6 space-y-5">
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-            {[
-              ['โครงการทั้งหมด', projectStats.length, 'text-indigo-500', 'ชื่อโครงการที่บันทึกไว้'],
-              ['มีอุปกรณ์ผูกอยู่', projectStats.filter(p => (p.total || 0) > 0).length, 'text-blue-500', 'โครงการที่มีรายการแล้ว'],
-              ['ยังว่าง', projectStats.filter(p => (p.total || 0) === 0).length, 'text-amber-500', 'สร้างไว้แต่ยังไม่ผูกของ'],
-              ['อุปกรณ์ในโครงการ', projectStats.reduce((s,p)=>s+(p.total||0),0), 'text-emerald-500', 'รวมทุกรายการ']
-            ].map(([label, value, color, desc]) => (
-              <div key={label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
-                <div className={`text-3xl font-black mt-1 ${color}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
-                <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className={`rounded-[1.5rem] border p-4 sm:p-5 grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-3 items-end ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+    return (
+      <div className="solid-workspace space-y-5">
+        {renderWorkspaceTabs()}
+        <div className={`rounded-[1.75rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
+          <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-4 ${theme.divide}`}>
             <div>
-              <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>เพิ่มชื่อโครงการ / งาน / แหล่งที่มา</label>
-              <input
-                id="quick-project-input"
-                className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
-                placeholder="เช่น งานประชุมใหญ่ / โครงการจัดซื้อกล้อง / ห้องปฏิบัติการใหม่"
-                value={quickProjectName}
-                onChange={e => setQuickProjectName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleAddProjectQuick(); }}
-              />
-              <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>หลังสร้างแล้ว กด “จัดอุปกรณ์” ในการ์ดโครงการเพื่อติ๊กเลือกของเข้าโครงการ</p>
+              <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'}`}>PURCHASE PROJECTS</div>
+              <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>โครงการจัดซื้อ / จัดหาอุปกรณ์</h2>
+              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้บันทึกว่าอุปกรณ์แต่ละชิ้นซื้อมาจากโครงการไหน เช่น โครงการปรับปรุงกล้องถ่ายภาพประจำปี ไม่ใช่ระบบออกงาน</p>
             </div>
-            <button type="button" onClick={handleAddProjectQuick} className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black shadow-md whitespace-nowrap">บันทึกชื่อโครงการ</button>
+            <div className="grid grid-cols-2 sm:flex gap-2">
+              <button type="button" onClick={() => document.getElementById('quick-project-input')?.focus()} className="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black">+ สร้างโครงการ</button>
+              <button type="button" onClick={() => { setFilterProject('all'); setProjectManagerSearch(''); setSelectedPurchaseProject(null); }} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3">
-            <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาโครงการ / ชื่ออุปกรณ์ / S.N. / ห้อง / หมวดหมู่" value={projectManagerSearch} onChange={e => setProjectManagerSearch(e.target.value)} />
-            <button type="button" onClick={() => setProjectManagerSearch('')} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างคำค้น</button>
-          </div>
-
-          {filterProject !== 'all' && (
-            <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-indigo-950/30 border-indigo-800 text-indigo-200' : 'bg-indigo-50 border-indigo-200 text-indigo-700'}`}>
-              <div className="font-black">ตอนนี้กำลังกรองหน้าอุปกรณ์ด้วยโครงการ: {filterProject}</div>
-              <button type="button" onClick={() => setFilterProject('all')} className={`px-3 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>ยกเลิกกรองโครงการ</button>
+          <div className="p-5 sm:p-6 space-y-5">
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+              {[
+                ['โครงการจัดซื้อ', projectStats.filter(p => p.name !== 'ไม่ระบุโครงการ').length, 'text-indigo-500', 'ชื่อโครงการที่บันทึกไว้'],
+                ['มีอุปกรณ์แล้ว', projectStats.filter(p => p.name !== 'ไม่ระบุโครงการ' && (p.total || 0) > 0).length, 'text-blue-500', 'โครงการที่ผูกสินค้าแล้ว'],
+                ['ยังไม่มีของ', projectStats.filter(p => p.name !== 'ไม่ระบุโครงการ' && (p.total || 0) === 0).length, 'text-amber-500', 'สร้างไว้รอเพิ่มอุปกรณ์'],
+                ['อุปกรณ์รวม', projectStats.reduce((s,p)=>s+(p.name === 'ไม่ระบุโครงการ' ? 0 : (p.total||0)),0), 'text-emerald-500', 'รายการที่ระบุโครงการแล้ว']
+              ].map(([label, value, color, desc]) => (
+                <div key={label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
+                  <div className={`text-3xl font-black mt-1 ${color}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
+                </div>
+              ))}
             </div>
-          )}
 
-          {filteredProjectStats.length === 0 ? (
-            <div className={ui.emptyBox}>ไม่พบโครงการที่ตรงกับคำค้น</div>
-          ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              {filteredProjectStats.map((project) => {
-                const progress = project.total ? Math.round(((project.active || 0) / project.total) * 100) : 0;
-                const isEmptyProject = (project.total || 0) === 0;
-                return (
-                  <div key={project.name} className={`rounded-[1.5rem] border overflow-hidden shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                    <div className={`p-5 border-b ${theme.divide}`}>
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className={`flex items-center gap-2 flex-wrap font-black text-xl ${theme.textTitle}`}>
-                            <span className="truncate">{project.name}</span>
-                            {isEmptyProject && <span className={`px-2 py-1 rounded-lg text-xs border ${isDarkMode ? 'bg-amber-950/40 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>ยังไม่มีอุปกรณ์</span>}
+            <div className={`rounded-[1.5rem] border p-4 sm:p-5 grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-3 items-end ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div>
+                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สร้างโครงการจัดซื้อใหม่</label>
+                <input
+                  id="quick-project-input"
+                  className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
+                  placeholder="เช่น โครงการปรับปรุงกล้องถ่ายภาพประจำปี 2569"
+                  value={quickProjectName}
+                  onChange={e => setQuickProjectName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleAddProjectQuick(); }}
+                />
+                <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>สร้างแล้วโครงการจะไม่หาย แม้ยังไม่มีอุปกรณ์ผูกอยู่ และจะเปิดหน้ารายละเอียดให้ทันที</p>
+              </div>
+              <button type="button" onClick={handleAddProjectQuick} className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black shadow-md whitespace-nowrap">บันทึกโครงการ</button>
+            </div>
+
+            <div className={`rounded-[1.5rem] border p-4 ${isDarkMode ? 'bg-blue-950/20 border-blue-900/50' : 'bg-blue-50 border-blue-100'}`}>
+              <div className={`font-black mb-3 ${isDarkMode ? 'text-blue-200' : 'text-blue-800'}`}>วิธีคิดใหม่ของหน้านี้</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {[
+                  ['1', 'สร้างโครงการจัดซื้อ', 'บันทึกชื่อโครงการ ปีงบประมาณ งบ ผู้รับผิดชอบ และวัตถุประสงค์'],
+                  ['2', 'ผูกอุปกรณ์เข้ากับโครงการ', 'เลือกจากคลังเดิม หรือกดเพิ่มสินค้าใหม่โดยระบบใส่ชื่อโครงการให้อัตโนมัติ'],
+                  ['3', 'ติดตามและพิมพ์รายงาน', 'ดูของที่ซื้อจากโครงการนี้ สถานะปัจจุบัน และพิมพ์สรุปแนบเอกสารได้']
+                ].map(([no, title, desc]) => (
+                  <div key={no} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-blue-100'}`}>
+                    <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black mb-3">{no}</div>
+                    <div className={`font-black ${theme.textTitle}`}>{title}</div>
+                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-[430px_1fr] gap-5 items-start">
+              <div className={`rounded-[1.5rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className={`p-4 border-b ${theme.divide}`}>
+                  <div className={`font-black text-lg ${theme.textTitle}`}>รายการโครงการ</div>
+                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เลือกโครงการด้านล่างเพื่อดูรายละเอียดเต็ม</div>
+                  <input className={`mt-3 w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาโครงการ / ปีงบ / ผู้รับผิดชอบ / อุปกรณ์" value={projectManagerSearch} onChange={e => setProjectManagerSearch(e.target.value)} />
+                </div>
+                <div className="p-3 space-y-2 max-h-[720px] overflow-y-auto custom-scrollbar">
+                  {filteredProjectStats.length === 0 ? (
+                    <div className={ui.emptyBox}>ไม่พบโครงการที่ตรงกับคำค้น</div>
+                  ) : filteredProjectStats.map((project) => {
+                    const pMeta = project.meta || {};
+                    const active = selectedProject && String(selectedProject.name) === String(project.name);
+                    const pStatus = pMeta.status || ((project.total || 0) === 0 ? 'draft' : 'active');
+                    const pStatusText = pStatus === 'closed' ? 'ปิดแล้ว' : pStatus === 'draft' ? 'แบบร่าง' : 'ใช้งานอยู่';
+                    return (
+                      <button
+                        key={project.name}
+                        type="button"
+                        onClick={() => setSelectedPurchaseProject(project.name)}
+                        className={`purchase-project-card w-full text-left p-4 rounded-2xl border transition-all ${active ? 'border-blue-500 ring-2 ring-blue-500/20' : (isDarkMode ? 'border-slate-800 hover:border-slate-600' : 'border-slate-200 hover:border-blue-200')}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className={`font-black leading-tight line-clamp-2 ${active ? (isDarkMode ? 'text-blue-200' : 'text-blue-700') : theme.textTitle}`}>{project.name}</div>
+                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ปีงบ {pMeta.fiscalYear || '-'} • {project.total || 0} รายการ • {project.qtyTotal || 0} หน่วย</div>
                           </div>
-                          <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ทั้งหมด {project.total} รายการ • ใช้งานอยู่ {project.active || 0} • ชำรุดรอจำหน่าย {project.pending_disposal || 0}</div>
+                          <span className={`px-2 py-1 rounded-lg text-[10px] font-black border shrink-0 ${pStatus === 'closed' ? (isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600') : pStatus === 'draft' ? (isDarkMode ? 'bg-amber-950/40 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700') : (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700')}`}>{pStatusText}</span>
                         </div>
-                        <div className="flex flex-wrap gap-2 shrink-0">
-                          {canAddEditItems && project.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectAssign(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 hover:bg-blue-500 text-white">จัดอุปกรณ์</button>}
-                          <button type="button" onClick={() => openProjectPrint(project.name)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>พิมพ์รายงาน</button>
-                          <button type="button" onClick={() => { setFilterProject(project.name); openWorkspace('overview'); }} className="px-3 py-2 rounded-xl text-sm font-black bg-indigo-600 hover:bg-indigo-500 text-white">ดูในรายการอุปกรณ์</button>
+                        <div className={`mt-3 flex items-center justify-between text-xs font-bold ${theme.textMuted}`}>
+                          <span>ผู้รับผิดชอบ: {pMeta.owner || '-'}</span>
+                          <span>งบ: {formatMoney(pMeta.budget)}</span>
                         </div>
-                      </div>
-                      <div className={`mt-4 h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
-                        <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full transition-all" style={{ width: `${progress}%` }}></div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className={`rounded-[1.5rem] border overflow-hidden min-h-[640px] ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                {!selectedProject ? (
+                  <div className="h-full p-8 flex items-center justify-center text-center">
+                    <div>
+                      <Icons.Database className={`w-14 h-14 mx-auto mb-3 ${theme.textMuted}`} />
+                      <div className={`text-xl font-black ${theme.textTitle}`}>เลือกหรือสร้างโครงการก่อน</div>
+                      <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หลังเลือกแล้วจะเห็นรายการอุปกรณ์ สรุปสถานะ และปุ่มจัดการทั้งหมด</div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className={`p-5 sm:p-6 border-b ${theme.divide}`}>
+                      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'}`}>PROJECT DETAIL</div>
+                          <h3 className={`text-2xl sm:text-3xl font-black mt-1 leading-tight ${theme.textTitle}`}>{selectedProject.name}</h3>
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            <span className={`px-3 py-1.5 rounded-xl text-xs font-black border ${statusClass}`}>{statusLabel}</span>
+                            <span className={`px-3 py-1.5 rounded-xl text-xs font-black border ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>ปีงบ {meta.fiscalYear || '-'}</span>
+                            <span className={`px-3 py-1.5 rounded-xl text-xs font-black border ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>งบประมาณ {formatMoney(meta.budget)} บาท</span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
+                          {canAddEditItems && selectedProject.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectMetaEditor(selectedProject.name)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>แก้ไขโครงการ</button>}
+                          <button type="button" onClick={() => openProjectPrint(selectedProject.name)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>พิมพ์รายงาน</button>
+                          {canAddEditItems && selectedProject.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectAssign(selectedProject.name)} className="px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black">ผูกของจากคลัง</button>}
+                          {canAddEditItems && selectedProject.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openNewItemForProject(selectedProject.name)} className="px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">+ เพิ่มสินค้าใหม่</button>}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="p-4">
-                      {isEmptyProject ? (
-                        <div className={`p-6 rounded-2xl border text-center font-bold ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-                          โครงการนี้ถูกสร้างไว้แล้ว แต่ยังไม่ได้ผูกอุปกรณ์ กด “จัดอุปกรณ์” เพื่อเริ่มใช้งาน
-                        </div>
-                      ) : (
-                        <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar pr-1">
-                          {project.items.slice(0, 24).map((item) => {
-                            const assetInfo = getAssetStatusInfo(item.assetStatus);
-                            const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
-                            return (
-                              <div key={item.id} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
-                                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'} • {item.category || '-'}</div>
-                                  </div>
-                                  <div className="flex flex-col gap-1 items-end shrink-0">
-                                    <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
-                                    <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? assetInfo.darkColor : assetInfo.color}`}>{assetInfo.label}</span>
-                                  </div>
-                                </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
-                                  <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>
-                                  {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">แก้ไข</button>}
-                                  <button type="button" onClick={() => copyItemSummary(item)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>คัดลอก</button>
-                                </div>
+                    <div className="p-5 sm:p-6 space-y-5">
+                      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                        {[
+                          ['รายการ', selectedProject.total || 0, 'รายการสินค้า'],
+                          ['จำนวนรวม', selectedProject.qtyTotal || 0, 'หน่วย'],
+                          ['พร้อมใช้', selectedProject.available || 0, 'พร้อมใช้งาน'],
+                          ['ปัญหา', (selectedProject.maintenance || 0) + (selectedProject.lost || 0) + (selectedProject.pending_disposal || 0), 'ซ่อม/สูญหาย/รอจำหน่าย']
+                        ].map(([label, value, desc]) => (
+                          <div key={label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                            <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
+                            <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                        <div className={`xl:col-span-2 p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className={`font-black mb-3 ${theme.textTitle}`}>ข้อมูลโครงการ</div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            {[
+                              ['ผู้รับผิดชอบ', meta.owner || '-'],
+                              ['ปีงบประมาณ', meta.fiscalYear || '-'],
+                              ['งบประมาณ', budgetNumber > 0 ? `${formatMoney(budgetNumber)} บาท` : '-'],
+                              ['ระยะเวลา', `${formatProjectDate(meta.startDate)} - ${formatProjectDate(meta.endDate)}`],
+                              ['วัตถุประสงค์', meta.objective || '-'],
+                              ['หมายเหตุ', meta.note || '-']
+                            ].map(([label, value]) => (
+                              <div key={label} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
+                                <div className={`font-bold mt-1 ${theme.textTitle}`}>{value}</div>
                               </div>
-                            );
-                          })}
-                          {project.items.length > 24 && <div className={`text-center text-xs font-black ${theme.textMuted}`}>แสดง 24 รายการแรก จากทั้งหมด {project.items.length.toLocaleString('th-TH')} รายการ</div>}
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className={`font-black mb-3 ${theme.textTitle}`}>สรุปเร็ว</div>
+                          <div className="space-y-2 text-sm font-bold">
+                            <div className="flex justify-between gap-3"><span className={theme.textMuted}>ถูกยืม/ออกงาน</span><span className={theme.textTitle}>{((selectedProject.borrowed || 0) + (selectedProject.outForEvent || 0)).toLocaleString('th-TH')}</span></div>
+                            <div className="flex justify-between gap-3"><span className={theme.textMuted}>ซ่อม/ชำรุด</span><span className={theme.textTitle}>{(selectedProject.maintenance || 0).toLocaleString('th-TH')}</span></div>
+                            <div className="flex justify-between gap-3"><span className={theme.textMuted}>ยังไม่ติด QR</span><span className={theme.textTitle}>{(selectedProject.qrMissing || 0).toLocaleString('th-TH')}</span></div>
+                            <div className="flex justify-between gap-3"><span className={theme.textMuted}>ข้อมูลไม่ครบ</span><span className={theme.textTitle}>{(selectedProject.missingData || 0).toLocaleString('th-TH')}</span></div>
+                          </div>
+                          <div className={`mt-4 pt-4 border-t ${theme.divide}`}>
+                            <button type="button" onClick={() => { setFilterProject(selectedProject.name); openWorkspace('overview'); }} className="w-full px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black">ดูในหน้าคลังสินค้า</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {(topCategories.length > 0 || topLocations.length > 0) && (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                          <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                            <div className={`font-black mb-3 ${theme.textTitle}`}>หมวดหมู่ในโครงการ</div>
+                            <div className="flex flex-wrap gap-2">{topCategories.map(([name, count]) => <span key={name} className={`px-3 py-2 rounded-xl text-xs font-black border ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-700'}`}>{name} • {count}</span>)}</div>
+                          </div>
+                          <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                            <div className={`font-black mb-3 ${theme.textTitle}`}>สถานที่เก็บหลัก</div>
+                            <div className="flex flex-wrap gap-2">{topLocations.map(([name, count]) => <span key={name} className={`px-3 py-2 rounded-xl text-xs font-black border ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-700'}`}>{name} • {count}</span>)}</div>
+                          </div>
                         </div>
                       )}
 
-                      <div className={`mt-4 pt-4 border-t flex flex-wrap gap-2 ${theme.divide}`}>
-                        {canAddEditItems && project.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => handleRenameProject(project.name)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>เปลี่ยนชื่อ</button>}
-                        {canAddEditItems && project.name !== 'ไม่ระบุโครงการ' && isEmptyProject && <button type="button" onClick={() => handleDeleteEmptyProject(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-rose-600 text-white">ลบโครงการว่าง</button>}
+                      <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className={`p-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
+                          <div>
+                            <div className={`font-black ${theme.textTitle}`}>อุปกรณ์ที่อยู่ในโครงการนี้</div>
+                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>แสดงของที่ระบุช่อง “โครงการ” เป็นชื่อโครงการนี้</div>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {canAddEditItems && selectedProject.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectAssign(selectedProject.name)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>เลือกจากคลัง</button>}
+                            {canAddEditItems && selectedProject.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openNewItemForProject(selectedProject.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-emerald-600 text-white">เพิ่มสินค้าใหม่</button>}
+                          </div>
+                        </div>
+
+                        {isEmptyProject ? (
+                          <div className="p-8 text-center">
+                            <div className={`text-xl font-black ${theme.textTitle}`}>ยังไม่มีอุปกรณ์ในโครงการนี้</div>
+                            <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เริ่มจาก “เลือกจากคลัง” เพื่อผูกของที่มีอยู่แล้ว หรือ “เพิ่มสินค้าใหม่” เพื่อบันทึกของที่จัดซื้อเข้าโครงการนี้</div>
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto custom-scrollbar">
+                            <table className="w-full text-left min-w-[760px]">
+                              <thead className={theme.th}>
+                                <tr>
+                                  <th className="px-4 py-3 font-black">รหัส / S.N.</th>
+                                  <th className="px-4 py-3 font-black">รายการ</th>
+                                  <th className="px-4 py-3 font-black">หมวด / ที่เก็บ</th>
+                                  <th className="px-4 py-3 font-black text-center">จำนวน</th>
+                                  <th className="px-4 py-3 font-black">สถานะ</th>
+                                  <th className="px-4 py-3 font-black text-right">จัดการ</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {projectItems.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'th',{numeric:true})).map(item => {
+                                  const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
+                                  const assetInfo = getAssetStatusInfo(item.assetStatus);
+                                  return (
+                                    <tr key={item.id} className={`${isDarkMode ? 'border-t border-slate-800' : 'border-t border-slate-200'}`}>
+                                      <td className={`px-4 py-3 font-bold ${theme.textMuted}`}>{item.sn || item.id || '-'}</td>
+                                      <td className={`px-4 py-3 font-black ${theme.textTitle}`}>{item.name || '-'}</td>
+                                      <td className={`px-4 py-3 text-sm font-bold ${theme.textMuted}`}>{item.category || '-'}<br />{item.location || '-'}</td>
+                                      <td className={`px-4 py-3 text-center font-black ${theme.textTitle}`}>{Number(item.quantity || 1).toLocaleString('th-TH')}</td>
+                                      <td className="px-4 py-3"><div className="flex flex-col gap-1 items-start"><span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span><span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? assetInfo.darkColor : assetInfo.color}`}>{assetInfo.label}</span></div></td>
+                                      <td className="px-4 py-3 text-right"><div className="inline-flex gap-2"><button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>{canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">แก้ไข</button>}</div></td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
+
+                      {selectedProject.name !== 'ไม่ระบุโครงการ' && isEmptyProject && canAddEditItems && (
+                        <div className={`pt-2 flex flex-wrap gap-2`}>
+                          <button type="button" onClick={() => handleDeleteEmptyProject(selectedProject.name)} className="px-4 py-3 rounded-xl text-sm font-black bg-rose-600 text-white">ลบโครงการว่าง</button>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  </>
+                )}
+              </div>
             </div>
-          )}
+          </div>
         </div>
+
+        {projectMetaEditTarget && (
+          <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
+            <div className={`rounded-[2rem] shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col border ${theme.cardBg}`}>
+              <div className={`p-5 border-b flex items-center justify-between gap-3 ${theme.divide}`}>
+                <div>
+                  <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'}`}>PROJECT SETTINGS</div>
+                  <h3 className={`text-2xl font-black ${theme.textTitle}`}>แก้ไขรายละเอียดโครงการจัดซื้อ</h3>
+                </div>
+                <button type="button" onClick={closeProjectMetaEditor} className={`p-2 rounded-xl border ${theme.btnSecondary}`}><Icons.X className="w-5 h-5" /></button>
+              </div>
+              <div className="p-5 overflow-y-auto custom-scrollbar space-y-4">
+                <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>ชื่อโครงการ *</span><input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={projectMetaForm.name} onChange={e => setProjectMetaForm(prev => ({ ...prev, name: e.target.value }))} /></label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>ปีงบประมาณ</span><input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="2569" value={projectMetaForm.fiscalYear} onChange={e => setProjectMetaForm(prev => ({ ...prev, fiscalYear: e.target.value }))} /></label>
+                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>งบประมาณ</span><input type="number" min="0" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="เช่น 120000" value={projectMetaForm.budget} onChange={e => setProjectMetaForm(prev => ({ ...prev, budget: e.target.value }))} /></label>
+                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>ผู้รับผิดชอบ</span><input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="เช่น ศูนย์ MDEC / ฝ่ายภาพนิ่ง" value={projectMetaForm.owner} onChange={e => setProjectMetaForm(prev => ({ ...prev, owner: e.target.value }))} /></label>
+                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>สถานะโครงการ</span><select className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={projectMetaForm.status} onChange={e => setProjectMetaForm(prev => ({ ...prev, status: e.target.value }))}><option value="draft">แบบร่าง</option><option value="active">ใช้งานอยู่</option><option value="closed">ปิดโครงการแล้ว</option></select></label>
+                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>วันที่เริ่ม</span><input type="date" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={projectMetaForm.startDate} onChange={e => setProjectMetaForm(prev => ({ ...prev, startDate: e.target.value }))} /></label>
+                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>วันที่สิ้นสุด</span><input type="date" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={projectMetaForm.endDate} onChange={e => setProjectMetaForm(prev => ({ ...prev, endDate: e.target.value }))} /></label>
+                </div>
+                <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>วัตถุประสงค์</span><textarea rows={3} className={`w-full px-4 py-3 rounded-xl border font-bold resize-none ${theme.input}`} placeholder="เช่น ปรับปรุงประสิทธิภาพการถ่ายภาพกิจกรรมของวิทยาลัย" value={projectMetaForm.objective} onChange={e => setProjectMetaForm(prev => ({ ...prev, objective: e.target.value }))} /></label>
+                <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>หมายเหตุ</span><textarea rows={3} className={`w-full px-4 py-3 rounded-xl border font-bold resize-none ${theme.input}`} placeholder="รายละเอียดเพิ่มเติม / เลขที่เอกสาร / แหล่งงบ" value={projectMetaForm.note} onChange={e => setProjectMetaForm(prev => ({ ...prev, note: e.target.value }))} /></label>
+              </div>
+              <div className={`p-4 border-t flex flex-col sm:flex-row justify-end gap-2 ${theme.divide}`}>
+                <button type="button" onClick={closeProjectMetaEditor} className={`px-5 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ยกเลิก</button>
+                <button type="button" onClick={() => runWithBusy(handleSaveProjectMeta)} disabled={isBusy} className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black disabled:opacity-60">บันทึกโครงการ</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderOrganizeWorkspace = () => {
     const boxes = settingsOptions.storageBoxes || [];
@@ -5325,7 +5777,7 @@ S.N.: ${item.sn || '-'}
         <div className="print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
           <div>
             <h2 className="font-bold text-xl flex items-center gap-2"><Icons.Printer className="w-6 h-6" /> รายงานโครงการ</h2>
-            <p className="text-slate-300 text-sm font-bold mt-1">ตัวอย่างนี้คือหน้าที่จะพิมพ์จริง ปรับข้อมูลโครงการได้จาก Project Manager</p>
+            <p className="text-slate-300 text-sm font-bold mt-1">ตัวอย่างนี้คือหน้าที่จะพิมพ์จริง ปรับข้อมูลได้จากหน้าโครงการจัดซื้อ</p>
           </div>
           <div className="flex gap-3">
             <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors"><Icons.Printer className="w-5 h-5"/> พิมพ์รายงาน</button>
@@ -5688,7 +6140,7 @@ S.N.: ${item.sn || '-'}
             </button>
           )}
           <button type="button" onClick={() => openWorkspace('projects')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'projects' ? 'bg-gradient-to-r from-indigo-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.Folder className="w-5 h-5" /> ระบบโครงการ
+            <Icons.Folder className="w-5 h-5" /> โครงการจัดซื้อ
           </button>
           <button type="button" onClick={() => openWorkspace('organize')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'organize' ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
             <Icons.Layers className="w-5 h-5" /> กล่อง / เซ็ต / เตรียมของ
@@ -6435,17 +6887,19 @@ S.N.: ${item.sn || '-'}
               const isOverdue = (isBorrowed || isEvent) && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
               const canSelectThis = item.status === 'available' || isBorrowed || isEvent;
               return (
-                <div key={`mobile_${item.id}_${index}`} className={`rounded-3xl border shadow-sm overflow-hidden ${isOverdue ? (isDarkMode ? 'bg-rose-950/30 border-rose-800' : 'bg-rose-50 border-rose-200') : (isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200')}`}>
+                <div key={`mobile_${item.id}_${index}`} className={`stock-mobile-card rounded-3xl border shadow-sm overflow-hidden ${isOverdue ? (isDarkMode ? 'bg-rose-950/30 border-rose-800' : 'bg-rose-50 border-rose-200') : (isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200')}`}>
                   <div className={`p-4 ${isOverdue ? 'border-l-4 border-rose-500' : isEvent ? 'border-l-4 border-orange-400' : isBorrowed ? 'border-l-4 border-purple-400' : item.status === 'maintenance' ? 'border-l-4 border-rose-700' : 'border-l-4 border-blue-200'}`}>
                     <div className="flex items-start gap-3">
                       {canUseOperationalTools && (
+                        <div className="stock-mobile-select-col">
                         <input
                           type="checkbox"
-                          className="w-5 h-5 mt-1 rounded cursor-pointer accent-indigo-600 shrink-0"
+                          className="stock-check mt-1 shrink-0"
                           checked={selectedItems.includes(item.id)}
                           disabled={!canSelectThis}
                           onChange={() => setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id])}
                         />
+                        </div>
                       )}
                       <div className="min-w-0 flex-1">
                         <div className={`font-black text-lg leading-tight ${theme.textTitle}`}>{item.name}</div>
@@ -6500,7 +6954,7 @@ S.N.: ${item.sn || '-'}
                   <th className="px-4 py-4 text-center w-14">
                     <input 
                       type="checkbox" 
-                      className="w-5 h-5 rounded cursor-pointer accent-indigo-600" 
+                      className="stock-check" 
                       onChange={(e) => {
                         if(e.target.checked) setSelectedItems(selectableItems.map(i => i.id));
                         else setSelectedItems([]);
@@ -6546,18 +7000,18 @@ S.N.: ${item.sn || '-'}
                   <tr key={`${item.id}_${index}`} className={`group transition-all ${rowTextSizeClass} ${rowBg} ${rowBorder} hover:shadow-[inset_4px_0_0_rgba(59,130,246,0.45)]`}>
 
                     {canUseOperationalTools && (
-                      <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                      <td className="stock-select-cell px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                         {(item.status === 'available' || isBorrowed || isEvent) ? (
                           <input 
                             type="checkbox" 
-                            className="w-5 h-5 rounded cursor-pointer accent-indigo-600"
+                            className="stock-check"
                             checked={selectedItems.includes(item.id)}
                             onChange={() => {
                               setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
                             }}
                           />
                         ) : (
-                          <div className={`w-5 h-5 mx-auto rounded-sm cursor-not-allowed ${isDarkMode ? 'bg-slate-700 opacity-50' : 'bg-slate-200 opacity-50'}`} title="สถานะนี้ไม่สามารถทำรายการแบบกลุ่มได้"></div>
+                          <div className="stock-check-disabled mx-auto" title="สถานะนี้ไม่สามารถทำรายการแบบกลุ่มได้"></div>
                         )}
                       </td>
                     )}
@@ -9047,7 +9501,7 @@ S.N.: ${item.sn || '-'}
                         <option value="">-- ไม่ระบุโครงการ --</option>
                         {projectOptions.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
-                      <button type="button" onClick={() => openWorkspace('projects')} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ระบบโครงการ</button>
+                      <button type="button" onClick={() => openWorkspace('projects')} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>โครงการจัดซื้อ</button>
                     </div>
                     <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>โครงการใช้สำหรับจัดกลุ่มอุปกรณ์ตามแหล่งที่มา/จัดซื้อ</p>
                   </div>
@@ -9317,7 +9771,7 @@ S.N.: ${item.sn || '-'}
       )}
 
 
-      {/* 🗂️ Project Manager */}
+      {/* 🗂️ Legacy Project Manager (เก็บไว้เผื่อปุ่มเก่าเรียก แต่เมนูหลักใช้หน้าโครงการจัดซื้อแบบเต็มหน้าแล้ว) */}
       {showProjectsModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-[2rem] shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900 border-slate-700 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
@@ -9325,9 +9779,9 @@ S.N.: ${item.sn || '-'}
               <div>
                 <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}>
                   <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white flex items-center justify-center shadow-lg">🗂️</span>
-                  ระบบโครงการ
+                  โครงการจัดซื้อ
                 </h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดกลุ่มอุปกรณ์ตามโครงการ งาน หรือแหล่งที่มา ใช้สำหรับกรอง ตรวจรายการ และพิมพ์รายงานได้ง่าย</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>บันทึกว่าอุปกรณ์แต่ละชิ้นจัดซื้อ/จัดหามาจากโครงการไหน ใช้สำหรับตรวจรายการและพิมพ์รายงาน</p>
               </div>
               <button type="button" onClick={() => setShowProjectsModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -9337,7 +9791,7 @@ S.N.: ${item.sn || '-'}
                 {[
                   ['1', 'สร้างชื่อโครงการ', 'ตั้งชื่อกลุ่ม เช่น งานประชุม / ห้องใหม่ / โครงการจัดซื้อ'],
                   ['2', 'จัดอุปกรณ์', 'กดปุ่มจัดอุปกรณ์ แล้วติ๊กเลือกของที่เกี่ยวข้อง'],
-                  ['3', 'ใช้งานต่อ', 'กดดูเฉพาะโครงการนี้ หรือพิมพ์รายงานได้ทันที']
+                  ['3', 'ใช้งานต่อ', 'กดดูของที่อยู่ในโครงการจัดซื้อนี้ หรือพิมพ์รายงานได้ทันที']
                 ].map(([no, title, desc]) => (
                   <div key={no} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
                     <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black mb-3">{no}</div>
@@ -9350,7 +9804,7 @@ S.N.: ${item.sn || '-'}
               <div className={`p-5 rounded-[1.75rem] border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-end">
                   <div>
-                    <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>เพิ่มชื่อโครงการ / งาน / แหล่งที่มา</label>
+                    <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>เพิ่มชื่อโครงการจัดซื้อ / แหล่งงบประมาณ</label>
                     <input
                       className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
                       placeholder="เช่น งานประชุมใหญ่ / โครงการจัดซื้ออุปกรณ์ / ห้องปฏิบัติการใหม่"
@@ -9470,19 +9924,19 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className={`p-4 border-t ${theme.divide}`}>
-              <button type="button" onClick={() => setShowProjectsModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดระบบโครงการ</button>
+              <button type="button" onClick={() => setShowProjectsModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดโครงการจัดซื้อ</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal จัดอุปกรณ์เข้าโครงการ */}
+      {/* Modal ผูกอุปกรณ์กับโครงการจัดซื้อ */}
       {showProjectAssignModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9995]`}>
           <div className={`rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh] border ${theme.cardBg}`}>
             <div className={`p-5 border-b flex flex-col sm:flex-row sm:items-start justify-between gap-4 ${theme.divide}`}>
               <div>
-                <h3 className={`text-2xl sm:text-3xl font-black ${theme.textTitle}`}>จัดอุปกรณ์เข้าโครงการ</h3>
+                <h3 className={`text-2xl sm:text-3xl font-black ${theme.textTitle}`}>ผูกอุปกรณ์กับโครงการจัดซื้อ</h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>โครงการ: <span className="text-indigo-500">{projectAssignTarget}</span> • ติ๊กเลือกเพื่อเพิ่มเข้ากลุ่ม หรือติ๊กออกเพื่อนำออกจากโครงการ แล้วบันทึกทีเดียว</p>
               </div>
               <button type="button" onClick={() => setShowProjectAssignModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
@@ -9496,7 +9950,7 @@ S.N.: ${item.sn || '-'}
               </div>
             </div>
             <div className={`px-5 py-3 border-b text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-blue-50 border-blue-100 text-blue-800'}`}>
-              วิธีใช้: รายการที่มีเครื่องหมายถูกจะอยู่ในโครงการนี้ ถ้าเอาเครื่องหมายถูกออกแล้วกดบันทึก ระบบจะนำรายการนั้นออกจากโครงการ
+              วิธีใช้: รายการที่มีเครื่องหมายถูกจะถือว่าเป็นอุปกรณ์ที่จัดซื้อ/จัดหามาจากโครงการนี้ ถ้าเอาเครื่องหมายถูกออกแล้วกดบันทึก ระบบจะนำรายการนั้นออกจากโครงการ
             </div>
             <div className="p-4 overflow-y-auto custom-scrollbar flex-1">
               {projectAssignCandidateItems.length === 0 ? (
@@ -9513,7 +9967,7 @@ S.N.: ${item.sn || '-'}
                           <div className="min-w-0 flex-1">
                             <div className="font-black truncate">{item.name}</div>
                             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • {item.location || '-'}</div>
-                            <div className={`text-xs font-bold mt-2 ${already ? 'text-emerald-500' : theme.textMuted}`}>{checked ? (already ? 'อยู่ในโครงการนี้แล้ว' : 'จะเพิ่มเข้าโครงการนี้') : (already ? 'จะนำออกจากโครงการนี้เมื่อบันทึก' : `ปัจจุบัน: ${item.project || 'ไม่ระบุโครงการ'}`)}</div>
+                            <div className={`text-xs font-bold mt-2 ${already ? 'text-emerald-500' : theme.textMuted}`}>{checked ? (already ? 'อยู่ในโครงการจัดซื้อนี้แล้ว' : 'จะผูกเข้าโครงการจัดซื้อนี้') : (already ? 'จะนำออกจากโครงการจัดซื้อนี้เมื่อบันทึก' : `ปัจจุบัน: ${item.project || 'ไม่ระบุโครงการ'}`)}</div>
                           </div>
                         </div>
                       </button>
