@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.39.2 Solid UI + Project Clarity';
-const APP_UPDATE_NOTE = 'แก้เมนูเอกสารย้อนหลังให้เปิดหน้ารายการเอกสารได้จริง พร้อมค้นหา กรองสถานะ และพิมพ์ซ้ำ โดยไม่เปลี่ยนโครงสร้างฐานข้อมูล';
+const APP_VERSION = 'v22.40.0 Workspaces + Solid UI';
+const APP_UPDATE_NOTE = 'ปรับ UI ให้ทึบอ่านง่ายขึ้น เพิ่มหน้าโครงการ/กล่อง/เซ็ตแบบเต็มหน้า และแก้โครงการที่สร้างไว้แต่ยังไม่มีอุปกรณ์ให้แสดงไม่หาย';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -153,6 +153,45 @@ function FactoryPolishStyle({ isDarkMode }) {
       }
       .factory-stock-polish button:active {
         transform: translateY(1px) scale(.99);
+      }
+      .factory-stock-polish .solid-workspace,
+      .factory-stock-polish .solid-panel,
+      .factory-stock-polish table,
+      .factory-stock-polish thead,
+      .factory-stock-polish tbody,
+      .factory-stock-polish tr,
+      .factory-stock-polish td,
+      .factory-stock-polish th {
+        backdrop-filter: none !important;
+      }
+      .factory-stock-polish .stock-table-compact th {
+        font-size: 12px;
+        letter-spacing: .03em;
+        white-space: nowrap;
+      }
+      .factory-stock-polish .stock-table-compact td {
+        vertical-align: middle;
+      }
+      .factory-stock-polish .stock-name-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .factory-stock-polish .stock-name-line .stock-title {
+        font-size: 16px;
+        line-height: 1.25;
+        font-weight: 900;
+      }
+      .factory-stock-polish .stock-meta-line {
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .factory-stock-polish .workspace-tabbar {
+        scrollbar-width: thin;
+      }
+      .factory-stock-polish .workspace-action-card:hover {
+        transform: translateY(-1px);
       }
       .factory-stock-polish .factory-topbar {
         display: flex;
@@ -470,7 +509,21 @@ function MainApp() {
   const [uiMode, setUiMode] = useState(() => {
     try { return localStorage.getItem('mdec_ui_mode') || 'easy'; } catch(e) { return 'easy'; }
   });
+  const [activeWorkspace, setActiveWorkspace] = useState('overview');
   const isFullMode = uiMode === 'full';
+  const openWorkspace = (workspace = 'overview') => {
+    setActiveWorkspace(workspace);
+    setShowMoreMenu(false);
+    setShowProjectsModal(false);
+    setShowStorageBoxesModal(false);
+    setShowBundleManager(false);
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+  };
+  const openControlCenter = () => {
+    setActiveWorkspace('overview');
+    setShowMoreMenu(true);
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+  };
   const openTrackingCenter = (tab = 'today') => {
     setTrackingTab(tab);
     setShowTrackingCenterModal(true);
@@ -706,7 +759,7 @@ function MainApp() {
   const pagePaddingClass = isCompactUi ? 'p-3 sm:p-5 pb-28' : 'p-4 sm:p-8 pb-32';
   const panelPaddingClass = isCompactUi ? 'p-4 sm:p-5' : 'p-5 sm:p-6';
   const controlPaddingClass = isCompactUi ? 'py-3' : 'py-4';
-  const rowTextSizeClass = isCompactUi ? 'text-base' : 'text-lg';
+  const rowTextSizeClass = isCompactUi ? 'text-sm' : 'text-base';
   const cardGapClass = isCompactUi ? 'gap-3' : 'gap-4';
 
   const saveUiSettings = async (patch = {}) => {
@@ -1735,18 +1788,28 @@ function MainApp() {
 
   const projectStats = useMemo(() => {
     const map = {};
-    items.filter(item => item && !item.isDeleted).forEach((item) => {
-      const projectName = String(item.project || 'ไม่ระบุโครงการ').trim() || 'ไม่ระบุโครงการ';
-      if (!map[projectName]) {
-        map[projectName] = { name: projectName, total: 0, active: 0, disposed: 0, lost: 0, pending_disposal: 0, items: [] };
+    const ensureProject = (projectName) => {
+      const name = String(projectName || 'ไม่ระบุโครงการ').trim() || 'ไม่ระบุโครงการ';
+      if (!map[name]) {
+        map[name] = { name, total: 0, active: 0, disposed: 0, lost: 0, pending_disposal: 0, items: [] };
       }
+      return map[name];
+    };
+
+    // สำคัญ: ชื่อโครงการที่สร้างไว้ใน Settings ต้องแสดงเสมอ แม้ยังไม่มีอุปกรณ์ผูกอยู่
+    (Array.isArray(settingsOptions.projects) ? settingsOptions.projects : [])
+      .filter(projectName => projectName && projectName !== 'อื่นๆ')
+      .forEach(projectName => ensureProject(projectName));
+
+    items.filter(item => item && !item.isDeleted).forEach((item) => {
+      const project = ensureProject(item.project || 'ไม่ระบุโครงการ');
       const assetStatus = item.assetStatus || 'active';
-      map[projectName].total += 1;
-      map[projectName][assetStatus] = (map[projectName][assetStatus] || 0) + 1;
-      map[projectName].items.push(item);
+      project.total += 1;
+      project[assetStatus] = (project[assetStatus] || 0) + 1;
+      project.items.push(item);
     });
     return Object.values(map).sort((a, b) => String(a.name).localeCompare(String(b.name), 'th', { numeric: true }));
-  }, [items]);
+  }, [items, settingsOptions.projects]);
 
   const filteredProjectStats = useMemo(() => {
     const q = String(projectManagerSearch || '').trim().toLowerCase();
@@ -2030,6 +2093,306 @@ S.N.: ${item.sn || '-'}
     softPanel: `rounded-[1.75rem] border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`,
     primaryBtn: 'bg-blue-600 hover:bg-blue-500 text-white font-black',
     dangerBtn: 'bg-rose-600 hover:bg-rose-500 text-white font-black'
+  };
+
+
+  const workspaceMeta = {
+    overview: {
+      kicker: 'MDEC STOCK CENTER',
+      title: 'ภาพรวมระบบ',
+      desc: 'ระบบจัดการสต๊อกศูนย์มัลติมีเดียทางการศึกษา'
+    },
+    projects: {
+      kicker: 'PROJECT WORKSPACE',
+      title: 'ระบบโครงการ',
+      desc: 'จัดกลุ่มอุปกรณ์ตามโครงการ งาน แหล่งที่มา และพิมพ์รายงาน'
+    },
+    organize: {
+      kicker: 'ORGANIZE WORKSPACE',
+      title: 'กล่อง / เซ็ต / เตรียมของ',
+      desc: 'จัดเก็บอุปกรณ์เป็นกล่อง จัดเซ็ตใช้งานประจำ และเตรียมรายการออกงาน'
+    }
+  };
+  const currentWorkspaceMeta = workspaceMeta[activeWorkspace] || workspaceMeta.overview;
+
+  const renderWorkspaceTabs = () => (
+    <div className={`workspace-tabbar w-full mb-5 rounded-[1.5rem] border shadow-sm p-2 flex gap-2 overflow-x-auto ${theme.cardBg}`}>
+      {[
+        ['overview', 'ภาพรวม', Icons.Package, 'กลับหน้ารายการทั้งหมด'],
+        ['projects', 'ระบบโครงการ', Icons.Database, `${projectStats.length.toLocaleString('th-TH')} โครงการ`],
+        ['organize', 'กล่อง / เซ็ต', Icons.Layers, `${(settingsOptions.storageBoxes || []).length} กล่อง • ${(settingsOptions.bundles || []).length} เซ็ต`]
+      ].map(([id, label, Icon, desc]) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => openWorkspace(id)}
+          className={`min-w-[190px] flex items-center gap-3 px-4 py-3 rounded-2xl border text-left transition-all ${activeWorkspace === id ? 'bg-blue-600 border-blue-600 text-white shadow-md' : theme.btnSecondary}`}
+        >
+          <Icon className="w-5 h-5 shrink-0" />
+          <span className="min-w-0">
+            <span className="block font-black truncate">{label}</span>
+            <span className={`block text-[11px] font-bold truncate ${activeWorkspace === id ? 'text-blue-100' : theme.textMuted}`}>{desc}</span>
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+
+  const renderProjectWorkspace = () => (
+    <div className="solid-workspace space-y-5">
+      {renderWorkspaceTabs()}
+      <div className={`rounded-[1.75rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
+        <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-4 ${theme.divide}`}>
+          <div>
+            <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'}`}>PROJECT MANAGER</div>
+            <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>ระบบโครงการแบบเต็มหน้า</h2>
+            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>โครงการที่สร้างไว้จะแสดงตรงนี้เสมอ แม้ยังไม่มีอุปกรณ์ผูกอยู่ เพื่อไม่ให้หาไม่เจออีก</p>
+          </div>
+          <div className="grid grid-cols-2 sm:flex gap-2">
+            <button type="button" onClick={() => { setQuickProjectName(''); document.getElementById('quick-project-input')?.focus(); }} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>+ สร้างโครงการ</button>
+            <button type="button" onClick={() => { setFilterProject('all'); setProjectManagerSearch(''); }} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
+          </div>
+        </div>
+
+        <div className="p-5 sm:p-6 space-y-5">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+            {[
+              ['โครงการทั้งหมด', projectStats.length, 'text-indigo-500', 'ชื่อโครงการที่บันทึกไว้'],
+              ['มีอุปกรณ์ผูกอยู่', projectStats.filter(p => (p.total || 0) > 0).length, 'text-blue-500', 'โครงการที่มีรายการแล้ว'],
+              ['ยังว่าง', projectStats.filter(p => (p.total || 0) === 0).length, 'text-amber-500', 'สร้างไว้แต่ยังไม่ผูกของ'],
+              ['อุปกรณ์ในโครงการ', projectStats.reduce((s,p)=>s+(p.total||0),0), 'text-emerald-500', 'รวมทุกรายการ']
+            ].map(([label, value, color, desc]) => (
+              <div key={label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
+                <div className={`text-3xl font-black mt-1 ${color}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className={`rounded-[1.5rem] border p-4 sm:p-5 grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-3 items-end ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+            <div>
+              <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>เพิ่มชื่อโครงการ / งาน / แหล่งที่มา</label>
+              <input
+                id="quick-project-input"
+                className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
+                placeholder="เช่น งานประชุมใหญ่ / โครงการจัดซื้อกล้อง / ห้องปฏิบัติการใหม่"
+                value={quickProjectName}
+                onChange={e => setQuickProjectName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleAddProjectQuick(); }}
+              />
+              <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>หลังสร้างแล้ว กด “จัดอุปกรณ์” ในการ์ดโครงการเพื่อติ๊กเลือกของเข้าโครงการ</p>
+            </div>
+            <button type="button" onClick={handleAddProjectQuick} className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black shadow-md whitespace-nowrap">บันทึกชื่อโครงการ</button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3">
+            <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาโครงการ / ชื่ออุปกรณ์ / S.N. / ห้อง / หมวดหมู่" value={projectManagerSearch} onChange={e => setProjectManagerSearch(e.target.value)} />
+            <button type="button" onClick={() => setProjectManagerSearch('')} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างคำค้น</button>
+          </div>
+
+          {filterProject !== 'all' && (
+            <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-indigo-950/30 border-indigo-800 text-indigo-200' : 'bg-indigo-50 border-indigo-200 text-indigo-700'}`}>
+              <div className="font-black">ตอนนี้กำลังกรองหน้าอุปกรณ์ด้วยโครงการ: {filterProject}</div>
+              <button type="button" onClick={() => setFilterProject('all')} className={`px-3 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>ยกเลิกกรองโครงการ</button>
+            </div>
+          )}
+
+          {filteredProjectStats.length === 0 ? (
+            <div className={ui.emptyBox}>ไม่พบโครงการที่ตรงกับคำค้น</div>
+          ) : (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              {filteredProjectStats.map((project) => {
+                const progress = project.total ? Math.round(((project.active || 0) / project.total) * 100) : 0;
+                const isEmptyProject = (project.total || 0) === 0;
+                return (
+                  <div key={project.name} className={`rounded-[1.5rem] border overflow-hidden shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className={`p-5 border-b ${theme.divide}`}>
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className={`flex items-center gap-2 flex-wrap font-black text-xl ${theme.textTitle}`}>
+                            <span className="truncate">{project.name}</span>
+                            {isEmptyProject && <span className={`px-2 py-1 rounded-lg text-xs border ${isDarkMode ? 'bg-amber-950/40 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>ยังไม่มีอุปกรณ์</span>}
+                          </div>
+                          <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ทั้งหมด {project.total} รายการ • ใช้งานอยู่ {project.active || 0} • ชำรุดรอจำหน่าย {project.pending_disposal || 0}</div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 shrink-0">
+                          {canAddEditItems && project.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectAssign(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 hover:bg-blue-500 text-white">จัดอุปกรณ์</button>}
+                          <button type="button" onClick={() => openProjectPrint(project.name)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>พิมพ์รายงาน</button>
+                          <button type="button" onClick={() => { setFilterProject(project.name); openWorkspace('overview'); }} className="px-3 py-2 rounded-xl text-sm font-black bg-indigo-600 hover:bg-indigo-500 text-white">ดูในรายการอุปกรณ์</button>
+                        </div>
+                      </div>
+                      <div className={`mt-4 h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                        <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full transition-all" style={{ width: `${progress}%` }}></div>
+                      </div>
+                    </div>
+
+                    <div className="p-4">
+                      {isEmptyProject ? (
+                        <div className={`p-6 rounded-2xl border text-center font-bold ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                          โครงการนี้ถูกสร้างไว้แล้ว แต่ยังไม่ได้ผูกอุปกรณ์ กด “จัดอุปกรณ์” เพื่อเริ่มใช้งาน
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar pr-1">
+                          {project.items.slice(0, 24).map((item) => {
+                            const assetInfo = getAssetStatusInfo(item.assetStatus);
+                            const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
+                            return (
+                              <div key={item.id} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
+                                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'} • {item.category || '-'}</div>
+                                  </div>
+                                  <div className="flex flex-col gap-1 items-end shrink-0">
+                                    <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                                    <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? assetInfo.darkColor : assetInfo.color}`}>{assetInfo.label}</span>
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
+                                  <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>
+                                  {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">แก้ไข</button>}
+                                  <button type="button" onClick={() => copyItemSummary(item)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>คัดลอก</button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {project.items.length > 24 && <div className={`text-center text-xs font-black ${theme.textMuted}`}>แสดง 24 รายการแรก จากทั้งหมด {project.items.length.toLocaleString('th-TH')} รายการ</div>}
+                        </div>
+                      )}
+
+                      <div className={`mt-4 pt-4 border-t flex flex-wrap gap-2 ${theme.divide}`}>
+                        {canAddEditItems && project.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => handleRenameProject(project.name)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>เปลี่ยนชื่อ</button>}
+                        {canAddEditItems && project.name !== 'ไม่ระบุโครงการ' && isEmptyProject && <button type="button" onClick={() => handleDeleteEmptyProject(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-rose-600 text-white">ลบโครงการว่าง</button>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderOrganizeWorkspace = () => {
+    const boxes = settingsOptions.storageBoxes || [];
+    const bundles = settingsOptions.bundles || [];
+    const prepLists = settingsOptions.prepLists || [];
+    return (
+      <div className="solid-workspace space-y-5">
+        {renderWorkspaceTabs()}
+        <div className={`rounded-[1.75rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
+          <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-4 ${theme.divide}`}>
+            <div>
+              <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>ORGANIZE CENTER</div>
+              <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>กล่อง / เซ็ต / รายการเตรียมของ</h2>
+              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หน้านี้รวมงานจัดระเบียบอุปกรณ์ที่เริ่มใหญ่ขึ้น แยกจากรายการสต๊อกหลักให้ดูง่าย</p>
+            </div>
+            <div className="grid grid-cols-2 sm:flex gap-2">
+              <button type="button" onClick={() => openStorageBoxEditor()} className="px-4 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black">+ สร้างกล่อง</button>
+              <button type="button" onClick={() => { setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className="px-4 py-3 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-black">+ สร้างเซ็ต</button>
+              <button type="button" onClick={() => setShowPrepListsModal(true)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>รายการเตรียมของ</button>
+            </div>
+          </div>
+
+          <div className="p-5 sm:p-6 space-y-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                ['กล่องเก็บของ', boxes.length, 'text-cyan-500', 'จัดตามกล่อง/ชั้น/ตู้'],
+                ['อุปกรณ์ในกล่อง', boxes.reduce((s,b)=>s+(b.itemIds||[]).length,0), 'text-blue-500', 'รวมจำนวนที่ผูกกล่อง'],
+                ['เซ็ตอุปกรณ์', bundles.length, 'text-fuchsia-500', 'ชุดที่ใช้บ่อย'],
+                ['รายการเตรียมของ', prepLists.length, 'text-amber-500', 'แผนออกงาน/จัดของ']
+              ].map(([label, value, color, desc]) => (
+                <div key={label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
+                  <div className={`text-3xl font-black mt-1 ${color}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+              <section className={`rounded-[1.5rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className={`p-4 border-b flex items-center justify-between gap-3 ${theme.divide}`}>
+                  <div>
+                    <h3 className={`text-xl font-black ${theme.textTitle}`}>กล่องเก็บของ</h3>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เหมาะกับตู้ ชั้น กล่องอุปกรณ์ และฉลากหน้ากล่อง</p>
+                  </div>
+                  <button type="button" onClick={() => openStorageBoxEditor()} className="px-3 py-2 rounded-xl bg-cyan-600 text-white font-black text-sm">เพิ่มกล่อง</button>
+                </div>
+                <div className="p-4 space-y-3 max-h-[520px] overflow-y-auto custom-scrollbar">
+                  {boxes.length === 0 ? (
+                    <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ยังไม่มีกล่องเก็บของ</div>
+                  ) : boxes.map((box) => {
+                    const validIds = (box.itemIds || []).filter(id => items.some(item => item.id === id));
+                    return (
+                      <div key={box.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className={`font-black text-lg truncate ${theme.textTitle}`}>📦 {box.name}</div>
+                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{validIds.length} รายการ • {box.note || 'ไม่มีหมายเหตุ'}</div>
+                          </div>
+                          <span className={`px-2 py-1 rounded-lg text-xs font-black border ${isDarkMode ? 'bg-cyan-950/40 border-cyan-800 text-cyan-300' : 'bg-cyan-50 border-cyan-200 text-cyan-700'}`}>{box.size || 'normal'}</span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                          <button type="button" onClick={() => selectStorageBoxItems(box)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>เลือกของ</button>
+                          <button type="button" onClick={() => openStorageBoxLabel(box)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">พิมพ์ฉลาก</button>
+                          <button type="button" onClick={() => openStorageBoxEditor(box)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>แก้ไข</button>
+                          <button type="button" onClick={() => { setFilterLocation('all'); setSearchTerm(box.name || ''); openWorkspace('overview'); }} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ดูในสต๊อก</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className={`rounded-[1.5rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className={`p-4 border-b flex items-center justify-between gap-3 ${theme.divide}`}>
+                  <div>
+                    <h3 className={`text-xl font-black ${theme.textTitle}`}>เซ็ตอุปกรณ์</h3>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ชุดอุปกรณ์ที่หยิบใช้งานพร้อมกัน เช่น เซ็ตกล้องหลัก เซ็ต Live</p>
+                  </div>
+                  <button type="button" onClick={() => { setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className="px-3 py-2 rounded-xl bg-fuchsia-600 text-white font-black text-sm">เพิ่มเซ็ต</button>
+                </div>
+                <div className="p-4 space-y-3 max-h-[520px] overflow-y-auto custom-scrollbar">
+                  {bundles.length === 0 ? (
+                    <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ยังไม่มีเซ็ตอุปกรณ์</div>
+                  ) : bundles.map((bundle) => {
+                    const ids = (bundle.itemIds || []).filter(id => items.some(item => item.id === id));
+                    const availableInBundle = ids.filter(id => items.find(item => item.id === id)?.status === 'available').length;
+                    return (
+                      <div key={bundle.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className={`font-black text-lg truncate ${theme.textTitle}`}>🧩 {bundle.name}</div>
+                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{ids.length} รายการ • พร้อมใช้ {availableInBundle} รายการ</div>
+                          </div>
+                          <span className={`px-2 py-1 rounded-lg text-xs font-black border ${availableInBundle === ids.length ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700') : (isDarkMode ? 'bg-amber-950/40 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700')}`}>{availableInBundle}/{ids.length}</span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                          <button type="button" onClick={() => setSelectedItems(ids)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>เลือกเซ็ต</button>
+                          <button type="button" onClick={() => handleSelectBundleToBorrow(bundle)} className="px-3 py-2 rounded-xl text-sm font-black bg-purple-600 text-white">ยืม</button>
+                          <button type="button" onClick={() => handleSelectBundleToEvent(bundle)} className="px-3 py-2 rounded-xl text-sm font-black bg-orange-600 text-white">ออกงาน</button>
+                          <button type="button" onClick={() => { setBundleForm({ id: bundle.id, name: bundle.name, itemIds: bundle.itemIds || [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>แก้ไข</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderActiveWorkspace = () => {
+    if (activeWorkspace === 'projects') return renderProjectWorkspace();
+    if (activeWorkspace === 'organize') return renderOrganizeWorkspace();
+    return null;
   };
 
   const settingsNavItems = [
@@ -5308,7 +5671,7 @@ S.N.: ${item.sn || '-'}
         </div>
 
         <nav className="flex-1 px-4 py-5 space-y-2 overflow-y-auto custom-scrollbar">
-          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 transition-all text-left font-black">
+          <button type="button" onClick={() => openWorkspace('overview')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'overview' ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
             <Icons.Package className="w-5 h-5" /> ภาพรวมระบบ
           </button>
           {canUseOperationalTools && (
@@ -5324,8 +5687,11 @@ S.N.: ${item.sn || '-'}
               <Icons.Plus className="w-5 h-5" /> เพิ่มอุปกรณ์
             </button>
           )}
-          <button type="button" onClick={() => setShowProjectsModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+          <button type="button" onClick={() => openWorkspace('projects')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'projects' ? 'bg-gradient-to-r from-indigo-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
             <Icons.Folder className="w-5 h-5" /> ระบบโครงการ
+          </button>
+          <button type="button" onClick={() => openWorkspace('organize')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'organize' ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
+            <Icons.Layers className="w-5 h-5" /> กล่อง / เซ็ต / เตรียมของ
           </button>
           <button type="button" onClick={() => setShowProofCenterModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
             <Icons.Camera className="w-5 h-5" /> หลักฐานรูปภาพ
@@ -5333,7 +5699,7 @@ S.N.: ${item.sn || '-'}
           <button type="button" onClick={() => setShowBorrowDocsModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
             <Icons.Printer className="w-5 h-5" /> เอกสารย้อนหลัง
           </button>
-          <button type="button" onClick={() => setShowMoreMenu(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+          <button type="button" onClick={openControlCenter} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
             <Icons.ViewGrid className="w-5 h-5" /> Control Center
           </button>
 
@@ -5391,9 +5757,9 @@ S.N.: ${item.sn || '-'}
       {/* FactoryStock-style Top Bar */}
       <div className="factory-topbar">
         <div className="factory-page-title">
-          <div className="factory-kicker"><span className="factory-dot"></span>MDEC STOCK CENTER</div>
-          <h1>ภาพรวมระบบ</h1>
-          <p>ระบบจัดการสต๊อกศูนย์มัลติมีเดียทางการศึกษา • {APP_VERSION}</p>
+          <div className="factory-kicker"><span className="factory-dot"></span>{currentWorkspaceMeta.kicker}</div>
+          <h1>{currentWorkspaceMeta.title}</h1>
+          <p>{currentWorkspaceMeta.desc} • {APP_VERSION}</p>
         </div>
 
         <div className="factory-top-actions">
@@ -5424,7 +5790,7 @@ S.N.: ${item.sn || '-'}
                 </button>
               )}
               {canUseOperationalTools && (
-                <button type="button" onClick={() => setShowMoreMenu(true)} className="factory-ghost-btn" title="Control Center">
+                <button type="button" onClick={openControlCenter} className="factory-ghost-btn" title="Control Center">
                   <Icons.ViewGrid className="w-5 h-5" /><span>เพิ่มเติม</span>
                 </button>
               )}
@@ -5465,6 +5831,11 @@ S.N.: ${item.sn || '-'}
           <div className={`text-xs font-black px-3 py-2 rounded-xl border ${roleBadgeClass(currentAccountRole)}`}>{currentFullAccount?.username ? '@' + currentFullAccount.username : 'บัญชีภายใน'}</div>
         </div>
       )}
+
+      {activeWorkspace !== 'overview' && renderActiveWorkspace()}
+
+      {activeWorkspace === 'overview' && (
+        <>
 
       {/* Control Center: รวมฟังก์ชันที่คล้ายกันให้เป็นหมวดใหญ่ */}
       {showMoreMenu && (
@@ -5531,11 +5902,11 @@ S.N.: ${item.sn || '-'}
               <div>
                 <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Folder className="w-5 h-5 text-cyan-500" /> จัดเก็บและจัดชุดอุปกรณ์</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowStorageBoxesModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => openWorkspace('organize')} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Folder className="w-5 h-5" /> กล่องเก็บของ</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดกล่องและฉลาก</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => openWorkspace('organize')} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Layers className="w-5 h-5" /> เซ็ตอุปกรณ์</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดเซ็ตใช้งานร่วมกัน</p>
                   </button>
@@ -5547,7 +5918,7 @@ S.N.: ${item.sn || '-'}
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Tag className="w-5 h-5" /> ของส่วนตัว</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แยกอุปกรณ์ตามเจ้าของ</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowProjectsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => openWorkspace('projects')} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Database className="w-5 h-5" /> โครงการ</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดกลุ่มตามแหล่งที่มา</p>
                   </button>
@@ -5927,7 +6298,7 @@ S.N.: ${item.sn || '-'}
                       <option value="all">โครงการทั้งหมด</option>
                       {projectOptions.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    <button type="button" onClick={() => { setShowFilterModal(false); setShowProjectsModal(true); }} className="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black whitespace-nowrap">จัดการ</button>
+                    <button type="button" onClick={() => { setShowFilterModal(false); openWorkspace('projects'); }} className="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black whitespace-nowrap">จัดการ</button>
                   </div>
                 </div>
                 <div>
@@ -6122,7 +6493,7 @@ S.N.: ${item.sn || '-'}
         )}
 
         <div className="hidden lg:block overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse min-w-[900px]">
+          <table className="stock-table-compact w-full text-left border-collapse min-w-[980px]">
             <thead>
               <tr className={`border-b text-sm uppercase tracking-wide transition-colors ${theme.th}`}>
                 {canUseOperationalTools && (
@@ -6192,8 +6563,8 @@ S.N.: ${item.sn || '-'}
                     )}
 
                     <td className="px-4 py-4 pl-6">
-                      <div className={`font-bold text-xl flex items-center gap-2 flex-wrap ${theme.textTitle}`}>
-                        {item.name} 
+                      <div className={`stock-name-line ${theme.textTitle}`}>
+                        <span className="stock-title">{item.name}</span> 
                         {qty > 1 && <span className={`text-base px-2 py-1 rounded-md ${isDarkMode ? 'bg-blue-900/40 text-blue-400' : 'bg-blue-100 text-blue-700'}`}>x{qty}</span>}
                         {item.owner && (
                            <span className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>
@@ -6222,8 +6593,8 @@ S.N.: ${item.sn || '-'}
                         )}
                         {isOverdue && <span className="bg-rose-500 text-white text-xs px-2 py-1 rounded-md font-bold shadow-sm">เลยกำหนดคืน!</span>}
                       </div>
-                      {item.sn && <div className={`text-base mt-1 font-mono ${theme.textMuted}`}>S.N.: {item.sn}</div>}
-                      {(item.updatedBy || item.updatedAt) && <div className={`text-xs mt-1 font-bold ${theme.textMuted}`}>แก้ไขล่าสุด: {item.updatedBy || '-'} {item.updatedAt ? `• ${new Date(item.updatedAt).toLocaleString('th-TH', { hour12: false })}` : ''}</div>}
+                      {item.sn && <div className={`stock-meta-line mt-1 font-mono ${theme.textMuted}`}>S.N.: {item.sn}</div>}
+                      {(item.updatedBy || item.updatedAt) && <div className={`stock-meta-line mt-1 font-bold ${theme.textMuted}`}>แก้ไขล่าสุด: {item.updatedBy || '-'} {item.updatedAt ? `• ${new Date(item.updatedAt).toLocaleString('th-TH', { hour12: false })}` : ''}</div>}
 
                       {(isBorrowed || isEvent) && (
                         <div className={`text-base mt-2 p-2 rounded-lg border inline-block ${isOverdue ? (isDarkMode ? 'bg-rose-900/30 border-rose-800' : 'bg-rose-100 border-rose-200') : isEvent ? (isDarkMode ? 'bg-orange-900/30 border-orange-800' : 'bg-orange-50 border-orange-100') : (isDarkMode ? 'bg-purple-900/30 border-purple-800' : 'bg-purple-50 border-purple-100')}`}>
@@ -6291,6 +6662,9 @@ S.N.: ${item.sn || '-'}
         </>
       )}
 
+        </>
+      )}
+
       {/* 🛒 Bulk Selection Action Bar */}
       {canUseOperationalTools && selectedItems.length > 0 && (() => {
         const selectedActiveItems = selectedItems.map(id => items.find(item => item.id === id)).filter(Boolean);
@@ -6309,10 +6683,10 @@ S.N.: ${item.sn || '-'}
         const secondaryButtonClass = `w-full px-4 py-3 rounded-2xl font-black text-sm border flex items-center gap-3 text-left transition-colors ${isDarkMode ? 'bg-slate-950 hover:bg-slate-800 border-slate-700 text-slate-200' : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'}`;
 
         return (
-          <div className="fixed inset-x-3 bottom-4 sm:bottom-6 z-40 flex justify-center pointer-events-none">
-            <div className={`pointer-events-auto w-full max-w-4xl rounded-[1.75rem] border shadow-[0_20px_70px_rgba(0,0,0,0.28)] backdrop-blur-2xl p-3 sm:p-4 animate-[slideUp_0.3s_ease-out] ${isDarkMode ? 'bg-slate-950/92 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-              <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4">
-                <div className="flex items-center justify-between gap-3 lg:w-72 shrink-0">
+          <div className="fixed inset-x-3 bottom-4 sm:bottom-6 lg:inset-x-auto lg:right-6 lg:bottom-6 lg:w-[390px] z-40 flex justify-center pointer-events-none">
+            <div className={`pointer-events-auto w-full max-w-4xl lg:max-w-none rounded-[1.5rem] border shadow-[0_18px_55px_rgba(0,0,0,0.32)] p-3 sm:p-4 animate-[slideUp_0.3s_ease-out] ${isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3 shrink-0">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="bg-indigo-600 text-white font-black w-11 h-11 rounded-2xl flex items-center justify-center shadow-inner text-lg shrink-0">{selectedItems.length}</div>
                     <div className="min-w-0">
@@ -6330,7 +6704,7 @@ S.N.: ${item.sn || '-'}
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 sm:flex sm:flex-wrap lg:flex-nowrap gap-2 flex-1">
+                <div className="grid grid-cols-2 gap-2 flex-1">
                   {singleSelectedItem && (
                     <button
                       type="button"
@@ -7842,7 +8216,7 @@ S.N.: ${item.sn || '-'}
                   </div>
                 </div>
 
-                <div className={`mt-4 shrink-0 flex flex-col sm:flex-row gap-3 sticky bottom-0 lg:static z-10 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 sm:py-0 border-t sm:border-t-0 backdrop-blur ${isDarkMode ? 'bg-slate-800/95 sm:bg-transparent border-slate-700' : 'bg-white sm:bg-transparent border-slate-200'}`}>
+                <div className={`mt-4 shrink-0 flex flex-col sm:flex-row gap-3 sticky bottom-0 lg:static z-10 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 sm:py-0 border-t sm:border-t-0 ${isDarkMode ? 'bg-slate-800/95 sm:bg-transparent border-slate-700' : 'bg-white sm:bg-transparent border-slate-200'}`}>
                   {bundleForm.id && (
                     <button type="button" onClick={() => { setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(false); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>
                       ยกเลิก
@@ -8673,7 +9047,7 @@ S.N.: ${item.sn || '-'}
                         <option value="">-- ไม่ระบุโครงการ --</option>
                         {projectOptions.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
-                      <button type="button" onClick={() => setShowProjectsModal(true)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ระบบโครงการ</button>
+                      <button type="button" onClick={() => openWorkspace('projects')} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ระบบโครงการ</button>
                     </div>
                     <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>โครงการใช้สำหรับจัดกลุ่มอุปกรณ์ตามแหล่งที่มา/จัดซื้อ</p>
                   </div>
@@ -9605,7 +9979,7 @@ S.N.: ${item.sn || '-'}
           <button type="button" onClick={() => openTrackingCenter('today')} className={`py-2 rounded-2xl text-xs font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
             <Icons.History className="w-5 h-5" />ติดตาม
           </button>
-          <button type="button" onClick={() => setShowMoreMenu(true)} className={`py-2 rounded-2xl text-xs font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
+          <button type="button" onClick={openControlCenter} className={`py-2 rounded-2xl text-xs font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
             <Icons.ViewGrid className="w-5 h-5" />เมนู
           </button>
         </div>
