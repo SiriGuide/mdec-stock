@@ -2354,6 +2354,213 @@ function FactoryPolishStyle({ isDarkMode }) {
         font-family: inherit !important;
       }
 
+
+      /* v22.51.1 Mobile Polish Pass — เก็บฝั่งโทรศัพท์ทั้งเว็บแบบปลอดภัย */
+      @media (max-width: 767px) {
+        .factory-stock-polish {
+          overflow-x: hidden !important;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        .factory-stock-polish main,
+        .factory-stock-polish .main-content,
+        .factory-stock-polish .content-area,
+        .factory-stock-polish .page-content {
+          max-width: 100vw !important;
+          overflow-x: hidden !important;
+        }
+
+        /* Header / page title บนมือถือให้สั้น ไม่กินจอ */
+        .factory-stock-polish .factory-topbar {
+          padding: 12px 0 8px !important;
+          gap: 10px !important;
+          align-items: stretch !important;
+        }
+        .factory-stock-polish .factory-page-title h1 {
+          font-size: clamp(22px, 7vw, 30px) !important;
+          line-height: 1.05 !important;
+        }
+        .factory-stock-polish .factory-page-title p {
+          font-size: 12px !important;
+          line-height: 1.35 !important;
+          margin-top: 5px !important;
+          display: -webkit-box !important;
+          -webkit-line-clamp: 2 !important;
+          -webkit-box-orient: vertical !important;
+          overflow: hidden !important;
+        }
+        .factory-stock-polish .factory-kicker {
+          font-size: 10.5px !important;
+          margin-bottom: 3px !important;
+        }
+        .factory-stock-polish .factory-top-actions {
+          gap: 7px !important;
+          justify-content: stretch !important;
+        }
+        .factory-stock-polish .factory-top-actions > * {
+          flex: 1 1 auto !important;
+          min-width: 0 !important;
+        }
+
+        /* ปุ่มและช่องกรอกให้กดง่าย แต่ไม่เทอะทะ */
+        .factory-stock-polish :is(button, a[role="button"], .factory-primary-btn, .factory-ghost-btn, .factory-danger-btn, .factory-icon-btn, .factory-chip) {
+          min-height: 42px !important;
+          border-radius: 14px !important;
+          font-size: 12.5px !important;
+        }
+        .factory-stock-polish .factory-icon-btn {
+          width: 42px !important;
+          min-width: 42px !important;
+          padding: 0 !important;
+        }
+        .factory-stock-polish :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):not(.stock-check) {
+          min-height: 42px !important;
+          border-radius: 14px !important;
+          font-size: 16px !important;
+          padding-left: 12px !important;
+          padding-right: 12px !important;
+        }
+        .factory-stock-polish textarea {
+          min-height: 86px !important;
+        }
+
+        /* Card / panel ให้เป็นจังหวะเดียวกัน */
+        .factory-stock-polish :is(.solid-panel, .solid-workspace, .workspace-action-card, .operation-workspace-card, .purchase-project-card, .document-archive-card, .tracking-list-card) {
+          border-radius: 18px !important;
+          padding: 12px !important;
+          box-shadow: 0 10px 26px rgba(15,23,42,.06) !important;
+        }
+        .factory-stock-polish :is(.solid-panel, .solid-workspace, .workspace-action-card, .operation-workspace-card, .purchase-project-card, .document-archive-card, .tracking-list-card) :is(h2,h3,h4) {
+          line-height: 1.15 !important;
+        }
+        .factory-stock-polish :is(.solid-panel, .solid-workspace) > :first-child {
+          margin-top: 0 !important;
+        }
+
+        /* ตารางบนมือถือเลื่อนในกล่อง ไม่ดันทั้งหน้า */
+        .factory-stock-polish :is(.table-wrap, .stock-table-wrap, .overflow-x-auto) {
+          max-width: 100% !important;
+          overflow-x: auto !important;
+          -webkit-overflow-scrolling: touch;
+          border-radius: 16px !important;
+        }
+        .factory-stock-polish table {
+          font-size: 12px !important;
+        }
+        .factory-stock-polish th,
+        .factory-stock-polish td {
+          padding: 9px 10px !important;
+        }
+        .factory-stock-polish .stock-name-line .stock-title {
+          font-size: 14px !important;
+          line-height: 1.25 !important;
+        }
+        .factory-stock-polish .stock-meta-line {
+          font-size: 11.5px !important;
+        }
+
+        /* Badge / chip ไม่แตกบรรทัดแปลก ๆ */
+        .factory-stock-polish :is(.status-pill, .badge, [class*="rounded-full"][class*="font-bold"]) {
+          font-size: 10.5px !important;
+          padding: 5px 8px !important;
+          line-height: 1.05 !important;
+          max-width: 100% !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+        }
+
+        /* Tab bar / filter / picker ให้เลื่อนในตัวเอง */
+        .factory-stock-polish :is(.workspace-tabbar, .filter-bar, .mobile-scroll-row, .smart-picker-panel) {
+          scrollbar-width: none !important;
+        }
+        .factory-stock-polish :is(.workspace-tabbar, .filter-bar, .mobile-scroll-row)::-webkit-scrollbar,
+        .factory-stock-polish .smart-picker-panel::-webkit-scrollbar {
+          display: none !important;
+        }
+        .factory-stock-polish .smart-picker-panel {
+          border-radius: 18px !important;
+          max-height: min(72dvh, 520px) !important;
+        }
+
+        /* Modal / Popup เป็น bottom sheet ที่พอดีมือ */
+        .factory-stock-polish .fixed.inset-0:not(.print-only) {
+          padding: 8px !important;
+        }
+        .factory-stock-polish .fixed.inset-0 > div[class*="rounded"] {
+          max-width: 100% !important;
+          width: 100% !important;
+          max-height: calc(100dvh - 16px) !important;
+          border-radius: 20px !important;
+        }
+        .factory-stock-polish .fixed.inset-0 :is(h2,h3) {
+          font-size: 18px !important;
+          line-height: 1.18 !important;
+        }
+        .factory-stock-polish .fixed.inset-0 :is(.p-6, .sm\:p-6, .p-5) {
+          padding: 14px !important;
+        }
+
+        /* ฟอร์มยืม/คืน/ออกงาน และเพิ่มอุปกรณ์ ให้กดง่ายบนมือถือ */
+        .factory-stock-polish :is(.borrow-modal, .return-modal, .event-modal, .item-form-modal) {
+          max-height: calc(100dvh - 16px) !important;
+        }
+        .factory-stock-polish :is(.borrow-modal, .return-modal, .event-modal, .item-form-modal) .sticky,
+        .factory-stock-polish .modal-footer,
+        .factory-stock-polish .form-footer {
+          padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+        }
+
+        /* Bottom nav บนมือถือให้ไม่บังเนื้อหาเกินจำเป็น */
+        .factory-stock-polish div.lg\:hidden.fixed.bottom-0 {
+          backdrop-filter: blur(14px) !important;
+        }
+        .factory-stock-polish div.lg\:hidden.fixed.bottom-0 button,
+        .factory-stock-polish div.lg\:hidden.fixed.bottom-0 a {
+          min-height: 44px !important;
+          font-size: 10.5px !important;
+          border-radius: 14px !important;
+        }
+
+        /* QR: ปรับเฉพาะกรอบรอบนอก ไม่แตะกล้อง / qrbox / scanner logic */
+        .factory-stock-polish #qr-reader {
+          max-width: 100% !important;
+          margin-inline: auto !important;
+        }
+        .factory-stock-polish #qr-reader__dashboard,
+        .factory-stock-polish #qr-reader__dashboard_section,
+        .factory-stock-polish #qr-reader__camera_selection {
+          font-size: 12px !important;
+        }
+
+        /* กันเนื้อหาหลุดขอบจอ */
+        .factory-stock-polish img,
+        .factory-stock-polish video,
+        .factory-stock-polish canvas,
+        .factory-stock-polish svg {
+          max-width: 100%;
+        }
+        .factory-stock-polish .truncate-mobile {
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
+        }
+      }
+
+      @media (max-width: 390px) {
+        .factory-stock-polish .factory-page-title h1 {
+          font-size: 22px !important;
+        }
+        .factory-stock-polish :is(button, .factory-primary-btn, .factory-ghost-btn, .factory-danger-btn) {
+          font-size: 12px !important;
+          padding-left: 10px !important;
+          padding-right: 10px !important;
+        }
+        .factory-stock-polish :is(.solid-panel, .solid-workspace, .workspace-action-card, .operation-workspace-card) {
+          padding: 10px !important;
+          border-radius: 16px !important;
+        }
+      }
+
       @media print {
         .factory-stock-polish,
         .factory-stock-polish * {
