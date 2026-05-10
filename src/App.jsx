@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.50.4 Borrow Return Workspace Polish';
-const APP_UPDATE_NOTE = 'เก็บหน้ายืม-คืนอุปกรณ์ให้เป็นศูนย์ปฏิบัติงานที่อ่านง่ายขึ้น โดยไม่แตะ QR Scanner กล้อง หรือฐานข้อมูล';
+const APP_VERSION = 'v22.50.5 Design System Polish';
+const APP_UPDATE_NOTE = 'เก็บงาน Design System ทั้งเว็บ: สี ปุ่ม การ์ด typography mobile และ empty state โดยไม่แตะ QR/กล้องหรือฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -1152,6 +1152,157 @@ function FactoryPolishStyle({ isDarkMode }) {
           width: 100%;
         }
       }
+
+      /* ===== v22.50.5 Design System Polish: safe UI-only cleanup ===== */
+      .factory-stock-polish {
+        --ds-radius-card: 22px;
+        --ds-radius-panel: 26px;
+        --ds-radius-control: 15px;
+        --ds-line: rgba(148,163,184,.28);
+        --ds-focus: rgba(37,99,235,.20);
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+      }
+      .factory-stock-polish[data-polish-theme="dark"] {
+        --ds-line: rgba(148,163,184,.18);
+        --ds-focus: rgba(96,165,250,.18);
+      }
+      .factory-stock-polish :is(.solid-panel,.solid-workspace,.operation-workspace-card,.purchase-project-card,.item-form-section,.item-detail-summary,.workspace-action-card) {
+        border-radius: var(--ds-radius-card) !important;
+        border-color: var(--factory-border) !important;
+        box-shadow: var(--factory-shadow-soft) !important;
+      }
+      .factory-stock-polish :is(.solid-panel,.operation-workspace-card,.purchase-project-card,.item-form-section,.item-detail-summary) {
+        background: var(--factory-card) !important;
+      }
+      .factory-stock-polish :is(.factory-primary-btn,.factory-ghost-btn,.factory-danger-btn,.factory-chip,.factory-icon-btn) {
+        min-height: 40px;
+        border-radius: var(--ds-radius-control);
+        letter-spacing: -.015em;
+      }
+      .factory-stock-polish .factory-primary-btn {
+        background: linear-gradient(135deg,#2563eb,#1e40af) !important;
+        box-shadow: 0 12px 26px rgba(37,99,235,.20) !important;
+      }
+      .factory-stock-polish .factory-ghost-btn,
+      .factory-stock-polish .factory-icon-btn {
+        border-color: var(--factory-border) !important;
+        background: var(--factory-card) !important;
+      }
+      .factory-stock-polish :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus {
+        outline: none !important;
+        border-color: #60a5fa !important;
+        box-shadow: 0 0 0 4px var(--ds-focus), inset 0 1px 0 rgba(255,255,255,.42) !important;
+      }
+      .factory-stock-polish :is(.stock-mobile-card,.clean-mobile-card,.workspace-action-card) {
+        border-radius: 22px !important;
+        border-color: var(--factory-border) !important;
+      }
+      .factory-stock-polish .stock-mobile-card {
+        box-shadow: 0 12px 28px rgba(15,23,42,.06) !important;
+      }
+      .factory-stock-polish[data-polish-theme="dark"] .stock-mobile-card {
+        box-shadow: 0 12px 30px rgba(0,0,0,.22) !important;
+      }
+      .factory-stock-polish .stock-name-line .stock-title,
+      .factory-stock-polish .clean-mobile-card-title {
+        letter-spacing: -.02em;
+      }
+      .factory-stock-polish :is(.text-xs,.text-sm) {
+        line-height: 1.35;
+      }
+      .factory-stock-polish :is(.rounded-full,.rounded-xl,.rounded-2xl,.rounded-3xl) {
+        border-color: var(--factory-border);
+      }
+      .factory-stock-polish .workspace-tabbar button {
+        min-height: 40px;
+        white-space: nowrap;
+      }
+      .factory-stock-polish thead th {
+        background: color-mix(in srgb, var(--factory-card) 82%, var(--factory-bg)) !important;
+      }
+      .factory-stock-polish tbody td {
+        border-color: var(--ds-line) !important;
+      }
+      .factory-stock-polish .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(148,163,184,.55) transparent;
+      }
+      .factory-stock-polish .smart-picker-shell,
+      .factory-stock-polish .smart-picker-panel {
+        border-radius: 20px !important;
+      }
+      .factory-stock-polish .smart-picker-panel {
+        box-shadow: 0 24px 70px rgba(15,23,42,.18) !important;
+      }
+      .factory-stock-polish[data-polish-theme="dark"] .smart-picker-panel {
+        box-shadow: 0 24px 70px rgba(0,0,0,.45) !important;
+      }
+      .factory-stock-polish .compact-modal-shell {
+        border-color: var(--factory-border) !important;
+      }
+      .factory-stock-polish .settings-shell .settings-nav-grid button,
+      .factory-stock-polish .clean-mobile-actions button {
+        border-radius: 16px !important;
+      }
+      .factory-stock-polish .empty-state-card,
+      .factory-stock-polish .factory-empty-state {
+        border-radius: 24px !important;
+        border: 1px dashed var(--factory-border) !important;
+        background: color-mix(in srgb, var(--factory-card) 82%, var(--factory-bg)) !important;
+      }
+      @media (max-width: 760px) {
+        .factory-stock-polish {
+          --ds-radius-card: 18px;
+          --ds-radius-panel: 22px;
+          --ds-radius-control: 14px;
+        }
+        .factory-stock-polish .factory-topbar {
+          gap: 10px !important;
+          padding-top: 12px !important;
+          padding-bottom: 6px !important;
+        }
+        .factory-stock-polish .factory-page-title h1 {
+          font-size: 25px !important;
+          line-height: 1.08 !important;
+        }
+        .factory-stock-polish .factory-page-title p {
+          font-size: 12px !important;
+          margin-top: 5px !important;
+        }
+        .factory-stock-polish .factory-top-actions {
+          gap: 7px !important;
+        }
+        .factory-stock-polish :is(.factory-primary-btn,.factory-ghost-btn,.factory-danger-btn,.factory-chip,.factory-icon-btn) {
+          min-height: 38px !important;
+          border-radius: 14px !important;
+          font-size: 12px !important;
+        }
+        .factory-stock-polish .stock-mobile-card {
+          border-radius: 18px !important;
+          padding: 12px !important;
+        }
+        .factory-stock-polish .clean-mobile-actions {
+          gap: 6px !important;
+        }
+        .factory-stock-polish .clean-mobile-actions button {
+          min-height: 38px !important;
+          font-size: 12px !important;
+        }
+        .factory-stock-polish .workspace-tabbar {
+          gap: 6px !important;
+          padding-bottom: 4px;
+        }
+        .factory-stock-polish .workspace-tabbar button {
+          min-height: 38px !important;
+          padding-inline: 10px !important;
+          font-size: 12px !important;
+        }
+        .factory-stock-polish :is(.solid-panel,.solid-workspace,.operation-workspace-card,.purchase-project-card,.item-form-section,.item-detail-summary,.workspace-action-card) {
+          border-radius: 18px !important;
+        }
+      }
+
       @media (max-width: 1023px) {
         .factory-stock-polish .factory-topbar { padding-top: 10px; flex-direction: column; align-items: stretch; }
         .factory-stock-polish .factory-top-actions { justify-content: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2085,179 +2236,6 @@ function FactoryPolishStyle({ isDarkMode }) {
           max-width: 100% !important;
           margin: 0 !important;
           padding: 0 !important;
-        }
-      }
-
-
-
-      /* v22.50.4 Borrow Return Workspace Polish: safe UI only, no QR/camera/data changes */
-      .factory-stock-polish .borrow-return-polish {
-        border-radius: 26px !important;
-        overflow: hidden !important;
-      }
-      .factory-stock-polish .borrow-return-polish > div:first-child {
-        padding: 18px 20px !important;
-        background: color-mix(in srgb, var(--factory-card) 88%, var(--factory-bg)) !important;
-      }
-      .factory-stock-polish .borrow-return-polish > div:first-child h2 {
-        font-size: clamp(1.3rem, 2vw, 1.85rem) !important;
-        line-height: 1.1 !important;
-      }
-      .factory-stock-polish .borrow-return-polish > div:first-child p {
-        max-width: 780px;
-      }
-      .factory-stock-polish .borrow-return-polish > div:nth-child(2) {
-        padding: 16px !important;
-      }
-      .factory-stock-polish .borrow-return-polish [class*="grid-cols-2"][class*="lg:grid-cols-4"] > div {
-        min-height: 82px !important;
-        padding: 13px !important;
-        border-radius: 18px !important;
-      }
-      .factory-stock-polish .borrow-return-polish [class*="grid-cols-2"][class*="lg:grid-cols-4"] [class*="text-3xl"] {
-        font-size: 1.55rem !important;
-        line-height: 1 !important;
-      }
-      .factory-stock-polish .borrow-return-polish .grid.grid-cols-3 > button {
-        min-height: 64px !important;
-        padding: 12px !important;
-        border-radius: 18px !important;
-      }
-      .factory-stock-polish .borrow-return-polish .grid.grid-cols-3 > button > div:first-child {
-        font-size: .95rem !important;
-      }
-      .factory-stock-polish .borrow-return-polish section {
-        border-radius: 22px !important;
-      }
-      .factory-stock-polish .borrow-return-polish section > div:first-child {
-        padding: 14px !important;
-      }
-      .factory-stock-polish .borrow-return-polish section h3 {
-        font-size: 1.05rem !important;
-        line-height: 1.2 !important;
-      }
-      .factory-stock-polish .borrow-return-polish section:first-of-type > div:last-child {
-        max-height: min(60vh, 590px) !important;
-        overscroll-behavior: contain;
-      }
-      .factory-stock-polish .borrow-return-polish section:first-of-type button.w-full {
-        border-radius: 16px !important;
-        padding: 11px 12px !important;
-      }
-      .factory-stock-polish .borrow-return-polish section:first-of-type .clean-mobile-card-title,
-      .factory-stock-polish .borrow-return-polish section:first-of-type [class*="font-black"][class*="truncate"] {
-        line-height: 1.25 !important;
-      }
-      .factory-stock-polish .borrow-return-polish section:last-of-type {
-        position: sticky;
-        top: 14px;
-      }
-      .factory-stock-polish .borrow-return-polish section:last-of-type > div:last-child {
-        padding: 14px !important;
-        max-height: min(72vh, 720px) !important;
-        overflow-y: auto !important;
-        overscroll-behavior: contain;
-      }
-      .factory-stock-polish .borrow-return-polish section:last-of-type label span:first-child {
-        font-size: 12px !important;
-      }
-      .factory-stock-polish .borrow-return-polish section:last-of-type :is(input:not([type="checkbox"]), select, textarea) {
-        min-height: 42px !important;
-        border-radius: 13px !important;
-        font-size: 14px !important;
-      }
-      .factory-stock-polish .borrow-return-polish section:last-of-type textarea {
-        min-height: 68px !important;
-      }
-      .factory-stock-polish .borrow-return-polish section:last-of-type .grid.grid-cols-2.gap-3 {
-        position: sticky;
-        bottom: -14px;
-        padding-top: 10px;
-        padding-bottom: 2px;
-        background: color-mix(in srgb, var(--factory-card) 90%, var(--factory-bg));
-        z-index: 5;
-      }
-      .factory-stock-polish .borrow-return-polish section:last-of-type .grid.grid-cols-2.gap-3 button {
-        min-height: 44px !important;
-        border-radius: 14px !important;
-      }
-      .factory-stock-polish[data-polish-theme="dark"] .borrow-return-polish section:last-of-type .grid.grid-cols-2.gap-3 {
-        background: color-mix(in srgb, #0f172a 82%, #020617);
-      }
-      @media (max-width: 1279px) {
-        .factory-stock-polish .borrow-return-polish section:last-of-type {
-          position: static !important;
-        }
-        .factory-stock-polish .borrow-return-polish section:last-of-type > div:last-child {
-          max-height: none !important;
-          overflow: visible !important;
-        }
-      }
-      @media (max-width: 767px) {
-        .factory-stock-polish .borrow-return-polish {
-          border-radius: 20px !important;
-        }
-        .factory-stock-polish .borrow-return-polish > div:first-child {
-          padding: 13px !important;
-        }
-        .factory-stock-polish .borrow-return-polish > div:first-child h2 {
-          font-size: 1.15rem !important;
-        }
-        .factory-stock-polish .borrow-return-polish > div:first-child p {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-        .factory-stock-polish .borrow-return-polish > div:first-child .grid.grid-cols-2,
-        .factory-stock-polish .borrow-return-polish > div:first-child .sm\:flex {
-          width: 100%;
-        }
-        .factory-stock-polish .borrow-return-polish [class*="grid-cols-2"][class*="lg:grid-cols-4"] {
-          gap: 8px !important;
-        }
-        .factory-stock-polish .borrow-return-polish [class*="grid-cols-2"][class*="lg:grid-cols-4"] > div {
-          min-height: 68px !important;
-          padding: 10px !important;
-        }
-        .factory-stock-polish .borrow-return-polish [class*="grid-cols-2"][class*="lg:grid-cols-4"] [class*="text-3xl"] {
-          font-size: 1.3rem !important;
-        }
-        .factory-stock-polish .borrow-return-polish .grid.grid-cols-3 {
-          grid-template-columns: 1fr !important;
-          gap: 7px !important;
-        }
-        .factory-stock-polish .borrow-return-polish .grid.grid-cols-3 > button {
-          min-height: 45px !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: space-between !important;
-          padding: 9px 11px !important;
-        }
-        .factory-stock-polish .borrow-return-polish .grid.grid-cols-3 > button > div:last-child {
-          margin-top: 0 !important;
-          text-align: right !important;
-          max-width: 50%;
-        }
-        .factory-stock-polish .borrow-return-polish section > div:first-child {
-          padding: 12px !important;
-        }
-        .factory-stock-polish .borrow-return-polish section:first-of-type > div:last-child {
-          max-height: 48vh !important;
-        }
-        .factory-stock-polish .borrow-return-polish section:last-of-type > div:last-child {
-          padding: 12px !important;
-        }
-        .factory-stock-polish .borrow-return-polish section:last-of-type .space-y-4 > :not([hidden]) ~ :not([hidden]) {
-          margin-top: 10px !important;
-        }
-        .factory-stock-polish .borrow-return-polish section:last-of-type .grid.grid-cols-2.gap-3 {
-          position: sticky;
-          bottom: 0;
-          margin-left: -12px;
-          margin-right: -12px;
-          padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-          border-top: 1px solid rgba(148,163,184,.18);
         }
       }
 
