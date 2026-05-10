@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.52.0 Borrow Event Modal Compact';
-const APP_UPDATE_NOTE = 'รวมชุดเก็บงานผลิตจริง: เอกสารพิมพ์ มือถือ รายละเอียดอุปกรณ์ ตั้งค่า empty states และ final UI polish โดยไม่แตะฐานข้อมูล';
+const APP_VERSION = 'v22.52.1 QR Beep Feedback';
+const APP_UPDATE_NOTE = 'เพิ่มเสียงปิ๊ปและแรงสั่นเมื่อสแกน QR สำเร็จ ให้ฟีลเหมือนเครื่องสแกนร้านค้า โดยไม่แตะฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -2424,6 +2424,8 @@ function MainApp() {
   const [lastScannedItemId, setLastScannedItemId] = useState(null);
   const scanInputRef = useRef(null);
   const scanCooldownRef = useRef(false);
+  const qrAudioContextRef = useRef(null);
+  const lastQrBeepAtRef = useRef(0);
 
   const [useCamera, setUseCamera] = useState(false);
   const [isScannerLoaded, setIsScannerLoaded] = useState(false);
@@ -6038,7 +6040,72 @@ S.N.: ${item.sn || '-'}
     setShowForm(true);
   };
 
+  const warmupQrBeep = () => {
+    try {
+      if (typeof window === 'undefined') return null;
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return null;
+      if (!qrAudioContextRef.current) {
+        qrAudioContextRef.current = new AudioContextClass();
+      }
+      const ctx = qrAudioContextRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+      return ctx;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const playQrBeep = (type = 'success') => {
+    try {
+      const now = Date.now();
+      if (now - lastQrBeepAtRef.current < 180) return;
+      lastQrBeepAtRef.current = now;
+
+      const ctx = warmupQrBeep();
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      const makeTone = (start, freq, duration, gainValue) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(freq, t + start);
+        gain.gain.setValueAtTime(0.0001, t + start);
+        gain.gain.exponentialRampToValueAtTime(gainValue, t + start + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + start + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t + start);
+        osc.stop(t + start + duration + 0.025);
+      };
+
+      if (type === 'error') {
+        makeTone(0, 240, 0.11, 0.075);
+        makeTone(0.13, 190, 0.12, 0.055);
+      } else if (type === 'complete') {
+        makeTone(0, 740, 0.09, 0.06);
+        makeTone(0.11, 980, 0.11, 0.065);
+      } else {
+        makeTone(0, 820, 0.095, 0.06);
+      }
+    } catch (e) {}
+  };
+
+  const triggerQrScanFeedback = (type = 'success') => {
+    try { playQrBeep(type); } catch(e) {}
+    try {
+      if (navigator?.vibrate) {
+        if (type === 'error') navigator.vibrate([60, 40, 60]);
+        else if (type === 'complete') navigator.vibrate([80, 35, 110]);
+        else navigator.vibrate(55);
+      }
+    } catch(e) {}
+  };
+
   const openSelectionScanner = ({ camera = false } = {}) => {
+    warmupQrBeep();
     setScanMode('select');
     const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 768;
     setUseCamera(camera || isMobileViewport);
@@ -6046,6 +6113,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const openChecklistScanner = (mode) => {
+    warmupQrBeep();
     setScanMode(mode);
     setUseCamera(true);
     setShowScanModal(true);
@@ -6130,13 +6198,12 @@ S.N.: ${item.sn || '-'}
       const markChecklist = (targetIds, currentChecklist, setChecklist, label) => {
         if (!targetIds.includes(foundItem.id)) {
           setScanMessage({ text: `⚠️ "${foundItem.name}" ไม่ได้อยู่ในเช็กลิสต์${label}`, type: 'error' });
-          try { if (navigator?.vibrate) navigator.vibrate([70, 45, 70]); } catch(e){}
-          try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
+          triggerQrScanFeedback('error');
           return;
         }
         if (currentChecklist.includes(foundItem.id)) {
           setScanMessage({ text: `✅ "${foundItem.name}" เช็กไว้แล้ว ไม่ต้องสแกนซ้ำ`, type: 'success' });
-          try { if (navigator?.vibrate) navigator.vibrate(50); } catch(e){}
+          triggerQrScanFeedback('success');
           return;
         }
         const nextCount = Math.min(targetIds.length, currentChecklist.length + 1);
@@ -6146,8 +6213,7 @@ S.N.: ${item.sn || '-'}
           text: isComplete ? `🎉 เช็กครบแล้ว พร้อมยืนยันรายการ` : `✅ เช็ก "${foundItem.name}" แล้ว (${nextCount}/${targetIds.length})`,
           type: 'success'
         });
-        try { if (navigator?.vibrate) navigator.vibrate(isComplete ? [90, 40, 120] : 90); } catch(e){}
-        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
+        triggerQrScanFeedback(isComplete ? 'complete' : 'success');
       };
 
       if (scanMode === 'borrowChecklist') {
@@ -6159,13 +6225,11 @@ S.N.: ${item.sn || '-'}
       } else {
         setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
         setScanMessage({ text: `✅ พบ "${foundItem.name}" เลือกไว้แล้ว`, type: 'success' });
-        try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
-        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
+        triggerQrScanFeedback('success');
       }
     } else {
       setScanMessage({ text: `❌ ไม่พบรหัส "${val}" ในSystem`, type: 'error' });
-      try { if (navigator?.vibrate) navigator.vibrate([60, 40, 60]); } catch(e){}
-      try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
+      triggerQrScanFeedback('error');
     }
 
     setScanInput('');
