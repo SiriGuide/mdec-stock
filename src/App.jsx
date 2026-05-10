@@ -32,11 +32,11 @@ const getBorrowDocsCol = () => IS_CANVAS ? collection(db, 'artifacts', APP_ID, '
 const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'borrow_documents', id) : doc(db, 'mdec_stock', 'shared_data', 'borrow_documents', id);
 
 const ADMIN_PIN = 'mdec8203';
-const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
+const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.36.1 Borrow Document Archive Hotfix';
-const APP_UPDATE_NOTE = 'แก้ปัญหาเมนูเพิ่มเติมเด้ง ReferenceError proofCenterStats และคงระบบเอกสารย้อนหลังไว้ครบ';
-// วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
+const APP_VERSION = 'v22.37 Factory Stock Inspired Mobile UI';
+const APP_UPDATE_NOTE = 'ปรับ UI ให้คล้ายSystemสต็อกโรงงาน: Dashboard เรียบจริงจัง, Control Center เป็นหมวด, และมือถือใช้งานหน้างานง่ายขึ้น';
+// วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
 const DEFAULT_DOCUMENT_SETTINGS = { qrLogo: true, slipLogo: true, boxLabelLogo: true, proofStamp: true, watermark: true, logoSize: 'normal', printTone: 'official' };
@@ -84,11 +84,11 @@ const Icons = {
 };
 
 const STATUSES = [
-  { id: 'available', label: 'พร้อมใช้งาน', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', darkColor: 'bg-emerald-900/40 text-emerald-400 border-emerald-800' },
+  { id: 'available', label: 'พร้อมใช้', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', darkColor: 'bg-emerald-900/40 text-emerald-400 border-emerald-800' },
   { id: 'in-use', label: 'กำลังใช้งาน', color: 'bg-amber-100 text-amber-700 border-amber-200', darkColor: 'bg-amber-900/40 text-amber-400 border-amber-800' },
   { id: 'borrowed', label: 'ถูกยืม', color: 'bg-purple-100 text-purple-700 border-purple-200', darkColor: 'bg-purple-900/40 text-purple-400 border-purple-800' },
   { id: 'out-for-event', label: 'ออกงาน', color: 'bg-orange-100 text-orange-700 border-orange-200', darkColor: 'bg-orange-900/40 text-orange-400 border-orange-800' },
-  { id: 'maintenance', label: 'ส่งซ่อม/ชำรุด', color: 'bg-rose-100 text-rose-700 border-rose-200', darkColor: 'bg-rose-900/40 text-rose-400 border-rose-800' }
+  { id: 'maintenance', label: 'ซ่อม/ชำรุด', color: 'bg-rose-100 text-rose-700 border-rose-200', darkColor: 'bg-rose-900/40 text-rose-400 border-rose-800' }
 ];
 
 const DEPARTMENTS = [
@@ -352,11 +352,11 @@ function MainApp() {
   }, [showScanModal]);
 
   const theme = {
-    mainBg: isDarkMode ? 'bg-slate-950' : 'bg-slate-50',
+    mainBg: isDarkMode ? 'bg-slate-950' : 'bg-[#f6f8fb]',
     textMain: isDarkMode ? 'text-slate-100' : 'text-slate-800',
     textTitle: isDarkMode ? 'text-white' : 'text-slate-900',
     textMuted: isDarkMode ? 'text-slate-400' : 'text-slate-500',
-    cardBg: isDarkMode ? 'bg-slate-900/90 border-slate-800 shadow-black/20' : 'bg-white border-slate-200 shadow-slate-200/35',
+    cardBg: isDarkMode ? 'bg-slate-900/92 border-slate-800 shadow-black/20' : 'bg-white border-slate-200 shadow-slate-200/30',
     input: isDarkMode ? 'bg-slate-950/80 border-slate-700 text-white focus:ring-blue-500 focus:border-blue-500' : 'bg-white border-slate-200 text-slate-700 focus:ring-blue-500 focus:border-blue-500',
     th: isDarkMode ? 'bg-slate-950/80 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-600',
     trHover: isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50',
@@ -775,7 +775,7 @@ function MainApp() {
     return (
       <div className={`p-4 rounded-xl border ${toneClass}`}>
         <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>📷 {label} <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่บังคับ)</span></label>
-        <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>เลือกไฟล์รูป หรือถ่ายด้วยกล้องมือถือ ระบบจะย่อไฟล์ ประทับเวลา และพิกัด GPS ลงบนรูปถ้าอนุญาตตำแหน่ง แล้วเก็บไว้ใน Firestore โดยไม่ใช้ Firebase Storage • เป้าหมายประมาณ {activeProofSettings.targetKB} KB/รูป • สูงสุด {activeProofSettings.maxImagesPerAction} รูป/ครั้ง</p>
+        <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>เลือกไฟล์รูป หรือถ่ายด้วยกล้องมือถือ Systemจะย่อไฟล์ ประทับเวลา และพิกัด GPS ลงบนรูปถ้าอนุญาตตำแหน่ง แล้วเก็บไว้ใน Firestore โดยไม่ใช้ Firebase Storage • เป้าหมายประมาณ {activeProofSettings.targetKB} KB/รูป • สูงสุด {activeProofSettings.maxImagesPerAction} รูป/ครั้ง</p>
         <input
           type="file"
           accept="image/*"
@@ -1021,7 +1021,7 @@ function MainApp() {
     const targetKey = group.groupId;
     const proofDocId = group.proof?.proofDocId || group.proof?.id || group.groupId;
     const linkedItems = group.itemRefs?.length || group.entries?.length || 1;
-    const ok = window.confirm(`คุณกำลังลบรูปหลักฐานนี้\n\nรูปนี้เกี่ยวข้องกับ ${linkedItems} อุปกรณ์/รายการ\nเมื่อลบแล้ว รูปจะหายจากประวัติทั้งหมดที่เกี่ยวข้อง และไม่สามารถกู้คืนจากระบบได้\n\nต้องการลบต่อหรือไม่?`);
+    const ok = window.confirm(`คุณกำลังลบรูปหลักฐานนี้\n\nรูปนี้เกี่ยวข้องกับ ${linkedItems} อุปกรณ์/รายการ\nเมื่อลบแล้ว รูปจะหายจากประวัติทั้งหมดที่เกี่ยวข้อง และไม่สามารถกู้คืนจากSystemได้\n\nต้องการลบต่อหรือไม่?`);
     if (!ok) return;
 
     try {
@@ -1333,7 +1333,7 @@ function MainApp() {
   };
 
   const handleChangeOwnPin = async () => {
-    if (!user || !currentOperator) return alert('❌ กรุณาเข้าสู่ระบบก่อน');
+    if (!user || !currentOperator) return alert('❌ กรุณาเข้าสู่Systemก่อน');
     const oldPin = String(myPinForm.oldPin || '').trim();
     const newPin = String(myPinForm.newPin || '').trim();
     const confirmPin = String(myPinForm.confirmPin || '').trim();
@@ -1822,7 +1822,7 @@ S.N.: ${item.sn || '-'}
     { id: 'display', label: 'การแสดงผล', desc: 'ความแน่น / การ์ด / เอฟเฟกต์', icon: Icons.Monitor, group: 'หน้าตาเว็บ' },
     { id: 'documents', label: 'เอกสาร / โลโก้', desc: 'ใบยืม ฉลาก QR และโลโก้', icon: Icons.Printer, group: 'เอกสาร' },
     { id: 'proofs', label: 'หลักฐานรูปภาพ', desc: 'กติกาการแนบรูป', icon: Icons.Camera, group: 'หลักฐาน' },
-    { id: 'database', label: 'ฐานข้อมูล / สำรอง', desc: 'Backup, Restore, Cleanup', icon: Icons.Database, group: 'ระบบ' },
+    { id: 'database', label: 'ฐานข้อมูล / สำรอง', desc: 'Backup, Restore, Cleanup', icon: Icons.Database, group: 'System' },
   ];
 
   const resetSettingsFormState = () => {
@@ -2400,13 +2400,13 @@ S.N.: ${item.sn || '-'}
     const snInput = String(formData.sn || '').trim();
 
     if (!nameInput.trim() || !snInput) {
-      alert('❌ กรุณากรอก "ชื่ออุปกรณ์" และ "รหัส S.N." ให้ครบถ้วน (ระบบบังคับใส่รหัสซีเรียล)');
+      alert('❌ กรุณากรอก "ชื่ออุปกรณ์" และ "รหัส S.N." ให้ครบถ้วน (Systemบังคับใส่รหัสซีเรียล)');
       return;
     }
 
     const isDuplicate = items.some(item => item.sn && String(item.sn).trim().toLowerCase() === snInput.toLowerCase() && item.id !== formData.id);
     if (isDuplicate) {
-      alert(`❌ ไม่สามารถบันทึกได้: รหัส S.N. "${snInput}" มีซ้ำอยู่ในระบบแล้ว กรุณาตรวจสอบอีกครั้ง`);
+      alert(`❌ ไม่สามารถบันทึกได้: รหัส S.N. "${snInput}" มีซ้ำอยู่ในSystemแล้ว กรุณาตรวจสอบอีกครั้ง`);
       return; 
     }
 
@@ -2502,7 +2502,7 @@ S.N.: ${item.sn || '-'}
       } else {
         const newId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
         await setDoc(getItemDoc(newId), { ...itemData, createdBy: currentOperator?.name || 'Admin', history: [] });
-        logAction('เพิ่มอุปกรณ์', itemData.name, `เพิ่มเข้าสู่ระบบใหม่ หมวดหมู่: ${itemData.category}`);
+        logAction('เพิ่มอุปกรณ์', itemData.name, `เพิ่มเข้าสู่Systemใหม่ หมวดหมู่: ${itemData.category}`);
       }
       setShowForm(false);
       alert(isEdit ? '✅ แก้ไขข้อมูลอุปกรณ์สำเร็จ!' : '✅ เพิ่มอุปกรณ์ใหม่สำเร็จ!');
@@ -2575,7 +2575,7 @@ S.N.: ${item.sn || '-'}
       setBorrowProofFiles([]);
       setBorrowTargetIds([item.id]);
       setPackingChecklist([]);
-    } catch (err) { alert("ระบบขัดข้อง: " + err.message); }
+    } catch (err) { alert("Systemขัดข้อง: " + err.message); }
   };
 
   const handleOpenRowEvent = (e, item) => {
@@ -2585,7 +2585,7 @@ S.N.: ${item.sn || '-'}
       setEventProofFiles([]);
       setEventTargetIds([item.id]);
       setEventChecklist([]);
-    } catch (err) { alert("ระบบขัดข้อง: " + err.message); }
+    } catch (err) { alert("Systemขัดข้อง: " + err.message); }
   };
 
   const openAddItemForm = () => {
@@ -2865,7 +2865,7 @@ S.N.: ${item.sn || '-'}
       if (availableIds.length === 0) return alert('❌ ไม่สามารถยืมได้: อุปกรณ์ในเซ็ตนี้ถูกใช้งานไปหมดแล้ว');
       
       if (availableIds.length < (bundle.itemIds || []).length) {
-        const proceed = confirm(`⚠️ อุปกรณ์ในเซ็ตไม่ครบ!\nมีอุปกรณ์พร้อมใช้งานเพียง ${availableIds.length} จาก ${(bundle.itemIds || []).length} ชิ้น\nคุณต้องการกดยืมชิ้นที่เหลือเท่าที่มีหรือไม่?`);
+        const proceed = confirm(`⚠️ อุปกรณ์ในเซ็ตไม่ครบ!\nมีอุปกรณ์พร้อมใช้เพียง ${availableIds.length} จาก ${(bundle.itemIds || []).length} ชิ้น\nคุณต้องการกดยืมชิ้นที่เหลือเท่าที่มีหรือไม่?`);
         if (!proceed) return;
       }
       
@@ -2874,7 +2874,7 @@ S.N.: ${item.sn || '-'}
       setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' });
       setBorrowProofFiles([]);
       setShowBundleModal(false);
-    } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
+    } catch(err) { alert("Systemขัดข้อง: " + err.message); }
   };
 
   const handleSelectBundleToEvent = (bundle) => {
@@ -2883,7 +2883,7 @@ S.N.: ${item.sn || '-'}
       if (availableIds.length === 0) return alert('❌ ไม่สามารถนำออกงานได้: อุปกรณ์ในเซ็ตนี้ถูกใช้งานไปหมดแล้ว');
       
       if (availableIds.length < (bundle.itemIds || []).length) {
-        const proceed = confirm(`⚠️ อุปกรณ์ในเซ็ตไม่ครบ!\nมีอุปกรณ์พร้อมใช้งานเพียง ${availableIds.length} จาก ${(bundle.itemIds || []).length} ชิ้น\nคุณต้องการกดนำออกชิ้นที่เหลือเท่าที่มีหรือไม่?`);
+        const proceed = confirm(`⚠️ อุปกรณ์ในเซ็ตไม่ครบ!\nมีอุปกรณ์พร้อมใช้เพียง ${availableIds.length} จาก ${(bundle.itemIds || []).length} ชิ้น\nคุณต้องการกดนำออกชิ้นที่เหลือเท่าที่มีหรือไม่?`);
         if (!proceed) return;
       }
       
@@ -2892,7 +2892,7 @@ S.N.: ${item.sn || '-'}
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setEventProofFiles([]);
       setShowBundleModal(false);
-    } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
+    } catch(err) { alert("Systemขัดข้อง: " + err.message); }
   };
 
   const handleSelectBundleToReturn = (bundle) => {
@@ -2907,7 +2907,7 @@ S.N.: ${item.sn || '-'}
       setReturnChecklist([]);
       setReturnData({ staff: '', newStaff: '' });
       setShowBundleModal(false);
-    } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
+    } catch(err) { alert("Systemขัดข้อง: " + err.message); }
   };
 
   const openItemEditor = (item) => {
@@ -2938,23 +2938,23 @@ S.N.: ${item.sn || '-'}
   const handleOpenBatchBorrow = () => {
     try {
       const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
-      if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมให้ยืมในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้งาน")');
+      if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมให้ยืมในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้")');
       setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' });
       
       setBorrowTargetIds([...validIds]);
       setPackingChecklist([]);
-    } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
+    } catch(err) { alert("Systemขัดข้อง: " + err.message); }
   };
 
   const handleOpenBatchEvent = () => {
     try {
       const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
-      if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมออกงานในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้งาน")');
+      if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมออกงานในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้")');
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
       
       setEventTargetIds([...validIds]);
       setEventChecklist([]);
-    } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
+    } catch(err) { alert("Systemขัดข้อง: " + err.message); }
   };
 
   const handleOpenBatchReturn = () => {
@@ -2963,12 +2963,12 @@ S.N.: ${item.sn || '-'}
         const st = items.find(i => i.id === id)?.status;
         return st === 'borrowed' || st === 'out-for-event';
       });
-      if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่สามารถคืนได้ในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "กำลังถูกยืม" หรือ "ออกงาน")');
+      if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่สามารถคืนได้ในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "ถูกยืม" หรือ "ออกงาน")');
       setReturnData({ staff: '', newStaff: '' });
       
       setReturnTargetIds([...validIds]);
       setReturnChecklist([]);
-    } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
+    } catch(err) { alert("Systemขัดข้อง: " + err.message); }
   };
 
   const handleCreateBundleFromSelection = () => {
@@ -3026,7 +3026,7 @@ S.N.: ${item.sn || '-'}
         try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
       }
     } else {
-      setScanMessage({ text: `❌ ไม่พบรหัส "${val}" ในระบบ`, type: 'error' });
+      setScanMessage({ text: `❌ ไม่พบรหัส "${val}" ในSystem`, type: 'error' });
       try { if (navigator?.vibrate) navigator.vibrate([60, 40, 60]); } catch(e){}
       try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
     }
@@ -3079,7 +3079,7 @@ S.N.: ${item.sn || '-'}
     };
   }, [showScanModal, useCamera, isScannerLoaded]);
 
-  // 💡 กลับมาแล้ว: ระบบนำเข้าไฟล์ CSV
+  // 💡 กลับมาแล้ว: Systemนำเข้าไฟล์ CSV
   const handleImportCSV = (e) => {
     if (!user) return;
     const file = e.target.files[0];
@@ -3263,15 +3263,15 @@ S.N.: ${item.sn || '-'}
     backupDownloadCSV('MDEC_Borrow_Return_History_' + getBackupFileTag() + '.csv', headers, rows);
     await logAction('สำรองประวัติยืม-คืน CSV', 'ส่งออก ' + rows.length + ' รายการประวัติ', 'ดาวน์โหลดประวัติการยืม-คืนพร้อมวันเวลาเป็นไฟล์ CSV');
     await saveBackupTimestamp('historyCsv');
-    if (rows.length === 0) alert('ℹ️ ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติยืม-คืนในระบบ');
+    if (rows.length === 0) alert('ℹ️ ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติยืม-คืนในSystem');
   };
 
   const exportItemHistoryCSV = (item) => {
     if (!item) return;
-    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ลำดับ', 'ประเภท', 'วันเวลาทำรายการ', 'ผู้ทำรายการในระบบ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'ลิงก์หลักฐาน'];
+    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ลำดับ', 'ประเภท', 'วันเวลาทำรายการ', 'ผู้ทำรายการในSystem', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'ลิงก์หลักฐาน'];
     const rows = (Array.isArray(item.history) ? item.history : []).map((h, index) => {
       const historyType = h.type === 'borrow' ? 'ยืมออก' : h.type === 'event' ? 'ออกงาน' : h.type === 'return' ? 'รับคืน' : (h.type || '-');
-      return [item.name || '-', item.sn || '-', index + 1, historyType, formatBackupDateTime(h.date), h.operatorName || h.performedBy || '-', h.borrower || h.eventName || '-', h.staffOut || '-', h.staffIn || '-', h.expectedReturn || '-', h.note || '-', Array.isArray(h.proofs) ? h.proofs.length : 0, Array.isArray(h.proofs) ? h.proofs.map(p => p.storageType === 'firestore-doc-base64' ? (p.originalName || p.id || 'รูปในระบบ') : (p.url || p.id || '-')).join(' | ') : '-' ];
+      return [item.name || '-', item.sn || '-', index + 1, historyType, formatBackupDateTime(h.date), h.operatorName || h.performedBy || '-', h.borrower || h.eventName || '-', h.staffOut || '-', h.staffIn || '-', h.expectedReturn || '-', h.note || '-', Array.isArray(h.proofs) ? h.proofs.length : 0, Array.isArray(h.proofs) ? h.proofs.map(p => p.storageType === 'firestore-doc-base64' ? (p.originalName || p.id || 'รูปในSystem') : (p.url || p.id || '-')).join(' | ') : '-' ];
     });
     backupDownloadCSV(`MDEC_Item_History_${(item.sn || item.id || 'item').replace(/[^a-zA-Z0-9_-]/g, '_')}_${getBackupFileTag()}.csv`, headers, rows);
     if (rows.length === 0) pushToast('ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติของอุปกรณ์นี้', 'warning');
@@ -3366,7 +3366,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const buildHistoryCsvRows = () => {
-    const headers = ['รหัสเอกสารอุปกรณ์', 'ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'โครงการ', 'สถานะพัสดุ', 'ลำดับประวัติ', 'ประเภทประวัติ', 'วันเวลาทำรายการ', 'ผู้ทำรายการในระบบ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'รหัส/ชื่อหลักฐาน', 'สถานะปัจจุบัน'];
+    const headers = ['รหัสเอกสารอุปกรณ์', 'ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'โครงการ', 'สถานะพัสดุ', 'ลำดับประวัติ', 'ประเภทประวัติ', 'วันเวลาทำรายการ', 'ผู้ทำรายการในSystem', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'รหัส/ชื่อหลักฐาน', 'สถานะปัจจุบัน'];
     const rows = [];
     items.forEach(item => {
       const historyList = Array.isArray(item.history) ? item.history : [];
@@ -3391,7 +3391,7 @@ S.N.: ${item.sn || '-'}
           h.expectedReturn || '-',
           h.note || '-',
           Array.isArray(h.proofs) ? h.proofs.length : 0,
-          Array.isArray(h.proofs) ? h.proofs.map(p => p.proofDocId || p.id || p.originalName || 'รูปในระบบ').join(' | ') : '-',
+          Array.isArray(h.proofs) ? h.proofs.map(p => p.proofDocId || p.id || p.originalName || 'รูปในSystem').join(' | ') : '-',
           getBackupStatusLabel(item.status)
         ]);
       });
@@ -3400,7 +3400,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const buildProjectsCsvRows = () => {
-    const headers = ['โครงการ', 'อุปกรณ์ทั้งหมด', 'ใช้งานอยู่', 'จำหน่ายแล้ว', 'สูญหาย', 'ชำรุดรอจำหน่าย', 'รายการอุปกรณ์'];
+    const headers = ['โครงการ', 'ทั้งหมด', 'ใช้งานอยู่', 'จำหน่ายแล้ว', 'สูญหาย', 'ชำรุดรอจำหน่าย', 'รายการอุปกรณ์'];
     const rows = projectStats.map(project => [
       project.name || 'ไม่ระบุโครงการ',
       project.total || 0,
@@ -3554,7 +3554,7 @@ S.N.: ${item.sn || '-'}
 <section class="summary">
   <div><b>${groups.length.toLocaleString('th-TH')}</b>รูปหลักฐานจริง</div>
   <div><b>${groups.reduce((sum,g)=>sum+g.entries.length,0).toLocaleString('th-TH')}</b>จุดเชื่อมโยงกับอุปกรณ์</div>
-  <div><b>${items.length.toLocaleString('th-TH')}</b>อุปกรณ์ในระบบ</div>
+  <div><b>${items.length.toLocaleString('th-TH')}</b>อุปกรณ์ในSystem</div>
 </section>
 <main class="grid">${cards || '<div class="card"><div class="meta"><h2>ยังไม่มีรูปหลักฐาน</h2></div></div>'}</main>
 <footer>MDEC-Stock Backup Gallery • ${backupHtmlEscape(APP_VERSION)}</footer>
@@ -3616,9 +3616,9 @@ S.N.: ${item.sn || '-'}
     try {
       const collected = await collectFullBackupPayload();
       backupDownloadTextFile('MDEC_Full_Backup_' + getBackupFileTag() + '.json', JSON.stringify(collected.payload, null, 2), 'application/json;charset=utf-8;');
-      await logAction('สำรองข้อมูลทั้งหมด JSON', 'สำรอง ' + items.length + ' อุปกรณ์ / ' + collected.historyCount + ' ประวัติ', 'ดาวน์โหลดข้อมูลทั้งระบบเป็นไฟล์ JSON รวมประวัติยืม-คืนและรูปหลักฐาน');
+      await logAction('สำรองข้อมูลทั้งหมด JSON', 'สำรอง ' + items.length + ' อุปกรณ์ / ' + collected.historyCount + ' ประวัติ', 'ดาวน์โหลดข้อมูลทั้งSystemเป็นไฟล์ JSON รวมประวัติยืม-คืนและรูปหลักฐาน');
       await saveBackupTimestamp('fullJson');
-      alert('✅ สำรองข้อมูลทั้งหมดเรียบร้อยแล้ว! ไฟล์ JSON นี้ใช้สำหรับกู้คืนระบบ และมีรูปหลักฐานที่เก็บในระบบรวมอยู่ด้วย');
+      alert('✅ สำรองข้อมูลทั้งหมดเรียบร้อยแล้ว! ไฟล์ JSON นี้ใช้สำหรับกู้คืนSystem และมีรูปหลักฐานที่เก็บในSystemรวมอยู่ด้วย');
     } catch (error) {
       console.error(error);
       alert('❌ สำรองข้อมูลทั้งหมดไม่สำเร็จ: ' + error.message);
@@ -3669,7 +3669,7 @@ S.N.: ${item.sn || '-'}
       alert(
         '✅ เริ่มดาวน์โหลดชุดสำรองข้อมูลครบแล้ว\\n\\n' +
         'ควรมีไฟล์ทั้งหมด 6 ไฟล์:\\n' +
-        '1) JSON สำหรับกู้คืนระบบ\\n' +
+        '1) JSON สำหรับกู้คืนSystem\\n' +
         '2) Inventory CSV สำหรับ Google Sheets\\n' +
         '3) History CSV สำหรับ Google Sheets\\n' +
         '4) Projects CSV สำหรับ Google Sheets\\n' +
@@ -3702,7 +3702,7 @@ S.N.: ${item.sn || '-'}
         const warning = confirm(
           '⚠️ กู้คืนข้อมูลจาก JSON\n\n' +
           'โหมดนี้จะเขียนทับข้อมูลอุปกรณ์ที่มี ID ตรงกัน และเพิ่มอุปกรณ์ที่ยังไม่มี\n' +
-          'ระบบจะไม่ลบอุปกรณ์ที่ไม่ได้อยู่ในไฟล์สำรอง เพื่อความปลอดภัย\n\n' +
+          'Systemจะไม่ลบอุปกรณ์ที่ไม่ได้อยู่ในไฟล์สำรอง เพื่อความปลอดภัย\n\n' +
           'ต้องการดำเนินการต่อหรือไม่?'
         );
         if (!warning) return;
@@ -3741,7 +3741,7 @@ S.N.: ${item.sn || '-'}
 
         await logAction('กู้คืนข้อมูลจาก JSON', 'กู้คืน ' + restoredCount + ' อุปกรณ์ / ' + restoredProofCount + ' รูปหลักฐาน', 'กู้คืนแบบปลอดภัย: เขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON โดยไม่ลบอุปกรณ์ที่ไม่มีในไฟล์');
         await saveBackupTimestamp('restoreJson');
-        alert('✅ กู้คืนข้อมูลจาก JSON เรียบร้อยแล้ว ' + restoredCount + ' รายการ และรูปหลักฐาน ' + restoredProofCount + ' รูป\nระบบไม่ได้ลบอุปกรณ์ที่ไม่มีในไฟล์สำรอง');
+        alert('✅ กู้คืนข้อมูลจาก JSON เรียบร้อยแล้ว ' + restoredCount + ' รายการ และรูปหลักฐาน ' + restoredProofCount + ' รูป\nSystemไม่ได้ลบอุปกรณ์ที่ไม่มีในไฟล์สำรอง');
       } catch (error) {
         console.error(error);
         alert('❌ กู้คืนข้อมูลไม่สำเร็จ: ' + error.message);
@@ -3773,7 +3773,7 @@ S.N.: ${item.sn || '-'}
 
     const confirmText = prompt(
       'เพื่อป้องกันการกดพลาด กรุณาพิมพ์คำว่า CLEAR เพื่อยืนยันการล้างประวัติยืม-คืนทั้งหมด\n\n' +
-      'ระบบจะล้างเฉพาะ history ของอุปกรณ์ทุกชิ้น\n' +
+      'Systemจะล้างเฉพาะ history ของอุปกรณ์ทุกชิ้น\n' +
       'ไม่ลบรายการอุปกรณ์ ไม่ลบสถานะปัจจุบัน ไม่ลบหมวดหมู่ สถานที่ หรือเจ้าของ'
     );
 
@@ -3848,7 +3848,7 @@ S.N.: ${item.sn || '-'}
       setShowLogin(false);
       setPin('');
       setLoginUsername(safeAccount.username || 'admin');
-      logAction('เข้าสู่ระบบ', safeAccount.name, `เข้าสู่ระบบด้วยบัญชี ${safeAccount.username}`);
+      logAction('เข้าสู่System', safeAccount.name, `เข้าสู่Systemด้วยบัญชี ${safeAccount.username}`);
     } else {
       alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
       setPin('');
@@ -3857,7 +3857,7 @@ S.N.: ${item.sn || '-'}
 
   const handleLogout = () => {
     const logoutName = currentOperator?.name || 'Admin';
-    logAction('ออกจากระบบ', logoutName, 'ออกจากระบบจัดการ');
+    logAction('ออกจากSystem', logoutName, 'ออกจากSystemจัดการ');
     setIsAdmin(false);
     setCurrentOperator(null);
     setSelectedItems([]);
@@ -3887,7 +3887,7 @@ S.N.: ${item.sn || '-'}
     const resetTimer = () => {
       window.clearTimeout(timeoutId);
       timeoutId = window.setTimeout(() => {
-        alert('⏱️ ระบบออกจากระบบอัตโนมัติ เพราะไม่มีการใช้งานนานเกิน 2 ชั่วโมง');
+        alert('⏱️ SystemออกจากSystemอัตโนมัติ เพราะไม่มีการใช้งานนานเกิน 2 ชั่วโมง');
         handleLogout();
       }, INACTIVITY_LOGOUT_MS);
     };
@@ -4178,9 +4178,9 @@ S.N.: ${item.sn || '-'}
     const prepItems = (prep.itemIds || []).map((id) => items.find((item) => item.id === id)).filter(Boolean);
     const availableIds = prepItems.filter((item) => item.status === 'available').map((item) => item.id);
     const unavailableItems = prepItems.filter((item) => item.status !== 'available');
-    if (availableIds.length === 0) return alert('❌ ยังนำออกงานไม่ได้ เพราะอุปกรณ์ในรายการนี้ไม่มีชิ้นที่พร้อมใช้งาน');
+    if (availableIds.length === 0) return alert('❌ ยังนำออกงานไม่ได้ เพราะอุปกรณ์ในรายการนี้ไม่มีชิ้นที่พร้อมใช้');
     if (unavailableItems.length > 0) {
-      const proceed = confirm(`⚠️ มีอุปกรณ์บางชิ้นไม่พร้อมใช้งาน ${unavailableItems.length} รายการ\n\n${unavailableItems.map((item) => '- ' + item.name).slice(0, 8).join('\n')}\n\nต้องการนำออกเฉพาะชิ้นที่พร้อมใช้งานหรือไม่?`);
+      const proceed = confirm(`⚠️ มีอุปกรณ์บางชิ้นไม่พร้อมใช้ ${unavailableItems.length} รายการ\n\n${unavailableItems.map((item) => '- ' + item.name).slice(0, 8).join('\n')}\n\nต้องการนำออกเฉพาะชิ้นที่พร้อมใช้หรือไม่?`);
       if (!proceed) return;
     }
     setEventTargetIds([...availableIds]);
@@ -4212,7 +4212,7 @@ S.N.: ${item.sn || '-'}
 
   const deletePrepList = async (prep) => {
     if (!user || !prep?.id) return;
-    const ok = confirm('ลบรายการเตรียมของ "' + (prep.name || '-') + '" ออกจากระบบหรือไม่?\n\nการลบนี้ไม่กระทบสถานะอุปกรณ์');
+    const ok = confirm('ลบรายการเตรียมของ "' + (prep.name || '-') + '" ออกจากSystemหรือไม่?\n\nการลบนี้ไม่กระทบสถานะอุปกรณ์');
     if (!ok) return;
     try {
       const newPrepLists = (settingsOptions.prepLists || []).filter((item) => item.id !== prep.id);
@@ -4226,7 +4226,7 @@ S.N.: ${item.sn || '-'}
 
   const deleteStorageBox = async (box) => {
     if (!user || !box?.id) return;
-    const ok = confirm('ลบข้อมูลกล่อง "' + (box.name || '-') + '" หรือไม่?\n\nระบบจะนำชื่อกล่องออกจากอุปกรณ์ในกล่องนี้ แต่จะไม่ลบรายการอุปกรณ์');
+    const ok = confirm('ลบข้อมูลกล่อง "' + (box.name || '-') + '" หรือไม่?\n\nSystemจะนำชื่อกล่องออกจากอุปกรณ์ในกล่องนี้ แต่จะไม่ลบรายการอุปกรณ์');
     if (!ok) return;
     try {
       const newBoxes = (settingsOptions.storageBoxes || []).filter((b) => b.id !== box.id);
@@ -4639,7 +4639,7 @@ S.N.: ${item.sn || '-'}
                </div>
 
                <div className="w-full text-xs sm:text-sm font-bold text-slate-300 bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-3">
-                 แนะนำ: ก่อนติดสติ๊กเกอร์จริง ควรทดลองสแกน 1 ดวงก่อนเสมอ และถ้าติดอุปกรณ์ที่ต้องสแกนบ่อย ให้ใช้ขนาด <b>สแกนง่ายมาก</b> ระบบจะเว้น <b>Quiet Zone</b> หรือขอบขาวรอบ QR ให้โล่งขึ้น และย้ายโลโก้ออกจากพื้นที่สแกน เพื่อลดปัญหาสแกนไม่ติด
+                 แนะนำ: ก่อนติดสติ๊กเกอร์จริง ควรทดลองสแกน 1 ดวงก่อนเสมอ และถ้าติดอุปกรณ์ที่ต้องสแกนบ่อย ให้ใช้ขนาด <b>สแกนง่ายมาก</b> Systemจะเว้น <b>Quiet Zone</b> หรือขอบขาวรอบ QR ให้โล่งขึ้น และย้ายโลโก้ออกจากพื้นที่สแกน เพื่อลดปัญหาสแกนไม่ติด
                </div>
 
                <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
@@ -4772,7 +4772,7 @@ S.N.: ${item.sn || '-'}
                   </div>
                 )}
                 <p className="text-lg font-black text-blue-700">โครงการ: {printProjectData.name}</p>
-                <p className="text-sm font-bold text-slate-600">เอกสารจากระบบ MDEC-Stock • ใช้สำหรับตรวจพัสดุ/ตรวจโครงการ</p>
+                <p className="text-sm font-bold text-slate-600">เอกสารจากSystem MDEC-Stock • ใช้สำหรับตรวจพัสดุ/ตรวจโครงการ</p>
               </div>
               <div className="text-right text-sm font-bold shrink-0 relative z-[1]">
                 <div>เลขที่: {printProjectData.ref}</div>
@@ -4834,7 +4834,7 @@ S.N.: ${item.sn || '-'}
             <div className="mt-10 pt-3 border-t border-slate-200 flex items-center justify-between gap-3 text-[11px] font-bold text-slate-500 relative z-[1]">
               <div className="flex items-center gap-2 min-w-0">
                 {showDocumentLogo('slipLogo') && renderOrgLogoBox({ className: 'w-16 h-9 rounded-xl border border-slate-200 px-2 py-1 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
-                <span className="truncate">เอกสารนี้ออกโดยระบบ MDEC-Stock สำหรับตรวจรายการอุปกรณ์ตามโครงการและประกอบงานพัสดุภายในศูนย์</span>
+                <span className="truncate">เอกสารนี้ออกโดยSystem MDEC-Stock สำหรับตรวจรายการอุปกรณ์ตามโครงการและประกอบงานพัสดุภายในศูนย์</span>
               </div>
               <span className="shrink-0">{APP_VERSION}</span>
             </div>
@@ -4874,7 +4874,7 @@ S.N.: ${item.sn || '-'}
                   <p className="text-sm font-bold text-slate-600">ศูนย์มัลติมีเดียทางการศึกษา (MDEC)</p>
                 </div>
               )}
-              <p className="text-sm font-black text-blue-700">เอกสารจากระบบ MDEC-Stock • ศูนย์มัลติมีเดียทางการศึกษา</p>
+              <p className="text-sm font-black text-blue-700">เอกสารจากSystem MDEC-Stock • ศูนย์มัลติมีเดียทางการศึกษา</p>
               {isPrepSlip && <p className="text-sm font-bold mt-1 text-slate-600">ใช้สำหรับเช็กรายการอุปกรณ์ก่อนนำออกงานจริง</p>}
             </div>
             <div className="text-right text-sm font-bold shrink-0 relative z-[1]"><div>เลขที่: {printSlipData.ref}</div><div>วันที่ออกเอกสาร: {new Date(printSlipData.date).toLocaleString('th-TH', { hour12: false })}</div></div>
@@ -4886,7 +4886,7 @@ S.N.: ${item.sn || '-'}
           <div className="mt-10 pt-3 border-t border-slate-200 flex items-center justify-between gap-3 text-[11px] font-bold text-slate-500 relative z-[1]">
             <div className="flex items-center gap-2 min-w-0">
               {showDocumentLogo('slipLogo') && renderOrgLogoBox({ className: 'w-16 h-9 rounded-xl border border-slate-200 px-2 py-1 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
-              <span className="truncate">เอกสารนี้ออกโดยระบบ MDEC-Stock เพื่อแสดงความเป็นเจ้าของและใช้ประกอบการยืม-คืนภายในศูนย์</span>
+              <span className="truncate">เอกสารนี้ออกโดยSystem MDEC-Stock เพื่อแสดงความเป็นเจ้าของและใช้ประกอบการยืม-คืนภายในศูนย์</span>
             </div>
             <span className="shrink-0">{APP_VERSION}</span>
           </div>
@@ -4946,16 +4946,16 @@ S.N.: ${item.sn || '-'}
             <div className={`p-8 rounded-3xl flex flex-col items-center justify-center relative overflow-hidden shadow-lg ${ccTheme.totalBg}`}>
               <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
               <div className="absolute -left-6 -bottom-6 w-24 h-24 bg-black/20 rounded-full blur-xl"></div>
-              <h2 className={`text-xl font-bold mb-2 z-10 flex items-center gap-2 ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}><Icons.Package className="w-6 h-6"/> อุปกรณ์ทั้งหมด</h2>
+              <h2 className={`text-xl font-bold mb-2 z-10 flex items-center gap-2 ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}><Icons.Package className="w-6 h-6"/> ทั้งหมด</h2>
               <span className="text-7xl sm:text-8xl font-black text-white z-10 drop-shadow-md">{stats.all}</span>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-4 flex-1">
               <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statAvail}`}>
-                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>🟢 พร้อมใช้งาน</span>
+                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>🟢 พร้อมใช้</span>
                 <span className={`text-4xl lg:text-5xl font-black ${isDarkMode ? 'text-emerald-400' : 'text-emerald-500'}`}>{stats.available}</span>
               </div>
               <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statBorrow}`}>
-                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>🟣 กำลังถูกยืม</span>
+                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>🟣 ถูกยืม</span>
                 <span className={`text-4xl lg:text-5xl font-black ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>{stats.borrowed}</span>
               </div>
               <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statEvent}`}>
@@ -5073,13 +5073,13 @@ S.N.: ${item.sn || '-'}
   }
 
   return (
-    <div className={`min-h-screen font-sans ${pagePaddingClass} pb-28 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain}`}>
+    <div className={`min-h-screen font-sans ${pagePaddingClass} pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain}`}>
       {firebaseError && (
         <div className="w-full mb-6 bg-rose-100 border-l-4 border-rose-500 text-rose-800 p-5 rounded-r-xl shadow-md flex items-start gap-4">
           <Icons.Alert className="w-8 h-8 shrink-0 text-rose-600" />
           <div>
             <h3 className="font-black text-xl mb-2 text-rose-700">🚨 ฐานข้อมูลถูกระงับ (Firebase Permission Denied)</h3>
-            <p className="font-bold text-base mb-2">ระบบไม่สามารถดึงข้อมูลจาก Firebase ของคุณได้ โปรดตรวจสอบการตั้งค่า Rules อีกครั้ง</p>
+            <p className="font-bold text-base mb-2">Systemไม่สามารถดึงข้อมูลจาก Firebase ของคุณได้ โปรดตรวจสอบการตั้งค่า Rules อีกครั้ง</p>
           </div>
         </div>
       )}
@@ -5089,7 +5089,7 @@ S.N.: ${item.sn || '-'}
           <div className="w-10 h-10 rounded-full bg-blue-600/10 text-blue-500 flex items-center justify-center animate-pulse"><Icons.Package className="w-6 h-6" /></div>
           <div>
             <div className={`font-black text-lg ${theme.textTitle}`}>กำลังโหลดข้อมูลสต๊อก...</div>
-            <div className={`text-sm font-bold ${theme.textMuted}`}>ระบบกำลังดึงรายการอุปกรณ์และการตั้งค่าจาก Firebase</div>
+            <div className={`text-sm font-bold ${theme.textMuted}`}>Systemกำลังดึงรายการอุปกรณ์และการตั้งค่าจาก Firebase</div>
           </div>
         </div>
       )}
@@ -5112,7 +5112,7 @@ S.N.: ${item.sn || '-'}
                 <span className={`text-[11px] font-black px-2 py-1 rounded-full border ${isDarkMode ? 'bg-blue-950/50 text-blue-300 border-blue-800' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>{APP_VERSION}</span>
               </div>
               <h1 className={`text-2xl sm:text-4xl font-black tracking-tight leading-tight ${theme.textTitle}`}>MDEC-Stock</h1>
-              <p className={`font-bold text-sm sm:text-base ${theme.textMuted}`}>ระบบจัดการสต๊อก ศูนย์มัลติมีเดียทางการศึกษา</p>
+              <p className={`font-bold text-sm sm:text-base ${theme.textMuted}`}>Systemจัดการสต๊อก ศูนย์มัลติมีเดียทางการศึกษา</p>
               <p className={`font-bold text-xs sm:text-sm mt-1 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>อัปเดตล่าสุด: {APP_UPDATE_NOTE}</p>
             </div>
           </div>
@@ -5150,12 +5150,12 @@ S.N.: ${item.sn || '-'}
                 )}
 
                 {canUseOperationalTools && (
-                  <button type="button" onClick={() => setShowMoreMenu(true)} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 font-black rounded-2xl transition-all shadow-sm border hover:-translate-y-0.5 ${theme.btnSecondary}`} title="เมนูเพิ่มเติม">
+                  <button type="button" onClick={() => setShowMoreMenu(true)} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 font-black rounded-2xl transition-all shadow-sm border hover:-translate-y-0.5 ${theme.btnSecondary}`} title="Control Center">
                     <Icons.ViewGrid className="w-5 h-5" /><span className="hidden sm:inline">เพิ่มเติม</span>
                   </button>
                 )}
 
-                <button type="button" onClick={() => { setMyPinForm({ oldPin: '', newPin: '', confirmPin: '' }); setShowMyAccountModal(true); }} className={`hidden xl:flex items-center gap-2 px-4 py-3 rounded-2xl border font-bold text-sm transition-all hover:-translate-y-0.5 ${isDarkMode ? 'bg-slate-950/60 border-slate-700 text-slate-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`} title={`เข้าสู่ระบบโดย ${currentAccountLabel}`}>
+                <button type="button" onClick={() => { setMyPinForm({ oldPin: '', newPin: '', confirmPin: '' }); setShowMyAccountModal(true); }} className={`hidden xl:flex items-center gap-2 px-4 py-3 rounded-2xl border font-bold text-sm transition-all hover:-translate-y-0.5 ${isDarkMode ? 'bg-slate-950/60 border-slate-700 text-slate-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`} title={`เข้าสู่Systemโดย ${currentAccountLabel}`}>
                   👤 {currentAccountLabel}
                 </button>
 
@@ -5163,7 +5163,7 @@ S.N.: ${item.sn || '-'}
                   <Icons.Lock className="w-5 h-5" /><span className="hidden sm:inline">ล็อก</span>
                 </button>
 
-                <button type="button" onClick={handleLogout} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-2xl transition-all flex hover:-translate-y-0.5 ${isDarkMode ? 'bg-rose-950/60 text-rose-300 hover:bg-rose-900 border border-rose-800' : 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100'}`} title="ออกจากระบบ">
+                <button type="button" onClick={handleLogout} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-2xl transition-all flex hover:-translate-y-0.5 ${isDarkMode ? 'bg-rose-950/60 text-rose-300 hover:bg-rose-900 border border-rose-800' : 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100'}`} title="ออกจากSystem">
                   <Icons.Unlock className="w-5 h-5" />
                 </button>
               </>
@@ -5171,7 +5171,7 @@ S.N.: ${item.sn || '-'}
             
             {!isAdmin && (
               <button type="button" onClick={() => setShowLogin(true)} className={`flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 font-bold rounded-2xl transition-all shadow-lg flex hover:-translate-y-0.5 ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-slate-900 text-white hover:bg-slate-800'}`}>
-                <Icons.Lock className="w-5 h-5" /><span className="hidden sm:inline">เข้าสู่ระบบจัดการ</span>
+                <Icons.Lock className="w-5 h-5" /><span className="hidden sm:inline">เข้าสู่Systemจัดการ</span>
               </button>
             )}
           </div>
@@ -5183,7 +5183,7 @@ S.N.: ${item.sn || '-'}
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>👤</div>
             <div>
-              <div className={`font-black ${theme.textTitle}`}>เข้าสู่ระบบโดย: {currentAccountLabel}</div>
+              <div className={`font-black ${theme.textTitle}`}>เข้าสู่Systemโดย: {currentAccountLabel}</div>
               <div className={`text-sm font-bold ${theme.textMuted}`}>สิทธิ์: {roleLabel(currentAccountRole)} • กด “ล็อก” เมื่อต้องออกจากโต๊ะชั่วคราว</div>
             </div>
           </div>
@@ -5191,7 +5191,7 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
-      {/* เมนูเพิ่มเติม: รวมฟังก์ชันที่คล้ายกันให้เป็นหมวดใหญ่ */}
+      {/* Control Center: รวมฟังก์ชันที่คล้ายกันให้เป็นหมวดใหญ่ */}
       {showMoreMenu && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-[2rem] shadow-2xl w-full max-w-6xl overflow-hidden border ring-1 ring-white/10 ${isDarkMode ? 'bg-slate-900/95 border-slate-700 shadow-black/40' : 'bg-white/95 border-white shadow-slate-200/80'}`}>
@@ -5201,9 +5201,9 @@ S.N.: ${item.sn || '-'}
                   <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
                     <Icons.ViewGrid className="w-6 h-6" />
                   </div>
-                  เมนูเพิ่มเติม
+                  Control Center
                 </h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมเครื่องมือสำคัญเป็นหมวด ใช้เหมือน Dashboard ย่อยของระบบ</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมDaily Operations งานข้อมูล เอกสาร และSystemไว้เป็นหมวดแบบหลังบ้าน</p>
               </div>
               <button type="button" onClick={() => setShowMoreMenu(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -5211,12 +5211,12 @@ S.N.: ${item.sn || '-'}
             <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar max-h-[78vh] space-y-6">
               <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                 <div>
-                  <div className={`font-black text-lg ${theme.textTitle}`}>โหมดการแสดงเมนู</div>
-                  <p className={`text-sm font-bold ${theme.textMuted}`}>โหมดง่ายแสดงเฉพาะเมนูที่ใช้บ่อย ส่วนเต็มระบบจะแสดงเครื่องมือขั้นสูงทั้งหมด</p>
+                  <div className={`font-black text-lg ${theme.textTitle}`}>มุมมองเมนู</div>
+                  <p className={`text-sm font-bold ${theme.textMuted}`}>เลือกโหมดง่ายสำหรับDaily Operations หรือโหมดเต็มสำหรับผู้ดูแลSystem</p>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <button type="button" onClick={() => updateUiMode('easy')} className={`px-4 py-2 rounded-xl font-black border ${uiMode === 'easy' ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>โหมดง่าย</button>
-                  <button type="button" onClick={() => updateUiMode('full')} className={`px-4 py-2 rounded-xl font-black border ${uiMode === 'full' ? 'bg-indigo-600 text-white border-indigo-600' : theme.btnSecondary}`}>เต็มระบบ</button>
+                  <button type="button" onClick={() => updateUiMode('full')} className={`px-4 py-2 rounded-xl font-black border ${uiMode === 'full' ? 'bg-indigo-600 text-white border-indigo-600' : theme.btnSecondary}`}>เต็มSystem</button>
                 </div>
               </div>
 
@@ -5236,19 +5236,19 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div>
-                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.History className="w-5 h-5 text-sky-500" /> งานประจำวัน</h4>
+                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.History className="w-5 h-5 text-sky-500" /> Daily Operations</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <button type="button" onClick={() => { setShowMoreMenu(false); openTrackingCenter('today'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ศูนย์ติดตามงาน</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูงานค้างและรายการวันนี้</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ติดตามยืม/คืน/ออกงาน</p>
                   </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); openSelectionScanner({ camera: true }); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> โหมดสแกนเร็ว</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เปิดสแกน QR อย่างรวดเร็ว</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สแกนเพื่อเลือกอุปกรณ์</p>
                   </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); setProofCenterFilter('all'); setProofCenterSearch(''); setShowProofCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Camera className="w-5 h-5" /> หลักฐานรูปภาพ</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมรูปหลักฐานทั้งหมด</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูและจัดการรูปหลักฐาน</p>
                   </button>
                 </div>
               </div>
@@ -5258,15 +5258,15 @@ S.N.: ${item.sn || '-'}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <button type="button" onClick={() => { setShowMoreMenu(false); setShowStorageBoxesModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Folder className="w-5 h-5" /> กล่องเก็บของ</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดของตามกล่องและพิมพ์ฉลาก</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดกล่องและฉลาก</p>
                   </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Layers className="w-5 h-5" /> เซ็ตอุปกรณ์</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดอุปกรณ์เป็นเซ็ต</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดเซ็ตใช้งานร่วมกัน</p>
                   </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); setShowPrepListsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายการเตรียมของ</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เตรียมของก่อนออกงาน</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เตรียมรายการออกงาน</p>
                   </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); setShowPersonalItemsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Tag className="w-5 h-5" /> ของส่วนตัว</div>
@@ -5274,23 +5274,23 @@ S.N.: ${item.sn || '-'}
                   </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); setShowProjectsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Database className="w-5 h-5" /> โครงการ</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดกลุ่มตามโครงการจัดซื้อ</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดกลุ่มตามแหล่งที่มา</p>
                   </button>
                   {isFullMode && canUseOperationalTools && (
                     <button type="button" onClick={() => { setShowMoreMenu(false); setShowStockCountModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> ตรวจนับสต๊อก</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เดินสแกน QR เทียบของจริงกับระบบ</p>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เดินสแกน QR เทียบของจริงกับSystem</p>
                     </button>
                   )}
                 </div>
               </div>
 
               <div>
-                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Printer className="w-5 h-5 text-indigo-500" /> เอกสารและฉลาก</h4>
+                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Printer className="w-5 h-5 text-indigo-500" /> Documents & Labels</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <button type="button" onClick={() => { setShowMoreMenu(false); setShowPrintModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> QR / สติ๊กเกอร์อุปกรณ์</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>พิมพ์ QR และสติ๊กเกอร์</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>พิมพ์ QR/ฉลาก</p>
                   </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); setShowBoxLabelPrintModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Folder className="w-5 h-5" /> ฉลากกล่อง</div>
@@ -5304,15 +5304,15 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div>
-                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Monitor className="w-5 h-5 text-emerald-500" /> ระบบและรายงาน</h4>
+                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Monitor className="w-5 h-5 text-emerald-500" /> Systemและรายงาน</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <button type="button" onClick={() => { setShowMoreMenu(false); setShowMonthlyReportModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายงานประจำเดือน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปการยืม คืน ออกงาน และหลักฐาน</p>
                   </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); setShowSystemHealthModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                    <div className="font-black text-lg flex items-center gap-2"><Icons.Alert className="w-5 h-5" /> ตรวจสุขภาพระบบ</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูพื้นที่ฐานข้อมูล รูปหลักฐาน และสถานะระบบ</p>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.Alert className="w-5 h-5" /> ตรวจสุขภาพSystem</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูพื้นที่ฐานข้อมูล รูปหลักฐาน และสถานะSystem</p>
                   </button>
                   {canManageSystem && (
                     <button type="button" onClick={() => { setShowMoreMenu(false); setShowBackupCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
@@ -5323,7 +5323,7 @@ S.N.: ${item.sn || '-'}
                   {isFullMode && canViewAudit && (
                     <button type="button" onClick={() => { setShowMoreMenu(false); setShowAuditModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ประวัติการทำงาน</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Audit log ของระบบ</p>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Audit log ของSystem</p>
                     </button>
                   )}
                   {isFullMode && canManageSystem && (
@@ -5356,21 +5356,21 @@ S.N.: ${item.sn || '-'}
 
 
       {/* ⚡ Daily Quick Actions */}
-      <div className={`w-full mb-6 rounded-[1.75rem] border shadow-sm overflow-hidden relative ${theme.cardBg}`}>
+      <div className={`w-full mb-5 rounded-[1.5rem] border shadow-sm overflow-hidden relative ${theme.cardBg}`}>
         <div className={`relative p-4 sm:p-5 border-b overflow-hidden ${theme.divide}`}>
           <div className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'bg-slate-950/10' : 'bg-slate-50/40'}`}></div>
           <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
-              <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>MDEC COMMAND</div>
-              <h2 className={`text-xl sm:text-2xl font-black mt-1 tracking-tight ${theme.textTitle}`}>เริ่มงานวันนี้</h2>
-              <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>ปุ่มสำคัญสำหรับงานประจำวัน จัดให้สั้นและกดง่าย</p>
+              <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>STOCK OPERATIONS</div>
+              <h2 className={`text-xl sm:text-2xl font-black mt-1 tracking-tight ${theme.textTitle}`}>ศูนย์ปฏิบัติงานสต็อก</h2>
+              <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>สแกน ค้นหา ยืม-คืน และติดตามงานจากจุดเดียว เหมาะกับใช้งานจริงในศูนย์</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <div className={`text-xs font-black px-3 py-2 rounded-full border ${isDarkMode ? 'bg-slate-950/70 border-slate-700 text-slate-300' : 'bg-white/80 border-slate-200 text-slate-600'}`}>
                 {APP_VERSION}
               </div>
               <div className={`text-xs font-black px-3 py-2 rounded-full border ${isDarkMode ? 'bg-emerald-950/50 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
-                พร้อมใช้งาน {stats.available.toLocaleString('th-TH')}/{stats.all.toLocaleString('th-TH')}
+                พร้อมใช้ {stats.available.toLocaleString('th-TH')}/{stats.all.toLocaleString('th-TH')}
               </div>
             </div>
           </div>
@@ -5385,10 +5385,10 @@ S.N.: ${item.sn || '-'}
             </button>
           )}
           {canAddEditItems && (
-            <button type="button" onClick={openAddItemForm} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-blue-950/40 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-100 text-blue-700'}`}>
+            <button type="button" onClick={openAddItemForm} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-slate-900/45 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
               <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-3"><Icons.Plus className="w-5 h-5" /></div>
               <div className="font-black text-lg">เพิ่มอุปกรณ์</div>
-              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ของใหม่เข้าระบบ</div>
+              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ของใหม่เข้าSystem</div>
             </button>
           )}
           <button type="button" onClick={() => openTrackingCenter('today')} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
@@ -5418,7 +5418,7 @@ S.N.: ${item.sn || '-'}
             const cls = {
               emerald: isDarkMode ? 'bg-emerald-950/30 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-100 text-emerald-700',
               rose: isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-100 text-rose-700',
-              blue: isDarkMode ? 'bg-blue-950/30 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-100 text-blue-700',
+              blue: isDarkMode ? 'bg-blue-950/30 border-blue-800 text-blue-300' : 'bg-white border-slate-200 text-slate-700',
               amber: isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-100 text-amber-700'
             }[tone];
             return (
@@ -5432,15 +5432,15 @@ S.N.: ${item.sn || '-'}
       </div>
 
 
-      {/* 📊 Main Stats Grid - Premium Cards */}
+      {/* 📊 Factory Stock Metrics */}
       <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-6">
         {[
-          ['อุปกรณ์ทั้งหมด', stats.all, 'blue', '📦', 'จากข้อมูลทั้งหมด'],
-          ['พร้อมใช้งาน', stats.available, 'emerald', '✅', 'พร้อมหยิบใช้งาน'],
+          ['ทั้งหมด', stats.all, 'blue', '📦', 'จากข้อมูลทั้งหมด'],
+          ['พร้อมใช้', stats.available, 'emerald', '✅', 'พร้อมหยิบใช้งาน'],
           ['กำลังใช้งาน', stats.inUse, 'amber', '⚙️', 'กำลังใช้งานอยู่'],
-          ['กำลังถูกยืม', stats.borrowed, 'purple', '📤', 'รอรับคืน'],
+          ['ถูกยืม', stats.borrowed, 'purple', '📤', 'รอรับคืน'],
           ['ออกงาน', stats.outForEvent, 'orange', '🚚', 'อยู่นอกศูนย์'],
-          ['ส่งซ่อม/ชำรุด', stats.maintenance, 'rose', '🛠️', 'ต้องติดตาม']
+          ['ซ่อม/ชำรุด', stats.maintenance, 'rose', '🛠️', 'ต้องติดตาม']
         ].map(([label, value, tone, emoji, caption]) => {
           const toneMap = {
             blue: isDarkMode ? 'bg-slate-900 border-slate-800 text-blue-300' : 'bg-white border-slate-200 text-blue-600',
@@ -5472,7 +5472,7 @@ S.N.: ${item.sn || '-'}
           <div className="min-w-0">
             <div className={`font-black text-xl ${theme.textTitle}`}>สรุปหมวดหมู่</div>
             <div className={`text-sm font-bold ${theme.textMuted}`}>
-              {categoryStats.length.toLocaleString('th-TH')} หมวดหมู่ • พร้อมใช้งาน {stats.available.toLocaleString('th-TH')} / {stats.all.toLocaleString('th-TH')} ชิ้น
+              {categoryStats.length.toLocaleString('th-TH')} หมวดหมู่ • พร้อมใช้ {stats.available.toLocaleString('th-TH')} / {stats.all.toLocaleString('th-TH')} ชิ้น
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -5523,14 +5523,14 @@ S.N.: ${item.sn || '-'}
       </div>
 
       {/* Filters & Search */}
-      <div className={`w-full flex flex-col gap-4 ${panelPaddingClass} rounded-2xl shadow-sm border mb-6 transition-colors ${theme.cardBg}`}>
+      <div className={`w-full flex flex-col gap-4 ${panelPaddingClass} rounded-[1.5rem] shadow-sm border mb-5 transition-colors ${theme.cardBg}`}>
         <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center w-full">
           <div className="relative flex-1 w-full">
             <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${theme.textMuted}`}><Icons.Search className="w-5 h-5" /></div>
             <input
               type="text"
               className={`w-full pl-12 pr-4 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-bold outline-none transition-all border ${theme.input}`}
-              placeholder="ค้นหาชื่ออุปกรณ์, รหัส, สถานที่, เจ้าของ..."
+              placeholder="ค้นหาอุปกรณ์ / S.N. / ห้อง / โครงการ / เจ้าของ..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -5582,7 +5582,7 @@ S.N.: ${item.sn || '-'}
               ฝ่าย / แผนก <span className={`text-xs font-bold ${theme.textMuted}`}>{filterDept === 'all' ? 'ทั้งหมด' : filterDept}</span>
             </div>
             <div className={`text-xs font-bold ${theme.textMuted}`}>
-              เลือก “ห้องประชุม” แล้วระบบจะแยกอุปกรณ์ตามห้องให้อัตโนมัติ
+              เลือก “ห้องประชุม” แล้วSystemจะแยกอุปกรณ์ตามห้องให้อัตโนมัติ
             </div>
           </div>
           <div className="p-3 flex gap-2 overflow-x-auto w-full custom-scrollbar">
@@ -5617,7 +5617,7 @@ S.N.: ${item.sn || '-'}
             <div className={`p-5 border-b flex items-start justify-between gap-4 ${theme.divide}`}>
               <div>
                 <h3 className={`text-2xl sm:text-3xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.Settings className="w-7 h-7 text-blue-500" /> ตัวกรองข้อมูล</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมตัวกรองทั้งหมดไว้ที่นี่ หน้าแรกจะได้ไม่รก</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมตัวกรองทั้งหมดไว้ที่นี่ หน้าแรกจะได้โล่ง และมือถือกดง่าย</p>
               </div>
               <button type="button" onClick={() => setShowFilterModal(false)} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -6026,7 +6026,7 @@ S.N.: ${item.sn || '-'}
         const hasReturnable = returnableCount > 0;
         const singleSelectedItem = selectedActiveItems.length === 1 ? selectedActiveItems[0] : null;
         const selectionHint = [
-          hasAvailable ? `${availableCount} พร้อมใช้งาน` : '',
+          hasAvailable ? `${availableCount} พร้อมใช้` : '',
           hasReturnable ? `${returnableCount} รอคืน` : '',
           maintenanceCount ? `${maintenanceCount} ซ่อม/ชำรุด` : ''
         ].filter(Boolean).join(' • ');
@@ -6085,7 +6085,7 @@ S.N.: ${item.sn || '-'}
                       type="button"
                       onClick={handleOpenBatchBorrow}
                       className="px-4 py-3 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-black shadow-md flex items-center justify-center gap-2 text-sm sm:text-base transition-colors"
-                      title={`ยืมเฉพาะรายการที่พร้อมใช้งาน ${availableCount} รายการ`}
+                      title={`ยืมเฉพาะรายการที่พร้อมใช้ ${availableCount} รายการ`}
                     >
                       <Icons.UserPlus className="w-5 h-5" />
                       <span>ยืม{availableCount > 1 ? ` ${availableCount}` : ''}</span>
@@ -6097,7 +6097,7 @@ S.N.: ${item.sn || '-'}
                       type="button"
                       onClick={handleOpenBatchEvent}
                       className="px-4 py-3 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-black shadow-md flex items-center justify-center gap-2 text-sm sm:text-base transition-colors"
-                      title={`ออกงานเฉพาะรายการที่พร้อมใช้งาน ${availableCount} รายการ`}
+                      title={`ออกงานเฉพาะรายการที่พร้อมใช้ ${availableCount} รายการ`}
                     >
                       <Icons.Truck className="w-5 h-5" />
                       <span>ออกงาน{availableCount > 1 ? ` ${availableCount}` : ''}</span>
@@ -6109,7 +6109,7 @@ S.N.: ${item.sn || '-'}
                       type="button"
                       onClick={handleOpenBatchReturn}
                       className={`${hasAvailable ? '' : 'col-span-2'} px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-md flex items-center justify-center gap-2 text-sm sm:text-base transition-colors`}
-                      title={`รับคืนเฉพาะรายการที่กำลังถูกยืมหรือออกงาน ${returnableCount} รายการ`}
+                      title={`รับคืนเฉพาะรายการที่ถูกยืมหรือออกงาน ${returnableCount} รายการ`}
                     >
                       <Icons.CheckCircle className="w-5 h-5" />
                       <span>รับคืน{returnableCount > 1 ? ` ${returnableCount}` : ''}</span>
@@ -6205,7 +6205,7 @@ S.N.: ${item.sn || '-'}
                 <datalist id="storage-box-name-list">
                   {(settingsOptions.storageBoxes || []).map((box) => <option key={box.id} value={box.name} />)}
                 </datalist>
-                <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>ถ้าพิมพ์ชื่อกล่องเดิม ระบบจะอัปเดตรายการในกล่องนั้นเป็นรายการที่เลือกอยู่ตอนนี้</p>
+                <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>ถ้าพิมพ์ชื่อกล่องเดิม Systemจะอัปเดตรายการในกล่องนั้นเป็นรายการที่เลือกอยู่ตอนนี้</p>
               </label>
 
               <label className="block">
@@ -6345,7 +6345,7 @@ S.N.: ${item.sn || '-'}
                           <span className={`text-sm font-bold px-2 py-1 rounded-md ${isDarkMode ? 'bg-sky-900/40 text-sky-400' : 'bg-sky-100 text-sky-700'}`}>{prepItems.length} รายการ</span>
                           {prep.useDate && <span className={`text-sm font-bold px-2 py-1 rounded-md ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-700'}`}>ใช้วันที่ {new Date(prep.useDate).toLocaleDateString('th-TH')}</span>}
                           {unavailableItems.length > 0 && !isCancelled && <span className="text-sm font-bold px-2 py-1 rounded-md bg-amber-100 text-amber-700">ไม่พร้อม {unavailableItems.length}</span>}
-                          {missingCount > 0 && <span className="text-sm font-bold px-2 py-1 rounded-md bg-rose-100 text-rose-700">หายจากระบบ {missingCount}</span>}
+                          {missingCount > 0 && <span className="text-sm font-bold px-2 py-1 rounded-md bg-rose-100 text-rose-700">หายจากSystem {missingCount}</span>}
                           {isCancelled && <span className="text-sm font-bold px-2 py-1 rounded-md bg-slate-200 text-slate-600">ยกเลิก</span>}
                         </div>
                         <div className={`text-sm font-bold ${theme.textMuted}`}>
@@ -6441,7 +6441,7 @@ S.N.: ${item.sn || '-'}
                       <div className={`h-full rounded-full transition-all duration-500 ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${percent}%` }}></div>
                     </div>
                     <div className="mt-2 text-xs font-bold opacity-80">
-                      {isComplete ? 'ปิดหน้าสแกนแล้วกดปุ่มยืนยันรายการด้านล่างได้เลย' : 'สแกน QR ของอุปกรณ์จริงทีละชิ้น ระบบจะเช็กให้เอง'}
+                      {isComplete ? 'ปิดหน้าสแกนแล้วกดปุ่มยืนยันรายการด้านล่างได้เลย' : 'สแกน QR ของอุปกรณ์จริงทีละชิ้น Systemจะเช็กให้เอง'}
                     </div>
                     {isComplete && (
                       <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); }} className="mt-3 w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-md">
@@ -6486,7 +6486,7 @@ S.N.: ${item.sn || '-'}
                     <div>• ให้ QR อยู่ในกรอบ ไม่ชิดขอบ • ถ้าสติกเกอร์เงาให้เอียงเล็กน้อย • ถ้าไม่ติดให้ขยับเข้า/ออกช้า ๆ</div>
                   </div>
                   {!isScannerLoaded ? (
-                    <div className="animate-pulse text-amber-500 font-bold py-10">กำลังโหลดระบบกล้อง...</div>
+                    <div className="animate-pulse text-amber-500 font-bold py-10">กำลังโหลดSystemกล้อง...</div>
                   ) : (
                     <div className={`w-full rounded-[1.6rem] overflow-hidden border-4 ${isDarkMode ? 'border-amber-500/40 bg-slate-950' : 'border-amber-300 bg-slate-100'}`}>
                       <div id="qr-reader" className="w-full bg-slate-100 dark:bg-slate-800 overflow-hidden shadow-inner"></div>
@@ -6582,7 +6582,7 @@ S.N.: ${item.sn || '-'}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   <TodayPanel title="ต้องคืนวันนี้" color="amber" items={todayFollowup.dueToday} empty="วันนี้ยังไม่มีรายการครบกำหนดคืน" isDarkMode={isDarkMode} theme={theme} />
                   <TodayPanel title="เลยกำหนดคืน" color="rose" items={todayFollowup.overdue} empty="ไม่มีรายการเลยกำหนด" isDarkMode={isDarkMode} theme={theme} />
-                  <TodayPanel title="กำลังถูกยืม / ออกงาน" color="purple" items={todayFollowup.active} empty="ไม่มีอุปกรณ์ที่ถูกยืมหรือออกงาน" isDarkMode={isDarkMode} theme={theme} />
+                  <TodayPanel title="ถูกยืม / ออกงาน" color="purple" items={todayFollowup.active} empty="ไม่มีอุปกรณ์ที่ถูกยืมหรือออกงาน" isDarkMode={isDarkMode} theme={theme} />
                 </div>
               )}
 
@@ -6613,7 +6613,7 @@ S.N.: ${item.sn || '-'}
                     {actionCenterData.prepIncomplete.length === 0 && <div className={`text-sm font-bold ${theme.textMuted}`}>ไม่มีรายการ</div>}
                   </div>
                   <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700 bg-slate-900/40' : 'border-slate-200 bg-slate-50'}`}>
-                    <h4 className={`font-black text-lg ${theme.textTitle}`}>กล่องที่มีรายการหายจากระบบ</h4>
+                    <h4 className={`font-black text-lg ${theme.textTitle}`}>กล่องที่มีรายการหายจากSystem</h4>
                     <div className="text-4xl font-black my-2 text-cyan-500">{actionCenterData.brokenBoxes.length}</div>
                     {actionCenterData.brokenBoxes.slice(0, 8).map(b => <div key={b.id} className={`text-sm font-bold px-3 py-2 rounded-xl mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>{b.name} • หาย {(b.missingIds||[]).length} รายการ</div>)}
                     {actionCenterData.brokenBoxes.length === 0 && <div className={`text-sm font-bold ${theme.textMuted}`}>ไม่มีรายการ</div>}
@@ -6649,7 +6649,7 @@ S.N.: ${item.sn || '-'}
 
       {/* 📅 Modal วันนี้ */}
       {showTodayModal && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}><div className={`rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[85vh] ${theme.cardBg}`}><div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}><h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><div className={`p-2 rounded-xl ${isDarkMode ? 'bg-sky-900/50 text-sky-400' : 'bg-sky-100 text-sky-600'}`}><Icons.History className="w-6 h-6"/></div>วันนี้ต้องติดตามอะไรบ้าง</h3><button type="button" onClick={() => setShowTodayModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button></div><div className="flex-1 overflow-y-auto custom-scrollbar p-6 grid grid-cols-1 lg:grid-cols-3 gap-4"><TodayPanel title="ต้องคืนวันนี้" color="amber" items={todayFollowup.dueToday} empty="วันนี้ยังไม่มีรายการครบกำหนดคืน" isDarkMode={isDarkMode} theme={theme} /><TodayPanel title="เลยกำหนดคืน" color="rose" items={todayFollowup.overdue} empty="ไม่มีรายการเลยกำหนด" isDarkMode={isDarkMode} theme={theme} /><TodayPanel title="กำลังถูกยืม / ออกงาน" color="purple" items={todayFollowup.active} empty="ไม่มีอุปกรณ์ที่ถูกยืมหรือออกงาน" isDarkMode={isDarkMode} theme={theme} /></div><div className={`p-4 border-t text-center text-sm font-bold ${theme.divide} ${theme.textMuted}`}>ใช้หน้านี้เปิดเช็กตอนเช้าได้เลย ว่าต้องตามคืนอะไรบ้างและใครกำลังใช้อุปกรณ์อยู่</div></div></div>
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}><div className={`rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[85vh] ${theme.cardBg}`}><div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}><h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><div className={`p-2 rounded-xl ${isDarkMode ? 'bg-sky-900/50 text-sky-400' : 'bg-sky-100 text-sky-600'}`}><Icons.History className="w-6 h-6"/></div>วันนี้ต้องติดตามอะไรบ้าง</h3><button type="button" onClick={() => setShowTodayModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button></div><div className="flex-1 overflow-y-auto custom-scrollbar p-6 grid grid-cols-1 lg:grid-cols-3 gap-4"><TodayPanel title="ต้องคืนวันนี้" color="amber" items={todayFollowup.dueToday} empty="วันนี้ยังไม่มีรายการครบกำหนดคืน" isDarkMode={isDarkMode} theme={theme} /><TodayPanel title="เลยกำหนดคืน" color="rose" items={todayFollowup.overdue} empty="ไม่มีรายการเลยกำหนด" isDarkMode={isDarkMode} theme={theme} /><TodayPanel title="ถูกยืม / ออกงาน" color="purple" items={todayFollowup.active} empty="ไม่มีอุปกรณ์ที่ถูกยืมหรือออกงาน" isDarkMode={isDarkMode} theme={theme} /></div><div className={`p-4 border-t text-center text-sm font-bold ${theme.divide} ${theme.textMuted}`}>ใช้หน้านี้เปิดเช็กตอนเช้าได้เลย ว่าต้องตามคืนอะไรบ้างและใครกำลังใช้อุปกรณ์อยู่</div></div></div>
       )}
 
       {/* 🛠️ Modal แก้ไขกล่องเก็บของ */}
@@ -6691,7 +6691,7 @@ S.N.: ${item.sn || '-'}
 
                   <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}>
                     <div className={`text-sm font-black ${theme.textTitle}`}>เลือกแล้ว {storageBoxForm.itemIds?.length || 0} รายการ</div>
-                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ถ้าเลือกอุปกรณ์ที่อยู่กล่องอื่น ระบบจะย้ายมาอยู่กล่องนี้ให้อัตโนมัติ</p>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ถ้าเลือกอุปกรณ์ที่อยู่กล่องอื่น Systemจะย้ายมาอยู่กล่องนี้ให้อัตโนมัติ</p>
                   </div>
                 </div>
               </div>
@@ -6774,7 +6774,7 @@ S.N.: ${item.sn || '-'}
               {(settingsOptions.storageBoxes || []).length === 0 ? (
                 <div className={`text-center py-12 font-bold text-xl flex flex-col items-center gap-3 ${theme.textMuted}`}>
                   <Icons.Folder className="w-14 h-14" />
-                  ยังไม่มีกล่องเก็บของในระบบ
+                  ยังไม่มีกล่องเก็บของในSystem
                   <p className="text-sm font-medium max-w-xl">วิธีสร้าง: เลือกอุปกรณ์จากตาราง → กด “สร้าง/เพิ่มเข้ากล่อง” → บันทึกกล่อง จากนั้นค่อยพิมพ์ฉลากจากหน้านี้</p>
                 </div>
               ) : (settingsOptions.storageBoxes || []).map((box) => {
@@ -6788,7 +6788,7 @@ S.N.: ${item.sn || '-'}
                         <div className="flex items-center gap-2 flex-wrap mb-2">
                           <h4 className={`text-xl font-black truncate ${theme.textTitle}`}>📦 {box.name}</h4>
                           <span className={`text-sm font-bold px-2 py-1 rounded-md ${isDarkMode ? 'bg-cyan-900/40 text-cyan-400' : 'bg-cyan-100 text-cyan-700'}`}>{boxItems.length} รายการ</span>
-                          {missingCount > 0 && <span className="text-sm font-bold px-2 py-1 rounded-md bg-rose-100 text-rose-700">หายจากระบบ {missingCount} รายการ</span>}
+                          {missingCount > 0 && <span className="text-sm font-bold px-2 py-1 rounded-md bg-rose-100 text-rose-700">หายจากSystem {missingCount} รายการ</span>}
                         </div>
                         {box.note && <p className={`text-sm font-bold mb-2 ${theme.textMuted}`}>หมายเหตุ: {box.note}</p>}
                         <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>หมวดหมู่ในกล่อง: {categories.length ? categories.join(', ') : '-'}</p>
@@ -6891,7 +6891,7 @@ S.N.: ${item.sn || '-'}
               ))}
             </div>
             <div className={`p-4 border-t ${theme.divide}`}>
-              <p className={`text-sm text-center font-bold ${theme.textMuted}`}>* กดปุ่มรับคืนกลุ่มนี้ ระบบจะดึงของทั้งหมดไปหน้ารับคืนให้ทันที</p>
+              <p className={`text-sm text-center font-bold ${theme.textMuted}`}>* กดปุ่มรับคืนกลุ่มนี้ Systemจะดึงของทั้งหมดไปหน้ารับคืนให้ทันที</p>
             </div>
           </div>
         </div>
@@ -6926,7 +6926,7 @@ S.N.: ${item.sn || '-'}
                   return (
                     <div className={`text-center py-10 font-bold text-xl flex flex-col items-center gap-3 ${theme.textMuted}`}>
                       <Icons.Tag className="w-12 h-12" />
-                      ยังไม่มีการลงทะเบียนทรัพย์สินส่วนตัวในระบบ
+                      ยังไม่มีการลงทะเบียนทรัพย์สินส่วนตัวในSystem
                     </div>
                   );
                 }
@@ -6987,8 +6987,8 @@ S.N.: ${item.sn || '-'}
           <div className={`rounded-[2rem] shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[92vh] transition-all duration-300 border ${theme.cardBg}`}>
             <div className={`p-5 border-b shrink-0 flex items-start justify-between gap-4 ${theme.divide}`}>
               <div>
-                <h3 className={`text-2xl sm:text-3xl font-black ${theme.textTitle}`}>ตั้งค่าระบบ</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกหมวดจากการ์ดด้านบน ทุกหมวดใช้โครงเดียวกันเพื่อให้หาเมนูง่ายขึ้น</p>
+                <h3 className={`text-2xl sm:text-3xl font-black ${theme.textTitle}`}>ตั้งค่าSystem</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ตั้งค่าหมวดข้อมูล ผู้ใช้งาน เอกสาร และระบบในรูปแบบเดียวกัน</p>
               </div>
               <button type="button" onClick={() => { setShowSettings(false); resetSettingsFormState(); }} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -7021,18 +7021,18 @@ S.N.: ${item.sn || '-'}
                 <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
                             <div className={`px-5 sm:px-6 pt-5 pb-0`}>
                 <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                  <div className={`text-xs font-black tracking-[0.14em] uppercase ${theme.textMuted}`}>หมวดตั้งค่า</div>
-                  <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.label || 'ตั้งค่าระบบ'}</div>
-                  <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.desc || 'จัดการระบบ'}</div>
+                  <div className={`text-xs font-black tracking-[0.14em] uppercase ${theme.textMuted}`}>SETTING</div>
+                  <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.label || 'ตั้งค่าSystem'}</div>
+                  <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.desc || 'จัดการSystem'}</div>
                 </div>
               </div>
               {settingsTab === 'accounts' ? (
                 <div className="p-6 space-y-6">
                   <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-indigo-900/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
                     <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Users className="w-6 h-6 text-indigo-500"/> จัดการบัญชีพนักงาน</h4>
-                    <p className={`text-sm font-bold ${theme.textMuted}`}>บัญชีกลางสามารถเพิ่ม แก้ไข ปิดใช้งาน หรือลบบัญชีพนักงานได้ ใช้สำหรับระบุตัวผู้ทำรายการในระบบและ Audit Log</p>
-                    <p className={`text-xs mt-2 font-bold ${isDarkMode ? 'text-amber-300' : 'text-amber-700'}`}>* เวอร์ชันทดลองนี้เป็นระบบล็อกอินภายในของเว็บ ยังไม่ใช่ Firebase Auth แบบองค์กร</p>
-                    <p className={`text-xs mt-1 font-bold ${isDarkMode ? 'text-indigo-200' : 'text-indigo-700'}`}>* ระบบจะกัน PIN ที่เดาง่ายเกินไป ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง และไม่แสดง PIN เดิมบนหน้าจอ</p>
+                    <p className={`text-sm font-bold ${theme.textMuted}`}>บัญชีกลางสามารถเพิ่ม แก้ไข ปิดใช้งาน หรือลบบัญชีพนักงานได้ ใช้สำหรับระบุตัวผู้ทำรายการในSystemและ Audit Log</p>
+                    <p className={`text-xs mt-2 font-bold ${isDarkMode ? 'text-amber-300' : 'text-amber-700'}`}>* เวอร์ชันทดลองนี้เป็นSystemล็อกอินภายในของเว็บ ยังไม่ใช่ Firebase Auth แบบองค์กร</p>
+                    <p className={`text-xs mt-1 font-bold ${isDarkMode ? 'text-indigo-200' : 'text-indigo-700'}`}>* Systemจะกัน PIN ที่เดาง่ายเกินไป ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง และไม่แสดง PIN เดิมบนหน้าจอ</p>
                   </div>
 
                   <div className={`p-5 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
@@ -7048,7 +7048,7 @@ S.N.: ${item.sn || '-'}
                       </div>
                       {!editingAccountId ? (
                         <div>
-                          <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>PIN สำหรับเข้าสู่ระบบ</label>
+                          <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>PIN สำหรับเข้าสู่System</label>
                           <input type="password" className={`w-full px-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="อย่างน้อย 4 ตัว" value={accountForm.pin} onChange={e => setAccountForm({...accountForm, pin: e.target.value})} disabled={!canManageAccounts} />
                         </div>
                       ) : (
@@ -7061,7 +7061,7 @@ S.N.: ${item.sn || '-'}
                         <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>สิทธิ์</label>
                         <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} value={accountForm.role} onChange={e => setAccountForm({...accountForm, role: e.target.value})} disabled={!canManageAccounts}>
                           <option value="owner">บัญชีกลาง - จัดการได้ทุกอย่าง</option>
-                          <option value="admin">ผู้ดูแล - จัดการระบบ/บัญชี/ลบข้อมูลได้</option>
+                          <option value="admin">ผู้ดูแล - จัดการSystem/บัญชี/ลบข้อมูลได้</option>
                           <option value="staff">เจ้าหน้าที่ - เพิ่ม/แก้ไข/ยืม/คืน/ออกงานได้</option>
                           <option value="viewer">ดูอย่างเดียว - ค้นหาและดูสถานะเท่านั้น</option>
                         </select>
@@ -7147,7 +7147,7 @@ S.N.: ${item.sn || '-'}
 
                   <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
                     <div className={`font-black mb-2 ${theme.textTitle}`}>แนะนำสำหรับศูนย์ MDEC</div>
-                    <div className={`text-sm font-bold ${theme.textMuted}`}>ใช้ Comfortable + Card View บนมือถือ สำหรับเจ้าหน้าที่ทั่วไป และใช้ Compact บนคอมของบัญชีกลางเมื่อต้องจัดการข้อมูลจำนวนมาก</div>
+                    <div className={`text-sm font-bold ${theme.textMuted}`}>ใช้ Comfortable + Card View บนมือถือ สำหรับเจ้าหน้าที่ทั่วไป และใช้ Compact บนคอมของบัญชีกลางเมื่อต้องInventory Managementจำนวนมาก</div>
                   </div>
                 </div>
               ) : settingsTab === 'documents' ? (
@@ -7163,7 +7163,7 @@ S.N.: ${item.sn || '-'}
                       ['slipLogo', 'แสดงโลโก้บนใบยืม / ใบเตรียมของ', 'ทำให้เอกสารดูเป็นทางการและเป็นของ MDEC'],
                       ['boxLabelLogo', 'แสดงโลโก้บนฉลากกล่อง', 'เหมาะกับฉลากกล่องหรือบรรจุภัณฑ์'],
                       ['proofStamp', 'ประทับตรา MDEC บนรูปหลักฐาน', 'ใช้กับรูปหลักฐานยืม-คืนที่ถ่ายผ่านเว็บ'],
-                      ['watermark', 'แสดง watermark จาง ๆ บนเอกสาร', 'ทำให้ใบยืม/ใบเตรียมของดูเป็นเอกสารระบบ']
+                      ['watermark', 'แสดง watermark จาง ๆ บนเอกสาร', 'ทำให้ใบยืม/ใบเตรียมของดูเป็นเอกสารSystem']
                     ].map(([key, title, desc]) => (
                       <label key={key} className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
                         <input
@@ -7300,14 +7300,14 @@ S.N.: ${item.sn || '-'}
                     </div>
                     <p className={`text-xs mt-3 font-bold ${theme.textMuted}`}>* CSV เปิดใน Google Sheets ได้แต่ไม่มีรูปจริง ส่วนไฟล์ HTML Gallery ใช้เปิดดูรูปหลักฐานจริงได้ทันที</p>
                     <div className={`mt-3 p-3 rounded-xl border text-xs font-bold ${isDarkMode ? 'bg-slate-900/40 border-slate-700 text-slate-300' : 'bg-white border-blue-100 text-slate-600'}`}>
-                      สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่มีข้อมูลการสำรองในระบบ'}
+                      สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่มีข้อมูลการสำรองในSystem'}
                     </div>
                     <div className={`mt-4 p-4 rounded-xl border ${isDarkMode ? 'bg-amber-900/20 border-amber-800' : 'bg-amber-50 border-amber-200'}`}>
                       <h5 className={`text-base font-black mb-1 flex items-center gap-2 ${isDarkMode ? 'text-amber-300' : 'text-amber-700'}`}>
                         <Icons.Upload className="w-4 h-4" /> กู้คืนข้อมูลจาก JSON
                       </h5>
                       <p className={`text-xs mb-3 font-bold ${isDarkMode ? 'text-amber-300/80' : 'text-amber-700/80'}`}>
-                        ใช้เมื่อจำเป็นเท่านั้น ระบบจะเขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON แต่จะไม่ลบอุปกรณ์ที่ไม่มีในไฟล์สำรอง
+                        ใช้เมื่อจำเป็นเท่านั้น Systemจะเขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON แต่จะไม่ลบอุปกรณ์ที่ไม่มีในไฟล์สำรอง
                       </p>
                       <input type="file" accept=".json,application/json" className="hidden" ref={restoreInputRef} onChange={handleRestoreBackupJSON} />
                       <button type="button" onClick={() => restoreInputRef.current?.click()} className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
@@ -7328,7 +7328,7 @@ S.N.: ${item.sn || '-'}
                         <Icons.Trash className="w-4 h-4" /> ล้างประวัติยืม-คืนทั้งหมด
                       </h5>
                       <p className={`text-xs mb-3 font-bold ${isDarkMode ? 'text-rose-300/80' : 'text-rose-700/80'}`}>
-                        ใช้หลังจากสำรองข้อมูลรายปีแล้ว ระบบจะล้างเฉพาะประวัติใน history ของอุปกรณ์ทุกชิ้น ไม่ลบรายการอุปกรณ์และไม่เปลี่ยนสถานะปัจจุบัน
+                        ใช้หลังจากสำรองข้อมูลรายปีแล้ว Systemจะล้างเฉพาะประวัติใน history ของอุปกรณ์ทุกชิ้น ไม่ลบรายการอุปกรณ์และไม่เปลี่ยนสถานะปัจจุบัน
                       </p>
                       <button type="button" onClick={clearAllBorrowReturnHistory} className="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
                         <Icons.Trash className="w-5 h-5"/> ล้างประวัติยืม-คืนทั้งหมด
@@ -7431,7 +7431,7 @@ S.N.: ${item.sn || '-'}
               <button type="button" onClick={() => setShowAnnualCleanupModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-3">
-              {['ดาวน์โหลด JSON สำหรับกู้คืนระบบแล้ว', 'ดาวน์โหลด CSV สำหรับ Google Sheets แล้ว', 'ดาวน์โหลด HTML Gallery สำหรับดูรูปหลักฐานแล้ว', 'เปิดไฟล์ CSV ใน Google Sheets/Excel ตรวจดูได้แล้ว', 'เปิดไฟล์ HTML Gallery แล้วเห็นรูปหลักฐาน', 'ตรวจว่าของที่ยืม/ออกงานถูกคืนครบแล้ว', 'พร้อมล้างประวัติยืม-คืนรายปี'].map(item => (
+              {['ดาวน์โหลด JSON สำหรับกู้คืนSystemแล้ว', 'ดาวน์โหลด CSV สำหรับ Google Sheets แล้ว', 'ดาวน์โหลด HTML Gallery สำหรับดูรูปหลักฐานแล้ว', 'เปิดไฟล์ CSV ใน Google Sheets/Excel ตรวจดูได้แล้ว', 'เปิดไฟล์ HTML Gallery แล้วเห็นรูปหลักฐาน', 'ตรวจว่าของที่ยืม/ออกงานถูกคืนครบแล้ว', 'พร้อมล้างประวัติยืม-คืนรายปี'].map(item => (
                 <label key={item} className={`flex items-center gap-3 p-3 rounded-xl border ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                   <input type="checkbox" className="w-5 h-5 accent-emerald-600" />
                   <span className={`font-bold ${theme.textMain}`}>{item}</span>
@@ -7483,7 +7483,7 @@ S.N.: ${item.sn || '-'}
               {/* Left Panel */}
               <div className={`w-full lg:w-1/3 flex flex-col shrink-0 lg:shrink min-h-[190px] max-h-[260px] lg:max-h-none lg:min-h-0 border-b lg:border-b-0 lg:border-r ${theme.divide} ${isDarkMode ? 'bg-slate-800/30' : 'bg-slate-50/50'}`}>
                 <div className={`p-4 sm:p-5 border-b font-black text-base sm:text-lg flex justify-between items-center ${theme.textTitle} ${theme.divide}`}>
-                  เซ็ตที่มีในระบบ 
+                  เซ็ตที่มีในSystem 
                   <span className={`text-sm px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-700'}`}>
                     {(settingsOptions.bundles || []).length} เซ็ต
                   </span>
@@ -8161,7 +8161,7 @@ S.N.: ${item.sn || '-'}
                         <span className={`text-base font-bold ${theme.textMuted}`}>{h.date ? new Date(h.date).toLocaleString('th-TH') : '-'}</span>
                       </div>
                       {(h.operatorName || h.performedBy) && (
-                        <div className={`text-sm font-bold mb-3 ${theme.textMuted}`}>ผู้ทำรายการในระบบ: {h.operatorName || h.performedBy}</div>
+                        <div className={`text-sm font-bold mb-3 ${theme.textMuted}`}>ผู้ทำรายการในSystem: {h.operatorName || h.performedBy}</div>
                       )}
                       {isBorrow ? (
                         <div className={`text-lg ${theme.textMain}`}>
@@ -8229,7 +8229,7 @@ S.N.: ${item.sn || '-'}
                   </div>
                   <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900/60 border-slate-700' : 'bg-white border-slate-200'}`}>
                     <div className={`text-xs font-bold ${theme.textMuted}`}>สิทธิ์หลัก</div>
-                    <div className={`font-black ${theme.textTitle}`}>{canManageSystem ? 'จัดการระบบ' : canUseOperationalTools ? 'ใช้งาน/ทำรายการ' : 'ดูอย่างเดียว'}</div>
+                    <div className={`font-black ${theme.textTitle}`}>{canManageSystem ? 'จัดการSystem' : canUseOperationalTools ? 'ใช้งาน/ทำรายการ' : 'ดูอย่างเดียว'}</div>
                   </div>
                 </div>
               </div>
@@ -8398,7 +8398,7 @@ S.N.: ${item.sn || '-'}
                         <option value="">-- ไม่ระบุโครงการ --</option>
                         {projectOptions.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
-                      <button type="button" onClick={() => setShowProjectsModal(true)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>จัดการโครงการ</button>
+                      <button type="button" onClick={() => setShowProjectsModal(true)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>Project Stock</button>
                     </div>
                     <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>โครงการใช้สำหรับจัดกลุ่มอุปกรณ์ตามแหล่งที่มา/จัดซื้อ</p>
                   </div>
@@ -8517,7 +8517,7 @@ S.N.: ${item.sn || '-'}
                 {actionCenterData.prepIncomplete.slice(0, 8).map(p => <div key={p.id} className={`text-sm font-bold px-3 py-2 rounded-xl mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>{p.name} • {(p.checkedIds||[]).length}/{(p.itemIds||[]).length}</div>)}
               </div>
               <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700 bg-slate-900/40' : 'border-slate-200 bg-slate-50'}`}>
-                <h4 className={`font-black text-lg ${theme.textTitle}`}>กล่องที่มีรายการหายจากระบบ</h4>
+                <h4 className={`font-black text-lg ${theme.textTitle}`}>กล่องที่มีรายการหายจากSystem</h4>
                 <div className="text-4xl font-black my-2 text-cyan-500">{actionCenterData.brokenBoxes.length}</div>
                 {actionCenterData.brokenBoxes.slice(0, 8).map(b => <div key={b.id} className={`text-sm font-bold px-3 py-2 rounded-xl mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>{b.name} • หาย {(b.missingIds||[]).length} รายการ</div>)}
               </div>
@@ -8564,7 +8564,7 @@ S.N.: ${item.sn || '-'}
             <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
               <div>
                 <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.QrCode className="w-6 h-6 text-amber-500" /> โหมดตรวจนับสต๊อก</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เดินสแกน QR/S.N. ของจริง ระบบจะเทียบกับรายการในเว็บ</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เดินสแกน QR/S.N. ของจริง Systemจะเทียบกับรายการในเว็บ</p>
               </div>
               <button onClick={() => setShowStockCountModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -8590,10 +8590,10 @@ S.N.: ${item.sn || '-'}
                   </div>
                 </div>
                 <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`}>
-                  <h4 className={`font-black mb-3 ${theme.textTitle}`}>ยังไม่พบ (เฉพาะของพร้อมใช้งาน)</h4>
+                  <h4 className={`font-black mb-3 ${theme.textTitle}`}>ยังไม่พบ (เฉพาะของพร้อมใช้)</h4>
                   <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar">
                     {stockCountStats.notFound.slice(0, 60).map(i => <div key={i.id} className={`p-3 rounded-xl font-bold ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>□ {i.name} <span className={theme.textMuted}>{i.sn || ''}</span></div>)}
-                    {stockCountStats.notFound.length === 0 && <div className={`font-bold text-emerald-500`}>ครบแล้วในกลุ่มพร้อมใช้งาน</div>}
+                    {stockCountStats.notFound.length === 0 && <div className={`font-bold text-emerald-500`}>ครบแล้วในกลุ่มพร้อมใช้</div>}
                   </div>
                 </div>
               </div>
@@ -8628,7 +8628,7 @@ S.N.: ${item.sn || '-'}
                   <input type="date" className={`px-4 py-3 rounded-xl border ${theme.input}`} value={repairForm.doneDate} onChange={e => setRepairForm({...repairForm, doneDate: e.target.value})} />
                 </div>
                 <textarea rows="2" className={`w-full px-4 py-3 rounded-xl border resize-none ${theme.input}`} placeholder="หมายเหตุเพิ่มเติม" value={repairForm.note} onChange={e => setRepairForm({...repairForm, note: e.target.value})} />
-                <label className={`flex items-center gap-3 p-4 rounded-xl border ${theme.btnSecondary}`}><input type="checkbox" className="w-5 h-5 accent-emerald-500" checked={repairForm.markAvailable} onChange={e => setRepairForm({...repairForm, markAvailable: e.target.checked})} /><span className="font-bold">ซ่อมเสร็จแล้ว เปลี่ยนสถานะกลับเป็นพร้อมใช้งาน</span></label>
+                <label className={`flex items-center gap-3 p-4 rounded-xl border ${theme.btnSecondary}`}><input type="checkbox" className="w-5 h-5 accent-emerald-500" checked={repairForm.markAvailable} onChange={e => setRepairForm({...repairForm, markAvailable: e.target.checked})} /><span className="font-bold">ซ่อมเสร็จแล้ว เปลี่ยนสถานะกลับเป็นพร้อมใช้</span></label>
                 <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700 bg-slate-900/40' : 'border-slate-200 bg-slate-50'}`}>
                   <h4 className={`font-black mb-3 ${theme.textTitle}`}>ประวัติซ่อมล่าสุด</h4>
                   {(repairItem.repairLogs || []).slice(-5).reverse().map((r, idx) => <div key={idx} className={`text-sm font-bold mb-2 p-3 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>{r.issueDate || '-'} • {r.problem} <span className={theme.textMuted}>โดย {r.reporter || '-'}</span></div>)}
@@ -8676,9 +8676,9 @@ S.N.: ${item.sn || '-'}
               <div>
                 <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}>
                   <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white flex items-center justify-center shadow-lg">🗂️</span>
-                  จัดการโครงการ
+                  Project Stock
                 </h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เพิ่มโครงการ จัดอุปกรณ์เข้าโครงการ และพิมพ์รายงานได้จากหน้าเดียว</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดกลุ่มอุปกรณ์ตามโครงการหรือแหล่งที่มา พร้อมพิมพ์รายงานตรวจพัสดุ</p>
               </div>
               <button type="button" onClick={() => setShowProjectsModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -8687,7 +8687,7 @@ S.N.: ${item.sn || '-'}
               <div className={`p-5 rounded-[1.75rem] border shadow-sm ${isDarkMode ? 'bg-slate-950/35 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-end">
                   <div>
-                    <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>สร้างโครงการใหม่</label>
+                    <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>เพิ่ม Project / แหล่งที่มา</label>
                     <input
                       className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
                       placeholder="เช่น โครงการจัดซื้ออุปกรณ์ห้องประชุม ปี 2569"
@@ -8886,7 +8886,7 @@ S.N.: ${item.sn || '-'}
               </div>
             </div>
             <div className={`px-5 py-3 border-b text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950/50 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-              จากข้อมูลเดิมมีการแสดงผล {proofDuplicateStats.linkCount.toLocaleString('th-TH')} จุดเชื่อมโยง ระบบรวมรูปซ้ำออกไป {proofDuplicateStats.duplicateLinks.toLocaleString('th-TH')} จุด • รูปตัวอย่างใช้โหมดภาพเต็ม ไม่ตัดหัว/ตัดขอบ
+              จากข้อมูลเดิมมีการแสดงผล {proofDuplicateStats.linkCount.toLocaleString('th-TH')} จุดเชื่อมโยง Systemรวมรูปซ้ำออกไป {proofDuplicateStats.duplicateLinks.toLocaleString('th-TH')} จุด • รูปตัวอย่างใช้โหมดภาพเต็ม ไม่ตัดหัว/ตัดขอบ
             </div>
             <div className="p-5 overflow-y-auto custom-scrollbar flex-1">
               {filteredProofGroups.length === 0 ? (
@@ -9005,7 +9005,7 @@ S.N.: ${item.sn || '-'}
                   <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white flex items-center justify-center shadow-lg">?</span>
                   คู่มือใช้งาน MDEC-Stock
                 </h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปวิธีใช้แบบสั้น ๆ สำหรับเจ้าหน้าที่และผู้ดูแลระบบ</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปวิธีใช้แบบสั้น ๆ สำหรับเจ้าหน้าที่และผู้ดูแลSystem</p>
               </div>
               <button type="button" onClick={() => setShowHelpModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -9013,7 +9013,7 @@ S.N.: ${item.sn || '-'}
             <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
-                  ['เริ่มงานประจำวัน', 'เปิด Daily Workflow เพื่อสแกน QR, เพิ่มอุปกรณ์, ดูของรอคืน และหลักฐานรูปภาพ'],
+                  ['เริ่มDaily Operations', 'เปิด Daily Workflow เพื่อสแกน QR, เพิ่มอุปกรณ์, ดูของรอคืน และหลักฐานรูปภาพ'],
                   ['ยืม / ออกงาน', 'เลือกอุปกรณ์ → กดยืมหรือออกงาน → กรอกผู้รับผิดชอบ → แนบรูปหลักฐานถ้าต้องการ → บันทึก'],
                   ['รับคืน', 'เปิดศูนย์ติดตามงานหรือรายละเอียดอุปกรณ์ → กดรับคืน → ตรวจสภาพ → แนบหลักฐานรับคืนได้']
                 ].map(([title, desc], idx) => (
@@ -9029,7 +9029,7 @@ S.N.: ${item.sn || '-'}
                 <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>📷 การจัดการรูปหลักฐาน</h4>
                 <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-bold ${theme.textMuted}`}>
                   <div>• รูปหลักฐานไม่บังคับ ยกเว้นผู้ดูแลตั้งค่าให้บังคับ</div>
-                  <div>• ระบบจะย่อรูปและประทับเวลา/พิกัดให้เอง</div>
+                  <div>• Systemจะย่อรูปและประทับเวลา/พิกัดให้เอง</div>
                   <div>• รูปเดียวที่ผูกหลายอุปกรณ์จะแสดงรวมเป็น 1 ใบใน Gallery</div>
                   <div>• เจ้าหน้าที่สามารถแก้ชื่อ/หมายเหตุ แทนที่รูปใหม่ หรือลบรูปหลักฐานที่อัปโหลดผิดได้</div>
                 </div>
@@ -9041,7 +9041,7 @@ S.N.: ${item.sn || '-'}
                   <li>เปิดเมนู <b>เพิ่มเติม → หลักฐานรูปภาพ</b></li>
                   <li>ค้นหารูปจากชื่ออุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน</li>
                   <li>กดปุ่ม <b>ลบรูปนี้</b> ใต้รูปที่ต้องการลบ</li>
-                  <li>ยืนยันการลบ ระบบจะถอดรูปออกจากประวัติอุปกรณ์ที่เกี่ยวข้องทั้งหมด</li>
+                  <li>ยืนยันการลบ Systemจะถอดรูปออกจากประวัติอุปกรณ์ที่เกี่ยวข้องทั้งหมด</li>
                 </ol>
               </div>
 
@@ -9056,12 +9056,12 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
-                <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>🧭 ชื่อเมนูหลักที่ใช้ในระบบ</h4>
+                <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>🧭 ชื่อเมนูหลักที่ใช้ในSystem</h4>
                 <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-bold ${theme.textMuted}`}>
                   <div><b>ศูนย์ติดตามงาน</b> = ดูของรอคืน ออกงานอยู่ วันนี้ และเลยกำหนด</div>
                   <div><b>ศูนย์หลักฐานรูปภาพ</b> = ดู แก้ไข แทนที่ หรือลบรูปหลักฐาน</div>
                   <div><b>จัดเก็บและจัดชุด</b> = กล่องเก็บของ เซ็ตอุปกรณ์ และรายการเตรียมของ</div>
-                  <div><b>เอกสารและฉลาก</b> = QR ฉลากกล่อง ใบยืม และตั้งค่าโลโก้เอกสาร</div>
+                  <div><b>Documents & Labels</b> = QR ฉลากกล่อง ใบยืม และตั้งค่าโลโก้เอกสาร</div>
                 </div>
               </div>
 
@@ -9090,12 +9090,12 @@ S.N.: ${item.sn || '-'}
       )}
 
 
-      {/* ตรวจสุขภาพระบบ */}
+      {/* ตรวจสุขภาพSystem */}
       {showSystemHealthModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
             <div className={`p-6 border-b flex justify-between items-start gap-4 ${theme.divide}`}>
-              <div><h3 className={`text-2xl font-black ${theme.textTitle}`}>ตรวจสุขภาพระบบ</h3><p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ภาพรวมฐานข้อมูล รูปหลักฐาน และรายการที่ต้องติดตาม</p></div>
+              <div><h3 className={`text-2xl font-black ${theme.textTitle}`}>ตรวจสุขภาพSystem</h3><p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ภาพรวมฐานข้อมูล รูปหลักฐาน และรายการที่ต้องติดตาม</p></div>
               <button type="button" onClick={() => setShowSystemHealthModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
@@ -9131,7 +9131,7 @@ S.N.: ${item.sn || '-'}
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
             <div className={`p-6 border-b flex justify-between items-start gap-4 ${theme.divide}`}>
-              <div><h3 className={`text-2xl font-black ${theme.textTitle}`}>รายงานประจำเดือน</h3><p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปการใช้งานอุปกรณ์จากประวัติในระบบ</p></div>
+              <div><h3 className={`text-2xl font-black ${theme.textTitle}`}>รายงานประจำเดือน</h3><p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปการใช้งานอุปกรณ์จากประวัติในSystem</p></div>
               <button type="button" onClick={() => setShowMonthlyReportModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
@@ -9161,6 +9161,30 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
+      {/* Factory Mobile Bottom Bar */}
+      <div className={`lg:hidden fixed bottom-0 inset-x-0 z-40 border-t backdrop-blur-xl shadow-[0_-10px_32px_rgba(15,23,42,0.16)] ${isDarkMode ? 'bg-slate-950/94 border-slate-800' : 'bg-white/94 border-slate-200'}`}>
+        <div className="grid grid-cols-4 gap-1 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className={`py-2 rounded-2xl text-xs font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
+            <Icons.Package className="w-5 h-5" />หน้าหลัก
+          </button>
+          {canUseOperationalTools ? (
+            <button type="button" onClick={() => openSelectionScanner({ camera: true })} className="py-2 rounded-2xl text-xs font-black flex flex-col items-center gap-1 bg-slate-900 text-white shadow-md">
+              <Icons.QrCode className="w-5 h-5" />สแกน
+            </button>
+          ) : (
+            <button type="button" onClick={() => setShowFilterModal(true)} className={`py-2 rounded-2xl text-xs font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
+              <Icons.Settings className="w-5 h-5" />กรอง
+            </button>
+          )}
+          <button type="button" onClick={() => openTrackingCenter('today')} className={`py-2 rounded-2xl text-xs font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
+            <Icons.History className="w-5 h-5" />ติดตาม
+          </button>
+          <button type="button" onClick={() => setShowMoreMenu(true)} className={`py-2 rounded-2xl text-xs font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
+            <Icons.ViewGrid className="w-5 h-5" />เมนู
+          </button>
+        </div>
+      </div>
+
       {/* Toast แจ้งเตือนแบบไม่ขัดจังหวะ */}
       <div className="fixed top-4 right-4 z-[12000] space-y-3 w-[92vw] max-w-sm pointer-events-none">
         {toasts.map((toast) => {
@@ -9178,7 +9202,7 @@ S.N.: ${item.sn || '-'}
       {showLogin && (
         <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9999]`}>
           <div className={`rounded-3xl p-8 max-w-sm w-full shadow-2xl ${theme.cardBg}`}>
-            <h3 className={`text-2xl font-black mb-2 text-center ${theme.textTitle}`}>เข้าสู่ระบบจัดการ</h3>
+            <h3 className={`text-2xl font-black mb-2 text-center ${theme.textTitle}`}>เข้าสู่Systemจัดการ</h3>
             <p className={`text-sm font-bold text-center mb-6 ${theme.textMuted}`}>ใช้บัญชีพนักงาน หรือบัญชีกลาง admin</p>
             <div className="space-y-4 mb-6">
               <div>
@@ -9190,12 +9214,12 @@ S.N.: ${item.sn || '-'}
                 <input type="password" className={`w-full px-4 py-4 border rounded-xl font-bold text-center text-3xl tracking-widest outline-none ${theme.input}`} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
               </div>
               <div className={`p-3 rounded-xl border text-xs font-bold ${isDarkMode ? 'bg-slate-900/40 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-                ค่าเริ่มต้น: username <span className="font-black">admin</span> ใช้ PIN เดิมของระบบ จากนั้นไปที่ ตั้งค่า → บัญชีผู้ใช้ เพื่อเพิ่มบัญชีพนักงาน
+                ค่าเริ่มต้น: username <span className="font-black">admin</span> ใช้ PIN เดิมของSystem จากนั้นไปที่ ตั้งค่า → บัญชีผู้ใช้ เพื่อเพิ่มบัญชีพนักงาน
               </div>
             </div>
             <div className="flex gap-3">
               <button type="button" onClick={() => setShowLogin(false)} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={handleLogin} className="flex-1 py-4 bg-blue-600 text-white font-bold rounded-xl text-lg hover:bg-blue-500">เข้าสู่ระบบ</button>
+              <button type="button" onClick={handleLogin} className="flex-1 py-4 bg-blue-600 text-white font-bold rounded-xl text-lg hover:bg-blue-500">เข้าสู่System</button>
             </div>
           </div>
         </div>
@@ -9223,8 +9247,8 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="min-h-screen bg-slate-900 text-white p-8 flex flex-col items-center justify-center font-sans">
           <div className="bg-rose-900/30 border-l-4 border-rose-500 p-8 rounded-2xl max-w-2xl w-full">
-            <h1 className="text-3xl font-black text-rose-400 mb-4">🚨 ขออภัย เกิดข้อผิดพลาดในระบบ</h1>
-            <p className="text-lg text-rose-200 mb-6">ระบบพบข้อขัดข้องบางประการ กรุณารีเฟรชหน้าเว็บ หากปัญหายังคงอยู่ โปรดตรวจสอบโค้ดล่าสุด</p>
+            <h1 className="text-3xl font-black text-rose-400 mb-4">🚨 ขออภัย เกิดข้อผิดพลาดในSystem</h1>
+            <p className="text-lg text-rose-200 mb-6">Systemพบข้อขัดข้องบางประการ กรุณารีเฟรชหน้าเว็บ หากปัญหายังคงอยู่ โปรดตรวจสอบโค้ดล่าสุด</p>
             <pre className="bg-black/50 p-4 rounded-xl text-sm font-mono overflow-auto text-rose-300 whitespace-pre-wrap">{this.state.errorMessage}</pre>
             <button onClick={() => window.location.reload()} className="mt-8 px-6 py-3 bg-rose-600 hover:bg-rose-500 rounded-xl font-bold transition-colors">รีเฟรชหน้าเว็บ</button>
           </div>
