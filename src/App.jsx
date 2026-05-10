@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.50.6 Backup Center Hotfix';
-const APP_UPDATE_NOTE = 'เก็บงาน Design System ทั้งเว็บ: สี ปุ่ม การ์ด typography mobile และ empty state โดยไม่แตะ QR/กล้องหรือฐานข้อมูล';
+const APP_VERSION = 'v22.50.9 QR Workbench Full Page Mobile';
+const APP_UPDATE_NOTE = 'ปรับ QR Workbench เป็นหน้าเต็มสำหรับมือถือ ใช้งานจบในหน้าเดียว โดยไม่แตะระบบกล้องและฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -2416,6 +2416,14 @@ function MainApp() {
     setShowProjectsModal(false);
     setShowStorageBoxesModal(false);
     setShowBundleManager(false);
+    if (workspace === 'qrWorkbench') {
+      setScanMode('select');
+      setQrWorkbenchMode(prev => prev || 'multi');
+      setShowScanModal(true);
+    } else {
+      setShowScanModal(false);
+      setUseCamera(false);
+    }
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
   const openControlCenter = () => {
@@ -4256,6 +4264,11 @@ S.N.: ${item.sn || '-'}
       kicker: 'ORGANIZE WORKSPACE',
       title: 'กล่อง / เซ็ต / เตรียมของ',
       desc: 'จัดเก็บอุปกรณ์เป็นกล่อง จัดเซ็ตใช้งานประจำ และเตรียมรายการออกงาน'
+    },
+    qrWorkbench: {
+      kicker: 'QR WORKBENCH',
+      title: 'ศูนย์สแกน QR',
+      desc: 'สแกนเลือกหลายรายการ หรือจัดการอุปกรณ์ทีละชิ้นในหน้าเดียว'
     }
   };
   const currentWorkspaceMeta = workspaceMeta[activeWorkspace] || workspaceMeta.overview;
@@ -4266,7 +4279,8 @@ S.N.: ${item.sn || '-'}
         ['overview', 'ภาพรวม', Icons.Package, 'กลับหน้ารายการทั้งหมด'],
         ['borrowReturn', 'ยืม-คืน', Icons.UserPlus, `${currentBorrowedItems.length + currentEventItems.length} รายการค้าง`],
         ['projects', 'โครงการจัดซื้อ', Icons.Database, `${projectStats.length.toLocaleString('th-TH')} โครงการ`],
-        ['organize', 'กล่อง / เซ็ต', Icons.Layers, `${(settingsOptions.storageBoxes || []).length} กล่อง • ${(settingsOptions.bundles || []).length} เซ็ต`]
+        ['organize', 'กล่อง / เซ็ต', Icons.Layers, `${(settingsOptions.storageBoxes || []).length} กล่อง • ${(settingsOptions.bundles || []).length} เซ็ต`],
+        ['qrWorkbench', 'QR Workbench', Icons.QrCode, selectedItems.length ? `เลือกแล้ว ${selectedItems.length} รายการ` : 'สแกนงานหน้างาน']
       ].map(([id, label, Icon, desc]) => (
         <button
           key={id}
@@ -4962,7 +4976,428 @@ S.N.: ${item.sn || '-'}
     );
   };
 
+  const renderQRWorkbenchPage = () => {
+
+        const scanInfo = getScanModeInfo();
+        const isChecklistMode = scanMode !== 'select';
+        const targetIds = scanMode === 'borrowChecklist' ? borrowTargetIds : scanMode === 'eventChecklist' ? eventTargetIds : scanMode === 'returnChecklist' ? returnTargetIds : [];
+        const checkedIds = scanMode === 'borrowChecklist' ? packingChecklist : scanMode === 'eventChecklist' ? eventChecklist : scanMode === 'returnChecklist' ? returnChecklist : [];
+        const total = targetIds.length || 0;
+        const checked = checkedIds.length || 0;
+        const percent = total === 0 ? 0 : Math.min(100, Math.round((checked / total) * 100));
+        const isComplete = total > 0 && checked >= total;
+        const pendingIds = isChecklistMode ? targetIds.filter(id => !checkedIds.includes(id)).slice(0, 5) : [];
+        const recentItem = lastScannedItemId ? items.find(i => i.id === lastScannedItemId) : null;
+        const recentStatus = recentItem ? (STATUSES.find(s => s.id === recentItem.status) || STATUSES[0]) : null;
+        const selectedPreviewItems = selectedItems.map(id => items.find(i => i.id === id)).filter(Boolean).slice(0, 6);
+        const toneClass = scanMode === 'borrowChecklist'
+          ? 'from-purple-600 to-violet-700'
+          : scanMode === 'eventChecklist'
+            ? 'from-orange-500 to-red-600'
+            : scanMode === 'returnChecklist'
+              ? 'from-emerald-500 to-teal-600'
+              : 'from-sky-500 to-indigo-600';
+        const toneSoft = scanMode === 'borrowChecklist'
+          ? (isDarkMode ? 'bg-purple-950/30 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-800')
+          : scanMode === 'eventChecklist'
+            ? (isDarkMode ? 'bg-orange-950/30 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800')
+            : scanMode === 'returnChecklist'
+              ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
+              : (isDarkMode ? 'bg-sky-950/30 border-sky-800 text-sky-200' : 'bg-sky-50 border-sky-200 text-sky-800');
+
+        const closeScanWorkbench = () => {
+          setShowScanModal(false);
+          setUseCamera(false);
+          if (activeWorkspace === 'qrWorkbench') setActiveWorkspace('overview');
+        };
+
+        return (
+          <div className={`qr-workbench-fullpage w-full min-h-[calc(100vh-120px)] overflow-hidden rounded-[2rem] border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+            <style>{`
+              #qr-reader {
+                width: 100% !important;
+                border: 0 !important;
+                background: transparent !important;
+                color: inherit !important;
+                overflow: hidden !important;
+              }
+              #qr-reader video {
+                border-radius: 26px !important;
+                object-fit: cover !important;
+                background: #020617 !important;
+                min-height: min(56vh, 500px) !important;
+              }
+              #qr-reader__scan_region {
+                background: transparent !important;
+                border: 0 !important;
+              }
+              #qr-reader__dashboard,
+              #qr-reader__dashboard_section,
+              #qr-reader__dashboard_section_csr,
+              #qr-reader__camera_selection {
+                border: 0 !important;
+                background: transparent !important;
+                color: inherit !important;
+                font-family: inherit !important;
+              }
+              #qr-reader button {
+                background: #0f172a !important;
+                color: white !important;
+                border: 0 !important;
+                padding: 10px 16px !important;
+                border-radius: 14px !important;
+                font-weight: 900 !important;
+                margin: 6px !important;
+              }
+              #qr-reader select {
+                min-height: 42px !important;
+                border-radius: 14px !important;
+                padding: 0 12px !important;
+                font-weight: 800 !important;
+                max-width: 100% !important;
+              }
+              #qr-reader__status_span {
+                display: inline-flex !important;
+                margin-top: 8px !important;
+                border-radius: 999px !important;
+                padding: 6px 12px !important;
+                font-weight: 900 !important;
+                font-size: 12px !important;
+              }
+              @media (max-width: 767px) {
+                #qr-reader video { min-height: 49vh !important; border-radius: 22px !important; }
+                #qr-reader__dashboard_section { padding: 2px 0 !important; }
+                .qrwb-header { padding: 8px 10px 7px !important; }
+                .qrwb-icon { width: 34px !important; height: 34px !important; border-radius: 12px !important; }
+                .qrwb-header h3 { font-size: 16px !important; line-height: 1.08 !important; }
+                .qrwb-subtitle { display: none !important; }
+                .qrwb-mode-tabs { margin-top: 8px !important; gap: 6px !important; }
+                .qrwb-mode-tabs button { min-height: 42px !important; padding: 8px 6px !important; border-radius: 14px !important; }
+                .qrwb-mode-desc, .qrwb-mode-badge { display: none !important; }
+                .qrwb-controls { margin-top: 7px !important; gap: 6px !important; }
+                .qrwb-controls button { min-height: 38px !important; padding: 7px 8px !important; border-radius: 13px !important; font-size: 12px !important; }
+                .qrwb-count-badge { min-height: 30px !important; padding: 4px 8px !important; border-radius: 12px !important; font-size: 12px !important; }
+                .qrwb-body { padding: 7px 8px 8px !important; }
+                .qrwb-main-grid { gap: 7px !important; }
+                .qrwb-scan-head { display: none !important; }
+                .qrwb-camera-wrap { padding: 4px !important; }
+                .qrwb-tip { display: none !important; }
+                .qrwb-side > div { border-radius: 16px !important; padding: 10px !important; }
+              }
+            `}</style>
+
+            <div className="w-full flex items-stretch justify-center">
+              <div className={`w-full max-w-none min-h-[calc(100vh-140px)] overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'} shadow-2xl`}>
+                <div className={`qrwb-header shrink-0 border-b px-3 py-3 sm:px-5 sm:py-5 ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-3">
+                        <div className={`qrwb-icon w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br ${toneClass} text-white flex items-center justify-center shadow-lg shrink-0`}>
+                          <Icons.QrCode className="w-6 h-6" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className={`font-black text-xl sm:text-2xl leading-tight ${theme.textTitle}`}>{isChecklistMode ? scanInfo.title : 'QR Workbench'}</h3>
+                          <p className={`qrwb-subtitle text-xs sm:text-sm font-bold mt-0.5 ${theme.textMuted}`}>
+                            {isChecklistMode ? scanInfo.desc : (qrWorkbenchMode === 'multi' ? 'เลือกหลายรายการ' : 'จัดการทีละชิ้น')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={closeScanWorkbench}
+                      className={`w-11 h-11 rounded-2xl flex items-center justify-center border shrink-0 ${theme.btnCancel}`}
+                      title="ปิดหน้าสแกน"
+                    >
+                      <Icons.X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {!isChecklistMode && (
+                    <div className="qrwb-mode-tabs mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setQrWorkbenchMode('multi')}
+                        className={`text-center sm:text-left px-3 py-2.5 sm:p-4 rounded-2xl border transition-all ${qrWorkbenchMode === 'multi' ? 'border-sky-500 bg-sky-50 dark:bg-sky-950/30 shadow-md' : (isDarkMode ? 'border-slate-800 bg-slate-900 hover:bg-slate-800/80' : 'border-slate-200 bg-white hover:bg-slate-50')}`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className={`font-black ${theme.textTitle}`}>สแกนเลือกหลายรายการ</div>
+                            <div className={`qrwb-mode-desc text-xs font-bold mt-1 ${theme.textMuted}`}>เหมาะกับยืม / คืน / ออกงานหลายชิ้น</div>
+                          </div>
+                          <span className={`qrwb-mode-badge px-3 py-1 rounded-full text-xs font-black ${qrWorkbenchMode === 'multi' ? 'bg-sky-600 text-white' : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600')}`}>เลือกแล้ว {selectedItems.length}</span>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQrWorkbenchMode('single')}
+                        className={`text-center sm:text-left px-3 py-2.5 sm:p-4 rounded-2xl border transition-all ${qrWorkbenchMode === 'single' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30 shadow-md' : (isDarkMode ? 'border-slate-800 bg-slate-900 hover:bg-slate-800/80' : 'border-slate-200 bg-white hover:bg-slate-50')}`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className={`font-black ${theme.textTitle}`}>สแกนจัดการทันที</div>
+                            <div className={`qrwb-mode-desc text-xs font-bold mt-1 ${theme.textMuted}`}>เหมาะกับดูข้อมูลหรือจัดการของทีละชิ้น</div>
+                          </div>
+                          <span className={`qrwb-mode-badge px-3 py-1 rounded-full text-xs font-black ${qrWorkbenchMode === 'single' ? 'bg-indigo-600 text-white' : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600')}`}>Quick Action</span>
+                        </div>
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="qrwb-controls mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                    <button type="button" onClick={() => setUseCamera(true)} className={`min-h-[40px] sm:min-h-[44px] px-3 sm:px-4 rounded-2xl font-black border transition ${useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
+                      📷 ใช้กล้อง
+                    </button>
+                    <button type="button" onClick={() => setUseCamera(false)} className={`min-h-[40px] sm:min-h-[44px] px-3 sm:px-4 rounded-2xl font-black border transition ${!useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
+                      ⌨️ พิมพ์ / ยิงรหัส
+                    </button>
+                    {isChecklistMode ? (
+                      <div className={`min-h-[44px] px-4 rounded-2xl border flex items-center gap-3 font-black ${toneSoft}`}>
+                        <span>เช็กแล้ว {checked}/{total}</span>
+                        <span>{percent}%</span>
+                      </div>
+                    ) : (
+                      <div className={`qrwb-count-badge col-span-2 sm:col-span-1 min-h-[34px] sm:min-h-[44px] px-3 sm:px-4 rounded-2xl border flex items-center justify-center gap-3 font-black ${theme.btnSecondary}`}>
+                        <span>{qrWorkbenchMode === 'multi' ? `เลือกแล้ว ${selectedItems.length}` : 'จัดการทันที'}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="qrwb-body flex-1 min-h-0 overflow-y-auto custom-scrollbar p-2 sm:p-5">
+                  <div className="qrwb-main-grid grid grid-cols-1 xl:grid-cols-[1.2fr_.8fr] gap-3 sm:gap-5 items-start">
+                    <div className={`rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                      <div className={`qrwb-scan-head px-4 py-3 border-b flex items-center justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50'}`}>
+                        <div>
+                          <div className={`font-black ${theme.textTitle}`}>พื้นที่สแกน</div>
+                          <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>{useCamera ? 'เห็นกล้องเต็มขึ้น ใช้งานมือถือสะดวกขึ้น' : 'กรอกรหัสหรือใช้เครื่องยิงบาร์โค้ดได้ทันที'}</div>
+                        </div>
+                        <div className={`text-xs font-black px-3 py-1 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700')}`}>{useCamera ? 'Camera' : 'Manual'}</div>
+                      </div>
+
+                      {useCamera ? (
+                        <div className="qrwb-camera-wrap p-2 sm:p-4">
+                          <div className={`qrwb-tip mb-3 p-3 rounded-2xl border text-left text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                            ส่อง QR ให้อยู่กลางกรอบ ถือให้นิ่งเล็กน้อย ระบบจะมีเสียงปิ๊ปเมื่อสแกนสำเร็จ
+                          </div>
+                          {!isScannerLoaded ? (
+                            <div className="min-h-[360px] flex items-center justify-center">
+                              <div className="animate-pulse text-amber-500 font-black">กำลังโหลดระบบกล้อง...</div>
+                            </div>
+                          ) : (
+                            <div className={`rounded-[1.8rem] overflow-hidden border-4 ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-slate-100'}`}>
+                              <div id="qr-reader" className="w-full"></div>
+                            </div>
+                          )}
+                          <form onSubmit={handleScanSubmit} className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+                            <input
+                              type="text"
+                              className={`px-4 py-3 rounded-2xl font-black text-center outline-none border ${theme.input}`}
+                              placeholder="สแกนไม่ติด? พิมพ์รหัส/S.N."
+                              value={scanInput}
+                              onChange={e => setScanInput(e.target.value)}
+                            />
+                            <button type="submit" className={`px-5 py-3 rounded-2xl bg-gradient-to-br ${toneClass} text-white font-black shadow-md`}>{isChecklistMode ? 'เช็ก' : (qrWorkbenchMode === 'multi' ? 'เพิ่ม' : 'ค้นหา')}</button>
+                          </form>
+                        </div>
+                      ) : (
+                        <div className="p-4 sm:p-6">
+                          <form onSubmit={handleScanSubmit}>
+                            <label className={`block text-left text-sm font-black mb-2 ${theme.textTitle}`}>รหัสอุปกรณ์ / S.N.</label>
+                            <input
+                              type="text"
+                              ref={scanInputRef}
+                              className={`w-full px-4 py-6 rounded-3xl font-black text-center text-2xl outline-none mb-3 border-2 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/20 transition-all ${theme.input}`}
+                              placeholder="ยิงบาร์โค้ด หรือพิมพ์รหัสที่นี่"
+                              value={scanInput}
+                              onChange={e => setScanInput(e.target.value)}
+                              autoFocus
+                            />
+                            <button type="submit" className={`w-full py-4 rounded-2xl bg-gradient-to-br ${toneClass} text-white font-black shadow-lg text-lg`}>{isChecklistMode ? 'สแกนเช็กอุปกรณ์นี้' : (qrWorkbenchMode === 'multi' ? 'เพิ่มเข้ารายการที่เลือก' : 'ค้นหาอุปกรณ์นี้')}</button>
+                          </form>
+                          <div className={`mt-4 p-4 rounded-3xl border text-left ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                            <div className="font-black mb-1">เหมาะกับการใช้เครื่องยิงบาร์โค้ด</div>
+                            <div className="text-sm font-bold opacity-80">คลิกช่องรหัสหนึ่งครั้ง แล้วเดินยิง QR/Barcode ต่อเนื่องได้เลย ระบบจะเคลียร์ช่องให้เองหลังสแกน</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="qrwb-side space-y-3 sm:space-y-4">
+                      {scanMessage.text ? (
+                        <div className={`p-4 rounded-[1.7rem] border font-black shadow-sm ${scanMessage.type === 'success' ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800') : (isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')}`}>
+                          {scanMessage.text}
+                        </div>
+                      ) : (
+                        <div className={`p-4 rounded-[1.7rem] border font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+                          พร้อมสแกน — ระบบจะมีเสียง/สั่นเมื่อพบหรือไม่พบรายการ
+                        </div>
+                      )}
+
+                      {isChecklistMode ? (
+                        <>
+                          <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                              <div>
+                                <div className={`font-black ${theme.textTitle}`}>ความคืบหน้าการเช็ก</div>
+                                <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>เช็กครบแล้วค่อยกลับไปยืนยันรายการ</div>
+                              </div>
+                              <div className={`text-xl font-black ${theme.textTitle}`}>{checked}/{total}</div>
+                            </div>
+                            <div className="w-full h-2.5 rounded-full bg-slate-300/60 dark:bg-slate-800 overflow-hidden">
+                              <div className={`h-full rounded-full transition-all duration-500 ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${percent}%` }}></div>
+                            </div>
+                            {isComplete && (
+                              <button type="button" onClick={closeScanWorkbench} className="mt-4 w-full px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-md">
+                                เช็กครบแล้ว กลับไปยืนยันรายการ
+                              </button>
+                            )}
+                          </div>
+
+                          <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                            <div className="flex items-center justify-between mb-3">
+                              <div className={`font-black ${theme.textTitle}`}>ยังรอสแกน</div>
+                              <div className={`text-xs font-black ${theme.textMuted}`}>{Math.max(0, total - checked)} ชิ้น</div>
+                            </div>
+                            <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                              {pendingIds.length === 0 ? (
+                                <div className="p-3 rounded-2xl bg-emerald-500 text-white font-black text-center">ครบแล้ว</div>
+                              ) : pendingIds.map(id => {
+                                const item = items.find(i => i.id === id);
+                                if (!item) return null;
+                                return (
+                                  <div key={id} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                                    <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
+                                    <div className={`text-xs font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'} </div>
+                                  </div>
+                                );
+                              })}
+                              {total - checked > pendingIds.length && <div className={`text-center text-xs font-bold ${theme.textMuted}`}>และอีก {total - checked - pendingIds.length} รายการ</div>}
+                            </div>
+                          </div>
+                        </>
+                      ) : qrWorkbenchMode === 'multi' ? (
+                        <>
+                          <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                              <div>
+                                <div className={`font-black ${theme.textTitle}`}>รายการที่เลือก</div>
+                                <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>สะสมหลายรายการ แล้วค่อยทำรายการทีเดียว</div>
+                              </div>
+                              <div className={`text-2xl font-black ${theme.textTitle}`}>{selectedItems.length}</div>
+                            </div>
+
+                            {selectedPreviewItems.length > 0 ? (
+                              <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+                                {selectedPreviewItems.map(item => (
+                                  <div key={item.id} className={`p-3 rounded-2xl border flex items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                                    <div className="min-w-0">
+                                      <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
+                                      <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || 'ไม่ระบุที่เก็บ'}</div>
+                                    </div>
+                                    <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black border shrink-0 ${isDarkMode ? (STATUSES.find(s => s.id === item.status) || STATUSES[0]).darkColor : (STATUSES.find(s => s.id === item.status) || STATUSES[0]).color}`}>{(STATUSES.find(s => s.id === item.status) || STATUSES[0]).label}</span>
+                                  </div>
+                                ))}
+                                {selectedItems.length > selectedPreviewItems.length && <div className={`text-center text-xs font-bold ${theme.textMuted}`}>และอีก {selectedItems.length - selectedPreviewItems.length} รายการ</div>}
+                              </div>
+                            ) : (
+                              <div className={`p-4 rounded-2xl text-center font-bold ${isDarkMode ? 'bg-slate-950 text-slate-400 border border-slate-800' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
+                                ยังไม่มีรายการที่สแกนในรอบนี้
+                              </div>
+                            )}
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
+                              <button type="button" onClick={() => { handleOpenBatchBorrow(); closeScanWorkbench(); }} className="px-4 py-3 rounded-2xl font-black bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-50" disabled={selectedItems.length === 0}>ให้ยืม</button>
+                              <button type="button" onClick={() => { handleOpenBatchEvent(); closeScanWorkbench(); }} className="px-4 py-3 rounded-2xl font-black bg-orange-600 hover:bg-orange-500 text-white disabled:opacity-50" disabled={selectedItems.length === 0}>ออกงาน</button>
+                              <button type="button" onClick={() => { handleOpenBatchReturn(); closeScanWorkbench(); }} className="px-4 py-3 rounded-2xl font-black bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50" disabled={selectedItems.length === 0}>รับคืน</button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                              <button type="button" onClick={() => setSelectedItems([])} disabled={selectedItems.length === 0} className={`px-4 py-3 rounded-2xl font-black border disabled:opacity-50 ${theme.btnSecondary}`}>ล้างรายการ</button>
+                              <button type="button" onClick={closeScanWorkbench} className={`px-4 py-3 rounded-2xl font-black border ${theme.btnSecondary}`}>กลับไปจัดการต่อ</button>
+                            </div>
+                          </div>
+
+                          {recentItem && (
+                            <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                              <div className={`text-xs font-black mb-2 ${theme.textMuted}`}>สแกนล่าสุด</div>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className={`font-black text-lg leading-tight ${theme.textTitle}`}>{recentItem.name}</div>
+                                  <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {recentItem.sn || '-'} • {recentItem.category || '-'}</div>
+                                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{recentItem.location || 'ไม่ระบุที่เก็บ'}</div>
+                                </div>
+                                {recentStatus && <span className={`px-3 py-1.5 rounded-xl text-xs font-black border shrink-0 ${isDarkMode ? recentStatus.darkColor : recentStatus.color}`}>{recentStatus.label}</span>}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                          <div className="flex items-center justify-between gap-3 mb-3">
+                            <div>
+                              <div className={`font-black ${theme.textTitle}`}>Quick Action</div>
+                              <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>สแกนแล้วจัดการของชิ้นนั้นได้ทันที</div>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>Single Item</span>
+                          </div>
+
+                          {recentItem ? (
+                            <>
+                              <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <div className={`font-black text-xl leading-tight ${theme.textTitle}`}>{recentItem.name}</div>
+                                    <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {recentItem.sn || '-'} • {recentItem.category || '-'}</div>
+                                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ที่เก็บ: {recentItem.location || 'ไม่ระบุที่เก็บ'}</div>
+                                  </div>
+                                  {recentStatus && <span className={`px-3 py-1.5 rounded-xl text-xs font-black border shrink-0 ${isDarkMode ? recentStatus.darkColor : recentStatus.color}`}>{recentStatus.label}</span>}
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 mt-4">
+                                <button type="button" onClick={() => { closeScanWorkbench(); setShowHistory(recentItem.id); }} className={`px-4 py-3 rounded-2xl font-black border ${theme.btnSecondary}`}>ดูรายละเอียด</button>
+                                {canAddEditItems ? (
+                                  <button type="button" onClick={() => { closeScanWorkbench(); openItemEditor(recentItem); }} className="px-4 py-3 rounded-2xl font-black bg-blue-600 hover:bg-blue-500 text-white">แก้ไขข้อมูล</button>
+                                ) : (
+                                  <button type="button" onClick={closeScanWorkbench} className={`px-4 py-3 rounded-2xl font-black border ${theme.btnSecondary}`}>ปิด</button>
+                                )}
+                                {recentItem.status === 'available' && (
+                                  <>
+                                    <button type="button" onClick={() => { closeScanWorkbench(); handleOpenRowBorrow({ stopPropagation: () => {} }, recentItem); }} className="px-4 py-3 rounded-2xl font-black bg-purple-600 hover:bg-purple-500 text-white">ให้ยืม</button>
+                                    <button type="button" onClick={() => { closeScanWorkbench(); handleOpenRowEvent({ stopPropagation: () => {} }, recentItem); }} className="px-4 py-3 rounded-2xl font-black bg-orange-600 hover:bg-orange-500 text-white">ออกงาน</button>
+                                  </>
+                                )}
+                                {(recentItem.status === 'borrowed' || recentItem.status === 'out-for-event') && (
+                                  <button type="button" onClick={() => { closeScanWorkbench(); openReturnForItems([recentItem.id]); }} className="col-span-2 px-4 py-3 rounded-2xl font-black bg-emerald-600 hover:bg-emerald-500 text-white">รับคืนอุปกรณ์นี้</button>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <div className={`p-5 rounded-3xl text-center font-bold border ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                              ยังไม่มีรายการล่าสุดในรอบนี้<br />
+                              เริ่มสแกนเพื่อให้ระบบแสดงการ์ดคำสั่งของอุปกรณ์
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className={`grid grid-cols-3 gap-2 text-xs font-black ${theme.textMuted}`}>
+                        <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>{isChecklistMode ? 'เช็กของ' : (qrWorkbenchMode === 'multi' ? 'หลายรายการ' : 'ทันที')}</div>
+                        <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>กันสแกนซ้ำ</div>
+                        <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>เสียง/สั่น</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+  };
+
   const renderActiveWorkspace = () => {
+    if (activeWorkspace === 'qrWorkbench') return renderQRWorkbenchPage();
     if (activeWorkspace === 'borrowReturn') return renderBorrowReturnWorkspace();
     if (activeWorkspace === 'projects') return renderProjectWorkspace();
     if (activeWorkspace === 'organize') return renderOrganizeWorkspace();
@@ -6080,12 +6515,14 @@ S.N.: ${item.sn || '-'}
     setQrWorkbenchMode(workbenchMode);
     setUseCamera(camera);
     setShowScanModal(true);
+    setActiveWorkspace('qrWorkbench');
   };
 
   const openChecklistScanner = (mode) => {
     setScanMode(mode);
     setUseCamera(true);
     setShowScanModal(true);
+    setActiveWorkspace('qrWorkbench');
   };
 
   const getScanModeInfo = () => {
@@ -9751,7 +10188,7 @@ S.N.: ${item.sn || '-'}
       )}
 
       {/* 📷 หน้าสแกน QR Code แบบใหม่: ใช้งานหน้างาน / มือถือ / เครื่องยิงบาร์โค้ด */}
-      {showScanModal && (() => {
+      {showScanModal && activeWorkspace !== 'qrWorkbench' && (() => {
         const scanInfo = getScanModeInfo();
         const isChecklistMode = scanMode !== 'select';
         const targetIds = scanMode === 'borrowChecklist' ? borrowTargetIds : scanMode === 'eventChecklist' ? eventTargetIds : scanMode === 'returnChecklist' ? returnTargetIds : [];
