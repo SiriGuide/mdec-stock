@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.50.5 Design System Polish';
+const APP_VERSION = 'v22.50.6 Backup Center Hotfix';
 const APP_UPDATE_NOTE = 'เก็บงาน Design System ทั้งเว็บ: สี ปุ่ม การ์ด typography mobile และ empty state โดยไม่แตะ QR/กล้องหรือฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -10887,6 +10887,94 @@ S.N.: ${item.sn || '-'}
 
             <div className={`p-4 border-t shrink-0 ${theme.divide}`}>
               <button type="button" onClick={() => { setShowSettings(false); resetSettingsFormState(); }} className={`w-full py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* ศูนย์สำรองข้อมูล / Backup ปิดปี */}
+      {showBackupCenterModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[10000]`}>
+          <div className={`rounded-[1.75rem] sm:rounded-[2rem] w-full max-w-4xl max-h-[92dvh] shadow-2xl border overflow-hidden flex flex-col ${theme.cardBg}`}>
+            <div className={`p-4 sm:p-6 border-b shrink-0 ${theme.divide}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black mb-3 ${isDarkMode ? 'bg-blue-900/35 text-blue-300 border border-blue-800' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                    <Icons.Database className="w-4 h-4" /> Backup / ปิดปี
+                  </div>
+                  <h3 className={`text-xl sm:text-2xl font-black leading-tight ${theme.textTitle}`}>ศูนย์สำรองข้อมูลครบชุด</h3>
+                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดาวน์โหลดไฟล์สำรองก่อนปิดปี ล้างประวัติ หรือกู้คืนข้อมูลจาก JSON</p>
+                </div>
+                <button type="button" onClick={() => setShowBackupCenterModal(false)} className={`w-10 h-10 rounded-2xl flex items-center justify-center border shrink-0 ${theme.btnCancel}`} title="ปิด">
+                  <Icons.X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-4">
+              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-amber-950/25 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                <div className="font-black mb-1">แนะนำสำหรับปิดปี</div>
+                <div className="text-sm font-bold opacity-90">ให้กด “สำรองข้อมูลครบชุด” ก่อนเป็นอันดับแรก แล้วค่อยตรวจ Checklist ปิดปี หรือกดล้างประวัติเมื่อมั่นใจแล้วเท่านั้น</div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_.9fr] gap-4">
+                <div className={`p-5 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div>
+                      <h4 className={`text-lg sm:text-xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-5 h-5 text-blue-500"/> สำรองข้อมูล</h4>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดาวน์โหลดไฟล์เก็บไว้ในคอม/Google Drive</p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{items.length.toLocaleString('th-TH')} อุปกรณ์</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button type="button" onClick={exportOneStopBackupSet} disabled={isBusy} className={`sm:col-span-2 w-full py-4 rounded-2xl font-black shadow-md flex items-center justify-center gap-2 ${isBusy ? 'bg-slate-400 text-white cursor-wait' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}>
+                      <Icons.Database className="w-5 h-5"/> {isBusy ? 'กำลังเตรียมไฟล์...' : 'สำรองข้อมูลครบชุด'}
+                    </button>
+                    <button type="button" onClick={exportFullBackupJSON} className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black flex items-center justify-center gap-2">
+                      <Icons.Download className="w-5 h-5"/> JSON กู้คืนSystem
+                    </button>
+                    <button type="button" onClick={exportSheetsCSVPack} className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center justify-center gap-2">
+                      <Icons.Download className="w-5 h-5"/> CSV สำหรับ Sheets
+                    </button>
+                    <button type="button" onClick={exportProofGalleryHTML} className={`w-full py-3 rounded-2xl font-black border flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
+                      <Icons.Camera className="w-5 h-5"/> HTML รูปหลักฐาน
+                    </button>
+                    <button type="button" onClick={exportHistoryCSV} className={`w-full py-3 rounded-2xl font-black border flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
+                      <Icons.History className="w-5 h-5"/> ประวัติยืม-คืน CSV
+                    </button>
+                  </div>
+                  <div className={`mt-4 text-xs font-bold ${theme.textMuted}`}>สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่มีข้อมูลการสำรองในSystem'}</div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className={`p-5 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <h4 className={`text-lg font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Upload className="w-5 h-5 text-indigo-500"/> กู้คืนจาก JSON</h4>
+                    <p className={`text-sm font-bold mb-4 ${theme.textMuted}`}>ใช้เมื่อจำเป็นเท่านั้น Systemจะเขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON โดยไม่ลบข้อมูลที่ไม่มีในไฟล์</p>
+                    <input type="file" accept=".json,application/json" className="hidden" ref={restoreInputRef} onChange={handleRestoreBackupJSON} />
+                    <button type="button" onClick={() => restoreInputRef.current?.click()} className={`w-full py-3 rounded-2xl font-black border flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
+                      <Icons.Upload className="w-5 h-5"/> เลือกไฟล์ JSON เพื่อกู้คืน
+                    </button>
+                  </div>
+
+                  <div className={`p-5 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-rose-950/20 border-rose-900' : 'bg-rose-50 border-rose-200'}`}>
+                    <h4 className={`text-lg font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Trash className="w-5 h-5 text-rose-500"/> ปิดปี / ล้างประวัติ</h4>
+                    <p className={`text-sm font-bold mb-4 ${theme.textMuted}`}>ล้างเฉพาะประวัติยืม-คืน ไม่ลบอุปกรณ์หลัก แต่ควรสำรองข้อมูลครบชุดก่อนทุกครั้ง</p>
+                    <div className="grid grid-cols-1 gap-2">
+                      <button type="button" onClick={() => setShowAnnualCleanupModal(true)} className={`w-full py-3 rounded-2xl font-black border flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
+                        <Icons.CheckCircle className="w-5 h-5"/> เปิด Checklist ปิดปี
+                      </button>
+                      <button type="button" onClick={clearAllBorrowReturnHistory} className="w-full py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black flex items-center justify-center gap-2">
+                        <Icons.Trash className="w-5 h-5"/> ล้างประวัติยืม-คืนทั้งหมด
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`p-4 border-t shrink-0 ${theme.divide}`}>
+              <button type="button" onClick={() => setShowBackupCenterModal(false)} className={`w-full py-3 rounded-2xl font-black ${theme.btnCancel}`}>ปิดศูนย์สำรองข้อมูล</button>
             </div>
           </div>
         </div>
