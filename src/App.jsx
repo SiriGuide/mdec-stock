@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.38 FactoryStock Sidebar UI Pack';
+const APP_VERSION = 'v22.38.1 FactoryStock Sidebar Hotfix';
 const APP_UPDATE_NOTE = 'ปรับ UI ให้คล้ายSystemสต็อกโรงงาน: Dashboard เรียบจริงจัง, Control Center เป็นหมวด, และมือถือใช้งานหน้างานง่ายขึ้น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -5128,7 +5128,7 @@ S.N.: ${item.sn || '-'}
               <Icons.Database className="w-5 h-5" /> Backup / ปิดปี
             </button>
             <button type="button" onClick={() => setShowHelpModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-              <Icons.Info className="w-5 h-5" /> คู่มือใช้งาน
+              <Icons.Alert className="w-5 h-5" /> คู่มือใช้งาน
             </button>
           </div>
         </nav>
