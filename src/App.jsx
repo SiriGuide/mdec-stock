@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.52.5 Mobile QR Safe Camera Start';
-const APP_UPDATE_NOTE = 'เก็บหน้าสแกน QR บนมือถือให้กะทัดรัดขึ้น แปลปุ่มกล้องเป็นภาษาไทย ลดพื้นที่ส่วนหัว แยกสีปุ่ม และทำปุ่มยืนยันให้เหมาะกับการใช้งานหน้างาน';
+const APP_VERSION = 'v22.50.0 Final Production Polish Pack';
+const APP_UPDATE_NOTE = 'รวมชุดเก็บงานผลิตจริง: เอกสารพิมพ์ มือถือ รายละเอียดอุปกรณ์ ตั้งค่า empty states และ final UI polish โดยไม่แตะฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -805,121 +805,6 @@ function FactoryPolishStyle({ isDarkMode }) {
           width: 100% !important;
           max-height: 92dvh !important;
           border-radius: 22px !important;
-        }
-      }
-      /* v22.52.0 Borrow / Event / Return compact modal polish */
-      .factory-stock-polish .operation-modal-shell {
-        overscroll-behavior: contain;
-        scrollbar-width: thin;
-      }
-      @media (min-width: 1024px) {
-        .factory-stock-polish .operation-modal-shell {
-          width: min(660px, calc(100vw - 96px)) !important;
-          max-width: 660px !important;
-          max-height: 82dvh !important;
-          padding: 18px !important;
-          border-radius: 24px !important;
-          box-shadow: 0 24px 70px rgba(15,23,42,.22) !important;
-        }
-        .factory-stock-polish .operation-modal-shell > .flex.justify-between.items-center.mb-6 {
-          margin-bottom: 12px !important;
-          padding-bottom: 10px;
-          border-bottom: 1px solid var(--factory-border);
-        }
-        .factory-stock-polish .operation-modal-shell h3 {
-          font-size: 1.18rem !important;
-          line-height: 1.15 !important;
-          gap: 8px !important;
-        }
-        .factory-stock-polish .operation-modal-shell h3 svg {
-          width: 21px !important;
-          height: 21px !important;
-        }
-        .factory-stock-polish .operation-modal-shell .space-y-4 {
-          margin-bottom: 12px !important;
-        }
-        .factory-stock-polish .operation-modal-shell .space-y-4 > :not([hidden]) ~ :not([hidden]) {
-          margin-top: 10px !important;
-        }
-        .factory-stock-polish .operation-modal-shell label,
-        .factory-stock-polish .operation-modal-shell h4 {
-          font-size: .9rem !important;
-          line-height: 1.25 !important;
-        }
-        .factory-stock-polish .operation-modal-shell :is(input:not([type="checkbox"]), select, textarea) {
-          min-height: 40px !important;
-          padding: 9px 12px !important;
-          border-radius: 12px !important;
-          font-size: .92rem !important;
-        }
-        .factory-stock-polish .operation-modal-shell textarea {
-          min-height: 68px !important;
-          max-height: 92px !important;
-        }
-        .factory-stock-polish .operation-modal-shell [class*="mb-6"] {
-          margin-bottom: 12px !important;
-        }
-        .factory-stock-polish .operation-modal-shell [class*="mb-8"] {
-          margin-bottom: 14px !important;
-        }
-        .factory-stock-polish .operation-modal-shell [class*="p-4"][class*="border"] {
-          padding: 12px !important;
-          border-radius: 18px !important;
-        }
-        .factory-stock-polish .operation-modal-shell [class*="max-h-40"] {
-          max-height: 132px !important;
-          overscroll-behavior: contain;
-        }
-        .factory-stock-polish .operation-modal-shell .rounded-lg {
-          border-radius: 12px !important;
-        }
-        .factory-stock-polish .operation-modal-shell .text-lg {
-          font-size: .95rem !important;
-          line-height: 1.25 !important;
-        }
-        .factory-stock-polish .operation-modal-shell .text-base,
-        .factory-stock-polish .operation-modal-shell .sm\:text-base {
-          font-size: .9rem !important;
-        }
-        .factory-stock-polish .operation-modal-shell button {
-          min-height: 38px !important;
-        }
-        .factory-stock-polish .operation-modal-shell > .flex.gap-3 {
-          position: sticky;
-          bottom: -18px;
-          margin: 0 -18px -18px;
-          padding: 12px 18px 14px;
-          border-top: 1px solid var(--factory-border);
-          background: var(--factory-card);
-          z-index: 2;
-        }
-        .factory-stock-polish .operation-modal-shell > .flex.gap-3 button {
-          padding-top: 11px !important;
-          padding-bottom: 11px !important;
-          border-radius: 14px !important;
-          font-size: .95rem !important;
-        }
-        .factory-stock-polish .operation-modal-shell > p {
-          margin-top: 10px !important;
-          font-size: .78rem !important;
-        }
-      }
-      @media (max-width: 640px) {
-        .factory-stock-polish .operation-modal-shell {
-          width: 100% !important;
-          max-height: 92dvh !important;
-          padding: 14px !important;
-          border-radius: 22px !important;
-        }
-        .factory-stock-polish .operation-modal-shell h3 {
-          font-size: 1.15rem !important;
-        }
-        .factory-stock-polish .operation-modal-shell :is(input:not([type="checkbox"]), select, textarea) {
-          min-height: 42px !important;
-          font-size: 14px !important;
-        }
-        .factory-stock-polish .operation-modal-shell [class*="max-h-40"] {
-          max-height: 180px !important;
         }
       }
       .factory-stock-polish .clean-mobile-card-title {
@@ -2421,12 +2306,9 @@ function MainApp() {
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
   const [scanMode, setScanMode] = useState('select'); // select | borrowChecklist | eventChecklist | returnChecklist
-  const [scanWorkflow, setScanWorkflow] = useState('borrow'); // borrow | return | event | detail
   const [lastScannedItemId, setLastScannedItemId] = useState(null);
   const scanInputRef = useRef(null);
   const scanCooldownRef = useRef(false);
-  const qrAudioContextRef = useRef(null);
-  const lastQrBeepAtRef = useRef(0);
 
   const [useCamera, setUseCamera] = useState(false);
   const [isScannerLoaded, setIsScannerLoaded] = useState(false);
@@ -6041,112 +5923,23 @@ S.N.: ${item.sn || '-'}
     setShowForm(true);
   };
 
-  const warmupQrBeep = () => {
-    try {
-      if (typeof window === 'undefined') return null;
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) return null;
-      if (!qrAudioContextRef.current) {
-        qrAudioContextRef.current = new AudioContextClass();
-      }
-      const ctx = qrAudioContextRef.current;
-      if (ctx.state === 'suspended') {
-        ctx.resume().catch(() => {});
-      }
-      return ctx;
-    } catch (e) {
-      return null;
-    }
-  };
-
-  const playQrBeep = (type = 'success') => {
-    try {
-      const now = Date.now();
-      if (now - lastQrBeepAtRef.current < 180) return;
-      lastQrBeepAtRef.current = now;
-
-      const ctx = warmupQrBeep();
-      if (!ctx) return;
-      const t = ctx.currentTime;
-      const makeTone = (start, freq, duration, gainValue) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(freq, t + start);
-        gain.gain.setValueAtTime(0.0001, t + start);
-        gain.gain.exponentialRampToValueAtTime(gainValue, t + start + 0.012);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + start + duration);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(t + start);
-        osc.stop(t + start + duration + 0.025);
-      };
-
-      if (type === 'error') {
-        makeTone(0, 240, 0.11, 0.075);
-        makeTone(0.13, 190, 0.12, 0.055);
-      } else if (type === 'complete') {
-        makeTone(0, 740, 0.09, 0.06);
-        makeTone(0.11, 980, 0.11, 0.065);
-      } else {
-        makeTone(0, 820, 0.095, 0.06);
-      }
-    } catch (e) {}
-  };
-
-  const triggerQrScanFeedback = (type = 'success') => {
-    try { playQrBeep(type); } catch(e) {}
-    try {
-      if (navigator?.vibrate) {
-        if (type === 'error') navigator.vibrate([60, 40, 60]);
-        else if (type === 'complete') navigator.vibrate([80, 35, 110]);
-        else navigator.vibrate(55);
-      }
-    } catch(e) {}
-  };
-
-  const isMobileLikeViewport = () => {
-    try {
-      return window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
-    } catch(e) { return false; }
-  };
-
-  const startQrCameraSafely = () => {
-    // Safari/iOS และมือถือบางรุ่นค้างได้ถ้าเริ่มกล้องทันทีตอนเปิด modal
-    // เลยให้ modal วาดเสร็จก่อน แล้วค่อยสตาร์ทกล้องจาก user gesture โดยตรง
-    warmupQrBeep();
-    setUseCamera(false);
-    window.setTimeout(() => setUseCamera(true), 80);
-  };
-
   const openSelectionScanner = ({ camera = false } = {}) => {
-    warmupQrBeep();
     setScanMode('select');
-    setScanWorkflow('borrow');
+    setUseCamera(camera);
     setShowScanModal(true);
-    const isMobileViewport = isMobileLikeViewport();
-    // มือถือใช้ Safe Start: เปิดหน้าเร็ว ไม่สั่งกล้องทันที เพื่อไม่ให้ Safari ค้างก่อนกดอนุญาต
-    setUseCamera(camera && !isMobileViewport);
   };
 
   const openChecklistScanner = (mode) => {
-    warmupQrBeep();
     setScanMode(mode);
-    if (mode === 'returnChecklist') setScanWorkflow('return');
-    else if (mode === 'eventChecklist') setScanWorkflow('event');
-    else if (mode === 'borrowChecklist') setScanWorkflow('borrow');
+    setUseCamera(true);
     setShowScanModal(true);
-    setUseCamera(!isMobileLikeViewport());
   };
 
   const getScanModeInfo = () => {
     if (scanMode === 'borrowChecklist') return { title: 'สแกนเช็กก่อนปล่อยยืม', desc: 'สแกน QR ของอุปกรณ์ในรายการยืม เพื่อเช็กแทนการติ๊กเอง', tone: 'purple' };
     if (scanMode === 'eventChecklist') return { title: 'สแกนเช็กของขึ้นงาน', desc: 'สแกน QR ของอุปกรณ์ในรายการออกงาน เพื่อเช็กแทนการติ๊กเอง', tone: 'orange' };
     if (scanMode === 'returnChecklist') return { title: 'สแกนเช็กตอนรับคืน', desc: 'สแกน QR ของอุปกรณ์ที่นำมาคืน เพื่อเช็กแทนการติ๊กเอง', tone: 'emerald' };
-    if (scanWorkflow === 'borrow') return { title: 'สแกนยืมด่วน', desc: 'สแกนของหลายชิ้นเข้าตะกร้า แล้วกดทำใบยืมได้ทันที', tone: 'purple' };
-    if (scanWorkflow === 'return') return { title: 'สแกนรับคืน', desc: 'สแกนของที่ถูกยืมหรือออกงานอยู่ แล้วกดรับคืนได้ทันที', tone: 'emerald' };
-    if (scanWorkflow === 'event') return { title: 'สแกนออกงาน', desc: 'สแกนอุปกรณ์สำหรับออกกอง/ออกงาน แล้วกดทำใบนำออกงาน', tone: 'orange' };
-    return { title: 'สแกนดูรายละเอียด', desc: 'สแกนเพื่อดูรายละเอียดอุปกรณ์ สถานะ และประวัติอย่างรวดเร็ว', tone: 'amber' };
+    return { title: 'โหมดสแกน QR', desc: 'สแกน QR เพื่อเลือกอุปกรณ์ แล้วกดดูรายละเอียดหรือแก้ไขได้ทันที', tone: 'amber' };
   };
 
   const handleOpenBatchBorrow = () => {
@@ -6221,12 +6014,13 @@ S.N.: ${item.sn || '-'}
       const markChecklist = (targetIds, currentChecklist, setChecklist, label) => {
         if (!targetIds.includes(foundItem.id)) {
           setScanMessage({ text: `⚠️ "${foundItem.name}" ไม่ได้อยู่ในเช็กลิสต์${label}`, type: 'error' });
-          triggerQrScanFeedback('error');
+          try { if (navigator?.vibrate) navigator.vibrate([70, 45, 70]); } catch(e){}
+          try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
           return;
         }
         if (currentChecklist.includes(foundItem.id)) {
           setScanMessage({ text: `✅ "${foundItem.name}" เช็กไว้แล้ว ไม่ต้องสแกนซ้ำ`, type: 'success' });
-          triggerQrScanFeedback('success');
+          try { if (navigator?.vibrate) navigator.vibrate(50); } catch(e){}
           return;
         }
         const nextCount = Math.min(targetIds.length, currentChecklist.length + 1);
@@ -6236,7 +6030,8 @@ S.N.: ${item.sn || '-'}
           text: isComplete ? `🎉 เช็กครบแล้ว พร้อมยืนยันรายการ` : `✅ เช็ก "${foundItem.name}" แล้ว (${nextCount}/${targetIds.length})`,
           type: 'success'
         });
-        triggerQrScanFeedback(isComplete ? 'complete' : 'success');
+        try { if (navigator?.vibrate) navigator.vibrate(isComplete ? [90, 40, 120] : 90); } catch(e){}
+        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
       };
 
       if (scanMode === 'borrowChecklist') {
@@ -6246,33 +6041,15 @@ S.N.: ${item.sn || '-'}
       } else if (scanMode === 'returnChecklist') {
         markChecklist(returnTargetIds, returnChecklist, setReturnChecklist, 'รับคืน');
       } else {
-        const st = foundItem.status;
-        if (scanWorkflow === 'borrow' || scanWorkflow === 'event') {
-          if (st !== 'available') {
-            setScanMessage({ text: `⚠️ "${foundItem.name}" ยังไม่พร้อมใช้ จึงยังไม่เพิ่มเข้ารายการ`, type: 'error' });
-            triggerQrScanFeedback('error');
-          } else {
-            setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-            setScanMessage({ text: `✅ ปิ๊ป! เพิ่ม "${foundItem.name}" เข้าตะกร้า${scanWorkflow === 'event' ? 'ออกงาน' : 'ยืม'}แล้ว`, type: 'success' });
-            triggerQrScanFeedback('success');
-          }
-        } else if (scanWorkflow === 'return') {
-          if (st !== 'borrowed' && st !== 'out-for-event') {
-            setScanMessage({ text: `⚠️ "${foundItem.name}" ไม่ได้อยู่ระหว่างยืมหรือออกงาน`, type: 'error' });
-            triggerQrScanFeedback('error');
-          } else {
-            setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-            setScanMessage({ text: `✅ ปิ๊ป! เพิ่ม "${foundItem.name}" เข้ารายการรับคืนแล้ว`, type: 'success' });
-            triggerQrScanFeedback('success');
-          }
-        } else {
-          setScanMessage({ text: `✅ ปิ๊ป! พบ "${foundItem.name}" พร้อมดูรายละเอียด`, type: 'success' });
-          triggerQrScanFeedback('success');
-        }
+        setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+        setScanMessage({ text: `✅ พบ "${foundItem.name}" เลือกไว้แล้ว`, type: 'success' });
+        try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
+        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
       }
     } else {
       setScanMessage({ text: `❌ ไม่พบรหัส "${val}" ในSystem`, type: 'error' });
-      triggerQrScanFeedback('error');
+      try { if (navigator?.vibrate) navigator.vibrate([60, 40, 60]); } catch(e){}
+      try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
     }
 
     setScanInput('');
@@ -6297,7 +6074,7 @@ S.N.: ${item.sn || '-'}
           videoConstraints: { facingMode: "environment" },
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const minEdge = Math.min(viewfinderWidth || 320, viewfinderHeight || 320);
-            const size = Math.max(180, Math.min(330, Math.floor(minEdge * 0.72)));
+            const size = Math.max(220, Math.min(360, Math.floor(minEdge * 0.72)));
             return { width: size, height: size };
           }
         },
@@ -6322,52 +6099,6 @@ S.N.: ${item.sn || '-'}
       }
     };
   }, [showScanModal, useCamera, isScannerLoaded]);
-
-  // 🇹🇭 ปรับข้อความ/ปุ่มของ html5-qrcode ให้เข้ากับหน้าสแกนมือถือ
-  useEffect(() => {
-    if (!showScanModal || !useCamera) return;
-    const applyThaiQrUi = () => {
-      const root = document.getElementById('qr-reader');
-      if (!root) return;
-      const replaceText = (node) => {
-        if (!node || !node.childNodes) return;
-        node.childNodes.forEach(child => {
-          if (child.nodeType === Node.TEXT_NODE) {
-            const t = (child.textContent || '').trim();
-            if (/^Select Camera/i.test(t)) child.textContent = child.textContent.replace(/Select Camera\s*(\(.*?\))?/i, 'เลือกกล้อง');
-            if (/^Stop Scanning/i.test(t)) child.textContent = child.textContent.replace(/Stop Scanning/i, 'หยุดสแกน');
-            if (/^Start Scanning/i.test(t)) child.textContent = child.textContent.replace(/Start Scanning/i, 'เริ่มสแกน');
-            if (/^Scan an Image File/i.test(t)) child.textContent = child.textContent.replace(/Scan an Image File/i, 'สแกนจากรูปภาพ');
-          }
-        });
-      };
-      root.querySelectorAll('span, label, button, div').forEach(el => {
-        const text = (el.textContent || '').trim();
-        if (/Stop Scanning/i.test(text) || /หยุดสแกน/.test(text)) {
-          el.classList.add('qr-stop-button');
-          if (el.tagName === 'BUTTON') el.textContent = 'หยุดสแกน';
-        }
-        if (/Start Scanning/i.test(text)) {
-          if (el.tagName === 'BUTTON') el.textContent = 'เริ่มสแกน';
-        }
-        if (/Select Camera/i.test(text)) replaceText(el);
-      });
-      const select = root.querySelector('select');
-      if (select) {
-        select.setAttribute('aria-label', 'เลือกกล้อง');
-        select.title = 'เลือกกล้อง';
-      }
-    };
-    applyThaiQrUi();
-    const root = document.getElementById('qr-reader');
-    const observer = new MutationObserver(applyThaiQrUi);
-    if (root) observer.observe(root, { childList: true, subtree: true, characterData: true });
-    const timer = window.setInterval(applyThaiQrUi, 700);
-    return () => {
-      observer.disconnect();
-      window.clearInterval(timer);
-    };
-  }, [showScanModal, useCamera]);
 
   // 💡 กลับมาแล้ว: Systemนำเข้าไฟล์ CSV
   const handleImportCSV = (e) => {
@@ -9882,43 +9613,16 @@ S.N.: ${item.sn || '-'}
             : scanMode === 'returnChecklist'
               ? 'from-emerald-500 to-teal-600'
               : 'from-amber-500 to-orange-600';
-        const workflowTabs = [
-          { id: 'borrow', label: 'ยืม', icon: '📤', count: selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available').length },
-          { id: 'return', label: 'คืน', icon: '📥', count: selectedItems.filter(id => ['borrowed','out-for-event'].includes(items.find(i => i.id === id)?.status)).length },
-          { id: 'event', label: 'ออกงาน', icon: '🚚', count: selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available').length },
-          { id: 'detail', label: 'ดูของ', icon: '🔎', count: recentItem ? 1 : 0 }
-        ];
-        const workflowCount = scanWorkflow === 'return'
-          ? selectedItems.filter(id => ['borrowed','out-for-event'].includes(items.find(i => i.id === id)?.status)).length
-          : scanWorkflow === 'detail'
-            ? (recentItem ? 1 : 0)
-            : selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available').length;
-        const workflowActionLabel = scanWorkflow === 'borrow'
-          ? `ทำใบยืม ${workflowCount} รายการ`
-          : scanWorkflow === 'return'
-            ? `รับคืน ${workflowCount} รายการ`
-            : scanWorkflow === 'event'
-              ? `ทำใบออกงาน ${workflowCount} รายการ`
-              : 'ดูรายละเอียดล่าสุด';
-        const handleWorkflowConfirm = () => {
-          if (scanWorkflow === 'borrow') {
-            if (workflowCount <= 0) return alert('ยังไม่มีอุปกรณ์พร้อมยืมในตะกร้า');
-            setShowScanModal(false); setUseCamera(false); window.setTimeout(handleOpenBatchBorrow, 0);
-          } else if (scanWorkflow === 'return') {
-            if (workflowCount <= 0) return alert('ยังไม่มีอุปกรณ์ที่รับคืนได้ในตะกร้า');
-            setShowScanModal(false); setUseCamera(false); window.setTimeout(handleOpenBatchReturn, 0);
-          } else if (scanWorkflow === 'event') {
-            if (workflowCount <= 0) return alert('ยังไม่มีอุปกรณ์พร้อมออกงานในตะกร้า');
-            setShowScanModal(false); setUseCamera(false); window.setTimeout(handleOpenBatchEvent, 0);
-          } else if (recentItem) {
-            setShowScanModal(false); setUseCamera(false); setShowHistory(recentItem.id);
-          } else {
-            alert('ยังไม่มีรายการล่าสุด');
-          }
-        };
+        const softToneClass = scanMode === 'borrowChecklist'
+          ? (isDarkMode ? 'bg-purple-950/30 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-800')
+          : scanMode === 'eventChecklist'
+            ? (isDarkMode ? 'bg-orange-950/30 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800')
+            : scanMode === 'returnChecklist'
+              ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
+              : (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800');
 
         return (
-          <div className={`qr-mobile-oneshot fixed inset-0 ${theme.modalOverlay} z-[9999] overflow-hidden`}> 
+          <div className={`fixed inset-0 ${theme.modalOverlay} z-[9999] overflow-hidden`}> 
             <style>{`
               #qr-reader {
                 width: 100% !important;
@@ -9926,9 +9630,6 @@ S.N.: ${item.sn || '-'}
                 background: transparent !important;
                 color: inherit !important;
                 overflow: hidden !important;
-                display: flex !important;
-                flex-direction: column !important;
-                min-height: 0 !important;
               }
               #qr-reader video {
                 border-radius: 24px !important;
@@ -9949,27 +9650,14 @@ S.N.: ${item.sn || '-'}
                 color: inherit !important;
                 font-family: inherit !important;
               }
-              #qr-reader__dashboard {
-                order: -1 !important;
-                padding: 0 0 8px !important;
-              }
-              #qr-reader__scan_region {
-                order: 1 !important;
-                min-height: 0 !important;
-              }
               #qr-reader button {
-                background: #0f172a !important;
+                background: #f59e0b !important;
                 color: white !important;
-                border: 1px solid rgba(148,163,184,.35) !important;
-                padding: 9px 14px !important;
+                border: 0 !important;
+                padding: 10px 16px !important;
                 border-radius: 14px !important;
                 font-weight: 900 !important;
-                margin: 4px !important;
-                box-shadow: none !important;
-              }
-              #qr-reader button.qr-stop-button {
-                background: #dc2626 !important;
-                border-color: #ef4444 !important;
+                margin: 6px !important;
               }
               #qr-reader select {
                 min-height: 42px !important;
@@ -9987,73 +9675,14 @@ S.N.: ${item.sn || '-'}
                 font-size: 12px !important;
               }
               @media (max-width: 767px) {
-                #qr-reader {
-                  gap: 6px !important;
-                  min-height: 0 !important;
-                }
-                #qr-reader video {
-                  min-height: 240px !important;
-                  height: min(58svh, 390px) !important;
-                  max-height: calc(100svh - 250px) !important;
-                  border-radius: 16px !important;
-                }
-                #qr-reader__dashboard {
-                  order: -1 !important;
-                  padding: 0 0 6px !important;
-                  position: relative !important;
-                  z-index: 4 !important;
-                }
-                #qr-reader__dashboard_section { padding: 2px 0 !important; }
-                #qr-reader__dashboard_section_csr {
-                  font-size: 11px !important;
-                  display: grid !important;
-                  grid-template-columns: minmax(0,1fr) auto !important;
-                  align-items: center !important;
-                  gap: 6px !important;
-                }
-                #qr-reader__camera_selection {
-                  width: 100% !important;
-                  min-width: 0 !important;
-                  display: block !important;
-                }
-                #qr-reader button { padding: 7px 10px !important; border-radius: 12px !important; font-size: 12px !important; margin: 2px !important; white-space: nowrap !important; }
-                #qr-reader button.qr-stop-button { background: #dc2626 !important; }
-                #qr-reader select { min-height: 34px !important; border-radius: 12px !important; font-size: 12px !important; width: 100% !important; max-width: 100% !important; }
-                #qr-reader__dashboard_section_swaplink,
-                #qr-reader__dashboard_section_fsr { display: none !important; }
-                #qr-reader__status_span { display: none !important; }
-                .qr-mobile-oneshot .qr-shell { height: 100svh !important; max-height: 100svh !important; border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
-                .qr-mobile-oneshot .qr-header { padding: 8px 10px !important; }
-                .qr-mobile-oneshot .qr-header h3 { font-size: 15px !important; line-height: 1.1 !important; }
-                .qr-mobile-oneshot .qr-header p { display: none !important; }
-                .qr-mobile-oneshot .qr-header [class*="w-11"] { width: 34px !important; height: 34px !important; border-radius: 12px !important; }
-                .qr-mobile-oneshot .qr-mode-bar { margin-top: 6px !important; display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
-                .qr-mobile-oneshot .qr-workflow-tabs { display: grid !important; grid-template-columns: repeat(4, minmax(0,1fr)) !important; gap: 4px !important; margin-top: 5px !important; }
-                .qr-mobile-oneshot .qr-workflow-tabs button { min-height: 36px !important; padding: 5px 4px !important; border-radius: 12px !important; font-size: 10.5px !important; line-height: 1.05 !important; }
-                .qr-mobile-oneshot .qr-bottom-action { position: sticky !important; bottom: 0 !important; z-index: 20 !important; margin: 0 -10px -10px !important; padding: 7px 10px calc(7px + env(safe-area-inset-bottom)) !important; }
-
-                .qr-mobile-oneshot .qr-mode-bar button,
-                .qr-mobile-oneshot .qr-mode-bar > div { min-height: 32px !important; padding: 5px 8px !important; border-radius: 12px !important; font-size: 12px !important; }
-                .qr-mobile-oneshot .qr-cart-pill { min-height: 30px !important; padding: 5px 10px !important; font-size: 12px !important; justify-content: space-between !important; }
-                .qr-mobile-oneshot .qr-progress-wrap { margin-top: 8px !important; }
-                .qr-mobile-oneshot .qr-progress-wrap button { margin-top: 8px !important; min-height: 38px !important; padding: 8px 10px !important; border-radius: 14px !important; }
-                .qr-mobile-oneshot .qr-body { overflow: hidden !important; padding: 6px 8px 8px !important; }
-                .qr-mobile-oneshot .qr-grid { display: flex !important; flex-direction: column !important; gap: 7px !important; height: 100% !important; min-height: 0 !important; }
-                .qr-mobile-oneshot .qr-scan-card { flex: 1 1 auto !important; min-height: 0 !important; display: flex !important; flex-direction: column !important; border-radius: 18px !important; }
-                .qr-mobile-oneshot .qr-scan-card > div:first-child { display: none !important; }
-                .qr-mobile-oneshot .qr-scan-card > div:last-child { flex: 1 1 auto !important; min-height: 0 !important; padding: 6px !important; }
-                .qr-mobile-oneshot .qr-camera-tip { display: none !important; }
-                .qr-mobile-oneshot .qr-manual-fallback { display: none !important; }
-                .qr-mobile-oneshot .qr-side { flex: 0 0 auto !important; display: block !important; max-height: 52px !important; overflow: hidden !important; }
-                .qr-mobile-oneshot .qr-side > div { border-radius: 16px !important; padding: 9px 10px !important; }
-                .qr-mobile-oneshot .qr-side > div:not(:first-child) { display: none !important; }
-                .qr-mobile-oneshot .qr-side [class*="text-xl"] { font-size: 14px !important; }
+                #qr-reader video { min-height: 48vh !important; border-radius: 22px !important; }
+                #qr-reader__dashboard_section { padding: 6px 0 !important; }
               }
             `}</style>
 
             <div className="h-full w-full flex items-stretch justify-center sm:p-4">
-              <div className={`qr-shell w-full max-w-6xl h-full sm:h-[94vh] sm:rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <div className={`qr-header shrink-0 p-4 sm:p-5 border-b ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'}`}>
+              <div className={`w-full max-w-6xl h-full sm:h-[94vh] sm:rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`shrink-0 p-4 sm:p-5 border-b ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -10076,32 +9705,12 @@ S.N.: ${item.sn || '-'}
                     </button>
                   </div>
 
-                  {!isChecklistMode && (
-                    <div className="qr-workflow-tabs mt-4 grid grid-cols-4 gap-2">
-                      {workflowTabs.map(tab => (
-                        <button
-                          key={tab.id}
-                          type="button"
-                          onClick={() => setScanWorkflow(tab.id)}
-                          className={`rounded-2xl border px-3 py-2 font-black transition flex flex-col items-center justify-center gap-1 ${scanWorkflow === tab.id ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-md` : theme.btnSecondary}`}
-                        >
-                          <span className="text-base leading-none">{tab.icon}</span>
-                          <span className="text-[11px] sm:text-xs leading-none">{tab.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="qr-mode-bar mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => setUseCamera(prev => !prev)}
-                      className={`min-h-[46px] px-4 rounded-2xl font-black border transition ${useCamera ? 'bg-rose-600 hover:bg-rose-500 text-white border-transparent shadow-lg' : `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg`}`}
-                    >
-                      {useCamera ? '⏸ หยุดสแกน' : '📷 เริ่มกล้อง'}
+                  <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                    <button type="button" onClick={() => setUseCamera(true)} className={`min-h-[46px] px-4 rounded-2xl font-black border transition ${useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
+                      📷 กล้องมือถือ
                     </button>
                     <button type="button" onClick={() => setUseCamera(false)} className={`min-h-[46px] px-4 rounded-2xl font-black border transition ${!useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
-                      ⌨️ พิมพ์รหัส
+                      ⌨️ ยิง/พิมพ์รหัส
                     </button>
                     {isChecklistMode && (
                       <div className={`col-span-2 sm:ml-auto min-h-[46px] px-4 rounded-2xl border flex items-center justify-between sm:justify-center gap-3 font-black ${softToneClass}`}>
@@ -10110,15 +9719,14 @@ S.N.: ${item.sn || '-'}
                       </div>
                     )}
                     {!isChecklistMode && (
-                      <div className={`qr-cart-pill col-span-2 sm:ml-auto min-h-[42px] px-4 rounded-2xl border flex items-center justify-center gap-2 font-black ${theme.btnSecondary}`}>
-                        <span>{scanWorkflow === 'borrow' ? 'ตะกร้ายืม' : scanWorkflow === 'return' ? 'ตะกร้าคืน' : scanWorkflow === 'event' ? 'ตะกร้าออกงาน' : 'รายการล่าสุด'}</span>
-                        <span className={`px-2.5 py-1 rounded-full text-xs ${workflowCount > 0 ? 'bg-emerald-500 text-white' : 'bg-slate-600/60 text-white'}`}>{workflowCount}</span>
+                      <div className={`col-span-2 sm:ml-auto min-h-[46px] px-4 rounded-2xl border flex items-center justify-center gap-2 font-black ${theme.btnSecondary}`}>
+                        เลือกแล้ว {selectedItems.length} รายการ
                       </div>
                     )}
                   </div>
 
                   {isChecklistMode && (
-                    <div className="qr-progress-wrap mt-3">
+                    <div className="mt-3">
                       <div className="w-full h-2.5 rounded-full bg-slate-300/60 dark:bg-slate-800 overflow-hidden">
                         <div className={`h-full rounded-full transition-all duration-500 ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${percent}%` }}></div>
                       </div>
@@ -10131,21 +9739,18 @@ S.N.: ${item.sn || '-'}
                   )}
                 </div>
 
-                <div className="qr-body flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 sm:p-5">
-                  <div className="qr-grid grid grid-cols-1 lg:grid-cols-[1.2fr_.8fr] gap-4 sm:gap-5 items-start">
-                    <div className={`qr-scan-card rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 sm:p-5">
+                  <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_.8fr] gap-4 sm:gap-5 items-start">
+                    <div className={`rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
                       <div className={`px-4 py-3 border-b flex items-center justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50'}`}>
-                        <div className="font-black">{useCamera ? 'กล้องสแกน QR' : 'ช่องกรอกรหัส / เครื่องยิงบาร์โค้ด'}</div>
-                        <div className={`text-xs font-black px-3 py-1 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'พร้อมสแกน' : 'โหมดพิมพ์รหัส'}</div>
+                        <div className="font-black">{useCamera ? 'ช่องสแกนกล้อง' : 'ช่องกรอกรหัส / เครื่องยิงบาร์โค้ด'}</div>
+                        <div className={`text-xs font-black px-3 py-1 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'Camera Mode' : 'Manual Mode'}</div>
                       </div>
 
                       {useCamera ? (
                         <div className="p-3 sm:p-4">
-                          <div className={`qr-camera-tip mb-3 p-3 rounded-2xl border text-left text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                          <div className={`mb-3 p-3 rounded-2xl border text-left text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
                             วาง QR ให้อยู่กลางกรอบ ถือให้นิ่ง 1–2 วินาที ถ้าสติกเกอร์สะท้อนแสงให้เอียงเล็กน้อย
-                          </div>
-                          <div className={`qr-camera-control-hint mb-2 text-[11px] font-black text-center ${theme.textMuted}`}>
-                            เลือกกล้องได้จากแถบบน • สแกนแล้วมีเสียงปิ๊ป
                           </div>
                           {!isScannerLoaded ? (
                             <div className="min-h-[320px] flex items-center justify-center">
@@ -10156,7 +9761,7 @@ S.N.: ${item.sn || '-'}
                               <div id="qr-reader" className="w-full"></div>
                             </div>
                           )}
-                          <form onSubmit={handleScanSubmit} className="qr-manual-fallback mt-3 grid grid-cols-[1fr_auto] gap-2">
+                          <form onSubmit={handleScanSubmit} className="mt-3 grid grid-cols-[1fr_auto] gap-2">
                             <input
                               type="text"
                               className={`px-4 py-3 rounded-2xl font-black text-center outline-none border ${theme.input}`}
@@ -10190,7 +9795,7 @@ S.N.: ${item.sn || '-'}
                       )}
                     </div>
 
-                    <div className="qr-side space-y-4">
+                    <div className="space-y-4">
                       {scanMessage.text ? (
                         <div className={`p-4 rounded-[1.7rem] border font-black shadow-sm ${scanMessage.type === 'success' ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800') : (isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')}`}>
                           {scanMessage.text}
@@ -10250,18 +9855,6 @@ S.N.: ${item.sn || '-'}
                         </div>
                       )}
 
-                      {!isChecklistMode && (
-                        <button
-                          type="button"
-                          disabled={workflowCount <= 0}
-                          onClick={handleWorkflowConfirm}
-                          className={`w-full mb-3 min-h-[48px] rounded-2xl font-black shadow-md flex items-center justify-center gap-2 ${workflowCount <= 0 ? 'bg-slate-700 text-slate-300 cursor-not-allowed opacity-70' : `bg-gradient-to-br ${toneClass} text-white`}`}
-                        >
-                          <span>{scanWorkflow === 'borrow' ? '📤' : scanWorkflow === 'return' ? '📥' : scanWorkflow === 'event' ? '🚚' : '🔎'}</span>
-                          <span>{workflowActionLabel}</span>
-                        </button>
-                      )}
-
                       <div className={`grid grid-cols-3 gap-2 text-xs font-black ${theme.textMuted}`}>
                         <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>{isChecklistMode ? 'เช็กของ' : 'เลือกของ'}</div>
                         <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>กันสแกนซ้ำ</div>
@@ -10269,20 +9862,6 @@ S.N.: ${item.sn || '-'}
                       </div>
                     </div>
                   </div>
-
-                  {!isChecklistMode && (
-                    <div className={`qr-bottom-action lg:hidden border-t ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                      <button
-                        type="button"
-                        disabled={workflowCount <= 0}
-                        onClick={handleWorkflowConfirm}
-                        className={`w-full min-h-[50px] rounded-2xl font-black shadow-lg flex items-center justify-center gap-2 ${workflowCount <= 0 ? 'bg-slate-700 text-slate-300 cursor-not-allowed opacity-75' : `bg-gradient-to-br ${toneClass} text-white`}`}
-                      >
-                        <span>{scanWorkflow === 'borrow' ? '📤' : scanWorkflow === 'return' ? '📥' : scanWorkflow === 'event' ? '🚚' : '🔎'}</span>
-                        <span>{workflowActionLabel}</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -11417,7 +10996,7 @@ S.N.: ${item.sn || '-'}
       {/* 📋 Borrow Modal */}
       {borrowTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`operation-modal-shell operation-borrow-shell rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.UserPlus className="text-purple-500 w-6 h-6" /> บันทึกการให้ยืม</h3>
               <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); setBorrowProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
@@ -11541,7 +11120,7 @@ S.N.: ${item.sn || '-'}
       {/* 🚚 Event Modal */}
       {eventTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`operation-modal-shell operation-event-shell rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.Truck className="text-orange-500 w-6 h-6" /> นำอุปกรณ์ออกงาน</h3>
               <button type="button" onClick={() => { setEventTargetIds([]); setEventChecklist([]); setEventProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
@@ -11665,7 +11244,7 @@ S.N.: ${item.sn || '-'}
       {/* 📋 Return Modal */}
       {returnTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`operation-modal-shell operation-return-shell rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.CheckCircle className="text-emerald-500 w-6 h-6" /> บันทึกรับคืนอุปกรณ์</h3>
               <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); setReturnProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
