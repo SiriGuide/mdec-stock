@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.52.2 Mobile QR Workflow Hub';
-const APP_UPDATE_NOTE = 'เพิ่มเสียงปิ๊ปและแรงสั่นเมื่อสแกน QR สำเร็จ ให้ฟีลเหมือนเครื่องสแกนร้านค้า โดยไม่แตะฐานข้อมูล';
+const APP_VERSION = 'v22.52.3 Mobile QR Camera Controls';
+const APP_UPDATE_NOTE = 'ปรับหน้าสแกน QR บนมือถือให้เห็นกล้องเต็มขึ้น มีปุ่มหยุดสแกน และแสดงตัวเลือกกล้องชัดเจนขึ้น โดยไม่แตะฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -9865,6 +9865,9 @@ S.N.: ${item.sn || '-'}
                 background: transparent !important;
                 color: inherit !important;
                 overflow: hidden !important;
+                display: flex !important;
+                flex-direction: column !important;
+                min-height: 0 !important;
               }
               #qr-reader video {
                 border-radius: 24px !important;
@@ -9884,6 +9887,14 @@ S.N.: ${item.sn || '-'}
                 background: transparent !important;
                 color: inherit !important;
                 font-family: inherit !important;
+              }
+              #qr-reader__dashboard {
+                order: -1 !important;
+                padding: 0 0 8px !important;
+              }
+              #qr-reader__scan_region {
+                order: 1 !important;
+                min-height: 0 !important;
               }
               #qr-reader button {
                 background: #f59e0b !important;
@@ -9910,32 +9921,62 @@ S.N.: ${item.sn || '-'}
                 font-size: 12px !important;
               }
               @media (max-width: 767px) {
-                #qr-reader video { min-height: 0 !important; height: calc(100dvh - 270px) !important; max-height: 430px !important; border-radius: 18px !important; }
-                #qr-reader__dashboard_section { padding: 4px 0 !important; }
-                #qr-reader__dashboard_section_csr { font-size: 11px !important; }
-                #qr-reader button { padding: 7px 10px !important; border-radius: 12px !important; font-size: 12px !important; margin: 3px !important; }
-                #qr-reader select { min-height: 34px !important; border-radius: 12px !important; font-size: 12px !important; }
-                .qr-mobile-oneshot .qr-shell { height: 100dvh !important; max-height: 100dvh !important; border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
-                .qr-mobile-oneshot .qr-header { padding: 10px 12px !important; }
-                .qr-mobile-oneshot .qr-header h3 { font-size: 16px !important; line-height: 1.15 !important; }
+                #qr-reader {
+                  gap: 6px !important;
+                  min-height: 0 !important;
+                }
+                #qr-reader video {
+                  min-height: 210px !important;
+                  height: min(52svh, 350px) !important;
+                  max-height: calc(100svh - 300px) !important;
+                  border-radius: 16px !important;
+                }
+                #qr-reader__dashboard {
+                  order: -1 !important;
+                  padding: 0 0 6px !important;
+                  position: relative !important;
+                  z-index: 4 !important;
+                }
+                #qr-reader__dashboard_section { padding: 2px 0 !important; }
+                #qr-reader__dashboard_section_csr {
+                  font-size: 11px !important;
+                  display: grid !important;
+                  grid-template-columns: minmax(0,1fr) auto !important;
+                  align-items: center !important;
+                  gap: 6px !important;
+                }
+                #qr-reader__camera_selection {
+                  width: 100% !important;
+                  min-width: 0 !important;
+                  display: block !important;
+                }
+                #qr-reader button { padding: 7px 10px !important; border-radius: 12px !important; font-size: 12px !important; margin: 2px !important; white-space: nowrap !important; }
+                #qr-reader select { min-height: 34px !important; border-radius: 12px !important; font-size: 12px !important; width: 100% !important; max-width: 100% !important; }
+                #qr-reader__dashboard_section_swaplink,
+                #qr-reader__dashboard_section_fsr { display: none !important; }
+                #qr-reader__status_span { display: none !important; }
+                .qr-mobile-oneshot .qr-shell { height: 100svh !important; max-height: 100svh !important; border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
+                .qr-mobile-oneshot .qr-header { padding: 8px 10px !important; }
+                .qr-mobile-oneshot .qr-header h3 { font-size: 15px !important; line-height: 1.1 !important; }
                 .qr-mobile-oneshot .qr-header p { display: none !important; }
-                .qr-mobile-oneshot .qr-header [class*="w-11"] { width: 38px !important; height: 38px !important; border-radius: 14px !important; }
-                .qr-mobile-oneshot .qr-mode-bar { margin-top: 8px !important; display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
-                .qr-mobile-oneshot .qr-workflow-tabs { display: grid !important; grid-template-columns: repeat(4, minmax(0,1fr)) !important; gap: 6px !important; margin-top: 8px !important; }
+                .qr-mobile-oneshot .qr-header [class*="w-11"] { width: 34px !important; height: 34px !important; border-radius: 12px !important; }
+                .qr-mobile-oneshot .qr-mode-bar { margin-top: 6px !important; display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+                .qr-mobile-oneshot .qr-workflow-tabs { display: grid !important; grid-template-columns: repeat(4, minmax(0,1fr)) !important; gap: 5px !important; margin-top: 6px !important; }
                 .qr-mobile-oneshot .qr-workflow-tabs button { min-height: 42px !important; padding: 6px 5px !important; border-radius: 14px !important; font-size: 11px !important; line-height: 1.1 !important; }
                 .qr-mobile-oneshot .qr-bottom-action { position: sticky !important; bottom: 0 !important; z-index: 20 !important; margin: 0 -10px -10px !important; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)) !important; }
 
                 .qr-mobile-oneshot .qr-mode-bar button,
-                .qr-mobile-oneshot .qr-mode-bar > div { min-height: 36px !important; padding: 6px 8px !important; border-radius: 13px !important; font-size: 12px !important; }
+                .qr-mobile-oneshot .qr-mode-bar > div { min-height: 34px !important; padding: 6px 8px !important; border-radius: 12px !important; font-size: 12px !important; }
                 .qr-mobile-oneshot .qr-progress-wrap { margin-top: 8px !important; }
                 .qr-mobile-oneshot .qr-progress-wrap button { margin-top: 8px !important; min-height: 38px !important; padding: 8px 10px !important; border-radius: 14px !important; }
-                .qr-mobile-oneshot .qr-body { overflow: hidden !important; padding: 8px 10px 10px !important; }
-                .qr-mobile-oneshot .qr-grid { display: flex !important; flex-direction: column !important; gap: 8px !important; height: 100% !important; min-height: 0 !important; }
-                .qr-mobile-oneshot .qr-scan-card { flex: 1 1 auto !important; min-height: 0 !important; display: flex !important; flex-direction: column !important; border-radius: 20px !important; }
-                .qr-mobile-oneshot .qr-scan-card > div:last-child { flex: 1 1 auto !important; min-height: 0 !important; padding: 8px !important; }
+                .qr-mobile-oneshot .qr-body { overflow: hidden !important; padding: 6px 8px 8px !important; }
+                .qr-mobile-oneshot .qr-grid { display: flex !important; flex-direction: column !important; gap: 7px !important; height: 100% !important; min-height: 0 !important; }
+                .qr-mobile-oneshot .qr-scan-card { flex: 1 1 auto !important; min-height: 0 !important; display: flex !important; flex-direction: column !important; border-radius: 18px !important; }
+                .qr-mobile-oneshot .qr-scan-card > div:first-child { display: none !important; }
+                .qr-mobile-oneshot .qr-scan-card > div:last-child { flex: 1 1 auto !important; min-height: 0 !important; padding: 6px !important; }
                 .qr-mobile-oneshot .qr-camera-tip { display: none !important; }
                 .qr-mobile-oneshot .qr-manual-fallback { display: none !important; }
-                .qr-mobile-oneshot .qr-side { flex: 0 0 auto !important; display: block !important; max-height: 76px !important; overflow: hidden !important; }
+                .qr-mobile-oneshot .qr-side { flex: 0 0 auto !important; display: block !important; max-height: 64px !important; overflow: hidden !important; }
                 .qr-mobile-oneshot .qr-side > div { border-radius: 16px !important; padding: 9px 10px !important; }
                 .qr-mobile-oneshot .qr-side > div:not(:first-child) { display: none !important; }
                 .qr-mobile-oneshot .qr-side [class*="text-xl"] { font-size: 14px !important; }
@@ -9984,11 +10025,15 @@ S.N.: ${item.sn || '-'}
                   )}
 
                   <div className="qr-mode-bar mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                    <button type="button" onClick={() => setUseCamera(true)} className={`min-h-[46px] px-4 rounded-2xl font-black border transition ${useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
-                      📷 กล้องมือถือ
+                    <button
+                      type="button"
+                      onClick={() => setUseCamera(prev => !prev)}
+                      className={`min-h-[46px] px-4 rounded-2xl font-black border transition ${useCamera ? 'bg-rose-600 hover:bg-rose-500 text-white border-transparent shadow-lg' : `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg`}`}
+                    >
+                      {useCamera ? '⏸ หยุดสแกน' : '📷 เริ่มกล้อง'}
                     </button>
                     <button type="button" onClick={() => setUseCamera(false)} className={`min-h-[46px] px-4 rounded-2xl font-black border transition ${!useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
-                      ⌨️ ยิง/พิมพ์รหัส
+                      ⌨️ พิมพ์รหัส
                     </button>
                     {isChecklistMode && (
                       <div className={`col-span-2 sm:ml-auto min-h-[46px] px-4 rounded-2xl border flex items-center justify-between sm:justify-center gap-3 font-black ${softToneClass}`}>
@@ -10029,6 +10074,9 @@ S.N.: ${item.sn || '-'}
                         <div className="p-3 sm:p-4">
                           <div className={`qr-camera-tip mb-3 p-3 rounded-2xl border text-left text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
                             วาง QR ให้อยู่กลางกรอบ ถือให้นิ่ง 1–2 วินาที ถ้าสติกเกอร์สะท้อนแสงให้เอียงเล็กน้อย
+                          </div>
+                          <div className={`qr-camera-control-hint mb-2 text-[11px] font-black text-center ${theme.textMuted}`}>
+                            เลือกกล้อง / กดหยุดสแกนได้จากแถบควบคุมด้านบน
                           </div>
                           {!isScannerLoaded ? (
                             <div className="min-h-[320px] flex items-center justify-center">
