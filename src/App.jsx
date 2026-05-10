@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.49.1 Hybrid Category Location Picker';
+const APP_VERSION = 'v22.49.2 Minimal Hybrid Picker';
 const APP_UPDATE_NOTE = 'ปรับ Dashboard/Command Center บนมือถือให้เรียงอ่านง่าย ไม่ล้น ไม่ใหญ่เกิน และไม่บีบปุ่มแถบบนจนแปลก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -113,7 +113,7 @@ function SmartOptionInput({
   value,
   options = [],
   onChange,
-  placeholder = 'พิมพ์เพื่อค้นหา หรือกดรายการเพื่อเลื่อนเลือก',
+  placeholder = 'พิมพ์ค้นหา หรือกดดูรายการทั้งหมด',
   helper = '',
   theme = {},
   isDarkMode = false,
@@ -140,26 +140,54 @@ function SmartOptionInput({
     return [...starts, ...contains];
   }, [cleanOptions, normalizedQuery, browseAll]);
 
+  const frequentOptions = useMemo(() => {
+    const selected = query && cleanOptions.includes(query) ? [query] : [];
+    return [...new Set([...selected, ...cleanOptions])].slice(0, 6);
+  }, [cleanOptions, query]);
+
   const exactMatch = cleanOptions.some(v => v.toLowerCase() === normalizedQuery);
-  const inputClass = theme.input || (isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-700');
   const textTitle = theme.textTitle || (isDarkMode ? 'text-white' : 'text-slate-900');
   const textMuted = theme.textMuted || (isDarkMode ? 'text-slate-400' : 'text-slate-500');
-  const btnClass = isDarkMode
-    ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700'
-    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50';
+
+  const shellClass = isDarkMode
+    ? 'bg-slate-950 border-slate-700'
+    : 'bg-white border-slate-200';
+  const inputClass = isDarkMode
+    ? 'bg-transparent text-white placeholder:text-slate-500'
+    : 'bg-transparent text-slate-800 placeholder:text-slate-400';
+  const softBtnClass = isDarkMode
+    ? 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-slate-800'
+    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-white hover:border-blue-200';
+  const selectedChipClass = isDarkMode
+    ? 'bg-blue-500/15 border-blue-500/35 text-blue-200'
+    : 'bg-blue-50 border-blue-200 text-blue-700';
+  const chipClass = isDarkMode
+    ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white'
+    : 'bg-white border-slate-200 text-slate-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200';
+
+  const selectValue = (option) => {
+    onChange(option);
+    setIsOpen(false);
+    setBrowseAll(false);
+  };
 
   return (
     <div className="relative smart-combobox-field">
-      <label className={`block text-base font-bold mb-2 ${textTitle}`}>
-        {label} {required && <span className="text-rose-500">*</span>}
-      </label>
+      <div className="flex items-end justify-between gap-3 mb-2">
+        <label className={`block text-sm sm:text-base font-black ${textTitle}`}>
+          {label} {required && <span className="text-rose-500">*</span>}
+        </label>
+        <span className={`hidden sm:inline text-[11px] font-bold ${textMuted}`}>
+          ค้นหาได้ / เลื่อนเลือกได้
+        </span>
+      </div>
 
-      <div className="flex flex-col sm:flex-row gap-2">
-        <div className="relative flex-1 min-w-0">
-          <span className={`absolute left-4 top-1/2 -translate-y-1/2 text-base pointer-events-none ${textMuted}`}>{icon}</span>
+      <div className={`rounded-2xl border shadow-sm overflow-hidden transition-all ${shellClass} ${isOpen ? 'ring-2 ring-blue-500/20 border-blue-400/60' : ''}`}>
+        <div className="flex items-center gap-2 px-3 py-2">
+          <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 ${isDarkMode ? 'bg-slate-900 text-slate-400' : 'bg-slate-50 text-slate-500'}`}>{icon}</span>
           <input
             type="text"
-            className={`w-full pl-11 pr-12 py-3 rounded-xl font-bold outline-none text-lg border ${inputClass}`}
+            className={`w-full min-h-[42px] outline-none font-bold text-base ${inputClass}`}
             placeholder={placeholder}
             value={query}
             onFocus={() => {
@@ -182,13 +210,10 @@ function SmartOptionInput({
                 setBrowseAll(true);
                 setIsOpen(true);
               }}
-              className={`absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl flex items-center justify-center font-black ${isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center font-black shrink-0 ${isDarkMode ? 'bg-slate-900 text-slate-400 hover:bg-slate-800' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
               title="ล้างค่า"
             >×</button>
           )}
-        </div>
-
-        <div className="grid grid-cols-2 sm:flex gap-2">
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
@@ -196,7 +221,7 @@ function SmartOptionInput({
               setBrowseAll(false);
               setIsOpen(true);
             }}
-            className={`px-4 py-3 rounded-xl border font-black text-sm shadow-sm ${btnClass}`}
+            className={`hidden sm:inline-flex h-9 px-3 rounded-xl border items-center justify-center font-black text-xs shrink-0 ${softBtnClass}`}
             title="ค้นหาจากคำที่พิมพ์"
           >ค้นหา</button>
           <button
@@ -206,60 +231,110 @@ function SmartOptionInput({
               setBrowseAll(true);
               setIsOpen(true);
             }}
-            className={`px-4 py-3 rounded-xl border font-black text-sm shadow-sm ${btnClass}`}
+            className={`h-9 px-3 rounded-xl border inline-flex items-center justify-center font-black text-xs shrink-0 ${softBtnClass}`}
             title="เปิดรายการทั้งหมดเพื่อเลื่อนเลือก"
-          >รายการทั้งหมด</button>
+          >ทั้งหมด</button>
         </div>
+
+        {frequentOptions.length > 0 && (
+          <div className={`px-3 pb-3 pt-1 border-t ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+            <div className={`text-[11px] font-black mb-2 ${textMuted}`}>ใช้บ่อย / เลือกเร็ว</div>
+            <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+              {frequentOptions.map(option => (
+                <button
+                  key={option}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => selectValue(option)}
+                  className={`px-3 py-1.5 rounded-full border text-xs font-black whitespace-nowrap transition-colors ${String(value || '') === option ? selectedChipClass : chipClass}`}
+                  title={option}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {isOpen && (
-        <div className={`absolute z-[10020] mt-2 w-full rounded-2xl border shadow-2xl overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
-          <div className={`px-4 py-2 flex items-center justify-between gap-3 text-[11px] font-black uppercase tracking-wide ${isDarkMode ? 'bg-slate-900 text-slate-400' : 'bg-slate-50 text-slate-500'}`}>
-            <span>{browseAll || !normalizedQuery ? 'เลื่อนเลือกจากรายการทั้งหมด' : 'ผลการค้นหา / กดเลือกได้เลย'}</span>
-            <span>{matchedOptions.length.toLocaleString('th-TH')} รายการ</span>
+        <div className={`absolute z-[10020] mt-2 w-full rounded-3xl border shadow-2xl overflow-hidden max-sm:fixed max-sm:inset-x-3 max-sm:bottom-3 max-sm:top-auto max-sm:w-auto max-sm:max-h-[72vh] ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+          <div className={`px-4 py-3 flex items-center justify-between gap-3 border-b ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50'}`}>
+            <div className="min-w-0">
+              <div className={`text-sm font-black truncate ${textTitle}`}>{label}</div>
+              <div className={`text-[11px] font-bold ${textMuted}`}>
+                {browseAll || !normalizedQuery ? 'เลื่อนเลือกจากรายการทั้งหมด' : 'ผลการค้นหา / กดเลือกได้เลย'}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className={`px-2.5 py-1 rounded-full text-[11px] font-black ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-white text-slate-500 border border-slate-200'}`}>
+                {matchedOptions.length.toLocaleString('th-TH')} รายการ
+              </span>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setIsOpen(false)}
+                className={`sm:hidden w-8 h-8 rounded-xl flex items-center justify-center font-black ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-white text-slate-500 border border-slate-200'}`}
+              >×</button>
+            </div>
           </div>
-          <div className="max-h-72 overflow-y-auto custom-scrollbar p-2 space-y-1">
+
+          {frequentOptions.length > 0 && (
+            <div className={`px-4 py-3 border-b ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+              <div className={`text-[11px] font-black mb-2 ${textMuted}`}>รายการที่ใช้บ่อย</div>
+              <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+                {frequentOptions.map(option => (
+                  <button
+                    key={`sheet_${option}`}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => selectValue(option)}
+                    className={`px-3 py-2 rounded-full border text-xs font-black whitespace-nowrap transition-colors ${String(value || '') === option ? selectedChipClass : chipClass}`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="max-h-72 max-sm:max-h-[46vh] overflow-y-auto custom-scrollbar p-2 space-y-1">
             {matchedOptions.map(option => (
               <button
                 key={option}
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  onChange(option);
-                  setIsOpen(false);
-                  setBrowseAll(false);
-                }}
-                className={`w-full text-left px-3 py-2.5 rounded-xl font-bold transition-colors ${String(value || '') === option ? 'bg-blue-600 text-white' : isDarkMode ? 'text-slate-200 hover:bg-slate-800' : 'text-slate-700 hover:bg-blue-50'}`}
+                onClick={() => selectValue(option)}
+                className={`w-full text-left px-4 py-3 rounded-2xl font-black transition-colors flex items-center justify-between gap-3 ${String(value || '') === option ? 'bg-blue-600 text-white' : isDarkMode ? 'text-slate-200 hover:bg-slate-800' : 'text-slate-700 hover:bg-blue-50'}`}
               >
-                {option}
+                <span className="truncate">{option}</span>
+                {String(value || '') === option && <span className="text-xs font-black opacity-90">เลือกอยู่</span>}
               </button>
             ))}
             {normalizedQuery && !exactMatch && !browseAll && (
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  onChange(query.trim());
-                  setIsOpen(false);
-                  setBrowseAll(false);
-                }}
-                className={`w-full text-left px-3 py-3 rounded-xl font-black border border-dashed ${isDarkMode ? 'border-blue-800 text-blue-300 bg-blue-950/25 hover:bg-blue-900/30' : 'border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100'}`}
+                onClick={() => selectValue(query.trim())}
+                className={`w-full text-left px-4 py-3 rounded-2xl font-black border border-dashed ${isDarkMode ? 'border-blue-800 text-blue-300 bg-blue-950/25 hover:bg-blue-900/30' : 'border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100'}`}
               >
                 + ใช้ / เพิ่ม “{query.trim()}”
               </button>
             )}
             {!matchedOptions.length && !normalizedQuery && (
-              <div className={`px-3 py-4 text-sm font-bold ${textMuted}`}>ยังไม่มีรายการ ให้พิมพ์ชื่อใหม่ได้เลย</div>
+              <div className={`px-4 py-5 text-sm font-bold ${textMuted}`}>ยังไม่มีรายการ ให้พิมพ์ชื่อใหม่ได้เลย</div>
             )}
             {!matchedOptions.length && normalizedQuery && !browseAll && (
-              <div className={`px-3 py-4 text-sm font-bold ${textMuted}`}>ไม่พบรายการเดิม กดเพิ่มชื่อใหม่ด้านล่างได้เลย</div>
+              <div className={`px-4 py-5 text-sm font-bold ${textMuted}`}>ไม่พบรายการเดิม กดเพิ่มชื่อใหม่ด้านล่างได้เลย</div>
             )}
           </div>
-          <div className={`px-4 py-2 text-[11px] font-bold border-t ${isDarkMode ? 'border-slate-800 text-slate-500' : 'border-slate-100 text-slate-500'}`}>
-            วิธีใช้: พิมพ์เพื่อค้นหา • กด “รายการทั้งหมด” เพื่อเลื่อนเลือก • พิมพ์ชื่อใหม่แล้วบันทึกได้
+
+          <div className={`px-4 py-3 text-[11px] font-bold border-t ${isDarkMode ? 'border-slate-800 text-slate-500 bg-slate-900/60' : 'border-slate-100 text-slate-500 bg-slate-50'}`}>
+            พิมพ์เพื่อค้นหา • กด “ทั้งหมด” เพื่อเลื่อนเลือก • พิมพ์ชื่อใหม่แล้วบันทึกได้
           </div>
         </div>
       )}
+
       {helper && <p className={`text-xs font-bold mt-2 ${textMuted}`}>{helper}</p>}
     </div>
   );
