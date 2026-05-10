@@ -5068,11 +5068,11 @@ S.N.: ${item.sn || '-'}
           }
           @media (max-width: 767px) {
             .qr-workbench-mobile-friendly #qr-reader video {
-              /* Mobile: keep preview compact so actions stay visible, but not too small to scan */
-              height: 31svh !important;
-              min-height: 210px !important;
-              max-height: 280px !important;
-              border-radius: 20px !important;
+              /* Mobile: restore preview size for reliable scanning */
+              height: 38svh !important;
+              min-height: 250px !important;
+              max-height: 340px !important;
+              border-radius: 22px !important;
             }
             .qr-workbench-mobile-friendly #qr-reader__dashboard_section,
             .qr-workbench-mobile-friendly #qr-reader__dashboard_section_csr {
