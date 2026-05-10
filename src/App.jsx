@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.46.0 Full Polish Pack';
-const APP_UPDATE_NOTE = 'รวมชุดเก็บงาน Dashboard, Reports, ยืม-คืน, โครงการจัดซื้อ และเอกสารพิมพ์ ให้โปร่ง อ่านง่าย เหมาะกับคอมและมือถือ โดยไม่แตะโครงสร้างฐานข้อมูล';
+const APP_VERSION = 'v22.46.1 Dashboard Responsive Hotfix';
+const APP_UPDATE_NOTE = 'แก้ Dashboard และหน้าหลักไม่ให้ใหญ่ทะลุจอ ปรับขนาดการ์ด ตาราง ปุ่ม และมือถือให้กะทัดรัดขึ้น โดยไม่แตะโครงสร้างฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -985,6 +985,366 @@ function FactoryPolishStyle({ isDarkMode }) {
           overflow-x: auto;
         }
       }
+
+      /* v22.46.1 Dashboard Responsive Hotfix: ลดขนาด Dashboard / กันทะลุจอ / Mobile compact */
+      .factory-stock-polish,
+      .factory-stock-polish * {
+        box-sizing: border-box;
+      }
+      .factory-stock-polish {
+        overflow-x: hidden !important;
+      }
+      .factory-stock-polish main,
+      .factory-stock-polish .solid-workspace,
+      .factory-stock-polish .solid-panel,
+      .factory-stock-polish .operation-workspace-card,
+      .factory-stock-polish .purchase-project-card,
+      .factory-stock-polish .workspace-action-card {
+        max-width: 100% !important;
+        min-width: 0 !important;
+      }
+      .factory-stock-polish main {
+        overflow-x: hidden !important;
+      }
+      .factory-stock-polish [class*="grid-cols-"] > *,
+      .factory-stock-polish [class*="flex"] > * {
+        min-width: 0;
+      }
+      .factory-stock-polish .factory-topbar {
+        padding-top: 14px !important;
+        padding-bottom: 8px !important;
+        gap: 12px !important;
+      }
+      .factory-stock-polish .factory-page-title h1 {
+        font-size: clamp(24px, 2.35vw, 34px) !important;
+        line-height: 1.08 !important;
+      }
+      .factory-stock-polish .factory-page-title p {
+        font-size: 12px !important;
+        line-height: 1.45 !important;
+      }
+      .factory-stock-polish .factory-kicker {
+        font-size: 11px !important;
+        margin-bottom: 2px !important;
+      }
+      .factory-stock-polish .workspace-tabbar {
+        padding: 6px !important;
+        gap: 6px !important;
+        border-radius: 20px !important;
+        max-width: 100% !important;
+      }
+      .factory-stock-polish .workspace-tabbar button {
+        min-width: 154px !important;
+        min-height: 50px !important;
+        padding: 9px 12px !important;
+        border-radius: 14px !important;
+      }
+      .factory-stock-polish .workspace-tabbar button svg {
+        width: 18px !important;
+        height: 18px !important;
+      }
+      .factory-stock-polish .workspace-tabbar button span span:first-child {
+        font-size: 13px !important;
+      }
+      .factory-stock-polish .workspace-tabbar button span span:last-child {
+        font-size: 10px !important;
+      }
+      .factory-stock-polish .solid-panel,
+      .factory-stock-polish .operation-workspace-card,
+      .factory-stock-polish .purchase-project-card,
+      .factory-stock-polish .workspace-action-card {
+        border-radius: 18px !important;
+      }
+      .factory-stock-polish .solid-panel {
+        padding: 16px !important;
+      }
+      .factory-stock-polish .workspace-action-card,
+      .factory-stock-polish .operation-workspace-card,
+      .factory-stock-polish .purchase-project-card {
+        padding: 14px !important;
+      }
+      .factory-stock-polish .summary-card,
+      .factory-stock-polish .stat-card,
+      .factory-stock-polish [class*="statCard"],
+      .factory-stock-polish [class*="StatCard"] {
+        padding: 14px !important;
+        border-radius: 18px !important;
+      }
+      .factory-stock-polish .solid-workspace [class*="text-6xl"],
+      .factory-stock-polish .solid-panel [class*="text-6xl"] {
+        font-size: 2.35rem !important;
+        line-height: 1 !important;
+      }
+      .factory-stock-polish .solid-workspace [class*="text-5xl"],
+      .factory-stock-polish .solid-panel [class*="text-5xl"] {
+        font-size: 2.05rem !important;
+        line-height: 1.04 !important;
+      }
+      .factory-stock-polish .solid-workspace [class*="text-4xl"],
+      .factory-stock-polish .solid-panel [class*="text-4xl"] {
+        font-size: 1.75rem !important;
+        line-height: 1.08 !important;
+      }
+      .factory-stock-polish .solid-workspace [class*="text-3xl"],
+      .factory-stock-polish .solid-panel [class*="text-3xl"] {
+        font-size: 1.45rem !important;
+        line-height: 1.12 !important;
+      }
+      .factory-stock-polish .solid-workspace [class*="text-2xl"],
+      .factory-stock-polish .solid-panel [class*="text-2xl"] {
+        font-size: 1.18rem !important;
+        line-height: 1.18 !important;
+      }
+      .factory-stock-polish .solid-workspace [class*="min-h-[300px]"],
+      .factory-stock-polish .solid-panel [class*="min-h-[300px]"] {
+        min-height: 230px !important;
+      }
+      .factory-stock-polish .solid-workspace [class*="gap-8"],
+      .factory-stock-polish .solid-panel [class*="gap-8"] {
+        gap: 18px !important;
+      }
+      .factory-stock-polish .solid-workspace [class*="gap-6"],
+      .factory-stock-polish .solid-panel [class*="gap-6"] {
+        gap: 14px !important;
+      }
+      .factory-stock-polish .solid-workspace [class*="p-8"],
+      .factory-stock-polish .solid-panel [class*="p-8"] {
+        padding: 18px !important;
+      }
+      .factory-stock-polish .solid-workspace [class*="p-7"],
+      .factory-stock-polish .solid-panel [class*="p-7"] {
+        padding: 16px !important;
+      }
+      .factory-stock-polish .solid-workspace [class*="p-6"],
+      .factory-stock-polish .solid-panel [class*="p-6"] {
+        padding: 15px !important;
+      }
+      .factory-stock-polish .factory-primary-btn,
+      .factory-stock-polish .factory-ghost-btn,
+      .factory-stock-polish .factory-danger-btn,
+      .factory-stock-polish .factory-chip,
+      .factory-stock-polish .solid-panel button,
+      .factory-stock-polish .workspace-action-card button {
+        min-height: 38px !important;
+        border-radius: 14px !important;
+      }
+      .factory-stock-polish .custom-scrollbar {
+        max-width: 100%;
+      }
+      .factory-stock-polish table {
+        width: 100%;
+        max-width: 100%;
+      }
+      .factory-stock-polish .stock-table-compact {
+        font-size: 13px !important;
+      }
+      .factory-stock-polish .stock-table-compact th,
+      .factory-stock-polish .stock-table-compact td {
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+      }
+
+      @media (min-width: 1024px) {
+        .factory-stock-polish .solid-workspace {
+          width: 100% !important;
+        }
+        .factory-stock-polish .solid-workspace [class*="grid-cols-4"] {
+          grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        }
+        .factory-stock-polish .solid-workspace [class*="grid-cols-3"] {
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+        .factory-stock-polish .solid-workspace [class*="grid-cols-2"] {
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+      }
+
+      @media (max-width: 1279px) {
+        .factory-stock-polish .factory-page-title h1 {
+          font-size: clamp(23px, 3vw, 30px) !important;
+        }
+        .factory-stock-polish .factory-top-actions {
+          gap: 8px !important;
+        }
+        .factory-stock-polish .solid-workspace [class*="grid-cols-4"] {
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+      }
+
+      @media (max-width: 767px) {
+        .factory-stock-polish main {
+          padding-left: 12px !important;
+          padding-right: 12px !important;
+          padding-top: 10px !important;
+          padding-bottom: 112px !important;
+        }
+        .factory-stock-polish .factory-topbar {
+          padding: 6px 0 6px !important;
+          gap: 8px !important;
+        }
+        .factory-stock-polish .factory-page-title h1 {
+          font-size: 23px !important;
+          line-height: 1.1 !important;
+        }
+        .factory-stock-polish .factory-page-title p {
+          margin-top: 4px !important;
+          font-size: 11px !important;
+          line-height: 1.35 !important;
+        }
+        .factory-stock-polish .factory-kicker {
+          font-size: 10px !important;
+          letter-spacing: .08em !important;
+        }
+        .factory-stock-polish .factory-dot {
+          width: 6px !important;
+          height: 6px !important;
+          box-shadow: 0 0 0 4px rgba(37,99,235,.12) !important;
+        }
+        .factory-stock-polish .factory-top-actions {
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          gap: 7px !important;
+        }
+        .factory-stock-polish .factory-chip,
+        .factory-stock-polish .factory-primary-btn,
+        .factory-stock-polish .factory-ghost-btn,
+        .factory-stock-polish .factory-danger-btn,
+        .factory-stock-polish .factory-icon-btn {
+          min-height: 36px !important;
+          padding-left: 10px !important;
+          padding-right: 10px !important;
+          border-radius: 12px !important;
+          font-size: 12px !important;
+        }
+        .factory-stock-polish .workspace-tabbar {
+          display: grid !important;
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          overflow-x: visible !important;
+          padding: 5px !important;
+          gap: 5px !important;
+          border-radius: 16px !important;
+          margin-bottom: 10px !important;
+        }
+        .factory-stock-polish .workspace-tabbar button {
+          width: 100% !important;
+          min-width: 0 !important;
+          min-height: 44px !important;
+          padding: 8px 9px !important;
+          border-radius: 12px !important;
+          gap: 7px !important;
+        }
+        .factory-stock-polish .workspace-tabbar button svg {
+          width: 16px !important;
+          height: 16px !important;
+        }
+        .factory-stock-polish .workspace-tabbar button span span:first-child {
+          font-size: 12px !important;
+          line-height: 1.15 !important;
+        }
+        .factory-stock-polish .workspace-tabbar button span span:last-child {
+          display: none !important;
+        }
+        .factory-stock-polish .solid-workspace {
+          gap: 10px !important;
+        }
+        .factory-stock-polish .solid-workspace [class*="grid-cols-4"],
+        .factory-stock-polish .solid-workspace [class*="grid-cols-3"],
+        .factory-stock-polish .solid-workspace [class*="grid-cols-2"],
+        .factory-stock-polish .solid-panel [class*="grid-cols-4"],
+        .factory-stock-polish .solid-panel [class*="grid-cols-3"],
+        .factory-stock-polish .solid-panel [class*="grid-cols-2"] {
+          grid-template-columns: minmax(0, 1fr) !important;
+        }
+        .factory-stock-polish .solid-panel,
+        .factory-stock-polish .workspace-action-card,
+        .factory-stock-polish .operation-workspace-card,
+        .factory-stock-polish .purchase-project-card {
+          padding: 12px !important;
+          border-radius: 16px !important;
+          box-shadow: none !important;
+        }
+        .factory-stock-polish .summary-card,
+        .factory-stock-polish .stat-card,
+        .factory-stock-polish [class*="statCard"],
+        .factory-stock-polish [class*="StatCard"] {
+          padding: 12px !important;
+          border-radius: 15px !important;
+        }
+        .factory-stock-polish .solid-workspace [class*="text-6xl"],
+        .factory-stock-polish .solid-workspace [class*="text-5xl"] {
+          font-size: 1.65rem !important;
+        }
+        .factory-stock-polish .solid-workspace [class*="text-4xl"] {
+          font-size: 1.45rem !important;
+        }
+        .factory-stock-polish .solid-workspace [class*="text-3xl"] {
+          font-size: 1.28rem !important;
+        }
+        .factory-stock-polish .solid-workspace [class*="text-2xl"] {
+          font-size: 1.08rem !important;
+        }
+        .factory-stock-polish .solid-workspace [class*="text-xl"] {
+          font-size: 1rem !important;
+        }
+        .factory-stock-polish .solid-workspace [class*="text-lg"] {
+          font-size: .94rem !important;
+        }
+        .factory-stock-polish .solid-workspace [class*="min-h-[300px]"],
+        .factory-stock-polish .solid-panel [class*="min-h-[300px]"] {
+          min-height: 170px !important;
+        }
+        .factory-stock-polish .solid-workspace [class*="gap-8"],
+        .factory-stock-polish .solid-workspace [class*="gap-6"],
+        .factory-stock-polish .solid-panel [class*="gap-8"],
+        .factory-stock-polish .solid-panel [class*="gap-6"] {
+          gap: 10px !important;
+        }
+        .factory-stock-polish .solid-workspace [class*="p-8"],
+        .factory-stock-polish .solid-workspace [class*="p-7"],
+        .factory-stock-polish .solid-workspace [class*="p-6"],
+        .factory-stock-polish .solid-panel [class*="p-8"],
+        .factory-stock-polish .solid-panel [class*="p-7"],
+        .factory-stock-polish .solid-panel [class*="p-6"] {
+          padding: 12px !important;
+        }
+        .factory-stock-polish .stock-table-compact th,
+        .factory-stock-polish .stock-table-compact td {
+          padding-top: 8px !important;
+          padding-bottom: 8px !important;
+          font-size: 12px !important;
+        }
+        .factory-stock-polish .stock-mobile-card {
+          padding: 11px !important;
+        }
+        .factory-stock-polish .stock-mobile-card [class*="rounded-2xl"],
+        .factory-stock-polish .stock-mobile-card [class*="rounded-3xl"] {
+          border-radius: 14px !important;
+        }
+        .factory-stock-polish .stock-mobile-card button {
+          min-height: 34px !important;
+          font-size: 11px !important;
+        }
+      }
+
+      @media (max-width: 390px) {
+        .factory-stock-polish main {
+          padding-left: 9px !important;
+          padding-right: 9px !important;
+        }
+        .factory-stock-polish .workspace-tabbar button {
+          min-height: 42px !important;
+          padding: 7px 8px !important;
+        }
+        .factory-stock-polish .factory-page-title h1 {
+          font-size: 21px !important;
+        }
+        .factory-stock-polish .solid-panel,
+        .factory-stock-polish .workspace-action-card,
+        .factory-stock-polish .operation-workspace-card,
+        .factory-stock-polish .purchase-project-card {
+          padding: 10px !important;
+        }
+      }
+
       @media print {
         .factory-stock-polish,
         .factory-stock-polish * {
