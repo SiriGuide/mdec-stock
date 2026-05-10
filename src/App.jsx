@@ -5027,9 +5027,10 @@ S.N.: ${item.sn || '-'}
             border-radius: 22px !important;
             object-fit: cover !important;
             background: #020617 !important;
-            height: min(36dvh, 340px) !important;
-            min-height: 240px !important;
-            max-height: 360px !important;
+            /* Desktop/tablet: make camera preview larger and easier to scan */
+            height: min(56dvh, 560px) !important;
+            min-height: 360px !important;
+            max-height: 580px !important;
           }
           .qr-workbench-mobile-friendly #qr-reader__scan_region {
             background: transparent !important;
@@ -5067,10 +5068,11 @@ S.N.: ${item.sn || '-'}
           }
           @media (max-width: 767px) {
             .qr-workbench-mobile-friendly #qr-reader video {
-              height: 38svh !important;
-              min-height: 250px !important;
-              max-height: 340px !important;
-              border-radius: 22px !important;
+              /* Mobile: keep preview compact so actions stay visible, but not too small to scan */
+              height: 31svh !important;
+              min-height: 210px !important;
+              max-height: 280px !important;
+              border-radius: 20px !important;
             }
             .qr-workbench-mobile-friendly #qr-reader__dashboard_section,
             .qr-workbench-mobile-friendly #qr-reader__dashboard_section_csr {
@@ -10159,7 +10161,7 @@ S.N.: ${item.sn || '-'}
                 border-radius: 26px !important;
                 object-fit: cover !important;
                 background: #020617 !important;
-                height: min(34dvh, 320px) !important; min-height: 250px !important; max-height: 340px !important;
+                height: min(54dvh, 540px) !important; min-height: 340px !important; max-height: 560px !important;
               }
               #qr-reader__scan_region {
                 background: transparent !important;
@@ -10199,7 +10201,7 @@ S.N.: ${item.sn || '-'}
                 font-size: 12px !important;
               }
               @media (max-width: 767px) {
-                #qr-reader video { height: 40svh !important; min-height: 260px !important; max-height: 390px !important; border-radius: 22px !important; }
+                #qr-reader video { height: 31svh !important; min-height: 210px !important; max-height: 280px !important; border-radius: 20px !important; }
                 #qr-reader__dashboard_section { padding: 2px 0 !important; }
                 .qrwb-header { padding: 8px 10px 7px !important; }
                 .qrwb-icon { width: 34px !important; height: 34px !important; border-radius: 12px !important; }
