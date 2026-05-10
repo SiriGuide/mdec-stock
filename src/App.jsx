@@ -807,6 +807,100 @@ function FactoryPolishStyle({ isDarkMode }) {
           border-radius: 22px !important;
         }
       }
+      /* v22.50.19 Unified operational modals: ยืม / ออกงาน / รับคืน ให้เข้าภาษาเดียวกับหน้าเพิ่มอุปกรณ์ */
+      .factory-stock-polish .operational-modal-shell {
+        background: var(--factory-card) !important;
+        border: 1px solid var(--factory-border) !important;
+        box-shadow: var(--factory-shadow) !important;
+        overscroll-behavior: contain;
+      }
+      .factory-stock-polish .operational-modal-shell h3 {
+        letter-spacing: -.025em;
+      }
+      .factory-stock-polish .operational-modal-shell :is(input:not([type="checkbox"]), select, textarea) {
+        min-height: 42px !important;
+        border-radius: 14px !important;
+        font-size: 15px !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.38);
+      }
+      .factory-stock-polish .operational-modal-shell label {
+        font-size: 13px !important;
+        line-height: 1.25;
+      }
+      .factory-stock-polish .operational-modal-shell textarea {
+        min-height: 78px !important;
+      }
+      .factory-stock-polish .operational-modal-shell .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 12px !important;
+      }
+      .factory-stock-polish .operational-modal-shell :is(.mb-6) {
+        margin-bottom: 14px !important;
+      }
+      .factory-stock-polish .operational-modal-shell :is(.mb-8) {
+        margin-bottom: 16px !important;
+      }
+      .factory-stock-polish .operational-modal-shell :is(.rounded-xl) {
+        border-radius: 16px !important;
+      }
+      .factory-stock-polish .operational-modal-shell :is(.p-4) {
+        padding: 12px !important;
+      }
+      .factory-stock-polish .operational-modal-shell .max-h-40 {
+        max-height: 13.5rem !important;
+      }
+      .factory-stock-polish .operational-modal-shell button {
+        border-radius: 14px !important;
+      }
+      @media (min-width: 1024px) {
+        .factory-stock-polish .operational-modal-shell {
+          width: min(760px, calc(100vw - 120px)) !important;
+          max-height: 84dvh !important;
+          border-radius: 26px !important;
+          padding: 18px !important;
+        }
+        .factory-stock-polish .operational-modal-shell h3 {
+          font-size: 1.25rem !important;
+          line-height: 1.15 !important;
+        }
+        .factory-stock-polish .operational-modal-shell h3 svg {
+          width: 22px !important;
+          height: 22px !important;
+        }
+        .factory-stock-polish .operational-modal-shell :is(input:not([type="checkbox"]), select, textarea) {
+          min-height: 40px !important;
+          padding-top: 9px !important;
+          padding-bottom: 9px !important;
+        }
+        .factory-stock-polish .operational-modal-shell .text-lg,
+        .factory-stock-polish .operational-modal-shell .sm\:text-lg {
+          font-size: .95rem !important;
+        }
+        .factory-stock-polish .operational-modal-shell .text-2xl {
+          font-size: 1.25rem !important;
+        }
+        .factory-stock-polish .operational-modal-shell .gap-3 { gap: 10px !important; }
+        .factory-stock-polish .operational-modal-shell .py-4 {
+          padding-top: 11px !important;
+          padding-bottom: 11px !important;
+        }
+      }
+      @media (max-width: 640px) {
+        .factory-stock-polish .operational-modal-shell {
+          width: 100% !important;
+          max-height: 92dvh !important;
+          border-radius: 24px !important;
+          padding: 16px !important;
+        }
+        .factory-stock-polish .operational-modal-shell h3 {
+          font-size: 1.12rem !important;
+        }
+        .factory-stock-polish .operational-modal-shell .flex.justify-between.items-center.mb-6 {
+          margin-bottom: 14px !important;
+        }
+        .factory-stock-polish .operational-modal-shell .max-h-40 {
+          max-height: 12rem !important;
+        }
+      }
       .factory-stock-polish .clean-mobile-card-title {
         font-size: 16px;
         line-height: 1.25;
@@ -11412,7 +11506,7 @@ S.N.: ${item.sn || '-'}
       {/* 📋 Borrow Modal */}
       {borrowTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+          <div className={`operational-modal-shell borrow-operation-modal rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.UserPlus className="text-purple-500 w-6 h-6" /> บันทึกการให้ยืม</h3>
               <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); setBorrowProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
@@ -11536,7 +11630,7 @@ S.N.: ${item.sn || '-'}
       {/* 🚚 Event Modal */}
       {eventTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+          <div className={`operational-modal-shell event-operation-modal rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.Truck className="text-orange-500 w-6 h-6" /> นำอุปกรณ์ออกงาน</h3>
               <button type="button" onClick={() => { setEventTargetIds([]); setEventChecklist([]); setEventProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
@@ -11660,7 +11754,7 @@ S.N.: ${item.sn || '-'}
       {/* 📋 Return Modal */}
       {returnTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+          <div className={`operational-modal-shell return-operation-modal rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.CheckCircle className="text-emerald-500 w-6 h-6" /> บันทึกรับคืนอุปกรณ์</h3>
               <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); setReturnProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
