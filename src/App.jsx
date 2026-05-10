@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.42.0 Operations Workspace Polish';
-const APP_UPDATE_NOTE = 'ปรับโครงการจัดซื้อให้แยกของที่ยังไม่ผูกออกจากโครงการ เพิ่มหน้าจัดการยืม-คืนเต็มหน้า และเก็บ UI มือถือให้โล่งขึ้น';
+const APP_VERSION = 'v22.42.1 Project Visibility Hotfix';
+const APP_UPDATE_NOTE = 'แก้หน้าโครงการจัดซื้อให้สร้างแล้วเห็นทันที แม้ยังไม่มีอุปกรณ์ผูกโครงการ และคงหน้ายืม-คืนแบบเต็มหน้า';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -2087,9 +2087,18 @@ function MainApp() {
   }, [projectStats, projectManagerSearch]);
 
   const handleAddProjectQuick = async () => {
-    const name = String(quickProjectName || '').trim();
-    if (!name) {
+    const rawName = String(quickProjectName || '').trim();
+    const name = normalizeProjectName(rawName);
+    if (!rawName) {
       pushToast('กรุณาพิมพ์ชื่อโครงการจัดซื้อก่อน', 'warning');
+      return;
+    }
+    if (!name) {
+      pushToast('ชื่อนี้เป็นคำสงวนสำหรับรายการที่ยังไม่ผูกโครงการ กรุณาตั้งชื่อโครงการจริง เช่น โครงการปรับปรุงกล้องถ่ายภาพประจำปี 2569', 'warning');
+      return;
+    }
+    if (name === 'อื่นๆ') {
+      pushToast('กรุณาตั้งชื่อโครงการให้ชัดเจน ไม่ใช้คำว่า “อื่นๆ”', 'warning');
       return;
     }
     if (!canAddEditItems && !canManageSystem) {
@@ -2099,8 +2108,11 @@ function MainApp() {
     try {
       const currentProjects = Array.isArray(settingsOptions.projects) ? settingsOptions.projects : [];
       const normalized = currentProjects.map(p => normalizeProjectName(p)).filter(p => p && p !== 'อื่นๆ');
-      if (normalized.some(p => String(p).trim() === name)) {
+      const alreadyExists = normalized.some(p => String(p).trim() === name) || Object.keys(settingsOptions.projectMeta || {}).some(p => normalizeProjectName(p) === name);
+      if (alreadyExists) {
         pushToast('มีชื่อโครงการนี้อยู่แล้ว เปิดหน้าโครงการนั้นให้แล้ว', 'warning');
+        setProjectManagerSearch('');
+        setActiveWorkspace('projects');
         setSelectedPurchaseProject(name);
         setFilterProject(name);
         return;
@@ -2117,19 +2129,21 @@ function MainApp() {
             ...(currentMeta[name] || {}),
             name,
             fiscalYear: String((currentMeta[name] || {}).fiscalYear || buddhistYear),
-            status: (currentMeta[name] || {}).status || 'active',
+            status: (currentMeta[name] || {}).status || 'draft',
             createdAt: (currentMeta[name] || {}).createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString()
           }
         }
       };
       setSettingsOptions(updatedSettings);
-      await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
-      setQuickProjectName('');
-      setFilterProject(name);
+      setProjectManagerSearch('');
+      setActiveWorkspace('projects');
       setSelectedPurchaseProject(name);
+      setFilterProject(name);
+      setQuickProjectName('');
+      await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
       await logAction('เพิ่มโครงการจัดซื้อ', name, 'เพิ่มชื่อโครงการจัดซื้อ/จัดหาอุปกรณ์จากหน้าโครงการ');
-      pushToast('เพิ่มโครงการจัดซื้อเรียบร้อยแล้ว', 'success');
+      pushToast('เพิ่มโครงการจัดซื้อเรียบร้อยแล้ว — โครงการนี้ยังไม่มีอุปกรณ์ผูกอยู่', 'success');
     } catch (error) {
       console.error(error);
       alert('❌ เพิ่มโครงการไม่สำเร็จ: ' + error.message);
@@ -2523,7 +2537,28 @@ S.N.: ${item.sn || '-'}
   );
 
   const renderProjectWorkspace = () => {
-    const selectedProject = projectStats.find(p => String(p.name) === String(selectedPurchaseProject)) || filteredProjectStats[0] || null;
+    const selectedProjectName = normalizeProjectName(selectedPurchaseProject);
+    const fallbackSelectedProject = selectedProjectName ? {
+      name: selectedProjectName,
+      meta: getProjectMeta(selectedProjectName),
+      total: 0,
+      qtyTotal: 0,
+      active: 0,
+      disposed: 0,
+      lost: 0,
+      pending_disposal: 0,
+      available: 0,
+      borrowed: 0,
+      outForEvent: 0,
+      maintenance: 0,
+      missingData: 0,
+      qrMissing: 0,
+      categories: {},
+      departments: {},
+      locations: {},
+      items: []
+    } : null;
+    const selectedProject = projectStats.find(p => String(p.name) === String(selectedProjectName)) || fallbackSelectedProject || filteredProjectStats[0] || null;
     const projectItems = selectedProject?.items || [];
     const meta = selectedProject?.meta || {};
     const budgetNumber = Number(meta.budget || 0);
@@ -2622,7 +2657,7 @@ S.N.: ${item.sn || '-'}
                 </div>
                 <div className="p-3 space-y-2 max-h-[720px] overflow-y-auto custom-scrollbar">
                   {filteredProjectStats.length === 0 ? (
-                    <div className={ui.emptyBox}>ไม่พบโครงการที่ตรงกับคำค้น</div>
+                    <div className={ui.emptyBox}>ไม่พบโครงการที่ตรงกับคำค้น / ลองกดล้างตัวกรอง</div>
                   ) : filteredProjectStats.map((project) => {
                     const pMeta = project.meta || {};
                     const active = selectedProject && String(selectedProject.name) === String(project.name);
