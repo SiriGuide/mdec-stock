@@ -32,11 +32,11 @@ const getBorrowDocsCol = () => IS_CANVAS ? collection(db, 'artifacts', APP_ID, '
 const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'borrow_documents', id) : doc(db, 'mdec_stock', 'shared_data', 'borrow_documents', id);
 
 const ADMIN_PIN = 'mdec8203';
-const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
+const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.50.18 Unified Design System';
+const APP_VERSION = 'v22.51.0 Unified Design & Workflow Polish Pack';
 const APP_UPDATE_NOTE = 'ปรับภาษาออกแบบทั้งเว็บให้เป็นชุดเดียวกัน: ปุ่ม การ์ด ฟอร์ม ตาราง Popup และมือถือ โดยยึดฐาน QR เสถียร ไม่แตะระบบกล้องหรือฐานข้อมูล';
-// วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
+// วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
 const DEFAULT_DOCUMENT_SETTINGS = { qrLogo: true, slipLogo: true, boxLabelLogo: true, proofStamp: true, watermark: true, logoSize: 'normal', printTone: 'official' };
@@ -1247,7 +1247,7 @@ function FactoryPolishStyle({ isDarkMode }) {
         }
       }
 
-      /* ===== v22.50.5 Design System Polish: safe UI-only cleanup ===== */
+      /* ===== v22.50.5 Design ระบบ Polish: safe UI-only cleanup ===== */
       .factory-stock-polish {
         --ds-radius-card: 22px;
         --ds-radius-panel: 26px;
@@ -1970,7 +1970,7 @@ function FactoryPolishStyle({ isDarkMode }) {
       }
 
 
-      /* v22.50.18 Unified Design System: ทำให้ทั้งเว็บใช้ภาษาออกแบบเดียวกัน โดยไม่แตะ QR scanner logic */
+      /* v22.50.18 Unified Design ระบบ: ทำให้ทั้งเว็บใช้ภาษาออกแบบเดียวกัน โดยไม่แตะ QR scanner logic */
       .factory-stock-polish {
         --ui-radius-xl: 18px;
         --ui-radius-2xl: 22px;
@@ -2144,6 +2144,214 @@ function FactoryPolishStyle({ isDarkMode }) {
         .factory-stock-polish .stock-meta-line {
           font-size: 11.5px !important;
         }
+      }
+
+
+
+      /* v22.51.0 Unified Design & Workflow Polish Pack
+         Safe design-only layer: no QR scanner / camera / permission / Firebase path changes. */
+      .factory-stock-polish {
+        --ux-ring: 0 0 0 4px rgba(37,99,235,.12);
+        --ux-danger-ring: 0 0 0 4px rgba(244,63,94,.13);
+        --ux-success-ring: 0 0 0 4px rgba(16,185,129,.13);
+        --ux-warning-ring: 0 0 0 4px rgba(245,158,11,.13);
+        --ux-panel-radius: 24px;
+        --ux-card-radius: 22px;
+        --ux-field-radius: 16px;
+        --ux-soft-shadow: 0 14px 38px rgba(15,23,42,.07);
+        --ux-hover-shadow: 0 22px 54px rgba(15,23,42,.10);
+      }
+      .factory-stock-polish[data-polish-theme="dark"] {
+        --ux-soft-shadow: 0 14px 38px rgba(0,0,0,.25);
+        --ux-hover-shadow: 0 22px 54px rgba(0,0,0,.36);
+      }
+
+      /* Micro-interaction / feedback */
+      .factory-stock-polish button,
+      .factory-stock-polish a,
+      .factory-stock-polish [role="button"] {
+        -webkit-tap-highlight-color: transparent;
+      }
+      .factory-stock-polish button:not(:disabled) {
+        transition: transform .16s ease, filter .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+      }
+      .factory-stock-polish button:not(:disabled):hover {
+        filter: saturate(1.04) brightness(1.01);
+      }
+      .factory-stock-polish button:focus-visible,
+      .factory-stock-polish a:focus-visible,
+      .factory-stock-polish input:focus-visible,
+      .factory-stock-polish select:focus-visible,
+      .factory-stock-polish textarea:focus-visible {
+        outline: none !important;
+        box-shadow: var(--ux-ring) !important;
+      }
+      .factory-stock-polish button:disabled,
+      .factory-stock-polish [disabled] {
+        cursor: not-allowed !important;
+        opacity: .58 !important;
+        transform: none !important;
+        box-shadow: none !important;
+      }
+
+      /* Unified cards, panels and forms */
+      .factory-stock-polish :is(.solid-panel,.operation-workspace-card,.workspace-action-card,.purchase-project-card,.stock-mobile-card,.item-detail-shell,.settings-shell,.compact-modal-shell,.item-form-shell,.operational-modal-shell,.smart-picker-shell,.factory-empty-state,.empty-state-card) {
+        border-radius: var(--ux-panel-radius) !important;
+        border-color: rgba(148,163,184,.22) !important;
+        box-shadow: var(--ux-soft-shadow) !important;
+      }
+      .factory-stock-polish :is(.solid-panel,.operation-workspace-card,.workspace-action-card,.purchase-project-card,.stock-mobile-card):hover {
+        box-shadow: var(--ux-hover-shadow) !important;
+      }
+      .factory-stock-polish :is(.item-form-section,.item-detail-summary,.factory-empty-state,.empty-state-card,.settings-shell [class*="rounded"],.operational-modal-shell [class*="rounded"]) {
+        border-radius: var(--ux-card-radius) !important;
+      }
+      .factory-stock-polish :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):not(.stock-check) {
+        border-radius: var(--ux-field-radius) !important;
+        min-height: 42px;
+      }
+      .factory-stock-polish label span:first-child,
+      .factory-stock-polish .item-form-section > div:first-child {
+        line-height: 1.25;
+      }
+
+      /* Operational modals: ให้ยืม / ออกงาน / รับคืน */
+      .factory-stock-polish .operational-modal-shell {
+        max-width: 520px !important;
+        padding: 18px !important;
+      }
+      .factory-stock-polish .operational-modal-shell h3 {
+        font-size: 20px !important;
+        line-height: 1.15 !important;
+        margin-bottom: 10px !important;
+      }
+      .factory-stock-polish .operational-modal-shell label span {
+        font-size: 13px !important;
+        font-weight: 900 !important;
+      }
+      .factory-stock-polish .operational-modal-shell :is(input,select,textarea) {
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+      }
+      .factory-stock-polish .operational-modal-shell .custom-scrollbar {
+        scrollbar-width: thin;
+      }
+
+      /* Detail page as asset-history file */
+      .factory-stock-polish .item-detail-shell {
+        overflow: hidden;
+      }
+      .factory-stock-polish .item-detail-shell h3,
+      .factory-stock-polish .item-detail-shell h4 {
+        line-height: 1.18 !important;
+      }
+      .factory-stock-polish .item-detail-shell .item-detail-summary {
+        background: color-mix(in srgb, var(--factory-card) 82%, var(--factory-bg)) !important;
+        border-color: rgba(148,163,184,.22) !important;
+      }
+
+      /* Document / report / backup polish */
+      .factory-stock-polish :is(.print-preview,.print-sheet,.document-preview) {
+        border-radius: 18px !important;
+        box-shadow: 0 12px 34px rgba(15,23,42,.08) !important;
+      }
+      .factory-stock-polish :is(.print-preview,.print-sheet,.document-preview) table {
+        border-collapse: collapse;
+      }
+      .factory-stock-polish :is(.print-preview,.print-sheet,.document-preview) th {
+        font-weight: 900 !important;
+      }
+      .factory-stock-polish :is(.report-card,.settings-card,.backup-card,.factory-empty-state,.empty-state-card) {
+        border-radius: var(--ux-panel-radius) !important;
+      }
+
+      /* Status language and safety colors */
+      .factory-stock-polish [class*="bg-emerald"] { --safe-ring: var(--ux-success-ring); }
+      .factory-stock-polish [class*="bg-orange"] { --safe-ring: var(--ux-warning-ring); }
+      .factory-stock-polish [class*="bg-rose"],
+      .factory-stock-polish [class*="bg-red"] { --safe-ring: var(--ux-danger-ring); }
+      .factory-stock-polish button[class*="bg-rose"],
+      .factory-stock-polish button[class*="bg-red"] {
+        box-shadow: 0 12px 28px rgba(244,63,94,.14) !important;
+      }
+      .factory-stock-polish button[class*="bg-emerald"] {
+        box-shadow: 0 12px 28px rgba(16,185,129,.13) !important;
+      }
+      .factory-stock-polish button[class*="bg-orange"],
+      .factory-stock-polish button[class*="bg-amber"] {
+        box-shadow: 0 12px 28px rgba(245,158,11,.13) !important;
+      }
+
+      /* Toast / alert polish */
+      .factory-stock-polish .toast,
+      .factory-stock-polish [class*="pointer-events-auto"][class*="rounded-2xl"] {
+        border-radius: 18px !important;
+        box-shadow: 0 18px 44px rgba(15,23,42,.15) !important;
+      }
+
+      /* Empty/help states */
+      .factory-stock-polish :is(.empty-state,.empty-state-card,.factory-empty-state) {
+        min-height: 140px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        text-align: center;
+        line-height: 1.45;
+      }
+
+      /* Mobile polish */
+      @media (max-width: 760px) {
+        .factory-stock-polish {
+          --ux-panel-radius: 22px;
+          --ux-card-radius: 18px;
+          --ux-field-radius: 14px;
+        }
+        .factory-stock-polish :is(.solid-panel,.operation-workspace-card,.workspace-action-card,.purchase-project-card,.stock-mobile-card,.item-detail-shell,.settings-shell,.compact-modal-shell,.item-form-shell,.operational-modal-shell) {
+          border-radius: 20px !important;
+        }
+        .factory-stock-polish .operational-modal-shell,
+        .factory-stock-polish .item-form-shell,
+        .factory-stock-polish .compact-modal-shell {
+          width: calc(100vw - 18px) !important;
+          max-width: calc(100vw - 18px) !important;
+          max-height: 88vh !important;
+          padding: 12px !important;
+        }
+        .factory-stock-polish .operational-modal-shell h3,
+        .factory-stock-polish .item-form-shell h3,
+        .factory-stock-polish .compact-modal-shell h3 {
+          font-size: 18px !important;
+        }
+        .factory-stock-polish button {
+          min-height: 40px;
+        }
+        .factory-stock-polish .stock-mobile-card {
+          padding: 12px !important;
+        }
+        .factory-stock-polish .factory-page-title h1 {
+          font-size: 23px !important;
+        }
+        .factory-stock-polish .factory-page-title p {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .factory-stock-polish :is(.print-preview,.print-sheet,.document-preview) {
+          border-radius: 14px !important;
+          overflow-x: auto;
+        }
+      }
+
+      /* QR Scanner safe polish only: never touch camera start/stop/permission/qrbox. */
+      .factory-stock-polish #qr-reader {
+        font-family: inherit !important;
+      }
+      .factory-stock-polish #qr-reader button,
+      .factory-stock-polish #qr-reader select {
+        font-family: inherit !important;
       }
 
       @media print {
@@ -2665,7 +2873,7 @@ function MainApp() {
   const [proofEditTarget, setProofEditTarget] = useState(null);
   const [proofEditForm, setProofEditForm] = useState({ contextLabel: '', note: '' });
   const [proofEditReplaceFiles, setProofEditReplaceFiles] = useState([]);
-  const [showSystemHealthModal, setShowSystemHealthModal] = useState(false);
+  const [showระบบHealthModal, setShowระบบHealthModal] = useState(false);
   const [showMonthlyReportModal, setShowMonthlyReportModal] = useState(false);
   const [monthlyReportMonth, setMonthlyReportMonth] = useState(() => {
     const d = new Date();
@@ -3212,7 +3420,7 @@ function MainApp() {
     return (
       <div className={`p-4 rounded-xl border ${toneClass}`}>
         <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>📷 {label} <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่บังคับ)</span></label>
-        <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>เลือกไฟล์รูป หรือถ่ายด้วยกล้องมือถือ Systemจะย่อไฟล์ ประทับเวลา และพิกัด GPS ลงบนรูปถ้าอนุญาตตำแหน่ง แล้วเก็บไว้ใน Firestore โดยไม่ใช้ Firebase Storage • เป้าหมายประมาณ {activeProofSettings.targetKB} KB/รูป • สูงสุด {activeProofSettings.maxImagesPerAction} รูป/ครั้ง</p>
+        <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>เลือกไฟล์รูป หรือถ่ายด้วยกล้องมือถือ ระบบจะย่อไฟล์ ประทับเวลา และพิกัด GPS ลงบนรูปถ้าอนุญาตตำแหน่ง แล้วเก็บไว้ใน Firestore โดยไม่ใช้ Firebase Storage • เป้าหมายประมาณ {activeProofSettings.targetKB} KB/รูป • สูงสุด {activeProofSettings.maxImagesPerAction} รูป/ครั้ง</p>
         <input
           type="file"
           accept="image/*"
@@ -3458,7 +3666,7 @@ function MainApp() {
     const targetKey = group.groupId;
     const proofDocId = group.proof?.proofDocId || group.proof?.id || group.groupId;
     const linkedItems = group.itemRefs?.length || group.entries?.length || 1;
-    const ok = window.confirm(`คุณกำลังลบรูปหลักฐานนี้\n\nรูปนี้เกี่ยวข้องกับ ${linkedItems} อุปกรณ์/รายการ\nเมื่อลบแล้ว รูปจะหายจากประวัติทั้งหมดที่เกี่ยวข้อง และไม่สามารถกู้คืนจากSystemได้\n\nต้องการลบต่อหรือไม่?`);
+    const ok = window.confirm(`คุณกำลังลบรูปหลักฐานนี้\n\nรูปนี้เกี่ยวข้องกับ ${linkedItems} อุปกรณ์/รายการ\nเมื่อลบแล้ว รูปจะหายจากประวัติทั้งหมดที่เกี่ยวข้อง และไม่สามารถกู้คืนจากระบบได้\n\nต้องการลบต่อหรือไม่?`);
     if (!ok) return;
 
     try {
@@ -3614,7 +3822,7 @@ function MainApp() {
   const currentAccountRole = currentOperator?.role || (isAdmin ? 'owner' : 'viewer');
   const isLoggedIn = !!isAdmin;
   const canManageAccounts = isAdmin && (currentAccountRole === 'owner' || currentAccountRole === 'admin');
-  const canManageSystem = isAdmin && (currentAccountRole === 'owner' || currentAccountRole === 'admin');
+  const canManageระบบ = isAdmin && (currentAccountRole === 'owner' || currentAccountRole === 'admin');
   const canViewAudit = isAdmin && (currentAccountRole === 'owner' || currentAccountRole === 'admin');
   const canUseOperationalTools = isAdmin && ['owner', 'admin', 'staff'].includes(currentAccountRole);
   const canAddEditItems = canUseOperationalTools;
@@ -3627,7 +3835,7 @@ function MainApp() {
     return activeProofSettings[key] || 'recommended';
   };
   const updateProofSettings = async (patch) => {
-    if (!canManageSystem) return pushToast('คุณไม่มีสิทธิ์แก้ไขกติกาหลักฐาน', 'warning');
+    if (!canManageระบบ) return pushToast('คุณไม่มีสิทธิ์แก้ไขกติกาหลักฐาน', 'warning');
     const merged = { ...activeProofSettings, ...patch };
     const cleaned = {
       ...merged,
@@ -3775,7 +3983,7 @@ function MainApp() {
   };
 
   const handleChangeOwnPin = async () => {
-    if (!user || !currentOperator) return alert('❌ กรุณาเข้าสู่Systemก่อน');
+    if (!user || !currentOperator) return alert('❌ กรุณาเข้าสู่ระบบก่อน');
     const oldPin = String(myPinForm.oldPin || '').trim();
     const newPin = String(myPinForm.newPin || '').trim();
     const confirmPin = String(myPinForm.confirmPin || '').trim();
@@ -4101,7 +4309,7 @@ function MainApp() {
       pushToast('กรุณาตั้งชื่อโครงการให้ชัดเจน ไม่ใช้คำว่า “อื่นๆ”', 'warning');
       return;
     }
-    if (!canAddEditItems && !canManageSystem) {
+    if (!canAddEditItems && !canManageระบบ) {
       alert('บัญชีนี้ไม่มีสิทธิ์เพิ่มโครงการ');
       return;
     }
@@ -4193,7 +4401,7 @@ function MainApp() {
 
   const handleSaveProjectMeta = async () => {
     if (!projectMetaEditTarget) return;
-    if (!canAddEditItems && !canManageSystem) return alert('บัญชีนี้ไม่มีสิทธิ์แก้ไขโครงการ');
+    if (!canAddEditItems && !canManageระบบ) return alert('บัญชีนี้ไม่มีสิทธิ์แก้ไขโครงการ');
     const oldName = cleanProjectName(projectMetaEditTarget);
     const newName = cleanProjectName(projectMetaForm.name);
     if (!newName) return alert('กรุณากรอกชื่อโครงการจัดซื้อให้ถูกต้อง');
@@ -4304,7 +4512,7 @@ function MainApp() {
 
   const handleSaveProjectAssignment = async () => {
     if (!projectAssignTarget) return alert('กรุณาเลือกโครงการ');
-    if (!canAddEditItems && !canManageSystem) return alert('บัญชีนี้ไม่มีสิทธิ์ผูกอุปกรณ์กับโครงการจัดซื้อ');
+    if (!canAddEditItems && !canManageระบบ) return alert('บัญชีนี้ไม่มีสิทธิ์ผูกอุปกรณ์กับโครงการจัดซื้อ');
     const selectedSet = new Set(projectAssignSelectedIds);
     const currentProjectItems = items.filter(item => item && !item.isDeleted && normalizeProjectName(item.project) === normalizeProjectName(projectAssignTarget));
     const selectedItemsForProject = items.filter(item => item && !item.isDeleted && selectedSet.has(item.id));
@@ -4371,7 +4579,7 @@ function MainApp() {
   };
 
   const handleRenameProject = async (oldName) => {
-    if (!canAddEditItems && !canManageSystem) return alert('บัญชีนี้ไม่มีสิทธิ์แก้ไขโครงการ');
+    if (!canAddEditItems && !canManageระบบ) return alert('บัญชีนี้ไม่มีสิทธิ์แก้ไขโครงการ');
     if (!normalizeProjectName(oldName)) return alert('กรุณาเลือกโครงการจัดซื้อที่ต้องการเปลี่ยนชื่อ');
     const newName = prompt(`เปลี่ยนชื่อโครงการ\nจาก: ${oldName}\nเป็น:`, oldName);
     const clean = String(newName || '').trim();
@@ -4419,7 +4627,7 @@ function MainApp() {
   };
 
   const handleDeleteEmptyProject = async (projectName) => {
-    if (!canManageSystem && !canAddEditItems) return alert('บัญชีนี้ไม่มีสิทธิ์ลบชื่อโครงการ');
+    if (!canManageระบบ && !canAddEditItems) return alert('บัญชีนี้ไม่มีสิทธิ์ลบชื่อโครงการ');
     if (!normalizeProjectName(projectName)) return alert('กรุณาเลือกโครงการจัดซื้อที่ต้องการลบ');
     const project = projectStats.find(p => String(p.name) === String(projectName));
     if (project && project.total > 0) {
@@ -5247,7 +5455,7 @@ S.N.: ${item.sn || '-'}
     { id: 'display', label: 'การแสดงผล', desc: 'ความแน่น / การ์ด / เอฟเฟกต์', icon: Icons.Monitor, group: 'หน้าตาเว็บ' },
     { id: 'documents', label: 'เอกสาร / โลโก้', desc: 'ใบยืม ฉลาก QR และโลโก้', icon: Icons.Printer, group: 'เอกสาร' },
     { id: 'proofs', label: 'หลักฐานรูปภาพ', desc: 'กติกาการแนบรูป', icon: Icons.Camera, group: 'หลักฐาน' },
-    { id: 'database', label: 'ฐานข้อมูล / สำรอง', desc: 'Backup, Restore, Cleanup', icon: Icons.Database, group: 'System' },
+    { id: 'database', label: 'ฐานข้อมูล / สำรอง', desc: 'Backup, Restore, Cleanup', icon: Icons.Database, group: 'ระบบ' },
   ];
 
   const resetSettingsFormState = () => {
@@ -5825,13 +6033,13 @@ S.N.: ${item.sn || '-'}
     const snInput = String(formData.sn || '').trim();
 
     if (!nameInput.trim() || !snInput) {
-      alert('❌ กรุณากรอก "ชื่ออุปกรณ์" และ "รหัส S.N." ให้ครบถ้วน (Systemบังคับใส่รหัสซีเรียล)');
+      alert('❌ กรุณากรอก "ชื่ออุปกรณ์" และ "รหัส S.N." ให้ครบถ้วน (ระบบบังคับใส่รหัสซีเรียล)');
       return;
     }
 
     const isDuplicate = items.some(item => item.sn && String(item.sn).trim().toLowerCase() === snInput.toLowerCase() && item.id !== formData.id);
     if (isDuplicate) {
-      alert(`❌ ไม่สามารถบันทึกได้: รหัส S.N. "${snInput}" มีซ้ำอยู่ในSystemแล้ว กรุณาตรวจสอบอีกครั้ง`);
+      alert(`❌ ไม่สามารถบันทึกได้: รหัส S.N. "${snInput}" มีซ้ำอยู่ในระบบแล้ว กรุณาตรวจสอบอีกครั้ง`);
       return; 
     }
 
@@ -5931,7 +6139,7 @@ S.N.: ${item.sn || '-'}
       } else {
         const newId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
         await setDoc(getItemDoc(newId), { ...itemData, createdBy: currentOperator?.name || 'Admin', history: [] });
-        logAction('เพิ่มอุปกรณ์', itemData.name, `เพิ่มเข้าสู่Systemใหม่ หมวดหมู่: ${itemData.category}`);
+        logAction('เพิ่มอุปกรณ์', itemData.name, `เพิ่มเข้าสู่ระบบใหม่ หมวดหมู่: ${itemData.category}`);
       }
       setShowForm(false);
       alert(isEdit ? '✅ แก้ไขข้อมูลอุปกรณ์สำเร็จ!' : '✅ เพิ่มอุปกรณ์ใหม่สำเร็จ!');
@@ -6004,7 +6212,7 @@ S.N.: ${item.sn || '-'}
       setBorrowProofFiles([]);
       setBorrowTargetIds([item.id]);
       setPackingChecklist([]);
-    } catch (err) { alert("Systemขัดข้อง: " + err.message); }
+    } catch (err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
   const handleOpenRowEvent = (e, item) => {
@@ -6014,7 +6222,7 @@ S.N.: ${item.sn || '-'}
       setEventProofFiles([]);
       setEventTargetIds([item.id]);
       setEventChecklist([]);
-    } catch (err) { alert("Systemขัดข้อง: " + err.message); }
+    } catch (err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
   const openAddItemForm = () => {
@@ -6303,7 +6511,7 @@ S.N.: ${item.sn || '-'}
       setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' });
       setBorrowProofFiles([]);
       setShowBundleModal(false);
-    } catch(err) { alert("Systemขัดข้อง: " + err.message); }
+    } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
   const handleSelectBundleToEvent = (bundle) => {
@@ -6321,7 +6529,7 @@ S.N.: ${item.sn || '-'}
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setEventProofFiles([]);
       setShowBundleModal(false);
-    } catch(err) { alert("Systemขัดข้อง: " + err.message); }
+    } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
   const handleSelectBundleToReturn = (bundle) => {
@@ -6336,7 +6544,7 @@ S.N.: ${item.sn || '-'}
       setReturnChecklist([]);
       setReturnData({ staff: '', newStaff: '' });
       setShowBundleModal(false);
-    } catch(err) { alert("Systemขัดข้อง: " + err.message); }
+    } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
   const openItemEditor = (item) => {
@@ -6372,7 +6580,7 @@ S.N.: ${item.sn || '-'}
       
       setBorrowTargetIds([...validIds]);
       setPackingChecklist([]);
-    } catch(err) { alert("Systemขัดข้อง: " + err.message); }
+    } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
   const handleOpenBatchEvent = () => {
@@ -6383,7 +6591,7 @@ S.N.: ${item.sn || '-'}
       
       setEventTargetIds([...validIds]);
       setEventChecklist([]);
-    } catch(err) { alert("Systemขัดข้อง: " + err.message); }
+    } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
   const handleOpenBatchReturn = () => {
@@ -6397,7 +6605,7 @@ S.N.: ${item.sn || '-'}
       
       setReturnTargetIds([...validIds]);
       setReturnChecklist([]);
-    } catch(err) { alert("Systemขัดข้อง: " + err.message); }
+    } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
 
@@ -6469,7 +6677,7 @@ S.N.: ${item.sn || '-'}
         try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
       }
     } else {
-      setScanMessage({ text: `❌ ไม่พบรหัส "${val}" ในSystem`, type: 'error' });
+      setScanMessage({ text: `❌ ไม่พบรหัส "${val}" ในระบบ`, type: 'error' });
       try { if (navigator?.vibrate) navigator.vibrate([60, 40, 60]); } catch(e){}
       try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
     }
@@ -6522,7 +6730,7 @@ S.N.: ${item.sn || '-'}
     };
   }, [showScanModal, useCamera, isScannerLoaded]);
 
-  // 💡 กลับมาแล้ว: Systemนำเข้าไฟล์ CSV
+  // 💡 กลับมาแล้ว: ระบบนำเข้าไฟล์ CSV
   const handleImportCSV = (e) => {
     if (!user) return;
     const file = e.target.files[0];
@@ -6706,15 +6914,15 @@ S.N.: ${item.sn || '-'}
     backupDownloadCSV('MDEC_Borrow_Return_History_' + getBackupFileTag() + '.csv', headers, rows);
     await logAction('สำรองประวัติยืม-คืน CSV', 'ส่งออก ' + rows.length + ' รายการประวัติ', 'ดาวน์โหลดประวัติการยืม-คืนพร้อมวันเวลาเป็นไฟล์ CSV');
     await saveBackupTimestamp('historyCsv');
-    if (rows.length === 0) alert('ℹ️ ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติยืม-คืนในSystem');
+    if (rows.length === 0) alert('ℹ️ ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติยืม-คืนในระบบ');
   };
 
   const exportItemHistoryCSV = (item) => {
     if (!item) return;
-    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ลำดับ', 'ประเภท', 'วันเวลาทำรายการ', 'ผู้ทำรายการในSystem', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'ลิงก์หลักฐาน'];
+    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ลำดับ', 'ประเภท', 'วันเวลาทำรายการ', 'ผู้ทำรายการในระบบ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'ลิงก์หลักฐาน'];
     const rows = (Array.isArray(item.history) ? item.history : []).map((h, index) => {
       const historyType = h.type === 'borrow' ? 'ยืมออก' : h.type === 'event' ? 'ออกงาน' : h.type === 'return' ? 'รับคืน' : (h.type || '-');
-      return [item.name || '-', item.sn || '-', index + 1, historyType, formatBackupDateTime(h.date), h.operatorName || h.performedBy || '-', h.borrower || h.eventName || '-', h.staffOut || '-', h.staffIn || '-', h.expectedReturn || '-', h.note || '-', Array.isArray(h.proofs) ? h.proofs.length : 0, Array.isArray(h.proofs) ? h.proofs.map(p => p.storageType === 'firestore-doc-base64' ? (p.originalName || p.id || 'รูปในSystem') : (p.url || p.id || '-')).join(' | ') : '-' ];
+      return [item.name || '-', item.sn || '-', index + 1, historyType, formatBackupDateTime(h.date), h.operatorName || h.performedBy || '-', h.borrower || h.eventName || '-', h.staffOut || '-', h.staffIn || '-', h.expectedReturn || '-', h.note || '-', Array.isArray(h.proofs) ? h.proofs.length : 0, Array.isArray(h.proofs) ? h.proofs.map(p => p.storageType === 'firestore-doc-base64' ? (p.originalName || p.id || 'รูปในระบบ') : (p.url || p.id || '-')).join(' | ') : '-' ];
     });
     backupDownloadCSV(`MDEC_Item_History_${(item.sn || item.id || 'item').replace(/[^a-zA-Z0-9_-]/g, '_')}_${getBackupFileTag()}.csv`, headers, rows);
     if (rows.length === 0) pushToast('ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติของอุปกรณ์นี้', 'warning');
@@ -6809,7 +7017,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const buildHistoryCsvRows = () => {
-    const headers = ['รหัสเอกสารอุปกรณ์', 'ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'โครงการ', 'สถานะพัสดุ', 'ลำดับประวัติ', 'ประเภทประวัติ', 'วันเวลาทำรายการ', 'ผู้ทำรายการในSystem', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'รหัส/ชื่อหลักฐาน', 'สถานะปัจจุบัน'];
+    const headers = ['รหัสเอกสารอุปกรณ์', 'ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'โครงการ', 'สถานะพัสดุ', 'ลำดับประวัติ', 'ประเภทประวัติ', 'วันเวลาทำรายการ', 'ผู้ทำรายการในระบบ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'รหัส/ชื่อหลักฐาน', 'สถานะปัจจุบัน'];
     const rows = [];
     items.forEach(item => {
       const historyList = Array.isArray(item.history) ? item.history : [];
@@ -6834,7 +7042,7 @@ S.N.: ${item.sn || '-'}
           h.expectedReturn || '-',
           h.note || '-',
           Array.isArray(h.proofs) ? h.proofs.length : 0,
-          Array.isArray(h.proofs) ? h.proofs.map(p => p.proofDocId || p.id || p.originalName || 'รูปในSystem').join(' | ') : '-',
+          Array.isArray(h.proofs) ? h.proofs.map(p => p.proofDocId || p.id || p.originalName || 'รูปในระบบ').join(' | ') : '-',
           getBackupStatusLabel(item.status)
         ]);
       });
@@ -6997,7 +7205,7 @@ S.N.: ${item.sn || '-'}
 <section class="summary">
   <div><b>${groups.length.toLocaleString('th-TH')}</b>รูปหลักฐานจริง</div>
   <div><b>${groups.reduce((sum,g)=>sum+g.entries.length,0).toLocaleString('th-TH')}</b>จุดเชื่อมโยงกับอุปกรณ์</div>
-  <div><b>${items.length.toLocaleString('th-TH')}</b>อุปกรณ์ในSystem</div>
+  <div><b>${items.length.toLocaleString('th-TH')}</b>อุปกรณ์ในระบบ</div>
 </section>
 <main class="grid">${cards || '<div class="card"><div class="meta"><h2>ยังไม่มีรูปหลักฐาน</h2></div></div>'}</main>
 <footer>MDEC-Stock Backup Gallery • ${backupHtmlEscape(APP_VERSION)}</footer>
@@ -7059,9 +7267,9 @@ S.N.: ${item.sn || '-'}
     try {
       const collected = await collectFullBackupPayload();
       backupDownloadTextFile('MDEC_Full_Backup_' + getBackupFileTag() + '.json', JSON.stringify(collected.payload, null, 2), 'application/json;charset=utf-8;');
-      await logAction('สำรองข้อมูลทั้งหมด JSON', 'สำรอง ' + items.length + ' อุปกรณ์ / ' + collected.historyCount + ' ประวัติ', 'ดาวน์โหลดข้อมูลทั้งSystemเป็นไฟล์ JSON รวมประวัติยืม-คืนและรูปหลักฐาน');
+      await logAction('สำรองข้อมูลทั้งหมด JSON', 'สำรอง ' + items.length + ' อุปกรณ์ / ' + collected.historyCount + ' ประวัติ', 'ดาวน์โหลดข้อมูลทั้งระบบเป็นไฟล์ JSON รวมประวัติยืม-คืนและรูปหลักฐาน');
       await saveBackupTimestamp('fullJson');
-      alert('✅ สำรองข้อมูลทั้งหมดเรียบร้อยแล้ว! ไฟล์ JSON นี้ใช้สำหรับกู้คืนSystem และมีรูปหลักฐานที่เก็บในSystemรวมอยู่ด้วย');
+      alert('✅ สำรองข้อมูลทั้งหมดเรียบร้อยแล้ว! ไฟล์ JSON นี้ใช้สำหรับกู้คืนระบบ และมีรูปหลักฐานที่เก็บในระบบรวมอยู่ด้วย');
     } catch (error) {
       console.error(error);
       alert('❌ สำรองข้อมูลทั้งหมดไม่สำเร็จ: ' + error.message);
@@ -7112,7 +7320,7 @@ S.N.: ${item.sn || '-'}
       alert(
         '✅ เริ่มดาวน์โหลดชุดสำรองข้อมูลครบแล้ว\\n\\n' +
         'ควรมีไฟล์ทั้งหมด 6 ไฟล์:\\n' +
-        '1) JSON สำหรับกู้คืนSystem\\n' +
+        '1) JSON สำหรับกู้คืนระบบ\\n' +
         '2) Inventory CSV สำหรับ Google Sheets\\n' +
         '3) History CSV สำหรับ Google Sheets\\n' +
         '4) Projects CSV สำหรับ Google Sheets\\n' +
@@ -7145,7 +7353,7 @@ S.N.: ${item.sn || '-'}
         const warning = confirm(
           '⚠️ กู้คืนข้อมูลจาก JSON\n\n' +
           'โหมดนี้จะเขียนทับข้อมูลอุปกรณ์ที่มี ID ตรงกัน และเพิ่มอุปกรณ์ที่ยังไม่มี\n' +
-          'Systemจะไม่ลบอุปกรณ์ที่ไม่ได้อยู่ในไฟล์สำรอง เพื่อความปลอดภัย\n\n' +
+          'ระบบจะไม่ลบอุปกรณ์ที่ไม่ได้อยู่ในไฟล์สำรอง เพื่อความปลอดภัย\n\n' +
           'ต้องการดำเนินการต่อหรือไม่?'
         );
         if (!warning) return;
@@ -7184,7 +7392,7 @@ S.N.: ${item.sn || '-'}
 
         await logAction('กู้คืนข้อมูลจาก JSON', 'กู้คืน ' + restoredCount + ' อุปกรณ์ / ' + restoredProofCount + ' รูปหลักฐาน', 'กู้คืนแบบปลอดภัย: เขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON โดยไม่ลบอุปกรณ์ที่ไม่มีในไฟล์');
         await saveBackupTimestamp('restoreJson');
-        alert('✅ กู้คืนข้อมูลจาก JSON เรียบร้อยแล้ว ' + restoredCount + ' รายการ และรูปหลักฐาน ' + restoredProofCount + ' รูป\nSystemไม่ได้ลบอุปกรณ์ที่ไม่มีในไฟล์สำรอง');
+        alert('✅ กู้คืนข้อมูลจาก JSON เรียบร้อยแล้ว ' + restoredCount + ' รายการ และรูปหลักฐาน ' + restoredProofCount + ' รูป\nระบบไม่ได้ลบอุปกรณ์ที่ไม่มีในไฟล์สำรอง');
       } catch (error) {
         console.error(error);
         alert('❌ กู้คืนข้อมูลไม่สำเร็จ: ' + error.message);
@@ -7216,7 +7424,7 @@ S.N.: ${item.sn || '-'}
 
     const confirmText = prompt(
       'เพื่อป้องกันการกดพลาด กรุณาพิมพ์คำว่า CLEAR เพื่อยืนยันการล้างประวัติยืม-คืนทั้งหมด\n\n' +
-      'Systemจะล้างเฉพาะ history ของอุปกรณ์ทุกชิ้น\n' +
+      'ระบบจะล้างเฉพาะ history ของอุปกรณ์ทุกชิ้น\n' +
       'ไม่ลบรายการอุปกรณ์ ไม่ลบสถานะปัจจุบัน ไม่ลบหมวดหมู่ สถานที่ หรือเจ้าของ'
     );
 
@@ -7291,7 +7499,7 @@ S.N.: ${item.sn || '-'}
       setShowLogin(false);
       setPin('');
       setLoginUsername(safeAccount.username || 'admin');
-      logAction('เข้าสู่System', safeAccount.name, `เข้าสู่Systemด้วยบัญชี ${safeAccount.username}`);
+      logAction('เข้าสู่ระบบ', safeAccount.name, `เข้าสู่ระบบด้วยบัญชี ${safeAccount.username}`);
     } else {
       alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
       setPin('');
@@ -7300,7 +7508,7 @@ S.N.: ${item.sn || '-'}
 
   const handleLogout = () => {
     const logoutName = currentOperator?.name || 'Admin';
-    logAction('ออกจากSystem', logoutName, 'ออกจากSystemจัดการ');
+    logAction('ออกจากระบบ', logoutName, 'ออกจากระบบจัดการ');
     setIsAdmin(false);
     setCurrentOperator(null);
     setSelectedItems([]);
@@ -7330,7 +7538,7 @@ S.N.: ${item.sn || '-'}
     const resetTimer = () => {
       window.clearTimeout(timeoutId);
       timeoutId = window.setTimeout(() => {
-        alert('⏱️ SystemออกจากSystemอัตโนมัติ เพราะไม่มีการใช้งานนานเกิน 2 ชั่วโมง');
+        alert('⏱️ ระบบออกจากระบบอัตโนมัติ เพราะไม่มีการใช้งานนานเกิน 2 ชั่วโมง');
         handleLogout();
       }, INACTIVITY_LOGOUT_MS);
     };
@@ -7655,7 +7863,7 @@ S.N.: ${item.sn || '-'}
 
   const deletePrepList = async (prep) => {
     if (!user || !prep?.id) return;
-    const ok = confirm('ลบรายการเตรียมของ "' + (prep.name || '-') + '" ออกจากSystemหรือไม่?\n\nการลบนี้ไม่กระทบสถานะอุปกรณ์');
+    const ok = confirm('ลบรายการเตรียมของ "' + (prep.name || '-') + '" ออกจากระบบหรือไม่?\n\nการลบนี้ไม่กระทบสถานะอุปกรณ์');
     if (!ok) return;
     try {
       const newPrepLists = (settingsOptions.prepLists || []).filter((item) => item.id !== prep.id);
@@ -7669,7 +7877,7 @@ S.N.: ${item.sn || '-'}
 
   const deleteStorageBox = async (box) => {
     if (!user || !box?.id) return;
-    const ok = confirm('ลบข้อมูลกล่อง "' + (box.name || '-') + '" หรือไม่?\n\nSystemจะนำชื่อกล่องออกจากอุปกรณ์ในกล่องนี้ แต่จะไม่ลบรายการอุปกรณ์');
+    const ok = confirm('ลบข้อมูลกล่อง "' + (box.name || '-') + '" หรือไม่?\n\nระบบจะนำชื่อกล่องออกจากอุปกรณ์ในกล่องนี้ แต่จะไม่ลบรายการอุปกรณ์');
     if (!ok) return;
     try {
       const newBoxes = (settingsOptions.storageBoxes || []).filter((b) => b.id !== box.id);
@@ -8082,7 +8290,7 @@ S.N.: ${item.sn || '-'}
                </div>
 
                <div className="w-full text-xs sm:text-sm font-bold text-slate-300 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3">
-                 แนะนำ: ก่อนติดสติ๊กเกอร์จริง ควรทดลองสแกน 1 ดวงก่อนเสมอ และถ้าติดอุปกรณ์ที่ต้องสแกนบ่อย ให้ใช้ขนาด <b>สแกนง่ายมาก</b> Systemจะเว้น <b>Quiet Zone</b> หรือขอบขาวรอบ QR ให้โล่งขึ้น และย้ายโลโก้ออกจากพื้นที่สแกน เพื่อลดปัญหาสแกนไม่ติด
+                 แนะนำ: ก่อนติดสติ๊กเกอร์จริง ควรทดลองสแกน 1 ดวงก่อนเสมอ และถ้าติดอุปกรณ์ที่ต้องสแกนบ่อย ให้ใช้ขนาด <b>สแกนง่ายมาก</b> ระบบจะเว้น <b>Quiet Zone</b> หรือขอบขาวรอบ QR ให้โล่งขึ้น และย้ายโลโก้ออกจากพื้นที่สแกน เพื่อลดปัญหาสแกนไม่ติด
                </div>
 
                <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
@@ -8215,7 +8423,7 @@ S.N.: ${item.sn || '-'}
                   </div>
                 )}
                 <p className="text-lg font-black text-blue-700">โครงการ: {printProjectData.name}</p>
-                <p className="text-sm font-bold text-slate-600">เอกสารจากSystem MDEC-Stock • ใช้สำหรับตรวจพัสดุ/ตรวจโครงการ</p>
+                <p className="text-sm font-bold text-slate-600">เอกสารจากระบบ MDEC-Stock • ใช้สำหรับตรวจพัสดุ/ตรวจโครงการ</p>
               </div>
               <div className="text-right text-sm font-bold shrink-0 relative z-[1]">
                 <div>เลขที่: {printProjectData.ref}</div>
@@ -8277,7 +8485,7 @@ S.N.: ${item.sn || '-'}
             <div className="mt-10 pt-3 border-t border-slate-200 flex items-center justify-between gap-3 text-[11px] font-bold text-slate-500 relative z-[1]">
               <div className="flex items-center gap-2 min-w-0">
                 {showDocumentLogo('slipLogo') && renderOrgLogoBox({ className: 'w-16 h-9 rounded-xl border border-slate-200 px-2 py-1 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
-                <span className="truncate">เอกสารนี้ออกโดยSystem MDEC-Stock สำหรับตรวจรายการอุปกรณ์ตามโครงการและประกอบงานพัสดุภายในศูนย์</span>
+                <span className="truncate">เอกสารนี้ออกโดยระบบ MDEC-Stock สำหรับตรวจรายการอุปกรณ์ตามโครงการและประกอบงานพัสดุภายในศูนย์</span>
               </div>
               <span className="shrink-0">{APP_VERSION}</span>
             </div>
@@ -8317,7 +8525,7 @@ S.N.: ${item.sn || '-'}
                   <p className="text-sm font-bold text-slate-600">ศูนย์มัลติมีเดียทางการศึกษา (MDEC)</p>
                 </div>
               )}
-              <p className="text-sm font-black text-blue-700">เอกสารจากSystem MDEC-Stock • ศูนย์มัลติมีเดียทางการศึกษา</p>
+              <p className="text-sm font-black text-blue-700">เอกสารจากระบบ MDEC-Stock • ศูนย์มัลติมีเดียทางการศึกษา</p>
               {isPrepSlip && <p className="text-sm font-bold mt-1 text-slate-600">ใช้สำหรับเช็กรายการอุปกรณ์ก่อนนำออกงานจริง</p>}
             </div>
             <div className="text-right text-sm font-bold shrink-0 relative z-[1]"><div>เลขที่: {printSlipData.ref}</div><div>วันที่ออกเอกสาร: {new Date(printSlipData.date).toLocaleString('th-TH', { hour12: false })}</div></div>
@@ -8329,7 +8537,7 @@ S.N.: ${item.sn || '-'}
           <div className="mt-10 pt-3 border-t border-slate-200 flex items-center justify-between gap-3 text-[11px] font-bold text-slate-500 relative z-[1]">
             <div className="flex items-center gap-2 min-w-0">
               {showDocumentLogo('slipLogo') && renderOrgLogoBox({ className: 'w-16 h-9 rounded-xl border border-slate-200 px-2 py-1 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
-              <span className="truncate">เอกสารนี้ออกโดยSystem MDEC-Stock เพื่อแสดงความเป็นเจ้าของและใช้ประกอบการยืม-คืนภายในศูนย์</span>
+              <span className="truncate">เอกสารนี้ออกโดยระบบ MDEC-Stock เพื่อแสดงความเป็นเจ้าของและใช้ประกอบการยืม-คืนภายในศูนย์</span>
             </div>
             <span className="shrink-0">{APP_VERSION}</span>
           </div>
@@ -8669,9 +8877,9 @@ S.N.: ${item.sn || '-'}
           </button>
 
           <div className="pt-4 mt-4 border-t border-white/10 space-y-2">
-            {canManageSystem && (
+            {canManageระบบ && (
               <button type="button" onClick={() => { setSettingsTab('categories'); setShowSettings(true); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-                <Icons.Settings className="w-5 h-5" /> System Settings
+                <Icons.Settings className="w-5 h-5" /> ระบบ Settings
               </button>
             )}
             <button type="button" onClick={() => setShowBackupCenterModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
@@ -8704,7 +8912,7 @@ S.N.: ${item.sn || '-'}
           <Icons.Alert className="w-8 h-8 shrink-0 text-rose-600" />
           <div>
             <h3 className="font-black text-xl mb-2 text-rose-700">🚨 ฐานข้อมูลถูกระงับ (Firebase Permission Denied)</h3>
-            <p className="font-bold text-base mb-2">Systemไม่สามารถดึงข้อมูลจาก Firebase ของคุณได้ โปรดตรวจสอบการตั้งค่า Rules อีกครั้ง</p>
+            <p className="font-bold text-base mb-2">ระบบไม่สามารถดึงข้อมูลจาก Firebase ของคุณได้ โปรดตรวจสอบการตั้งค่า Rules อีกครั้ง</p>
           </div>
         </div>
       )}
@@ -8714,7 +8922,7 @@ S.N.: ${item.sn || '-'}
           <div className="w-10 h-10 rounded-full bg-blue-600/10 text-blue-500 flex items-center justify-center animate-pulse"><Icons.Package className="w-6 h-6" /></div>
           <div>
             <div className={`font-black text-lg ${theme.textTitle}`}>กำลังโหลดข้อมูลสต๊อก...</div>
-            <div className={`text-sm font-bold ${theme.textMuted}`}>Systemกำลังดึงรายการอุปกรณ์และการตั้งค่าจาก Firebase</div>
+            <div className={`text-sm font-bold ${theme.textMuted}`}>ระบบกำลังดึงรายการอุปกรณ์และการตั้งค่าจาก Firebase</div>
           </div>
         </div>
       )}
@@ -8762,7 +8970,7 @@ S.N.: ${item.sn || '-'}
                   <Icons.ViewGrid className="w-5 h-5" /><span>เพิ่มเติม</span>
                 </button>
               )}
-              {canManageSystem && (
+              {canManageระบบ && (
                 <button type="button" onClick={() => { setSettingsTab('categories'); setShowSettings(true); }} className="factory-ghost-btn" title="ตั้งค่าระบบ">
                   <Icons.Settings className="w-5 h-5" /><span>ตั้งค่า</span>
                 </button>
@@ -8792,7 +9000,7 @@ S.N.: ${item.sn || '-'}
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>👤</div>
             <div>
-              <div className={`font-black ${theme.textTitle}`}>เข้าสู่Systemโดย: {currentAccountLabel}</div>
+              <div className={`font-black ${theme.textTitle}`}>เข้าสู่ระบบโดย: {currentAccountLabel}</div>
               <div className={`text-sm font-bold ${theme.textMuted}`}>สิทธิ์: {roleLabel(currentAccountRole)} • กด “ล็อก” เมื่อต้องออกจากโต๊ะชั่วคราว</div>
             </div>
           </div>
@@ -8817,7 +9025,7 @@ S.N.: ${item.sn || '-'}
                   </div>
                   Control Center
                 </h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมDaily Operations งานข้อมูล เอกสาร และSystemไว้เป็นหมวดแบบหลังบ้าน</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมDaily Operations งานข้อมูล เอกสาร และระบบไว้เป็นหมวดแบบหลังบ้าน</p>
               </div>
               <button type="button" onClick={() => setShowMoreMenu(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -8826,11 +9034,11 @@ S.N.: ${item.sn || '-'}
               <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                 <div>
                   <div className={`font-black text-lg ${theme.textTitle}`}>มุมมองเมนู</div>
-                  <p className={`text-sm font-bold ${theme.textMuted}`}>เลือกโหมดง่ายสำหรับDaily Operations หรือโหมดเต็มสำหรับผู้ดูแลSystem</p>
+                  <p className={`text-sm font-bold ${theme.textMuted}`}>เลือกโหมดง่ายสำหรับDaily Operations หรือโหมดเต็มสำหรับผู้ดูแลระบบ</p>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <button type="button" onClick={() => updateUiMode('easy')} className={`px-4 py-2 rounded-xl font-black border ${uiMode === 'easy' ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>โหมดง่าย</button>
-                  <button type="button" onClick={() => updateUiMode('full')} className={`px-4 py-2 rounded-xl font-black border ${uiMode === 'full' ? 'bg-indigo-600 text-white border-indigo-600' : theme.btnSecondary}`}>เต็มSystem</button>
+                  <button type="button" onClick={() => updateUiMode('full')} className={`px-4 py-2 rounded-xl font-black border ${uiMode === 'full' ? 'bg-indigo-600 text-white border-indigo-600' : theme.btnSecondary}`}>เต็มระบบ</button>
                 </div>
               </div>
 
@@ -8893,7 +9101,7 @@ S.N.: ${item.sn || '-'}
                   {isFullMode && canUseOperationalTools && (
                     <button type="button" onClick={() => { setShowMoreMenu(false); setShowStockCountModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> ตรวจนับสต๊อก</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เดินสแกน QR เทียบของจริงกับSystem</p>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เดินสแกน QR เทียบของจริงกับระบบ</p>
                     </button>
                   )}
                 </div>
@@ -8918,17 +9126,17 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div>
-                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Monitor className="w-5 h-5 text-emerald-500" /> Systemและรายงาน</h4>
+                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Monitor className="w-5 h-5 text-emerald-500" /> ระบบและรายงาน</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <button type="button" onClick={() => { setShowMoreMenu(false); setShowMonthlyReportModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายงานประจำเดือน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปการยืม คืน ออกงาน และหลักฐาน</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowSystemHealthModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                    <div className="font-black text-lg flex items-center gap-2"><Icons.Alert className="w-5 h-5" /> ตรวจสุขภาพSystem</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูพื้นที่ฐานข้อมูล รูปหลักฐาน และสถานะSystem</p>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowระบบHealthModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.Alert className="w-5 h-5" /> ตรวจสุขภาพระบบ</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูพื้นที่ฐานข้อมูล รูปหลักฐาน และสถานะระบบ</p>
                   </button>
-                  {canManageSystem && (
+                  {canManageระบบ && (
                     <button type="button" onClick={() => { setShowMoreMenu(false); setShowBackupCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.Database className="w-5 h-5" /> ศูนย์สำรองข้อมูล</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>JSON / Google Sheets CSV / HTML รูปหลักฐาน</p>
@@ -8937,10 +9145,10 @@ S.N.: ${item.sn || '-'}
                   {isFullMode && canViewAudit && (
                     <button type="button" onClick={() => { setShowMoreMenu(false); setShowAuditModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ประวัติการทำงาน</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Audit log ของSystem</p>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Audit log ของระบบ</p>
                     </button>
                   )}
-                  {isFullMode && canManageSystem && (
+                  {isFullMode && canManageระบบ && (
                     <button type="button" onClick={() => { setShowMoreMenu(false); setShowTrashModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.Trash className="w-5 h-5" /> ถังขยะ</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>กู้คืนอุปกรณ์ที่ลบผิด</p>
@@ -9002,7 +9210,7 @@ S.N.: ${item.sn || '-'}
             <button type="button" onClick={openAddItemForm} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
               <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-3"><Icons.Plus className="w-5 h-5" /></div>
               <div className="font-black text-lg">เพิ่มอุปกรณ์</div>
-              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ของใหม่เข้าSystem</div>
+              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ของใหม่เข้าระบบ</div>
             </button>
           )}
           <button type="button" onClick={() => openTrackingCenter('today')} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
@@ -9196,7 +9404,7 @@ S.N.: ${item.sn || '-'}
               ฝ่าย / แผนก <span className={`text-xs font-bold ${theme.textMuted}`}>{filterDept === 'all' ? 'ทั้งหมด' : filterDept}</span>
             </div>
             <div className={`text-xs font-bold ${theme.textMuted}`}>
-              เลือก “ห้องประชุม” แล้วSystemจะแยกอุปกรณ์ตามห้องให้อัตโนมัติ
+              เลือก “ห้องประชุม” แล้วระบบจะแยกอุปกรณ์ตามห้องให้อัตโนมัติ
             </div>
           </div>
           <div className="p-3 flex gap-2 overflow-x-auto w-full custom-scrollbar">
@@ -9824,7 +10032,7 @@ S.N.: ${item.sn || '-'}
                 <datalist id="storage-box-name-list">
                   {(settingsOptions.storageBoxes || []).map((box) => <option key={box.id} value={box.name} />)}
                 </datalist>
-                <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>ถ้าพิมพ์ชื่อกล่องเดิม Systemจะอัปเดตรายการในกล่องนั้นเป็นรายการที่เลือกอยู่ตอนนี้</p>
+                <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>ถ้าพิมพ์ชื่อกล่องเดิม ระบบจะอัปเดตรายการในกล่องนั้นเป็นรายการที่เลือกอยู่ตอนนี้</p>
               </label>
 
               <label className="block">
@@ -9964,7 +10172,7 @@ S.N.: ${item.sn || '-'}
                           <span className={`text-sm font-bold px-2 py-1 rounded-md ${isDarkMode ? 'bg-sky-900/40 text-sky-400' : 'bg-sky-100 text-sky-700'}`}>{prepItems.length} รายการ</span>
                           {prep.useDate && <span className={`text-sm font-bold px-2 py-1 rounded-md ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-700'}`}>ใช้วันที่ {new Date(prep.useDate).toLocaleDateString('th-TH')}</span>}
                           {unavailableItems.length > 0 && !isCancelled && <span className="text-sm font-bold px-2 py-1 rounded-md bg-amber-100 text-amber-700">ไม่พร้อม {unavailableItems.length}</span>}
-                          {missingCount > 0 && <span className="text-sm font-bold px-2 py-1 rounded-md bg-rose-100 text-rose-700">หายจากSystem {missingCount}</span>}
+                          {missingCount > 0 && <span className="text-sm font-bold px-2 py-1 rounded-md bg-rose-100 text-rose-700">หายจากระบบ {missingCount}</span>}
                           {isCancelled && <span className="text-sm font-bold px-2 py-1 rounded-md bg-slate-200 text-slate-600">ยกเลิก</span>}
                         </div>
                         <div className={`text-sm font-bold ${theme.textMuted}`}>
@@ -10354,7 +10562,7 @@ S.N.: ${item.sn || '-'}
                     {actionCenterData.prepIncomplete.length === 0 && <div className={`text-sm font-bold ${theme.textMuted}`}>ไม่มีรายการ</div>}
                   </div>
                   <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
-                    <h4 className={`font-black text-lg ${theme.textTitle}`}>กล่องที่มีรายการหายจากSystem</h4>
+                    <h4 className={`font-black text-lg ${theme.textTitle}`}>กล่องที่มีรายการหายจากระบบ</h4>
                     <div className="text-4xl font-black my-2 text-cyan-500">{actionCenterData.brokenBoxes.length}</div>
                     {actionCenterData.brokenBoxes.slice(0, 8).map(b => <div key={b.id} className={`text-sm font-bold px-3 py-2 rounded-xl mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>{b.name} • หาย {(b.missingIds||[]).length} รายการ</div>)}
                     {actionCenterData.brokenBoxes.length === 0 && <div className={`text-sm font-bold ${theme.textMuted}`}>ไม่มีรายการ</div>}
@@ -10432,7 +10640,7 @@ S.N.: ${item.sn || '-'}
 
                   <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
                     <div className={`text-sm font-black ${theme.textTitle}`}>เลือกแล้ว {storageBoxForm.itemIds?.length || 0} รายการ</div>
-                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ถ้าเลือกอุปกรณ์ที่อยู่กล่องอื่น Systemจะย้ายมาอยู่กล่องนี้ให้อัตโนมัติ</p>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ถ้าเลือกอุปกรณ์ที่อยู่กล่องอื่น ระบบจะย้ายมาอยู่กล่องนี้ให้อัตโนมัติ</p>
                   </div>
                 </div>
               </div>
@@ -10515,7 +10723,7 @@ S.N.: ${item.sn || '-'}
               {(settingsOptions.storageBoxes || []).length === 0 ? (
                 <div className={`text-center py-12 font-bold text-xl flex flex-col items-center gap-3 ${theme.textMuted}`}>
                   <Icons.Folder className="w-14 h-14" />
-                  ยังไม่มีกล่องเก็บของในSystem
+                  ยังไม่มีกล่องเก็บของในระบบ
                   <p className="text-sm font-medium max-w-xl">วิธีสร้าง: เลือกอุปกรณ์จากตาราง → กด “สร้าง/เพิ่มเข้ากล่อง” → บันทึกกล่อง จากนั้นค่อยพิมพ์ฉลากจากหน้านี้</p>
                 </div>
               ) : (settingsOptions.storageBoxes || []).map((box) => {
@@ -10529,7 +10737,7 @@ S.N.: ${item.sn || '-'}
                         <div className="flex items-center gap-2 flex-wrap mb-2">
                           <h4 className={`text-xl font-black truncate ${theme.textTitle}`}>📦 {box.name}</h4>
                           <span className={`text-sm font-bold px-2 py-1 rounded-md ${isDarkMode ? 'bg-cyan-900/40 text-cyan-400' : 'bg-cyan-100 text-cyan-700'}`}>{boxItems.length} รายการ</span>
-                          {missingCount > 0 && <span className="text-sm font-bold px-2 py-1 rounded-md bg-rose-100 text-rose-700">หายจากSystem {missingCount} รายการ</span>}
+                          {missingCount > 0 && <span className="text-sm font-bold px-2 py-1 rounded-md bg-rose-100 text-rose-700">หายจากระบบ {missingCount} รายการ</span>}
                         </div>
                         {box.note && <p className={`text-sm font-bold mb-2 ${theme.textMuted}`}>หมายเหตุ: {box.note}</p>}
                         <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>หมวดหมู่ในกล่อง: {categories.length ? categories.join(', ') : '-'}</p>
@@ -10632,7 +10840,7 @@ S.N.: ${item.sn || '-'}
               ))}
             </div>
             <div className={`p-4 border-t ${theme.divide}`}>
-              <p className={`text-sm text-center font-bold ${theme.textMuted}`}>* กดปุ่มรับคืนกลุ่มนี้ Systemจะดึงของทั้งหมดไปหน้ารับคืนให้ทันที</p>
+              <p className={`text-sm text-center font-bold ${theme.textMuted}`}>* กดปุ่มรับคืนกลุ่มนี้ ระบบจะดึงของทั้งหมดไปหน้ารับคืนให้ทันที</p>
             </div>
           </div>
         </div>
@@ -10667,7 +10875,7 @@ S.N.: ${item.sn || '-'}
                   return (
                     <div className={`text-center py-10 font-bold text-xl flex flex-col items-center gap-3 ${theme.textMuted}`}>
                       <Icons.Tag className="w-12 h-12" />
-                      ยังไม่มีการลงทะเบียนทรัพย์สินส่วนตัวในSystem
+                      ยังไม่มีการลงทะเบียนทรัพย์สินส่วนตัวในระบบ
                     </div>
                   );
                 }
@@ -10728,7 +10936,7 @@ S.N.: ${item.sn || '-'}
           <div className={`settings-shell rounded-[2rem] shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[92vh] transition-all duration-300 border ${theme.cardBg}`}>
             <div className={`p-5 border-b shrink-0 flex items-start justify-between gap-4 ${theme.divide}`}>
               <div>
-                <h3 className={`text-2xl sm:text-3xl font-black ${theme.textTitle}`}>ตั้งค่าSystem</h3>
+                <h3 className={`text-2xl sm:text-3xl font-black ${theme.textTitle}`}>ตั้งค่าระบบ</h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ตั้งค่าหมวดข้อมูล ผู้ใช้งาน เอกสาร และระบบในรูปแบบเดียวกัน</p>
               </div>
               <button type="button" onClick={() => { setShowSettings(false); resetSettingsFormState(); }} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
@@ -10763,17 +10971,17 @@ S.N.: ${item.sn || '-'}
                             <div className={`px-5 sm:px-6 pt-5 pb-0`}>
                 <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                   <div className={`text-xs font-black tracking-[0.14em] uppercase ${theme.textMuted}`}>SETTING</div>
-                  <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.label || 'ตั้งค่าSystem'}</div>
-                  <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.desc || 'จัดการSystem'}</div>
+                  <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.label || 'ตั้งค่าระบบ'}</div>
+                  <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.desc || 'จัดการระบบ'}</div>
                 </div>
               </div>
               {settingsTab === 'accounts' ? (
                 <div className="p-6 space-y-6">
                   <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-indigo-900/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
                     <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Users className="w-6 h-6 text-indigo-500"/> จัดการบัญชีพนักงาน</h4>
-                    <p className={`text-sm font-bold ${theme.textMuted}`}>บัญชีกลางสามารถเพิ่ม แก้ไข ปิดใช้งาน หรือลบบัญชีพนักงานได้ ใช้สำหรับระบุตัวผู้ทำรายการในSystemและ Audit Log</p>
-                    <p className={`text-xs mt-2 font-bold ${isDarkMode ? 'text-amber-300' : 'text-amber-700'}`}>* เวอร์ชันทดลองนี้เป็นSystemล็อกอินภายในของเว็บ ยังไม่ใช่ Firebase Auth แบบองค์กร</p>
-                    <p className={`text-xs mt-1 font-bold ${isDarkMode ? 'text-indigo-200' : 'text-indigo-700'}`}>* Systemจะกัน PIN ที่เดาง่ายเกินไป ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง และไม่แสดง PIN เดิมบนหน้าจอ</p>
+                    <p className={`text-sm font-bold ${theme.textMuted}`}>บัญชีกลางสามารถเพิ่ม แก้ไข ปิดใช้งาน หรือลบบัญชีพนักงานได้ ใช้สำหรับระบุตัวผู้ทำรายการในระบบและ Audit Log</p>
+                    <p className={`text-xs mt-2 font-bold ${isDarkMode ? 'text-amber-300' : 'text-amber-700'}`}>* เวอร์ชันทดลองนี้เป็นระบบล็อกอินภายในของเว็บ ยังไม่ใช่ Firebase Auth แบบองค์กร</p>
+                    <p className={`text-xs mt-1 font-bold ${isDarkMode ? 'text-indigo-200' : 'text-indigo-700'}`}>* ระบบจะกัน PIN ที่เดาง่ายเกินไป ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง และไม่แสดง PIN เดิมบนหน้าจอ</p>
                   </div>
 
                   <div className={`p-5 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
@@ -10789,7 +10997,7 @@ S.N.: ${item.sn || '-'}
                       </div>
                       {!editingAccountId ? (
                         <div>
-                          <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>PIN สำหรับเข้าสู่System</label>
+                          <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>PIN สำหรับเข้าสู่ระบบ</label>
                           <input type="password" className={`w-full px-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="อย่างน้อย 4 ตัว" value={accountForm.pin} onChange={e => setAccountForm({...accountForm, pin: e.target.value})} disabled={!canManageAccounts} />
                         </div>
                       ) : (
@@ -10802,7 +11010,7 @@ S.N.: ${item.sn || '-'}
                         <label className={`block text-sm font-bold mb-1.5 ${theme.textMuted}`}>สิทธิ์</label>
                         <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none border ${theme.input}`} value={accountForm.role} onChange={e => setAccountForm({...accountForm, role: e.target.value})} disabled={!canManageAccounts}>
                           <option value="owner">บัญชีกลาง - จัดการได้ทุกอย่าง</option>
-                          <option value="admin">ผู้ดูแล - จัดการSystem/บัญชี/ลบข้อมูลได้</option>
+                          <option value="admin">ผู้ดูแล - จัดการระบบ/บัญชี/ลบข้อมูลได้</option>
                           <option value="staff">เจ้าหน้าที่ - เพิ่ม/แก้ไข/ยืม/คืน/ออกงานได้</option>
                           <option value="viewer">ดูอย่างเดียว - ค้นหาและดูสถานะเท่านั้น</option>
                         </select>
@@ -10904,7 +11112,7 @@ S.N.: ${item.sn || '-'}
                       ['slipLogo', 'แสดงโลโก้บนใบยืม / ใบเตรียมของ', 'ทำให้เอกสารดูเป็นทางการและเป็นของ MDEC'],
                       ['boxLabelLogo', 'แสดงโลโก้บนฉลากกล่อง', 'เหมาะกับฉลากกล่องหรือบรรจุภัณฑ์'],
                       ['proofStamp', 'ประทับตรา MDEC บนรูปหลักฐาน', 'ใช้กับรูปหลักฐานยืม-คืนที่ถ่ายผ่านเว็บ'],
-                      ['watermark', 'แสดง watermark จาง ๆ บนเอกสาร', 'ทำให้ใบยืม/ใบเตรียมของดูเป็นเอกสารSystem']
+                      ['watermark', 'แสดง watermark จาง ๆ บนเอกสาร', 'ทำให้ใบยืม/ใบเตรียมของดูเป็นเอกสารระบบ']
                     ].map(([key, title, desc]) => (
                       <label key={key} className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
                         <input
@@ -11041,14 +11249,14 @@ S.N.: ${item.sn || '-'}
                     </div>
                     <p className={`text-xs mt-3 font-bold ${theme.textMuted}`}>* CSV เปิดใน Google Sheets ได้แต่ไม่มีรูปจริง ส่วนไฟล์ HTML Gallery ใช้เปิดดูรูปหลักฐานจริงได้ทันที</p>
                     <div className={`mt-3 p-3 rounded-xl border text-xs font-bold ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-white border-blue-100 text-slate-600'}`}>
-                      สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่มีข้อมูลการสำรองในSystem'}
+                      สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่มีข้อมูลการสำรองในระบบ'}
                     </div>
                     <div className={`mt-4 p-4 rounded-xl border ${isDarkMode ? 'bg-amber-900/20 border-amber-800' : 'bg-amber-50 border-amber-200'}`}>
                       <h5 className={`text-base font-black mb-1 flex items-center gap-2 ${isDarkMode ? 'text-amber-300' : 'text-amber-700'}`}>
                         <Icons.Upload className="w-4 h-4" /> กู้คืนข้อมูลจาก JSON
                       </h5>
                       <p className={`text-xs mb-3 font-bold ${isDarkMode ? 'text-amber-300/80' : 'text-amber-700/80'}`}>
-                        ใช้เมื่อจำเป็นเท่านั้น Systemจะเขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON แต่จะไม่ลบอุปกรณ์ที่ไม่มีในไฟล์สำรอง
+                        ใช้เมื่อจำเป็นเท่านั้น ระบบจะเขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON แต่จะไม่ลบอุปกรณ์ที่ไม่มีในไฟล์สำรอง
                       </p>
                       <input type="file" accept=".json,application/json" className="hidden" ref={restoreInputRef} onChange={handleRestoreBackupJSON} />
                       <button type="button" onClick={() => restoreInputRef.current?.click()} className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
@@ -11069,7 +11277,7 @@ S.N.: ${item.sn || '-'}
                         <Icons.Trash className="w-4 h-4" /> ล้างประวัติยืม-คืนทั้งหมด
                       </h5>
                       <p className={`text-xs mb-3 font-bold ${isDarkMode ? 'text-rose-300/80' : 'text-rose-700/80'}`}>
-                        ใช้หลังจากสำรองข้อมูลรายปีแล้ว Systemจะล้างเฉพาะประวัติใน history ของอุปกรณ์ทุกชิ้น ไม่ลบรายการอุปกรณ์และไม่เปลี่ยนสถานะปัจจุบัน
+                        ใช้หลังจากสำรองข้อมูลรายปีแล้ว ระบบจะล้างเฉพาะประวัติใน history ของอุปกรณ์ทุกชิ้น ไม่ลบรายการอุปกรณ์และไม่เปลี่ยนสถานะปัจจุบัน
                       </p>
                       <button type="button" onClick={clearAllBorrowReturnHistory} className="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
                         <Icons.Trash className="w-5 h-5"/> ล้างประวัติยืม-คืนทั้งหมด
@@ -11203,7 +11411,7 @@ S.N.: ${item.sn || '-'}
                       <Icons.Database className="w-5 h-5"/> {isBusy ? 'กำลังเตรียมไฟล์...' : 'สำรองข้อมูลครบชุด'}
                     </button>
                     <button type="button" onClick={exportFullBackupJSON} className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black flex items-center justify-center gap-2">
-                      <Icons.Download className="w-5 h-5"/> JSON กู้คืนSystem
+                      <Icons.Download className="w-5 h-5"/> JSON กู้คืนระบบ
                     </button>
                     <button type="button" onClick={exportSheetsCSVPack} className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center justify-center gap-2">
                       <Icons.Download className="w-5 h-5"/> CSV สำหรับ Sheets
@@ -11215,13 +11423,13 @@ S.N.: ${item.sn || '-'}
                       <Icons.History className="w-5 h-5"/> ประวัติยืม-คืน CSV
                     </button>
                   </div>
-                  <div className={`mt-4 text-xs font-bold ${theme.textMuted}`}>สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่มีข้อมูลการสำรองในSystem'}</div>
+                  <div className={`mt-4 text-xs font-bold ${theme.textMuted}`}>สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่มีข้อมูลการสำรองในระบบ'}</div>
                 </div>
 
                 <div className="space-y-4">
                   <div className={`p-5 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                     <h4 className={`text-lg font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Upload className="w-5 h-5 text-indigo-500"/> กู้คืนจาก JSON</h4>
-                    <p className={`text-sm font-bold mb-4 ${theme.textMuted}`}>ใช้เมื่อจำเป็นเท่านั้น Systemจะเขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON โดยไม่ลบข้อมูลที่ไม่มีในไฟล์</p>
+                    <p className={`text-sm font-bold mb-4 ${theme.textMuted}`}>ใช้เมื่อจำเป็นเท่านั้น ระบบจะเขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON โดยไม่ลบข้อมูลที่ไม่มีในไฟล์</p>
                     <input type="file" accept=".json,application/json" className="hidden" ref={restoreInputRef} onChange={handleRestoreBackupJSON} />
                     <button type="button" onClick={() => restoreInputRef.current?.click()} className={`w-full py-3 rounded-2xl font-black border flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
                       <Icons.Upload className="w-5 h-5"/> เลือกไฟล์ JSON เพื่อกู้คืน
@@ -11260,7 +11468,7 @@ S.N.: ${item.sn || '-'}
               <button type="button" onClick={() => setShowAnnualCleanupModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-3">
-              {['ดาวน์โหลด JSON สำหรับกู้คืนSystemแล้ว', 'ดาวน์โหลด CSV สำหรับ Google Sheets แล้ว', 'ดาวน์โหลด HTML Gallery สำหรับดูรูปหลักฐานแล้ว', 'เปิดไฟล์ CSV ใน Google Sheets/Excel ตรวจดูได้แล้ว', 'เปิดไฟล์ HTML Gallery แล้วเห็นรูปหลักฐาน', 'ตรวจว่าของที่ยืม/ออกงานถูกคืนครบแล้ว', 'พร้อมล้างประวัติยืม-คืนรายปี'].map(item => (
+              {['ดาวน์โหลด JSON สำหรับกู้คืนระบบแล้ว', 'ดาวน์โหลด CSV สำหรับ Google Sheets แล้ว', 'ดาวน์โหลด HTML Gallery สำหรับดูรูปหลักฐานแล้ว', 'เปิดไฟล์ CSV ใน Google Sheets/Excel ตรวจดูได้แล้ว', 'เปิดไฟล์ HTML Gallery แล้วเห็นรูปหลักฐาน', 'ตรวจว่าของที่ยืม/ออกงานถูกคืนครบแล้ว', 'พร้อมล้างประวัติยืม-คืนรายปี'].map(item => (
                 <label key={item} className={`flex items-center gap-3 p-3 rounded-xl border ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                   <input type="checkbox" className="w-5 h-5 accent-emerald-600" />
                   <span className={`font-bold ${theme.textMain}`}>{item}</span>
@@ -11312,7 +11520,7 @@ S.N.: ${item.sn || '-'}
               {/* Left Panel */}
               <div className={`w-full lg:w-1/3 flex flex-col shrink-0 lg:shrink min-h-[190px] max-h-[260px] lg:max-h-none lg:min-h-0 border-b lg:border-b-0 lg:border-r ${theme.divide} ${isDarkMode ? 'bg-slate-800/30' : 'bg-slate-50/50'}`}>
                 <div className={`p-4 sm:p-5 border-b font-black text-base sm:text-lg flex justify-between items-center ${theme.textTitle} ${theme.divide}`}>
-                  เซ็ตที่มีในSystem 
+                  เซ็ตที่มีในระบบ 
                   <span className={`text-sm px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-700'}`}>
                     {(settingsOptions.bundles || []).length} เซ็ต
                   </span>
@@ -11990,7 +12198,7 @@ S.N.: ${item.sn || '-'}
                         <span className={`text-base font-bold ${theme.textMuted}`}>{h.date ? new Date(h.date).toLocaleString('th-TH') : '-'}</span>
                       </div>
                       {(h.operatorName || h.performedBy) && (
-                        <div className={`text-sm font-bold mb-3 ${theme.textMuted}`}>ผู้ทำรายการในSystem: {h.operatorName || h.performedBy}</div>
+                        <div className={`text-sm font-bold mb-3 ${theme.textMuted}`}>ผู้ทำรายการในระบบ: {h.operatorName || h.performedBy}</div>
                       )}
                       {isBorrow ? (
                         <div className={`text-lg ${theme.textMain}`}>
@@ -12058,7 +12266,7 @@ S.N.: ${item.sn || '-'}
                   </div>
                   <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
                     <div className={`text-xs font-bold ${theme.textMuted}`}>สิทธิ์หลัก</div>
-                    <div className={`font-black ${theme.textTitle}`}>{canManageSystem ? 'จัดการSystem' : canUseOperationalTools ? 'ใช้งาน/ทำรายการ' : 'ดูอย่างเดียว'}</div>
+                    <div className={`font-black ${theme.textTitle}`}>{canManageระบบ ? 'จัดการระบบ' : canUseOperationalTools ? 'ใช้งาน/ทำรายการ' : 'ดูอย่างเดียว'}</div>
                   </div>
                 </div>
               </div>
@@ -12346,7 +12554,7 @@ S.N.: ${item.sn || '-'}
                 {actionCenterData.prepIncomplete.slice(0, 8).map(p => <div key={p.id} className={`text-sm font-bold px-3 py-2 rounded-xl mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>{p.name} • {(p.checkedIds||[]).length}/{(p.itemIds||[]).length}</div>)}
               </div>
               <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
-                <h4 className={`font-black text-lg ${theme.textTitle}`}>กล่องที่มีรายการหายจากSystem</h4>
+                <h4 className={`font-black text-lg ${theme.textTitle}`}>กล่องที่มีรายการหายจากระบบ</h4>
                 <div className="text-4xl font-black my-2 text-cyan-500">{actionCenterData.brokenBoxes.length}</div>
                 {actionCenterData.brokenBoxes.slice(0, 8).map(b => <div key={b.id} className={`text-sm font-bold px-3 py-2 rounded-xl mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>{b.name} • หาย {(b.missingIds||[]).length} รายการ</div>)}
               </div>
@@ -12393,7 +12601,7 @@ S.N.: ${item.sn || '-'}
             <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
               <div>
                 <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.QrCode className="w-6 h-6 text-amber-500" /> โหมดตรวจนับสต๊อก</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เดินสแกน QR/S.N. ของจริง Systemจะเทียบกับรายการในเว็บ</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เดินสแกน QR/S.N. ของจริง ระบบจะเทียบกับรายการในเว็บ</p>
               </div>
               <button onClick={() => setShowStockCountModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -12736,7 +12944,7 @@ S.N.: ${item.sn || '-'}
               </div>
             </div>
             <div className={`px-5 py-3 border-b text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-              จากข้อมูลเดิมมีการแสดงผล {proofDuplicateStats.linkCount.toLocaleString('th-TH')} จุดเชื่อมโยง Systemรวมรูปซ้ำออกไป {proofDuplicateStats.duplicateLinks.toLocaleString('th-TH')} จุด • รูปตัวอย่างใช้โหมดภาพเต็ม ไม่ตัดหัว/ตัดขอบ
+              จากข้อมูลเดิมมีการแสดงผล {proofDuplicateStats.linkCount.toLocaleString('th-TH')} จุดเชื่อมโยง ระบบรวมรูปซ้ำออกไป {proofDuplicateStats.duplicateLinks.toLocaleString('th-TH')} จุด • รูปตัวอย่างใช้โหมดภาพเต็ม ไม่ตัดหัว/ตัดขอบ
             </div>
             <div className="p-5 overflow-y-auto custom-scrollbar flex-1">
               {filteredProofGroups.length === 0 ? (
@@ -12855,7 +13063,7 @@ S.N.: ${item.sn || '-'}
                   <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white flex items-center justify-center shadow-lg">?</span>
                   คู่มือใช้งาน MDEC-Stock
                 </h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปวิธีใช้แบบสั้น ๆ สำหรับเจ้าหน้าที่และผู้ดูแลSystem</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปวิธีใช้แบบสั้น ๆ สำหรับเจ้าหน้าที่และผู้ดูแลระบบ</p>
               </div>
               <button type="button" onClick={() => setShowHelpModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -12879,7 +13087,7 @@ S.N.: ${item.sn || '-'}
                 <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>📷 การจัดการรูปหลักฐาน</h4>
                 <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-bold ${theme.textMuted}`}>
                   <div>• รูปหลักฐานไม่บังคับ ยกเว้นผู้ดูแลตั้งค่าให้บังคับ</div>
-                  <div>• Systemจะย่อรูปและประทับเวลา/พิกัดให้เอง</div>
+                  <div>• ระบบจะย่อรูปและประทับเวลา/พิกัดให้เอง</div>
                   <div>• รูปเดียวที่ผูกหลายอุปกรณ์จะแสดงรวมเป็น 1 ใบใน Gallery</div>
                   <div>• เจ้าหน้าที่สามารถแก้ชื่อ/หมายเหตุ แทนที่รูปใหม่ หรือลบรูปหลักฐานที่อัปโหลดผิดได้</div>
                 </div>
@@ -12891,7 +13099,7 @@ S.N.: ${item.sn || '-'}
                   <li>เปิดเมนู <b>เพิ่มเติม → หลักฐานรูปภาพ</b></li>
                   <li>ค้นหารูปจากชื่ออุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน</li>
                   <li>กดปุ่ม <b>ลบรูปนี้</b> ใต้รูปที่ต้องการลบ</li>
-                  <li>ยืนยันการลบ Systemจะถอดรูปออกจากประวัติอุปกรณ์ที่เกี่ยวข้องทั้งหมด</li>
+                  <li>ยืนยันการลบ ระบบจะถอดรูปออกจากประวัติอุปกรณ์ที่เกี่ยวข้องทั้งหมด</li>
                 </ol>
               </div>
 
@@ -12906,7 +13114,7 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
-                <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>🧭 ชื่อเมนูหลักที่ใช้ในSystem</h4>
+                <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>🧭 ชื่อเมนูหลักที่ใช้ในระบบ</h4>
                 <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-bold ${theme.textMuted}`}>
                   <div><b>ศูนย์ติดตามงาน</b> = ดูของรอคืน ออกงานอยู่ วันนี้ และเลยกำหนด</div>
                   <div><b>ศูนย์หลักฐานรูปภาพ</b> = ดู แก้ไข แทนที่ หรือลบรูปหลักฐาน</div>
@@ -12940,13 +13148,13 @@ S.N.: ${item.sn || '-'}
       )}
 
 
-      {/* ตรวจสุขภาพSystem */}
-      {showSystemHealthModal && (
+      {/* ตรวจสุขภาพระบบ */}
+      {showระบบHealthModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
             <div className={`p-6 border-b flex justify-between items-start gap-4 ${theme.divide}`}>
-              <div><h3 className={`text-2xl font-black ${theme.textTitle}`}>ตรวจสุขภาพSystem</h3><p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ภาพรวมฐานข้อมูล รูปหลักฐาน และรายการที่ต้องติดตาม</p></div>
-              <button type="button" onClick={() => setShowSystemHealthModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+              <div><h3 className={`text-2xl font-black ${theme.textTitle}`}>ตรวจสุขภาพระบบ</h3><p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ภาพรวมฐานข้อมูล รูปหลักฐาน และรายการที่ต้องติดตาม</p></div>
+              <button type="button" onClick={() => setShowระบบHealthModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
               <div className={`p-5 rounded-2xl border ${databaseStorageEstimate.cardTone}`}>
@@ -12971,7 +13179,7 @@ S.N.: ${item.sn || '-'}
                 <div className={`text-sm font-bold ${theme.textMuted}`}>เป้าหมาย {activeProofSettings.targetKB} KB/รูป • เตือนเมื่อเกิน {activeProofSettings.warnKB} KB • ไม่ให้บันทึกถ้าเกิน {activeProofSettings.maxKB} KB • ประมาณว่ายังเพิ่มได้ {proofStorageForecast.remainingByAvg.toLocaleString('th-TH')} รูปก่อนถึงโซนปลอดภัย 800MB</div>
               </div>
             </div>
-            <div className={`p-4 border-t ${theme.divide}`}><button type="button" onClick={() => setShowSystemHealthModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button></div>
+            <div className={`p-4 border-t ${theme.divide}`}><button type="button" onClick={() => setShowระบบHealthModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button></div>
           </div>
         </div>
       )}
@@ -12981,7 +13189,7 @@ S.N.: ${item.sn || '-'}
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
             <div className={`p-6 border-b flex justify-between items-start gap-4 ${theme.divide}`}>
-              <div><h3 className={`text-2xl font-black ${theme.textTitle}`}>รายงานประจำเดือน</h3><p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปการใช้งานอุปกรณ์จากประวัติในSystem</p></div>
+              <div><h3 className={`text-2xl font-black ${theme.textTitle}`}>รายงานประจำเดือน</h3><p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปการใช้งานอุปกรณ์จากประวัติในระบบ</p></div>
               <button type="button" onClick={() => setShowMonthlyReportModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
@@ -13185,7 +13393,7 @@ S.N.: ${item.sn || '-'}
       {showLogin && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9999]`}>
           <div className={`rounded-3xl p-8 max-w-sm w-full shadow-2xl ${theme.cardBg}`}>
-            <h3 className={`text-2xl font-black mb-2 text-center ${theme.textTitle}`}>เข้าสู่Systemจัดการ</h3>
+            <h3 className={`text-2xl font-black mb-2 text-center ${theme.textTitle}`}>เข้าสู่ระบบจัดการ</h3>
             <p className={`text-sm font-bold text-center mb-6 ${theme.textMuted}`}>ใช้บัญชีพนักงาน หรือบัญชีกลาง admin</p>
             <div className="space-y-4 mb-6">
               <div>
@@ -13197,12 +13405,12 @@ S.N.: ${item.sn || '-'}
                 <input type="password" className={`w-full px-4 py-4 border rounded-xl font-bold text-center text-3xl tracking-widest outline-none ${theme.input}`} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
               </div>
               <div className={`p-3 rounded-xl border text-xs font-bold ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-                ค่าเริ่มต้น: username <span className="font-black">admin</span> ใช้ PIN เดิมของSystem จากนั้นไปที่ ตั้งค่า → บัญชีผู้ใช้ เพื่อเพิ่มบัญชีพนักงาน
+                ค่าเริ่มต้น: username <span className="font-black">admin</span> ใช้ PIN เดิมของระบบ จากนั้นไปที่ ตั้งค่า → บัญชีผู้ใช้ เพื่อเพิ่มบัญชีพนักงาน
               </div>
             </div>
             <div className="flex gap-3">
               <button type="button" onClick={() => setShowLogin(false)} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={handleLogin} className="flex-1 py-4 bg-blue-600 text-white font-bold rounded-xl text-lg hover:bg-blue-500">เข้าสู่System</button>
+              <button type="button" onClick={handleLogin} className="flex-1 py-4 bg-blue-600 text-white font-bold rounded-xl text-lg hover:bg-blue-500">เข้าสู่ระบบ</button>
             </div>
           </div>
         </div>
@@ -13230,8 +13438,8 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="min-h-screen bg-slate-900 text-white p-8 flex flex-col items-center justify-center font-sans">
           <div className="bg-rose-900/30 border-l-4 border-rose-500 p-8 rounded-2xl max-w-2xl w-full">
-            <h1 className="text-3xl font-black text-rose-400 mb-4">🚨 ขออภัย เกิดข้อผิดพลาดในSystem</h1>
-            <p className="text-lg text-rose-200 mb-6">Systemพบข้อขัดข้องบางประการ กรุณารีเฟรชหน้าเว็บ หากปัญหายังคงอยู่ โปรดตรวจสอบโค้ดล่าสุด</p>
+            <h1 className="text-3xl font-black text-rose-400 mb-4">🚨 ขออภัย เกิดข้อผิดพลาดในระบบ</h1>
+            <p className="text-lg text-rose-200 mb-6">ระบบพบข้อขัดข้องบางประการ กรุณารีเฟรชหน้าเว็บ หากปัญหายังคงอยู่ โปรดตรวจสอบโค้ดล่าสุด</p>
             <pre className="bg-black/50 p-4 rounded-xl text-sm font-mono overflow-auto text-rose-300 whitespace-pre-wrap">{this.state.errorMessage}</pre>
             <button onClick={() => window.location.reload()} className="mt-8 px-6 py-3 bg-rose-600 hover:bg-rose-500 rounded-xl font-bold transition-colors">รีเฟรชหน้าเว็บ</button>
           </div>
