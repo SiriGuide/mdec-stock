@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.50.0 Final Production Polish Pack';
+const APP_VERSION = 'v22.52.0 Borrow Event Modal Compact';
 const APP_UPDATE_NOTE = 'รวมชุดเก็บงานผลิตจริง: เอกสารพิมพ์ มือถือ รายละเอียดอุปกรณ์ ตั้งค่า empty states และ final UI polish โดยไม่แตะฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -805,6 +805,121 @@ function FactoryPolishStyle({ isDarkMode }) {
           width: 100% !important;
           max-height: 92dvh !important;
           border-radius: 22px !important;
+        }
+      }
+      /* v22.52.0 Borrow / Event / Return compact modal polish */
+      .factory-stock-polish .operation-modal-shell {
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+      }
+      @media (min-width: 1024px) {
+        .factory-stock-polish .operation-modal-shell {
+          width: min(660px, calc(100vw - 96px)) !important;
+          max-width: 660px !important;
+          max-height: 82dvh !important;
+          padding: 18px !important;
+          border-radius: 24px !important;
+          box-shadow: 0 24px 70px rgba(15,23,42,.22) !important;
+        }
+        .factory-stock-polish .operation-modal-shell > .flex.justify-between.items-center.mb-6 {
+          margin-bottom: 12px !important;
+          padding-bottom: 10px;
+          border-bottom: 1px solid var(--factory-border);
+        }
+        .factory-stock-polish .operation-modal-shell h3 {
+          font-size: 1.18rem !important;
+          line-height: 1.15 !important;
+          gap: 8px !important;
+        }
+        .factory-stock-polish .operation-modal-shell h3 svg {
+          width: 21px !important;
+          height: 21px !important;
+        }
+        .factory-stock-polish .operation-modal-shell .space-y-4 {
+          margin-bottom: 12px !important;
+        }
+        .factory-stock-polish .operation-modal-shell .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+          margin-top: 10px !important;
+        }
+        .factory-stock-polish .operation-modal-shell label,
+        .factory-stock-polish .operation-modal-shell h4 {
+          font-size: .9rem !important;
+          line-height: 1.25 !important;
+        }
+        .factory-stock-polish .operation-modal-shell :is(input:not([type="checkbox"]), select, textarea) {
+          min-height: 40px !important;
+          padding: 9px 12px !important;
+          border-radius: 12px !important;
+          font-size: .92rem !important;
+        }
+        .factory-stock-polish .operation-modal-shell textarea {
+          min-height: 68px !important;
+          max-height: 92px !important;
+        }
+        .factory-stock-polish .operation-modal-shell [class*="mb-6"] {
+          margin-bottom: 12px !important;
+        }
+        .factory-stock-polish .operation-modal-shell [class*="mb-8"] {
+          margin-bottom: 14px !important;
+        }
+        .factory-stock-polish .operation-modal-shell [class*="p-4"][class*="border"] {
+          padding: 12px !important;
+          border-radius: 18px !important;
+        }
+        .factory-stock-polish .operation-modal-shell [class*="max-h-40"] {
+          max-height: 132px !important;
+          overscroll-behavior: contain;
+        }
+        .factory-stock-polish .operation-modal-shell .rounded-lg {
+          border-radius: 12px !important;
+        }
+        .factory-stock-polish .operation-modal-shell .text-lg {
+          font-size: .95rem !important;
+          line-height: 1.25 !important;
+        }
+        .factory-stock-polish .operation-modal-shell .text-base,
+        .factory-stock-polish .operation-modal-shell .sm\:text-base {
+          font-size: .9rem !important;
+        }
+        .factory-stock-polish .operation-modal-shell button {
+          min-height: 38px !important;
+        }
+        .factory-stock-polish .operation-modal-shell > .flex.gap-3 {
+          position: sticky;
+          bottom: -18px;
+          margin: 0 -18px -18px;
+          padding: 12px 18px 14px;
+          border-top: 1px solid var(--factory-border);
+          background: var(--factory-card);
+          z-index: 2;
+        }
+        .factory-stock-polish .operation-modal-shell > .flex.gap-3 button {
+          padding-top: 11px !important;
+          padding-bottom: 11px !important;
+          border-radius: 14px !important;
+          font-size: .95rem !important;
+        }
+        .factory-stock-polish .operation-modal-shell > p {
+          margin-top: 10px !important;
+          font-size: .78rem !important;
+        }
+      }
+      @media (max-width: 640px) {
+        .factory-stock-polish .operation-modal-shell {
+          width: 100% !important;
+          max-height: 92dvh !important;
+          padding: 14px !important;
+          border-radius: 22px !important;
+        }
+        .factory-stock-polish .operation-modal-shell h3 {
+          font-size: 1.15rem !important;
+        }
+        .factory-stock-polish .operation-modal-shell :is(input:not([type="checkbox"]), select, textarea) {
+          min-height: 42px !important;
+          font-size: 14px !important;
+        }
+        .factory-stock-polish .operation-modal-shell [class*="max-h-40"] {
+          max-height: 180px !important;
         }
       }
       .factory-stock-polish .clean-mobile-card-title {
@@ -5925,7 +6040,8 @@ S.N.: ${item.sn || '-'}
 
   const openSelectionScanner = ({ camera = false } = {}) => {
     setScanMode('select');
-    setUseCamera(camera);
+    const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 768;
+    setUseCamera(camera || isMobileViewport);
     setShowScanModal(true);
   };
 
@@ -6074,7 +6190,7 @@ S.N.: ${item.sn || '-'}
           videoConstraints: { facingMode: "environment" },
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const minEdge = Math.min(viewfinderWidth || 320, viewfinderHeight || 320);
-            const size = Math.max(220, Math.min(360, Math.floor(minEdge * 0.72)));
+            const size = Math.max(180, Math.min(330, Math.floor(minEdge * 0.72)));
             return { width: size, height: size };
           }
         },
@@ -9622,7 +9738,7 @@ S.N.: ${item.sn || '-'}
               : (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800');
 
         return (
-          <div className={`fixed inset-0 ${theme.modalOverlay} z-[9999] overflow-hidden`}> 
+          <div className={`qr-mobile-oneshot fixed inset-0 ${theme.modalOverlay} z-[9999] overflow-hidden`}> 
             <style>{`
               #qr-reader {
                 width: 100% !important;
@@ -9675,14 +9791,37 @@ S.N.: ${item.sn || '-'}
                 font-size: 12px !important;
               }
               @media (max-width: 767px) {
-                #qr-reader video { min-height: 48vh !important; border-radius: 22px !important; }
-                #qr-reader__dashboard_section { padding: 6px 0 !important; }
+                #qr-reader video { min-height: 0 !important; height: calc(100dvh - 270px) !important; max-height: 430px !important; border-radius: 18px !important; }
+                #qr-reader__dashboard_section { padding: 4px 0 !important; }
+                #qr-reader__dashboard_section_csr { font-size: 11px !important; }
+                #qr-reader button { padding: 7px 10px !important; border-radius: 12px !important; font-size: 12px !important; margin: 3px !important; }
+                #qr-reader select { min-height: 34px !important; border-radius: 12px !important; font-size: 12px !important; }
+                .qr-mobile-oneshot .qr-shell { height: 100dvh !important; max-height: 100dvh !important; border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
+                .qr-mobile-oneshot .qr-header { padding: 10px 12px !important; }
+                .qr-mobile-oneshot .qr-header h3 { font-size: 16px !important; line-height: 1.15 !important; }
+                .qr-mobile-oneshot .qr-header p { display: none !important; }
+                .qr-mobile-oneshot .qr-header [class*="w-11"] { width: 38px !important; height: 38px !important; border-radius: 14px !important; }
+                .qr-mobile-oneshot .qr-mode-bar { margin-top: 8px !important; display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+                .qr-mobile-oneshot .qr-mode-bar button,
+                .qr-mobile-oneshot .qr-mode-bar > div { min-height: 36px !important; padding: 6px 8px !important; border-radius: 13px !important; font-size: 12px !important; }
+                .qr-mobile-oneshot .qr-progress-wrap { margin-top: 8px !important; }
+                .qr-mobile-oneshot .qr-progress-wrap button { margin-top: 8px !important; min-height: 38px !important; padding: 8px 10px !important; border-radius: 14px !important; }
+                .qr-mobile-oneshot .qr-body { overflow: hidden !important; padding: 8px 10px 10px !important; }
+                .qr-mobile-oneshot .qr-grid { display: flex !important; flex-direction: column !important; gap: 8px !important; height: 100% !important; min-height: 0 !important; }
+                .qr-mobile-oneshot .qr-scan-card { flex: 1 1 auto !important; min-height: 0 !important; display: flex !important; flex-direction: column !important; border-radius: 20px !important; }
+                .qr-mobile-oneshot .qr-scan-card > div:last-child { flex: 1 1 auto !important; min-height: 0 !important; padding: 8px !important; }
+                .qr-mobile-oneshot .qr-camera-tip { display: none !important; }
+                .qr-mobile-oneshot .qr-manual-fallback { display: none !important; }
+                .qr-mobile-oneshot .qr-side { flex: 0 0 auto !important; display: block !important; max-height: 76px !important; overflow: hidden !important; }
+                .qr-mobile-oneshot .qr-side > div { border-radius: 16px !important; padding: 9px 10px !important; }
+                .qr-mobile-oneshot .qr-side > div:not(:first-child) { display: none !important; }
+                .qr-mobile-oneshot .qr-side [class*="text-xl"] { font-size: 14px !important; }
               }
             `}</style>
 
             <div className="h-full w-full flex items-stretch justify-center sm:p-4">
-              <div className={`w-full max-w-6xl h-full sm:h-[94vh] sm:rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <div className={`shrink-0 p-4 sm:p-5 border-b ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'}`}>
+              <div className={`qr-shell w-full max-w-6xl h-full sm:h-[94vh] sm:rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`qr-header shrink-0 p-4 sm:p-5 border-b ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -9705,7 +9844,7 @@ S.N.: ${item.sn || '-'}
                     </button>
                   </div>
 
-                  <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                  <div className="qr-mode-bar mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                     <button type="button" onClick={() => setUseCamera(true)} className={`min-h-[46px] px-4 rounded-2xl font-black border transition ${useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
                       📷 กล้องมือถือ
                     </button>
@@ -9726,7 +9865,7 @@ S.N.: ${item.sn || '-'}
                   </div>
 
                   {isChecklistMode && (
-                    <div className="mt-3">
+                    <div className="qr-progress-wrap mt-3">
                       <div className="w-full h-2.5 rounded-full bg-slate-300/60 dark:bg-slate-800 overflow-hidden">
                         <div className={`h-full rounded-full transition-all duration-500 ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${percent}%` }}></div>
                       </div>
@@ -9739,9 +9878,9 @@ S.N.: ${item.sn || '-'}
                   )}
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 sm:p-5">
-                  <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_.8fr] gap-4 sm:gap-5 items-start">
-                    <div className={`rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                <div className="qr-body flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 sm:p-5">
+                  <div className="qr-grid grid grid-cols-1 lg:grid-cols-[1.2fr_.8fr] gap-4 sm:gap-5 items-start">
+                    <div className={`qr-scan-card rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
                       <div className={`px-4 py-3 border-b flex items-center justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50'}`}>
                         <div className="font-black">{useCamera ? 'ช่องสแกนกล้อง' : 'ช่องกรอกรหัส / เครื่องยิงบาร์โค้ด'}</div>
                         <div className={`text-xs font-black px-3 py-1 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'Camera Mode' : 'Manual Mode'}</div>
@@ -9749,7 +9888,7 @@ S.N.: ${item.sn || '-'}
 
                       {useCamera ? (
                         <div className="p-3 sm:p-4">
-                          <div className={`mb-3 p-3 rounded-2xl border text-left text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                          <div className={`qr-camera-tip mb-3 p-3 rounded-2xl border text-left text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
                             วาง QR ให้อยู่กลางกรอบ ถือให้นิ่ง 1–2 วินาที ถ้าสติกเกอร์สะท้อนแสงให้เอียงเล็กน้อย
                           </div>
                           {!isScannerLoaded ? (
@@ -9761,7 +9900,7 @@ S.N.: ${item.sn || '-'}
                               <div id="qr-reader" className="w-full"></div>
                             </div>
                           )}
-                          <form onSubmit={handleScanSubmit} className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+                          <form onSubmit={handleScanSubmit} className="qr-manual-fallback mt-3 grid grid-cols-[1fr_auto] gap-2">
                             <input
                               type="text"
                               className={`px-4 py-3 rounded-2xl font-black text-center outline-none border ${theme.input}`}
@@ -9795,7 +9934,7 @@ S.N.: ${item.sn || '-'}
                       )}
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="qr-side space-y-4">
                       {scanMessage.text ? (
                         <div className={`p-4 rounded-[1.7rem] border font-black shadow-sm ${scanMessage.type === 'success' ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800') : (isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')}`}>
                           {scanMessage.text}
@@ -10996,7 +11135,7 @@ S.N.: ${item.sn || '-'}
       {/* 📋 Borrow Modal */}
       {borrowTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+          <div className={`operation-modal-shell operation-borrow-shell rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.UserPlus className="text-purple-500 w-6 h-6" /> บันทึกการให้ยืม</h3>
               <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); setBorrowProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
@@ -11120,7 +11259,7 @@ S.N.: ${item.sn || '-'}
       {/* 🚚 Event Modal */}
       {eventTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+          <div className={`operation-modal-shell operation-event-shell rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.Truck className="text-orange-500 w-6 h-6" /> นำอุปกรณ์ออกงาน</h3>
               <button type="button" onClick={() => { setEventTargetIds([]); setEventChecklist([]); setEventProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
@@ -11244,7 +11383,7 @@ S.N.: ${item.sn || '-'}
       {/* 📋 Return Modal */}
       {returnTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+          <div className={`operation-modal-shell operation-return-shell rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.CheckCircle className="text-emerald-500 w-6 h-6" /> บันทึกรับคืนอุปกรณ์</h3>
               <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); setReturnProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
