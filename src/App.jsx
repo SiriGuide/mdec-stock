@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.41.1 Checkbox Alignment Polish';
-const APP_UPDATE_NOTE = 'เก็บงานหน้ารายการอุปกรณ์ แก้ checkbox ให้เป็นทรงเดียวกัน ไม่โดน style input กลางทับ และคงระบบโครงการจัดซื้อแบบเต็มหน้า';
+const APP_VERSION = 'v22.41.2 JSX Hotfix';
+const APP_UPDATE_NOTE = 'แก้ helper ที่หายไปสำหรับ notify และปุ่มรับคืนจากหน้ารายละเอียด พร้อมคง UI checkbox และระบบโครงการจัดซื้อ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -912,6 +912,14 @@ function MainApp() {
     window.alert = (message) => pushToast(String(message || ''), 'info');
     return () => { window.alert = originalAlert; };
   }, []);
+
+
+
+  const notify = (title, message = '', type = 'info') => {
+    const cleanTitle = String(title || '').trim();
+    const cleanMessage = String(message || '').trim();
+    pushToast(cleanMessage || cleanTitle, type, cleanTitle);
+  };
 
   const runWithBusy = async (task) => {
     if (isBusy) return;
@@ -4026,6 +4034,20 @@ S.N.: ${item.sn || '-'}
       setReturnTargetIds([...validIds]);
       setReturnChecklist([]);
     } catch(err) { alert("Systemขัดข้อง: " + err.message); }
+  };
+
+
+
+  const openReturnForItems = (ids = []) => {
+    const validIds = Array.from(new Set((ids || []).filter(id => {
+      const st = items.find(i => i.id === id)?.status;
+      return st === 'borrowed' || st === 'out-for-event';
+    })));
+    if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่สามารถรับคืนได้');
+    setReturnData({ staff: '', newStaff: '' });
+    setReturnTargetIds(validIds);
+    setReturnChecklist([]);
+    setReturnProofFiles([]);
   };
 
   const handleCreateBundleFromSelection = () => {
