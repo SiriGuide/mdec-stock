@@ -10008,30 +10008,26 @@ S.N.: ${item.sn || '-'}
                 #qr-reader__dashboard_section_fsr { display: none !important; }
                 #qr-reader__status_span { display: none !important; }
                 .qr-mobile-oneshot .qr-shell { height: 100svh !important; max-height: 100svh !important; border-radius: 0 !important; border-left: 0 !important; border-right: 0 !important; }
-                .qr-mobile-oneshot .qr-header { padding: 6px 8px 4px !important; }
-                .qr-mobile-oneshot .qr-header h3 { font-size: 14px !important; line-height: 1.05 !important; }
+                .qr-mobile-oneshot .qr-header { padding: 8px 10px !important; }
+                .qr-mobile-oneshot .qr-header h3 { font-size: 15px !important; line-height: 1.1 !important; }
                 .qr-mobile-oneshot .qr-header p { display: none !important; }
-                .qr-mobile-oneshot .qr-header [class*="w-11"] { width: 32px !important; height: 32px !important; border-radius: 11px !important; }
-                .qr-mobile-oneshot .qr-mode-bar { margin-top: 4px !important; display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 5px !important; }
-                .qr-mobile-oneshot .qr-workflow-tabs { display: grid !important; grid-template-columns: repeat(4, minmax(0,1fr)) !important; gap: 3px !important; margin-top: 4px !important; }
-                .qr-mobile-oneshot .qr-workflow-tabs button { min-height: 32px !important; padding: 4px 3px !important; border-radius: 11px !important; font-size: 10px !important; line-height: 1.0 !important; }
+                .qr-mobile-oneshot .qr-header [class*="w-11"] { width: 34px !important; height: 34px !important; border-radius: 12px !important; }
+                .qr-mobile-oneshot .qr-mode-bar { margin-top: 6px !important; display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+                .qr-mobile-oneshot .qr-workflow-tabs { display: grid !important; grid-template-columns: repeat(4, minmax(0,1fr)) !important; gap: 4px !important; margin-top: 5px !important; }
+                .qr-mobile-oneshot .qr-workflow-tabs button { min-height: 36px !important; padding: 5px 4px !important; border-radius: 12px !important; font-size: 10.5px !important; line-height: 1.05 !important; }
                 .qr-mobile-oneshot .qr-bottom-action { position: sticky !important; bottom: 0 !important; z-index: 20 !important; margin: 0 -10px -10px !important; padding: 7px 10px calc(7px + env(safe-area-inset-bottom)) !important; }
 
                 .qr-mobile-oneshot .qr-mode-bar button,
-                .qr-mobile-oneshot .qr-mode-bar > div { min-height: 30px !important; padding: 4px 8px !important; border-radius: 11px !important; font-size: 11.5px !important; }
-                .qr-mobile-oneshot .qr-cart-pill { min-height: 28px !important; padding: 4px 10px !important; font-size: 11.5px !important; justify-content: space-between !important; }
+                .qr-mobile-oneshot .qr-mode-bar > div { min-height: 32px !important; padding: 5px 8px !important; border-radius: 12px !important; font-size: 12px !important; }
+                .qr-mobile-oneshot .qr-cart-pill { min-height: 30px !important; padding: 5px 10px !important; font-size: 12px !important; justify-content: space-between !important; }
                 .qr-mobile-oneshot .qr-progress-wrap { margin-top: 8px !important; }
                 .qr-mobile-oneshot .qr-progress-wrap button { margin-top: 8px !important; min-height: 38px !important; padding: 8px 10px !important; border-radius: 14px !important; }
-                .qr-mobile-oneshot .qr-body { overflow: hidden !important; padding: 4px 6px 8px !important; }
-                .qr-mobile-oneshot .qr-grid { display: flex !important; flex-direction: column !important; gap: 5px !important; height: 100% !important; min-height: 0 !important; }
-                .qr-mobile-oneshot .qr-scan-card { flex: 1 1 auto !important; min-height: 0 !important; display: flex !important; flex-direction: column !important; border-radius: 16px !important; }
+                .qr-mobile-oneshot .qr-body { overflow: hidden !important; padding: 6px 8px 8px !important; }
+                .qr-mobile-oneshot .qr-grid { display: flex !important; flex-direction: column !important; gap: 7px !important; height: 100% !important; min-height: 0 !important; }
+                .qr-mobile-oneshot .qr-scan-card { flex: 1 1 auto !important; min-height: 0 !important; display: flex !important; flex-direction: column !important; border-radius: 18px !important; }
                 .qr-mobile-oneshot .qr-scan-card > div:first-child { display: none !important; }
-                .qr-mobile-oneshot .qr-scan-card > div:last-child { flex: 1 1 auto !important; min-height: 0 !important; padding: 4px !important; }
+                .qr-mobile-oneshot .qr-scan-card > div:last-child { flex: 1 1 auto !important; min-height: 0 !important; padding: 6px !important; }
                 .qr-mobile-oneshot .qr-camera-tip { display: none !important; }
-                .qr-mobile-oneshot .qr-camera-control-hint { display: none !important; }
-                .qr-mobile-oneshot #qr-reader { margin-top: 0 !important; }
-                .qr-mobile-oneshot #qr-reader__dashboard { padding-top: 0 !important; }
-                .qr-mobile-oneshot #qr-reader__dashboard_section { padding-top: 0 !important; }
                 .qr-mobile-oneshot .qr-manual-fallback { display: none !important; }
                 .qr-mobile-oneshot .qr-side { flex: 0 0 auto !important; display: block !important; max-height: 52px !important; overflow: hidden !important; }
                 .qr-mobile-oneshot .qr-side > div { border-radius: 16px !important; padding: 9px 10px !important; }
