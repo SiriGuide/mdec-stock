@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.50.12 QR Mobile Video Tuned';
-const APP_UPDATE_NOTE = 'เก็บหน้า QR มือถือให้พอดีขึ้นจากภาพล่าสุด: ลดหัว/แท็บ/กล่องผลลัพธ์ ย่อ dashboard ของกล้อง และทำให้ใช้งานในจอมือถือได้ลื่นขึ้น โดยไม่แตะระบบกล้อง';
+const APP_VERSION = 'v22.50.14 QR Mobile Scan Restore';
+const APP_UPDATE_NOTE = 'กู้คืนพื้นที่กล้อง QR ให้สแกนติดง่ายขึ้น หลังจากรอบก่อนย่อพรีวิวมากเกินไป โดยยังปรับเฉพาะ UI/Layout และไม่แตะระบบกล้อง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -5027,9 +5027,9 @@ S.N.: ${item.sn || '-'}
             border-radius: 22px !important;
             object-fit: cover !important;
             background: #020617 !important;
-            height: min(30dvh, 300px) !important;
-            min-height: 220px !important;
-            max-height: 310px !important;
+            height: min(36dvh, 340px) !important;
+            min-height: 240px !important;
+            max-height: 360px !important;
           }
           .qr-workbench-mobile-friendly #qr-reader__scan_region {
             background: transparent !important;
@@ -5067,29 +5067,29 @@ S.N.: ${item.sn || '-'}
           }
           @media (max-width: 767px) {
             .qr-workbench-mobile-friendly #qr-reader video {
-              height: 31svh !important;
-              min-height: 205px !important;
-              max-height: 285px !important;
-              border-radius: 20px !important;
+              height: 38svh !important;
+              min-height: 250px !important;
+              max-height: 340px !important;
+              border-radius: 22px !important;
             }
             .qr-workbench-mobile-friendly #qr-reader__dashboard_section,
             .qr-workbench-mobile-friendly #qr-reader__dashboard_section_csr {
-              padding: 0 !important;
+              padding: 4px 0 !important;
               margin: 0 !important;
-              font-size: 11px !important;
-              line-height: 1.1 !important;
+              font-size: 12px !important;
+              line-height: 1.2 !important;
             }
             .qr-workbench-mobile-friendly #qr-reader__camera_selection {
-              min-height: 30px !important;
-              height: 30px !important;
-              font-size: 11px !important;
-              padding: 0 8px !important;
+              min-height: 36px !important;
+              height: 36px !important;
+              font-size: 12px !important;
+              padding: 0 10px !important;
             }
             .qr-workbench-mobile-friendly #qr-reader button {
-              padding: 6px 8px !important;
-              margin: 2px !important;
-              font-size: 11px !important;
-              border-radius: 10px !important;
+              padding: 7px 10px !important;
+              margin: 3px !important;
+              font-size: 12px !important;
+              border-radius: 12px !important;
             }
             .qr-workbench-mobile-friendly { border-radius: 16px !important; }
           }
