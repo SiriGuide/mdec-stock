@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.37 Factory Stock Inspired Mobile UI';
+const APP_VERSION = 'v22.38 FactoryStock Sidebar UI Pack';
 const APP_UPDATE_NOTE = 'ปรับ UI ให้คล้ายSystemสต็อกโรงงาน: Dashboard เรียบจริงจัง, Control Center เป็นหมวด, และมือถือใช้งานหน้างานง่ายขึ้น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -5073,7 +5073,82 @@ S.N.: ${item.sn || '-'}
   }
 
   return (
-    <div className={`min-h-screen font-sans ${pagePaddingClass} pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain}`}>
+    <div className={`min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain}`}>
+      {/* FactoryStock Desktop Sidebar */}
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-72 bg-slate-950 text-white flex-col border-r border-white/10">
+        <div className="p-6 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <Icons.Package className="w-7 h-7" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-black tracking-tight truncate">MDEC-Stock</h1>
+              <p className="text-xs text-slate-400 font-bold truncate">FactoryStock UI</p>
+            </div>
+          </div>
+        </div>
+
+        <nav className="flex-1 px-4 py-5 space-y-2 overflow-y-auto custom-scrollbar">
+          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 transition-all text-left font-black">
+            <Icons.Package className="w-5 h-5" /> ภาพรวมระบบ
+          </button>
+          {canUseOperationalTools && (
+            <button type="button" onClick={() => openSelectionScanner({ camera: true })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+              <Icons.QrCode className="w-5 h-5" /> สแกน QR
+            </button>
+          )}
+          <button type="button" onClick={() => openTrackingCenter('today')} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+            <Icons.History className="w-5 h-5" /> ศูนย์ติดตาม
+          </button>
+          {canAddEditItems && (
+            <button type="button" onClick={openAddItemForm} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+              <Icons.Plus className="w-5 h-5" /> เพิ่มอุปกรณ์
+            </button>
+          )}
+          <button type="button" onClick={() => setShowProjectsModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+            <Icons.Folder className="w-5 h-5" /> Project Stock
+          </button>
+          <button type="button" onClick={() => setShowProofCenterModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+            <Icons.Camera className="w-5 h-5" /> หลักฐานรูปภาพ
+          </button>
+          <button type="button" onClick={() => setShowBorrowDocsModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+            <Icons.Printer className="w-5 h-5" /> เอกสารย้อนหลัง
+          </button>
+          <button type="button" onClick={() => setShowMoreMenu(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+            <Icons.ViewGrid className="w-5 h-5" /> Control Center
+          </button>
+
+          <div className="pt-4 mt-4 border-t border-white/10 space-y-2">
+            {canManageSystem && (
+              <button type="button" onClick={() => { setSettingsTab('categories'); setShowSettings(true); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+                <Icons.Settings className="w-5 h-5" /> System Settings
+              </button>
+            )}
+            <button type="button" onClick={() => setShowBackupCenterModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+              <Icons.Database className="w-5 h-5" /> Backup / ปิดปี
+            </button>
+            <button type="button" onClick={() => setShowHelpModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+              <Icons.Info className="w-5 h-5" /> คู่มือใช้งาน
+            </button>
+          </div>
+        </nav>
+
+        <div className="p-4 border-t border-white/10 space-y-3">
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+            <div className="text-xs text-slate-400 mb-1 font-bold">สถานะระบบ</div>
+            <div className="text-sm font-black text-emerald-300">● พร้อมใช้งาน {stats.available.toLocaleString('th-TH')} / {stats.all.toLocaleString('th-TH')}</div>
+          </div>
+          <button type="button" onClick={() => { setMyPinForm({ oldPin: '', newPin: '', confirmPin: '' }); setShowMyAccountModal(true); }} className="w-full px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-200 font-bold transition-all text-left">
+            👤 {currentAccountLabel}
+          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={handleLockScreen} className="px-3 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-200 font-black transition-all">ล็อก</button>
+            <button type="button" onClick={handleLogout} className="px-3 py-2.5 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-black transition-all">ออก</button>
+          </div>
+        </div>
+      </aside>
+
+
       {firebaseError && (
         <div className="w-full mb-6 bg-rose-100 border-l-4 border-rose-500 text-rose-800 p-5 rounded-r-xl shadow-md flex items-start gap-4">
           <Icons.Alert className="w-8 h-8 shrink-0 text-rose-600" />
@@ -9161,8 +9236,8 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
-      {/* Factory Mobile Bottom Bar */}
-      <div className={`lg:hidden fixed bottom-0 inset-x-0 z-40 border-t backdrop-blur-xl shadow-[0_-10px_32px_rgba(15,23,42,0.16)] ${isDarkMode ? 'bg-slate-950/94 border-slate-800' : 'bg-white/94 border-slate-200'}`}>
+      {/* FactoryStock Mobile Bottom Nav */}
+      <div className={`lg:hidden fixed bottom-0 inset-x-0 z-40 border-t backdrop-blur-xl shadow-[0_-16px_40px_rgba(15,23,42,0.14)] ${isDarkMode ? 'bg-slate-950/94 border-slate-800' : 'bg-white/94 border-slate-200'}`}>
         <div className="grid grid-cols-4 gap-1 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
           <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className={`py-2 rounded-2xl text-xs font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
             <Icons.Package className="w-5 h-5" />หน้าหลัก
