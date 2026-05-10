@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.49.2 Minimal Hybrid Picker';
+const APP_VERSION = 'v22.49.3 Scroll Containment Hotfix';
 const APP_UPDATE_NOTE = 'ปรับ Dashboard/Command Center บนมือถือให้เรียงอ่านง่าย ไม่ล้น ไม่ใหญ่เกิน และไม่บีบปุ่มแถบบนจนแปลก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -171,6 +171,23 @@ function SmartOptionInput({
     setBrowseAll(false);
   };
 
+  const containPickerWheel = (event) => {
+    const el = event.currentTarget;
+    event.stopPropagation();
+    if (!el || !el.scrollHeight) return;
+    const canScroll = el.scrollHeight > el.clientHeight + 1;
+    if (!canScroll) {
+      event.preventDefault();
+      return;
+    }
+    const deltaY = event.deltaY || 0;
+    const atTop = el.scrollTop <= 0;
+    const atBottom = Math.ceil(el.scrollTop + el.clientHeight) >= el.scrollHeight;
+    if ((deltaY < 0 && atTop) || (deltaY > 0 && atBottom)) {
+      event.preventDefault();
+    }
+  };
+
   return (
     <div className="relative smart-combobox-field">
       <div className="flex items-end justify-between gap-3 mb-2">
@@ -239,7 +256,7 @@ function SmartOptionInput({
         {frequentOptions.length > 0 && (
           <div className={`px-3 pb-3 pt-1 border-t ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
             <div className={`text-[11px] font-black mb-2 ${textMuted}`}>ใช้บ่อย / เลือกเร็ว</div>
-            <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+            <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1" style={{ overscrollBehaviorX: 'contain' }}>
               {frequentOptions.map(option => (
                 <button
                   key={option}
@@ -258,7 +275,12 @@ function SmartOptionInput({
       </div>
 
       {isOpen && (
-        <div className={`absolute z-[10020] mt-2 w-full rounded-3xl border shadow-2xl overflow-hidden max-sm:fixed max-sm:inset-x-3 max-sm:bottom-3 max-sm:top-auto max-sm:w-auto max-sm:max-h-[72vh] ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div
+          onWheel={containPickerWheel}
+          onTouchMove={(e) => e.stopPropagation()}
+          style={{ overscrollBehavior: 'contain' }}
+          className={`smart-picker-panel absolute z-[10020] mt-2 w-full rounded-3xl border shadow-2xl overflow-hidden max-sm:fixed max-sm:inset-x-3 max-sm:bottom-3 max-sm:top-auto max-sm:w-auto max-sm:max-h-[72vh] ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}
+        >
           <div className={`px-4 py-3 flex items-center justify-between gap-3 border-b ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50'}`}>
             <div className="min-w-0">
               <div className={`text-sm font-black truncate ${textTitle}`}>{label}</div>
@@ -282,7 +304,7 @@ function SmartOptionInput({
           {frequentOptions.length > 0 && (
             <div className={`px-4 py-3 border-b ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
               <div className={`text-[11px] font-black mb-2 ${textMuted}`}>รายการที่ใช้บ่อย</div>
-              <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+              <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1" style={{ overscrollBehaviorX: 'contain' }}>
                 {frequentOptions.map(option => (
                   <button
                     key={`sheet_${option}`}
@@ -298,7 +320,12 @@ function SmartOptionInput({
             </div>
           )}
 
-          <div className="max-h-72 max-sm:max-h-[46vh] overflow-y-auto custom-scrollbar p-2 space-y-1">
+          <div
+            onWheel={containPickerWheel}
+            onTouchMove={(e) => e.stopPropagation()}
+            style={{ overscrollBehavior: 'contain' }}
+            className="smart-picker-list max-h-72 max-sm:max-h-[46vh] overflow-y-auto custom-scrollbar p-2 space-y-1"
+          >
             {matchedOptions.map(option => (
               <button
                 key={option}
@@ -542,6 +569,15 @@ function FactoryPolishStyle({ isDarkMode }) {
       .factory-stock-polish .custom-scrollbar::-webkit-scrollbar { width: 9px; height: 9px; }
       .factory-stock-polish .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,.55); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
       .factory-stock-polish .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .factory-stock-polish .smart-combobox-field,
+      .factory-stock-polish .smart-picker-panel,
+      .factory-stock-polish .smart-picker-list {
+        overscroll-behavior: contain;
+      }
+      .factory-stock-polish .smart-picker-list {
+        scroll-behavior: auto;
+        -webkit-overflow-scrolling: touch;
+      }
       .factory-stock-polish table { border-collapse: separate; border-spacing: 0; }
       .factory-stock-polish thead th {
         font-size: 11px !important;
