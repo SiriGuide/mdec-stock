@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.44.0 QR Scanner Redesign';
+const APP_VERSION = 'v22.45.0 Form & Detail Polish';
 const APP_UPDATE_NOTE = 'ออกแบบหน้าสแกน QR ใหม่ให้เป็นโหมดหน้างานแบบเต็มจอ ใช้ง่ายทั้งมือถือและคอม พร้อมแยกโหมดกล้อง/กรอกรหัสและแสดงผลสแกนชัดเจน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -478,7 +478,108 @@ function FactoryPolishStyle({ isDarkMode }) {
       .factory-stock-polish .operation-workspace-card {
         background: var(--factory-card);
       }
+      .factory-stock-polish .item-form-shell,
+      .factory-stock-polish .item-detail-shell,
+      .factory-stock-polish .settings-shell {
+        background: var(--factory-card) !important;
+        border-color: var(--factory-border) !important;
+        box-shadow: var(--factory-shadow) !important;
+      }
+      .factory-stock-polish .item-form-shell {
+        scroll-padding-top: 18px;
+      }
+      .factory-stock-polish .item-form-section {
+        background: color-mix(in srgb, var(--factory-card) 82%, var(--factory-bg)) !important;
+        border-color: var(--factory-border) !important;
+        box-shadow: 0 10px 24px rgba(15,23,42,.045);
+      }
+      .factory-stock-polish .item-form-section > div:first-child {
+        position: sticky;
+        top: -1px;
+        z-index: 1;
+        width: fit-content;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--factory-blue-soft);
+        color: var(--factory-blue);
+        font-size: 13px;
+      }
+      .factory-stock-polish .item-form-section label,
+      .factory-stock-polish .settings-shell label {
+        font-size: 13px !important;
+        line-height: 1.25;
+      }
+      .factory-stock-polish .item-form-shell input:not([type="checkbox"]):not([type="radio"]),
+      .factory-stock-polish .item-form-shell select,
+      .factory-stock-polish .item-form-shell textarea,
+      .factory-stock-polish .settings-shell input:not([type="checkbox"]):not([type="radio"]),
+      .factory-stock-polish .settings-shell select,
+      .factory-stock-polish .settings-shell textarea {
+        min-height: 46px;
+        font-size: 15px !important;
+        border-radius: 14px !important;
+      }
+      .factory-stock-polish .item-detail-summary {
+        background: color-mix(in srgb, var(--factory-card) 84%, var(--factory-bg)) !important;
+        border-color: var(--factory-border) !important;
+      }
+      .factory-stock-polish .item-detail-summary [class*="grid-cols-2"] > div {
+        min-height: 72px;
+      }
+      .factory-stock-polish .item-detail-shell .custom-scrollbar {
+        padding-right: 2px;
+      }
+      .factory-stock-polish .settings-shell .settings-nav-grid button {
+        min-height: 70px;
+        box-shadow: none !important;
+      }
+      .factory-stock-polish .settings-shell .settings-nav-grid button:hover {
+        transform: translateY(-1px);
+      }
+      .factory-stock-polish .settings-shell [class*="p-6"],
+      .factory-stock-polish .settings-shell [class*="p-5"] {
+        border-color: var(--factory-border);
+      }
+      .factory-stock-polish .settings-shell .custom-scrollbar {
+        scrollbar-width: thin;
+      }
       @media (max-width: 760px) {
+        .factory-stock-polish .item-form-shell,
+        .factory-stock-polish .item-detail-shell,
+        .factory-stock-polish .settings-shell {
+          border-radius: 24px !important;
+          max-height: 94vh !important;
+        }
+        .factory-stock-polish .item-form-section {
+          padding: 14px !important;
+        }
+        .factory-stock-polish .item-form-section > div:first-child {
+          font-size: 12px;
+          margin-bottom: 12px !important;
+        }
+        .factory-stock-polish .item-form-shell input:not([type="checkbox"]):not([type="radio"]),
+        .factory-stock-polish .item-form-shell select,
+        .factory-stock-polish .item-form-shell textarea,
+        .factory-stock-polish .settings-shell input:not([type="checkbox"]):not([type="radio"]),
+        .factory-stock-polish .settings-shell select,
+        .factory-stock-polish .settings-shell textarea {
+          min-height: 44px;
+          font-size: 14px !important;
+        }
+        .factory-stock-polish .item-detail-summary [class*="grid-cols-2"] {
+          grid-template-columns: 1fr 1fr !important;
+        }
+        .factory-stock-polish .settings-shell .settings-nav-grid {
+          display: flex !important;
+          overflow-x: auto;
+          padding-bottom: 6px;
+          scroll-snap-type: x mandatory;
+        }
+        .factory-stock-polish .settings-shell .settings-nav-grid button {
+          min-width: 132px;
+          min-height: 58px;
+          scroll-snap-align: start;
+        }
         .factory-stock-polish { padding-left: 12px !important; padding-right: 12px !important; }
         .factory-stock-polish .factory-page-title h1 { font-size: 27px !important; line-height: 1.1; }
         .factory-stock-polish .factory-page-title p { font-size: 12px; }
@@ -8792,7 +8893,7 @@ S.N.: ${item.sn || '-'}
       {/* Settings Modal (การตั้งค่าทั่วไป + ฐานข้อมูล) */}
       {showSettings && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-[2rem] shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[92vh] transition-all duration-300 border ${theme.cardBg}`}>
+          <div className={`settings-shell rounded-[2rem] shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[92vh] transition-all duration-300 border ${theme.cardBg}`}>
             <div className={`p-5 border-b shrink-0 flex items-start justify-between gap-4 ${theme.divide}`}>
               <div>
                 <h3 className={`text-2xl sm:text-3xl font-black ${theme.textTitle}`}>ตั้งค่าSystem</h3>
@@ -8804,7 +8905,7 @@ S.N.: ${item.sn || '-'}
             <div className="flex flex-col lg:flex-row flex-1 min-h-0">
               <div className="flex flex-col flex-1 min-h-0">
                 <div className={`p-3 sm:p-4 border-b ${theme.divide}`}>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2">
+                  <div className="settings-nav-grid grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2">
                     {settingsNavItems.map((nav) => {
                       const Icon = nav.icon || Icons.Settings;
                       const active = settingsTab === nav.id;
@@ -9898,7 +9999,7 @@ S.N.: ${item.sn || '-'}
       {/* History Modal ของแต่ละอุปกรณ์ */}
       {showHistory && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-3xl p-6 sm:p-8 max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl ${theme.cardBg}`}>
+          <div className={`item-detail-shell rounded-3xl p-5 sm:p-7 max-w-4xl w-full max-h-[88vh] flex flex-col shadow-2xl ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6 gap-3">
               <h3 className={`text-2xl font-black ${theme.textTitle}`}>รายละเอียดและประวัติอุปกรณ์</h3>
               <div className="flex items-center gap-2">
@@ -9915,7 +10016,7 @@ S.N.: ${item.sn || '-'}
                 const latestHistory = (detailItem.history || []).slice(-1)[0];
                 const detailProofCount = getItemProofCount(detailItem);
                 return (
-                  <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`item-detail-summary p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className={`text-2xl font-black leading-tight ${theme.textTitle}`}>{detailItem.name || '-'}</div>
@@ -10136,7 +10237,7 @@ S.N.: ${item.sn || '-'}
       {/* Add/Edit Form */}
       {showForm && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`rounded-[2rem] p-5 sm:p-7 max-w-2xl w-full max-h-[92vh] overflow-y-auto custom-scrollbar shadow-2xl border ${theme.cardBg}`}>
+          <div className={`item-form-shell rounded-[2rem] p-4 sm:p-6 max-w-4xl w-full max-h-[92vh] overflow-y-auto custom-scrollbar shadow-2xl border ${theme.cardBg}`}>
             <div className="flex justify-between items-start gap-4 mb-5">
               <div>
                 <h3 className={`text-2xl sm:text-3xl font-black ${theme.textTitle}`}>{formData.id ? 'แก้ไขข้อมูลอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
@@ -10146,7 +10247,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className="space-y-5">
-              <section className={`p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <section className={`item-form-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                 <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>1. ข้อมูลหลัก</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
@@ -10183,7 +10284,7 @@ S.N.: ${item.sn || '-'}
                 </div>
               </section>
 
-              <section className={`p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
+              <section className={`item-form-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
                 <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>2. ที่เก็บ / โครงการ / พัสดุ</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
@@ -10232,7 +10333,7 @@ S.N.: ${item.sn || '-'}
                 </div>
               </section>
 
-              <section className={`p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+              <section className={`item-form-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
                 <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>3. รายละเอียดเพิ่มเติม</div>
                 <div className="space-y-4">
                   <div className={`p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
