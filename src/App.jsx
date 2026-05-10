@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.42.2 Project Settings Persistence Hotfix';
-const APP_UPDATE_NOTE = 'แก้ระบบโครงการจัดซื้อให้บันทึกแล้วแสดงจริง โดยเก็บ projects/projectMeta จาก Settings snapshot และทำหน้าโครงการให้ง่ายขึ้น';
+const APP_VERSION = 'v22.42.3 Checkbox Global Cleanup';
+const APP_UPDATE_NOTE = 'เก็บงาน checkbox ทั้งระบบแบบ global ตัดเส้นขาวแปลก ๆ จากทุกหน้า และลด CSS input กลางไม่ให้ทับ checkbox';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -142,7 +142,7 @@ function FactoryPolishStyle({ isDarkMode }) {
       .factory-stock-polish :is(button, input, select, textarea) {
         font-family: inherit;
       }
-      .factory-stock-polish :is(input, select, textarea):not(.stock-check) {
+      .factory-stock-polish :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):not(.stock-check) {
         min-height: 44px;
         border-radius: 16px !important;
         box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
@@ -330,14 +330,15 @@ function FactoryPolishStyle({ isDarkMode }) {
       .factory-stock-polish :is(.shadow-slate-200\/80,.shadow-slate-200\/70) {
         box-shadow: 0 18px 44px rgba(15,23,42,.10) !important;
       }
-      .factory-stock-polish[data-polish-theme="light"] :is(input, select, textarea):not(.stock-check) {
+      .factory-stock-polish[data-polish-theme="light"] :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):not(.stock-check) {
         background-color: #ffffff !important;
       }
-      .factory-stock-polish[data-polish-theme="dark"] :is(input, select, textarea):not(.stock-check) {
+      .factory-stock-polish[data-polish-theme="dark"] :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):not(.stock-check) {
         background-color: #020617 !important;
       }
       /* Checkbox + table divider cleanup: เอาเส้นขาวสั้น ๆ ข้างช่องติ๊กออก */
-      .factory-stock-polish .stock-check {
+      .factory-stock-polish .stock-check,
+      .factory-stock-polish input[type="checkbox"] {
         appearance: none !important;
         -webkit-appearance: none !important;
         width: 20px !important;
@@ -360,21 +361,26 @@ function FactoryPolishStyle({ isDarkMode }) {
         padding: 0 !important;
         overflow: hidden;
       }
-      .factory-stock-polish[data-polish-theme="dark"] .stock-check {
+      .factory-stock-polish[data-polish-theme="dark"] .stock-check,
+      .factory-stock-polish[data-polish-theme="dark"] input[type="checkbox"] {
         background: #e2e8f0 !important;
         background-color: #e2e8f0 !important;
         border-color: #64748b !important;
       }
       .factory-stock-polish .stock-check::before,
-      .factory-stock-polish .stock-check::after {
+      .factory-stock-polish .stock-check::after,
+      .factory-stock-polish input[type="checkbox"]::before,
+      .factory-stock-polish input[type="checkbox"]::after {
         content: none !important;
         display: none !important;
       }
-      .factory-stock-polish .stock-check:checked {
+      .factory-stock-polish .stock-check:checked,
+      .factory-stock-polish input[type="checkbox"]:checked {
         background: #4f46e5 !important;
         border-color: #6366f1 !important;
       }
-      .factory-stock-polish .stock-check:checked::after {
+      .factory-stock-polish .stock-check:checked::after,
+      .factory-stock-polish input[type="checkbox"]:checked::after {
         content: "" !important;
         display: block !important;
         position: absolute;
@@ -386,7 +392,8 @@ function FactoryPolishStyle({ isDarkMode }) {
         border-width: 0 2px 2px 0;
         transform: rotate(45deg);
       }
-      .factory-stock-polish .stock-check:disabled {
+      .factory-stock-polish .stock-check:disabled,
+      .factory-stock-polish input[type="checkbox"]:disabled {
         opacity: .55;
         cursor: not-allowed;
         background: #cbd5e1 !important;
@@ -453,58 +460,25 @@ function FactoryPolishStyle({ isDarkMode }) {
         content: none !important;
         display: none !important;
       }
+      .factory-stock-polish label:has(> input[type="checkbox"]) {
+        box-shadow: none !important;
+      }
+      .factory-stock-polish .checkbox-clean,
+      .factory-stock-polish .checklist-row,
+      .factory-stock-polish .prep-check-row {
+        position: relative;
+      }
+      .factory-stock-polish .checkbox-clean::before,
+      .factory-stock-polish .checkbox-clean::after,
+      .factory-stock-polish .checklist-row::before,
+      .factory-stock-polish .checklist-row::after,
+      .factory-stock-polish .prep-check-row::before,
+      .factory-stock-polish .prep-check-row::after {
+        content: none !important;
+        display: none !important;
+      }
       .factory-stock-polish .purchase-project-card {
         background: var(--factory-card);
-      }
-      .factory-stock-polish .clean-mobile-card-title {
-        font-size: 16px;
-        line-height: 1.25;
-      }
-      .factory-stock-polish .clean-mobile-actions {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-      }
-      .factory-stock-polish .clean-mobile-actions button {
-        min-height: 42px;
-      }
-      .factory-stock-polish .operation-workspace-card {
-        background: var(--factory-card);
-      }
-      @media (max-width: 760px) {
-        .factory-stock-polish { padding-left: 12px !important; padding-right: 12px !important; }
-        .factory-stock-polish .factory-page-title h1 { font-size: 27px !important; line-height: 1.1; }
-        .factory-stock-polish .factory-page-title p { font-size: 12px; }
-        .factory-stock-polish .workspace-tabbar {
-          display: grid !important;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          overflow: visible !important;
-          gap: 8px !important;
-        }
-        .factory-stock-polish .workspace-tabbar button {
-          min-width: 0 !important;
-          padding: 10px !important;
-          border-radius: 16px !important;
-        }
-        .factory-stock-polish .workspace-tabbar button svg { width: 18px; height: 18px; }
-        .factory-stock-polish .factory-top-actions {
-          display: grid !important;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          width: 100%;
-        }
-        .factory-stock-polish .factory-top-actions .factory-ghost-btn,
-        .factory-stock-polish .factory-top-actions .factory-primary-btn,
-        .factory-stock-polish .factory-top-actions .factory-danger-btn {
-          min-height: 42px;
-          padding-left: 10px;
-          padding-right: 10px;
-          border-radius: 14px;
-          font-size: 12px;
-        }
-        .factory-stock-polish .factory-top-actions .factory-ghost-btn span.hidden-mobile,
-        .factory-stock-polish .factory-top-actions .factory-danger-btn span.hidden-mobile { display: none !important; }
-        .factory-stock-polish .stock-mobile-card { border-radius: 20px !important; }
-        .factory-stock-polish .stock-mobile-card .mobile-secondary-chip { display: none !important; }
       }
       @media (max-width: 1023px) {
         .factory-stock-polish .factory-topbar { padding-top: 10px; flex-direction: column; align-items: stretch; }
@@ -680,8 +654,6 @@ function MainApp() {
     try { return localStorage.getItem('mdec_ui_mode') || 'easy'; } catch(e) { return 'easy'; }
   });
   const [activeWorkspace, setActiveWorkspace] = useState('overview');
-  const [borrowReturnMode, setBorrowReturnMode] = useState('borrow');
-  const [borrowReturnSearch, setBorrowReturnSearch] = useState('');
   const [selectedPurchaseProject, setSelectedPurchaseProject] = useState(null);
   const [projectMetaEditTarget, setProjectMetaEditTarget] = useState(null);
   const [projectMetaForm, setProjectMetaForm] = useState({ name: '', fiscalYear: '', budget: '', owner: '', startDate: '', endDate: '', objective: '', note: '', status: 'active' });
@@ -725,8 +697,8 @@ function MainApp() {
   const [prepForm, setPrepForm] = useState({ id: null, name: '', useDate: '', staff: '', note: '', itemIds: [], checkedIds: [], status: 'pending' });
   const [boxLabelSize, setBoxLabelSize] = useState('normal');
   const [boxLabelStyle, setBoxLabelStyle] = useState('premium');
-  const [boxLabelShowChecks, setBoxLabelShowChecks] = useState(false);
-  const [boxLabelShowQr, setBoxLabelShowQr] = useState(false);
+  const [boxLabelShowChecks, setBoxLabelShowChecks] = useState(true);
+  const [boxLabelShowQr, setBoxLabelShowQr] = useState(true);
   const [boxLabelTitle, setBoxLabelTitle] = useState('กล่องอุปกรณ์ MDEC');
   const [boxLabelNote, setBoxLabelNote] = useState('');
   const [showScanModal, setShowScanModal] = useState(false);
@@ -964,14 +936,6 @@ function MainApp() {
     window.alert = (message) => pushToast(String(message || ''), 'info');
     return () => { window.alert = originalAlert; };
   }, []);
-
-
-
-  const notify = (title, message = '', type = 'info') => {
-    const cleanTitle = String(title || '').trim();
-    const cleanMessage = String(message || '').trim();
-    pushToast(cleanMessage || cleanTitle, type, cleanTitle);
-  };
 
   const runWithBusy = async (task) => {
     if (isBusy) return;
@@ -1553,9 +1517,6 @@ function MainApp() {
           bundles: data.bundles || [],
           storageBoxes: data.storageBoxes || [],
           prepLists: data.prepLists || [],
-          // ✅ สำคัญ: ต้องโหลด projects/projectMeta กลับเข้ามาด้วย ไม่งั้นสร้างโครงการแล้ว onSnapshot จะเขียน state ทับจนเหมือนโครงการหาย
-          projects: Array.isArray(data.projects) ? data.projects : ['อื่นๆ'],
-          projectMeta: data.projectMeta || {},
           backupMeta: data.backupMeta || {},
           proofStorageMeta: data.proofStorageMeta || {},
           proofSettings: { ...DEFAULT_PROOF_SETTINGS, ...(data.proofSettings || {}) },
@@ -1571,8 +1532,6 @@ function MainApp() {
           bundles: [],
           storageBoxes: [],
           prepLists: [],
-          projects: ['อื่นๆ'],
-          projectMeta: {},
           backupMeta: {},
           proofStorageMeta: {},
           proofSettings: DEFAULT_PROOF_SETTINGS,
@@ -1847,24 +1806,15 @@ function MainApp() {
     }
   };
 
-  const UNASSIGNED_PROJECT_LABELS = ['ไม่ระบุโครงการ', 'ไม่ระบุชื่อโครงการ', 'ไม่ระบุชื่อโครงงาน', 'ไม่ระบุ', '-'];
-  const normalizeProjectName = (value) => {
-    const clean = String(value || '').trim();
-    if (!clean || UNASSIGNED_PROJECT_LABELS.includes(clean)) return '';
-    return clean;
-  };
-  const isUnassignedProjectName = (value) => normalizeProjectName(value) === '';
-  const projectDisplayName = (value) => normalizeProjectName(value) || 'ยังไม่ผูกโครงการจัดซื้อ';
-  const cleanProjectName = (value) => normalizeProjectName(value);
-
   const todayMs = new Date().setHours(0,0,0,0);
 
   const projectOptions = useMemo(() => {
     const fromSettings = Array.isArray(settingsOptions.projects) ? settingsOptions.projects : [];
-    const fromItems = items.map(i => normalizeProjectName(i.project)).filter(Boolean);
-    const merged = [...new Set([...fromSettings.map(p => normalizeProjectName(p)), ...fromItems])].filter(Boolean);
+    const fromItems = items.map(i => String(i.project || '').trim()).filter(Boolean);
+    const merged = [...new Set([...fromSettings, ...fromItems])].filter(Boolean);
     const withoutOther = merged.filter(p => p !== 'อื่นๆ');
-    return [...new Set([...withoutOther, 'อื่นๆ'])];
+    const base = withoutOther.length ? withoutOther : ['ไม่ระบุโครงการ'];
+    return [...new Set([...base, 'อื่นๆ'])];
   }, [settingsOptions.projects, items]);
 
   const getAssetStatusInfo = (id) => ASSET_STATUSES.find(s => s.id === (id || 'active')) || ASSET_STATUSES[0];
@@ -1876,6 +1826,7 @@ function MainApp() {
     if (!String(item.category || '').trim()) missing.push('หมวดหมู่');
     if (!String(item.location || '').trim()) missing.push('สถานที่');
     if (!String(item.department || '').trim()) missing.push('ฝ่าย');
+    if (!String(item.project || '').trim()) missing.push('โครงการ');
     if (!item.qrTagged) missing.push('QR');
     return missing;
   };
@@ -1918,7 +1869,7 @@ function MainApp() {
       const matchCategory = filterCategory === 'all' || String(item.category) === String(filterCategory);
       const matchStatus = filterStatus === 'all' || String(item.status) === String(filterStatus);
       const matchLocation = filterLocation === 'all' || String(item.location) === String(filterLocation);
-      const matchProject = filterProject === 'all' || normalizeProjectName(item.project) === normalizeProjectName(filterProject);
+      const matchProject = filterProject === 'all' || String(item.project || '') === String(filterProject);
       const matchAssetStatus = filterAssetStatus === 'all' || String(item.assetStatus || 'active') === String(filterAssetStatus);
       const matchQrTagged = filterQrTagged === 'all' || (filterQrTagged === 'tagged' && !!item.qrTagged) || (filterQrTagged === 'untagged' && !item.qrTagged);
       const matchProblem = !quickProblemOnly || isProblemItem(item);
@@ -1982,6 +1933,7 @@ function MainApp() {
     setQuickProblemOnly(false);
   };
 
+  const cleanProjectName = (value) => String(value || '').trim() || 'ไม่ระบุโครงการ';
   const projectMetaMap = settingsOptions.projectMeta || {};
   const getProjectMeta = (projectName) => projectMetaMap[cleanProjectName(projectName)] || {};
   const formatMoney = (value) => {
@@ -2002,8 +1954,7 @@ function MainApp() {
     const map = {};
     const metaMap = settingsOptions.projectMeta || {};
     const ensureProject = (projectName) => {
-      const name = normalizeProjectName(projectName);
-      if (!name) return null;
+      const name = String(projectName || 'ไม่ระบุโครงการ').trim() || 'ไม่ระบุโครงการ';
       if (!map[name]) {
         const meta = metaMap[name] || {};
         map[name] = {
@@ -2032,16 +1983,12 @@ function MainApp() {
 
     // ชื่อโครงการจาก Settings และ projectMeta ต้องแสดงเสมอ แม้ยังไม่มีอุปกรณ์ผูกอยู่
     (Array.isArray(settingsOptions.projects) ? settingsOptions.projects : [])
-      .map(projectName => normalizeProjectName(projectName))
       .filter(projectName => projectName && projectName !== 'อื่นๆ')
       .forEach(projectName => ensureProject(projectName));
-    Object.keys(metaMap || {}).map(projectName => normalizeProjectName(projectName)).filter(Boolean).forEach(projectName => ensureProject(projectName));
+    Object.keys(metaMap || {}).filter(Boolean).forEach(projectName => ensureProject(projectName));
 
     items.filter(item => item && !item.isDeleted).forEach((item) => {
-      const projectName = normalizeProjectName(item.project);
-      if (!projectName) return;
-      const project = ensureProject(projectName);
-      if (!project) return;
+      const project = ensureProject(item.project || 'ไม่ระบุโครงการ');
       const assetStatus = item.assetStatus || 'active';
       const qty = Number(item.quantity) || 1;
       project.total += 1;
@@ -2068,10 +2015,6 @@ function MainApp() {
     });
   }, [items, settingsOptions.projects, settingsOptions.projectMeta]);
 
-  const unassignedProjectItemCount = useMemo(() => (
-    items.filter(item => item && !item.isDeleted && isUnassignedProjectName(item.project)).length
-  ), [items]);
-
   const filteredProjectStats = useMemo(() => {
     const q = String(projectManagerSearch || '').trim().toLowerCase();
     if (!q) return projectStats;
@@ -2092,90 +2035,58 @@ function MainApp() {
   }, [projectStats, projectManagerSearch]);
 
   const handleAddProjectQuick = async () => {
-    const rawName = String(quickProjectName || '').trim();
-    const name = normalizeProjectName(rawName);
-    if (!rawName) {
-      pushToast('กรุณาพิมพ์ชื่อโครงการจัดซื้อก่อน', 'warning');
-      return;
-    }
+    const name = String(quickProjectName || '').trim();
     if (!name) {
-      pushToast('ชื่อนี้เป็นคำสงวนสำหรับรายการที่ยังไม่ผูกโครงการ กรุณาตั้งชื่อโครงการจริง เช่น โครงการปรับปรุงกล้องถ่ายภาพประจำปี 2569', 'warning');
-      return;
-    }
-    if (name === 'อื่นๆ') {
-      pushToast('กรุณาตั้งชื่อโครงการให้ชัดเจน ไม่ใช้คำว่า “อื่นๆ”', 'warning');
+      pushToast('กรุณาพิมพ์ชื่อโครงการจัดซื้อก่อน', 'warning');
       return;
     }
     if (!canAddEditItems && !canManageSystem) {
       alert('บัญชีนี้ไม่มีสิทธิ์เพิ่มโครงการ');
       return;
     }
-
     try {
-      setIsBusy(true);
-      const nowIso = new Date().toISOString();
-      const buddhistYear = new Date().getFullYear() + 543;
       const currentProjects = Array.isArray(settingsOptions.projects) ? settingsOptions.projects : [];
+      const normalized = currentProjects.filter(p => p && p !== 'อื่นๆ');
+      if (normalized.some(p => String(p).trim() === name)) {
+        pushToast('มีชื่อโครงการนี้อยู่แล้ว เปิดหน้าโครงการนั้นให้แล้ว', 'warning');
+        setSelectedPurchaseProject(name);
+        setFilterProject(name);
+        return;
+      }
+      const updatedProjects = [...new Set([...normalized, name, 'อื่นๆ'])];
       const currentMeta = settingsOptions.projectMeta || {};
-      const normalizedProjects = currentProjects
-        .map(p => normalizeProjectName(p))
-        .filter(p => p && p !== 'อื่นๆ');
-      const existingKey = [...normalizedProjects, ...Object.keys(currentMeta || {}).map(p => normalizeProjectName(p))]
-        .filter(Boolean)
-        .find(p => String(p).trim() === name);
-
-      const nextProjects = [...new Set([...normalizedProjects, existingKey || name, 'อื่นๆ'])];
-      const nextMeta = {
-        ...currentMeta,
-        [existingKey || name]: {
-          ...(currentMeta[existingKey || name] || {}),
-          name: existingKey || name,
-          fiscalYear: String((currentMeta[existingKey || name] || {}).fiscalYear || buddhistYear),
-          budget: String((currentMeta[existingKey || name] || {}).budget || ''),
-          owner: String((currentMeta[existingKey || name] || {}).owner || ''),
-          startDate: (currentMeta[existingKey || name] || {}).startDate || '',
-          endDate: (currentMeta[existingKey || name] || {}).endDate || '',
-          objective: String((currentMeta[existingKey || name] || {}).objective || ''),
-          note: String((currentMeta[existingKey || name] || {}).note || ''),
-          status: (currentMeta[existingKey || name] || {}).status || 'draft',
-          createdAt: (currentMeta[existingKey || name] || {}).createdAt || nowIso,
-          updatedAt: nowIso
-        }
-      };
-
+      const buddhistYear = new Date().getFullYear() + 543;
       const updatedSettings = {
         ...settingsOptions,
-        projects: nextProjects,
-        projectMeta: nextMeta
+        projects: updatedProjects,
+        projectMeta: {
+          ...currentMeta,
+          [name]: {
+            ...(currentMeta[name] || {}),
+            name,
+            fiscalYear: String((currentMeta[name] || {}).fiscalYear || buddhistYear),
+            status: (currentMeta[name] || {}).status || 'active',
+            createdAt: (currentMeta[name] || {}).createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        }
       };
-
-      // อัปเดตหน้าจอก่อน แล้วค่อยบันทึก Firebase เพื่อให้ผู้ใช้เห็นทันที
       setSettingsOptions(updatedSettings);
-      setProjectManagerSearch('');
-      setActiveWorkspace('projects');
-      setSelectedPurchaseProject(existingKey || name);
-      setFilterProject('all');
+      await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
       setQuickProjectName('');
-      await setDoc(getSettingsDoc(), { projects: nextProjects, projectMeta: nextMeta }, { merge: true });
-
-      if (existingKey) {
-        pushToast('มีชื่อโครงการนี้อยู่แล้ว เปิดรายละเอียดให้แล้ว', 'warning');
-      } else {
-        await logAction('เพิ่มโครงการจัดซื้อ', name, 'เพิ่มชื่อโครงการจัดซื้อ/จัดหาอุปกรณ์จากหน้าโครงการ');
-        pushToast('เพิ่มโครงการจัดซื้อเรียบร้อยแล้ว — โครงการนี้ยังไม่มีอุปกรณ์ผูกอยู่', 'success');
-      }
+      setFilterProject(name);
+      setSelectedPurchaseProject(name);
+      await logAction('เพิ่มโครงการจัดซื้อ', name, 'เพิ่มชื่อโครงการจัดซื้อ/จัดหาอุปกรณ์จากหน้าโครงการ');
+      pushToast('เพิ่มโครงการจัดซื้อเรียบร้อยแล้ว', 'success');
     } catch (error) {
       console.error(error);
       alert('❌ เพิ่มโครงการไม่สำเร็จ: ' + error.message);
-    } finally {
-      setIsBusy(false);
     }
   };
 
-
   const openProjectMetaEditor = (projectName) => {
     const name = cleanProjectName(projectName);
-    if (!name) return alert('กรุณาเลือกโครงการจัดซื้อที่ต้องการแก้ไข');
+    if (!name || name === 'ไม่ระบุโครงการ') return alert('ไม่สามารถแก้ไขรายละเอียด “ไม่ระบุโครงการ” ได้');
     const meta = getProjectMeta(name);
     setProjectMetaEditTarget(name);
     setProjectMetaForm({
@@ -2201,7 +2112,7 @@ function MainApp() {
     if (!canAddEditItems && !canManageSystem) return alert('บัญชีนี้ไม่มีสิทธิ์แก้ไขโครงการ');
     const oldName = cleanProjectName(projectMetaEditTarget);
     const newName = cleanProjectName(projectMetaForm.name);
-    if (!newName) return alert('กรุณากรอกชื่อโครงการจัดซื้อให้ถูกต้อง');
+    if (!newName || newName === 'ไม่ระบุโครงการ') return alert('กรุณากรอกชื่อโครงการจัดซื้อให้ถูกต้อง');
     const currentProjects = Array.isArray(settingsOptions.projects) ? settingsOptions.projects : [];
     if (newName !== oldName && projectOptions.some(p => p !== oldName && String(p).trim() === newName)) return alert('มีชื่อโครงการนี้อยู่แล้ว');
 
@@ -2234,7 +2145,7 @@ function MainApp() {
       await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
 
       if (newName !== oldName) {
-        const affectedItems = items.filter(item => item && !item.isDeleted && normalizeProjectName(item.project) === normalizeProjectName(oldName));
+        const affectedItems = items.filter(item => item && !item.isDeleted && String(item.project || '') === String(oldName));
         await Promise.all(affectedItems.map(item => {
           const history = Array.isArray(item.history) ? [...item.history] : [];
           history.push({
@@ -2263,7 +2174,7 @@ function MainApp() {
 
   const openNewItemForProject = (projectName) => {
     const name = cleanProjectName(projectName);
-    setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', assetStatus: 'active', project: name, newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '' });
+    setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', assetStatus: 'active', project: name === 'ไม่ระบุโครงการ' ? '' : name, newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '' });
     setShowForm(true);
   };
 
@@ -2292,14 +2203,14 @@ function MainApp() {
   }, [items, projectAssignSearch, projectAssignSelectedIds]);
 
   const openProjectAssign = (projectName) => {
-    const name = normalizeProjectName(projectName);
-    if (!name) {
+    const name = String(projectName || '').trim();
+    if (!name || name === 'ไม่ระบุโครงการ') {
       pushToast('เลือกหรือเพิ่มชื่อโครงการก่อน', 'warning');
       return;
     }
     setProjectAssignTarget(name);
     setProjectAssignSearch('');
-    setProjectAssignSelectedIds(items.filter(item => item && !item.isDeleted && normalizeProjectName(item.project) === name).map(item => item.id));
+    setProjectAssignSelectedIds(items.filter(item => item && !item.isDeleted && String(item.project || '') === name).map(item => item.id));
     setShowProjectAssignModal(true);
   };
 
@@ -2311,13 +2222,13 @@ function MainApp() {
     if (!projectAssignTarget) return alert('กรุณาเลือกโครงการ');
     if (!canAddEditItems && !canManageSystem) return alert('บัญชีนี้ไม่มีสิทธิ์ผูกอุปกรณ์กับโครงการจัดซื้อ');
     const selectedSet = new Set(projectAssignSelectedIds);
-    const currentProjectItems = items.filter(item => item && !item.isDeleted && normalizeProjectName(item.project) === normalizeProjectName(projectAssignTarget));
+    const currentProjectItems = items.filter(item => item && !item.isDeleted && String(item.project || '') === String(projectAssignTarget || ''));
     const selectedItemsForProject = items.filter(item => item && !item.isDeleted && selectedSet.has(item.id));
     const affectedMap = new Map();
     currentProjectItems.forEach(item => affectedMap.set(item.id, item));
     selectedItemsForProject.forEach(item => affectedMap.set(item.id, item));
     const affectedItems = Array.from(affectedMap.values());
-    const addCount = selectedItemsForProject.filter(item => normalizeProjectName(item.project) !== normalizeProjectName(projectAssignTarget)).length;
+    const addCount = selectedItemsForProject.filter(item => String(item.project || '') !== String(projectAssignTarget || '')).length;
     const removeCount = currentProjectItems.filter(item => !selectedSet.has(item.id)).length;
 
     if (selectedItemsForProject.length === 0) {
@@ -2327,11 +2238,11 @@ function MainApp() {
 
     try {
       await Promise.all(affectedItems.map(item => {
-        const oldProject = projectDisplayName(item.project);
+        const oldProject = item.project || 'ไม่ระบุโครงการ';
         const willBeInProject = selectedSet.has(item.id);
         const nextProject = willBeInProject ? projectAssignTarget : '';
-        const nextProjectLabel = willBeInProject ? projectAssignTarget : 'ยังไม่ผูกโครงการจัดซื้อ';
-        const projectChanged = String(oldProject || '') !== String(nextProjectLabel || '');
+        const nextProjectLabel = willBeInProject ? projectAssignTarget : 'ไม่ระบุโครงการ';
+        const projectChanged = String(oldProject || 'ไม่ระบุโครงการ') !== String(nextProjectLabel || 'ไม่ระบุโครงการ');
         const history = Array.isArray(item.history) ? [...item.history] : [];
         if (projectChanged) {
           history.push({
@@ -2377,7 +2288,7 @@ function MainApp() {
 
   const handleRenameProject = async (oldName) => {
     if (!canAddEditItems && !canManageSystem) return alert('บัญชีนี้ไม่มีสิทธิ์แก้ไขโครงการ');
-    if (!normalizeProjectName(oldName)) return alert('กรุณาเลือกโครงการจัดซื้อที่ต้องการเปลี่ยนชื่อ');
+    if (!oldName || oldName === 'ไม่ระบุโครงการ') return alert('ไม่สามารถเปลี่ยนชื่อ “ไม่ระบุโครงการ” ได้');
     const newName = prompt(`เปลี่ยนชื่อโครงการ\nจาก: ${oldName}\nเป็น:`, oldName);
     const clean = String(newName || '').trim();
     if (!clean || clean === oldName) return;
@@ -2393,7 +2304,7 @@ function MainApp() {
       setSettingsOptions(updatedSettings);
       await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
 
-      const affectedItems = items.filter(item => item && !item.isDeleted && normalizeProjectName(item.project) === normalizeProjectName(oldName));
+      const affectedItems = items.filter(item => item && !item.isDeleted && String(item.project || '') === String(oldName));
       await Promise.all(affectedItems.map(item => {
         const history = Array.isArray(item.history) ? [...item.history] : [];
         history.push({
@@ -2425,7 +2336,7 @@ function MainApp() {
 
   const handleDeleteEmptyProject = async (projectName) => {
     if (!canManageSystem && !canAddEditItems) return alert('บัญชีนี้ไม่มีสิทธิ์ลบชื่อโครงการ');
-    if (!normalizeProjectName(projectName)) return alert('กรุณาเลือกโครงการจัดซื้อที่ต้องการลบ');
+    if (!projectName || projectName === 'ไม่ระบุโครงการ') return alert('ไม่สามารถลบ “ไม่ระบุโครงการ” ได้');
     const project = projectStats.find(p => String(p.name) === String(projectName));
     if (project && project.total > 0) {
       return alert('โครงการนี้ยังมีอุปกรณ์อยู่ กรุณาย้าย/ลบการผูกอุปกรณ์ออกก่อน จึงจะลบชื่อโครงการได้');
@@ -2477,7 +2388,7 @@ S.N.: ${item.sn || '-'}
 หมวดหมู่: ${item.category || '-'}
 ที่เก็บ: ${item.location || '-'}
 กล่อง: ${item.storageBoxName || '-'}
-โครงการ: ${projectDisplayName(item.project)}
+โครงการ: ${item.project || '-'}
 สถานะพัสดุ: ${getAssetStatusInfo(item.assetStatus).label}${item.currentBorrower ? `
 ผู้ยืม: ${item.currentBorrower}` : ''}${item.currentEvent ? `
 ออกงาน: ${item.currentEvent}` : ''}`;
@@ -2517,11 +2428,6 @@ S.N.: ${item.sn || '-'}
       title: 'ภาพรวมระบบ',
       desc: 'ระบบจัดการสต๊อกศูนย์มัลติมีเดียทางการศึกษา'
     },
-    borrowReturn: {
-      kicker: 'BORROW & RETURN',
-      title: 'ยืม-คืนอุปกรณ์',
-      desc: 'หน้าทำงานหลักสำหรับให้ยืม นำออกงาน รับคืน และตรวจรายการค้าง'
-    },
     projects: {
       kicker: 'PURCHASE PROJECTS',
       title: 'โครงการจัดซื้อ',
@@ -2539,7 +2445,6 @@ S.N.: ${item.sn || '-'}
     <div className={`workspace-tabbar w-full mb-5 rounded-[1.5rem] border shadow-sm p-2 flex gap-2 overflow-x-auto ${theme.cardBg}`}>
       {[
         ['overview', 'ภาพรวม', Icons.Package, 'กลับหน้ารายการทั้งหมด'],
-        ['borrowReturn', 'ยืม-คืน', Icons.UserPlus, `${currentBorrowedItems.length + currentEventItems.length} รายการค้าง`],
         ['projects', 'โครงการจัดซื้อ', Icons.Database, `${projectStats.length.toLocaleString('th-TH')} โครงการ`],
         ['organize', 'กล่อง / เซ็ต', Icons.Layers, `${(settingsOptions.storageBoxes || []).length} กล่อง • ${(settingsOptions.bundles || []).length} เซ็ต`]
       ].map(([id, label, Icon, desc]) => (
@@ -2560,28 +2465,7 @@ S.N.: ${item.sn || '-'}
   );
 
   const renderProjectWorkspace = () => {
-    const selectedProjectName = normalizeProjectName(selectedPurchaseProject);
-    const fallbackSelectedProject = selectedProjectName ? {
-      name: selectedProjectName,
-      meta: getProjectMeta(selectedProjectName),
-      total: 0,
-      qtyTotal: 0,
-      active: 0,
-      disposed: 0,
-      lost: 0,
-      pending_disposal: 0,
-      available: 0,
-      borrowed: 0,
-      outForEvent: 0,
-      maintenance: 0,
-      missingData: 0,
-      qrMissing: 0,
-      categories: {},
-      departments: {},
-      locations: {},
-      items: []
-    } : null;
-    const selectedProject = projectStats.find(p => String(p.name) === String(selectedProjectName)) || fallbackSelectedProject || filteredProjectStats[0] || null;
+    const selectedProject = projectStats.find(p => String(p.name) === String(selectedPurchaseProject)) || filteredProjectStats[0] || null;
     const projectItems = selectedProject?.items || [];
     const meta = selectedProject?.meta || {};
     const budgetNumber = Number(meta.budget || 0);
@@ -2615,10 +2499,10 @@ S.N.: ${item.sn || '-'}
           <div className="p-5 sm:p-6 space-y-5">
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
               {[
-                ['โครงการจัดซื้อ', projectStats.length, 'text-indigo-500', 'ชื่อโครงการที่บันทึกไว้'],
-                ['มีอุปกรณ์แล้ว', projectStats.filter(p => (p.total || 0) > 0).length, 'text-blue-500', 'โครงการที่ผูกสินค้าแล้ว'],
-                ['ยังไม่มีของ', projectStats.filter(p => (p.total || 0) === 0).length, 'text-amber-500', 'สร้างไว้รอเพิ่มอุปกรณ์'],
-                ['อุปกรณ์รวม', projectStats.reduce((s,p)=>s+(p.total||0),0), 'text-emerald-500', 'รายการที่ระบุโครงการแล้ว']
+                ['โครงการจัดซื้อ', projectStats.filter(p => p.name !== 'ไม่ระบุโครงการ').length, 'text-indigo-500', 'ชื่อโครงการที่บันทึกไว้'],
+                ['มีอุปกรณ์แล้ว', projectStats.filter(p => p.name !== 'ไม่ระบุโครงการ' && (p.total || 0) > 0).length, 'text-blue-500', 'โครงการที่ผูกสินค้าแล้ว'],
+                ['ยังไม่มีของ', projectStats.filter(p => p.name !== 'ไม่ระบุโครงการ' && (p.total || 0) === 0).length, 'text-amber-500', 'สร้างไว้รอเพิ่มอุปกรณ์'],
+                ['อุปกรณ์รวม', projectStats.reduce((s,p)=>s+(p.name === 'ไม่ระบุโครงการ' ? 0 : (p.total||0)),0), 'text-emerald-500', 'รายการที่ระบุโครงการแล้ว']
               ].map(([label, value, color, desc]) => (
                 <div key={label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                   <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
@@ -2627,16 +2511,6 @@ S.N.: ${item.sn || '-'}
                 </div>
               ))}
             </div>
-
-            {unassignedProjectItemCount > 0 && (
-              <div className={`rounded-[1.5rem] border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-950 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
-                <div>
-                  <div className="font-black">มีอุปกรณ์ {unassignedProjectItemCount.toLocaleString('th-TH')} รายการที่ยังไม่ได้ผูกโครงการจัดซื้อ</div>
-                  <div className="text-xs font-bold opacity-80 mt-1">ระบบจะไม่เอารายการเหล่านี้ไปรวมเป็นโครงการ “ไม่ระบุชื่อโครงการ” อีกแล้ว ต้องเลือกผูกเข้ากับโครงการจริงเท่านั้น</div>
-                </div>
-                <button type="button" onClick={() => { setFilterProject('all'); openWorkspace('overview'); }} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ดูรายการในคลัง</button>
-              </div>
-            )}
 
             <div className={`rounded-[1.5rem] border p-4 sm:p-5 grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-3 items-end ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
               <div>
@@ -2651,7 +2525,7 @@ S.N.: ${item.sn || '-'}
                 />
                 <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>สร้างแล้วโครงการจะไม่หาย แม้ยังไม่มีอุปกรณ์ผูกอยู่ และจะเปิดหน้ารายละเอียดให้ทันที</p>
               </div>
-              <button type="button" onClick={handleAddProjectQuick} disabled={isBusy} className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-black shadow-md whitespace-nowrap">{isBusy ? 'กำลังบันทึก...' : 'บันทึกโครงการ'}</button>
+              <button type="button" onClick={handleAddProjectQuick} className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black shadow-md whitespace-nowrap">บันทึกโครงการ</button>
             </div>
 
             <div className={`rounded-[1.5rem] border p-4 ${isDarkMode ? 'bg-blue-950/20 border-blue-900/50' : 'bg-blue-50 border-blue-100'}`}>
@@ -2680,7 +2554,7 @@ S.N.: ${item.sn || '-'}
                 </div>
                 <div className="p-3 space-y-2 max-h-[720px] overflow-y-auto custom-scrollbar">
                   {filteredProjectStats.length === 0 ? (
-                    <div className={ui.emptyBox}>ไม่พบโครงการที่ตรงกับคำค้น / ลองกดล้างตัวกรอง</div>
+                    <div className={ui.emptyBox}>ไม่พบโครงการที่ตรงกับคำค้น</div>
                   ) : filteredProjectStats.map((project) => {
                     const pMeta = project.meta || {};
                     const active = selectedProject && String(selectedProject.name) === String(project.name);
@@ -3015,230 +2889,7 @@ S.N.: ${item.sn || '-'}
     );
   };
 
-  const renderBorrowReturnWorkspace = () => {
-    const modeInfo = borrowReturnMode === 'event'
-      ? { id: 'event', title: 'นำอุปกรณ์ออกงาน', color: 'orange', icon: Icons.Truck, status: 'out-for-event' }
-      : borrowReturnMode === 'return'
-        ? { id: 'return', title: 'รับคืนอุปกรณ์', color: 'emerald', icon: Icons.CheckCircle, status: 'available' }
-        : { id: 'borrow', title: 'ให้ยืมอุปกรณ์', color: 'purple', icon: Icons.UserPlus, status: 'borrowed' };
-    const q = String(borrowReturnSearch || '').trim().toLowerCase();
-    const operationalItems = items
-      .filter(item => item && !item.isDeleted)
-      .filter(item => borrowReturnMode === 'return' ? (item.status === 'borrowed' || item.status === 'out-for-event') : item.status === 'available')
-      .filter(item => {
-        if (!q) return true;
-        return String(item.name || '').toLowerCase().includes(q) ||
-               String(item.sn || '').toLowerCase().includes(q) ||
-               String(item.category || '').toLowerCase().includes(q) ||
-               String(item.location || '').toLowerCase().includes(q) ||
-               String(item.storageBoxName || '').toLowerCase().includes(q) ||
-               String(item.currentBorrower || '').toLowerCase().includes(q) ||
-               String(item.currentEvent || '').toLowerCase().includes(q);
-      })
-      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true }))
-      .slice(0, 140);
-
-    const actionTargetIds = borrowReturnMode === 'event' ? eventTargetIds : borrowReturnMode === 'return' ? returnTargetIds : borrowTargetIds;
-    const actionChecklist = borrowReturnMode === 'event' ? eventChecklist : borrowReturnMode === 'return' ? returnChecklist : packingChecklist;
-    const selectedActionItems = actionTargetIds.map(id => items.find(item => item.id === id)).filter(Boolean);
-    const ActionIcon = modeInfo.icon;
-    const toneBtn = borrowReturnMode === 'event' ? 'bg-orange-600 hover:bg-orange-500' : borrowReturnMode === 'return' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-purple-600 hover:bg-purple-500';
-
-    const setActionTargets = (ids) => {
-      const unique = Array.from(new Set(ids || []));
-      if (borrowReturnMode === 'event') {
-        setEventTargetIds(unique);
-        setEventChecklist(unique);
-      } else if (borrowReturnMode === 'return') {
-        setReturnTargetIds(unique);
-        setReturnChecklist(unique);
-      } else {
-        setBorrowTargetIds(unique);
-        setPackingChecklist(unique);
-      }
-    };
-    const setActionChecklist = (ids) => {
-      const unique = Array.from(new Set(ids || []));
-      if (borrowReturnMode === 'event') setEventChecklist(unique);
-      else if (borrowReturnMode === 'return') setReturnChecklist(unique);
-      else setPackingChecklist(unique);
-    };
-    const clearOperationSelection = () => {
-      if (borrowReturnMode === 'event') { setEventTargetIds([]); setEventChecklist([]); setEventProofFiles([]); }
-      else if (borrowReturnMode === 'return') { setReturnTargetIds([]); setReturnChecklist([]); setReturnProofFiles([]); setReturnInspection({}); }
-      else { setBorrowTargetIds([]); setPackingChecklist([]); setBorrowProofFiles([]); }
-    };
-    const toggleOperationalItem = (id) => {
-      if (actionTargetIds.includes(id)) {
-        const next = actionTargetIds.filter(x => x !== id);
-        setActionTargets(next);
-        setActionChecklist(actionChecklist.filter(x => x !== id));
-      } else {
-        setActionTargets([...actionTargetIds, id]);
-        setActionChecklist([...actionChecklist, id]);
-      }
-    };
-    const selectVisibleItems = () => setActionTargets(operationalItems.map(item => item.id));
-
-    return (
-      <div className="solid-workspace space-y-5">
-        {renderWorkspaceTabs()}
-        <div className={`rounded-[1.75rem] border shadow-sm overflow-hidden operation-workspace-card ${theme.cardBg}`}>
-          <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-4 ${theme.divide}`}>
-            <div>
-              <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-purple-300' : 'text-purple-600'}`}>BORROW & RETURN</div>
-              <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>จัดการยืม-คืนอุปกรณ์</h2>
-              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หน้าทำงานหลักสำหรับเลือกอุปกรณ์ กรอกข้อมูล เช็กของ แนบหลักฐาน และยืนยันรายการ โดยไม่ต้องไล่หา popup หลายจุด</p>
-            </div>
-            <div className="grid grid-cols-2 sm:flex gap-2">
-              <button type="button" onClick={() => openSelectionScanner({ camera: true })} className="px-4 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black flex items-center justify-center gap-2"><Icons.QrCode className="w-5 h-5" /> สแกน QR</button>
-              <button type="button" onClick={() => setShowBorrowDocsModal(true)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>เอกสารย้อนหลัง</button>
-            </div>
-          </div>
-
-          <div className="p-4 sm:p-6 space-y-5">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {[
-                ['พร้อมให้ยืม/ออกงาน', stats.available, 'text-emerald-500', 'อุปกรณ์พร้อมใช้'],
-                ['ถูกยืมอยู่', currentBorrowedItems.length, 'text-purple-500', 'รอรับคืน'],
-                ['ออกงานอยู่', currentEventItems.length, 'text-orange-500', 'รอรับคืนจากงาน'],
-                ['เลยกำหนดคืน', overdueItems.length, 'text-rose-500', 'ควรติดตาม']
-              ].map(([label, value, color, desc]) => (
-                <div key={label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                  <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
-                  <div className={`text-3xl font-black mt-1 ${color}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
-                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className={`rounded-[1.5rem] border p-2 grid grid-cols-3 gap-2 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-              {[
-                ['borrow', 'ให้ยืม', Icons.UserPlus, 'เลือกของพร้อมใช้'],
-                ['event', 'ออกงาน', Icons.Truck, 'นำของไปใช้งาน'],
-                ['return', 'รับคืน', Icons.CheckCircle, 'คืนของเข้าคลัง']
-              ].map(([id, label, Icon, desc]) => (
-                <button key={id} type="button" onClick={() => { clearOperationSelection(); setBorrowReturnMode(id); }} className={`p-3 rounded-2xl border text-left transition-all ${borrowReturnMode === id ? 'bg-blue-600 text-white border-blue-600 shadow-md' : theme.btnSecondary}`}>
-                  <div className="flex items-center gap-2 font-black"><Icon className="w-5 h-5" /> {label}</div>
-                  <div className={`text-[11px] font-bold mt-1 ${borrowReturnMode === id ? 'text-blue-100' : theme.textMuted}`}>{desc}</div>
-                </button>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,.9fr)] gap-5 items-start">
-              <section className={`rounded-[1.5rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <div className={`p-4 border-b ${theme.divide}`}>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <h3 className={`text-xl font-black ${theme.textTitle}`}>{borrowReturnMode === 'return' ? 'รายการที่รอรับคืน' : 'รายการที่พร้อมใช้งาน'}</h3>
-                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>พบ {operationalItems.length.toLocaleString('th-TH')} รายการ • เลือกแล้ว {actionTargetIds.length.toLocaleString('th-TH')} รายการ</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={selectVisibleItems} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>เลือกที่เห็น</button>
-                      <button type="button" onClick={clearOperationSelection} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ล้าง</button>
-                    </div>
-                  </div>
-                  <input className={`mt-3 w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาชื่อ / S.N. / หมวด / ที่เก็บ / ผู้ยืม / งาน" value={borrowReturnSearch} onChange={e => setBorrowReturnSearch(e.target.value)} />
-                </div>
-                <div className="p-3 sm:p-4 max-h-[650px] overflow-y-auto custom-scrollbar space-y-2">
-                  {operationalItems.length === 0 ? (
-                    <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ไม่พบรายการในโหมดนี้</div>
-                  ) : operationalItems.map(item => {
-                    const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
-                    const selected = actionTargetIds.includes(item.id);
-                    const late = (item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
-                    return (
-                      <button key={item.id} type="button" onClick={() => toggleOperationalItem(item.id)} className={`w-full p-3 sm:p-4 rounded-2xl border text-left transition-all ${selected ? (isDarkMode ? 'bg-blue-950/40 border-blue-700' : 'bg-blue-50 border-blue-300') : (isDarkMode ? 'bg-slate-900 border-slate-800 hover:border-slate-600' : 'bg-slate-50 border-slate-200 hover:border-blue-200')}`}>
-                        <div className="flex items-start gap-3">
-                          <span className={`mt-1 w-6 h-6 rounded-lg border flex items-center justify-center shrink-0 ${selected ? 'bg-blue-600 border-blue-600 text-white' : isDarkMode ? 'border-slate-600 bg-slate-950' : 'border-slate-300 bg-white'}`}>{selected ? '✓' : ''}</span>
-                          <div className="min-w-0 flex-1">
-                            <div className={`font-black clean-mobile-card-title ${theme.textTitle}`}>{item.name || '-'}</div>
-                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • {item.location || '-'}</div>
-                            <div className="mt-2 flex flex-wrap gap-1.5">
-                              <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
-                              {item.storageBoxName && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-50 text-cyan-700'}`}>📦 {item.storageBoxName}</span>}
-                              {item.currentBorrower && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-purple-900/40 text-purple-300' : 'bg-purple-50 text-purple-700'}`}>ผู้ยืม: {item.currentBorrower}</span>}
-                              {item.currentEvent && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-orange-900/40 text-orange-300' : 'bg-orange-50 text-orange-700'}`}>งาน: {item.currentEvent}</span>}
-                              {late && <span className="px-2.5 py-1 rounded-full text-xs font-black bg-rose-600 text-white">เลยกำหนดคืน</span>}
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-
-              <section className={`rounded-[1.5rem] border overflow-hidden sticky top-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <div className={`p-4 border-b ${theme.divide}`}>
-                  <h3 className={`text-xl font-black flex items-center gap-2 ${theme.textTitle}`}><ActionIcon className="w-6 h-6" /> {modeInfo.title}</h3>
-                  <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เลือกอุปกรณ์ด้านซ้าย แล้วตรวจเช็กก่อนยืนยันรายการ</p>
-                </div>
-                <div className="p-4 space-y-4">
-                  {borrowReturnMode === 'borrow' && (
-                    <>
-                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>ผู้ให้ยืม *</span><select className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={borrowData.staff || ''} onChange={e => setBorrowData({...borrowData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : borrowData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
-                      {borrowData.staff === 'อื่นๆ' && <input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={borrowData.newStaff || ''} onChange={e => setBorrowData({...borrowData, newStaff: e.target.value})} />}
-                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>ชื่อผู้ยืม *</span><input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ชื่อ-สกุล / แผนก" value={borrowData.borrower || ''} onChange={e => setBorrowData({...borrowData, borrower: e.target.value})} /></label>
-                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>กำหนดคืน</span><input type="date" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={borrowData.returnDate || ''} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} /></label>
-                      <textarea className={`w-full px-4 py-3 rounded-xl border font-bold resize-none ${theme.input}`} rows={2} placeholder="หมายเหตุ" value={borrowData.note || ''} onChange={e => setBorrowData({...borrowData, note: e.target.value})} />
-                      {renderProofUploader('หลักฐานการยืม', borrowProofFiles, setBorrowProofFiles, 'purple')}
-                    </>
-                  )}
-                  {borrowReturnMode === 'event' && (
-                    <>
-                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>ผู้นำออก / ผู้รับผิดชอบ *</span><select className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={eventData.staff || ''} onChange={e => setEventData({...eventData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : eventData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
-                      {eventData.staff === 'อื่นๆ' && <input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={eventData.newStaff || ''} onChange={e => setEventData({...eventData, newStaff: e.target.value})} />}
-                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>ชื่องาน / สถานที่ *</span><input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="เช่น งานประชุม / ถ่ายภาพกิจกรรม" value={eventData.eventName || ''} onChange={e => setEventData({...eventData, eventName: e.target.value})} /></label>
-                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>กำหนดคืน</span><input type="date" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={eventData.returnDate || ''} onChange={e => setEventData({...eventData, returnDate: e.target.value})} /></label>
-                      <textarea className={`w-full px-4 py-3 rounded-xl border font-bold resize-none ${theme.input}`} rows={2} placeholder="หมายเหตุ" value={eventData.note || ''} onChange={e => setEventData({...eventData, note: e.target.value})} />
-                      {renderProofUploader('หลักฐานนำออกงาน', eventProofFiles, setEventProofFiles, 'orange')}
-                    </>
-                  )}
-                  {borrowReturnMode === 'return' && (
-                    <>
-                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>ผู้รับคืน *</span><select className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={returnData.staff || ''} onChange={e => setReturnData({...returnData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : returnData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
-                      {returnData.staff === 'อื่นๆ' && <input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={returnData.newStaff || ''} onChange={e => setReturnData({...returnData, newStaff: e.target.value})} />}
-                      {renderProofUploader('หลักฐานการรับคืน', returnProofFiles, setReturnProofFiles, 'emerald')}
-                    </>
-                  )}
-
-                  <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className="flex items-center justify-between gap-3 mb-3">
-                      <div className={`font-black ${theme.textTitle}`}>เช็กลิสต์ ({actionChecklist.length}/{actionTargetIds.length})</div>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => setActionChecklist(actionTargetIds)} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>เช็กครบ</button>
-                        <button type="button" onClick={() => setActionChecklist([])} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ล้างเช็ก</button>
-                      </div>
-                    </div>
-                    <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
-                      {selectedActionItems.length === 0 ? <div className={`p-4 text-center text-sm font-bold ${theme.textMuted}`}>ยังไม่ได้เลือกอุปกรณ์</div> : selectedActionItems.map(item => {
-                        const checked = actionChecklist.includes(item.id);
-                        return (
-                          <label key={item.id} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer ${checked ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200')}`}>
-                            <input type="checkbox" className="stock-check mt-0.5" checked={checked} onChange={e => setActionChecklist(e.target.checked ? [...actionChecklist, item.id] : actionChecklist.filter(id => id !== item.id))} />
-                            <span className={`min-w-0 flex-1 text-sm font-black ${theme.textTitle}`}>{item.name}<span className={`block text-xs font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'}</span></span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <button type="button" onClick={clearOperationSelection} className={`py-4 rounded-xl font-black border ${theme.btnCancel}`}>ยกเลิก</button>
-                    <button type="button" onClick={borrowReturnMode === 'event' ? handleEventOut : borrowReturnMode === 'return' ? handleReturn : handleBorrow} disabled={(borrowReturnMode === 'borrow' && (!borrowData.staff || !borrowData.borrower || packingChecklist.length === 0)) || (borrowReturnMode === 'event' && (!eventData.staff || !eventData.eventName || eventChecklist.length === 0)) || (borrowReturnMode === 'return' && (!returnData.staff || returnChecklist.length === 0))} className={`py-4 rounded-xl font-black text-white ${toneBtn} disabled:bg-slate-400 disabled:cursor-not-allowed`}>ยืนยัน</button>
-                  </div>
-                </div>
-              </section>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderActiveWorkspace = () => {
-    if (activeWorkspace === 'borrowReturn') return renderBorrowReturnWorkspace();
     if (activeWorkspace === 'projects') return renderProjectWorkspace();
     if (activeWorkspace === 'organize') return renderOrganizeWorkspace();
     return null;
@@ -3858,14 +3509,14 @@ S.N.: ${item.sn || '-'}
         settingsChanged = true;
       }
 
-      let finalProject = normalizeProjectName(formData.project);
+      let finalProject = formData.project || '';
       if (formData.project === 'อื่นๆ' && (formData.newProject || '').trim()) {
-        finalProject = normalizeProjectName(formData.newProject);
-        currentSettings.projects = [...new Set([...(currentSettings.projects || []).map(p => normalizeProjectName(p)).filter(c => c && c !== 'อื่นๆ'), finalProject, 'อื่นๆ'])];
+        finalProject = formData.newProject.trim();
+        currentSettings.projects = [...new Set([...(currentSettings.projects || []).filter(c => c !== 'อื่นๆ'), finalProject, 'อื่นๆ'])];
         settingsChanged = true;
       }
       if (finalProject && finalProject !== 'อื่นๆ') {
-        currentSettings.projects = [...new Set([...(currentSettings.projects || []).map(p => normalizeProjectName(p)).filter(c => c && c !== 'อื่นๆ'), finalProject, 'อื่นๆ'])];
+        currentSettings.projects = [...new Set([...(currentSettings.projects || []).filter(c => c !== 'อื่นๆ'), finalProject, 'อื่นๆ'])];
         settingsChanged = true;
       }
 
@@ -3920,15 +3571,15 @@ S.N.: ${item.sn || '-'}
           history.push({
             type: 'projectChange',
             date: new Date().toISOString(),
-            fromProject: projectDisplayName(oldItem?.project),
-            toProject: finalProject || 'ยังไม่ผูกโครงการจัดซื้อ',
+            fromProject: oldItem?.project || 'ไม่ระบุโครงการ',
+            toProject: finalProject || 'ไม่ระบุโครงการ',
             staff: currentOperator?.name || 'Admin',
             note: 'เปลี่ยนโครงการแบบง่ายจากหน้าแก้ไขอุปกรณ์'
           });
           itemData.history = history;
         }
         await setDoc(getItemDoc(formData.id), itemData, { merge: true });
-        logAction(projectChanged ? 'เปลี่ยนโครงการอุปกรณ์' : 'แก้ไขข้อมูล', itemData.name, projectChanged ? `ย้ายจาก ${projectDisplayName(oldItem?.project)} → ${finalProject || 'ยังไม่ผูกโครงการจัดซื้อ'}` : `แก้ไขรายละเอียดอุปกรณ์ S.N.: ${itemData.sn || '-'}`);
+        logAction(projectChanged ? 'เปลี่ยนโครงการอุปกรณ์' : 'แก้ไขข้อมูล', itemData.name, projectChanged ? `ย้ายจาก ${oldItem?.project || 'ไม่ระบุโครงการ'} → ${finalProject || 'ไม่ระบุโครงการ'}` : `แก้ไขรายละเอียดอุปกรณ์ S.N.: ${itemData.sn || '-'}`);
       } else {
         const newId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
         await setDoc(getItemDoc(newId), { ...itemData, createdBy: currentOperator?.name || 'Admin', history: [] });
@@ -4399,20 +4050,6 @@ S.N.: ${item.sn || '-'}
       setReturnTargetIds([...validIds]);
       setReturnChecklist([]);
     } catch(err) { alert("Systemขัดข้อง: " + err.message); }
-  };
-
-
-
-  const openReturnForItems = (ids = []) => {
-    const validIds = Array.from(new Set((ids || []).filter(id => {
-      const st = items.find(i => i.id === id)?.status;
-      return st === 'borrowed' || st === 'out-for-event';
-    })));
-    if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่สามารถรับคืนได้');
-    setReturnData({ staff: '', newStaff: '' });
-    setReturnTargetIds(validIds);
-    setReturnChecklist([]);
-    setReturnProofFiles([]);
   };
 
   const handleCreateBundleFromSelection = () => {
@@ -5778,7 +5415,7 @@ S.N.: ${item.sn || '-'}
               <Icons.Folder className="w-6 h-6" /> พิมพ์ฉลากกล่องเก็บของ ({selectedLabelItems.length} รายการ)
             </h2>
             <p className="text-slate-300 text-sm font-bold mt-1">
-              ตัวอย่างนี้คือฉลากที่จะพิมพ์จริง เลือกขนาด/โหมดได้จากแถบนี้ ส่วนช่องเช็กและ QR เป็นตัวเลือกเสริม
+              ตัวอย่างนี้คือฉลากที่จะพิมพ์จริง เลือกขนาด/โหมด/ช่องเช็ก/QR ได้จากแถบนี้
             </p>
           </div>
 
@@ -5829,11 +5466,11 @@ S.N.: ${item.sn || '-'}
             </label>
             <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 font-black text-slate-700">
               <input type="checkbox" className="w-5 h-5 accent-slate-900" checked={boxLabelShowChecks} onChange={e => setBoxLabelShowChecks(e.target.checked)} />
-              แสดงช่องเช็กของ (ตัวเลือกเสริม)
+              แสดงช่องเช็กของ
             </label>
             <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 font-black text-slate-700">
               <input type="checkbox" className="w-5 h-5 accent-slate-900" checked={boxLabelShowQr} onChange={e => setBoxLabelShowQr(e.target.checked)} />
-              แสดง QR กล่อง (ตัวเลือกเสริม)
+              แสดง QR กล่อง
             </label>
           </div>
 
@@ -6537,9 +6174,6 @@ S.N.: ${item.sn || '-'}
           <button type="button" onClick={() => openWorkspace('overview')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'overview' ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
             <Icons.Package className="w-5 h-5" /> ภาพรวมระบบ
           </button>
-          <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'borrowReturn' ? 'bg-gradient-to-r from-purple-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.UserPlus className="w-5 h-5" /> ยืม-คืนอุปกรณ์
-          </button>
           {canUseOperationalTools && (
             <button type="button" onClick={() => openSelectionScanner({ camera: true })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
               <Icons.QrCode className="w-5 h-5" /> สแกน QR
@@ -6645,10 +6279,7 @@ S.N.: ${item.sn || '-'}
                 </button>
               )}
               <button type="button" onClick={() => setShowCommandCenter(true)} className="factory-ghost-btn" title="Dashboard">
-                <Icons.Monitor className="w-5 h-5" /><span className="hidden-mobile">Dashboard</span>
-              </button>
-              <button type="button" onClick={() => openWorkspace('borrowReturn')} className="factory-ghost-btn" title="ยืม-คืนอุปกรณ์">
-                <Icons.UserPlus className="w-5 h-5" /><span className="hidden-mobile">ยืม-คืน</span>
+                <Icons.Monitor className="w-5 h-5" /><span>Dashboard</span>
               </button>
               <button type="button" onClick={() => openTrackingCenter('today')} className="factory-ghost-btn" title="ศูนย์ติดตาม">
                 <Icons.History className="w-5 h-5" /><span>ติดตาม</span>
@@ -7252,7 +6883,7 @@ S.N.: ${item.sn || '-'}
                               <div className="min-w-0">
                                 <div className={`font-black text-lg truncate ${theme.textTitle}`}>{item.name}</div>
                                 <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'}</div>
-                                {normalizeProjectName(item.project) && <div className={`text-xs font-black mt-2 ${isDarkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>🗂️ {normalizeProjectName(item.project)}</div>}
+                                {item.project && <div className={`text-xs font-black mt-2 ${isDarkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>🗂️ {item.project}</div>}
                               </div>
                               <span className={`px-2 py-1 rounded-lg text-xs font-black border shrink-0 ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
                             </div>
@@ -7325,10 +6956,10 @@ S.N.: ${item.sn || '-'}
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
-                          <span className={`mobile-secondary-chip inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? deptInfo.darkColor : deptInfo.color}`}>{deptInfo.label}</span>
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? deptInfo.darkColor : deptInfo.color}`}>{deptInfo.label}</span>
                           {qty > 1 && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>x{qty}</span>}
                           {item.storageBoxName && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-50 text-cyan-700'}`}>📦 {item.storageBoxName}</span>}
-                          {normalizeProjectName(item.project) && <button type="button" onClick={() => setFilterProject(normalizeProjectName(item.project))} className={`mobile-secondary-chip px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-indigo-900/40 text-indigo-300' : 'bg-indigo-50 text-indigo-700'}`}>🗂️ {normalizeProjectName(item.project)}</button>}
+                          {item.project && <button type="button" onClick={() => setFilterProject(item.project)} className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-indigo-900/40 text-indigo-300' : 'bg-indigo-50 text-indigo-700'}`}>🗂️ {item.project}</button>}
                           {item.assetStatus && item.assetStatus !== 'active' && <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? getAssetStatusInfo(item.assetStatus).darkColor : getAssetStatusInfo(item.assetStatus).color}`}>{getAssetStatusInfo(item.assetStatus).label}</span>}
                           {missingLabels.length > 0 && <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>ข้อมูลไม่ครบ {missingLabels.length}</span>}
                           {proofCount > 0 && <button type="button" onClick={() => { setProofCenterSearch(item.sn || item.name || ''); setProofCenterFilter('all'); setShowProofCenterModal(true); }} className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-pink-900/40 text-pink-300' : 'bg-pink-50 text-pink-700'}`}>📷 {proofCount}</button>}
@@ -9195,7 +8826,7 @@ S.N.: ${item.sn || '-'}
       )}
 
       {/* 📋 Borrow Modal */}
-      {borrowTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
+      {borrowTargetIds.length > 0 && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
@@ -9319,7 +8950,7 @@ S.N.: ${item.sn || '-'}
       )}
 
       {/* 🚚 Event Modal */}
-      {eventTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
+      {eventTargetIds.length > 0 && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
@@ -9443,7 +9074,7 @@ S.N.: ${item.sn || '-'}
       )}
 
       {/* 📋 Return Modal */}
-      {returnTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
+      {returnTargetIds.length > 0 && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
@@ -10376,7 +10007,7 @@ S.N.: ${item.sn || '-'}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {projectAssignCandidateItems.map(item => {
                     const checked = projectAssignSelectedIds.includes(item.id);
-                    const already = normalizeProjectName(item.project) === normalizeProjectName(projectAssignTarget);
+                    const already = String(item.project || '') === String(projectAssignTarget || '');
                     return (
                       <button key={item.id} type="button" onClick={() => toggleProjectAssignItem(item.id)} className={`p-4 rounded-2xl border text-left transition-all ${checked ? (isDarkMode ? 'bg-indigo-950/50 border-indigo-600 text-indigo-200' : 'bg-indigo-50 border-indigo-300 text-indigo-800') : theme.btnSecondary}`}>
                         <div className="flex items-start gap-3">
@@ -10384,7 +10015,7 @@ S.N.: ${item.sn || '-'}
                           <div className="min-w-0 flex-1">
                             <div className="font-black truncate">{item.name}</div>
                             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • {item.location || '-'}</div>
-                            <div className={`text-xs font-bold mt-2 ${already ? 'text-emerald-500' : theme.textMuted}`}>{checked ? (already ? 'อยู่ในโครงการจัดซื้อนี้แล้ว' : 'จะผูกเข้าโครงการจัดซื้อนี้') : (already ? 'จะนำออกจากโครงการจัดซื้อนี้เมื่อบันทึก' : `ปัจจุบัน: ${projectDisplayName(item.project)}`)}</div>
+                            <div className={`text-xs font-bold mt-2 ${already ? 'text-emerald-500' : theme.textMuted}`}>{checked ? (already ? 'อยู่ในโครงการจัดซื้อนี้แล้ว' : 'จะผูกเข้าโครงการจัดซื้อนี้') : (already ? 'จะนำออกจากโครงการจัดซื้อนี้เมื่อบันทึก' : `ปัจจุบัน: ${item.project || 'ไม่ระบุโครงการ'}`)}</div>
                           </div>
                         </div>
                       </button>
@@ -10833,27 +10464,24 @@ S.N.: ${item.sn || '-'}
       )}
 
       {/* FactoryStock Mobile Bottom Nav */}
-      <div className={`lg:hidden fixed bottom-0 inset-x-0 z-40 border-t shadow-[0_-16px_40px_rgba(15,23,42,0.14)] ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-        <div className="grid grid-cols-5 gap-1 px-1.5 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
-          <button type="button" onClick={() => openWorkspace('overview')} className={`py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${activeWorkspace === 'overview' ? 'bg-blue-600 text-white' : theme.textMuted}`}>
+      <div className={`lg:hidden fixed bottom-0 inset-x-0 z-40 border-t shadow-[0_-16px_40px_rgba(15,23,42,0.14)] ${isDarkMode ? 'bg-slate-950/94 border-slate-800' : 'bg-white border-slate-200'}`}>
+        <div className="grid grid-cols-4 gap-1 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className={`py-2 rounded-2xl text-xs font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
             <Icons.Package className="w-5 h-5" />หน้าหลัก
           </button>
-          <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${activeWorkspace === 'borrowReturn' ? 'bg-purple-600 text-white' : theme.textMuted}`}>
-            <Icons.UserPlus className="w-5 h-5" />ยืมคืน
-          </button>
           {canUseOperationalTools ? (
-            <button type="button" onClick={() => openSelectionScanner({ camera: true })} className="py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 bg-slate-900 text-white shadow-md">
+            <button type="button" onClick={() => openSelectionScanner({ camera: true })} className="py-2 rounded-2xl text-xs font-black flex flex-col items-center gap-1 bg-slate-900 text-white shadow-md">
               <Icons.QrCode className="w-5 h-5" />สแกน
             </button>
           ) : (
-            <button type="button" onClick={() => setShowFilterModal(true)} className={`py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
+            <button type="button" onClick={() => setShowFilterModal(true)} className={`py-2 rounded-2xl text-xs font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
               <Icons.Settings className="w-5 h-5" />กรอง
             </button>
           )}
-          <button type="button" onClick={() => openWorkspace('projects')} className={`py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${activeWorkspace === 'projects' ? 'bg-indigo-600 text-white' : theme.textMuted}`}>
-            <Icons.Folder className="w-5 h-5" />โครงการ
+          <button type="button" onClick={() => openTrackingCenter('today')} className={`py-2 rounded-2xl text-xs font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
+            <Icons.History className="w-5 h-5" />ติดตาม
           </button>
-          <button type="button" onClick={openControlCenter} className={`py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
+          <button type="button" onClick={openControlCenter} className={`py-2 rounded-2xl text-xs font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
             <Icons.ViewGrid className="w-5 h-5" />เมนู
           </button>
         </div>
