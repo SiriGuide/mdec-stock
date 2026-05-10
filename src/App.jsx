@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.50.6 Backup Center Hotfix';
-const APP_UPDATE_NOTE = 'เก็บงาน Design System ทั้งเว็บ: สี ปุ่ม การ์ด typography mobile และ empty state โดยไม่แตะ QR/กล้องหรือฐานข้อมูล';
+const APP_VERSION = 'v22.50.18 Unified Design System';
+const APP_UPDATE_NOTE = 'ปรับภาษาออกแบบทั้งเว็บให้เป็นชุดเดียวกัน: ปุ่ม การ์ด ฟอร์ม ตาราง Popup และมือถือ โดยยึดฐาน QR เสถียร ไม่แตะระบบกล้องหรือฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -1872,6 +1872,183 @@ function FactoryPolishStyle({ isDarkMode }) {
         .factory-stock-polish .operation-workspace-card,
         .factory-stock-polish .purchase-project-card {
           padding: 10px !important;
+        }
+      }
+
+
+      /* v22.50.18 Unified Design System: ทำให้ทั้งเว็บใช้ภาษาออกแบบเดียวกัน โดยไม่แตะ QR scanner logic */
+      .factory-stock-polish {
+        --ui-radius-xl: 18px;
+        --ui-radius-2xl: 22px;
+        --ui-radius-3xl: 28px;
+        --ui-border-soft: rgba(148,163,184,.24);
+        --ui-blue: #2563eb;
+        --ui-blue-2: #1d4ed8;
+        --ui-surface-soft: rgba(255,255,255,.72);
+        --ui-card-shadow: 0 18px 45px rgba(15,23,42,.075);
+        --ui-card-shadow-hover: 0 24px 55px rgba(15,23,42,.11);
+      }
+      .factory-stock-polish[data-polish-theme="dark"] {
+        --ui-border-soft: rgba(148,163,184,.18);
+        --ui-surface-soft: rgba(15,23,42,.72);
+        --ui-card-shadow: 0 18px 45px rgba(0,0,0,.26);
+        --ui-card-shadow-hover: 0 24px 55px rgba(0,0,0,.34);
+      }
+      .factory-stock-polish :is(.solid-panel,.operation-workspace-card,.workspace-action-card,.purchase-project-card,.stock-mobile-card,.item-form-shell,.item-detail-shell,.settings-shell,.compact-modal-shell,.smart-picker-shell,.smart-picker-panel) {
+        border-color: var(--ui-border-soft) !important;
+        box-shadow: var(--ui-card-shadow) !important;
+      }
+      .factory-stock-polish :is(.operation-workspace-card,.workspace-action-card,.purchase-project-card,.stock-mobile-card,.solid-panel) {
+        border-radius: var(--ui-radius-3xl) !important;
+        overflow: hidden;
+      }
+      .factory-stock-polish :is(.workspace-action-card,.stock-mobile-card,.purchase-project-card):hover {
+        transform: translateY(-1px);
+        box-shadow: var(--ui-card-shadow-hover) !important;
+      }
+      .factory-stock-polish :is(.compact-modal-shell,.item-form-shell,.item-detail-shell,.settings-shell) {
+        border-radius: var(--ui-radius-3xl) !important;
+      }
+      .factory-stock-polish :is(.item-form-section,.item-detail-summary,.settings-shell [class*="rounded"],.smart-picker-shell) {
+        border-radius: var(--ui-radius-2xl) !important;
+      }
+      .factory-stock-polish :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):not(.stock-check) {
+        border-color: var(--ui-border-soft) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.5) !important;
+        transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+      }
+      .factory-stock-polish :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):not(.stock-check):focus {
+        border-color: rgba(37,99,235,.65) !important;
+        box-shadow: 0 0 0 4px rgba(37,99,235,.13), inset 0 1px 0 rgba(255,255,255,.55) !important;
+      }
+      .factory-stock-polish textarea {
+        line-height: 1.55 !important;
+      }
+      .factory-stock-polish button {
+        letter-spacing: -.01em;
+      }
+      .factory-stock-polish button[class*="bg-blue"],
+      .factory-stock-polish .factory-primary-btn {
+        background: linear-gradient(135deg, var(--ui-blue), var(--ui-blue-2)) !important;
+      }
+      .factory-stock-polish button[class*="rounded"] {
+        transition: transform .16s ease, box-shadow .16s ease, filter .16s ease, background .16s ease, border-color .16s ease;
+      }
+      .factory-stock-polish button[class*="rounded"]:hover {
+        filter: saturate(1.03);
+      }
+      .factory-stock-polish button:disabled {
+        transform: none !important;
+        filter: grayscale(.12);
+      }
+      .factory-stock-polish :is(.factory-page-title h1,h1,h2,h3) {
+        letter-spacing: -.035em;
+      }
+      .factory-stock-polish :is(.factory-page-title p,p,.text-sm,.text-xs) {
+        letter-spacing: -.012em;
+      }
+      .factory-stock-polish table {
+        border-radius: var(--ui-radius-3xl);
+        overflow: hidden;
+      }
+      .factory-stock-polish thead th {
+        background: color-mix(in srgb, var(--factory-card) 78%, var(--factory-bg)) !important;
+        color: var(--factory-muted) !important;
+      }
+      .factory-stock-polish tbody td {
+        border-color: rgba(148,163,184,.16) !important;
+      }
+      .factory-stock-polish .stock-table-compact tbody tr {
+        transition: background .18s ease, transform .18s ease;
+      }
+      .factory-stock-polish .stock-table-compact tbody tr:hover {
+        background: rgba(37,99,235,.045) !important;
+      }
+      .factory-stock-polish[data-polish-theme="dark"] .stock-table-compact tbody tr:hover {
+        background: rgba(37,99,235,.12) !important;
+      }
+      .factory-stock-polish :is(.workspace-tabbar, .settings-nav-grid) button {
+        border-radius: var(--ui-radius-xl) !important;
+      }
+      .factory-stock-polish .workspace-tabbar button {
+        min-height: 42px;
+      }
+      .factory-stock-polish :is(.smart-picker-panel,.smart-picker-shell) {
+        backdrop-filter: none !important;
+      }
+      .factory-stock-polish .smart-picker-panel button,
+      .factory-stock-polish .smart-picker-shell button {
+        border-radius: 999px !important;
+      }
+      .factory-stock-polish .stock-mobile-card {
+        border-width: 1px !important;
+      }
+      .factory-stock-polish .clean-mobile-actions button {
+        border-radius: var(--ui-radius-xl) !important;
+      }
+      .factory-stock-polish [class*="bg-emerald"] {
+        --tw-ring-color: rgba(16,185,129,.22);
+      }
+      .factory-stock-polish [class*="bg-orange"] {
+        --tw-ring-color: rgba(249,115,22,.20);
+      }
+      .factory-stock-polish [class*="bg-rose"] {
+        --tw-ring-color: rgba(244,63,94,.20);
+      }
+      .factory-stock-polish .compact-modal-shell .border-b,
+      .factory-stock-polish .compact-modal-shell .border-t,
+      .factory-stock-polish .settings-shell .border-b,
+      .factory-stock-polish .settings-shell .border-t {
+        border-color: var(--ui-border-soft) !important;
+      }
+      .factory-stock-polish .item-form-section > div:first-child,
+      .factory-stock-polish .factory-kicker {
+        letter-spacing: .06em;
+      }
+      @media (max-width: 760px) {
+        .factory-stock-polish {
+          padding-left: 10px !important;
+          padding-right: 10px !important;
+        }
+        .factory-stock-polish .factory-topbar {
+          padding-top: 14px !important;
+          padding-bottom: 6px !important;
+          gap: 10px !important;
+        }
+        .factory-stock-polish .factory-page-title h1 {
+          font-size: 25px !important;
+          line-height: 1.08 !important;
+        }
+        .factory-stock-polish .factory-page-title p {
+          font-size: 12px !important;
+          line-height: 1.35 !important;
+        }
+        .factory-stock-polish :is(.stock-mobile-card,.operation-workspace-card,.purchase-project-card,.solid-panel) {
+          border-radius: 22px !important;
+        }
+        .factory-stock-polish :is(.compact-modal-shell,.item-form-shell,.item-detail-shell,.settings-shell) {
+          border-radius: 24px !important;
+        }
+        .factory-stock-polish :is(button,input,select,textarea) {
+          font-size: 14px;
+        }
+        .factory-stock-polish .workspace-tabbar button {
+          min-height: 40px !important;
+          padding-left: 12px !important;
+          padding-right: 12px !important;
+        }
+        .factory-stock-polish .clean-mobile-actions {
+          gap: 7px !important;
+        }
+        .factory-stock-polish .clean-mobile-actions button {
+          min-height: 40px !important;
+          font-size: 12px !important;
+        }
+        .factory-stock-polish .stock-name-line .stock-title {
+          font-size: 15px !important;
+        }
+        .factory-stock-polish .stock-meta-line {
+          font-size: 11.5px !important;
         }
       }
 
