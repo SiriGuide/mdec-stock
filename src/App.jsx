@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.46.3 Command Dashboard One Screen';
-const APP_UPDATE_NOTE = 'แก้ศูนย์ควบคุม Dashboard ที่ใหญ่ทะลุจอ ปรับเป็น compact responsive ทั้งคอมและมือถือ โดยไม่แตะโครงสร้างฐานข้อมูล';
+const APP_VERSION = 'v22.47.1 Mobile Dashboard Hotfix';
+const APP_UPDATE_NOTE = 'ปรับ Dashboard/Command Center บนมือถือให้เรียงอ่านง่าย ไม่ล้น ไม่ใหญ่เกิน และไม่บีบปุ่มแถบบนจนแปลก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -1363,6 +1363,165 @@ function FactoryPolishStyle({ isDarkMode }) {
         .factory-stock-polish .factory-top-actions,
         .factory-stock-polish .workspace-tabbar {
           display: none !important;
+        }
+      }
+
+
+
+      /* v22.47.0 Borrow-Return & Document Polish */
+      .factory-stock-polish .operation-workspace-card {
+        overflow: visible !important;
+      }
+      .factory-stock-polish .operation-workspace-card > div:first-child {
+        padding-top: 18px !important;
+        padding-bottom: 18px !important;
+      }
+      .factory-stock-polish .operation-workspace-card > div:first-child h2 {
+        font-size: clamp(1.25rem, 2vw, 1.75rem) !important;
+      }
+      .factory-stock-polish .operation-workspace-card > div:nth-child(2) {
+        padding: 16px !important;
+      }
+      .factory-stock-polish .operation-workspace-card section {
+        box-shadow: none !important;
+      }
+      .factory-stock-polish .operation-workspace-card section:first-of-type > div:last-child {
+        max-height: min(58vh, 560px) !important;
+      }
+      .factory-stock-polish .operation-workspace-card section:last-of-type {
+        top: 12px !important;
+      }
+      .factory-stock-polish .operation-workspace-card section:last-of-type > div:last-child {
+        max-height: min(68vh, 680px) !important;
+        overflow-y: auto !important;
+        scrollbar-width: thin;
+      }
+      .factory-stock-polish .operation-workspace-card section:last-of-type > div:last-child::-webkit-scrollbar {
+        width: 6px;
+      }
+      .factory-stock-polish .operation-workspace-card section:last-of-type > div:last-child::-webkit-scrollbar-thumb {
+        background: rgba(148,163,184,.45);
+        border-radius: 999px;
+      }
+      .factory-stock-polish .operation-workspace-card [class*="grid-cols-4"] > div {
+        min-height: 92px !important;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .factory-stock-polish .operation-workspace-card [class*="grid-cols-4"] [class*="text-3xl"] {
+        font-size: 1.55rem !important;
+      }
+      .factory-stock-polish .operation-workspace-card [class*="grid-cols-3"] button {
+        min-height: 72px !important;
+      }
+      .factory-stock-polish .operation-workspace-card .clean-mobile-card-title {
+        font-size: 15px !important;
+        line-height: 1.28 !important;
+      }
+      .factory-stock-polish .operation-workspace-card label:has(input[type="checkbox"]) {
+        border-radius: 14px !important;
+      }
+      .factory-stock-polish .operation-workspace-card textarea {
+        min-height: 74px !important;
+      }
+      .factory-stock-polish .tracking-polish,
+      .factory-stock-polish .monthly-report-polish,
+      .factory-stock-polish .document-archive-polish {
+        border-radius: 22px !important;
+        overflow: hidden !important;
+      }
+      .factory-stock-polish .document-archive-card,
+      .factory-stock-polish .tracking-list-card {
+        border-radius: 16px !important;
+        transition: border-color .18s ease, background .18s ease;
+      }
+      .factory-stock-polish .document-archive-card:hover,
+      .factory-stock-polish .tracking-list-card:hover {
+        border-color: rgba(37,99,235,.30) !important;
+      }
+      .factory-stock-polish .print-actions-bar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        backdrop-filter: none !important;
+      }
+      .factory-stock-polish .print-paper-shell {
+        width: min(100%, 980px) !important;
+        margin-inline: auto !important;
+        border-radius: 18px !important;
+        overflow: hidden !important;
+      }
+      .factory-stock-polish .print-paper-shell table th,
+      .factory-stock-polish .print-paper-shell table td {
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+      }
+      @media (max-width: 1279px) {
+        .factory-stock-polish .operation-workspace-card section:last-of-type {
+          position: static !important;
+        }
+        .factory-stock-polish .operation-workspace-card section:last-of-type > div:last-child {
+          max-height: none !important;
+          overflow: visible !important;
+        }
+      }
+      @media (max-width: 767px) {
+        .factory-stock-polish .operation-workspace-card > div:first-child {
+          padding: 14px !important;
+        }
+        .factory-stock-polish .operation-workspace-card > div:nth-child(2) {
+          padding: 12px !important;
+        }
+        .factory-stock-polish .operation-workspace-card [class*="grid-cols-4"] {
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+        .factory-stock-polish .operation-workspace-card [class*="grid-cols-4"] > div {
+          min-height: 78px !important;
+          padding: 10px !important;
+        }
+        .factory-stock-polish .operation-workspace-card [class*="grid-cols-4"] [class*="text-3xl"] {
+          font-size: 1.35rem !important;
+        }
+        .factory-stock-polish .operation-workspace-card [class*="grid-cols-3"] {
+          grid-template-columns: 1fr !important;
+        }
+        .factory-stock-polish .operation-workspace-card [class*="grid-cols-3"] button {
+          min-height: auto !important;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 11px 12px !important;
+        }
+        .factory-stock-polish .operation-workspace-card [class*="grid-cols-3"] button > div:last-child {
+          margin-top: 0 !important;
+          text-align: right;
+        }
+        .factory-stock-polish .operation-workspace-card section:first-of-type > div:last-child {
+          max-height: 52vh !important;
+        }
+        .factory-stock-polish .operation-workspace-card .clean-mobile-card-title {
+          font-size: 14px !important;
+        }
+        .factory-stock-polish .print-actions-bar {
+          gap: 8px !important;
+          padding: 10px 12px !important;
+        }
+        .factory-stock-polish .print-paper-shell {
+          border-radius: 14px !important;
+        }
+      }
+      @media print {
+        .factory-stock-polish .print-actions-bar,
+        .print-actions-bar {
+          display: none !important;
+        }
+        .factory-stock-polish .print-paper-shell,
+        .print-paper-shell {
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          width: 100% !important;
         }
       }
 
@@ -3934,7 +4093,7 @@ S.N.: ${item.sn || '-'}
     return (
       <div className="solid-workspace space-y-5">
         {renderWorkspaceTabs()}
-        <div className={`rounded-[1.75rem] border shadow-sm overflow-hidden operation-workspace-card ${theme.cardBg}`}>
+        <div className={`rounded-[1.75rem] border shadow-sm overflow-hidden operation-workspace-card borrow-return-polish ${theme.cardBg}`}>
           <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-4 ${theme.divide}`}>
             <div>
               <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-purple-300' : 'text-purple-600'}`}>BORROW & RETURN</div>
@@ -7035,8 +7194,8 @@ S.N.: ${item.sn || '-'}
   if (printProjectData) {
     const projectItems = printProjectData.items || [];
     return (
-      <div className={`min-h-screen font-sans text-slate-900 print:bg-white ${isInkSavingDocument ? "bg-white" : "bg-slate-100"}`}>
-        <div className="print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
+      <div className={`factory-stock-polish min-h-screen font-sans text-slate-900 print:bg-white ${isInkSavingDocument ? "bg-white" : "bg-slate-100"}`}>
+        <div className="print-actions-bar print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
           <div>
             <h2 className="font-bold text-xl flex items-center gap-2"><Icons.Printer className="w-6 h-6" /> รายงานโครงการ</h2>
             <p className="text-slate-300 text-sm font-bold mt-1">ตัวอย่างนี้คือหน้าที่จะพิมพ์จริง ปรับข้อมูลได้จากหน้าโครงการจัดซื้อ</p>
@@ -7047,7 +7206,7 @@ S.N.: ${item.sn || '-'}
           </div>
         </div>
         <div className="pt-24 print:pt-0 p-6 print:p-0 max-w-5xl mx-auto">
-          <div className="relative overflow-hidden bg-white p-8 print:p-6 shadow-xl print:shadow-none border border-slate-200 print:border-0 rounded-2xl print:rounded-none">
+          <div className="print-paper-shell relative overflow-hidden bg-white p-8 print:p-6 shadow-xl print:shadow-none border border-slate-200 print:border-0 rounded-2xl print:rounded-none">
             {showDocumentLogo('watermark') && !isInkSavingDocument && !brandLogoError && <img src={ORG_LOGO_SRC} alt="MDEC Watermark" className="absolute right-8 top-8 w-44 opacity-[0.045] pointer-events-none select-none" onError={() => setBrandLogoError(true)} />}
             <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6 gap-4 relative z-[1]">
               <div className="min-w-0">
@@ -7142,15 +7301,15 @@ S.N.: ${item.sn || '-'}
   if (printSlipData) {
     const isPrepSlip = printSlipData.type === 'prep';
     return (
-      <div className={`min-h-screen font-sans text-slate-900 print:bg-white ${isInkSavingDocument ? "bg-white" : "bg-slate-100"}`}>
-        <div className="print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
+      <div className={`factory-stock-polish min-h-screen font-sans text-slate-900 print:bg-white ${isInkSavingDocument ? "bg-white" : "bg-slate-100"}`}>
+        <div className="print-actions-bar print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
           <div>
             <h2 className="font-bold text-xl flex items-center gap-2"><Icons.Printer className="w-6 h-6" /> {printSlipData.title}</h2>
             <p className="text-slate-300 text-sm font-bold mt-1">ตัวอย่างนี้คือเอกสารที่จะพิมพ์จริง ตรวจข้อมูลก่อนกดพิมพ์</p>
           </div>
           <div className="flex gap-3"><button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors"><Icons.Printer className="w-5 h-5"/> {isPrepSlip ? 'พิมพ์ใบเตรียมของ' : 'พิมพ์ใบยืม'}</button><button onClick={() => setPrintSlipData(null)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button></div>
         </div>
-        <div className="pt-24 print:pt-0 p-6 print:p-0 max-w-4xl mx-auto"><div className="relative overflow-hidden bg-white p-8 print:p-6 shadow-xl print:shadow-none border border-slate-200 print:border-0 rounded-2xl print:rounded-none">
+        <div className="pt-24 print:pt-0 p-6 print:p-0 max-w-4xl mx-auto"><div className="print-paper-shell relative overflow-hidden bg-white p-8 print:p-6 shadow-xl print:shadow-none border border-slate-200 print:border-0 rounded-2xl print:rounded-none">
           {showDocumentLogo('watermark') && !isInkSavingDocument && !brandLogoError && <img src={ORG_LOGO_SRC} alt="MDEC Watermark" className="absolute right-8 top-8 w-40 opacity-[0.045] pointer-events-none select-none" onError={() => setBrandLogoError(true)} />}
           <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6 gap-4 relative z-[1]">
             <div className="min-w-0">
@@ -7269,25 +7428,117 @@ S.N.: ${item.sn || '-'}
             .mdec-command-center [class*="w-56"][class*="h-56"] { width: 136px !important; height: 136px !important; border-width: 8px !important; }
           }
           @media (max-width: 767px) {
-            .mdec-command-center { padding: 10px !important; overflow-y: auto !important; }
-            .mdec-command-center > div:first-of-type { margin-bottom: 10px !important; border-radius: 18px !important; }
-            .mdec-command-center > div:first-of-type > div:last-child {
-              display: grid !important; grid-template-columns: 38px 1fr 1fr !important; gap: 8px !important; align-items: center;
+            .mdec-command-center {
+              padding: 8px !important;
+              overflow-y: auto !important;
+              overflow-x: hidden !important;
+              height: 100dvh !important;
             }
-            .mdec-command-center h1 { font-size: 1.05rem !important; gap: 8px !important; }
-            .mdec-command-center h1 > div { width: 38px !important; height: 38px !important; border-radius: 14px !important; }
-            .mdec-command-center h1 svg { width: 20px !important; height: 20px !important; }
-            .mdec-command-center .text-8xl, .mdec-command-center .text-7xl { font-size: 2.35rem !important; }
-            .mdec-command-center .text-5xl { font-size: 1.75rem !important; }
-            .mdec-command-center .text-4xl { font-size: 1.45rem !important; }
-            .mdec-command-center .text-3xl { font-size: 1.22rem !important; }
-            .mdec-command-center .text-2xl { font-size: 1.02rem !important; }
-            .mdec-command-center .p-8, .mdec-command-center .p-5, .mdec-command-center .p-4 { padding: 10px !important; }
-            .mdec-command-center .gap-6, .mdec-command-center .gap-4 { gap: 9px !important; }
-            .mdec-command-center .rounded-3xl { border-radius: 16px !important; }
-            .mdec-command-center [class*="w-56"][class*="h-56"] { width: 116px !important; height: 116px !important; border-width: 7px !important; }
-            .mdec-command-center button { min-height: 32px !important; padding: 8px 10px !important; font-size: 12px !important; }
-            .mdec-command-center .custom-scrollbar { max-height: 320px; }
+            .mdec-command-center > div:first-of-type {
+              display: flex !important;
+              flex-direction: column !important;
+              align-items: stretch !important;
+              margin-bottom: 8px !important;
+              padding: 10px !important;
+              border-radius: 16px !important;
+              gap: 8px !important;
+            }
+            .mdec-command-center > div:first-of-type > h1,
+            .mdec-command-center > div:first-of-type h1 {
+              width: 100% !important;
+              justify-content: flex-start !important;
+              font-size: 1rem !important;
+              gap: 8px !important;
+              white-space: nowrap !important;
+              overflow: hidden !important;
+              text-overflow: ellipsis !important;
+            }
+            .mdec-command-center h1 > div {
+              width: 34px !important;
+              height: 34px !important;
+              border-radius: 12px !important;
+              flex: 0 0 auto !important;
+            }
+            .mdec-command-center h1 svg { width: 18px !important; height: 18px !important; }
+            .mdec-command-center > div:first-of-type > div:last-child {
+              display: grid !important;
+              grid-template-columns: 38px minmax(0, 1fr) !important;
+              gap: 8px !important;
+              align-items: center !important;
+              width: 100% !important;
+            }
+            .mdec-command-center > div:first-of-type > div:last-child > span {
+              display: none !important;
+            }
+            .mdec-command-center > div:first-of-type > div:last-child > div {
+              min-width: 0 !important;
+              width: 100% !important;
+              text-align: center !important;
+              font-size: 1rem !important;
+              padding: 8px 10px !important;
+              border-radius: 14px !important;
+            }
+            .mdec-command-center > div:first-of-type > div:last-child > button:last-child {
+              grid-column: 1 / -1 !important;
+              width: 100% !important;
+              justify-content: center !important;
+            }
+            .mdec-command-center > div:nth-of-type(2) {
+              display: flex !important;
+              flex-direction: column !important;
+              height: auto !important;
+              min-height: 0 !important;
+              gap: 10px !important;
+              overflow: visible !important;
+            }
+            .mdec-command-center .cc-col {
+              overflow: visible !important;
+              gap: 10px !important;
+            }
+            .mdec-command-center .cc-col:first-child {
+              display: grid !important;
+              grid-template-columns: 1fr !important;
+            }
+            .mdec-command-center .cc-panel {
+              overflow: visible !important;
+              min-height: auto !important;
+            }
+            .mdec-command-center .cc-mini-scroll {
+              max-height: 260px !important;
+              overflow-y: auto !important;
+            }
+            .mdec-command-center .text-8xl,
+            .mdec-command-center .text-7xl { font-size: 2rem !important; }
+            .mdec-command-center .text-5xl { font-size: 1.45rem !important; }
+            .mdec-command-center .text-4xl { font-size: 1.25rem !important; }
+            .mdec-command-center .text-3xl { font-size: 1.05rem !important; }
+            .mdec-command-center .text-2xl { font-size: .95rem !important; }
+            .mdec-command-center .text-xl { font-size: .9rem !important; }
+            .mdec-command-center .text-lg { font-size: .84rem !important; }
+            .mdec-command-center .p-8,
+            .mdec-command-center .p-6,
+            .mdec-command-center .p-5,
+            .mdec-command-center .p-4,
+            .mdec-command-center .p-3\.5 { padding: 9px !important; }
+            .mdec-command-center .gap-6,
+            .mdec-command-center .gap-4 { gap: 8px !important; }
+            .mdec-command-center .rounded-3xl { border-radius: 15px !important; }
+            .mdec-command-center .rounded-2xl { border-radius: 12px !important; }
+            .mdec-command-center [class*="w-56"][class*="h-56"],
+            .mdec-command-center [class*="w-40"][class*="h-40"] {
+              width: 104px !important;
+              height: 104px !important;
+              border-width: 6px !important;
+            }
+            .mdec-command-center [class*="inset-4"] { inset: 8px !important; }
+            .mdec-command-center button {
+              min-height: 32px !important;
+              padding: 7px 9px !important;
+              font-size: 12px !important;
+            }
+            .mdec-command-center .grid.grid-cols-2 {
+              gap: 8px !important;
+            }
           }
         `}</style>
         <div className={`flex flex-col sm:flex-row justify-between items-center mb-3 p-3 sm:px-5 sm:py-4 rounded-2xl shadow-sm border gap-4 ${ccTheme.card}`}>
