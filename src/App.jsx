@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.50.11 Mobile-Friendly QR Workbench';
-const APP_UPDATE_NOTE = 'ปรับหน้า QR Workbench ให้เป็นมิตรกับมือถือมากขึ้น ลดความรก เน้นกล้องและปุ่มหลัก โดยไม่แตะระบบกล้องและฐานข้อมูล';
+const APP_VERSION = 'v22.50.12 QR Mobile Video Tuned';
+const APP_UPDATE_NOTE = 'ปรับหน้า QR Workbench จากคลิปจริง: ซ่อนหัวเว็บ/แถบบน/เมนูล่างบนมือถือ ให้หน้า QR อยู่เต็มจอและใช้กล้องเป็นหลัก โดยไม่แตะระบบกล้อง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -2665,6 +2665,7 @@ function MainApp() {
   const mobileCardsEnabled = uiDisplaySettings.mobileCards !== false;
   const reduceEffectsEnabled = uiDisplaySettings.reduceEffects === true;
   const pagePaddingClass = isCompactUi ? 'p-3 sm:p-5 pb-28' : 'p-4 sm:p-8 pb-32';
+  const appShellPaddingClass = activeWorkspace === 'qrWorkbench' ? 'p-2 sm:p-4 pb-2' : pagePaddingClass;
   const panelPaddingClass = isCompactUi ? 'p-4 sm:p-5' : 'p-5 sm:p-6';
   const controlPaddingClass = isCompactUi ? 'py-3' : 'py-4';
   const rowTextSizeClass = isCompactUi ? 'text-sm' : 'text-base';
@@ -5013,7 +5014,7 @@ S.N.: ${item.sn || '-'}
     const actionButtonBase = 'min-h-[42px] px-3 py-2 rounded-2xl font-black text-sm transition disabled:opacity-45 disabled:cursor-not-allowed';
 
     return (
-      <div className={`qr-workbench-mobile-friendly w-full h-[calc(100dvh-180px)] min-h-[520px] max-h-[760px] max-md:h-[calc(100svh-78px)] max-md:min-h-0 max-md:max-h-none overflow-hidden rounded-[2rem] max-md:rounded-[1.5rem] border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+      <div className={`qr-workbench-mobile-friendly w-full h-[calc(100dvh-24px)] min-h-[520px] max-h-[calc(100dvh-24px)] max-md:h-[calc(100svh-12px)] max-md:min-h-0 max-md:max-h-none overflow-hidden rounded-[2rem] max-md:rounded-[1.25rem] border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
         <style>{`
           .qr-workbench-mobile-friendly #qr-reader {
             width: 100% !important;
@@ -5073,6 +5074,7 @@ S.N.: ${item.sn || '-'}
             }
             .qr-workbench-mobile-friendly #qr-reader__dashboard_section { padding: 3px 0 !important; }
             .qr-workbench-mobile-friendly #qr-reader button { padding: 7px 10px !important; margin: 3px !important; }
+            .qr-workbench-mobile-friendly { border-radius: 18px !important; }
           }
         `}</style>
 
@@ -8691,7 +8693,7 @@ S.N.: ${item.sn || '-'}
   }
 
   return (
-    <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain}`}>
+    <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish min-h-screen font-sans ${appShellPaddingClass} lg:pl-80 ${activeWorkspace === 'qrWorkbench' ? 'pb-2 lg:pb-4' : 'pb-32 lg:pb-8'} transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain}`}>
       <FactoryPolishStyle isDarkMode={isDarkMode} />
       {/* FactoryStock Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-72 bg-slate-950 text-white flex-col border-r border-white/10">
@@ -8795,6 +8797,7 @@ S.N.: ${item.sn || '-'}
       )}
 
       {/* FactoryStock-style Top Bar */}
+      {activeWorkspace !== 'qrWorkbench' && (
       <div className="factory-topbar">
         <div className="factory-page-title">
           <div className="factory-kicker"><span className="factory-dot"></span>{currentWorkspaceMeta.kicker}</div>
@@ -8861,8 +8864,9 @@ S.N.: ${item.sn || '-'}
           )}
         </div>
       </div>
+      )}
 
-      {isLoggedIn && (
+      {activeWorkspace !== 'qrWorkbench' && isLoggedIn && (
         <div className={`w-full mb-6 p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>👤</div>
@@ -13359,6 +13363,7 @@ S.N.: ${item.sn || '-'}
       )}
 
       {/* FactoryStock Mobile Bottom Nav */}
+      {activeWorkspace !== 'qrWorkbench' && (
       <div className={`lg:hidden fixed bottom-0 inset-x-0 z-40 border-t shadow-[0_-16px_40px_rgba(15,23,42,0.14)] ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
         <div className="grid grid-cols-5 gap-1 px-1.5 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
           <button type="button" onClick={() => openWorkspace('overview')} className={`py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${activeWorkspace === 'overview' ? 'bg-blue-600 text-white' : theme.textMuted}`}>
@@ -13384,6 +13389,7 @@ S.N.: ${item.sn || '-'}
           </button>
         </div>
       </div>
+      )}
 
       {/* Toast แจ้งเตือนแบบไม่ขัดจังหวะ */}
       <div className="fixed top-4 right-4 z-[12000] space-y-3 w-[92vw] max-w-sm pointer-events-none">
