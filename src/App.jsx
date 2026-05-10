@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.46.1 Dashboard Responsive Hotfix';
-const APP_UPDATE_NOTE = 'แก้ Dashboard และหน้าหลักไม่ให้ใหญ่ทะลุจอ ปรับขนาดการ์ด ตาราง ปุ่ม และมือถือให้กะทัดรัดขึ้น โดยไม่แตะโครงสร้างฐานข้อมูล';
+const APP_VERSION = 'v22.46.2 Command Dashboard Compact';
+const APP_UPDATE_NOTE = 'แก้ศูนย์ควบคุม Dashboard ที่ใหญ่ทะลุจอ ปรับเป็น compact responsive ทั้งคอมและมือถือ โดยไม่แตะโครงสร้างฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7212,72 +7212,146 @@ S.N.: ${item.sn || '-'}
     };
 
     return (
-      <div className={`fixed inset-0 font-sans z-[10000] flex flex-col p-4 sm:p-8 overflow-hidden font-medium transition-colors duration-300 ${ccTheme.bg}`}>
-        <div className={`flex flex-col sm:flex-row justify-between items-center mb-6 p-4 sm:px-8 sm:py-5 rounded-3xl shadow-sm border gap-4 ${ccTheme.card}`}>
+      <div className={`mdec-command-center fixed inset-0 font-sans z-[10000] flex flex-col p-3 sm:p-5 lg:p-6 overflow-y-auto overflow-x-hidden font-medium transition-colors duration-300 ${ccTheme.bg}`}>
+        <style>{`
+          .mdec-command-center, .mdec-command-center * { box-sizing: border-box; }
+          .mdec-command-center { min-width: 0; }
+          .mdec-command-center > div:first-of-type {
+            margin-bottom: 14px !important;
+            padding: 12px 18px !important;
+            border-radius: 22px !important;
+            flex-shrink: 0;
+          }
+          .mdec-command-center > div:nth-of-type(2) {
+            gap: 14px !important;
+            min-height: 0 !important;
+            flex: 1 1 auto !important;
+            grid-template-columns: minmax(250px,.85fr) minmax(320px,1fr) minmax(340px,1fr) !important;
+            align-items: stretch;
+          }
+          .mdec-command-center .gap-6 { gap: 14px !important; }
+          .mdec-command-center .gap-4 { gap: 10px !important; }
+          .mdec-command-center .rounded-3xl { border-radius: 20px !important; }
+          .mdec-command-center .rounded-2xl { border-radius: 15px !important; }
+          .mdec-command-center .p-8 { padding: 18px !important; }
+          .mdec-command-center .p-5 { padding: 14px !important; }
+          .mdec-command-center .p-4 { padding: 12px !important; }
+          .mdec-command-center .p-3\.5 { padding: 10px !important; }
+          .mdec-command-center .text-8xl,
+          .mdec-command-center .text-7xl { font-size: 3.15rem !important; line-height: .95 !important; }
+          .mdec-command-center .text-5xl { font-size: 2.05rem !important; line-height: 1 !important; }
+          .mdec-command-center .text-4xl { font-size: 1.7rem !important; line-height: 1.05 !important; }
+          .mdec-command-center .text-3xl { font-size: 1.35rem !important; line-height: 1.1 !important; }
+          .mdec-command-center .text-2xl { font-size: 1.15rem !important; line-height: 1.15 !important; }
+          .mdec-command-center .text-xl { font-size: 1rem !important; line-height: 1.2 !important; }
+          .mdec-command-center .text-lg { font-size: .94rem !important; line-height: 1.25 !important; }
+          .mdec-command-center h1 { font-size: clamp(1.05rem, 1.8vw, 1.55rem) !important; line-height: 1.15 !important; }
+          .mdec-command-center h2, .mdec-command-center h3 { line-height: 1.2 !important; }
+          .mdec-command-center [class*="w-56"][class*="h-56"] {
+            width: 152px !important; height: 152px !important; border-width: 9px !important;
+          }
+          .mdec-command-center [class*="inset-4"] { inset: 10px !important; }
+          .mdec-command-center button { min-height: 34px !important; }
+          .mdec-command-center .custom-scrollbar { scrollbar-width: thin; }
+          .mdec-command-center .custom-scrollbar::-webkit-scrollbar { width: 7px; height: 7px; }
+          .mdec-command-center .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,.55); border-radius: 999px; }
+          @media (max-width: 1280px) {
+            .mdec-command-center > div:nth-of-type(2) { grid-template-columns: minmax(250px,.85fr) minmax(300px,1fr) minmax(300px,1fr) !important; }
+            .mdec-command-center .text-8xl, .mdec-command-center .text-7xl { font-size: 2.7rem !important; }
+          }
+          @media (max-width: 1023px) {
+            .mdec-command-center { padding: 12px !important; }
+            .mdec-command-center > div:first-of-type { align-items: stretch !important; gap: 10px !important; padding: 12px !important; }
+            .mdec-command-center > div:nth-of-type(2) { grid-template-columns: 1fr !important; gap: 12px !important; }
+            .mdec-command-center [class*="w-56"][class*="h-56"] { width: 136px !important; height: 136px !important; border-width: 8px !important; }
+          }
+          @media (max-width: 767px) {
+            .mdec-command-center { padding: 10px !important; }
+            .mdec-command-center > div:first-of-type { margin-bottom: 10px !important; border-radius: 18px !important; }
+            .mdec-command-center > div:first-of-type > div:last-child {
+              display: grid !important; grid-template-columns: 38px 1fr 1fr !important; gap: 8px !important; align-items: center;
+            }
+            .mdec-command-center h1 { font-size: 1.05rem !important; gap: 8px !important; }
+            .mdec-command-center h1 > div { width: 38px !important; height: 38px !important; border-radius: 14px !important; }
+            .mdec-command-center h1 svg { width: 20px !important; height: 20px !important; }
+            .mdec-command-center .text-8xl, .mdec-command-center .text-7xl { font-size: 2.35rem !important; }
+            .mdec-command-center .text-5xl { font-size: 1.75rem !important; }
+            .mdec-command-center .text-4xl { font-size: 1.45rem !important; }
+            .mdec-command-center .text-3xl { font-size: 1.22rem !important; }
+            .mdec-command-center .text-2xl { font-size: 1.02rem !important; }
+            .mdec-command-center .p-8, .mdec-command-center .p-5, .mdec-command-center .p-4 { padding: 10px !important; }
+            .mdec-command-center .gap-6, .mdec-command-center .gap-4 { gap: 9px !important; }
+            .mdec-command-center .rounded-3xl { border-radius: 16px !important; }
+            .mdec-command-center [class*="w-56"][class*="h-56"] { width: 116px !important; height: 116px !important; border-width: 7px !important; }
+            .mdec-command-center button { min-height: 32px !important; padding: 8px 10px !important; font-size: 12px !important; }
+            .mdec-command-center .custom-scrollbar { max-height: 360px; }
+          }
+        `}</style>
+        <div className={`flex flex-col sm:flex-row justify-between items-center mb-3 p-3 sm:px-5 sm:py-4 rounded-2xl shadow-sm border gap-4 ${ccTheme.card}`}>
           <h1 className={`text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3 ${ccTheme.titleText}`}>
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${ccTheme.iconBg}`}>
               <Icons.Monitor className="w-7 h-7"/>
             </div>
             ศูนย์ควบคุม MDEC ✨
           </h1>
-          <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className={`flex items-center justify-center p-3 font-bold rounded-xl transition-colors shadow-sm ${isDarkMode ? 'bg-slate-800 text-slate-200 hover:bg-slate-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`} title={isDarkMode ? "เปลี่ยนเป็นโหมดสว่าง" : "เปลี่ยนเป็นโหมดกลางคืน"}>
               {isDarkMode ? <Icons.Sun className="w-5 h-5"/> : <Icons.Moon className="w-5 h-5"/>}
             </button>
             <span className="text-lg animate-pulse text-rose-500 font-bold hidden sm:flex items-center gap-2">
               <span className="w-3 h-3 bg-rose-500 rounded-full shadow-[0_0_8px_rgba(244,63,94,0.6)]"></span> เคลื่อนไหวสด
             </span>
-            <div className={`text-xl sm:text-2xl font-black px-5 py-2.5 rounded-2xl border shadow-inner ${ccTheme.timeBg}`}>
+            <div className={`text-base sm:text-xl font-black px-3 sm:px-4 py-2 rounded-2xl border shadow-inner ${ccTheme.timeBg}`}>
               {currentTime.toLocaleTimeString('th-TH')}
             </div>
-            <button onClick={() => setShowCommandCenter(false)} className={`border px-6 py-3 rounded-2xl transition-all font-bold shadow-sm flex items-center gap-2 group ${isDarkMode ? 'bg-rose-900/30 border-rose-800 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-500 hover:text-white'}`}>
+            <button onClick={() => setShowCommandCenter(false)} className={`border px-4 py-2.5 rounded-2xl transition-all font-bold shadow-sm flex items-center gap-2 group ${isDarkMode ? 'bg-rose-900/30 border-rose-800 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-500 hover:text-white'}`}>
               ปิดหน้าต่าง <Icons.X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
-          <div className="flex flex-col gap-6">
-            <div className={`p-8 rounded-3xl flex flex-col items-center justify-center relative overflow-hidden shadow-lg ${ccTheme.totalBg}`}>
+        <div className="grid grid-cols-1 lg:grid-cols-[0.85fr_1fr_1fr] gap-4 flex-1 min-h-0">
+          <div className="flex flex-col gap-4">
+            <div className={`p-5 rounded-3xl flex flex-col items-center justify-center relative overflow-hidden shadow-lg ${ccTheme.totalBg}`}>
               <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
               <div className="absolute -left-6 -bottom-6 w-24 h-24 bg-black/20 rounded-full blur-xl"></div>
               <h2 className={`text-xl font-bold mb-2 z-10 flex items-center gap-2 ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}><Icons.Package className="w-6 h-6"/> ทั้งหมด</h2>
-              <span className="text-7xl sm:text-8xl font-black text-white z-10 drop-shadow-md">{stats.all}</span>
+              <span className="text-5xl sm:text-6xl font-black text-white z-10 drop-shadow-md">{stats.all}</span>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-4 flex-1">
               <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statAvail}`}>
                 <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>🟢 พร้อมใช้</span>
-                <span className={`text-4xl lg:text-5xl font-black ${isDarkMode ? 'text-emerald-400' : 'text-emerald-500'}`}>{stats.available}</span>
+                <span className={`text-3xl lg:text-4xl font-black ${isDarkMode ? 'text-emerald-400' : 'text-emerald-500'}`}>{stats.available}</span>
               </div>
               <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statBorrow}`}>
                 <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>🟣 ถูกยืม</span>
-                <span className={`text-4xl lg:text-5xl font-black ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>{stats.borrowed}</span>
+                <span className={`text-3xl lg:text-4xl font-black ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>{stats.borrowed}</span>
               </div>
               <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statEvent}`}>
                 <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>🚚 ออกงาน</span>
-                <span className={`text-4xl lg:text-5xl font-black ${isDarkMode ? 'text-orange-400' : 'text-orange-500'}`}>{stats.outForEvent}</span>
+                <span className={`text-3xl lg:text-4xl font-black ${isDarkMode ? 'text-orange-400' : 'text-orange-500'}`}>{stats.outForEvent}</span>
               </div>
               <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statMaint}`}>
                 <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-rose-400' : 'text-rose-600'}`}>🔴 ชำรุด</span>
-                <span className={`text-4xl lg:text-5xl font-black ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>{stats.maintenance}</span>
+                <span className={`text-3xl lg:text-4xl font-black ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>{stats.maintenance}</span>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-6">
-            <div className={`p-8 rounded-3xl flex-1 flex flex-col items-center justify-center shadow-sm relative overflow-hidden border ${ccTheme.card}`}>
+          <div className="flex flex-col gap-4">
+            <div className={`p-5 rounded-3xl flex-1 flex flex-col items-center justify-center shadow-sm relative overflow-hidden border ${ccTheme.card}`}>
               <div className={`absolute top-0 right-0 w-32 h-32 rounded-bl-[100px] -z-0 ${isDarkMode ? 'bg-emerald-900/10' : 'bg-emerald-50'}`}></div>
               <h2 className={`text-xl font-bold mb-6 flex items-center gap-2 z-10 ${ccTheme.textMuted}`}>💖 สุขภาพสต๊อก (ความพร้อม)</h2>
-              <div className={`relative w-56 h-56 rounded-full border-[12px] flex items-center justify-center shadow-inner z-10 ${ccTheme.circleOuter}`}
+              <div className={`relative w-40 h-40 rounded-full border-[12px] flex items-center justify-center shadow-inner z-10 ${ccTheme.circleOuter}`}
                    style={{ background: `conic-gradient(#10b981 ${healthPercentage * 3.6}deg, transparent 0)` }}>
                 <div className={`absolute inset-4 rounded-full flex flex-col items-center justify-center shadow-sm border ${ccTheme.circleInner}`}>
-                  <span className="text-5xl font-black">{healthPercentage}%</span>
+                  <span className="text-4xl font-black">{healthPercentage}%</span>
                   <span className={`text-sm font-bold mt-1 px-3 py-1 rounded-full ${isDarkMode ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>พร้อมใช้สุดๆ ✨</span>
                 </div>
               </div>
             </div>
             
-            <div className={`border p-5 rounded-3xl flex-1 flex flex-col shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <div className={`border p-4 rounded-3xl flex-1 flex flex-col shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
               <div className="flex items-center justify-between gap-3 mb-4">
                 <h3 className={`font-black flex items-center gap-2 text-lg ${ccTheme.titleText}`}>
                   <Icons.Truck className="w-6 h-6" /> กำลังอยู่นอกศูนย์
@@ -11142,14 +11216,14 @@ S.N.: ${item.sn || '-'}
         <div className={`fixed inset-0 z-[10000] p-6 sm:p-10 overflow-y-auto ${isDarkMode ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-3xl sm:text-5xl font-black">MDEC-Stock Dashboard</h1>
+              <h1 className="text-3xl sm:text-4xl font-black">MDEC-Stock Dashboard</h1>
               <p className={`font-bold mt-1 ${theme.textMuted}`}>ภาพรวมสำหรับเปิดค้างบนจอศูนย์ • {currentTime.toLocaleTimeString('th-TH')}</p>
             </div>
             <button onClick={() => setShowTvDashboardModal(false)} className="px-5 py-3 rounded-2xl bg-rose-600 text-white font-black">ปิด</button>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
             {[['ทั้งหมด', stats.all, 'text-blue-500'], ['พร้อมใช้', stats.available, 'text-emerald-500'], ['ถูกยืม', stats.borrowed, 'text-purple-500'], ['ออกงาน', stats.outForEvent, 'text-orange-500'], ['ชำรุด', stats.maintenance, 'text-rose-500'], ['ต้องจัดการ', actionCenterData.total, 'text-amber-500']].map(([label, value, tone]) => (
-              <div key={label} className={`p-5 rounded-3xl border shadow-sm text-center ${theme.cardBg}`}><div className="text-sm font-black opacity-70">{label}</div><div className={`text-5xl font-black ${tone}`}>{value}</div></div>
+              <div key={label} className={`p-5 rounded-3xl border shadow-sm text-center ${theme.cardBg}`}><div className="text-sm font-black opacity-70">{label}</div><div className={`text-4xl font-black ${tone}`}>{value}</div></div>
             ))}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
