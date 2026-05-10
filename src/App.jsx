@@ -10515,7 +10515,9 @@ S.N.: ${item.sn || '-'}
                 #qr-reader video { min-height: 48vh !important; border-radius: 22px !important; }
                 #qr-reader__dashboard_section { padding: 6px 0 !important; }
               }
-            `}
+
+      /* v22.51.3 Build Error Hotfix
+         Safe polish only: no QR scanner / camera / permission / Firebase path changes. */
       /* v22.51.2 Final QA & Stability Pass
          Safe polish only: no QR scanner / camera / permission / Firebase path changes. */
       .factory-stock-polish :is(button, [role="button"], a, input, select, textarea) {
@@ -10573,7 +10575,7 @@ S.N.: ${item.sn || '-'}
         }
       }
 
-</style>
+            `}</style>
 
             <div className="h-full w-full flex items-stretch justify-center sm:p-4">
               <div className={`w-full max-w-6xl h-full sm:h-[94vh] sm:rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
