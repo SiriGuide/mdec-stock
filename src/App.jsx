@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.50.0 Final Production Polish Pack';
-const APP_UPDATE_NOTE = 'รวมชุดเก็บงานผลิตจริง: เอกสารพิมพ์ มือถือ รายละเอียดอุปกรณ์ ตั้งค่า empty states และ final UI polish โดยไม่แตะฐานข้อมูล';
+const APP_VERSION = 'v22.50.2 Mobile QR UI Only';
+const APP_UPDATE_NOTE = 'ปรับเฉพาะ UI หน้าสแกน QR บนมือถือให้กระชับ เห็นกล้องเร็วขึ้น โดยไม่แตะระบบกล้องและไม่แตะฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -9622,7 +9622,7 @@ S.N.: ${item.sn || '-'}
               : (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800');
 
         return (
-          <div className={`fixed inset-0 ${theme.modalOverlay} z-[9999] overflow-hidden`}> 
+          <div className={`qr-mobile-polish fixed inset-0 ${theme.modalOverlay} z-[9999] overflow-hidden`}> 
             <style>{`
               #qr-reader {
                 width: 100% !important;
@@ -9678,11 +9678,149 @@ S.N.: ${item.sn || '-'}
                 #qr-reader video { min-height: 48vh !important; border-radius: 22px !important; }
                 #qr-reader__dashboard_section { padding: 6px 0 !important; }
               }
+              @media (max-width: 767px) {
+                .qr-mobile-polish .qr-shell {
+                  height: 100svh !important;
+                  max-height: 100svh !important;
+                  border-radius: 0 !important;
+                  border-left: 0 !important;
+                  border-right: 0 !important;
+                }
+                .qr-mobile-polish .qr-header {
+                  padding: 8px 10px 6px !important;
+                }
+                .qr-mobile-polish .qr-header h3 {
+                  font-size: 16px !important;
+                  line-height: 1.08 !important;
+                }
+                .qr-mobile-polish .qr-header p {
+                  display: none !important;
+                }
+                .qr-mobile-polish .qr-header [class*="w-11"] {
+                  width: 34px !important;
+                  height: 34px !important;
+                  border-radius: 12px !important;
+                }
+                .qr-mobile-polish .qr-header button[title="ปิดหน้าสแกน"] {
+                  width: 38px !important;
+                  height: 38px !important;
+                  border-radius: 14px !important;
+                }
+                .qr-mobile-polish .qr-mode-row {
+                  margin-top: 8px !important;
+                  gap: 6px !important;
+                }
+                .qr-mobile-polish .qr-mode-row > button,
+                .qr-mobile-polish .qr-mode-row > div {
+                  min-height: 36px !important;
+                  padding: 6px 10px !important;
+                  border-radius: 14px !important;
+                  font-size: 12px !important;
+                }
+                .qr-mobile-polish .qr-mode-row > div {
+                  grid-column: span 2 / span 2 !important;
+                  min-height: 32px !important;
+                }
+                .qr-mobile-polish .qr-body {
+                  overflow: hidden !important;
+                  padding: 6px 8px 8px !important;
+                }
+                .qr-mobile-polish .qr-layout {
+                  display: flex !important;
+                  flex-direction: column !important;
+                  height: 100% !important;
+                  min-height: 0 !important;
+                  gap: 8px !important;
+                }
+                .qr-mobile-polish .qr-scan-card {
+                  flex: 1 1 auto !important;
+                  min-height: 0 !important;
+                  border-radius: 18px !important;
+                  display: flex !important;
+                  flex-direction: column !important;
+                }
+                .qr-mobile-polish .qr-scan-titlebar {
+                  display: none !important;
+                }
+                .qr-mobile-polish .qr-scan-card > div:last-child,
+                .qr-mobile-polish .qr-scan-card > div.p-3 {
+                  flex: 1 1 auto !important;
+                  min-height: 0 !important;
+                  padding: 6px !important;
+                }
+                .qr-mobile-polish .qr-camera-tip {
+                  display: none !important;
+                }
+                .qr-mobile-polish .qr-camera-box {
+                  border-radius: 18px !important;
+                  border-width: 2px !important;
+                }
+                .qr-mobile-polish #qr-reader video {
+                  min-height: 56svh !important;
+                  max-height: 62svh !important;
+                  border-radius: 16px !important;
+                }
+                .qr-mobile-polish #qr-reader__dashboard {
+                  padding: 2px 0 0 !important;
+                }
+                .qr-mobile-polish #qr-reader__dashboard_section {
+                  padding: 2px 0 !important;
+                }
+                .qr-mobile-polish #qr-reader__dashboard_section_csr {
+                  display: grid !important;
+                  grid-template-columns: 1fr auto !important;
+                  gap: 6px !important;
+                  align-items: center !important;
+                }
+                .qr-mobile-polish #qr-reader select {
+                  min-height: 34px !important;
+                  border-radius: 12px !important;
+                  font-size: 12px !important;
+                  width: 100% !important;
+                }
+                .qr-mobile-polish #qr-reader button {
+                  min-height: 34px !important;
+                  padding: 7px 10px !important;
+                  border-radius: 12px !important;
+                  font-size: 12px !important;
+                  margin: 3px !important;
+                }
+                .qr-mobile-polish .qr-manual-inline {
+                  margin-top: 6px !important;
+                  grid-template-columns: 1fr auto !important;
+                  gap: 6px !important;
+                }
+                .qr-mobile-polish .qr-manual-inline input {
+                  min-height: 36px !important;
+                  padding: 7px 10px !important;
+                  font-size: 12px !important;
+                  border-radius: 13px !important;
+                }
+                .qr-mobile-polish .qr-manual-inline button {
+                  min-height: 36px !important;
+                  padding: 7px 12px !important;
+                  border-radius: 13px !important;
+                  font-size: 12px !important;
+                }
+                .qr-mobile-polish .qr-side {
+                  flex: 0 0 auto !important;
+                  max-height: 58px !important;
+                  overflow: hidden !important;
+                }
+                .qr-mobile-polish .qr-side > div {
+                  padding: 10px 12px !important;
+                  border-radius: 16px !important;
+                  font-size: 12px !important;
+                }
+                .qr-mobile-polish .qr-side > div:not(:first-child) {
+                  display: none !important;
+                }
+              }
             `}</style>
 
             <div className="h-full w-full flex items-stretch justify-center sm:p-4">
-              <div className={`w-full max-w-6xl h-full sm:h-[94vh] sm:rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <div className={`shrink-0 p-4 sm:p-5 border-b ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'}`}>
+              <div className={`qr-shell w-full max-w-6xl h-full sm:h-[94vh] sm:rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`qr-header shrink-0 p-4 sm:p-5 border-b ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -9705,7 +9843,7 @@ S.N.: ${item.sn || '-'}
                     </button>
                   </div>
 
-                  <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                  <div className="qr-mode-row mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                     <button type="button" onClick={() => setUseCamera(true)} className={`min-h-[46px] px-4 rounded-2xl font-black border transition ${useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
                       📷 กล้องมือถือ
                     </button>
@@ -9739,17 +9877,17 @@ S.N.: ${item.sn || '-'}
                   )}
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 sm:p-5">
-                  <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_.8fr] gap-4 sm:gap-5 items-start">
-                    <div className={`rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                      <div className={`px-4 py-3 border-b flex items-center justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50'}`}>
+                <div className="qr-body flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 sm:p-5">
+                  <div className="qr-layout grid grid-cols-1 lg:grid-cols-[1.2fr_.8fr] gap-4 sm:gap-5 items-start">
+                    <div className={`qr-scan-card rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                      <div className={`qr-scan-titlebar px-4 py-3 border-b flex items-center justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50'}`}>
                         <div className="font-black">{useCamera ? 'ช่องสแกนกล้อง' : 'ช่องกรอกรหัส / เครื่องยิงบาร์โค้ด'}</div>
-                        <div className={`text-xs font-black px-3 py-1 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'Camera Mode' : 'Manual Mode'}</div>
+                        <div className={`text-xs font-black px-3 py-1 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'โหมดกล้อง' : 'โหมดพิมพ์'}</div>
                       </div>
 
                       {useCamera ? (
                         <div className="p-3 sm:p-4">
-                          <div className={`mb-3 p-3 rounded-2xl border text-left text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                          <div className={`qr-camera-tip mb-3 p-3 rounded-2xl border text-left text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
                             วาง QR ให้อยู่กลางกรอบ ถือให้นิ่ง 1–2 วินาที ถ้าสติกเกอร์สะท้อนแสงให้เอียงเล็กน้อย
                           </div>
                           {!isScannerLoaded ? (
@@ -9757,11 +9895,11 @@ S.N.: ${item.sn || '-'}
                               <div className="animate-pulse text-amber-500 font-black">กำลังโหลดระบบกล้อง...</div>
                             </div>
                           ) : (
-                            <div className={`rounded-[1.8rem] overflow-hidden border-4 ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-slate-100'}`}>
+                            <div className={`qr-camera-box rounded-[1.8rem] overflow-hidden border-4 ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-slate-100'}`}>
                               <div id="qr-reader" className="w-full"></div>
                             </div>
                           )}
-                          <form onSubmit={handleScanSubmit} className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+                          <form onSubmit={handleScanSubmit} className="qr-manual-inline mt-3 grid grid-cols-[1fr_auto] gap-2">
                             <input
                               type="text"
                               className={`px-4 py-3 rounded-2xl font-black text-center outline-none border ${theme.input}`}
@@ -9795,7 +9933,7 @@ S.N.: ${item.sn || '-'}
                       )}
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="qr-side space-y-4">
                       {scanMessage.text ? (
                         <div className={`p-4 rounded-[1.7rem] border font-black shadow-sm ${scanMessage.type === 'success' ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800') : (isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')}`}>
                           {scanMessage.text}
