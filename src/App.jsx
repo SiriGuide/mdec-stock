@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.47.1 Mobile Dashboard Hotfix';
+const APP_VERSION = 'v22.48.0 Mission Control Redesign';
 const APP_UPDATE_NOTE = 'ปรับ Dashboard/Command Center บนมือถือให้เรียงอ่านง่าย ไม่ล้น ไม่ใหญ่เกิน และไม่บีบปุ่มแถบบนจนแปลก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -7351,343 +7351,274 @@ S.N.: ${item.sn || '-'}
 
   if (showCommandCenter) {
     const healthPercentage = stats.all > 0 ? Math.round((stats.available / stats.all) * 100) : 0;
-    
-    const ccTheme = {
-      bg: isDarkMode ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800',
-      card: isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100',
-      textMain: isDarkMode ? 'text-slate-100' : 'text-slate-800',
-      textMuted: isDarkMode ? 'text-slate-400' : 'text-slate-500',
-      totalBg: isDarkMode ? 'bg-gradient-to-br from-blue-900/80 to-indigo-900/80 shadow-indigo-900/20' : 'bg-gradient-to-br from-blue-400 to-indigo-500 shadow-indigo-200',
-      statAvail: isDarkMode ? 'bg-emerald-900/20 border-emerald-800/50' : 'bg-emerald-50 border-emerald-100',
-      statInUse: isDarkMode ? 'bg-amber-900/20 border-amber-800/50' : 'bg-amber-50 border-amber-100',
-      statBorrow: isDarkMode ? 'bg-purple-900/20 border-purple-800/50' : 'bg-purple-50 border-purple-100',
-      statEvent: isDarkMode ? 'bg-orange-900/20 border-orange-800/50' : 'bg-orange-50 border-orange-100',
-      statMaint: isDarkMode ? 'bg-rose-900/20 border-rose-800/50' : 'bg-rose-50 border-rose-100',
-      circleOuter: isDarkMode ? 'border-slate-950' : 'border-slate-50',
-      circleInner: isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-50 text-slate-800',
-      timeBg: isDarkMode ? 'bg-indigo-950/50 border-indigo-900/50 text-indigo-400' : 'bg-indigo-50 border-indigo-100 text-indigo-700',
-      titleText: isDarkMode ? 'text-indigo-400' : 'text-indigo-600',
-      iconBg: isDarkMode ? 'bg-indigo-900/50 text-indigo-400' : 'bg-indigo-100 text-indigo-600',
+    const outsideItems = [
+      ...currentBorrowedItems.map(i => ({ ...i, _kind: 'borrow' })),
+      ...currentEventItems.map(i => ({ ...i, _kind: 'event' }))
+    ];
+    const overdueItems = outsideItems.filter(i => i.expectedReturn && new Date(i.expectedReturn).getTime() < todayMs);
+    const alertCount = stats.maintenance + overdueItems.length;
+    const lastActions = auditLogs.slice(0, 6);
+
+    const mc = {
+      bg: isDarkMode ? 'bg-[#050816] text-slate-100' : 'bg-slate-950 text-slate-100',
+      panel: 'bg-slate-900/92 border-cyan-400/15 shadow-[0_0_34px_rgba(8,145,178,0.10)]',
+      panelSoft: 'bg-slate-900/72 border-slate-700/70',
+      textDim: 'text-slate-400',
+      glow: 'shadow-[0_0_24px_rgba(34,211,238,0.14)]',
+    };
+
+    const StatTile = ({ label, value, caption, tone = 'cyan', icon = '●' }) => {
+      const toneClass = {
+        cyan: 'from-cyan-500/18 to-cyan-500/5 border-cyan-400/25 text-cyan-200',
+        emerald: 'from-emerald-500/18 to-emerald-500/5 border-emerald-400/25 text-emerald-200',
+        purple: 'from-purple-500/18 to-purple-500/5 border-purple-400/25 text-purple-200',
+        rose: 'from-rose-500/18 to-rose-500/5 border-rose-400/25 text-rose-200',
+        amber: 'from-amber-500/18 to-amber-500/5 border-amber-400/25 text-amber-200'
+      }[tone] || 'from-cyan-500/18 to-cyan-500/5 border-cyan-400/25 text-cyan-200';
+      return (
+        <div className={`mc-stat relative overflow-hidden rounded-2xl border bg-gradient-to-br ${toneClass}`}>
+          <div className="absolute right-[-18px] top-[-18px] w-20 h-20 rounded-full bg-white/5 blur-xl"></div>
+          <div className="relative flex items-start justify-between gap-2">
+            <div>
+              <div className="text-[11px] sm:text-xs font-black tracking-[.18em] uppercase opacity-80">{label}</div>
+              <div className="text-3xl sm:text-4xl lg:text-[2.55rem] leading-none font-black mt-2 tabular-nums">{value}</div>
+              <div className="text-[11px] sm:text-xs font-bold opacity-70 mt-1 truncate">{caption}</div>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-white/8 border border-white/10 flex items-center justify-center shrink-0 text-base">{icon}</div>
+          </div>
+        </div>
+      );
     };
 
     return (
-      <div className={`mdec-command-center fixed inset-0 font-sans z-[10000] flex flex-col p-2.5 sm:p-4 lg:p-4 overflow-hidden font-medium transition-colors duration-300 ${ccTheme.bg}`}>
+      <div className={`mission-control fixed inset-0 z-[10000] ${mc.bg} font-sans antialiased overflow-hidden`}>
         <style>{`
-          .mdec-command-center, .mdec-command-center * { box-sizing: border-box; }
-          .mdec-command-center { min-width: 0; height: 100dvh; overflow: hidden; }
-          .mdec-command-center > div:first-of-type {
-            margin-bottom: 10px !important;
-            padding: 10px 14px !important;
-            border-radius: 22px !important;
-            flex-shrink: 0;
+          .mission-control, .mission-control * { box-sizing: border-box; }
+          .mission-control {
+            --mc-cyan: #22d3ee;
+            --mc-blue: #6366f1;
+            --mc-line: rgba(34,211,238,.14);
+            background:
+              radial-gradient(circle at 15% 0%, rgba(99,102,241,.26), transparent 32%),
+              radial-gradient(circle at 85% 12%, rgba(34,211,238,.18), transparent 30%),
+              linear-gradient(180deg,#040816 0%,#08111f 100%);
           }
-          .mdec-command-center > div:nth-of-type(2) {
-            gap: 12px !important;
-            min-height: 0 !important;
-            height: calc(100dvh - 96px) !important;
-            flex: 1 1 auto !important;
-            grid-template-columns: minmax(240px,.78fr) minmax(300px,1fr) minmax(320px,.95fr) !important;
-            align-items: stretch;
+          .mission-control::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: .26;
+            background-image:
+              linear-gradient(rgba(34,211,238,.12) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(34,211,238,.12) 1px, transparent 1px);
+            background-size: 44px 44px;
+            mask-image: linear-gradient(to bottom, black 0%, transparent 86%);
           }
-          .mdec-command-center .gap-6 { gap: 12px !important; }
-          .mdec-command-center .gap-4 { gap: 8px !important; }
-          .mdec-command-center .rounded-3xl { border-radius: 18px !important; }
-          .mdec-command-center .rounded-2xl { border-radius: 14px !important; }
-          .mdec-command-center .p-8 { padding: 14px !important; }
-          .mdec-command-center .p-5 { padding: 12px !important; }
-          .mdec-command-center .p-4 { padding: 10px !important; }
-          .mdec-command-center .p-3\.5 { padding: 9px !important; }
-          .mdec-command-center .text-8xl,
-          .mdec-command-center .text-7xl { font-size: 2.65rem !important; line-height: .95 !important; }
-          .mdec-command-center .text-5xl { font-size: 1.7rem !important; line-height: 1 !important; }
-          .mdec-command-center .text-4xl { font-size: 1.45rem !important; line-height: 1.05 !important; }
-          .mdec-command-center .text-3xl { font-size: 1.18rem !important; line-height: 1.1 !important; }
-          .mdec-command-center .text-2xl { font-size: 1rem !important; line-height: 1.15 !important; }
-          .mdec-command-center .text-xl { font-size: .92rem !important; line-height: 1.2 !important; }
-          .mdec-command-center .text-lg { font-size: .88rem !important; line-height: 1.25 !important; }
-          .mdec-command-center h1 { font-size: clamp(1rem, 1.5vw, 1.35rem) !important; line-height: 1.1 !important; }
-          .mdec-command-center h2, .mdec-command-center h3 { line-height: 1.2 !important; }
-          .mdec-command-center [class*="w-56"][class*="h-56"] {
-            width: 134px !important; height: 134px !important; border-width: 8px !important;
+          .mc-shell { position: relative; height: 100dvh; padding: 14px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+          .mc-topbar { min-height: 62px; }
+          .mc-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 1.05fr 1.18fr .92fr; gap: 12px; }
+          .mc-col { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+          .mc-panel { min-width: 0; min-height: 0; border-radius: 22px; border: 1px solid rgba(34,211,238,.16); overflow: hidden; }
+          .mc-panel-pad { padding: 14px; }
+          .mc-stat { padding: 14px; min-height: 112px; }
+          .mc-scroll { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+          .mc-scroll::-webkit-scrollbar { width: 7px; height: 7px; }
+          .mc-scroll::-webkit-scrollbar-thumb { background: rgba(34,211,238,.35); border-radius: 999px; }
+          .mc-scanline { position: relative; }
+          .mc-scanline::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, transparent, rgba(34,211,238,.06), transparent); transform: translateY(-100%); animation: mcscan 4s linear infinite; }
+          @keyframes mcscan { to { transform: translateY(100%); } }
+          .mc-health-ring { width: 150px; height: 150px; }
+          .mc-action-row { transition: transform .15s ease, border-color .15s ease, background .15s ease; }
+          .mc-action-row:hover { transform: translateY(-1px); border-color: rgba(34,211,238,.35); background: rgba(15,23,42,.96); }
+          @media (max-width: 1180px) {
+            .mc-grid { grid-template-columns: .95fr 1.05fr .9fr; gap: 10px; }
+            .mc-stat { min-height: 104px; padding: 12px; }
+            .mc-health-ring { width: 134px; height: 134px; }
           }
-          .mdec-command-center [class*="inset-4"] { inset: 10px !important; }
-          .mdec-command-center button { min-height: 32px !important; }
-          .mdec-command-center .cc-panel, .mdec-command-center .cc-col { min-height: 0 !important; overflow: hidden !important; }
-          .mdec-command-center .cc-mini-scroll { overflow-y: auto !important; min-height: 0 !important; }
-          .mdec-command-center .custom-scrollbar { scrollbar-width: thin; }
-          .mdec-command-center .custom-scrollbar::-webkit-scrollbar { width: 7px; height: 7px; }
-          .mdec-command-center .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,.55); border-radius: 999px; }
-          @media (max-width: 1280px) {
-            .mdec-command-center > div:nth-of-type(2) { grid-template-columns: minmax(220px,.75fr) minmax(280px,1fr) minmax(280px,.95fr) !important; }
-            .mdec-command-center .text-8xl, .mdec-command-center .text-7xl { font-size: 2.7rem !important; }
+          @media (max-width: 920px) {
+            .mission-control { overflow-y: auto; }
+            .mc-shell { height: auto; min-height: 100dvh; overflow: visible; padding: 12px; gap: 10px; }
+            .mc-topbar { min-height: auto; flex-direction: column; align-items: stretch !important; gap: 10px; }
+            .mc-topbar-actions { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
+            .mc-topbar-actions .mc-close { grid-column: 1 / -1; width: 100%; }
+            .mc-grid { display: flex; flex-direction: column; min-height: auto; overflow: visible; }
+            .mc-col { overflow: visible; min-height: auto; }
+            .mc-panel { overflow: hidden; border-radius: 18px; }
+            .mc-stat-grid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+            .mc-stat { min-height: 92px; padding: 11px; }
+            .mc-stat .text-3xl, .mc-stat .text-4xl { font-size: 1.9rem !important; }
+            .mc-health-ring { width: 104px; height: 104px; }
+            .mc-mobile-row { display: grid !important; grid-template-columns: 118px 1fr; align-items: center; gap: 12px; }
+            .mc-scroll { max-height: 310px; }
+            .mc-desktop-only { display: none !important; }
           }
-          @media (max-width: 1023px) {
-            .mdec-command-center { padding: 12px !important; overflow-y: auto !important; }
-            .mdec-command-center > div:first-of-type { align-items: stretch !important; gap: 10px !important; padding: 12px !important; }
-            .mdec-command-center > div:nth-of-type(2) { grid-template-columns: 1fr !important; gap: 12px !important; height: auto !important; }
-            .mdec-command-center [class*="w-56"][class*="h-56"] { width: 136px !important; height: 136px !important; border-width: 8px !important; }
-          }
-          @media (max-width: 767px) {
-            .mdec-command-center {
-              padding: 8px !important;
-              overflow-y: auto !important;
-              overflow-x: hidden !important;
-              height: 100dvh !important;
-            }
-            .mdec-command-center > div:first-of-type {
-              display: flex !important;
-              flex-direction: column !important;
-              align-items: stretch !important;
-              margin-bottom: 8px !important;
-              padding: 10px !important;
-              border-radius: 16px !important;
-              gap: 8px !important;
-            }
-            .mdec-command-center > div:first-of-type > h1,
-            .mdec-command-center > div:first-of-type h1 {
-              width: 100% !important;
-              justify-content: flex-start !important;
-              font-size: 1rem !important;
-              gap: 8px !important;
-              white-space: nowrap !important;
-              overflow: hidden !important;
-              text-overflow: ellipsis !important;
-            }
-            .mdec-command-center h1 > div {
-              width: 34px !important;
-              height: 34px !important;
-              border-radius: 12px !important;
-              flex: 0 0 auto !important;
-            }
-            .mdec-command-center h1 svg { width: 18px !important; height: 18px !important; }
-            .mdec-command-center > div:first-of-type > div:last-child {
-              display: grid !important;
-              grid-template-columns: 38px minmax(0, 1fr) !important;
-              gap: 8px !important;
-              align-items: center !important;
-              width: 100% !important;
-            }
-            .mdec-command-center > div:first-of-type > div:last-child > span {
-              display: none !important;
-            }
-            .mdec-command-center > div:first-of-type > div:last-child > div {
-              min-width: 0 !important;
-              width: 100% !important;
-              text-align: center !important;
-              font-size: 1rem !important;
-              padding: 8px 10px !important;
-              border-radius: 14px !important;
-            }
-            .mdec-command-center > div:first-of-type > div:last-child > button:last-child {
-              grid-column: 1 / -1 !important;
-              width: 100% !important;
-              justify-content: center !important;
-            }
-            .mdec-command-center > div:nth-of-type(2) {
-              display: flex !important;
-              flex-direction: column !important;
-              height: auto !important;
-              min-height: 0 !important;
-              gap: 10px !important;
-              overflow: visible !important;
-            }
-            .mdec-command-center .cc-col {
-              overflow: visible !important;
-              gap: 10px !important;
-            }
-            .mdec-command-center .cc-col:first-child {
-              display: grid !important;
-              grid-template-columns: 1fr !important;
-            }
-            .mdec-command-center .cc-panel {
-              overflow: visible !important;
-              min-height: auto !important;
-            }
-            .mdec-command-center .cc-mini-scroll {
-              max-height: 260px !important;
-              overflow-y: auto !important;
-            }
-            .mdec-command-center .text-8xl,
-            .mdec-command-center .text-7xl { font-size: 2rem !important; }
-            .mdec-command-center .text-5xl { font-size: 1.45rem !important; }
-            .mdec-command-center .text-4xl { font-size: 1.25rem !important; }
-            .mdec-command-center .text-3xl { font-size: 1.05rem !important; }
-            .mdec-command-center .text-2xl { font-size: .95rem !important; }
-            .mdec-command-center .text-xl { font-size: .9rem !important; }
-            .mdec-command-center .text-lg { font-size: .84rem !important; }
-            .mdec-command-center .p-8,
-            .mdec-command-center .p-6,
-            .mdec-command-center .p-5,
-            .mdec-command-center .p-4,
-            .mdec-command-center .p-3\.5 { padding: 9px !important; }
-            .mdec-command-center .gap-6,
-            .mdec-command-center .gap-4 { gap: 8px !important; }
-            .mdec-command-center .rounded-3xl { border-radius: 15px !important; }
-            .mdec-command-center .rounded-2xl { border-radius: 12px !important; }
-            .mdec-command-center [class*="w-56"][class*="h-56"],
-            .mdec-command-center [class*="w-40"][class*="h-40"] {
-              width: 104px !important;
-              height: 104px !important;
-              border-width: 6px !important;
-            }
-            .mdec-command-center [class*="inset-4"] { inset: 8px !important; }
-            .mdec-command-center button {
-              min-height: 32px !important;
-              padding: 7px 9px !important;
-              font-size: 12px !important;
-            }
-            .mdec-command-center .grid.grid-cols-2 {
-              gap: 8px !important;
-            }
+          @media (max-width: 480px) {
+            .mc-shell { padding: 10px; }
+            .mc-stat-grid { gap: 8px !important; }
+            .mc-stat { min-height: 86px; }
+            .mc-top-title { font-size: 1.05rem !important; }
+            .mc-top-sub { font-size: .68rem !important; }
+            .mc-mobile-row { grid-template-columns: 96px 1fr; gap: 10px; }
+            .mc-health-ring { width: 92px; height: 92px; }
           }
         `}</style>
-        <div className={`flex flex-col sm:flex-row justify-between items-center mb-3 p-3 sm:px-5 sm:py-4 rounded-2xl shadow-sm border gap-4 ${ccTheme.card}`}>
-          <h1 className={`text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3 ${ccTheme.titleText}`}>
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${ccTheme.iconBg}`}>
-              <Icons.Monitor className="w-7 h-7"/>
-            </div>
-            ศูนย์ควบคุม MDEC ✨
-          </h1>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className={`flex items-center justify-center p-3 font-bold rounded-xl transition-colors shadow-sm ${isDarkMode ? 'bg-slate-800 text-slate-200 hover:bg-slate-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`} title={isDarkMode ? "เปลี่ยนเป็นโหมดสว่าง" : "เปลี่ยนเป็นโหมดกลางคืน"}>
-              {isDarkMode ? <Icons.Sun className="w-5 h-5"/> : <Icons.Moon className="w-5 h-5"/>}
-            </button>
-            <span className="text-lg animate-pulse text-rose-500 font-bold hidden sm:flex items-center gap-2">
-              <span className="w-3 h-3 bg-rose-500 rounded-full shadow-[0_0_8px_rgba(244,63,94,0.6)]"></span> เคลื่อนไหวสด
-            </span>
-            <div className={`text-base sm:text-xl font-black px-3 sm:px-4 py-2 rounded-2xl border shadow-inner ${ccTheme.timeBg}`}>
-              {currentTime.toLocaleTimeString('th-TH')}
-            </div>
-            <button onClick={() => setShowCommandCenter(false)} className={`border px-4 py-2.5 rounded-2xl transition-all font-bold shadow-sm flex items-center gap-2 group ${isDarkMode ? 'bg-rose-900/30 border-rose-800 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-500 hover:text-white'}`}>
-              ปิดหน้าต่าง <Icons.X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
-            </button>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[0.85fr_1fr_1fr] gap-4 flex-1 min-h-0">
-          <div className="cc-col flex flex-col gap-4">
-            <div className={`cc-panel p-5 rounded-3xl flex flex-col items-center justify-center relative overflow-hidden shadow-lg ${ccTheme.totalBg}`}>
-              <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-              <div className="absolute -left-6 -bottom-6 w-24 h-24 bg-black/20 rounded-full blur-xl"></div>
-              <h2 className={`text-xl font-bold mb-2 z-10 flex items-center gap-2 ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}><Icons.Package className="w-6 h-6"/> ทั้งหมด</h2>
-              <span className="text-5xl sm:text-6xl font-black text-white z-10 drop-shadow-md">{stats.all}</span>
+        <div className="mc-shell">
+          <div className={`mc-topbar mc-panel ${mc.panel} flex items-center justify-between gap-4 px-4 py-3`}>
+            <div className="min-w-0 flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-cyan-400/10 border border-cyan-300/20 flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,.14)] shrink-0">
+                <Icons.Monitor className="w-6 h-6 text-cyan-200" />
+              </div>
+              <div className="min-w-0">
+                <div className="mc-top-title text-xl font-black tracking-tight text-white truncate">MDEC COMMAND CENTER</div>
+                <div className="mc-top-sub text-xs font-black tracking-[.18em] text-cyan-300/75 uppercase truncate">LIVE INVENTORY CONTROL • {APP_VERSION}</div>
+              </div>
             </div>
-            <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-3 flex-1">
-              <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statAvail}`}>
-                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>🟢 พร้อมใช้</span>
-                <span className={`text-3xl lg:text-4xl font-black ${isDarkMode ? 'text-emerald-400' : 'text-emerald-500'}`}>{stats.available}</span>
+            <div className="mc-topbar-actions flex items-center justify-end gap-2 shrink-0">
+              <div className="px-3 py-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-200 font-black text-xs flex items-center justify-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span> ONLINE
               </div>
-              <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statBorrow}`}>
-                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>🟣 ถูกยืม</span>
-                <span className={`text-3xl lg:text-4xl font-black ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>{stats.borrowed}</span>
+              <div className="px-3 py-2 rounded-2xl border border-indigo-400/20 bg-indigo-400/10 text-indigo-200 font-black tabular-nums">
+                {currentTime.toLocaleTimeString('th-TH')}
               </div>
-              <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statEvent}`}>
-                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>🚚 ออกงาน</span>
-                <span className={`text-3xl lg:text-4xl font-black ${isDarkMode ? 'text-orange-400' : 'text-orange-500'}`}>{stats.outForEvent}</span>
-              </div>
-              <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statMaint}`}>
-                <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-rose-400' : 'text-rose-600'}`}>🔴 ชำรุด</span>
-                <span className={`text-3xl lg:text-4xl font-black ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>{stats.maintenance}</span>
-              </div>
+              <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className="px-3 py-2 rounded-2xl border border-cyan-400/15 bg-white/5 text-slate-200 font-black hover:bg-cyan-400/10 transition-colors">
+                {isDarkMode ? <Icons.Sun className="w-5 h-5" /> : <Icons.Moon className="w-5 h-5" />}
+              </button>
+              <button type="button" onClick={() => setShowCommandCenter(false)} className="mc-close px-4 py-2 rounded-2xl border border-rose-400/30 bg-rose-500/10 text-rose-200 font-black hover:bg-rose-500/20 transition-colors flex items-center justify-center gap-2">
+                ปิด <Icons.X className="w-5 h-5" />
+              </button>
             </div>
           </div>
 
-          <div className="cc-col flex flex-col gap-4">
-            <div className={`cc-panel p-5 rounded-3xl flex-[0_0_auto] flex flex-col items-center justify-center shadow-sm relative overflow-hidden border ${ccTheme.card}`}>
-              <div className={`absolute top-0 right-0 w-32 h-32 rounded-bl-[100px] -z-0 ${isDarkMode ? 'bg-emerald-900/10' : 'bg-emerald-50'}`}></div>
-              <h2 className={`text-xl font-bold mb-6 flex items-center gap-2 z-10 ${ccTheme.textMuted}`}>💖 สุขภาพสต๊อก (ความพร้อม)</h2>
-              <div className={`relative w-40 h-40 rounded-full border-[12px] flex items-center justify-center shadow-inner z-10 ${ccTheme.circleOuter}`}
-                   style={{ background: `conic-gradient(#10b981 ${healthPercentage * 3.6}deg, transparent 0)` }}>
-                <div className={`absolute inset-4 rounded-full flex flex-col items-center justify-center shadow-sm border ${ccTheme.circleInner}`}>
-                  <span className="text-4xl font-black">{healthPercentage}%</span>
-                  <span className={`text-sm font-bold mt-1 px-3 py-1 rounded-full ${isDarkMode ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>พร้อมใช้สุดๆ ✨</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className={`cc-panel border p-4 rounded-3xl flex-1 flex flex-col shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <h3 className={`font-black flex items-center gap-2 text-lg ${ccTheme.titleText}`}>
-                  <Icons.Truck className="w-6 h-6" /> กำลังอยู่นอกศูนย์
-                </h3>
-                <span className={`px-3 py-1 rounded-full text-sm font-black border ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                  {currentBorrowedItems.length + currentEventItems.length} รายการ
-                </span>
+          <div className="mc-grid">
+            <div className="mc-col">
+              <div className="mc-stat-grid grid grid-cols-2 gap-3">
+                <StatTile label="STOCK" value={stats.all} caption="รายการทั้งหมด" tone="cyan" icon="📦" />
+                <StatTile label="READY" value={stats.available} caption="พร้อมใช้งาน" tone="emerald" icon="✅" />
+                <StatTile label="OUT" value={outsideItems.length} caption="ยืม/ออกงาน" tone="purple" icon="🚚" />
+                <StatTile label="ALERT" value={alertCount} caption="ต้องติดตาม" tone={alertCount > 0 ? 'rose' : 'amber'} icon="⚠️" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <button type="button" onClick={() => openTrackingCenter('today')} className={`p-3 rounded-2xl border text-left ${isDarkMode ? 'bg-purple-950/25 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-100 text-purple-700'}`}>
-                  <div className="text-3xl font-black">{currentBorrowedItems.length}</div>
-                  <div className="text-xs font-black mt-1">ถูกยืมอยู่</div>
-                </button>
-                <button type="button" onClick={() => openTrackingCenter('today')} className={`p-3 rounded-2xl border text-left ${isDarkMode ? 'bg-orange-950/25 border-orange-800 text-orange-300' : 'bg-orange-50 border-orange-100 text-orange-700'}`}>
-                  <div className="text-3xl font-black">{currentEventItems.length}</div>
-                  <div className="text-xs font-black mt-1">ออกงาน/ออกกอง</div>
-                </button>
-              </div>
-
-              <div className="cc-mini-scroll flex-1 custom-scrollbar pr-2 space-y-2">
-                {[...currentBorrowedItems.map(i => ({...i, _kind: 'borrow'})), ...currentEventItems.map(i => ({...i, _kind: 'event'}))].slice(0, 7).map(i => {
-                  const isLate = i.expectedReturn && new Date(i.expectedReturn).getTime() < todayMs;
-                  return (
-                    <button key={`${i._kind}_${i.id}`} type="button" onClick={() => setShowHistory(i.id)} className={`w-full text-left text-base px-4 py-3 rounded-2xl border shadow-sm flex flex-col gap-1 transition-colors ${isLate ? (isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-700') : (i._kind === 'event' ? (isDarkMode ? 'bg-orange-950/20 border-orange-800/60 text-orange-200' : 'bg-orange-50 border-orange-100 text-orange-700') : (isDarkMode ? 'bg-purple-950/20 border-purple-800/60 text-purple-200' : 'bg-purple-50 border-purple-100 text-purple-700'))}`}>
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="font-black truncate">{i.name}</span>
-                        <span className={`text-[11px] font-black px-2 py-1 rounded-lg shrink-0 ${isLate ? 'bg-rose-600 text-white' : i._kind === 'event' ? 'bg-orange-500 text-white' : 'bg-purple-600 text-white'}`}>
-                          {isLate ? 'เลยกำหนด' : i._kind === 'event' ? 'ออกงาน' : 'ยืม'}
-                        </span>
+              <div className={`mc-panel mc-panel-pad ${mc.panel} flex-1 mc-scanline`}>
+                <div className="text-xs font-black tracking-[.18em] text-cyan-300/80 uppercase mb-3">PRIORITY FOLLOW-UP</div>
+                <div className="mc-scroll space-y-2 pr-1">
+                  {overdueItems.slice(0, 5).map(item => (
+                    <button key={`late_${item.id}`} type="button" onClick={() => setShowHistory(item.id)} className="mc-action-row w-full text-left rounded-2xl border border-rose-400/20 bg-rose-500/10 px-3 py-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 font-black text-rose-100 truncate">{item.name}</div>
+                        <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-rose-500 text-white shrink-0">เลยกำหนด</span>
                       </div>
-                      <div className={`text-xs font-bold truncate ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {i._kind === 'event' ? `งาน: ${i.currentEvent || '-'}` : `ผู้ยืม: ${i.currentBorrower || '-'}`} • กำหนดคืน {i.expectedReturn ? new Date(i.expectedReturn).toLocaleDateString('th-TH') : '-'}
-                      </div>
+                      <div className="text-xs font-bold text-rose-200/70 truncate mt-1">{item._kind === 'event' ? `งาน: ${item.currentEvent || '-'}` : `ผู้ยืม: ${item.currentBorrower || '-'}`}</div>
                     </button>
-                  );
-                })}
-                {(currentBorrowedItems.length + currentEventItems.length) === 0 && (
-                  <div className={`text-center py-8 font-bold ${ccTheme.textMuted}`}>
-                    <Icons.CheckCircle className="w-12 h-12 mx-auto mb-2 text-emerald-500" />
-                    ตอนนี้ไม่มีอุปกรณ์ถูกยืมหรือออกงาน
-                  </div>
-                )}
+                  ))}
+                  {overdueItems.length === 0 && stats.maintenance === 0 && (
+                    <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-center font-black text-emerald-200">
+                      ระบบปกติ • ไม่มีรายการเร่งด่วน
+                    </div>
+                  )}
+                  {stats.maintenance > 0 && (
+                    <button type="button" onClick={() => { setQuickProblemOnly(true); setShowCommandCenter(false); }} className="mc-action-row w-full text-left rounded-2xl border border-amber-400/20 bg-amber-400/10 px-3 py-2.5">
+                      <div className="font-black text-amber-100">อุปกรณ์ซ่อม/ชำรุด {stats.maintenance} รายการ</div>
+                      <div className="text-xs font-bold text-amber-200/70 mt-1">กดเพื่อกรองรายการที่ต้องตรวจสอบ</div>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className={`cc-panel border p-6 rounded-3xl flex flex-col h-full overflow-hidden shadow-sm ${ccTheme.card}`}>
-            <h2 className={`text-xl font-black mb-4 flex items-center gap-2 p-3 rounded-2xl ${ccTheme.titleText} ${isDarkMode ? 'bg-indigo-900/20' : 'bg-indigo-50'}`}>
-               <Icons.ClipboardList className="w-6 h-6"/> ประวัติการเคลื่อนไหวล่าสุด
-            </h2>
-            <div className="cc-mini-scroll flex-1 custom-scrollbar pr-2 space-y-3">
-              {auditLogs.slice(0, 8).map(log => {
-                let badgeColor = isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600';
-                const action = log.action || '';
-                let icon = '📌';
-                if (action.includes('เพิ่ม') || action.includes('นำเข้า')) { badgeColor = isDarkMode ? 'bg-blue-900/40 text-blue-400' : 'bg-blue-100 text-blue-700'; icon = '✨'; }
-                if (action.includes('แก้')) { badgeColor = isDarkMode ? 'bg-amber-900/40 text-amber-400' : 'bg-amber-100 text-amber-700'; icon = '✏️'; }
-                if (action.includes('ลบ')) { badgeColor = isDarkMode ? 'bg-rose-900/40 text-rose-400' : 'bg-rose-100 text-rose-700'; icon = '🗑️'; }
-                if (action.includes('ยืม')) { badgeColor = isDarkMode ? 'bg-purple-900/40 text-purple-400' : 'bg-purple-100 text-purple-700'; icon = '📤'; }
-                if (action.includes('ออกงาน')) { badgeColor = isDarkMode ? 'bg-orange-900/40 text-orange-400' : 'bg-orange-100 text-orange-700'; icon = '🚚'; }
-                if (action.includes('คืน')) { badgeColor = isDarkMode ? 'bg-emerald-900/40 text-emerald-400' : 'bg-emerald-100 text-emerald-700'; icon = '📥'; }
-
-                return (
-                  <div key={log.id} className={`p-3.5 rounded-2xl border transition-shadow hover:shadow-md ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className={`text-xs font-bold px-2 py-1 rounded-lg ${badgeColor}`}>{icon} {action}</span>
-                      <span className={`text-xs font-semibold ${ccTheme.textMuted}`}>{log.timestamp ? new Date(log.timestamp).toLocaleTimeString('th-TH', {hour12: false}) : '-'} น.</span>
-                    </div>
-                    <div className={`text-base font-bold truncate ${ccTheme.textMain}`}>{log.target || '-'}</div>
-                    <div className={`text-xs truncate mt-1 flex items-center gap-1.5 ${ccTheme.textMuted}`}>
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'}`}>👤</span> แอดมิน: {log.user || 'Admin'}
+            <div className="mc-col">
+              <div className={`mc-panel mc-panel-pad ${mc.panel} flex-[0_0_auto]`}>
+                <div className="mc-mobile-row flex flex-col items-center justify-center gap-3 text-center">
+                  <div className="relative mc-health-ring rounded-full border-[9px] border-slate-950/80 flex items-center justify-center shadow-[inset_0_0_24px_rgba(0,0,0,.45),0_0_26px_rgba(16,185,129,.18)]"
+                       style={{ background: `conic-gradient(#10b981 ${healthPercentage * 3.6}deg, rgba(15,23,42,.75) 0)` }}>
+                    <div className="absolute inset-3 rounded-full bg-slate-950 border border-emerald-300/15 flex flex-col items-center justify-center">
+                      <span className="text-3xl font-black text-white tabular-nums">{healthPercentage}%</span>
+                      <span className="text-[10px] font-black text-emerald-300">READY</span>
                     </div>
                   </div>
-                );
-              })}
-              {auditLogs.length === 0 && (
-                <div className={`text-center font-medium mt-10 flex flex-col items-center ${ccTheme.textMuted}`}>
-                  <Icons.ViewGrid className="w-12 h-12 mb-2" />
-                  ยังไม่มีการเคลื่อนไหว
+                  <div className="min-w-0">
+                    <div className="text-xs font-black tracking-[.18em] text-emerald-300/80 uppercase">STOCK HEALTH</div>
+                    <div className="text-2xl font-black text-white mt-1">ความพร้อมของสต๊อก</div>
+                    <div className="mt-3 h-2 rounded-full bg-slate-800 overflow-hidden border border-white/5">
+                      <div className="h-full bg-gradient-to-r from-emerald-400 to-cyan-300" style={{ width: `${Math.max(0, Math.min(100, healthPercentage))}%` }}></div>
+                    </div>
+                    <div className="text-xs font-bold text-slate-400 mt-2">พร้อมใช้ {stats.available} จาก {stats.all} รายการ</div>
+                  </div>
                 </div>
-              )}
+              </div>
+
+              <div className={`mc-panel mc-panel-pad ${mc.panel} flex-1`}>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <div className="text-xs font-black tracking-[.18em] text-purple-300/80 uppercase">OUTSIDE CENTER</div>
+                    <div className="font-black text-white">กำลังอยู่นอกศูนย์</div>
+                  </div>
+                  <button type="button" onClick={() => openTrackingCenter('today')} className="px-3 py-1.5 rounded-xl border border-purple-400/20 bg-purple-400/10 text-purple-200 text-xs font-black">ดูทั้งหมด</button>
+                </div>
+                <div className="mc-scroll space-y-2 pr-1">
+                  {outsideItems.slice(0, 6).map(item => {
+                    const isLate = item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
+                    return (
+                      <button key={`${item._kind}_${item.id}`} type="button" onClick={() => setShowHistory(item.id)} className={`mc-action-row w-full text-left rounded-2xl border px-3 py-2.5 ${isLate ? 'border-rose-400/25 bg-rose-500/10' : item._kind === 'event' ? 'border-orange-400/20 bg-orange-400/10' : 'border-purple-400/20 bg-purple-400/10'}`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-black text-white truncate">{item.name}</span>
+                          <span className={`text-[10px] font-black px-2 py-1 rounded-lg shrink-0 ${isLate ? 'bg-rose-500 text-white' : item._kind === 'event' ? 'bg-orange-500/80 text-white' : 'bg-purple-500/80 text-white'}`}>{isLate ? 'เลยกำหนด' : item._kind === 'event' ? 'ออกงาน' : 'ยืม'}</span>
+                        </div>
+                        <div className="text-xs font-bold text-slate-400 truncate mt-1">กำหนดคืน {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</div>
+                      </button>
+                    );
+                  })}
+                  {outsideItems.length === 0 && <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-center font-black text-emerald-200">ไม่มีของอยู่นอกศูนย์</div>}
+                </div>
+              </div>
+            </div>
+
+            <div className="mc-col">
+              <div className={`mc-panel mc-panel-pad ${mc.panel} flex-1`}>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <div className="text-xs font-black tracking-[.18em] text-cyan-300/80 uppercase">LIVE ACTIVITY</div>
+                    <div className="font-black text-white">ความเคลื่อนไหวล่าสุด</div>
+                  </div>
+                  <span className="text-xs font-black px-3 py-1.5 rounded-xl bg-cyan-400/10 border border-cyan-400/20 text-cyan-200">LIVE</span>
+                </div>
+                <div className="mc-scroll space-y-2 pr-1">
+                  {lastActions.map(log => {
+                    const action = log.action || '-';
+                    let dot = 'bg-cyan-300';
+                    if (action.includes('ลบ')) dot = 'bg-rose-300';
+                    if (action.includes('คืน')) dot = 'bg-emerald-300';
+                    if (action.includes('ยืม') || action.includes('ออกงาน')) dot = 'bg-purple-300';
+                    if (action.includes('แก้')) dot = 'bg-amber-300';
+                    return (
+                      <div key={log.id} className="mc-action-row rounded-2xl border border-slate-700/80 bg-slate-950/40 px-3 py-2.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex items-start gap-2">
+                            <span className={`mt-1.5 w-2 h-2 rounded-full ${dot} shrink-0 shadow-[0_0_10px_currentColor]`}></span>
+                            <div className="min-w-0">
+                              <div className="text-xs font-black text-cyan-200/80 truncate">{action}</div>
+                              <div className="font-black text-white truncate">{log.target || '-'}</div>
+                            </div>
+                          </div>
+                          <span className="text-[11px] font-bold text-slate-500 shrink-0">{log.timestamp ? new Date(log.timestamp).toLocaleTimeString('th-TH', { hour12: false }) : '-'}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {lastActions.length === 0 && <div className="rounded-2xl border border-slate-700 bg-slate-950/40 p-4 text-center font-black text-slate-400">ยังไม่มีการเคลื่อนไหว</div>}
+                </div>
+              </div>
+
+              <div className={`mc-panel mc-panel-pad ${mc.panelSoft} mc-desktop-only`}>
+                <div className="text-xs font-black tracking-[.18em] text-slate-400 uppercase mb-2">QUICK ACTIONS</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => { setShowCommandCenter(false); openWorkspace('borrowReturn'); }} className="rounded-2xl border border-purple-400/20 bg-purple-400/10 text-purple-100 p-3 font-black text-sm">ยืม-คืน</button>
+                  <button type="button" onClick={() => { setShowCommandCenter(false); openSelectionScanner({ camera: true }); }} className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-100 p-3 font-black text-sm">สแกน QR</button>
+                  <button type="button" onClick={() => { setShowCommandCenter(false); openWorkspace('projects'); }} className="rounded-2xl border border-indigo-400/20 bg-indigo-400/10 text-indigo-100 p-3 font-black text-sm">โครงการ</button>
+                  <button type="button" onClick={() => { setShowCommandCenter(false); openTrackingCenter('today'); }} className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-100 p-3 font-black text-sm">ติดตาม</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
