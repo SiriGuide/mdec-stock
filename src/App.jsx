@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.39.0 MDEC Factory UI Polish';
-const APP_UPDATE_NOTE = 'ยกเครื่องหน้าตาให้เนี๊ยบขึ้นสไตล์ FactoryStock โดยคงโครงสร้างฐานข้อมูลเดิมทั้งหมด';
+const APP_VERSION = 'v22.39.1 Borrow Docs Modal Fix';
+const APP_UPDATE_NOTE = 'แก้เมนูเอกสารย้อนหลังให้เปิดหน้ารายการเอกสารได้จริง พร้อมค้นหา กรองสถานะ และพิมพ์ซ้ำ โดยไม่เปลี่ยนโครงสร้างฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -9408,6 +9408,136 @@ S.N.: ${item.sn || '-'}
               </div>
             </div>
             <div className={`p-4 border-t ${theme.divide}`}><button type="button" onClick={() => setShowMonthlyReportModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button></div>
+          </div>
+        </div>
+      )}
+
+
+      {/* เอกสารย้อนหลัง / Borrow Documents Archive */}
+      {showBorrowDocsModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} backdrop-blur-sm flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
+            <div className={`p-5 sm:p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
+              <div className="min-w-0">
+                <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-500">Documents Archive</div>
+                <h3 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>เอกสารย้อนหลัง</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมใบยืมและใบนำอุปกรณ์ออกงานที่ระบบบันทึกไว้ สามารถค้นหา กรองสถานะ และพิมพ์ซ้ำได้</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button type="button" onClick={() => { setBorrowDocSearch(''); setBorrowDocFilter('all'); }} className={`px-4 py-3 rounded-2xl text-sm font-black border ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
+                <button type="button" onClick={() => setShowBorrowDocsModal(false)} className={`p-3 rounded-2xl border ${theme.btnSecondary}`}><Icons.X className="w-5 h-5" /></button>
+              </div>
+            </div>
+
+            <div className="p-5 sm:p-6 border-b border-slate-200/60 dark:border-slate-800/80 grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                ['เอกสารทั้งหมด', borrowDocuments.length, 'bg-blue-500/10 text-blue-600 border-blue-500/20'],
+                ['รอคืน', borrowDocuments.filter(d => !d.status || d.status === 'active').length, 'bg-amber-500/10 text-amber-600 border-amber-500/20'],
+                ['คืนบางส่วน', borrowDocuments.filter(d => d.status === 'partial').length, 'bg-purple-500/10 text-purple-600 border-purple-500/20'],
+                ['ปิดเอกสารแล้ว', borrowDocuments.filter(d => d.status === 'closed').length, 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20']
+              ].map(([label, value, tone]) => (
+                <div key={label} className={`rounded-2xl border p-4 ${tone}`}>
+                  <div className="text-xs font-black opacity-80">{label}</div>
+                  <div className="text-2xl font-black mt-1">{Number(value || 0).toLocaleString('th-TH')}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className={`p-5 sm:p-6 border-b grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3 ${theme.divide}`}>
+              <div className="relative">
+                <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.textMuted}`} />
+                <input
+                  type="text"
+                  value={borrowDocSearch}
+                  onChange={(e) => setBorrowDocSearch(e.target.value)}
+                  placeholder="ค้นหาเลขที่เอกสาร / ผู้ยืม / เจ้าหน้าที่ / ชื่ออุปกรณ์ / S.N."
+                  className={`w-full pl-12 pr-4 py-4 rounded-2xl border font-bold outline-none ${theme.input}`}
+                />
+              </div>
+              <select value={borrowDocFilter} onChange={(e) => setBorrowDocFilter(e.target.value)} className={`px-4 py-4 rounded-2xl border font-black outline-none ${theme.input}`}>
+                <option value="all">ทั้งหมด</option>
+                <option value="borrow">เฉพาะใบยืม</option>
+                <option value="event">เฉพาะใบออกงาน</option>
+                <option value="active">รอคืน</option>
+                <option value="partial">คืนบางส่วน</option>
+                <option value="closed">คืนครบแล้ว</option>
+              </select>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-6 space-y-3">
+              {filteredBorrowDocuments.length === 0 ? (
+                <div className={`min-h-[280px] rounded-3xl border border-dashed flex flex-col items-center justify-center text-center p-8 ${isDarkMode ? 'border-slate-700 bg-slate-950/30' : 'border-slate-200 bg-slate-50'}`}>
+                  <Icons.Printer className={`w-14 h-14 mb-4 ${theme.textMuted}`} />
+                  <div className={`text-xl font-black ${theme.textTitle}`}>ไม่พบเอกสารย้อนหลัง</div>
+                  <p className={`text-sm font-bold mt-2 max-w-md ${theme.textMuted}`}>ลองล้างตัวกรอง หรือสร้างใบยืม/ใบออกงานใหม่ ระบบจะบันทึกเอกสารไว้ในหน้านี้อัตโนมัติ</p>
+                </div>
+              ) : (
+                filteredBorrowDocuments.map((docData) => {
+                  const itemCount = Array.isArray(docData.items) ? docData.items.length : (Array.isArray(docData.itemIds) ? docData.itemIds.length : 0);
+                  const returnedCount = Array.isArray(docData.returnedItemIds) ? docData.returnedItemIds.length : 0;
+                  const status = docData.status || 'active';
+                  const typeLabel = docData.type === 'event' ? 'ออกงาน' : 'ยืม';
+                  const title = docData.title || (docData.type === 'event' ? 'ใบนำอุปกรณ์ออกงาน' : 'ใบยืมอุปกรณ์');
+                  const statusLabel = docData.statusLabel || (status === 'closed' ? 'คืนครบแล้ว' : status === 'partial' ? 'คืนบางส่วน' : 'รอคืน');
+                  const statusTone = status === 'closed'
+                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                    : status === 'partial'
+                      ? 'bg-purple-500/10 text-purple-600 border-purple-500/20'
+                      : 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+                  const docDate = docData.date || docData.createdAt || docData.updatedAt;
+                  const dateText = docDate ? new Date(docDate).toLocaleString('th-TH', { hour12: false }) : '-';
+                  const previewItems = (docData.items || []).slice(0, 3);
+                  return (
+                    <div key={docData.id || docData.ref} className={`rounded-3xl border p-4 sm:p-5 transition-all hover:-translate-y-0.5 hover:shadow-xl ${isDarkMode ? 'bg-slate-950/45 border-slate-800 hover:border-blue-900' : 'bg-white border-slate-200 hover:border-blue-200'}`}>
+                      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <span className={`px-3 py-1 rounded-xl border text-xs font-black ${docData.type === 'event' ? 'bg-orange-500/10 text-orange-600 border-orange-500/20' : 'bg-blue-500/10 text-blue-600 border-blue-500/20'}`}>{typeLabel}</span>
+                            <span className={`px-3 py-1 rounded-xl border text-xs font-black ${statusTone}`}>{statusLabel}</span>
+                            <span className={`px-3 py-1 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>{itemCount} รายการ</span>
+                          </div>
+                          <div className={`text-lg sm:text-xl font-black truncate ${theme.textTitle}`}>{title}</div>
+                          <div className={`text-sm font-black mt-1 ${theme.textMuted}`}>เลขที่: {docData.ref || docData.id || '-'} • วันที่: {dateText}</div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-4 text-sm">
+                            <div className={`rounded-2xl p-3 ${isDarkMode ? 'bg-slate-900/70' : 'bg-slate-50'}`}>
+                              <div className={`text-xs font-black ${theme.textMuted}`}>ผู้ยืม / ชื่องาน</div>
+                              <div className={`font-black truncate ${theme.textTitle}`}>{docData.borrower || '-'}</div>
+                            </div>
+                            <div className={`rounded-2xl p-3 ${isDarkMode ? 'bg-slate-900/70' : 'bg-slate-50'}`}>
+                              <div className={`text-xs font-black ${theme.textMuted}`}>เจ้าหน้าที่</div>
+                              <div className={`font-black truncate ${theme.textTitle}`}>{docData.staffOut || docData.operatorName || '-'}</div>
+                            </div>
+                            <div className={`rounded-2xl p-3 ${isDarkMode ? 'bg-slate-900/70' : 'bg-slate-50'}`}>
+                              <div className={`text-xs font-black ${theme.textMuted}`}>คืนแล้ว</div>
+                              <div className={`font-black truncate ${theme.textTitle}`}>{returnedCount.toLocaleString('th-TH')} / {itemCount.toLocaleString('th-TH')} รายการ</div>
+                            </div>
+                          </div>
+                          {previewItems.length > 0 && (
+                            <div className={`mt-4 text-xs font-bold ${theme.textMuted}`}>
+                              รายการ: {previewItems.map(i => i.name || i.id || '-').join(', ')}{itemCount > previewItems.length ? ` และอีก ${itemCount - previewItems.length} รายการ` : ''}
+                            </div>
+                          )}
+                          {docData.note && <div className={`mt-3 text-xs font-bold rounded-2xl px-3 py-2 ${isDarkMode ? 'bg-amber-950/20 text-amber-300' : 'bg-amber-50 text-amber-700'}`}>หมายเหตุ: {docData.note}</div>}
+                        </div>
+                        <div className="flex xl:flex-col gap-2 shrink-0">
+                          <button type="button" onClick={() => openBorrowDocumentPrint(docData)} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2">
+                            <Icons.Printer className="w-5 h-5" /> พิมพ์ซ้ำ
+                          </button>
+                          <button type="button" onClick={() => { setTrackingTab('today'); setShowTrackingCenterModal(true); }} className={`px-4 py-3 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
+                            ศูนย์ติดตาม
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className={`p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-3 ${theme.divide}`}>
+              <div className={`text-sm font-bold ${theme.textMuted}`}>กำลังแสดง {filteredBorrowDocuments.length.toLocaleString('th-TH')} จาก {borrowDocuments.length.toLocaleString('th-TH')} เอกสาร</div>
+              <button type="button" onClick={() => setShowBorrowDocsModal(false)} className={`w-full sm:w-auto px-6 py-3 rounded-2xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+            </div>
           </div>
         </div>
       )}
