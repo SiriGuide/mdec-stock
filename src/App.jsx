@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.52.1 QR Beep Feedback';
+const APP_VERSION = 'v22.52.2 Mobile QR Workflow Hub';
 const APP_UPDATE_NOTE = 'เพิ่มเสียงปิ๊ปและแรงสั่นเมื่อสแกน QR สำเร็จ ให้ฟีลเหมือนเครื่องสแกนร้านค้า โดยไม่แตะฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -2421,6 +2421,7 @@ function MainApp() {
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
   const [scanMode, setScanMode] = useState('select'); // select | borrowChecklist | eventChecklist | returnChecklist
+  const [scanWorkflow, setScanWorkflow] = useState('borrow'); // borrow | return | event | detail
   const [lastScannedItemId, setLastScannedItemId] = useState(null);
   const scanInputRef = useRef(null);
   const scanCooldownRef = useRef(false);
@@ -6107,6 +6108,7 @@ S.N.: ${item.sn || '-'}
   const openSelectionScanner = ({ camera = false } = {}) => {
     warmupQrBeep();
     setScanMode('select');
+    setScanWorkflow('borrow');
     const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 768;
     setUseCamera(camera || isMobileViewport);
     setShowScanModal(true);
@@ -6115,6 +6117,9 @@ S.N.: ${item.sn || '-'}
   const openChecklistScanner = (mode) => {
     warmupQrBeep();
     setScanMode(mode);
+    if (mode === 'returnChecklist') setScanWorkflow('return');
+    else if (mode === 'eventChecklist') setScanWorkflow('event');
+    else if (mode === 'borrowChecklist') setScanWorkflow('borrow');
     setUseCamera(true);
     setShowScanModal(true);
   };
@@ -6123,7 +6128,10 @@ S.N.: ${item.sn || '-'}
     if (scanMode === 'borrowChecklist') return { title: 'สแกนเช็กก่อนปล่อยยืม', desc: 'สแกน QR ของอุปกรณ์ในรายการยืม เพื่อเช็กแทนการติ๊กเอง', tone: 'purple' };
     if (scanMode === 'eventChecklist') return { title: 'สแกนเช็กของขึ้นงาน', desc: 'สแกน QR ของอุปกรณ์ในรายการออกงาน เพื่อเช็กแทนการติ๊กเอง', tone: 'orange' };
     if (scanMode === 'returnChecklist') return { title: 'สแกนเช็กตอนรับคืน', desc: 'สแกน QR ของอุปกรณ์ที่นำมาคืน เพื่อเช็กแทนการติ๊กเอง', tone: 'emerald' };
-    return { title: 'โหมดสแกน QR', desc: 'สแกน QR เพื่อเลือกอุปกรณ์ แล้วกดดูรายละเอียดหรือแก้ไขได้ทันที', tone: 'amber' };
+    if (scanWorkflow === 'borrow') return { title: 'สแกนยืมด่วน', desc: 'สแกนของหลายชิ้นเข้าตะกร้า แล้วกดทำใบยืมได้ทันที', tone: 'purple' };
+    if (scanWorkflow === 'return') return { title: 'สแกนรับคืน', desc: 'สแกนของที่ถูกยืมหรือออกงานอยู่ แล้วกดรับคืนได้ทันที', tone: 'emerald' };
+    if (scanWorkflow === 'event') return { title: 'สแกนออกงาน', desc: 'สแกนอุปกรณ์สำหรับออกกอง/ออกงาน แล้วกดทำใบนำออกงาน', tone: 'orange' };
+    return { title: 'สแกนดูรายละเอียด', desc: 'สแกนเพื่อดูรายละเอียดอุปกรณ์ สถานะ และประวัติอย่างรวดเร็ว', tone: 'amber' };
   };
 
   const handleOpenBatchBorrow = () => {
@@ -6223,9 +6231,29 @@ S.N.: ${item.sn || '-'}
       } else if (scanMode === 'returnChecklist') {
         markChecklist(returnTargetIds, returnChecklist, setReturnChecklist, 'รับคืน');
       } else {
-        setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-        setScanMessage({ text: `✅ พบ "${foundItem.name}" เลือกไว้แล้ว`, type: 'success' });
-        triggerQrScanFeedback('success');
+        const st = foundItem.status;
+        if (scanWorkflow === 'borrow' || scanWorkflow === 'event') {
+          if (st !== 'available') {
+            setScanMessage({ text: `⚠️ "${foundItem.name}" ยังไม่พร้อมใช้ จึงยังไม่เพิ่มเข้ารายการ`, type: 'error' });
+            triggerQrScanFeedback('error');
+          } else {
+            setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+            setScanMessage({ text: `✅ ปิ๊ป! เพิ่ม "${foundItem.name}" เข้าตะกร้า${scanWorkflow === 'event' ? 'ออกงาน' : 'ยืม'}แล้ว`, type: 'success' });
+            triggerQrScanFeedback('success');
+          }
+        } else if (scanWorkflow === 'return') {
+          if (st !== 'borrowed' && st !== 'out-for-event') {
+            setScanMessage({ text: `⚠️ "${foundItem.name}" ไม่ได้อยู่ระหว่างยืมหรือออกงาน`, type: 'error' });
+            triggerQrScanFeedback('error');
+          } else {
+            setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+            setScanMessage({ text: `✅ ปิ๊ป! เพิ่ม "${foundItem.name}" เข้ารายการรับคืนแล้ว`, type: 'success' });
+            triggerQrScanFeedback('success');
+          }
+        } else {
+          setScanMessage({ text: `✅ ปิ๊ป! พบ "${foundItem.name}" พร้อมดูรายละเอียด`, type: 'success' });
+          triggerQrScanFeedback('success');
+        }
       }
     } else {
       setScanMessage({ text: `❌ ไม่พบรหัส "${val}" ในSystem`, type: 'error' });
@@ -9793,13 +9821,40 @@ S.N.: ${item.sn || '-'}
             : scanMode === 'returnChecklist'
               ? 'from-emerald-500 to-teal-600'
               : 'from-amber-500 to-orange-600';
-        const softToneClass = scanMode === 'borrowChecklist'
-          ? (isDarkMode ? 'bg-purple-950/30 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-800')
-          : scanMode === 'eventChecklist'
-            ? (isDarkMode ? 'bg-orange-950/30 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800')
-            : scanMode === 'returnChecklist'
-              ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
-              : (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800');
+        const workflowTabs = [
+          { id: 'borrow', label: 'ยืม', icon: '📤', count: selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available').length },
+          { id: 'return', label: 'คืน', icon: '📥', count: selectedItems.filter(id => ['borrowed','out-for-event'].includes(items.find(i => i.id === id)?.status)).length },
+          { id: 'event', label: 'ออกงาน', icon: '🚚', count: selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available').length },
+          { id: 'detail', label: 'ดูของ', icon: '🔎', count: recentItem ? 1 : 0 }
+        ];
+        const workflowCount = scanWorkflow === 'return'
+          ? selectedItems.filter(id => ['borrowed','out-for-event'].includes(items.find(i => i.id === id)?.status)).length
+          : scanWorkflow === 'detail'
+            ? (recentItem ? 1 : 0)
+            : selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available').length;
+        const workflowActionLabel = scanWorkflow === 'borrow'
+          ? `ทำใบยืม ${workflowCount} รายการ`
+          : scanWorkflow === 'return'
+            ? `รับคืน ${workflowCount} รายการ`
+            : scanWorkflow === 'event'
+              ? `ทำใบออกงาน ${workflowCount} รายการ`
+              : 'ดูรายละเอียดล่าสุด';
+        const handleWorkflowConfirm = () => {
+          if (scanWorkflow === 'borrow') {
+            if (workflowCount <= 0) return alert('ยังไม่มีอุปกรณ์พร้อมยืมในตะกร้า');
+            setShowScanModal(false); setUseCamera(false); window.setTimeout(handleOpenBatchBorrow, 0);
+          } else if (scanWorkflow === 'return') {
+            if (workflowCount <= 0) return alert('ยังไม่มีอุปกรณ์ที่รับคืนได้ในตะกร้า');
+            setShowScanModal(false); setUseCamera(false); window.setTimeout(handleOpenBatchReturn, 0);
+          } else if (scanWorkflow === 'event') {
+            if (workflowCount <= 0) return alert('ยังไม่มีอุปกรณ์พร้อมออกงานในตะกร้า');
+            setShowScanModal(false); setUseCamera(false); window.setTimeout(handleOpenBatchEvent, 0);
+          } else if (recentItem) {
+            setShowScanModal(false); setUseCamera(false); setShowHistory(recentItem.id);
+          } else {
+            alert('ยังไม่มีรายการล่าสุด');
+          }
+        };
 
         return (
           <div className={`qr-mobile-oneshot fixed inset-0 ${theme.modalOverlay} z-[9999] overflow-hidden`}> 
@@ -9866,6 +9921,10 @@ S.N.: ${item.sn || '-'}
                 .qr-mobile-oneshot .qr-header p { display: none !important; }
                 .qr-mobile-oneshot .qr-header [class*="w-11"] { width: 38px !important; height: 38px !important; border-radius: 14px !important; }
                 .qr-mobile-oneshot .qr-mode-bar { margin-top: 8px !important; display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+                .qr-mobile-oneshot .qr-workflow-tabs { display: grid !important; grid-template-columns: repeat(4, minmax(0,1fr)) !important; gap: 6px !important; margin-top: 8px !important; }
+                .qr-mobile-oneshot .qr-workflow-tabs button { min-height: 42px !important; padding: 6px 5px !important; border-radius: 14px !important; font-size: 11px !important; line-height: 1.1 !important; }
+                .qr-mobile-oneshot .qr-bottom-action { position: sticky !important; bottom: 0 !important; z-index: 20 !important; margin: 0 -10px -10px !important; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)) !important; }
+
                 .qr-mobile-oneshot .qr-mode-bar button,
                 .qr-mobile-oneshot .qr-mode-bar > div { min-height: 36px !important; padding: 6px 8px !important; border-radius: 13px !important; font-size: 12px !important; }
                 .qr-mobile-oneshot .qr-progress-wrap { margin-top: 8px !important; }
@@ -9908,7 +9967,23 @@ S.N.: ${item.sn || '-'}
                     </button>
                   </div>
 
-                  <div className="qr-mode-bar mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                  {!isChecklistMode && (
+                    <div className="qr-workflow-tabs mt-4 grid grid-cols-4 gap-2">
+                      {workflowTabs.map(tab => (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setScanWorkflow(tab.id)}
+                          className={`rounded-2xl border px-3 py-2 font-black transition flex flex-col items-center justify-center gap-1 ${scanWorkflow === tab.id ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-md` : theme.btnSecondary}`}
+                        >
+                          <span className="text-base leading-none">{tab.icon}</span>
+                          <span className="text-[11px] sm:text-xs leading-none">{tab.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="qr-mode-bar mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                     <button type="button" onClick={() => setUseCamera(true)} className={`min-h-[46px] px-4 rounded-2xl font-black border transition ${useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
                       📷 กล้องมือถือ
                     </button>
@@ -9923,7 +9998,7 @@ S.N.: ${item.sn || '-'}
                     )}
                     {!isChecklistMode && (
                       <div className={`col-span-2 sm:ml-auto min-h-[46px] px-4 rounded-2xl border flex items-center justify-center gap-2 font-black ${theme.btnSecondary}`}>
-                        เลือกแล้ว {selectedItems.length} รายการ
+                        {scanWorkflow === 'borrow' ? 'ตะกร้ายืม' : scanWorkflow === 'return' ? 'ตะกร้าคืน' : scanWorkflow === 'event' ? 'ตะกร้าออกงาน' : 'รายการล่าสุด'} {workflowCount}
                       </div>
                     )}
                   </div>
@@ -9946,8 +10021,8 @@ S.N.: ${item.sn || '-'}
                   <div className="qr-grid grid grid-cols-1 lg:grid-cols-[1.2fr_.8fr] gap-4 sm:gap-5 items-start">
                     <div className={`qr-scan-card rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
                       <div className={`px-4 py-3 border-b flex items-center justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50'}`}>
-                        <div className="font-black">{useCamera ? 'ช่องสแกนกล้อง' : 'ช่องกรอกรหัส / เครื่องยิงบาร์โค้ด'}</div>
-                        <div className={`text-xs font-black px-3 py-1 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'Camera Mode' : 'Manual Mode'}</div>
+                        <div className="font-black">{useCamera ? 'กล้องสแกน QR' : 'ช่องกรอกรหัส / เครื่องยิงบาร์โค้ด'}</div>
+                        <div className={`text-xs font-black px-3 py-1 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'พร้อมสแกน' : 'Manual Mode'}</div>
                       </div>
 
                       {useCamera ? (
@@ -10058,6 +10133,17 @@ S.N.: ${item.sn || '-'}
                         </div>
                       )}
 
+                      {!isChecklistMode && (
+                        <button
+                          type="button"
+                          onClick={handleWorkflowConfirm}
+                          className={`w-full mb-3 min-h-[48px] rounded-2xl bg-gradient-to-br ${toneClass} text-white font-black shadow-md flex items-center justify-center gap-2`}
+                        >
+                          <span>{scanWorkflow === 'borrow' ? '📤' : scanWorkflow === 'return' ? '📥' : scanWorkflow === 'event' ? '🚚' : '🔎'}</span>
+                          <span>{workflowActionLabel}</span>
+                        </button>
+                      )}
+
                       <div className={`grid grid-cols-3 gap-2 text-xs font-black ${theme.textMuted}`}>
                         <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>{isChecklistMode ? 'เช็กของ' : 'เลือกของ'}</div>
                         <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>กันสแกนซ้ำ</div>
@@ -10065,6 +10151,19 @@ S.N.: ${item.sn || '-'}
                       </div>
                     </div>
                   </div>
+
+                  {!isChecklistMode && (
+                    <div className={`qr-bottom-action lg:hidden border-t ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                      <button
+                        type="button"
+                        onClick={handleWorkflowConfirm}
+                        className={`w-full min-h-[52px] rounded-2xl bg-gradient-to-br ${toneClass} text-white font-black shadow-lg flex items-center justify-center gap-2`}
+                      >
+                        <span>{scanWorkflow === 'borrow' ? '📤' : scanWorkflow === 'return' ? '📥' : scanWorkflow === 'event' ? '🚚' : '🔎'}</span>
+                        <span>{workflowActionLabel}</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
