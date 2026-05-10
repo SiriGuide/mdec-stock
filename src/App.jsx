@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.46.2 Command Dashboard Compact';
+const APP_VERSION = 'v22.46.3 Command Dashboard One Screen';
 const APP_UPDATE_NOTE = 'แก้ศูนย์ควบคุม Dashboard ที่ใหญ่ทะลุจอ ปรับเป็น compact responsive ทั้งคอมและมือถือ โดยไม่แตะโครงสร้างฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -7212,61 +7212,64 @@ S.N.: ${item.sn || '-'}
     };
 
     return (
-      <div className={`mdec-command-center fixed inset-0 font-sans z-[10000] flex flex-col p-3 sm:p-5 lg:p-6 overflow-y-auto overflow-x-hidden font-medium transition-colors duration-300 ${ccTheme.bg}`}>
+      <div className={`mdec-command-center fixed inset-0 font-sans z-[10000] flex flex-col p-2.5 sm:p-4 lg:p-4 overflow-hidden font-medium transition-colors duration-300 ${ccTheme.bg}`}>
         <style>{`
           .mdec-command-center, .mdec-command-center * { box-sizing: border-box; }
-          .mdec-command-center { min-width: 0; }
+          .mdec-command-center { min-width: 0; height: 100dvh; overflow: hidden; }
           .mdec-command-center > div:first-of-type {
-            margin-bottom: 14px !important;
-            padding: 12px 18px !important;
+            margin-bottom: 10px !important;
+            padding: 10px 14px !important;
             border-radius: 22px !important;
             flex-shrink: 0;
           }
           .mdec-command-center > div:nth-of-type(2) {
-            gap: 14px !important;
+            gap: 12px !important;
             min-height: 0 !important;
+            height: calc(100dvh - 96px) !important;
             flex: 1 1 auto !important;
-            grid-template-columns: minmax(250px,.85fr) minmax(320px,1fr) minmax(340px,1fr) !important;
+            grid-template-columns: minmax(240px,.78fr) minmax(300px,1fr) minmax(320px,.95fr) !important;
             align-items: stretch;
           }
-          .mdec-command-center .gap-6 { gap: 14px !important; }
-          .mdec-command-center .gap-4 { gap: 10px !important; }
-          .mdec-command-center .rounded-3xl { border-radius: 20px !important; }
-          .mdec-command-center .rounded-2xl { border-radius: 15px !important; }
-          .mdec-command-center .p-8 { padding: 18px !important; }
-          .mdec-command-center .p-5 { padding: 14px !important; }
-          .mdec-command-center .p-4 { padding: 12px !important; }
-          .mdec-command-center .p-3\.5 { padding: 10px !important; }
+          .mdec-command-center .gap-6 { gap: 12px !important; }
+          .mdec-command-center .gap-4 { gap: 8px !important; }
+          .mdec-command-center .rounded-3xl { border-radius: 18px !important; }
+          .mdec-command-center .rounded-2xl { border-radius: 14px !important; }
+          .mdec-command-center .p-8 { padding: 14px !important; }
+          .mdec-command-center .p-5 { padding: 12px !important; }
+          .mdec-command-center .p-4 { padding: 10px !important; }
+          .mdec-command-center .p-3\.5 { padding: 9px !important; }
           .mdec-command-center .text-8xl,
-          .mdec-command-center .text-7xl { font-size: 3.15rem !important; line-height: .95 !important; }
-          .mdec-command-center .text-5xl { font-size: 2.05rem !important; line-height: 1 !important; }
-          .mdec-command-center .text-4xl { font-size: 1.7rem !important; line-height: 1.05 !important; }
-          .mdec-command-center .text-3xl { font-size: 1.35rem !important; line-height: 1.1 !important; }
-          .mdec-command-center .text-2xl { font-size: 1.15rem !important; line-height: 1.15 !important; }
-          .mdec-command-center .text-xl { font-size: 1rem !important; line-height: 1.2 !important; }
-          .mdec-command-center .text-lg { font-size: .94rem !important; line-height: 1.25 !important; }
-          .mdec-command-center h1 { font-size: clamp(1.05rem, 1.8vw, 1.55rem) !important; line-height: 1.15 !important; }
+          .mdec-command-center .text-7xl { font-size: 2.65rem !important; line-height: .95 !important; }
+          .mdec-command-center .text-5xl { font-size: 1.7rem !important; line-height: 1 !important; }
+          .mdec-command-center .text-4xl { font-size: 1.45rem !important; line-height: 1.05 !important; }
+          .mdec-command-center .text-3xl { font-size: 1.18rem !important; line-height: 1.1 !important; }
+          .mdec-command-center .text-2xl { font-size: 1rem !important; line-height: 1.15 !important; }
+          .mdec-command-center .text-xl { font-size: .92rem !important; line-height: 1.2 !important; }
+          .mdec-command-center .text-lg { font-size: .88rem !important; line-height: 1.25 !important; }
+          .mdec-command-center h1 { font-size: clamp(1rem, 1.5vw, 1.35rem) !important; line-height: 1.1 !important; }
           .mdec-command-center h2, .mdec-command-center h3 { line-height: 1.2 !important; }
           .mdec-command-center [class*="w-56"][class*="h-56"] {
-            width: 152px !important; height: 152px !important; border-width: 9px !important;
+            width: 134px !important; height: 134px !important; border-width: 8px !important;
           }
           .mdec-command-center [class*="inset-4"] { inset: 10px !important; }
-          .mdec-command-center button { min-height: 34px !important; }
+          .mdec-command-center button { min-height: 32px !important; }
+          .mdec-command-center .cc-panel, .mdec-command-center .cc-col { min-height: 0 !important; overflow: hidden !important; }
+          .mdec-command-center .cc-mini-scroll { overflow-y: auto !important; min-height: 0 !important; }
           .mdec-command-center .custom-scrollbar { scrollbar-width: thin; }
           .mdec-command-center .custom-scrollbar::-webkit-scrollbar { width: 7px; height: 7px; }
           .mdec-command-center .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,.55); border-radius: 999px; }
           @media (max-width: 1280px) {
-            .mdec-command-center > div:nth-of-type(2) { grid-template-columns: minmax(250px,.85fr) minmax(300px,1fr) minmax(300px,1fr) !important; }
+            .mdec-command-center > div:nth-of-type(2) { grid-template-columns: minmax(220px,.75fr) minmax(280px,1fr) minmax(280px,.95fr) !important; }
             .mdec-command-center .text-8xl, .mdec-command-center .text-7xl { font-size: 2.7rem !important; }
           }
           @media (max-width: 1023px) {
-            .mdec-command-center { padding: 12px !important; }
+            .mdec-command-center { padding: 12px !important; overflow-y: auto !important; }
             .mdec-command-center > div:first-of-type { align-items: stretch !important; gap: 10px !important; padding: 12px !important; }
-            .mdec-command-center > div:nth-of-type(2) { grid-template-columns: 1fr !important; gap: 12px !important; }
+            .mdec-command-center > div:nth-of-type(2) { grid-template-columns: 1fr !important; gap: 12px !important; height: auto !important; }
             .mdec-command-center [class*="w-56"][class*="h-56"] { width: 136px !important; height: 136px !important; border-width: 8px !important; }
           }
           @media (max-width: 767px) {
-            .mdec-command-center { padding: 10px !important; }
+            .mdec-command-center { padding: 10px !important; overflow-y: auto !important; }
             .mdec-command-center > div:first-of-type { margin-bottom: 10px !important; border-radius: 18px !important; }
             .mdec-command-center > div:first-of-type > div:last-child {
               display: grid !important; grid-template-columns: 38px 1fr 1fr !important; gap: 8px !important; align-items: center;
@@ -7284,7 +7287,7 @@ S.N.: ${item.sn || '-'}
             .mdec-command-center .rounded-3xl { border-radius: 16px !important; }
             .mdec-command-center [class*="w-56"][class*="h-56"] { width: 116px !important; height: 116px !important; border-width: 7px !important; }
             .mdec-command-center button { min-height: 32px !important; padding: 8px 10px !important; font-size: 12px !important; }
-            .mdec-command-center .custom-scrollbar { max-height: 360px; }
+            .mdec-command-center .custom-scrollbar { max-height: 320px; }
           }
         `}</style>
         <div className={`flex flex-col sm:flex-row justify-between items-center mb-3 p-3 sm:px-5 sm:py-4 rounded-2xl shadow-sm border gap-4 ${ccTheme.card}`}>
@@ -7311,14 +7314,14 @@ S.N.: ${item.sn || '-'}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[0.85fr_1fr_1fr] gap-4 flex-1 min-h-0">
-          <div className="flex flex-col gap-4">
-            <div className={`p-5 rounded-3xl flex flex-col items-center justify-center relative overflow-hidden shadow-lg ${ccTheme.totalBg}`}>
+          <div className="cc-col flex flex-col gap-4">
+            <div className={`cc-panel p-5 rounded-3xl flex flex-col items-center justify-center relative overflow-hidden shadow-lg ${ccTheme.totalBg}`}>
               <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
               <div className="absolute -left-6 -bottom-6 w-24 h-24 bg-black/20 rounded-full blur-xl"></div>
               <h2 className={`text-xl font-bold mb-2 z-10 flex items-center gap-2 ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}><Icons.Package className="w-6 h-6"/> ทั้งหมด</h2>
               <span className="text-5xl sm:text-6xl font-black text-white z-10 drop-shadow-md">{stats.all}</span>
             </div>
-            <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-4 flex-1">
+            <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-3 flex-1">
               <div className={`p-4 rounded-3xl flex flex-col items-center justify-center shadow-sm border ${ccTheme.statAvail}`}>
                 <span className={`font-bold mb-1 flex items-center gap-1 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>🟢 พร้อมใช้</span>
                 <span className={`text-3xl lg:text-4xl font-black ${isDarkMode ? 'text-emerald-400' : 'text-emerald-500'}`}>{stats.available}</span>
@@ -7338,8 +7341,8 @@ S.N.: ${item.sn || '-'}
             </div>
           </div>
 
-          <div className="flex flex-col gap-4">
-            <div className={`p-5 rounded-3xl flex-1 flex flex-col items-center justify-center shadow-sm relative overflow-hidden border ${ccTheme.card}`}>
+          <div className="cc-col flex flex-col gap-4">
+            <div className={`cc-panel p-5 rounded-3xl flex-[0_0_auto] flex flex-col items-center justify-center shadow-sm relative overflow-hidden border ${ccTheme.card}`}>
               <div className={`absolute top-0 right-0 w-32 h-32 rounded-bl-[100px] -z-0 ${isDarkMode ? 'bg-emerald-900/10' : 'bg-emerald-50'}`}></div>
               <h2 className={`text-xl font-bold mb-6 flex items-center gap-2 z-10 ${ccTheme.textMuted}`}>💖 สุขภาพสต๊อก (ความพร้อม)</h2>
               <div className={`relative w-40 h-40 rounded-full border-[12px] flex items-center justify-center shadow-inner z-10 ${ccTheme.circleOuter}`}
@@ -7351,7 +7354,7 @@ S.N.: ${item.sn || '-'}
               </div>
             </div>
             
-            <div className={`border p-4 rounded-3xl flex-1 flex flex-col shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <div className={`cc-panel border p-4 rounded-3xl flex-1 flex flex-col shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
               <div className="flex items-center justify-between gap-3 mb-4">
                 <h3 className={`font-black flex items-center gap-2 text-lg ${ccTheme.titleText}`}>
                   <Icons.Truck className="w-6 h-6" /> กำลังอยู่นอกศูนย์
@@ -7372,8 +7375,8 @@ S.N.: ${item.sn || '-'}
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
-                {[...currentBorrowedItems.map(i => ({...i, _kind: 'borrow'})), ...currentEventItems.map(i => ({...i, _kind: 'event'}))].slice(0, 12).map(i => {
+              <div className="cc-mini-scroll flex-1 custom-scrollbar pr-2 space-y-2">
+                {[...currentBorrowedItems.map(i => ({...i, _kind: 'borrow'})), ...currentEventItems.map(i => ({...i, _kind: 'event'}))].slice(0, 7).map(i => {
                   const isLate = i.expectedReturn && new Date(i.expectedReturn).getTime() < todayMs;
                   return (
                     <button key={`${i._kind}_${i.id}`} type="button" onClick={() => setShowHistory(i.id)} className={`w-full text-left text-base px-4 py-3 rounded-2xl border shadow-sm flex flex-col gap-1 transition-colors ${isLate ? (isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-700') : (i._kind === 'event' ? (isDarkMode ? 'bg-orange-950/20 border-orange-800/60 text-orange-200' : 'bg-orange-50 border-orange-100 text-orange-700') : (isDarkMode ? 'bg-purple-950/20 border-purple-800/60 text-purple-200' : 'bg-purple-50 border-purple-100 text-purple-700'))}`}>
@@ -7399,12 +7402,12 @@ S.N.: ${item.sn || '-'}
             </div>
           </div>
 
-          <div className={`border p-6 rounded-3xl flex flex-col h-full overflow-hidden shadow-sm ${ccTheme.card}`}>
+          <div className={`cc-panel border p-6 rounded-3xl flex flex-col h-full overflow-hidden shadow-sm ${ccTheme.card}`}>
             <h2 className={`text-xl font-black mb-4 flex items-center gap-2 p-3 rounded-2xl ${ccTheme.titleText} ${isDarkMode ? 'bg-indigo-900/20' : 'bg-indigo-50'}`}>
                <Icons.ClipboardList className="w-6 h-6"/> ประวัติการเคลื่อนไหวล่าสุด
             </h2>
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
-              {auditLogs.slice(0, 30).map(log => {
+            <div className="cc-mini-scroll flex-1 custom-scrollbar pr-2 space-y-3">
+              {auditLogs.slice(0, 8).map(log => {
                 let badgeColor = isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600';
                 const action = log.action || '';
                 let icon = '📌';
