@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.41.0 Purchase Projects + Checkbox Fix';
-const APP_UPDATE_NOTE = 'ปรับ UI ให้ทึบอ่านง่ายขึ้น เพิ่มหน้าโครงการ/กล่อง/เซ็ตแบบเต็มหน้า และแก้โครงการที่สร้างไว้แต่ยังไม่มีอุปกรณ์ให้แสดงไม่หาย';
+const APP_VERSION = 'v22.41.1 Checkbox Alignment Polish';
+const APP_UPDATE_NOTE = 'เก็บงานหน้ารายการอุปกรณ์ แก้ checkbox ให้เป็นทรงเดียวกัน ไม่โดน style input กลางทับ และคงระบบโครงการจัดซื้อแบบเต็มหน้า';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -142,7 +142,7 @@ function FactoryPolishStyle({ isDarkMode }) {
       .factory-stock-polish :is(button, input, select, textarea) {
         font-family: inherit;
       }
-      .factory-stock-polish :is(input, select, textarea) {
+      .factory-stock-polish :is(input, select, textarea):not(.stock-check) {
         min-height: 44px;
         border-radius: 16px !important;
         box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
@@ -330,32 +330,40 @@ function FactoryPolishStyle({ isDarkMode }) {
       .factory-stock-polish :is(.shadow-slate-200\/80,.shadow-slate-200\/70) {
         box-shadow: 0 18px 44px rgba(15,23,42,.10) !important;
       }
-      .factory-stock-polish[data-polish-theme="light"] :is(input, select, textarea) {
+      .factory-stock-polish[data-polish-theme="light"] :is(input, select, textarea):not(.stock-check) {
         background-color: #ffffff !important;
       }
-      .factory-stock-polish[data-polish-theme="dark"] :is(input, select, textarea) {
+      .factory-stock-polish[data-polish-theme="dark"] :is(input, select, textarea):not(.stock-check) {
         background-color: #020617 !important;
       }
       /* Checkbox + table divider cleanup: เอาเส้นขาวสั้น ๆ ข้างช่องติ๊กออก */
       .factory-stock-polish .stock-check {
-        appearance: none;
-        -webkit-appearance: none;
-        width: 20px;
-        height: 20px;
-        min-height: 20px;
-        border-radius: 6px;
-        border: 1.5px solid #94a3b8;
-        background: #f8fafc;
-        display: inline-block;
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        width: 20px !important;
+        height: 20px !important;
+        min-width: 20px !important;
+        min-height: 20px !important;
+        max-width: 20px !important;
+        max-height: 20px !important;
+        border-radius: 6px !important;
+        border: 1.5px solid #94a3b8 !important;
+        background: #f8fafc !important;
+        background-color: #f8fafc !important;
+        display: inline-block !important;
         position: relative;
         cursor: pointer;
         flex: 0 0 auto;
         box-shadow: none !important;
         outline: none !important;
+        margin: 0;
+        padding: 0 !important;
+        overflow: hidden;
       }
       .factory-stock-polish[data-polish-theme="dark"] .stock-check {
-        background: #e2e8f0;
-        border-color: #64748b;
+        background: #e2e8f0 !important;
+        background-color: #e2e8f0 !important;
+        border-color: #64748b !important;
       }
       .factory-stock-polish .stock-check::before,
       .factory-stock-polish .stock-check::after {
@@ -385,18 +393,33 @@ function FactoryPolishStyle({ isDarkMode }) {
         border-color: #475569 !important;
       }
       .factory-stock-polish .stock-check-disabled {
-        width: 20px;
-        height: 20px;
-        border-radius: 6px;
+        width: 20px !important;
+        height: 20px !important;
+        min-width: 20px !important;
+        min-height: 20px !important;
+        border-radius: 6px !important;
         display: inline-flex;
-        background: #cbd5e1;
-        opacity: .45;
+        background: #475569;
+        opacity: .70;
         box-shadow: none !important;
+        border: 1px solid rgba(148,163,184,.35);
+      }
+      .factory-stock-polish[data-polish-theme="light"] .stock-check-disabled {
+        background: #cbd5e1;
+        opacity: .85;
+        border-color: #94a3b8;
       }
       .factory-stock-polish .stock-select-cell {
+        width: 56px;
+        min-width: 56px;
         border-top: 0 !important;
+        border-right: 0 !important;
         box-shadow: none !important;
         position: relative;
+      }
+      .factory-stock-polish .stock-select-cell .stock-check,
+      .factory-stock-polish .stock-select-cell .stock-check-disabled {
+        vertical-align: middle;
       }
       .factory-stock-polish .stock-select-cell::before,
       .factory-stock-polish .stock-select-cell::after {
@@ -416,11 +439,12 @@ function FactoryPolishStyle({ isDarkMode }) {
         isolation: isolate;
       }
       .factory-stock-polish .stock-mobile-select-col {
-        width: 32px;
-        min-width: 32px;
+        width: 30px;
+        min-width: 30px;
         display: flex;
         justify-content: center;
-        padding-top: 2px;
+        align-items: flex-start;
+        padding-top: 3px;
         border: 0 !important;
         box-shadow: none !important;
       }
