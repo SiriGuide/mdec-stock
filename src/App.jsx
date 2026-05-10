@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.38.1 FactoryStock Sidebar Hotfix';
-const APP_UPDATE_NOTE = 'ปรับ UI ให้คล้ายSystemสต็อกโรงงาน: Dashboard เรียบจริงจัง, Control Center เป็นหมวด, และมือถือใช้งานหน้างานง่ายขึ้น';
+const APP_VERSION = 'v22.39.0 MDEC Factory UI Polish';
+const APP_UPDATE_NOTE = 'ยกเครื่องหน้าตาให้เนี๊ยบขึ้นสไตล์ FactoryStock โดยคงโครงสร้างฐานข้อมูลเดิมทั้งหมด';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -106,6 +106,200 @@ const ASSET_STATUSES = [
   { id: 'lost', label: 'สูญหาย', color: 'bg-rose-100 text-rose-700 border-rose-200', darkColor: 'bg-rose-900/35 text-rose-300 border-rose-800' },
   { id: 'pending_disposal', label: 'ชำรุดรอจำหน่าย', color: 'bg-amber-100 text-amber-700 border-amber-200', darkColor: 'bg-amber-900/35 text-amber-300 border-amber-800' }
 ];
+
+
+function FactoryPolishStyle({ isDarkMode }) {
+  return (
+    <style>{`
+      .factory-stock-polish {
+        --factory-bg: #f4f7fb;
+        --factory-card: rgba(255,255,255,.94);
+        --factory-border: rgba(226,232,240,.95);
+        --factory-text: #0f172a;
+        --factory-muted: #64748b;
+        --factory-blue: #2563eb;
+        --factory-blue-soft: #eff6ff;
+        --factory-shadow: 0 22px 55px rgba(15,23,42,.08);
+        --factory-shadow-soft: 0 10px 30px rgba(15,23,42,.06);
+        background:
+          radial-gradient(circle at 18% -8%, rgba(37,99,235,.10), transparent 34%),
+          radial-gradient(circle at 88% 10%, rgba(14,165,233,.09), transparent 30%),
+          var(--factory-bg) !important;
+      }
+      .factory-stock-polish[data-polish-theme="dark"] {
+        --factory-bg: #020617;
+        --factory-card: rgba(15,23,42,.86);
+        --factory-border: rgba(51,65,85,.92);
+        --factory-text: #f8fafc;
+        --factory-muted: #94a3b8;
+        --factory-blue-soft: rgba(37,99,235,.16);
+        --factory-shadow: 0 22px 60px rgba(0,0,0,.35);
+        --factory-shadow-soft: 0 10px 30px rgba(0,0,0,.24);
+        background:
+          radial-gradient(circle at 18% -8%, rgba(37,99,235,.18), transparent 34%),
+          radial-gradient(circle at 90% 8%, rgba(14,165,233,.12), transparent 32%),
+          var(--factory-bg) !important;
+      }
+      .factory-stock-polish, .factory-stock-polish * {
+        letter-spacing: -.01em;
+      }
+      .factory-stock-polish :is(button, input, select, textarea) {
+        font-family: inherit;
+      }
+      .factory-stock-polish :is(input, select, textarea) {
+        min-height: 44px;
+        border-radius: 16px !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
+      }
+      .factory-stock-polish button {
+        outline: none;
+        will-change: transform;
+      }
+      .factory-stock-polish button:active {
+        transform: translateY(1px) scale(.99);
+      }
+      .factory-stock-polish .factory-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 24px 0 10px;
+      }
+      .factory-stock-polish .factory-page-title {
+        min-width: 0;
+      }
+      .factory-stock-polish .factory-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--factory-blue);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+      .factory-stock-polish .factory-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--factory-blue);
+        box-shadow: 0 0 0 5px rgba(37,99,235,.12);
+      }
+      .factory-stock-polish .factory-page-title h1 {
+        margin: 0;
+        color: var(--factory-text);
+        font-size: clamp(28px, 3vw, 42px);
+        line-height: 1.05;
+        font-weight: 950;
+      }
+      .factory-stock-polish .factory-page-title p {
+        color: var(--factory-muted);
+        margin: 8px 0 0;
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .factory-stock-polish .factory-top-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .factory-stock-polish .factory-chip,
+      .factory-stock-polish .factory-icon-btn,
+      .factory-stock-polish .factory-primary-btn,
+      .factory-stock-polish .factory-ghost-btn,
+      .factory-stock-polish .factory-danger-btn {
+        min-height: 42px;
+        border-radius: 16px;
+        border: 1px solid var(--factory-border);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-weight: 900;
+        transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+        white-space: nowrap;
+      }
+      .factory-stock-polish .factory-chip {
+        padding: 0 14px;
+        color: #047857;
+        background: #ecfdf5;
+        border-color: #d1fae5;
+      }
+      .factory-stock-polish[data-polish-theme="dark"] .factory-chip {
+        color: #86efac;
+        background: rgba(6,78,59,.34);
+        border-color: rgba(16,185,129,.24);
+      }
+      .factory-stock-polish .factory-icon-btn,
+      .factory-stock-polish .factory-ghost-btn {
+        background: var(--factory-card);
+        color: var(--factory-text);
+        box-shadow: var(--factory-shadow-soft);
+      }
+      .factory-stock-polish .factory-icon-btn { width: 44px; padding: 0; }
+      .factory-stock-polish .factory-ghost-btn { padding: 0 14px; }
+      .factory-stock-polish .factory-primary-btn {
+        padding: 0 18px;
+        color: white;
+        border-color: rgba(37,99,235,.9);
+        background: linear-gradient(135deg,#2563eb,#1d4ed8);
+        box-shadow: 0 14px 30px rgba(37,99,235,.22);
+      }
+      .factory-stock-polish .factory-danger-btn {
+        padding: 0 14px;
+        color: #e11d48;
+        background: #fff1f2;
+        border-color: #ffe4e6;
+      }
+      .factory-stock-polish[data-polish-theme="dark"] .factory-danger-btn {
+        color: #fda4af;
+        background: rgba(127,29,29,.28);
+        border-color: rgba(244,63,94,.24);
+      }
+      .factory-stock-polish .factory-primary-btn:hover,
+      .factory-stock-polish .factory-ghost-btn:hover,
+      .factory-stock-polish .factory-icon-btn:hover,
+      .factory-stock-polish .factory-danger-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--factory-shadow);
+      }
+      .factory-stock-polish aside {
+        background: linear-gradient(180deg,#020617 0%,#050b18 48%,#020617 100%) !important;
+        box-shadow: 18px 0 50px rgba(15,23,42,.20);
+      }
+      .factory-stock-polish aside button { min-height: 46px; }
+      .factory-stock-polish aside nav button:hover { background: rgba(255,255,255,.08) !important; }
+      .factory-stock-polish .custom-scrollbar::-webkit-scrollbar { width: 9px; height: 9px; }
+      .factory-stock-polish .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,.55); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+      .factory-stock-polish .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .factory-stock-polish table { border-collapse: separate; border-spacing: 0; }
+      .factory-stock-polish thead th {
+        font-size: 11px !important;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        font-weight: 950 !important;
+      }
+      .factory-stock-polish tbody tr { transition: background .18s ease, transform .18s ease; }
+      .factory-stock-polish tbody tr:hover { background: rgba(37,99,235,.035) !important; }
+      .factory-stock-polish[data-polish-theme="dark"] tbody tr:hover { background: rgba(37,99,235,.11) !important; }
+      @media (max-width: 1023px) {
+        .factory-stock-polish .factory-topbar { padding-top: 10px; flex-direction: column; align-items: stretch; }
+        .factory-stock-polish .factory-top-actions { justify-content: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .factory-stock-polish .factory-chip,
+        .factory-stock-polish .factory-primary-btn,
+        .factory-stock-polish .factory-ghost-btn,
+        .factory-stock-polish .factory-danger-btn,
+        .factory-stock-polish .factory-icon-btn { width: 100%; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .factory-stock-polish *, .factory-stock-polish *::before, .factory-stock-polish *::after { transition: none !important; animation: none !important; }
+      }
+    `}</style>
+  );
+}
 
 
 function MainApp() {
@@ -5073,7 +5267,8 @@ S.N.: ${item.sn || '-'}
   }
 
   return (
-    <div className={`min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain}`}>
+    <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain}`}>
+      <FactoryPolishStyle isDarkMode={isDarkMode} />
       {/* FactoryStock Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-72 bg-slate-950 text-white flex-col border-r border-white/10">
         <div className="p-6 border-b border-white/10">
@@ -5082,8 +5277,8 @@ S.N.: ${item.sn || '-'}
               <Icons.Package className="w-7 h-7" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-xl font-black tracking-tight truncate">MDEC-Stock</h1>
-              <p className="text-xs text-slate-400 font-bold truncate">FactoryStock UI</p>
+              <h1 className="text-xl font-black tracking-tight truncate">MDEC Stock</h1>
+              <p className="text-xs text-slate-400 font-bold truncate">Modern Inventory Center</p>
             </div>
           </div>
         </div>
@@ -5169,87 +5364,68 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
-      {/* Header - Premium Polish */}
-      <div className={`w-full mb-8 rounded-[2rem] border overflow-hidden shadow-2xl transition-colors ${isDarkMode ? 'bg-slate-900/90 border-slate-700/80 shadow-black/30' : 'bg-white/95 border-white shadow-slate-200/80'}`}>
-        <div className={`h-2 ${isDarkMode ? 'bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500' : 'bg-gradient-to-r from-blue-600 via-sky-400 to-indigo-500'}`} />
-        <div className={`flex flex-col xl:flex-row justify-between items-center gap-5 p-5 sm:p-6 ${isDarkMode ? 'bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.18),_transparent_32%)]' : 'bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.10),_transparent_32%)]'}`}>
-          <div className="flex items-center gap-4 w-full xl:w-auto min-w-0">
-            <div className={`w-36 sm:w-44 md:w-52 h-16 sm:h-20 rounded-[1.4rem] flex items-center justify-center overflow-hidden shrink-0 shadow-xl ring-4 bg-white ring-cyan-300/20 border border-white/80 px-4 py-3`}>
-              {!brandLogoError ? (
-                <img src={ORG_LOGO_SRC} alt="MDEC Logo" className="w-full h-full object-contain drop-shadow-sm" onError={() => setBrandLogoError(true)} />
-              ) : (
-                <div className="w-full h-full rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center"><Icons.Package className="w-9 h-9" /></div>
+      {/* FactoryStock-style Top Bar */}
+      <div className="factory-topbar">
+        <div className="factory-page-title">
+          <div className="factory-kicker"><span className="factory-dot"></span>MDEC STOCK CENTER</div>
+          <h1>ภาพรวมระบบ</h1>
+          <p>ระบบจัดการสต๊อกศูนย์มัลติมีเดียทางการศึกษา • {APP_VERSION}</p>
+        </div>
+
+        <div className="factory-top-actions">
+          <div className="factory-chip">
+            <Icons.CheckCircle className="w-4 h-4" /> {firebaseError ? 'ตรวจสอบระบบ' : 'ออนไลน์'}
+          </div>
+
+          <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className="factory-icon-btn" title={isDarkMode ? "เปลี่ยนเป็นโหมดสว่าง" : "เปลี่ยนเป็นโหมดกลางคืน"}>
+            {isDarkMode ? <Icons.Sun className="w-5 h-5" /> : <Icons.Moon className="w-5 h-5" />}
+          </button>
+
+          {isLoggedIn && (
+            <>
+              {canUseOperationalTools && (
+                <button type="button" onClick={() => openSelectionScanner()} className="factory-ghost-btn" title="เปิดโหมดสแกน QR Code/Barcode">
+                  <Icons.QrCode className="w-5 h-5" /><span>สแกน</span>
+                </button>
               )}
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span className={`text-[11px] font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-blue-600'}`}>Educational Multimedia Center</span>
-                <span className={`text-[11px] font-black px-2 py-1 rounded-full border ${isDarkMode ? 'bg-blue-950/50 text-blue-300 border-blue-800' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>{APP_VERSION}</span>
-              </div>
-              <h1 className={`text-2xl sm:text-4xl font-black tracking-tight leading-tight ${theme.textTitle}`}>MDEC-Stock</h1>
-              <p className={`font-bold text-sm sm:text-base ${theme.textMuted}`}>Systemจัดการสต๊อก ศูนย์มัลติมีเดียทางการศึกษา</p>
-              <p className={`font-bold text-xs sm:text-sm mt-1 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>อัปเดตล่าสุด: {APP_UPDATE_NOTE}</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap justify-center xl:justify-end gap-2 sm:gap-3 w-full xl:w-auto">
-            <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className={`flex items-center justify-center p-3 font-bold rounded-2xl transition-all shadow-sm hover:-translate-y-0.5 ${theme.btnCancel}`} title={isDarkMode ? "เปลี่ยนเป็นโหมดสว่าง" : "เปลี่ยนเป็นโหมดกลางคืน"}>
-              {isDarkMode ? <Icons.Sun className="w-5 h-5" /> : <Icons.Moon className="w-5 h-5" />}
-            </button>
-
-            {isLoggedIn && (
-              <>
-                {canUseOperationalTools && (
-                  <button type="button" onClick={() => openSelectionScanner()} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-black rounded-2xl transition-all flex shadow-lg hover:-translate-y-0.5 ${isDarkMode ? 'bg-gradient-to-r from-amber-600 to-orange-500 text-white' : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'}`} title="เปิดโหมดสแกน QR Code/Barcode">
-                    <Icons.QrCode className="w-5 h-5" /><span className="hidden sm:inline">โหมดสแกน</span>
-                  </button>
-                )}
-
-                <button type="button" onClick={() => setShowCommandCenter(true)} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-2xl transition-all flex hover:-translate-y-0.5 ${isDarkMode ? 'bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900 border border-emerald-800' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-100'}`} title="เปิดหน้าจอควบคุมรวม (Dashboard)">
-                  <Icons.Monitor className="w-5 h-5" /><span className="hidden sm:inline">Dashboard</span>
-                </button>
-
-                {canUseOperationalTools && (
-                  <button type="button" onClick={() => setShowStorageBoxesModal(true)} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-3 font-black rounded-2xl shadow-lg transition-all text-base whitespace-nowrap hover:-translate-y-0.5 ${isDarkMode ? 'bg-gradient-to-r from-cyan-700 to-sky-600 text-white' : 'bg-gradient-to-r from-cyan-600 to-sky-600 text-white'}`}>
-                    <Icons.Folder className="w-5 h-5" /> กล่องเก็บของ
-                  </button>
-                )}
-
-                <button type="button" onClick={() => openTrackingCenter('today')} className={`flex-1 xl:flex-none flex items-center justify-center gap-2 px-5 py-3 font-black rounded-2xl shadow-lg transition-all text-base whitespace-nowrap hover:-translate-y-0.5 ${isDarkMode ? 'bg-gradient-to-r from-blue-700 to-indigo-600 text-white' : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'}`} title="รวมวันนี้ / ของที่ต้องจัดการ / ปฏิทิน">
-                  <Icons.History className="w-5 h-5" /> ศูนย์ติดตาม
-                </button>
-
-                {canManageSystem && (
-                  <button type="button" onClick={() => { setSettingsTab('categories'); setShowSettings(true); }} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 font-bold rounded-2xl transition-all shadow-sm hover:-translate-y-0.5 ${theme.btnCancel}`}>
-                    <Icons.Settings className="w-5 h-5" /><span className="hidden sm:inline">ตั้งค่า</span>
-                  </button>
-                )}
-
-                {canUseOperationalTools && (
-                  <button type="button" onClick={() => setShowMoreMenu(true)} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 font-black rounded-2xl transition-all shadow-sm border hover:-translate-y-0.5 ${theme.btnSecondary}`} title="Control Center">
-                    <Icons.ViewGrid className="w-5 h-5" /><span className="hidden sm:inline">เพิ่มเติม</span>
-                  </button>
-                )}
-
-                <button type="button" onClick={() => { setMyPinForm({ oldPin: '', newPin: '', confirmPin: '' }); setShowMyAccountModal(true); }} className={`hidden xl:flex items-center gap-2 px-4 py-3 rounded-2xl border font-bold text-sm transition-all hover:-translate-y-0.5 ${isDarkMode ? 'bg-slate-950/60 border-slate-700 text-slate-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`} title={`เข้าสู่Systemโดย ${currentAccountLabel}`}>
-                  👤 {currentAccountLabel}
-                </button>
-
-                <button type="button" onClick={handleLockScreen} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-2xl transition-all flex hover:-translate-y-0.5 ${isDarkMode ? 'bg-slate-950/60 border border-slate-700 text-slate-300 hover:bg-slate-800' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`} title="ล็อกหน้าจอชั่วคราว">
-                  <Icons.Lock className="w-5 h-5" /><span className="hidden sm:inline">ล็อก</span>
-                </button>
-
-                <button type="button" onClick={handleLogout} className={`flex-1 md:flex-none items-center justify-center gap-2 px-4 py-3 font-bold rounded-2xl transition-all flex hover:-translate-y-0.5 ${isDarkMode ? 'bg-rose-950/60 text-rose-300 hover:bg-rose-900 border border-rose-800' : 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100'}`} title="ออกจากSystem">
-                  <Icons.Unlock className="w-5 h-5" />
-                </button>
-              </>
-            )}
-            
-            {!isAdmin && (
-              <button type="button" onClick={() => setShowLogin(true)} className={`flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 font-bold rounded-2xl transition-all shadow-lg flex hover:-translate-y-0.5 ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-slate-900 text-white hover:bg-slate-800'}`}>
-                <Icons.Lock className="w-5 h-5" /><span className="hidden sm:inline">เข้าสู่Systemจัดการ</span>
+              <button type="button" onClick={() => setShowCommandCenter(true)} className="factory-ghost-btn" title="Dashboard">
+                <Icons.Monitor className="w-5 h-5" /><span>Dashboard</span>
               </button>
-            )}
-          </div>
+              <button type="button" onClick={() => openTrackingCenter('today')} className="factory-ghost-btn" title="ศูนย์ติดตาม">
+                <Icons.History className="w-5 h-5" /><span>ติดตาม</span>
+              </button>
+              {canAddEditItems && (
+                <button type="button" onClick={openAddItemForm} className="factory-primary-btn" title="เพิ่มอุปกรณ์ใหม่">
+                  <Icons.Plus className="w-5 h-5" /><span>เพิ่มอุปกรณ์</span>
+                </button>
+              )}
+              {canUseOperationalTools && (
+                <button type="button" onClick={() => setShowMoreMenu(true)} className="factory-ghost-btn" title="Control Center">
+                  <Icons.ViewGrid className="w-5 h-5" /><span>เพิ่มเติม</span>
+                </button>
+              )}
+              {canManageSystem && (
+                <button type="button" onClick={() => { setSettingsTab('categories'); setShowSettings(true); }} className="factory-ghost-btn" title="ตั้งค่าระบบ">
+                  <Icons.Settings className="w-5 h-5" /><span>ตั้งค่า</span>
+                </button>
+              )}
+              <button type="button" onClick={() => { setMyPinForm({ oldPin: '', newPin: '', confirmPin: '' }); setShowMyAccountModal(true); }} className="factory-ghost-btn" title={`เข้าสู่ระบบโดย ${currentAccountLabel}`}>
+                👤 <span className="hidden sm:inline">{currentAccountLabel}</span>
+              </button>
+              <button type="button" onClick={handleLockScreen} className="factory-ghost-btn" title="ล็อกหน้าจอชั่วคราว">
+                <Icons.Lock className="w-5 h-5" /><span className="hidden sm:inline">ล็อก</span>
+              </button>
+              <button type="button" onClick={handleLogout} className="factory-danger-btn" title="ออกจากระบบ">
+                <Icons.Unlock className="w-5 h-5" /><span className="hidden sm:inline">ออก</span>
+              </button>
+            </>
+          )}
+
+          {!isAdmin && (
+            <button type="button" onClick={() => setShowLogin(true)} className="factory-primary-btn">
+              <Icons.Lock className="w-5 h-5" /><span>เข้าสู่ระบบจัดการ</span>
+            </button>
+          )}
         </div>
       </div>
 
