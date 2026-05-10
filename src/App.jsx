@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.49.3 Scroll Containment Hotfix';
+const APP_VERSION = 'v22.49.4 Compact Modal Polish';
 const APP_UPDATE_NOTE = 'ปรับ Dashboard/Command Center บนมือถือให้เรียงอ่านง่าย ไม่ล้น ไม่ใหญ่เกิน และไม่บีบปุ่มแถบบนจนแปลก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -730,6 +730,73 @@ function FactoryPolishStyle({ isDarkMode }) {
       }
       .factory-stock-polish .purchase-project-card {
         background: var(--factory-card);
+      }
+      /* v22.49.4 definitive compact modal sizing */
+      @media (min-width: 1024px) {
+        .factory-stock-polish .compact-modal-shell.item-form-shell,
+        .factory-stock-polish .compact-modal-shell.item-detail-shell {
+          width: min(900px, calc(100vw - 112px)) !important;
+          max-height: 84dvh !important;
+        }
+      }
+      /* Compact modal polish: ลดขนาด Popup ให้อ่านง่ายขึ้นบนคอม */
+      .factory-stock-polish .compact-modal-shell {
+        overscroll-behavior: contain;
+      }
+      @media (min-width: 1024px) {
+        .factory-stock-polish .compact-modal-shell {
+          width: min(900px, calc(100vw - 96px)) !important;
+          max-height: 84dvh !important;
+          border-radius: 24px !important;
+        }
+        .factory-stock-polish .item-form-shell .item-form-section,
+        .factory-stock-polish .item-detail-shell .item-detail-summary {
+          padding: 14px !important;
+          border-radius: 20px !important;
+        }
+        .factory-stock-polish .item-form-shell .space-y-5 > :not([hidden]) ~ :not([hidden]),
+        .factory-stock-polish .item-detail-shell .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+          margin-top: 12px !important;
+        }
+        .factory-stock-polish .item-form-shell .gap-4,
+        .factory-stock-polish .item-detail-shell .gap-4 {
+          gap: 12px !important;
+        }
+        .factory-stock-polish .item-form-shell :is(input:not([type="checkbox"]), select, textarea) {
+          min-height: 40px !important;
+          border-radius: 12px !important;
+          padding-top: 9px !important;
+          padding-bottom: 9px !important;
+          font-size: .95rem !important;
+        }
+        .factory-stock-polish .item-form-shell label,
+        .factory-stock-polish .item-detail-shell label {
+          font-size: .92rem !important;
+        }
+        .factory-stock-polish .item-form-shell .text-lg,
+        .factory-stock-polish .item-detail-shell .text-lg {
+          font-size: .95rem !important;
+          line-height: 1.35 !important;
+        }
+        .factory-stock-polish .item-form-shell .text-2xl,
+        .factory-stock-polish .item-form-shell .sm\:text-3xl,
+        .factory-stock-polish .item-detail-shell .text-2xl {
+          font-size: 1.35rem !important;
+          line-height: 1.15 !important;
+        }
+        .factory-stock-polish .item-detail-shell .p-5 {
+          padding: 14px !important;
+        }
+        .factory-stock-polish .item-detail-shell .grid {
+          gap: 10px !important;
+        }
+      }
+      @media (max-width: 640px) {
+        .factory-stock-polish .compact-modal-shell {
+          width: 100% !important;
+          max-height: 92dvh !important;
+          border-radius: 22px !important;
+        }
       }
       .factory-stock-polish .clean-mobile-card-title {
         font-size: 16px;
@@ -3887,7 +3954,7 @@ S.N.: ${item.sn || '-'}
           <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-4 ${theme.divide}`}>
             <div>
               <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'}`}>PURCHASE PROJECTS</div>
-              <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>โครงการจัดซื้อ / จัดหาอุปกรณ์</h2>
+              <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>โครงการจัดซื้อ / จัดหาอุปกรณ์</h2>
               <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้บันทึกว่าอุปกรณ์แต่ละชิ้นซื้อมาจากโครงการไหน เช่น โครงการปรับปรุงกล้องถ่ายภาพประจำปี ไม่ใช่ระบบออกงาน</p>
             </div>
             <div className="grid grid-cols-2 sm:flex gap-2">
@@ -11119,9 +11186,9 @@ S.N.: ${item.sn || '-'}
 
       {/* History Modal ของแต่ละอุปกรณ์ */}
       {showHistory && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`item-detail-shell rounded-3xl p-5 sm:p-7 max-w-4xl w-full max-h-[88vh] flex flex-col shadow-2xl ${theme.cardBg}`}>
-            <div className="flex justify-between items-center mb-6 gap-3">
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-5 z-[9999]`}>
+          <div className={`item-detail-shell compact-modal-shell rounded-3xl p-4 sm:p-5 max-w-[900px] w-full max-h-[84vh] flex flex-col shadow-2xl ${theme.cardBg}`}>
+            <div className="flex justify-between items-center mb-4 gap-3">
               <h3 className={`text-2xl font-black ${theme.textTitle}`}>รายละเอียดและประวัติอุปกรณ์</h3>
               <div className="flex items-center gap-2">
                 {items.find(i => i.id === showHistory) && <button type="button" onClick={() => exportItemHistoryCSV(items.find(i => i.id === showHistory))} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>Export CSV</button>}
@@ -11357,11 +11424,11 @@ S.N.: ${item.sn || '-'}
 
       {/* Add/Edit Form */}
       {showForm && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9999]`}>
-          <div className={`item-form-shell rounded-[2rem] p-4 sm:p-6 max-w-4xl w-full max-h-[92vh] overflow-y-auto custom-scrollbar shadow-2xl border ${theme.cardBg}`}>
-            <div className="flex justify-between items-start gap-4 mb-5">
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-5 z-[9999]`}>
+          <div className={`item-form-shell compact-modal-shell rounded-3xl p-3 sm:p-4 lg:p-5 max-w-[900px] w-full max-h-[84vh] overflow-y-auto custom-scrollbar shadow-2xl border ${theme.cardBg}`}>
+            <div className="flex justify-between items-start gap-4 mb-4">
               <div>
-                <h3 className={`text-2xl sm:text-3xl font-black ${theme.textTitle}`}>{formData.id ? 'แก้ไขข้อมูลอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
+                <h3 className={`text-xl sm:text-2xl font-black ${theme.textTitle}`}>{formData.id ? 'แก้ไขข้อมูลอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
                 <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>แบ่งข้อมูลเป็นหมวด เพื่อกรอกง่ายและลดความผิดพลาด</p>
               </div>
               <button type="button" onClick={() => confirmCloseIfDirty(true, () => setShowForm(false))} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
