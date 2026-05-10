@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.49.4 Compact Modal Polish';
+const APP_VERSION = 'v22.49.5 Picker Visual Polish';
 const APP_UPDATE_NOTE = 'ปรับ Dashboard/Command Center บนมือถือให้เรียงอ่านง่าย ไม่ล้น ไม่ใหญ่เกิน และไม่บีบปุ่มแถบบนจนแปลก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -199,64 +199,73 @@ function SmartOptionInput({
         </span>
       </div>
 
-      <div className={`rounded-2xl border shadow-sm overflow-hidden transition-all ${shellClass} ${isOpen ? 'ring-2 ring-blue-500/20 border-blue-400/60' : ''}`}>
-        <div className="flex items-center gap-2 px-3 py-2">
-          <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 ${isDarkMode ? 'bg-slate-900 text-slate-400' : 'bg-slate-50 text-slate-500'}`}>{icon}</span>
-          <input
-            type="text"
-            className={`w-full min-h-[42px] outline-none font-bold text-base ${inputClass}`}
-            placeholder={placeholder}
-            value={query}
-            onFocus={() => {
-              setIsOpen(true);
-              setBrowseAll(false);
-            }}
-            onChange={(e) => {
-              onChange(e.target.value);
-              setBrowseAll(false);
-              setIsOpen(true);
-            }}
-            onBlur={() => window.setTimeout(() => setIsOpen(false), 180)}
-          />
-          {query && (
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                onChange('');
-                setBrowseAll(true);
+      <div className={`smart-picker-shell rounded-2xl border shadow-sm overflow-hidden transition-all ${shellClass} ${isOpen ? 'ring-2 ring-blue-500/20 border-blue-400/60' : ''}`}>
+        <div className="p-3 space-y-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0 ${isDarkMode ? 'bg-slate-900 text-slate-400' : 'bg-slate-50 text-slate-500'}`}>{icon}</span>
+            <input
+              type="text"
+              className={`min-w-0 flex-1 min-h-[40px] outline-none font-bold text-sm sm:text-base ${inputClass}`}
+              placeholder={placeholder}
+              value={query}
+              onFocus={() => {
+                setIsOpen(true);
+                setBrowseAll(false);
+              }}
+              onChange={(e) => {
+                onChange(e.target.value);
+                setBrowseAll(false);
                 setIsOpen(true);
               }}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center font-black shrink-0 ${isDarkMode ? 'bg-slate-900 text-slate-400 hover:bg-slate-800' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
-              title="ล้างค่า"
-            >×</button>
-          )}
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => {
-              setBrowseAll(false);
-              setIsOpen(true);
-            }}
-            className={`hidden sm:inline-flex h-9 px-3 rounded-xl border items-center justify-center font-black text-xs shrink-0 ${softBtnClass}`}
-            title="ค้นหาจากคำที่พิมพ์"
-          >ค้นหา</button>
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => {
-              setBrowseAll(true);
-              setIsOpen(true);
-            }}
-            className={`h-9 px-3 rounded-xl border inline-flex items-center justify-center font-black text-xs shrink-0 ${softBtnClass}`}
-            title="เปิดรายการทั้งหมดเพื่อเลื่อนเลือก"
-          >ทั้งหมด</button>
+              onBlur={() => window.setTimeout(() => setIsOpen(false), 180)}
+            />
+            {query && (
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onChange('');
+                  setBrowseAll(true);
+                  setIsOpen(true);
+                }}
+                className={`w-8 h-8 rounded-xl flex items-center justify-center font-black shrink-0 ${isDarkMode ? 'bg-slate-900 text-slate-400 hover:bg-slate-800' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                title="ล้างค่า"
+              >×</button>
+            )}
+          </div>
+          <div className="flex items-center justify-between gap-2 pl-11">
+            <div className={`text-[11px] font-bold truncate ${textMuted}`}>
+              {query ? 'กำลังค้นหาจากคำที่พิมพ์' : 'พิมพ์ค้นหา หรือกดดูทั้งหมด'}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setBrowseAll(false);
+                  setIsOpen(true);
+                }}
+                className={`h-8 px-3 rounded-xl border items-center justify-center font-black text-[11px] shrink-0 ${softBtnClass}`}
+                title="ค้นหาจากคำที่พิมพ์"
+              >ค้นหา</button>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setBrowseAll(true);
+                  setIsOpen(true);
+                }}
+                className={`h-8 px-3 rounded-xl border inline-flex items-center justify-center font-black text-[11px] shrink-0 ${softBtnClass}`}
+                title="เปิดรายการทั้งหมดเพื่อเลื่อนเลือก"
+              >ทั้งหมด</button>
+            </div>
+          </div>
         </div>
 
         {frequentOptions.length > 0 && (
-          <div className={`px-3 pb-3 pt-1 border-t ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+          <div className={`px-3 pb-3 pt-2 border-t ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
             <div className={`text-[11px] font-black mb-2 ${textMuted}`}>ใช้บ่อย / เลือกเร็ว</div>
-            <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1" style={{ overscrollBehaviorX: 'contain' }}>
+            <div className="flex flex-wrap gap-2">
               {frequentOptions.map(option => (
                 <button
                   key={option}
@@ -304,7 +313,7 @@ function SmartOptionInput({
           {frequentOptions.length > 0 && (
             <div className={`px-4 py-3 border-b ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
               <div className={`text-[11px] font-black mb-2 ${textMuted}`}>รายการที่ใช้บ่อย</div>
-              <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1" style={{ overscrollBehaviorX: 'contain' }}>
+              <div className="flex flex-wrap gap-2">
                 {frequentOptions.map(option => (
                   <button
                     key={`sheet_${option}`}
@@ -1114,6 +1123,35 @@ function FactoryPolishStyle({ isDarkMode }) {
       }
       .factory-stock-polish .smart-combobox-field .custom-scrollbar::-webkit-scrollbar { width: 7px; }
       .factory-stock-polish .smart-combobox-field .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,.55); border-radius: 999px; }
+      .factory-stock-polish .smart-combobox-field .smart-picker-shell {
+        box-shadow: 0 10px 24px rgba(15,23,42,.05);
+      }
+      .factory-stock-polish .smart-combobox-field input {
+        box-shadow: none !important;
+      }
+      .factory-stock-polish .smart-combobox-field button {
+        transition: background .18s ease, border-color .18s ease, transform .18s ease;
+      }
+      .factory-stock-polish .smart-combobox-field button:active {
+        transform: translateY(1px);
+      }
+      .factory-stock-polish .smart-picker-panel {
+        overscroll-behavior: contain;
+      }
+      @media (max-width: 640px) {
+        .factory-stock-polish .smart-combobox-field .smart-picker-shell .pl-11 {
+          padding-left: 0 !important;
+        }
+        .factory-stock-polish .smart-combobox-field .smart-picker-shell .justify-between {
+          align-items: stretch;
+          flex-direction: column;
+        }
+        .factory-stock-polish .smart-combobox-field .smart-picker-shell .justify-between > div:last-child {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          width: 100%;
+        }
+      }
       @media (max-width: 1023px) {
         .factory-stock-polish .factory-topbar { padding-top: 10px; flex-direction: column; align-items: stretch; }
         .factory-stock-polish .factory-top-actions { justify-content: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
