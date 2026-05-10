@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากSystemอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.52.4 Mobile QR Thai Compact Polish';
+const APP_VERSION = 'v22.52.5 Mobile QR Safe Camera Start';
 const APP_UPDATE_NOTE = 'เก็บหน้าสแกน QR บนมือถือให้กะทัดรัดขึ้น แปลปุ่มกล้องเป็นภาษาไทย ลดพื้นที่ส่วนหัว แยกสีปุ่ม และทำปุ่มยืนยันให้เหมาะกับการใช้งานหน้างาน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ Systemจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -6105,13 +6105,28 @@ S.N.: ${item.sn || '-'}
     } catch(e) {}
   };
 
+  const isMobileLikeViewport = () => {
+    try {
+      return window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
+    } catch(e) { return false; }
+  };
+
+  const startQrCameraSafely = () => {
+    // Safari/iOS และมือถือบางรุ่นค้างได้ถ้าเริ่มกล้องทันทีตอนเปิด modal
+    // เลยให้ modal วาดเสร็จก่อน แล้วค่อยสตาร์ทกล้องจาก user gesture โดยตรง
+    warmupQrBeep();
+    setUseCamera(false);
+    window.setTimeout(() => setUseCamera(true), 80);
+  };
+
   const openSelectionScanner = ({ camera = false } = {}) => {
     warmupQrBeep();
     setScanMode('select');
     setScanWorkflow('borrow');
-    const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 768;
-    setUseCamera(camera || isMobileViewport);
     setShowScanModal(true);
+    const isMobileViewport = isMobileLikeViewport();
+    // มือถือใช้ Safe Start: เปิดหน้าเร็ว ไม่สั่งกล้องทันที เพื่อไม่ให้ Safari ค้างก่อนกดอนุญาต
+    setUseCamera(camera && !isMobileViewport);
   };
 
   const openChecklistScanner = (mode) => {
@@ -6120,8 +6135,8 @@ S.N.: ${item.sn || '-'}
     if (mode === 'returnChecklist') setScanWorkflow('return');
     else if (mode === 'eventChecklist') setScanWorkflow('event');
     else if (mode === 'borrowChecklist') setScanWorkflow('borrow');
-    setUseCamera(true);
     setShowScanModal(true);
+    setUseCamera(!isMobileLikeViewport());
   };
 
   const getScanModeInfo = () => {
