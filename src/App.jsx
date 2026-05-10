@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.51.0 Unified Design & Workflow Polish Pack';
-const APP_UPDATE_NOTE = 'ปรับภาษาออกแบบทั้งเว็บให้เป็นชุดเดียวกัน: ปุ่ม การ์ด ฟอร์ม ตาราง Popup และมือถือ โดยยึดฐาน QR เสถียร ไม่แตะระบบกล้องหรือฐานข้อมูล';
+const APP_VERSION = 'v22.51.2 Final QA & Stability Pass';
+const APP_UPDATE_NOTE = 'Final QA & Stability Pass: เก็บความนิ่งหลังอัปเดตใหญ่ ปรับมือถือ/ดีไซน์เล็กน้อย เช็กปุ่ม ฟอร์ม เอกสาร Backup และ QR โดยไม่แตะระบบกล้องหรือฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -10515,7 +10515,65 @@ S.N.: ${item.sn || '-'}
                 #qr-reader video { min-height: 48vh !important; border-radius: 22px !important; }
                 #qr-reader__dashboard_section { padding: 6px 0 !important; }
               }
-            `}</style>
+            `}
+      /* v22.51.2 Final QA & Stability Pass
+         Safe polish only: no QR scanner / camera / permission / Firebase path changes. */
+      .factory-stock-polish :is(button, [role="button"], a, input, select, textarea) {
+        -webkit-font-smoothing: antialiased;
+        text-rendering: geometricPrecision;
+      }
+      .factory-stock-polish button:disabled,
+      .factory-stock-polish [aria-disabled="true"] {
+        cursor: not-allowed !important;
+        filter: saturate(.86);
+      }
+      .factory-stock-polish :is(button, a[role="button"], input, select, textarea):focus-visible {
+        outline: none !important;
+        box-shadow: 0 0 0 4px rgba(37,99,235,.14) !important;
+      }
+      .factory-stock-polish .custom-scrollbar {
+        scrollbar-gutter: stable;
+      }
+      .factory-stock-polish img,
+      .factory-stock-polish video,
+      .factory-stock-polish canvas {
+        max-width: 100%;
+      }
+
+      @media (max-width: 767px) {
+        .factory-stock-polish {
+          touch-action: manipulation;
+        }
+        .factory-stock-polish :is(button, a[role="button"]) {
+          touch-action: manipulation;
+        }
+        .factory-stock-polish :is(.modal-panel, .solid-modal, .compact-modal, .operation-modal, .settings-modal, .backup-modal, .proof-modal) {
+          max-width: calc(100vw - 16px) !important;
+          max-height: calc(100dvh - 16px) !important;
+        }
+        .factory-stock-polish :is(.modal-panel, .solid-modal, .compact-modal, .operation-modal) :is(.modal-body, .form-body, .operation-body) {
+          overscroll-behavior: contain;
+        }
+        .factory-stock-polish :is(table, .print-table, .report-table) {
+          font-size: 12px !important;
+        }
+        .factory-stock-polish .bottom-mobile-nav {
+          padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+        }
+      }
+
+      @media print {
+        .factory-stock-polish {
+          background: #fff !important;
+        }
+        .factory-stock-polish .no-print,
+        .factory-stock-polish .bottom-mobile-nav,
+        .factory-stock-polish .factory-top-actions {
+          display: none !important;
+        }
+      }
+
+</style>
 
             <div className="h-full w-full flex items-stretch justify-center sm:p-4">
               <div className={`w-full max-w-6xl h-full sm:h-[94vh] sm:rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
