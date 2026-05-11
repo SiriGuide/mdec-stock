@@ -3809,11 +3809,10 @@ function MainApp() {
     return (
       <div className={`p-4 rounded-xl border ${toneClass}`}>
         <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>📷 {label} <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่บังคับ)</span></label>
-        <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>เลือกไฟล์รูป หรือถ่ายด้วยกล้องมือถือ ระบบจะย่อไฟล์ ประทับเวลา และพิกัด GPS ลงบนรูปถ้าอนุญาตตำแหน่ง แล้วเก็บไว้ใน Firestore โดยไม่ใช้ Firebase Storage • เป้าหมายประมาณ {activeProofSettings.targetKB} KB/รูป • สูงสุด {activeProofSettings.maxImagesPerAction} รูป/ครั้ง</p>
+        <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>เลือกภาพจากคลังรูป/ไฟล์ หรือเลือกถ่ายใหม่จากเมนูของมือถือได้ ระบบจะย่อไฟล์ ประทับเวลา และพิกัด GPS ลงบนรูปถ้าอนุญาตตำแหน่ง แล้วเก็บไว้ใน Firestore โดยไม่ใช้ Firebase Storage • เป้าหมายประมาณ {activeProofSettings.targetKB} KB/รูป • สูงสุด {activeProofSettings.maxImagesPerAction} รูป/ครั้ง</p>
         <input
           type="file"
           accept="image/*"
-          capture="environment"
           multiple
           className={`w-full text-sm font-bold rounded-xl border p-3 ${theme.input}`}
           onChange={(e) => setProofFiles(Array.from(e.target.files || []))}
@@ -3902,12 +3901,52 @@ function MainApp() {
     if (!item) return alert('ไม่พบอุปกรณ์ที่ต้องการเพิ่มหลักฐาน');
     const history = Array.isArray(item.history) ? [...item.history] : [];
     const historyIndex = Number(proofAttachTarget.historyIndex);
-    if (!history[historyIndex]) return alert('ไม่พบประวัติรายการนี้');
+    const targetHistory = history[historyIndex];
+    if (!targetHistory) return alert('ไม่พบประวัติรายการนี้');
     try {
       setIsBusy(true);
-      const typeLabel = history[historyIndex].type === 'borrow' ? 'หลักฐานการยืม' : history[historyIndex].type === 'event' ? 'หลักฐานออกงาน' : 'หลักฐานรับคืน';
+      const typeLabel = targetHistory.type === 'borrow' ? 'หลักฐานการยืม' : targetHistory.type === 'event' ? 'หลักฐานออกงาน' : 'หลักฐานรับคืน';
       const uploadedProofs = await uploadProofFiles(proofAttachFiles, `${typeLabel} • ${item.name || ''}`);
-      history[historyIndex] = { ...history[historyIndex], proofs: [...(history[historyIndex].proofs || []), ...uploadedProofs] };
+
+      // ถ้าเป็น "รับคืน" ที่ทำเป็นกลุ่ม ให้แนบหลักฐานย้อนหลังชุดเดียวกันให้ทุกอุปกรณ์ในกลุ่มรับคืนนั้น
+      // ใช้ key จากวันที่ทำรายการ + ผู้รับคืน + ผู้ทำรายการ เพื่อไม่ต้องเปลี่ยนโครงสร้างฐานข้อมูล
+      const isReturnGroupHistory = targetHistory.type === 'return' && targetHistory.date;
+      if (isReturnGroupHistory) {
+        const sameReturnGroupItems = items
+          .map(groupItem => {
+            const groupHistory = Array.isArray(groupItem.history) ? groupItem.history : [];
+            const matchIndexes = groupHistory
+              .map((h, idx) => ({ h, idx }))
+              .filter(({ h }) => (
+                h &&
+                h.type === 'return' &&
+                h.date === targetHistory.date &&
+                (h.staffIn || '') === (targetHistory.staffIn || '') &&
+                (h.operatorName || '') === (targetHistory.operatorName || '')
+              ))
+              .map(({ idx }) => idx);
+            return { groupItem, groupHistory, matchIndexes };
+          })
+          .filter(row => row.matchIndexes.length > 0);
+
+        const affectedCount = sameReturnGroupItems.length || 1;
+        await Promise.all(sameReturnGroupItems.map(({ groupItem, groupHistory, matchIndexes }) => {
+          const nextHistory = groupHistory.map((h, idx) => matchIndexes.includes(idx)
+            ? { ...h, proofs: [...(h.proofs || []), ...uploadedProofs] }
+            : h
+          );
+          return setDoc(getItemDoc(groupItem.id), { history: nextHistory, updatedAt: new Date().toISOString(), updatedBy: currentAccountLabel }, { merge: true });
+        }));
+        await logAction('เพิ่มหลักฐานรับคืนย้อนหลังเป็นกลุ่ม', `ผูกหลักฐาน ${affectedCount} รายการ`, `เพิ่มหลักฐาน ${uploadedProofs.length} รูป ให้กลุ่มรับคืนวันที่ ${targetHistory.date}
+ผู้รับคืน: ${targetHistory.staffIn || '-'}
+เริ่มจากรายการ: ${item.name || '-'}`);
+        setProofAttachTarget(null);
+        setProofAttachFiles([]);
+        pushToast(`เพิ่มหลักฐานรับคืนย้อนหลังให้ทั้งกลุ่มแล้ว (${affectedCount} รายการ)`, 'success');
+        return;
+      }
+
+      history[historyIndex] = { ...targetHistory, proofs: [...(targetHistory.proofs || []), ...uploadedProofs] };
       await setDoc(getItemDoc(item.id), { history, updatedAt: new Date().toISOString(), updatedBy: currentAccountLabel }, { merge: true });
       await logAction('เพิ่มหลักฐานรูปภาพ', item.name || '-', `เพิ่มหลักฐาน ${uploadedProofs.length} รูป ในประวัติรายการที่ ${historyIndex + 1}`);
       setProofAttachTarget(null);
@@ -10165,7 +10204,7 @@ S.N.: ${item.sn || '-'}
 
                       {(isBorrowed || isEvent) && (
                         <div className={`text-base mt-2 p-2 rounded-lg border inline-block ${isOverdue ? (isDarkMode ? 'bg-rose-900/30 border-rose-800' : 'bg-rose-100 border-rose-200') : isEvent ? (isDarkMode ? 'bg-orange-900/30 border-orange-800' : 'bg-orange-50 border-orange-100') : (isDarkMode ? 'bg-purple-900/30 border-purple-800' : 'bg-purple-50 border-purple-100')}`}>
-                          <div className="flex items-center gap-2">
+                          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
                             {isEvent && <Icons.Truck className={`${isOverdue ? (isDarkMode ? 'text-rose-400' : 'text-rose-700') : (isDarkMode ? 'text-orange-400' : 'text-orange-700')}`} />}
                             <span className={`font-bold ${isOverdue ? (isDarkMode ? 'text-rose-400' : 'text-rose-700') : isEvent ? (isDarkMode ? 'text-orange-400' : 'text-orange-700') : (isDarkMode ? 'text-purple-400' : 'text-purple-700')}`}>
                               {isEvent ? `ออกงาน: ${item.currentEvent}` : `ผู้ยืม: ${item.currentBorrower}`}
@@ -12201,7 +12240,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-              <div className="flex justify-between items-center mb-3">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                 <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                   <Icons.ClipboardList className="w-5 h-5" /> เช็คลิสต์ก่อนปล่อยยืม ({packingChecklist.length}/{borrowTargetIds.length})
                 </h4>
@@ -12325,7 +12364,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-              <div className="flex justify-between items-center mb-3">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                 <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                   <Icons.ClipboardList className="w-5 h-5" /> เช็คของขึ้นรถ ({eventChecklist.length}/{eventTargetIds.length})
                 </h4>
@@ -12411,7 +12450,7 @@ S.N.: ${item.sn || '-'}
       {/* 📋 Return Modal */}
       {returnTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`operational-modal-shell return-operation-modal rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
+          <div className={`operational-modal-shell return-operation-modal rounded-3xl p-4 sm:p-6 max-w-lg w-[calc(100vw-1.5rem)] sm:w-full shadow-2xl max-h-[92vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.CheckCircle className="text-emerald-500 w-6 h-6" /> บันทึกรับคืนอุปกรณ์</h3>
               <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); setReturnProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
@@ -12434,7 +12473,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-              <div className="flex justify-between items-center mb-3">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                 <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                   <Icons.ClipboardList className="w-5 h-5" /> เช็คลิสต์ของเข้ากล่อง ({returnChecklist.length}/{returnTargetIds.length})
                 </h4>
@@ -12468,34 +12507,36 @@ S.N.: ${item.sn || '-'}
                   <div className={`h-full rounded-full transition-all duration-500 ${returnChecklist.length === returnTargetIds.length ? 'bg-emerald-500' : 'bg-emerald-500'}`} style={{ width: `${returnTargetIds.length === 0 ? 0 : Math.round((returnChecklist.length / returnTargetIds.length) * 100)}%` }}></div>
                 </div>
               </div>
-              <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+              <div className="space-y-2 max-h-[34vh] sm:max-h-40 overflow-y-auto custom-scrollbar pr-1">
                 {returnTargetIds.map(id => {
                   const item = items.find(i => i.id === id);
                   if(!item) return null;
                   const isChecked = returnChecklist.includes(id);
                   return (
-                    <label key={id} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${isChecked ? (isDarkMode ? 'bg-emerald-900/40 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
-                      <input type="checkbox" className="w-5 h-5 accent-emerald-600 rounded mt-0.5 cursor-pointer shrink-0"
-                        checked={isChecked}
-                        onChange={(e) => {
-                          if(e.target.checked) setReturnChecklist([...returnChecklist, id]);
-                          else setReturnChecklist(returnChecklist.filter(c => c !== id));
-                        }}
-                      />
-                      <span className={`font-bold text-sm sm:text-base leading-tight flex-1 ${isChecked ? (isDarkMode ? 'text-emerald-400 line-through opacity-70' : 'text-emerald-700 line-through opacity-70') : theme.textMain}`}>
-                        {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
-                        {item.internalNote && <span className={`text-xs font-bold block mt-1 px-2 py-1 rounded-lg ${isDarkMode ? 'bg-amber-900/30 text-amber-300 border border-amber-800/50' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>โน้ตภายใน: {item.internalNote}</span>}
-                      </span>
-                      {item.owner && <span className={`text-[10px] px-2 py-0.5 rounded font-bold shrink-0 ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>👤 {item.owner}</span>}
+                    <label key={id} className={`block p-3 rounded-2xl cursor-pointer border transition-colors ${isChecked ? (isDarkMode ? 'bg-emerald-900/40 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
+                      <div className="flex items-start gap-3 min-w-0">
+                        <input type="checkbox" className="w-5 h-5 accent-emerald-600 rounded mt-0.5 cursor-pointer shrink-0"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if(e.target.checked) setReturnChecklist([...returnChecklist, id]);
+                            else setReturnChecklist(returnChecklist.filter(c => c !== id));
+                          }}
+                        />
+                        <span className={`font-bold text-sm sm:text-base leading-snug flex-1 min-w-0 break-words ${isChecked ? (isDarkMode ? 'text-emerald-400 line-through opacity-70' : 'text-emerald-700 line-through opacity-70') : theme.textMain}`}>
+                          {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
+                          {item.internalNote && <span className={`text-xs font-bold block mt-1 px-2 py-1 rounded-lg ${isDarkMode ? 'bg-amber-900/30 text-amber-300 border border-amber-800/50' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>โน้ตภายใน: {item.internalNote}</span>}
+                        </span>
+                        {item.owner && <span className={`text-[10px] px-2 py-0.5 rounded font-bold shrink-0 max-w-[92px] truncate ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>👤 {item.owner}</span>}
+                      </div>
                       {isChecked && (
-                        <div className="w-full sm:w-56 space-y-2" onClick={(e) => e.stopPropagation()}>
-                          <select className={`w-full px-3 py-2 rounded-lg text-xs font-bold border ${theme.input}`} value={(returnInspection[id]?.condition) || 'ปกติ'} onChange={(e) => setReturnInspection(prev => ({...prev, [id]: {...(prev[id] || {}), condition: e.target.value}}))}>
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 pl-8 sm:pl-0" onClick={(e) => e.stopPropagation()}>
+                          <select className={`w-full min-w-0 px-3 py-2.5 rounded-xl text-sm sm:text-xs font-bold border ${theme.input}`} value={(returnInspection[id]?.condition) || 'ปกติ'} onChange={(e) => setReturnInspection(prev => ({...prev, [id]: {...(prev[id] || {}), condition: e.target.value}}))}>
                             <option value="ปกติ">ปกติ</option>
                             <option value="มีรอย/ต้องตรวจเพิ่ม">มีรอย/ต้องตรวจเพิ่ม</option>
                             <option value="ชำรุด">ชำรุด</option>
                             <option value="คืนไม่ครบ">คืนไม่ครบ</option>
                           </select>
-                          <input className={`w-full px-3 py-2 rounded-lg text-xs font-bold border ${theme.input}`} placeholder="หมายเหตุหลังคืน" value={(returnInspection[id]?.note) || ''} onChange={(e) => setReturnInspection(prev => ({...prev, [id]: {...(prev[id] || {}), note: e.target.value}}))} />
+                          <input className={`w-full min-w-0 px-3 py-2.5 rounded-xl text-sm sm:text-xs font-bold border ${theme.input}`} placeholder="หมายเหตุหลังคืน" value={(returnInspection[id]?.note) || ''} onChange={(e) => setReturnInspection(prev => ({...prev, [id]: {...(prev[id] || {}), note: e.target.value}}))} />
                         </div>
                       )}
                     </label>
@@ -12504,13 +12545,13 @@ S.N.: ${item.sn || '-'}
               </div>
             </div>
 
-            <div className="flex gap-3">
-              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); setReturnProofFiles([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); setReturnProofFiles([]); }} className={`w-full py-3.5 sm:py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button 
                 type="button" 
                 onClick={handleReturn} 
                 disabled={!returnData.staff || returnChecklist.length === 0} 
-                className={`flex-1 py-4 font-bold rounded-xl text-lg transition-colors ${(!returnData.staff || returnChecklist.length === 0) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20'}`}
+                className={`w-full py-3.5 sm:py-4 font-bold rounded-xl text-base sm:text-lg transition-colors ${(!returnData.staff || returnChecklist.length === 0) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20'}`}
               >
                 {returnChecklist.length > 0 && returnChecklist.length < returnTargetIds.length ? `ยืนยันรับคืน (${returnChecklist.length} ชิ้น)` : 'ยืนยันการรับคืน'}
               </button>
@@ -12783,6 +12824,9 @@ S.N.: ${item.sn || '-'}
             <div className="flex justify-between items-center mb-5">
               <h3 className={`text-xl font-black ${theme.textTitle}`}>เพิ่มรูปหลักฐานย้อนหลัง</h3>
               <button type="button" onClick={() => { setProofAttachTarget(null); setProofAttachFiles([]); }} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+            <div className={`mb-4 p-3 rounded-2xl border text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-sky-50 border-sky-200 text-sky-800'}`}>
+              ถ้าเป็นประวัติ “รับคืน” ที่ทำเป็นกลุ่ม ระบบจะผูกหลักฐานชุดนี้ให้ทุกอุปกรณ์ในกลุ่มรับคืนเดียวกันอัตโนมัติ
             </div>
             {renderProofUploader('รูปหลักฐานย้อนหลัง', proofAttachFiles, setProofAttachFiles, 'blue')}
             <div className="flex gap-3 mt-6">
