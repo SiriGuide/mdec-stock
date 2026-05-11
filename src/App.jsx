@@ -2941,13 +2941,13 @@ function FactoryPolishStyle({ isDarkMode }) {
       /* Settings center polish */
       .factory-stock-polish .settings-panel,
       .factory-stock-polish .settings-card,
-      .factory-stock-polish .system-settings-card {
+      .factory-stock-polish .ระบบ-settings-card {
         border-radius: var(--mdec-radius-card) !important;
         border: 1px solid var(--mdec-line) !important;
       }
       .factory-stock-polish .settings-panel button,
       .factory-stock-polish .settings-card button,
-      .factory-stock-polish .system-settings-card button {
+      .factory-stock-polish .ระบบ-settings-card button {
         min-height: 36px !important;
       }
       .factory-stock-polish .settings-tabs,
@@ -3422,7 +3422,110 @@ function FactoryPolishStyle({ isDarkMode }) {
         }
       }
 
-    `}</style>
+    
+
+/* v22.51.26 Settings & Data Safety Final Polish
+   UI-only safety polish: no Firebase path, no QR scanner, no camera permission changes */
+.settings-safety-zone,
+.danger-zone,
+.backup-safety-zone,
+.data-safety-zone {
+  border-radius: 24px !important;
+  border: 1px solid rgba(239, 68, 68, .24) !important;
+  background:
+    linear-gradient(135deg, rgba(254, 242, 242, .96), rgba(255, 255, 255, .92)) !important;
+}
+.dark .settings-safety-zone,
+.dark .danger-zone,
+.dark .backup-safety-zone,
+.dark .data-safety-zone {
+  border-color: rgba(248, 113, 113, .28) !important;
+  background:
+    linear-gradient(135deg, rgba(69, 10, 10, .42), rgba(15, 23, 42, .92)) !important;
+}
+.safety-warning-card,
+.destructive-warning-card {
+  border-radius: 20px !important;
+  border: 1px solid rgba(245, 158, 11, .35) !important;
+  background: linear-gradient(135deg, rgba(255, 251, 235, .96), rgba(255, 255, 255, .94)) !important;
+}
+.dark .safety-warning-card,
+.dark .destructive-warning-card {
+  border-color: rgba(251, 191, 36, .32) !important;
+  background: linear-gradient(135deg, rgba(69, 26, 3, .38), rgba(15, 23, 42, .94)) !important;
+}
+button[class*="red"],
+button[class*="rose"],
+button[class*="orange"] {
+  font-weight: 900;
+}
+button[class*="red"]:not(:disabled),
+button[class*="rose"]:not(:disabled) {
+  box-shadow: 0 12px 24px rgba(220, 38, 38, .16);
+}
+button[class*="orange"]:not(:disabled) {
+  box-shadow: 0 12px 24px rgba(234, 88, 12, .14);
+}
+.settings-grid,
+.settings-section-grid {
+  display: grid;
+  gap: 14px;
+}
+@media (min-width: 1024px) {
+  .settings-grid,
+  .settings-section-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.settings-card,
+.backup-card,
+.safety-card {
+  border-radius: 24px !important;
+  overflow: hidden;
+}
+.settings-card h3,
+.backup-card h3,
+.safety-card h3 {
+  letter-spacing: -0.02em;
+}
+.safety-checklist li,
+.backup-checklist li {
+  break-inside: avoid;
+}
+@media (max-width: 768px) {
+  .settings-grid,
+  .settings-section-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .settings-card,
+  .backup-card,
+  .safety-card,
+  .settings-safety-zone,
+  .danger-zone {
+    border-radius: 20px !important;
+  }
+  .settings-card button,
+  .backup-card button,
+  .safety-card button,
+  .danger-zone button,
+  .settings-safety-zone button {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+}
+@media print {
+  .settings-safety-zone,
+  .danger-zone,
+  .backup-safety-zone,
+  .data-safety-zone,
+  .safety-warning-card {
+    border: 1px solid #cbd5e1 !important;
+    background: #fff !important;
+  }
+}
+
+`}</style>
   );
 }
 
@@ -8058,7 +8161,7 @@ S.N.: ${item.sn || '-'}
 
     const payload = {
       appName: 'MDEC-Stock',
-      backupType: 'full-system-backup',
+      backupType: 'full-ระบบ-backup',
       backupVersion: 2,
       exportedAt: new Date().toISOString(),
       exportedAtTH: new Date().toLocaleString('th-TH', { hour12: false }),
