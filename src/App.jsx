@@ -3174,7 +3174,57 @@ function FactoryPolishStyle({ isDarkMode }) {
       }
 
 
-      /* v22.51.13 Mobile Operational Modal Fix: แก้รับคืนกลุ่ม / multi-select action bar บนมือถือ */
+      /* v22.51.14 REAL return-group mobile fix: target the actual return modal markup directly */
+      @media (max-width: 767px) {
+        .return-operation-modal {
+          width: calc(100vw - 12px) !important;
+          max-width: calc(100vw - 12px) !important;
+          max-height: calc(100dvh - 12px) !important;
+          padding: 12px !important;
+          overflow-x: hidden !important;
+        }
+        .return-operation-modal .return-checklist-card,
+        .return-operation-modal .return-checklist-card * {
+          box-sizing: border-box !important;
+          max-width: 100% !important;
+          writing-mode: horizontal-tb !important;
+          text-orientation: mixed !important;
+        }
+        .return-operation-modal .return-checklist-card {
+          display: block !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          overflow: hidden !important;
+          contain: layout paint !important;
+        }
+        .return-operation-modal .return-checklist-main,
+        .return-operation-modal .return-checklist-card div,
+        .return-operation-modal .return-checklist-card span {
+          white-space: normal !important;
+          word-break: keep-all !important;
+          overflow-wrap: anywhere !important;
+          line-break: auto !important;
+        }
+        .return-operation-modal .return-inspection-fields {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) !important;
+          width: 100% !important;
+          padding-left: 0 !important;
+        }
+        .return-operation-modal .return-inspection-fields :is(input, select) {
+          width: 100% !important;
+          min-width: 0 !important;
+          font-size: 16px !important;
+        }
+        .return-operation-modal > .grid.grid-cols-1.sm\:grid-cols-2,
+        .return-operation-modal > .flex.gap-3 {
+          display: grid !important;
+          grid-template-columns: 1fr !important;
+          gap: 10px !important;
+        }
+      }
+
+      /* v22.51.14 Return Group Mobile Real Fix: แก้รับคืนกลุ่ม / multi-select action bar บนมือถือ */
       @media (max-width: 767px) {
         .factory-stock-polish .return-operation-modal {
           width: calc(100vw - 14px) !important;
@@ -12795,34 +12845,47 @@ S.N.: ${item.sn || '-'}
                   const item = items.find(i => i.id === id);
                   if(!item) return null;
                   const isChecked = returnChecklist.includes(id);
+                  const toggleReturnItem = (checked) => {
+                    if (checked) setReturnChecklist(prev => prev.includes(id) ? prev : [...prev, id]);
+                    else setReturnChecklist(prev => prev.filter(c => c !== id));
+                  };
                   return (
-                    <label key={id} className={`return-checklist-card block p-3 rounded-2xl cursor-pointer border transition-colors ${isChecked ? (isDarkMode ? 'bg-emerald-900/40 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
-                      <div className="return-checklist-row flex items-start gap-3 min-w-0">
-                        <input type="checkbox" className="w-5 h-5 accent-emerald-600 rounded mt-0.5 cursor-pointer shrink-0"
+                    <div key={id} className={`return-checklist-card p-3 rounded-2xl border transition-colors overflow-hidden ${isChecked ? (isDarkMode ? 'bg-emerald-950/45 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
+                      <div className="flex items-start gap-3 min-w-0 w-full">
+                        <input
+                          type="checkbox"
+                          className="w-6 h-6 sm:w-5 sm:h-5 accent-emerald-600 rounded mt-0.5 cursor-pointer shrink-0"
                           checked={isChecked}
-                          onChange={(e) => {
-                            if(e.target.checked) setReturnChecklist([...returnChecklist, id]);
-                            else setReturnChecklist(returnChecklist.filter(c => c !== id));
-                          }}
+                          onChange={(e) => toggleReturnItem(e.target.checked)}
                         />
-                        <span className={`return-checklist-main font-bold text-sm sm:text-base leading-snug flex-1 min-w-0 break-words ${isChecked ? (isDarkMode ? 'text-emerald-400 line-through opacity-70' : 'text-emerald-700 line-through opacity-70') : theme.textMain}`}>
-                          {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
-                          {item.internalNote && <span className={`text-xs font-bold block mt-1 px-2 py-1 rounded-lg ${isDarkMode ? 'bg-amber-900/30 text-amber-300 border border-amber-800/50' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>โน้ตภายใน: {item.internalNote}</span>}
-                        </span>
-                        {item.owner && <span className={`text-[10px] px-2 py-0.5 rounded font-bold shrink-0 max-w-[92px] truncate ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>👤 {item.owner}</span>}
+                        <div className="min-w-0 flex-1 w-full overflow-hidden">
+                          <div
+                            className={`font-black text-[15px] sm:text-base leading-snug whitespace-normal ${isChecked ? (isDarkMode ? 'text-emerald-300' : 'text-emerald-800') : theme.textMain}`}
+                            style={{ writingMode: 'horizontal-tb', wordBreak: 'keep-all', overflowWrap: 'anywhere' }}
+                          >
+                            {item.name}
+                          </div>
+                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`} style={{ writingMode: 'horizontal-tb', wordBreak: 'keep-all', overflowWrap: 'anywhere' }}>
+                            S.N: {item.sn || '-'}
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {item.owner && <span className={`inline-flex max-w-full px-2 py-0.5 rounded-lg text-[11px] font-black ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-300' : 'bg-fuchsia-100 text-fuchsia-700'}`}>👤 {item.owner}</span>}
+                            {item.internalNote && <span className={`inline-flex max-w-full px-2 py-0.5 rounded-lg text-[11px] font-black border ${isDarkMode ? 'bg-amber-900/30 text-amber-300 border-amber-800/50' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>โน้ตภายใน: {item.internalNote}</span>}
+                          </div>
+                        </div>
                       </div>
                       {isChecked && (
-                        <div className="return-inspection-fields mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 pl-8 sm:pl-0" onClick={(e) => e.stopPropagation()}>
-                          <select className={`w-full min-w-0 px-3 py-2.5 rounded-xl text-sm sm:text-xs font-bold border ${theme.input}`} value={(returnInspection[id]?.condition) || 'ปกติ'} onChange={(e) => setReturnInspection(prev => ({...prev, [id]: {...(prev[id] || {}), condition: e.target.value}}))}>
+                        <div className="return-inspection-fields mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full" onClick={(e) => e.stopPropagation()}>
+                          <select className={`w-full min-w-0 px-3 py-3 sm:py-2.5 rounded-xl text-base sm:text-sm font-black border ${theme.input}`} value={(returnInspection[id]?.condition) || 'ปกติ'} onChange={(e) => setReturnInspection(prev => ({...prev, [id]: {...(prev[id] || {}), condition: e.target.value}}))}>
                             <option value="ปกติ">ปกติ</option>
                             <option value="มีรอย/ต้องตรวจเพิ่ม">มีรอย/ต้องตรวจเพิ่ม</option>
                             <option value="ชำรุด">ชำรุด</option>
                             <option value="คืนไม่ครบ">คืนไม่ครบ</option>
                           </select>
-                          <input className={`w-full min-w-0 px-3 py-2.5 rounded-xl text-sm sm:text-xs font-bold border ${theme.input}`} placeholder="หมายเหตุหลังคืน" value={(returnInspection[id]?.note) || ''} onChange={(e) => setReturnInspection(prev => ({...prev, [id]: {...(prev[id] || {}), note: e.target.value}}))} />
+                          <input className={`w-full min-w-0 px-3 py-3 sm:py-2.5 rounded-xl text-base sm:text-sm font-black border ${theme.input}`} placeholder="หมายเหตุหลังคืน" value={(returnInspection[id]?.note) || ''} onChange={(e) => setReturnInspection(prev => ({...prev, [id]: {...(prev[id] || {}), note: e.target.value}}))} />
                         </div>
                       )}
-                    </label>
+                    </div>
                   );
                 })}
               </div>
