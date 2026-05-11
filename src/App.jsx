@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.51.19 QR Safe UI & Label Polish';
+const APP_VERSION = 'v22.51.20 QR Visual Polish v2';
 const APP_UPDATE_NOTE = 'Backup Center Final Polish: เก็บหน้าสำรองข้อมูลให้ชัดและปลอดภัยขึ้น เพิ่มสรุปขนาดโดยประมาณ คำเตือนไฟล์ใหญ่ Checklist และลำดับการสำรอง โดยไม่แตะ QR/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -2355,7 +2355,7 @@ function FactoryPolishStyle({ isDarkMode }) {
       }
 
 
-      /* v22.51.19 QR Safe UI & Label Polish — UI รอบนอกเท่านั้น ไม่แตะระบบกล้อง/permission/qrbox */
+      /* v22.51.20 QR Visual Polish v2 — UI รอบนอกเท่านั้น ไม่แตะระบบกล้อง/permission/qrbox */
       .factory-stock-polish .qr-safe-zone {
         background: #fff !important;
         border-radius: 14px !important;
@@ -7728,12 +7728,12 @@ S.N.: ${item.sn || '-'}
         markChecklist(returnTargetIds, returnChecklist, setReturnChecklist, 'รับคืน');
       } else {
         setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-        setScanMessage({ text: `✅ พบ "${foundItem.name}" เลือกไว้แล้ว`, type: 'success' });
+        setScanMessage({ text: `✅ สแกนสำเร็จ: "${foundItem.name}" เพิ่มเข้ารายการแล้ว`, type: 'success' });
         try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
         try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
       }
     } else {
-      setScanMessage({ text: `❌ ไม่พบรหัส "${val}" ในระบบ`, type: 'error' });
+      setScanMessage({ text: `❌ ไม่พบรหัสนี้: "${val}" ในระบบ`, type: 'error' });
       try { if (navigator?.vibrate) navigator.vibrate([60, 40, 60]); } catch(e){}
       try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
     }
@@ -13872,7 +13872,7 @@ S.N.: ${item.sn || '-'}
                       <input type="checkbox" className="w-5 h-5 accent-emerald-500 rounded cursor-pointer" checked={!!formData.qrTagged} onChange={e => setFormData({...formData, qrTagged: e.target.checked})} />
                       <span className="font-bold text-lg">▦ ติด QR แล้ว</span>
                     </label>
-                    <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>ใช้ช่วยกรองรายการที่ยังไม่ได้ติดสติ๊กเกอร์ QR ตอนเตรียมอุปกรณ์จริง</p>
+                    <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>ใช้ช่วยกรองรายการที่ยังไม่ได้ติดฉลาก QR ตอนเตรียมอุปกรณ์จริง</p>
                   </div>
 
                   <div className={`p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
