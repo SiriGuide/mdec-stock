@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.51.17 Backup Center Final Polish';
+const APP_VERSION = 'v22.51.19 QR Safe UI & Label Polish';
 const APP_UPDATE_NOTE = 'Backup Center Final Polish: เก็บหน้าสำรองข้อมูลให้ชัดและปลอดภัยขึ้น เพิ่มสรุปขนาดโดยประมาณ คำเตือนไฟล์ใหญ่ Checklist และลำดับการสำรอง โดยไม่แตะ QR/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -2352,6 +2352,50 @@ function FactoryPolishStyle({ isDarkMode }) {
       .factory-stock-polish #qr-reader button,
       .factory-stock-polish #qr-reader select {
         font-family: inherit !important;
+      }
+
+
+      /* v22.51.19 QR Safe UI & Label Polish — UI รอบนอกเท่านั้น ไม่แตะระบบกล้อง/permission/qrbox */
+      .factory-stock-polish .qr-safe-zone {
+        background: #fff !important;
+        border-radius: 14px !important;
+        box-shadow: inset 0 0 0 1px rgba(15,23,42,.06) !important;
+      }
+      .factory-stock-polish :is(.qr-plain-card,.qr-label-card) {
+        border-color: rgba(15,23,42,.18) !important;
+      }
+      .factory-stock-polish .qr-plain-card .qr-code-image,
+      .factory-stock-polish .qr-label-card .qr-code-image {
+        image-rendering: auto;
+      }
+      .factory-stock-polish .qr-label-card {
+        overflow: hidden !important;
+      }
+      .factory-stock-polish .qr-label-card .thai-keep,
+      .factory-stock-polish .qr-plain-card .thai-keep {
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+      }
+      @media print {
+        .factory-stock-polish .qr-safe-zone {
+          box-shadow: none !important;
+          border-color: #fff !important;
+        }
+        .factory-stock-polish :is(.qr-plain-card,.qr-label-card) {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+      }
+      @media (max-width: 767px) {
+        .factory-stock-polish #qr-reader button {
+          min-height: 40px !important;
+          padding: 9px 12px !important;
+          border-radius: 13px !important;
+        }
+        .factory-stock-polish #qr-reader select {
+          min-height: 40px !important;
+          font-size: 14px !important;
+        }
       }
 
 
@@ -7581,7 +7625,7 @@ S.N.: ${item.sn || '-'}
     if (scanMode === 'borrowChecklist') return { title: 'สแกนเช็กก่อนปล่อยยืม', desc: 'สแกน QR ของอุปกรณ์ในรายการยืม เพื่อเช็กแทนการติ๊กเอง', tone: 'purple' };
     if (scanMode === 'eventChecklist') return { title: 'สแกนเช็กของขึ้นงาน', desc: 'สแกน QR ของอุปกรณ์ในรายการออกงาน เพื่อเช็กแทนการติ๊กเอง', tone: 'orange' };
     if (scanMode === 'returnChecklist') return { title: 'สแกนเช็กตอนรับคืน', desc: 'สแกน QR ของอุปกรณ์ที่นำมาคืน เพื่อเช็กแทนการติ๊กเอง', tone: 'emerald' };
-    return { title: 'โหมดสแกน QR', desc: 'สแกน QR เพื่อเลือกอุปกรณ์ แล้วกดดูรายละเอียดหรือแก้ไขได้ทันที', tone: 'amber' };
+    return { title: 'สแกน QR', desc: 'สแกนเพื่อเลือกอุปกรณ์หลายรายการ หรือดูสแกนล่าสุดแบบรวดเร็ว', tone: 'amber' };
   };
 
   const handleOpenBatchBorrow = () => {
@@ -9381,10 +9425,10 @@ S.N.: ${item.sn || '-'}
          <div className="print:hidden p-4 bg-slate-800 text-white flex flex-col xl:flex-row justify-between items-center fixed top-0 w-full z-50 shadow-md gap-3">
             <div>
               <h2 className="font-bold text-xl flex items-center gap-2">
-                <Icons.QrCode className="w-6 h-6" /> โหมดพิมพ์สติ๊กเกอร์ QR Code ({selectedItems.length} ดวง)
+                <Icons.QrCode className="w-6 h-6" /> พิมพ์ QR / ฉลากอุปกรณ์ ({selectedItems.length} ดวง)
               </h2>
               <p className="text-slate-300 text-sm font-bold mt-1">
-                เลือกรูปแบบและขนาดก่อนพิมพ์: แบบธรรมดาคือแบบเดิม, แบบฉลากคือป้าย MDEC ที่เคยทำไว้
+                เลือกขนาดและรูปแบบฉลากให้เหมาะกับอุปกรณ์ ควรทดลองสแกน 1 ดวงก่อนติดจริง
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-3">
@@ -9401,7 +9445,7 @@ S.N.: ${item.sn || '-'}
                    type="button"
                    onClick={() => setQrPrintMode('label')}
                    className={`px-4 py-2 rounded-lg font-black transition-colors ${qrPrintMode === 'label' ? 'bg-blue-600 text-white shadow' : 'text-slate-200 hover:bg-slate-600'}`}
-                   title="แบบฉลาก มีหัว MDEC STOCK แบบแน่นขึ้น ไม่มี ID ให้เกะกะ"
+                   title="แบบฉลากอ่านง่าย มีโลโก้ ชื่ออุปกรณ์ S.N. และรหัสสั้นถ้ามี"
                  >
                    แบบฉลาก
                  </button>
@@ -9436,7 +9480,7 @@ S.N.: ${item.sn || '-'}
                </div>
 
                <div className="w-full text-xs sm:text-sm font-bold text-slate-300 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3">
-                 แนะนำ: ก่อนติดสติ๊กเกอร์จริง ควรทดลองสแกน 1 ดวงก่อนเสมอ และถ้าติดอุปกรณ์ที่ต้องสแกนบ่อย ให้ใช้ขนาด <b>สแกนง่ายมาก</b> ระบบจะเว้น <b>Quiet Zone</b> หรือขอบขาวรอบ QR ให้โล่งขึ้น และย้ายโลโก้ออกจากพื้นที่สแกน เพื่อลดปัญหาสแกนไม่ติด
+                 แนะนำ: ก่อนติดจริงให้ทดลองสแกน 1 ดวงก่อนเสมอ ถ้าเป็นแบต/เมมให้ติดรหัสสั้นบนตัวของ และติด QR ที่ซอง/กล่องเก็บแทน เพื่อไม่ให้รบกวนการใช้งาน
                </div>
 
                <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
@@ -9470,6 +9514,7 @@ S.N.: ${item.sn || '-'}
                       </div>
                       <span className={`${qrPreset.nameClass} font-black leading-tight line-clamp-2 w-full mt-1.5`}>{item.name}</span>
                       <span className={`${qrPreset.snClass} font-bold text-gray-600 mt-1`}>{item.sn}</span>
+                      {(item.shortCode || item.shortLabel || item.assetShortCode || item.localCode) && <span className="text-[9px] font-black bg-blue-50 text-blue-700 border border-blue-100 px-1.5 py-0.5 rounded mt-1">{item.shortCode || item.shortLabel || item.assetShortCode || item.localCode}</span>}
                       {item.owner ? <span className="text-[9px] font-bold bg-gray-200 px-1 rounded mt-1">👤 {item.owner}</span> : <span className="text-[8px] font-black text-blue-700 mt-1">ทรัพย์สิน MDEC</span>}
                    </div>
                 )
@@ -9482,6 +9527,7 @@ S.N.: ${item.sn || '-'}
                 if(!item) return null;
                 const deptInfo = DEPARTMENTS.find(d => d.id === item.department);
                 const qrValue = encodeURIComponent(item.id || item.sn || item.name || 'MDEC-STOCK');
+                const labelShortCode = item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || '';
                 return (
                    <div key={id} className={`qr-label-card border border-slate-300 rounded-xl flex flex-col bg-white text-slate-900 break-inside-avoid shadow-sm print:rounded-none overflow-hidden ${qrPreset.labelCard}`}>
                       <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-1.5 mb-2 print:pb-0.5 print:mb-1">
@@ -9509,6 +9555,7 @@ S.N.: ${item.sn || '-'}
                           <div className={`${qrPreset.labelTitleClass} font-black line-clamp-2 text-slate-950`}>{item.name}</div>
                           <div className={`mt-1 grid grid-cols-[auto_1fr] gap-x-1 gap-y-0.5 ${qrPreset.labelTextClass} font-bold`}>
                             <span className="text-slate-400">S.N.</span><span className="truncate text-slate-700">{item.sn || '-'}</span>
+                            {labelShortCode && <><span className="text-slate-400">รหัส</span><span className="truncate text-slate-900 font-black">{labelShortCode}</span></>}
                             <span className="text-slate-400">ฝ่าย</span><span className="truncate text-slate-700">{deptInfo?.label || item.department || '-'}</span>
                             <span className="text-slate-400">ที่เก็บ</span><span className="truncate text-slate-700">{item.location || '-'}</span>
                           </div>
@@ -11464,6 +11511,13 @@ S.N.: ${item.sn || '-'}
                 font-weight: 900 !important;
                 font-size: 12px !important;
               }
+              #qr-reader img { image-rendering: auto !important; }
+              #qr-reader a { color: inherit !important; font-weight: 900 !important; }
+              #qr-reader__dashboard_section_csr span,
+              #qr-reader__dashboard_section_swaplink {
+                font-weight: 800 !important;
+                border-radius: 999px !important;
+              }
               @media (max-width: 767px) {
                 #qr-reader video { min-height: 48vh !important; border-radius: 22px !important; }
                 #qr-reader__dashboard_section { padding: 6px 0 !important; }
@@ -11557,10 +11611,10 @@ S.N.: ${item.sn || '-'}
 
                   <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                     <button type="button" onClick={() => setUseCamera(true)} className={`min-h-[46px] px-4 rounded-2xl font-black border transition ${useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
-                      📷 กล้องมือถือ
+                      📷 ใช้กล้อง
                     </button>
                     <button type="button" onClick={() => setUseCamera(false)} className={`min-h-[46px] px-4 rounded-2xl font-black border transition ${!useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
-                      ⌨️ ยิง/พิมพ์รหัส
+                      ⌨️ พิมพ์/ยิงรหัส
                     </button>
                     {isChecklistMode && (
                       <div className={`col-span-2 sm:ml-auto min-h-[46px] px-4 rounded-2xl border flex items-center justify-between sm:justify-center gap-3 font-black ${softToneClass}`}>
@@ -11593,14 +11647,14 @@ S.N.: ${item.sn || '-'}
                   <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_.8fr] gap-4 sm:gap-5 items-start">
                     <div className={`rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
                       <div className={`px-4 py-3 border-b flex items-center justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50'}`}>
-                        <div className="font-black">{useCamera ? 'ช่องสแกนกล้อง' : 'ช่องกรอกรหัส / เครื่องยิงบาร์โค้ด'}</div>
-                        <div className={`text-xs font-black px-3 py-1 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'Camera Mode' : 'Manual Mode'}</div>
+                        <div className="font-black">{useCamera ? 'พื้นที่สแกน' : 'พิมพ์รหัส / เครื่องยิงบาร์โค้ด'}</div>
+                        <div className={`text-xs font-black px-3 py-1 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'กล้อง' : 'รหัส'}</div>
                       </div>
 
                       {useCamera ? (
                         <div className="p-3 sm:p-4">
                           <div className={`mb-3 p-3 rounded-2xl border text-left text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-                            วาง QR ให้อยู่กลางกรอบ ถือให้นิ่ง 1–2 วินาที ถ้าสติกเกอร์สะท้อนแสงให้เอียงเล็กน้อย
+                            ส่อง QR ให้อยู่กลางกรอบ ถือให้นิ่งเล็กน้อย ถ้าสะท้อนแสงให้เอียงสติ๊กเกอร์นิดหนึ่ง
                           </div>
                           {!isScannerLoaded ? (
                             <div className="min-h-[320px] flex items-center justify-center">
@@ -11652,13 +11706,13 @@ S.N.: ${item.sn || '-'}
                         </div>
                       ) : (
                         <div className={`p-4 rounded-[1.7rem] border font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
-                          พร้อมสแกน — ระบบจะสั่น/มีเสียงเมื่อพบหรือไม่พบรายการ
+                          พร้อมสแกน — มีเสียง/สั่นเมื่ออ่านสำเร็จหรือไม่พบรายการ
                         </div>
                       )}
 
                       {recentItem ? (
                         <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                          <div className={`text-xs font-black mb-2 ${theme.textMuted}`}>รายการล่าสุด</div>
+                          <div className={`text-xs font-black mb-2 ${theme.textMuted}`}>สแกนล่าสุด</div>
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className={`font-black text-xl leading-tight ${theme.textTitle}`}>{recentItem.name}</div>
@@ -11676,8 +11730,8 @@ S.N.: ${item.sn || '-'}
                         </div>
                       ) : (
                         <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                          <div className={`text-xs font-black mb-2 ${theme.textMuted}`}>รายการล่าสุด</div>
-                          <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีรายการที่สแกนในรอบนี้</div>
+                          <div className={`text-xs font-black mb-2 ${theme.textMuted}`}>สแกนล่าสุด</div>
+                          <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีรายการล่าสุดในรอบนี้</div>
                         </div>
                       )}
 
@@ -14329,7 +14383,7 @@ S.N.: ${item.sn || '-'}
                       </div>
                     );
                   })}
-                  {filteredHistoryCenterEntries.length > 250 && <div className={`text-center text-sm font-bold ${theme.textMuted}`}>แสดง 250 รายการล่าสุดจากผลค้นหา กรุณาพิมพ์ค้นหาให้แคบลงถ้าต้องการรายการเก่า</div>}
+                  {filteredHistoryCenterEntries.length > 250 && <div className={`text-center text-sm font-bold ${theme.textMuted}`}>แสดง 250 สแกนล่าสุดจากผลค้นหา กรุณาพิมพ์ค้นหาให้แคบลงถ้าต้องการรายการเก่า</div>}
                 </div>
               )}
             </div>
