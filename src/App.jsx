@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.51.15 Camera Accessory Helper';
-const APP_UPDATE_NOTE = 'Final QA & Stability Pass: เก็บความนิ่งหลังอัปเดตใหญ่ ปรับมือถือ/ดีไซน์เล็กน้อย เช็กปุ่ม ฟอร์ม เอกสาร Backup และ QR โดยไม่แตะระบบกล้องหรือฐานข้อมูล';
+const APP_VERSION = 'v22.51.16 One-Click Full Backup';
+const APP_UPDATE_NOTE = 'One-Click Full Backup: เพิ่มปุ่มสำรองข้อมูลครบชุดไฟล์เดียว รวมข้อมูลระบบ ประวัติ เอกสาร และรูปหลักฐานแบบเปิดดูได้ทันที โดยไม่แตะ QR/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -8225,6 +8225,143 @@ S.N.: ${item.sn || '-'}
 </html>`;
   };
 
+  const buildOneFileFullBackupHTML = (collected) => {
+    const tag = getBackupFileTag();
+    const inventory = buildInventoryCsvRows();
+    const history = buildHistoryCsvRows();
+    const projects = buildProjectsCsvRows();
+    const proofIndex = buildProofIndexCsvRows(collected.proofDocs);
+    const proofGroups = getProofGroupsForBackup(collected.proofDocs);
+    const fullJson = JSON.stringify(collected.payload, null, 2);
+    const safeJsonForScript = fullJson.replace(/</g, '\\u003c');
+
+    const makeTable = (title, headers, rows, limit = 250) => {
+      const visibleRows = rows.slice(0, limit);
+      const headHtml = headers.map(h => `<th>${backupHtmlEscape(h)}</th>`).join('');
+      const rowHtml = visibleRows.map(row => `<tr>${row.map(cell => `<td>${backupHtmlEscape(cell)}</td>`).join('')}</tr>`).join('');
+      const moreText = rows.length > limit ? `<p class="tableNote">แสดง ${limit.toLocaleString('th-TH')} จาก ${rows.length.toLocaleString('th-TH')} รายการ — ข้อมูลเต็มอยู่ใน JSON ที่ฝังในไฟล์นี้</p>` : '';
+      return `
+        <section class="section">
+          <div class="sectionHead"><h2>${backupHtmlEscape(title)}</h2><span>${rows.length.toLocaleString('th-TH')} รายการ</span></div>
+          <div class="tableWrap"><table><thead><tr>${headHtml}</tr></thead><tbody>${rowHtml || `<tr><td colspan="${headers.length}">ไม่มีข้อมูล</td></tr>`}</tbody></table></div>
+          ${moreText}
+        </section>`;
+    };
+
+    const proofCards = proofGroups.map(group => {
+      const proof = group.proof || {};
+      const imgSrc = proof.dataUrl || proof.url || proof.thumbUrl || '';
+      const type = backupHtmlEscape(proof.contextLabel || 'หลักฐานรูปภาพ');
+      const created = backupHtmlEscape(proof.timestampText || formatBackupDateTime(proof.createdAt));
+      const by = backupHtmlEscape(proof.createdBy || '-');
+      const note = backupHtmlEscape(proof.note || '');
+      const itemsHtml = group.entries.map(entry => `
+        <li>
+          <b>${backupHtmlEscape(entry.itemName)}</b>
+          <span>S.N. ${backupHtmlEscape(entry.sn)} • ${backupHtmlEscape(entry.location)} • ${backupHtmlEscape(entry.project)}</span>
+        </li>
+      `).join('');
+      return `
+        <article class="proofCard">
+          <div class="photoBox">${imgSrc ? `<img src="${imgSrc}" alt="${type}">` : `<div class="noPhoto">ไม่มีรูปในไฟล์สำรอง</div>`}</div>
+          <div class="proofMeta">
+            <span class="badge">${type}</span>
+            <h3>${backupHtmlEscape(group.entries[0]?.subject || proof.originalName || 'หลักฐาน')}</h3>
+            <p><b>เวลา:</b> ${created}</p>
+            <p><b>ผู้บันทึก:</b> ${by}</p>
+            ${note ? `<p><b>หมายเหตุ:</b> ${note}</p>` : ''}
+            <p><b>เกี่ยวข้องกับ:</b> ${group.entries.length.toLocaleString('th-TH')} อุปกรณ์/รายการ</p>
+            <ul>${itemsHtml}</ul>
+          </div>
+        </article>`;
+    }).join('');
+
+    return `<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MDEC One-File Full Backup ${backupHtmlEscape(tag)}</title>
+<style>
+  :root { --bg:#eef2f7; --card:#ffffff; --text:#0f172a; --muted:#64748b; --line:#e2e8f0; --blue:#2563eb; --green:#059669; --amber:#d97706; --rose:#e11d48; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: Arial, Tahoma, sans-serif; background:var(--bg); color:var(--text); }
+  header { background:linear-gradient(135deg,#0f172a,#1d4ed8); color:white; padding:24px; box-shadow:0 12px 30px rgba(15,23,42,.20); }
+  header h1 { margin:0; font-size:26px; font-weight:900; letter-spacing:-.02em; }
+  header p { margin:8px 0 0; color:#dbeafe; font-weight:700; line-height:1.5; }
+  .wrap { max-width:1280px; margin:0 auto; padding:18px; }
+  .notice { background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; border-radius:22px; padding:16px; font-weight:800; margin-bottom:16px; }
+  .summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:16px; }
+  .tile { background:var(--card); border:1px solid var(--line); border-radius:22px; padding:16px; box-shadow:0 8px 24px rgba(15,23,42,.06); }
+  .tile b { display:block; font-size:30px; color:var(--blue); line-height:1; margin-bottom:8px; }
+  .tile span { color:var(--muted); font-weight:900; }
+  .section { background:var(--card); border:1px solid var(--line); border-radius:24px; box-shadow:0 8px 24px rgba(15,23,42,.06); margin-bottom:16px; overflow:hidden; }
+  .sectionHead { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px; border-bottom:1px solid var(--line); background:#f8fafc; }
+  .sectionHead h2 { margin:0; font-size:18px; font-weight:900; }
+  .sectionHead span { background:#dbeafe; color:#1d4ed8; border-radius:999px; padding:5px 10px; font-size:12px; font-weight:900; white-space:nowrap; }
+  .tableWrap { overflow:auto; max-height:520px; }
+  table { width:100%; border-collapse:collapse; min-width:900px; }
+  th,td { border-bottom:1px solid #e2e8f0; padding:10px 12px; text-align:left; vertical-align:top; font-size:13px; white-space:nowrap; }
+  th { position:sticky; top:0; z-index:1; background:#f1f5f9; color:#334155; font-weight:900; }
+  td { color:#334155; font-weight:700; }
+  .tableNote { color:var(--muted); font-size:12px; font-weight:800; padding:0 18px 16px; margin:0; }
+  .proofGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; padding:16px; }
+  .proofCard { background:#fff; border:1px solid var(--line); border-radius:22px; overflow:hidden; box-shadow:0 8px 20px rgba(15,23,42,.06); }
+  .photoBox { height:280px; background:#e2e8f0; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .photoBox img { max-width:100%; max-height:100%; object-fit:contain; display:block; }
+  .noPhoto { color:var(--muted); font-weight:900; }
+  .proofMeta { padding:14px; }
+  .badge { display:inline-block; background:#fce7f3; color:#be185d; border:1px solid #fbcfe8; border-radius:999px; padding:5px 10px; font-size:12px; font-weight:900; }
+  .proofMeta h3 { margin:10px 0; font-size:17px; line-height:1.25; }
+  .proofMeta p { margin:6px 0; color:#334155; font-size:13px; font-weight:700; }
+  .proofMeta ul { margin:10px 0 0; padding-left:18px; }
+  .proofMeta li { margin:6px 0; font-weight:800; }
+  .proofMeta li span { display:block; color:var(--muted); font-size:12px; margin-top:2px; }
+  .jsonBox { padding:16px; }
+  .jsonBox summary { cursor:pointer; font-weight:900; color:#1d4ed8; }
+  pre { white-space:pre-wrap; word-break:break-word; background:#020617; color:#dbeafe; border-radius:18px; padding:16px; max-height:520px; overflow:auto; font-size:12px; }
+  footer { text-align:center; color:var(--muted); font-weight:800; padding:20px; }
+  @media print { header { box-shadow:none; } .section,.proofCard,.tile { break-inside:avoid; box-shadow:none; } .tableWrap, pre { max-height:none; overflow:visible; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>MDEC Stock — Full Backup ไฟล์เดียว</h1>
+  <p>ส่งออกเมื่อ ${backupHtmlEscape(new Date().toLocaleString('th-TH', { hour12:false }))} • รวมข้อมูลข้อความ ประวัติ เอกสาร ตั้งค่า Log และรูปหลักฐานที่เก็บในระบบไว้ในไฟล์นี้</p>
+</header>
+<div class="wrap">
+  <div class="notice">ไฟล์นี้ใช้เปิดดูข้อมูลและรูปหลักฐานย้อนหลังได้ทันทีใน Chrome/Edge และมี JSON เต็มฝังอยู่ด้านล่างสำหรับเก็บเป็นหลักฐานสำรอง หากต้องการกู้คืนเข้าระบบ แนะนำให้ใช้ปุ่ม JSON กู้คืนระบบแยกต่างหากด้วยเพื่อความสะดวก</div>
+  <section class="summary">
+    <div class="tile"><b>${(collected.payload.summary.totalItems || 0).toLocaleString('th-TH')}</b><span>อุปกรณ์ทั้งหมด</span></div>
+    <div class="tile"><b>${(collected.payload.summary.totalHistoryEntries || 0).toLocaleString('th-TH')}</b><span>ประวัติทั้งหมด</span></div>
+    <div class="tile"><b>${(collected.proofDocs.length || 0).toLocaleString('th-TH')}</b><span>รูปหลักฐาน</span></div>
+    <div class="tile"><b>${(collected.payload.summary.totalBorrowDocuments || 0).toLocaleString('th-TH')}</b><span>เอกสารยืม/ออกงาน</span></div>
+    <div class="tile"><b>${backupHtmlEscape(backupFormatBytes(collected.proofBytes || 0))}</b><span>ขนาดรูปโดยประมาณ</span></div>
+  </section>
+  ${makeTable('รายการอุปกรณ์ / Inventory', inventory.headers, inventory.rows, 400)}
+  ${makeTable('ประวัติยืม-คืน-ออกงาน / History', history.headers, history.rows, 400)}
+  ${makeTable('โครงการจัดซื้อ / Projects', projects.headers, projects.rows, 250)}
+  ${makeTable('ดัชนีรูปหลักฐาน / Proof Index', proofIndex.headers, proofIndex.rows, 400)}
+  <section class="section">
+    <div class="sectionHead"><h2>คลังรูปหลักฐาน / Proof Gallery</h2><span>${proofGroups.length.toLocaleString('th-TH')} รูป</span></div>
+    <div class="proofGrid">${proofCards || '<div class="proofCard"><div class="proofMeta"><h3>ยังไม่มีรูปหลักฐาน</h3></div></div>'}</div>
+  </section>
+  <section class="section">
+    <div class="sectionHead"><h2>JSON เต็มสำหรับสำรองข้อมูล</h2><span>Full Raw Data</span></div>
+    <div class="jsonBox">
+      <details>
+        <summary>คลิกเพื่อแสดง JSON เต็มที่ฝังอยู่ในไฟล์นี้</summary>
+        <pre id="backup-json-text">${backupHtmlEscape(fullJson)}</pre>
+      </details>
+      <script id="mdec-full-backup-json" type="application/json">${safeJsonForScript}</script>
+    </div>
+  </section>
+</div>
+<footer>MDEC-Stock One-File Backup • ${backupHtmlEscape(APP_VERSION)} • ${backupHtmlEscape(tag)}</footer>
+</body>
+</html>`;
+  };
+
   const buildOneStopBackupFiles = async () => {
     const collected = await collectFullBackupPayload();
     const tag = getBackupFileTag();
@@ -8325,24 +8462,21 @@ S.N.: ${item.sn || '-'}
   const exportOneStopBackupSet = async () => {
     try {
       setIsBusy(true);
-      const backup = await buildOneStopBackupFiles();
-      backupDownloadMultipleFiles(backup.files);
-      await logAction('สำรองข้อมูลครบชุด', `JSON + CSV + HTML Gallery / ${backup.payload.summary.totalItems} อุปกรณ์ / ${backup.proofDocs.length} รูป`, 'ดาวน์โหลดชุดสำรองข้อมูลประจำปีแบบครบชุด');
-      await saveBackupTimestamp('oneStop');
+      const collected = await collectFullBackupPayload();
+      const tag = getBackupFileTag();
+      const archiveHtml = buildOneFileFullBackupHTML(collected);
+      backupDownloadTextFile(`MDEC_FULL_BACKUP_ONE_FILE_${tag}.html`, archiveHtml, 'text/html;charset=utf-8;');
+      await logAction('สำรองข้อมูลครบชุดไฟล์เดียว', `HTML ไฟล์เดียว / ${collected.payload.summary.totalItems} อุปกรณ์ / ${collected.historyCount} ประวัติ / ${collected.proofDocs.length} รูป`, 'ดาวน์โหลดไฟล์ HTML เดียวที่รวมข้อมูลข้อความ ประวัติ เอกสาร ตั้งค่า Log และรูปหลักฐานที่เก็บในระบบ');
+      await saveBackupTimestamp('oneFileFull');
       alert(
-        '✅ เริ่มดาวน์โหลดชุดสำรองข้อมูลครบแล้ว\\n\\n' +
-        'ควรมีไฟล์ทั้งหมด 6 ไฟล์:\\n' +
-        '1) JSON สำหรับกู้คืนระบบ\\n' +
-        '2) Inventory CSV สำหรับ Google Sheets\\n' +
-        '3) History CSV สำหรับ Google Sheets\\n' +
-        '4) Projects CSV สำหรับ Google Sheets\\n' +
-        '5) Proof Index CSV สำหรับ Google Sheets\\n' +
-        '6) Proof Gallery HTML สำหรับเปิดดูรูปหลักฐาน\\n\\n' +
-        'ถ้าเบราว์เซอร์ถาม ให้กดอนุญาตดาวน์โหลดหลายไฟล์'
+        '✅ สำรองข้อมูลครบชุดแบบไฟล์เดียวเรียบร้อยแล้ว\n\n' +
+        'ไฟล์ที่ได้เป็น HTML เปิดดูใน Chrome/Edge ได้ทันที\n' +
+        'ภายในไฟล์มีข้อมูลอุปกรณ์ ประวัติ เอกสาร ตั้งค่า Log และรูปหลักฐานที่เก็บในระบบ\n\n' +
+        'หมายเหตุ: ถ้าจะกู้คืนระบบจริง แนะนำดาวน์โหลด JSON กู้คืนระบบเก็บไว้อีกไฟล์ด้วยเพื่อความสะดวก'
       );
     } catch (error) {
       console.error(error);
-      alert('❌ สำรองข้อมูลครบชุดไม่สำเร็จ: ' + error.message);
+      alert('❌ สำรองข้อมูลครบชุดไฟล์เดียวไม่สำเร็จ: ' + error.message);
     } finally {
       setIsBusy(false);
     }
@@ -12320,7 +12454,7 @@ S.N.: ${item.sn || '-'}
                   </div>
 
                   <div className={`p-6 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
-                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-6 h-6 text-blue-500"/> ศูนย์สำรองข้อมูลครบชุด</h4>
+                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-6 h-6 text-blue-500"/> ศูนย์สำรองข้อมูลครบชุดไฟล์เดียว</h4>
                     <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>ปุ่มหลักจะดาวน์โหลดครบทั้ง JSON สำหรับกู้คืน, CSV สำหรับ Google Sheets และ HTML สำหรับเปิดดูรูปหลักฐาน</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <button type="button" onClick={() => setShowBackupCenterModal(true)} className="sm:col-span-2 w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
@@ -12468,7 +12602,7 @@ S.N.: ${item.sn || '-'}
                   <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black mb-3 ${isDarkMode ? 'bg-blue-900/35 text-blue-300 border border-blue-800' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
                     <Icons.Database className="w-4 h-4" /> Backup / ปิดปี
                   </div>
-                  <h3 className={`text-xl sm:text-2xl font-black leading-tight ${theme.textTitle}`}>ศูนย์สำรองข้อมูลครบชุด</h3>
+                  <h3 className={`text-xl sm:text-2xl font-black leading-tight ${theme.textTitle}`}>ศูนย์สำรองข้อมูลครบชุดไฟล์เดียว</h3>
                   <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดาวน์โหลดไฟล์สำรองก่อนปิดปี ล้างประวัติ หรือกู้คืนข้อมูลจาก JSON</p>
                 </div>
                 <button type="button" onClick={() => setShowBackupCenterModal(false)} className={`w-10 h-10 rounded-2xl flex items-center justify-center border shrink-0 ${theme.btnCancel}`} title="ปิด">
@@ -12480,7 +12614,7 @@ S.N.: ${item.sn || '-'}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-4">
               <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-amber-950/25 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
                 <div className="font-black mb-1">แนะนำสำหรับปิดปี</div>
-                <div className="text-sm font-bold opacity-90">ให้กด “สำรองข้อมูลครบชุด” ก่อนเป็นอันดับแรก แล้วค่อยตรวจ Checklist ปิดปี หรือกดล้างประวัติเมื่อมั่นใจแล้วเท่านั้น</div>
+                <div className="text-sm font-bold opacity-90">ให้กด “สำรองข้อมูลครบชุดไฟล์เดียว” ก่อนเป็นอันดับแรก เพื่อเก็บทั้งข้อความและรูปหลักฐานไว้ในไฟล์เดียว แล้วค่อยตรวจ Checklist ปิดปี</div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_.9fr] gap-4">
@@ -12488,13 +12622,13 @@ S.N.: ${item.sn || '-'}
                   <div className="flex items-start justify-between gap-3 mb-4">
                     <div>
                       <h4 className={`text-lg sm:text-xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-5 h-5 text-blue-500"/> สำรองข้อมูล</h4>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดาวน์โหลดไฟล์เก็บไว้ในคอม/Google Drive</p>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>กดปุ่มเดียวเพื่อดาวน์โหลดไฟล์ HTML ที่รวมข้อมูลทั้งหมดและรูปหลักฐานไว้ในไฟล์เดียว</p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{items.length.toLocaleString('th-TH')} อุปกรณ์</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button type="button" onClick={exportOneStopBackupSet} disabled={isBusy} className={`sm:col-span-2 w-full py-4 rounded-2xl font-black shadow-md flex items-center justify-center gap-2 ${isBusy ? 'bg-slate-400 text-white cursor-wait' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}>
-                      <Icons.Database className="w-5 h-5"/> {isBusy ? 'กำลังเตรียมไฟล์...' : 'สำรองข้อมูลครบชุด'}
+                      <Icons.Database className="w-5 h-5"/> {isBusy ? 'กำลังเตรียมไฟล์...' : 'สำรองข้อมูลครบชุดไฟล์เดียว'}
                     </button>
                     <button type="button" onClick={exportFullBackupJSON} className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black flex items-center justify-center gap-2">
                       <Icons.Download className="w-5 h-5"/> JSON กู้คืนระบบ
@@ -12524,7 +12658,7 @@ S.N.: ${item.sn || '-'}
 
                   <div className={`p-5 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-rose-950/20 border-rose-900' : 'bg-rose-50 border-rose-200'}`}>
                     <h4 className={`text-lg font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Trash className="w-5 h-5 text-rose-500"/> ปิดปี / ล้างประวัติ</h4>
-                    <p className={`text-sm font-bold mb-4 ${theme.textMuted}`}>ล้างเฉพาะประวัติยืม-คืน ไม่ลบอุปกรณ์หลัก แต่ควรสำรองข้อมูลครบชุดก่อนทุกครั้ง</p>
+                    <p className={`text-sm font-bold mb-4 ${theme.textMuted}`}>ล้างเฉพาะประวัติยืม-คืน ไม่ลบอุปกรณ์หลัก แต่ควรสำรองข้อมูลครบชุดไฟล์เดียวก่อนทุกครั้ง</p>
                     <div className="grid grid-cols-1 gap-2">
                       <button type="button" onClick={() => setShowAnnualCleanupModal(true)} className={`w-full py-3 rounded-2xl font-black border flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
                         <Icons.CheckCircle className="w-5 h-5"/> เปิด Checklist ปิดปี
