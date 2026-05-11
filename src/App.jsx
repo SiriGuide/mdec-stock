@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.51.23 Equipment Metadata & Theme Polish';
+const APP_VERSION = 'v22.51.24 Full UI Consistency & Premium Polish';
 const APP_UPDATE_NOTE = 'Equipment Metadata & Theme Polish: เพิ่มช่องข้อมูลเฉพาะกล้อง/เลนส์/แบต/เมม และเก็บธีมฟอร์ม/การ์ดให้เป็นภาษาเดียวกัน โดยไม่แตะ QR/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -2377,7 +2377,7 @@ function FactoryPolishStyle({ isDarkMode }) {
           }
         }
 
-      /* v22.51.22 Document History & Central Proof Polish — UI รอบนอกเท่านั้น ไม่แตะระบบกล้อง/permission/qrbox */
+      /* v22.51.24 Full UI Consistency & Premium Polish — UI รอบนอกเท่านั้น ไม่แตะระบบกล้อง/permission/qrbox */
       .factory-stock-polish .qr-safe-zone {
         background: #fff !important;
         border-radius: 14px !important;
@@ -3910,7 +3910,7 @@ function MainApp() {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('โหลดโลโก้ไม่สำเร็จ'));
+    img.onerror = () => reject(new Error('ดาวน์โหลดโลโก้ไม่สำเร็จ'));
     img.src = src;
   });
 
@@ -4126,7 +4126,7 @@ function MainApp() {
       return await uploadProofFiles(selected, contextLabel);
     } catch (error) {
       console.error('Proof upload failed:', error);
-      const proceed = window.confirm(`อัปโหลดหลักฐานรูปภาพไม่สำเร็จ\n${error.message || ''}\n\nต้องการบันทึกรายการต่อโดยไม่มีรูปหลักฐานหรือไม่?`);
+      const proceed = window.confirm(`อัปดาวน์โหลดหลักฐานรูปภาพไม่สำเร็จ\n${error.message || ''}\n\nต้องการบันทึกรายการต่อโดยไม่มีรูปหลักฐานหรือไม่?`);
       if (!proceed) throw error;
       return [];
     }
@@ -4182,7 +4182,7 @@ function MainApp() {
       if (!proofId) return alert('ไม่พบรหัสรูปหลักฐาน');
       const win = window.open('', '_blank');
       if (win) {
-        win.document.write('<html><head><title>กำลังโหลดหลักฐาน...</title></head><body style="font-family:sans-serif;padding:24px;">กำลังโหลดรูปหลักฐาน...</body></html>');
+        win.document.write('<html><head><title>กำลังดาวน์โหลดหลักฐาน...</title></head><body style="font-family:sans-serif;padding:24px;">กำลังดาวน์โหลดรูปหลักฐาน...</body></html>');
       }
       const snap = await getDoc(getProofDoc(proofId));
       if (!snap.exists()) {
@@ -4525,7 +4525,7 @@ function MainApp() {
           bundles: data.bundles || [],
           storageBoxes: data.storageBoxes || [],
           prepLists: data.prepLists || [],
-          // ✅ สำคัญ: ต้องโหลด projects/projectMeta กลับเข้ามาด้วย ไม่งั้นสร้างโครงการแล้ว onSnapshot จะเขียน state ทับจนเหมือนโครงการหาย
+          // ✅ สำคัญ: ต้องดาวน์โหลด projects/projectMeta กลับเข้ามาด้วย ไม่งั้นสร้างโครงการแล้ว onSnapshot จะเขียน state ทับจนเหมือนโครงการหาย
           projects: Array.isArray(data.projects) ? data.projects : ['อื่นๆ'],
           projectMeta: data.projectMeta || {},
           backupMeta: data.backupMeta || {},
@@ -8015,9 +8015,9 @@ S.N.: ${item.sn || '-'}
   const exportHistoryCSV = async () => {
     const { headers, rows } = buildHistoryCsvRows();
     backupDownloadCSV('MDEC_Borrow_Return_History_' + getBackupFileTag() + '.csv', headers, rows);
-    await logAction('สำรองประวัติยืม-คืน CSV', 'ส่งออก ' + rows.length + ' รายการประวัติ', 'ดาวน์โหลดประวัติการยืม-คืนพร้อมวันเวลาเป็นไฟล์ CSV');
+    await logAction('สำรองประวัติยืม-คืน CSV', 'ส่งออก ' + rows.length + ' รายการประวัติ', 'ดาวน์ดาวน์โหลดประวัติการยืม-คืนพร้อมวันเวลาเป็นไฟล์ CSV');
     await saveBackupTimestamp('historyCsv');
-    if (rows.length === 0) alert('ℹ️ ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติยืม-คืนในระบบ');
+    if (rows.length === 0) alert('ℹ️ ดาวน์ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติยืม-คืนในระบบ');
   };
 
   const exportItemHistoryCSV = (item) => {
@@ -8028,8 +8028,8 @@ S.N.: ${item.sn || '-'}
       return [item.name || '-', item.sn || '-', index + 1, historyType, formatBackupDateTime(h.date), h.operatorName || h.performedBy || '-', h.borrower || h.eventName || '-', h.staffOut || '-', h.staffIn || '-', h.expectedReturn || '-', h.note || '-', Array.isArray(h.proofs) ? h.proofs.length : 0, Array.isArray(h.proofs) ? h.proofs.map(p => p.storageType === 'firestore-doc-base64' ? (p.originalName || p.id || 'รูปในระบบ') : (p.url || p.id || '-')).join(' | ') : '-' ];
     });
     backupDownloadCSV(`MDEC_Item_History_${(item.sn || item.id || 'item').replace(/[^a-zA-Z0-9_-]/g, '_')}_${getBackupFileTag()}.csv`, headers, rows);
-    if (rows.length === 0) pushToast('ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติของอุปกรณ์นี้', 'warning');
-    else pushToast('ดาวน์โหลดประวัติอุปกรณ์นี้เรียบร้อยแล้ว', 'success');
+    if (rows.length === 0) pushToast('ดาวน์ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติของอุปกรณ์นี้', 'warning');
+    else pushToast('ดาวน์ดาวน์โหลดประวัติอุปกรณ์นี้เรียบร้อยแล้ว', 'success');
   };
 
   const collectFullBackupPayload = async () => {
@@ -8507,7 +8507,7 @@ S.N.: ${item.sn || '-'}
     try {
       const collected = await collectFullBackupPayload();
       backupDownloadTextFile('MDEC_Full_Backup_' + getBackupFileTag() + '.json', JSON.stringify(collected.payload, null, 2), 'application/json;charset=utf-8;');
-      await logAction('สำรองข้อมูลทั้งหมด JSON', 'สำรอง ' + items.length + ' อุปกรณ์ / ' + collected.historyCount + ' ประวัติ', 'ดาวน์โหลดข้อมูลทั้งระบบเป็นไฟล์ JSON รวมประวัติยืม-คืนและรูปหลักฐาน');
+      await logAction('สำรองข้อมูลทั้งหมด JSON', 'สำรอง ' + items.length + ' อุปกรณ์ / ' + collected.historyCount + ' ประวัติ', 'ดาวน์ดาวน์โหลดข้อมูลทั้งระบบเป็นไฟล์ JSON รวมประวัติยืม-คืนและรูปหลักฐาน');
       await saveBackupTimestamp('fullJson');
       alert('✅ สำรองข้อมูลทั้งหมดเรียบร้อยแล้ว! ไฟล์ JSON นี้ใช้สำหรับกู้คืนระบบ และมีรูปหลักฐานที่เก็บในระบบรวมอยู่ด้วย');
     } catch (error) {
@@ -8520,9 +8520,9 @@ S.N.: ${item.sn || '-'}
     try {
       const collected = await collectFullBackupPayload();
       backupDownloadTextFile('MDEC_PROOF_GALLERY_' + getBackupFileTag() + '.html', buildProofGalleryHTML(collected.proofDocs), 'text/html;charset=utf-8;');
-      await logAction('สำรองรูปหลักฐาน HTML', 'ส่งออกคลังรูปหลักฐาน ' + collected.proofDocs.length + ' รูป', 'ดาวน์โหลดไฟล์ HTML สำหรับเปิดดูรูปหลักฐานได้ทันที');
+      await logAction('สำรองรูปหลักฐาน HTML', 'ส่งออกคลังรูปหลักฐาน ' + collected.proofDocs.length + ' รูป', 'ดาวน์ดาวน์โหลดไฟล์ HTML สำหรับเปิดดูรูปหลักฐานได้ทันที');
       await saveBackupTimestamp('proofHtml');
-      pushToast('ดาวน์โหลดคลังรูปหลักฐาน HTML แล้ว', 'success');
+      pushToast('ดาวน์ดาวน์โหลดคลังรูปหลักฐาน HTML แล้ว', 'success');
     } catch (error) {
       console.error(error);
       alert('❌ สำรองรูปหลักฐาน HTML ไม่สำเร็จ: ' + error.message);
@@ -8543,7 +8543,7 @@ S.N.: ${item.sn || '-'}
       setTimeout(() => backupDownloadCSV(`MDEC_PROOF_INDEX_FOR_GOOGLE_SHEETS_${tag}.csv`, proofIndex.headers, proofIndex.rows), 1350);
       await logAction('สำรอง CSV สำหรับ Google Sheets', 'ส่งออกตาราง Inventory/History/Projects/Proof Index', 'CSV เปิดใน Google Sheets ได้ แต่ไม่ได้เก็บรูปจริง');
       await saveBackupTimestamp('sheetsCsv');
-      pushToast('ดาวน์โหลดชุด CSV สำหรับ Google Sheets แล้ว', 'success');
+      pushToast('ดาวน์ดาวน์โหลดชุด CSV สำหรับ Google Sheets แล้ว', 'success');
     } catch (error) {
       console.error(error);
       alert('❌ สำรอง CSV ไม่สำเร็จ: ' + error.message);
@@ -8557,13 +8557,13 @@ S.N.: ${item.sn || '-'}
       const tag = getBackupFileTag();
       const archiveHtml = buildOneFileFullBackupHTML(collected);
       backupDownloadTextFile(`MDEC_FULL_BACKUP_ONE_FILE_${tag}.html`, archiveHtml, 'text/html;charset=utf-8;');
-      await logAction('สำรองข้อมูลครบชุดไฟล์เดียว', `HTML ไฟล์เดียว / ${collected.payload.summary.totalItems} อุปกรณ์ / ${collected.historyCount} ประวัติ / ${collected.proofDocs.length} รูป`, 'ดาวน์โหลดไฟล์ HTML เดียวที่รวมข้อมูลข้อความ ประวัติ เอกสาร ตั้งค่า Log และรูปหลักฐานที่เก็บในระบบ');
+      await logAction('สำรองข้อมูลครบชุดไฟล์เดียว', `HTML ไฟล์เดียว / ${collected.payload.summary.totalItems} อุปกรณ์ / ${collected.historyCount} ประวัติ / ${collected.proofDocs.length} รูป`, 'ดาวน์ดาวน์โหลดไฟล์ HTML เดียวที่รวมข้อมูลข้อความ ประวัติ เอกสาร ตั้งค่า Log และรูปหลักฐานที่เก็บในระบบ');
       await saveBackupTimestamp('oneFileFull');
       alert(
         '✅ สำรองข้อมูลครบชุดแบบไฟล์เดียวเรียบร้อยแล้ว\n\n' +
         'ไฟล์ที่ได้เป็น HTML เปิดดูใน Chrome/Edge ได้ทันที\n' +
         'ภายในไฟล์มีข้อมูลอุปกรณ์ ประวัติ เอกสาร ตั้งค่า Log และรูปหลักฐานที่เก็บในระบบ\n\n' +
-        'หมายเหตุ: ถ้าจะกู้คืนระบบจริง แนะนำดาวน์โหลด JSON กู้คืนระบบเก็บไว้อีกไฟล์ด้วยเพื่อความสะดวก'
+        'หมายเหตุ: ถ้าจะกู้คืนระบบจริง แนะนำดาวน์ดาวน์โหลด JSON กู้คืนระบบเก็บไว้อีกไฟล์ด้วยเพื่อความสะดวก'
       );
     } catch (error) {
       console.error(error);
@@ -10164,7 +10164,7 @@ S.N.: ${item.sn || '-'}
         <div className={`w-full mb-6 p-5 rounded-2xl shadow-sm border flex items-center gap-4 ${theme.cardBg}`}>
           <div className="w-10 h-10 rounded-full bg-blue-600/10 text-blue-500 flex items-center justify-center animate-pulse"><Icons.Package className="w-6 h-6" /></div>
           <div>
-            <div className={`font-black text-lg ${theme.textTitle}`}>กำลังโหลดข้อมูลสต๊อก...</div>
+            <div className={`font-black text-lg ${theme.textTitle}`}>กำลังดาวน์โหลดข้อมูลสต๊อก...</div>
             <div className={`text-sm font-bold ${theme.textMuted}`}>ระบบกำลังดึงรายการอุปกรณ์และการตั้งค่าจาก Firebase</div>
           </div>
         </div>
@@ -11705,7 +11705,7 @@ S.N.: ${item.sn || '-'}
                           </div>
                           {!isScannerLoaded ? (
                             <div className="min-h-[320px] flex items-center justify-center">
-                              <div className="animate-pulse text-amber-500 font-black">กำลังโหลดระบบกล้อง...</div>
+                              <div className="animate-pulse text-amber-500 font-black">กำลังดาวน์โหลดระบบกล้อง...</div>
                             </div>
                           ) : (
                             <div className={`rounded-[1.8rem] overflow-hidden border-4 ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-slate-100'}`}>
@@ -12508,13 +12508,13 @@ S.N.: ${item.sn || '-'}
                 <div className="p-6 space-y-6">
                   <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
                     <div className="font-black text-base mb-1">คำแนะนำก่อนจัดการฐานข้อมูล</div>
-                    <div className="text-sm font-bold">แนะนำให้ใช้ “ศูนย์สำรองข้อมูล” เพื่อดาวน์โหลด JSON สำหรับกู้คืน, CSV สำหรับเปิดใน Google Sheets และ HTML สำหรับดูรูปหลักฐาน ก่อนล้างประวัติทุกครั้ง</div>
+                    <div className="text-sm font-bold">แนะนำให้ใช้ “ศูนย์สำรองข้อมูล” เพื่อดาวน์ดาวน์โหลด JSON สำหรับกู้คืน, CSV สำหรับเปิดใน Google Sheets และ HTML สำหรับดูรูปหลักฐาน ก่อนล้างประวัติทุกครั้ง</div>
                   </div>
                   <div className={`p-6 rounded-2xl border shadow-sm ${databaseStorageEstimate.cardTone}`}>
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
                       <div>
                         <h4 className={`text-xl font-black mb-1 flex items-center gap-2 ${theme.textTitle}`}><Icons.Signal className={`w-6 h-6 ${databaseStorageEstimate.textTone}`}/> สถานะพื้นที่ฐานข้อมูล</h4>
-                        <p className={`text-sm font-bold ${theme.textMuted}`}>ประเมินจากข้อมูลที่เว็บโหลดอยู่ เทียบกับพื้นที่ 1GB</p>
+                        <p className={`text-sm font-bold ${theme.textMuted}`}>ประเมินจากข้อมูลที่เว็บดาวน์โหลดอยู่ เทียบกับพื้นที่ 1GB</p>
                       </div>
                       <span className={`px-3 py-1.5 rounded-xl text-sm font-black border ${databaseStorageEstimate.cardTone} ${databaseStorageEstimate.textTone}`}>
                         {databaseStorageEstimate.label}
@@ -12556,7 +12556,7 @@ S.N.: ${item.sn || '-'}
 
                   <div className={`p-6 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
                     <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-6 h-6 text-blue-500"/> ศูนย์สำรองข้อมูล / ปิดปี</h4>
-                    <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>ปุ่มหลักจะดาวน์โหลดครบทั้ง JSON สำหรับกู้คืน, CSV สำหรับ Google Sheets และ HTML สำหรับเปิดดูรูปหลักฐาน</p>
+                    <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>ปุ่มหลักจะดาวน์ดาวน์โหลดครบทั้ง JSON สำหรับกู้คืน, CSV สำหรับ Google Sheets และ HTML สำหรับเปิดดูรูปหลักฐาน</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <button type="button" onClick={() => setShowBackupCenterModal(true)} className="sm:col-span-2 w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
                         <Icons.Database className="w-5 h-5"/> เปิดศูนย์สำรองข้อมูล
@@ -12607,15 +12607,15 @@ S.N.: ${item.sn || '-'}
                   </div>
                   <div className={`p-6 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                     <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-6 h-6 text-emerald-500"/> สำรองข้อมูล (Export)</h4>
-                    <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>ดาวน์โหลดข้อมูลสต๊อกทั้งหมดออกมาเป็นไฟล์ Excel (.csv) เพื่อเก็บสำรองไว้ในคอมพิวเตอร์ของคุณ</p>
+                    <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>ดาวน์ดาวน์โหลดข้อมูลสต๊อกทั้งหมดออกมาเป็นไฟล์ Excel (.csv) เพื่อเก็บสำรองไว้ในคอมพิวเตอร์ของคุณ</p>
                     <button onClick={exportToCSV} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-lg">
-                      <Icons.Download className="w-5 h-5"/> โหลดไฟล์ CSV
+                      <Icons.Download className="w-5 h-5"/> ดาวน์โหลดไฟล์ CSV
                     </button>
                   </div>
 
                   <div className={`p-6 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                     <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Upload className="w-6 h-6 text-blue-500"/> นำเข้าข้อมูล (Import)</h4>
-                    <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>อัปโหลดไฟล์ .csv เพื่อเพิ่มอุปกรณ์ทีละหลายๆ ชิ้น (Format: ชื่อ, S.N., หมวดหมู่, ฝ่าย, สถานที่, จำนวน)</p>
+                    <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>อัปดาวน์โหลดไฟล์ .csv เพื่อเพิ่มอุปกรณ์ทีละหลายๆ ชิ้น (Format: ชื่อ, S.N., หมวดหมู่, ฝ่าย, สถานที่, จำนวน)</p>
                     <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleImportCSV} />
                     <button onClick={() => fileInputRef.current?.click()} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-lg">
                       <Icons.Upload className="w-5 h-5"/> เลือกไฟล์ CSV
@@ -12751,7 +12751,7 @@ S.N.: ${item.sn || '-'}
                       <Icons.Database className="w-5 h-5"/> {isBusy ? 'กำลังสร้างไฟล์สำรอง...' : 'สำรองครบชุดไฟล์เดียว' }
                     </button>
                     <div className={`sm:col-span-2 text-xs font-bold -mt-1 ${theme.textMuted}`}>
-                      ไฟล์นี้รวมข้อมูลและรูปหลักฐานไว้ด้วยกัน หากรูปเยอะให้รอจน browser ดาวน์โหลดเสร็จ ห้ามปิดแท็บระหว่างสร้างไฟล์
+                      ไฟล์นี้รวมข้อมูลและรูปหลักฐานไว้ด้วยกัน หากรูปเยอะให้รอจน browser ดาวน์ดาวน์โหลดเสร็จ ห้ามปิดแท็บระหว่างสร้างไฟล์
                     </div>
                     <button type="button" onClick={exportFullBackupJSON} className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black flex items-center justify-center gap-2">
                       <Icons.Download className="w-5 h-5"/> JSON กู้คืนระบบ
@@ -12771,7 +12771,7 @@ S.N.: ${item.sn || '-'}
                     <div className={`space-y-1.5 text-sm font-bold ${theme.textMuted}`}>
                       <div>1) กด “สำรองครบชุดไฟล์เดียว” เพื่อเก็บข้อมูล+รูปไว้ดูย้อนหลัง</div>
                       <div>2) กด “JSON กู้คืนระบบ” เก็บแยกอีกไฟล์เพื่อใช้ restore ได้สะดวก</div>
-                      <div>3) ถ้าจะทำงานใน Excel/Sheets ให้โหลด CSV เพิ่ม</div>
+                      <div>3) ถ้าจะทำงานใน Excel/Sheets ให้ดาวน์โหลด CSV เพิ่ม</div>
                     </div>
                   </div>
                   <div className={`mt-4 text-xs font-bold ${theme.textMuted}`}>สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่มีข้อมูลการสำรองในระบบ'}</div>
@@ -12819,7 +12819,7 @@ S.N.: ${item.sn || '-'}
               <button type="button" onClick={() => setShowAnnualCleanupModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-3">
-              {['ดาวน์โหลดไฟล์สำรองครบชุดไฟล์เดียวแล้ว', 'เปิดไฟล์สำรองครบชุดแล้วเห็นข้อมูลและรูปหลักฐาน', 'ดาวน์โหลด JSON สำหรับกู้คืนระบบแล้ว', 'ดาวน์โหลด CSV สำหรับ Google Sheets แล้ว', 'ตรวจว่าของที่ยืม/ออกงานถูกคืนครบแล้ว', 'เก็บไฟล์สำรองไว้ใน Drive/External Drive แล้ว', 'พร้อมล้างประวัติยืม-คืนรายปี'].map(item => (
+              {['ดาวน์ดาวน์โหลดไฟล์สำรองครบชุดไฟล์เดียวแล้ว', 'เปิดไฟล์สำรองครบชุดแล้วเห็นข้อมูลและรูปหลักฐาน', 'ดาวน์ดาวน์โหลด JSON สำหรับกู้คืนระบบแล้ว', 'ดาวน์ดาวน์โหลด CSV สำหรับ Google Sheets แล้ว', 'ตรวจว่าของที่ยืม/ออกงานถูกคืนครบแล้ว', 'เก็บไฟล์สำรองไว้ใน Drive/External Drive แล้ว', 'พร้อมล้างประวัติยืม-คืนรายปี'].map(item => (
                 <label key={item} className={`flex items-center gap-3 p-3 rounded-xl border ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                   <input type="checkbox" className="w-5 h-5 accent-emerald-600" />
                   <span className={`font-bold ${theme.textMain}`}>{item}</span>
@@ -13789,7 +13789,7 @@ S.N.: ${item.sn || '-'}
             {renderProofUploader('รูปหลักฐานย้อนหลัง', proofAttachFiles, setProofAttachFiles, 'blue')}
             <div className="flex gap-3 mt-6">
               <button type="button" onClick={() => { setProofAttachTarget(null); setProofAttachFiles([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={() => runWithBusy(handleAttachProofsToHistory)} disabled={isBusy || proofAttachFiles.length === 0} className={`flex-1 py-4 font-bold rounded-xl text-lg text-white ${isBusy || proofAttachFiles.length === 0 ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}>{isBusy ? 'กำลังอัปโหลด...' : 'บันทึกหลักฐาน'}</button>
+              <button type="button" onClick={() => runWithBusy(handleAttachProofsToHistory)} disabled={isBusy || proofAttachFiles.length === 0} className={`flex-1 py-4 font-bold rounded-xl text-lg text-white ${isBusy || proofAttachFiles.length === 0 ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}>{isBusy ? 'กำลังอัปดาวน์โหลด...' : 'บันทึกหลักฐาน'}</button>
             </div>
           </div>
         </div>
@@ -14729,12 +14729,12 @@ S.N.: ${item.sn || '-'}
                   <div>• รูปหลักฐานไม่บังคับ ยกเว้นผู้ดูแลตั้งค่าให้บังคับ</div>
                   <div>• ระบบจะย่อรูปและใส่โลโก้ศูนย์บนรูปเท่านั้น</div>
                   <div>• รูปเดียวที่ผูกหลายอุปกรณ์จะแสดงรวมเป็น 1 ใบใน Gallery</div>
-                  <div>• เจ้าหน้าที่สามารถแก้ชื่อ/หมายเหตุ แทนที่รูปใหม่ หรือลบรูปหลักฐานที่อัปโหลดผิดได้</div>
+                  <div>• เจ้าหน้าที่สามารถแก้ชื่อ/หมายเหตุ แทนที่รูปใหม่ หรือลบรูปหลักฐานที่อัปดาวน์โหลดผิดได้</div>
                 </div>
               </div>
 
               <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200'}`}>
-                <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>✅ วิธีลบรูปทดลองที่อัปโหลดผิด</h4>
+                <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>✅ วิธีลบรูปทดลองที่อัปดาวน์โหลดผิด</h4>
                 <ol className={`list-decimal pl-5 space-y-2 text-sm font-bold ${theme.textMuted}`}>
                   <li>เปิดเมนู <b>เพิ่มเติม → หลักฐานรูปภาพ</b></li>
                   <li>ค้นหารูปจากชื่ออุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน</li>
