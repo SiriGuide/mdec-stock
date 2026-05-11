@@ -34,8 +34,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.51.22 Document History & Central Proof Polish';
-const APP_UPDATE_NOTE = 'Backup Center Final Polish: เก็บหน้าสำรองข้อมูลให้ชัดและปลอดภัยขึ้น เพิ่มสรุปขนาดโดยประมาณ คำเตือนไฟล์ใหญ่ Checklist และลำดับการสำรอง โดยไม่แตะ QR/กล้อง/ฐานข้อมูล';
+const APP_VERSION = 'v22.51.23 Equipment Metadata & Theme Polish';
+const APP_UPDATE_NOTE = 'Equipment Metadata & Theme Polish: เพิ่มช่องข้อมูลเฉพาะกล้อง/เลนส์/แบต/เมม และเก็บธีมฟอร์ม/การ์ดให้เป็นภาษาเดียวกัน โดยไม่แตะ QR/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -2355,6 +2355,28 @@ function FactoryPolishStyle({ isDarkMode }) {
       }
 
 
+      
+        /* v22.51.23 Theme Consistency: คุมธีมฟอร์ม/การ์ด/ชิปให้ไปทางเดียวกัน */
+        .factory-stock-polish .equipment-metadata-section input,
+        .factory-stock-polish .equipment-metadata-section select,
+        .factory-stock-polish .equipment-metadata-section textarea {
+          border-radius: 14px !important;
+        }
+        .factory-stock-polish .equipment-metadata-section label,
+        .factory-stock-polish .item-form-section label {
+          letter-spacing: -0.01em;
+        }
+        .factory-stock-polish :is(.item-form-section,.asset-profile-modal,.document-archive-card,.tracking-list-card,.proof-center-card) {
+          transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+        }
+        @media (max-width: 640px) {
+          .factory-stock-polish .equipment-metadata-section input,
+          .factory-stock-polish .equipment-metadata-section select,
+          .factory-stock-polish .equipment-metadata-section textarea {
+            font-size: 16px !important;
+          }
+        }
+
       /* v22.51.22 Document History & Central Proof Polish — UI รอบนอกเท่านั้น ไม่แตะระบบกล้อง/permission/qrbox */
       .factory-stock-polish .qr-safe-zone {
         background: #fff !important;
@@ -3459,7 +3481,7 @@ function MainApp() {
   const [firebaseError, setFirebaseError] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '' });
+  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '', equipmentType: '', shortCode: '', ownerDepartment: '', mount: '', compatibleWith: '', batteryModel: '', memoryCapacity: '', memoryType: '', memorySpeed: '' });
   
   const [itemToDelete, setItemToDelete] = useState(null); 
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
@@ -5974,6 +5996,16 @@ S.N.: ${item.sn || '-'}
     item?.name,
     item?.sn,
     item?.category,
+    item?.equipmentType,
+    item?.subType,
+    item?.shortCode,
+    item?.ownerDepartment,
+    item?.mount,
+    item?.compatibleWith,
+    item?.batteryModel,
+    item?.memoryCapacity,
+    item?.memoryType,
+    item?.memorySpeed,
     item?.department,
     item?.location,
     item?.storageBoxName,
@@ -5992,6 +6024,8 @@ S.N.: ${item.sn || '-'}
   };
 
   const inferCameraHelperMount = (item) => {
+    const explicitMount = String(item?.mount || item?.lensMount || item?.cameraMount || '').trim();
+    if (explicitMount) return explicitMount;
     const text = getItemSearchText(item);
     if (/sony|\bfe\b|sony e|e-mount|e mount|a7|a7iii|a7 iv|a7iv|a7c|a6400/.test(text)) return 'Sony E';
     if (/canon rf|\brf\b/.test(text)) return 'Canon RF';
@@ -6001,13 +6035,13 @@ S.N.: ${item.sn || '-'}
     return '';
   };
 
-  const getCameraHelperDepartment = (item) => item?.department || item?.owner || 'ไม่ระบุฝ่าย';
+  const getCameraHelperDepartment = (item) => item?.ownerDepartment || item?.responsibleTeam || item?.department || item?.owner || 'ไม่ระบุฝ่าย';
 
   const getMemoryCardSpec = (item) => {
     const text = String([item?.name, item?.category, item?.sn, item?.internalNote].filter(Boolean).join(' '));
-    const capacity = (text.match(/(\d+\s?(?:GB|TB))/i) || [])[1]?.replace(/\s+/g, '') || '';
-    const speed = (text.match(/(V\d{2,3}|UHS-?II|UHS-?I|U\d|Class\s?\d+|\d+\s?MB\/s)/i) || [])[1] || '';
-    const type = /cfexpress/i.test(text) ? 'CFexpress' : /sdxc/i.test(text) ? 'SDXC' : /microsd|micro sd/i.test(text) ? 'microSD' : /sd/i.test(text) ? 'SD' : '';
+    const capacity = String(item?.memoryCapacity || item?.capacity || item?.storageCapacity || '').trim() || ((text.match(/(\d+\s?(?:GB|TB))/i) || [])[1]?.replace(/\s+/g, '') || '');
+    const speed = String(item?.memorySpeed || item?.cardSpeed || item?.speedClass || '').trim() || ((text.match(/(V\d{2,3}|UHS-?II|UHS-?I|U\d|Class\s?\d+|\d+\s?MB\/s)/i) || [])[1] || '');
+    const type = String(item?.memoryType || item?.cardType || '').trim() || (/cfexpress/i.test(text) ? 'CFexpress' : /sdxc/i.test(text) ? 'SDXC' : /microsd|micro sd/i.test(text) ? 'microSD' : /sd/i.test(text) ? 'SD' : '');
     return [capacity, type, speed].filter(Boolean).join(' • ');
   };
 
@@ -7304,7 +7338,16 @@ S.N.: ${item.sn || '-'}
       internalNote: '',
       project: '',
       newProject: '',
-      assetStatus: 'active'
+      assetStatus: 'active',
+      equipmentType: '',
+      shortCode: '',
+      ownerDepartment: '',
+      mount: '',
+      compatibleWith: '',
+      batteryModel: '',
+      memoryCapacity: '',
+      memoryType: '',
+      memorySpeed: ''
     });
     setShowForm(true);
   };
@@ -7609,7 +7652,7 @@ S.N.: ${item.sn || '-'}
 
   const openItemEditor = (item) => {
     if (!item) return;
-    setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newProject: '', newOwner: item.owner || '', isPersonalItem: !!item.owner, assetStatus: item.assetStatus || 'active' });
+    setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newProject: '', newOwner: item.owner || '', isPersonalItem: !!item.owner, assetStatus: item.assetStatus || 'active', equipmentType: item.equipmentType || item.subType || item.type || '', shortCode: item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || '', ownerDepartment: item.ownerDepartment || item.ownerTeam || item.mainOwnerTeam || item.responsibleTeam || '', mount: item.mount || item.lensMount || item.cameraMount || '', compatibleWith: item.compatibleWith || item.useWith || item.supportedDevices || '', batteryModel: item.batteryModel || item.batteryType || item.batteryCode || '', memoryCapacity: item.memoryCapacity || item.capacity || item.storageCapacity || '', memoryType: item.memoryType || item.cardType || '', memorySpeed: item.memorySpeed || item.cardSpeed || item.speedClass || '' });
     setShowForm(true);
   };
 
@@ -13461,11 +13504,12 @@ S.N.: ${item.sn || '-'}
           const found = keys.map(k => detailItem?.[k]).find(v => v !== undefined && v !== null && String(v).trim() !== '');
           return found === undefined || found === null || String(found).trim() === '' ? '-' : String(found);
         };
-        const itemText = `${detailItem.name || ''} ${detailItem.category || ''} ${detailItem.type || ''} ${detailItem.subType || ''}`.toLowerCase();
-        const isMemoryCard = /เมม|memory|sd card|sdxc|cfexpress|card/.test(itemText);
-        const isBattery = /แบต|battery|np-fz|fz100|charger/.test(itemText);
-        const isCamera = /กล้อง|camera|a7|body|cam/.test(itemText);
-        const isLens = /เลนส์|lens|mm|f\d|f\//.test(itemText);
+        const itemText = `${detailItem.name || ''} ${detailItem.category || ''} ${detailItem.equipmentType || ''} ${detailItem.type || ''} ${detailItem.subType || ''}`.toLowerCase();
+        const explicitEquipmentType = String(detailItem.equipmentType || detailItem.subType || detailItem.type || '').toLowerCase();
+        const isMemoryCard = /เมม|memory|sd card|sdxc|cfexpress|card/.test(itemText) || /memory|เมม|card/.test(explicitEquipmentType);
+        const isBattery = /แบต|battery|np-fz|fz100|charger/.test(itemText) || /battery|แบต/.test(explicitEquipmentType);
+        const isCamera = /กล้อง|camera|a7|body|cam/.test(itemText) || /camera|กล้อง/.test(explicitEquipmentType);
+        const isLens = /เลนส์|lens|mm|f\d|f\//.test(itemText) || /lens|เลนส์/.test(explicitEquipmentType);
         const typeBadge = isMemoryCard ? 'เมมโมรี่การ์ด' : isBattery ? 'แบตเตอรี่' : isCamera ? 'กล้อง' : isLens ? 'เลนส์' : (detailItem.category || 'อุปกรณ์');
         const primaryInfoCards = [
           ['ฝ่าย', detailDept.label || detailItem.department || '-'],
@@ -13479,7 +13523,7 @@ S.N.: ${item.sn || '-'}
         ];
         const specificInfoCards = [
           ['ประเภทอุปกรณ์', typeBadge],
-          ['ฝ่ายดูแลหลัก', textOf('ownerTeam', 'mainOwnerTeam', 'responsibleTeam', 'ownerDepartment', 'owner')],
+          ['ฝ่ายดูแลหลัก', textOf('ownerDepartment', 'ownerTeam', 'mainOwnerTeam', 'responsibleTeam', 'owner')],
           ['ระบบเมาท์', textOf('mount', 'lensMount', 'cameraMount')],
           ['ใช้ร่วมกับ', textOf('compatibleWith', 'useWith', 'supportedDevices')],
           ['ความจุ', textOf('capacity', 'memoryCapacity', 'storageCapacity')],
@@ -13819,8 +13863,75 @@ S.N.: ${item.sn || '-'}
                 </div>
               </section>
 
+              <section className={`item-form-section equipment-metadata-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-sky-950/20 border-sky-800' : 'bg-sky-50 border-sky-200'}`}>
+                <div className={`font-black text-lg mb-2 flex items-center gap-2 ${theme.textTitle}`}>2. ข้อมูลเฉพาะอุปกรณ์</div>
+                <p className={`text-xs sm:text-sm font-bold mb-4 ${theme.textMuted}`}>ใช้ช่วยตัวช่วยกล้อง/เลนส์/แบต/เมม และทำให้รายละเอียดอุปกรณ์อ่านง่ายขึ้น ไม่ใช่การสร้างเซ็ตถาวร</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>ประเภทอุปกรณ์ย่อย</label>
+                    <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.equipmentType || ''} onChange={e => setFormData({...formData, equipmentType: e.target.value})}>
+                      <option value="">-- ไม่ระบุ / ทั่วไป --</option>
+                      <option value="camera">กล้อง</option>
+                      <option value="lens">เลนส์</option>
+                      <option value="battery">แบตเตอรี่</option>
+                      <option value="memory">เมมโมรี่การ์ด</option>
+                      <option value="accessory">อุปกรณ์เสริม</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>รหัสสั้นบนตัวของ</label>
+                    <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border uppercase ${theme.input}`} placeholder="เช่น PH-B01, OB-M02" value={formData.shortCode || ''} onChange={e => setFormData({...formData, shortCode: e.target.value.toUpperCase()})} />
+                  </div>
+                  <div>
+                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>ฝ่ายดูแลหลัก</label>
+                    <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.ownerDepartment || ''} onChange={e => setFormData({...formData, ownerDepartment: e.target.value})}>
+                      <option value="">-- ใช้ฝ่ายเดียวกับข้อมูลหลัก --</option>
+                      <option value="ภาพนิ่ง">ภาพนิ่ง</option>
+                      <option value="วิดีโอ">วิดีโอ</option>
+                      <option value="OB-Live">OB-Live</option>
+                      <option value="ส่วนกลาง">ส่วนกลาง</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>ใช้ร่วมกับ / หมายเหตุความเข้ากันได้</label>
+                    <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น Sony A7 III, A7 IV" value={formData.compatibleWith || ''} onChange={e => setFormData({...formData, compatibleWith: e.target.value})} />
+                  </div>
+                  {(formData.equipmentType === 'camera' || formData.equipmentType === 'lens') && (
+                    <div className="sm:col-span-2">
+                      <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>ระบบเมาท์</label>
+                      <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น Sony E, Canon RF, Canon EF, Nikon Z" value={formData.mount || ''} onChange={e => setFormData({...formData, mount: e.target.value})} />
+                    </div>
+                  )}
+                  {formData.equipmentType === 'battery' && (
+                    <div className="sm:col-span-2">
+                      <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>รุ่นแบตเตอรี่</label>
+                      <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น NP-FZ100, NP-FW50, V-Mount" value={formData.batteryModel || ''} onChange={e => setFormData({...formData, batteryModel: e.target.value})} />
+                    </div>
+                  )}
+                  {formData.equipmentType === 'memory' && (
+                    <>
+                      <div>
+                        <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>ความจุเมม</label>
+                        <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น 64GB, 128GB, 256GB" value={formData.memoryCapacity || ''} onChange={e => setFormData({...formData, memoryCapacity: e.target.value})} />
+                      </div>
+                      <div>
+                        <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>ประเภทการ์ด</label>
+                        <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น SDXC, CFexpress Type A" value={formData.memoryType || ''} onChange={e => setFormData({...formData, memoryType: e.target.value})} />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>ความเร็ว / Class</label>
+                        <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น V30, V60, V90, 800MB/s" value={formData.memorySpeed || ''} onChange={e => setFormData({...formData, memorySpeed: e.target.value})} />
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className={`mt-4 p-3 rounded-2xl border text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950/70 border-slate-800 text-slate-300' : 'bg-white/80 border-sky-200 text-slate-600'}`}>
+                  ทิป: แบต/เมมที่ติด QR ไม่ได้ ให้ติดรหัสสั้นบนตัวของ และติด QR ที่กล่อง/ซองเก็บแทน
+                </div>
+              </section>
+
               <section className={`item-form-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
-                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>2. ที่เก็บ / โครงการ / พัสดุ</div>
+                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>3. ที่เก็บ / โครงการ / พัสดุ</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
                     <SmartOptionInput
@@ -13869,7 +13980,7 @@ S.N.: ${item.sn || '-'}
               </section>
 
               <section className={`item-form-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
-                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>3. รายละเอียดเพิ่มเติม</div>
+                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>4. รายละเอียดเพิ่มเติม</div>
                 <div className="space-y-4">
                   <div className={`p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                     <label className={`flex items-center gap-3 cursor-pointer ${theme.textTitle}`}>
