@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.51.21 Real Device QA & Workflow Cleanup';
+const APP_VERSION = 'v22.51.22 Document History & Central Proof Polish';
 const APP_UPDATE_NOTE = 'Backup Center Final Polish: เก็บหน้าสำรองข้อมูลให้ชัดและปลอดภัยขึ้น เพิ่มสรุปขนาดโดยประมาณ คำเตือนไฟล์ใหญ่ Checklist และลำดับการสำรอง โดยไม่แตะ QR/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -2355,7 +2355,7 @@ function FactoryPolishStyle({ isDarkMode }) {
       }
 
 
-      /* v22.51.20 QR Visual Polish v2 — UI รอบนอกเท่านั้น ไม่แตะระบบกล้อง/permission/qrbox */
+      /* v22.51.22 Document History & Central Proof Polish — UI รอบนอกเท่านั้น ไม่แตะระบบกล้อง/permission/qrbox */
       .factory-stock-polish .qr-safe-zone {
         background: #fff !important;
         border-radius: 14px !important;
@@ -3531,7 +3531,7 @@ function MainApp() {
   const [isBusy, setIsBusy] = useState(false);
   const [toasts, setToasts] = useState([]);
 
-  // 🧭 Final Operations Pack: ปฏิทิน / ตรวจนับ / แจ้งซ่อม / ศูนย์ติดตาม / จอทีวี
+  // 🧭 Final Operations Pack: ปฏิทิน / ตรวจนับ / แจ้งซ่อม / ติดตามการคืน / จอทีวี
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [showStockCountModal, setShowStockCountModal] = useState(false);
   const [stockCountFoundIds, setStockCountFoundIds] = useState([]);
@@ -4912,12 +4912,16 @@ function MainApp() {
       if (!matchFilter) return false;
       if (!q) return true;
       const itemText = (doc.items || []).map(i => `${i.name || ''} ${i.sn || ''} ${i.category || ''} ${i.location || ''}`).join(' ');
-      return String(doc.ref || '').toLowerCase().includes(q) ||
+      const dateText = `${doc.date || ''} ${doc.createdAt || ''} ${doc.updatedAt || ''}`;
+      const titleText = `${doc.title || ''} ${doc.ref || ''} ${doc.statusLabel || ''}`;
+      return titleText.toLowerCase().includes(q) ||
              String(doc.borrower || '').toLowerCase().includes(q) ||
              String(doc.staffOut || '').toLowerCase().includes(q) ||
+             String(doc.operatorName || '').toLowerCase().includes(q) ||
              String(doc.note || '').toLowerCase().includes(q) ||
+             dateText.toLowerCase().includes(q) ||
              itemText.toLowerCase().includes(q);
-    });
+    }).sort((a, b) => new Date(b.date || b.createdAt || b.updatedAt || 0) - new Date(a.date || a.createdAt || a.updatedAt || 0));
   }, [borrowDocuments, borrowDocSearch, borrowDocFilter]);
 
   const clearAllFilters = () => {
@@ -6715,7 +6719,7 @@ S.N.: ${item.sn || '-'}
     const keyword = String(historyCenterSearch || '').toLowerCase().trim();
     return allHistoryCenterEntries.filter((entry) => {
       const matchType = historyCenterFilter === 'all' || entry.historyType === historyCenterFilter || (historyCenterFilter === 'repair' && String(entry.historyType || '').includes('repair'));
-      const haystack = `${entry.itemName} ${entry.sn} ${entry.category} ${entry.location} ${entry.subject} ${entry.staff} ${entry.note} ${entry.typeLabel}`.toLowerCase();
+      const haystack = `${entry.itemName} ${entry.sn} ${entry.category} ${entry.location} ${entry.subject} ${entry.staff} ${entry.note} ${entry.typeLabel} ${entry.date} ${entry.status} ${entry.department || ''}`.toLowerCase();
       return matchType && (!keyword || haystack.includes(keyword));
     });
   }, [allHistoryCenterEntries, historyCenterFilter, historyCenterSearch]);
@@ -6765,7 +6769,7 @@ S.N.: ${item.sn || '-'}
     const keyword = String(proofCenterSearch || '').toLowerCase().trim();
     return allProofEntries.filter((entry) => {
       const matchType = proofCenterFilter === 'all' || entry.historyType === proofCenterFilter;
-      const haystack = `${entry.itemName} ${entry.sn} ${entry.subject} ${entry.staff} ${entry.storageBoxName} ${entry.note}`.toLowerCase();
+      const haystack = `${entry.itemName} ${entry.sn} ${entry.department} ${entry.category} ${entry.location} ${entry.subject} ${entry.staff} ${entry.storageBoxName} ${entry.note} ${entry.typeLabel} ${entry.date} ${entry.proof?.contextLabel || ''} ${entry.proof?.note || ''}`.toLowerCase();
       return matchType && (!keyword || haystack.includes(keyword));
     });
   }, [allProofEntries, proofCenterFilter, proofCenterSearch]);
@@ -10046,7 +10050,7 @@ S.N.: ${item.sn || '-'}
             </button>
           )}
           <button type="button" onClick={() => openTrackingCenter('today')} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-            <Icons.History className="w-5 h-5" /> ศูนย์ติดตาม
+            <Icons.History className="w-5 h-5" /> ติดตามการคืน
           </button>
           <button type="button" onClick={() => { setHistoryCenterFilter('all'); setHistoryCenterSearch(''); setShowHistoryCenterModal(true); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
             <Icons.ClipboardList className="w-5 h-5" /> ประวัติส่วนกลาง
@@ -10153,7 +10157,7 @@ S.N.: ${item.sn || '-'}
               <button type="button" onClick={() => openWorkspace('borrowReturn')} className="factory-ghost-btn" title="ยืม-คืนอุปกรณ์">
                 <Icons.UserPlus className="w-5 h-5" /><span className="hidden-mobile">ยืม-คืน</span>
               </button>
-              <button type="button" onClick={() => openTrackingCenter('today')} className="factory-ghost-btn" title="ศูนย์ติดตาม">
+              <button type="button" onClick={() => openTrackingCenter('today')} className="factory-ghost-btn" title="ติดตามการคืน">
                 <Icons.History className="w-5 h-5" /><span>ติดตาม</span>
               </button>
               {canAddEditItems && (
@@ -10257,7 +10261,7 @@ S.N.: ${item.sn || '-'}
                 <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.History className="w-5 h-5 text-sky-500" /> Daily Operations</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <button type="button" onClick={() => { setShowMoreMenu(false); openTrackingCenter('today'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                    <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ศูนย์ติดตามงาน</div>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ติดตามการคืนงาน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ติดตามยืม/คืน/ออกงาน</p>
                   </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); openSelectionScanner({ camera: true }); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
@@ -10415,7 +10419,7 @@ S.N.: ${item.sn || '-'}
           )}
           <button type="button" onClick={() => openTrackingCenter('today')} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
             <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mb-3"><Icons.CheckCircle className="w-5 h-5" /></div>
-            <div className="font-black text-lg">ศูนย์ติดตามงาน</div>
+            <div className="font-black text-lg">ติดตามการคืนงาน</div>
             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>วันนี้ / ต้องจัดการ</div>
           </button>
           <button type="button" onClick={() => setShowQuickReturnModal(true)} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-purple-950/40 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-100 text-purple-700'}`}>
@@ -11774,13 +11778,13 @@ S.N.: ${item.sn || '-'}
       })()}
 
 
-      {/* 🧭 Modal ศูนย์ติดตามงาน: วันนี้ / ต้องจัดการ / ปฏิทิน */}
+      {/* 🧭 Modal ติดตามการคืนงาน: วันนี้ / ต้องจัดการ / ปฏิทิน */}
       {showTrackingCenterModal && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[9990] mdec-history-proof-safe`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden ${theme.cardBg}`}>
             <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 border-b ${theme.divide}`}>
               <div>
-                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.History className="w-6 h-6 text-sky-500" /> ศูนย์ติดตามงาน</h3>
+                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.History className="w-6 h-6 text-sky-500" /> ติดตามการคืนงาน</h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวม “วันนี้ / ของที่ต้องจัดการ / ปฏิทิน” ไว้หน้าเดียว ลดการกดหลายเมนู</p>
               </div>
               <button onClick={() => setShowTrackingCenterModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
@@ -13999,7 +14003,7 @@ S.N.: ${item.sn || '-'}
 
       {/* 🔎 Modal ตรวจนับสต๊อก */}
       {showStockCountModal && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[9990] mdec-history-proof-safe`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden ${theme.cardBg}`}>
             <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
               <div>
@@ -14110,7 +14114,7 @@ S.N.: ${item.sn || '-'}
 
       {/* 🗂️ Legacy Project Manager (เก็บไว้เผื่อปุ่มเก่าเรียก แต่เมนูหลักใช้หน้าโครงการจัดซื้อแบบเต็มหน้าแล้ว) */}
       {showProjectsModal && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990] mdec-history-proof-safe`}>
           <div className={`rounded-[2rem] shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900 border-slate-700 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
             <div className={`p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
               <div>
@@ -14324,18 +14328,38 @@ S.N.: ${item.sn || '-'}
 
       {/* 🧾 ศูนย์ประวัติส่วนกลาง */}
       {showHistoryCenterModal && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[9996]`}>
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[9996] mdec-history-proof-safe`}>
           <div className={`rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[92vh] overflow-hidden flex flex-col border ${theme.cardBg}`}>
             <div className={`p-4 sm:p-6 border-b flex items-start justify-between gap-4 ${theme.divide}`}>
               <div className="min-w-0">
                 <h3 className={`text-2xl sm:text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-lg">🧾</span> ประวัติส่วนกลาง</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นหายืม / ออกงาน / รับคืน / ซ่อม จากทุกอุปกรณ์ ไม่ต้องจำว่าเปิดจากชิ้นไหน</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นทุกประวัติจากทุกอุปกรณ์ พร้อมเพิ่มหลักฐานย้อนหลังได้จากจุดเดียว</p>
               </div>
               <button type="button" onClick={() => setShowHistoryCenterModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
 
+            <div className={`px-4 sm:px-6 py-4 border-b grid grid-cols-2 md:grid-cols-5 gap-2 ${theme.divide}`}>
+              {[
+                ['ทั้งหมด', allHistoryCenterEntries.length, 'bg-slate-500/10 text-slate-600 border-slate-500/20'],
+                ['ยืม', allHistoryCenterEntries.filter(e => e.historyType === 'borrow').length, 'bg-purple-500/10 text-purple-600 border-purple-500/20'],
+                ['ออกงาน', allHistoryCenterEntries.filter(e => e.historyType === 'event').length, 'bg-orange-500/10 text-orange-600 border-orange-500/20'],
+                ['รับคืน', allHistoryCenterEntries.filter(e => e.historyType === 'return').length, 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'],
+                ['มีหลักฐาน', allHistoryCenterEntries.filter(e => e.proofCount > 0).length, 'bg-pink-500/10 text-pink-600 border-pink-500/20']
+              ].map(([label, value, tone]) => (
+                <button key={label} type="button" onClick={() => {
+                  if (label === 'ยืม') setHistoryCenterFilter('borrow');
+                  else if (label === 'ออกงาน') setHistoryCenterFilter('event');
+                  else if (label === 'รับคืน') setHistoryCenterFilter('return');
+                  else setHistoryCenterFilter('all');
+                }} className={`rounded-2xl border p-3 text-left ${tone}`}>
+                  <div className="text-[11px] font-black opacity-80">{label}</div>
+                  <div className="text-xl font-black">{Number(value || 0).toLocaleString('th-TH')}</div>
+                </button>
+              ))}
+            </div>
+
             <div className={`p-4 border-b grid grid-cols-1 lg:grid-cols-[1fr_220px_auto] gap-3 ${theme.divide}`}>
-              <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหา ชื่ออุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / ผู้รับคืน / หมายเหตุ" value={historyCenterSearch} onChange={e => setHistoryCenterSearch(e.target.value)} />
+              <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / ผู้รับคืน / วันที่ / หมายเหตุ" value={historyCenterSearch} onChange={e => setHistoryCenterSearch(e.target.value)} />
               <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={historyCenterFilter} onChange={e => setHistoryCenterFilter(e.target.value)}>
                 <option value="all">ทุกประเภท</option>
                 <option value="borrow">ยืม</option>
@@ -14376,20 +14400,20 @@ S.N.: ${item.sn || '-'}
                           </div>
                           <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 lg:w-48 shrink-0">
                             <button type="button" onClick={() => { setShowHistoryCenterModal(false); setShowHistory(entry.itemId); }} className={`px-3 py-2.5 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ดูรายละเอียด</button>
-                            <button type="button" onClick={() => { setShowHistoryCenterModal(false); setProofAttachTarget({ itemId: entry.itemId, historyIndex: entry.historyIndex }); setProofAttachFiles([]); }} className="px-3 py-2.5 rounded-xl text-sm font-black bg-pink-600 hover:bg-pink-500 text-white">เพิ่มหลักฐาน</button>
-                            {entry.proofCount > 0 && <button type="button" onClick={() => { setShowHistoryCenterModal(false); setProofCenterSearch(entry.sn || entry.itemName || ''); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setShowProofCenterModal(true); }} className="col-span-2 lg:col-span-1 px-3 py-2.5 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 text-white">ดูรูป</button>}
+                            <button type="button" onClick={() => { setShowHistoryCenterModal(false); setProofAttachTarget({ itemId: entry.itemId, historyIndex: entry.historyIndex }); setProofAttachFiles([]); }} className="px-3 py-2.5 rounded-xl text-sm font-black bg-pink-600 hover:bg-pink-500 text-white">เพิ่มหลักฐานย้อนหลัง</button>
+                            {entry.proofCount > 0 && <button type="button" onClick={() => { setShowHistoryCenterModal(false); setProofCenterSearch(entry.sn || entry.itemName || ''); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setShowProofCenterModal(true); }} className="col-span-2 lg:col-span-1 px-3 py-2.5 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 text-white">จัดการรูป</button>}
                           </div>
                         </div>
                       </div>
                     );
                   })}
-                  {filteredHistoryCenterEntries.length > 250 && <div className={`text-center text-sm font-bold ${theme.textMuted}`}>แสดง 250 สแกนล่าสุดจากผลค้นหา กรุณาพิมพ์ค้นหาให้แคบลงถ้าต้องการรายการเก่า</div>}
+                  {filteredHistoryCenterEntries.length > 250 && <div className={`text-center text-sm font-bold ${theme.textMuted}`}>แสดง 250 รายการล่าสุดจากผลค้นหา กรุณาพิมพ์ค้นหาให้แคบลงถ้าต้องการรายการเก่า</div>}
                 </div>
               )}
             </div>
 
             <div className={`p-4 border-t grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 ${theme.divide}`}>
-              <div className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>ใช้หน้านี้เมื่อต้องการเพิ่มหลักฐานย้อนหลัง แต่จำไม่ได้ว่าอยู่ในอุปกรณ์ชิ้นไหน</div>
+              <div className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>ใช้หน้านี้เมื่อต้องการค้นประวัติหรือเพิ่มหลักฐานย้อนหลัง โดยไม่ต้องจำว่าอยู่ในอุปกรณ์ชิ้นไหน</div>
               <button type="button" onClick={() => setShowHistoryCenterModal(false)} className={`px-6 py-3 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
             </div>
           </div>
@@ -14398,17 +14422,17 @@ S.N.: ${item.sn || '-'}
 
       {/* ศูนย์หลักฐานรูปภาพทั้งหมด */}
       {showProofCenterModal && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990] mdec-history-proof-safe`}>
           <div className={`rounded-[2rem] shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900 border-slate-700 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
             <div className={`p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
               <div>
                 <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-lg">📷</span> ศูนย์หลักฐานรูปภาพ</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แสดงแบบรวมรูปซ้ำ และโชว์ภาพเต็มโดยไม่ครอป แม้รูปจะเป็นแนวตั้งหรือแนวนอน</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมรูปหลักฐานจากทุกอุปกรณ์ ใช้ดู แก้ไข แทนที่ หรือลบรูปหลักฐานจากจุดเดียว</p>
               </div>
               <button type="button" onClick={() => setShowProofCenterModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className={`p-4 border-b grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
-              <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหา ชื่ออุปกรณ์ / S.N. / ผู้ยืม / งาน / กล่อง" value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} />
+              <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / งาน / กล่อง / หมายเหตุ" value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} />
               <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={proofCenterFilter} onChange={e => setProofCenterFilter(e.target.value)}>
                 <option value="all">หลักฐานทั้งหมด</option>
                 <option value="borrow">การยืม</option>
@@ -14417,11 +14441,26 @@ S.N.: ${item.sn || '-'}
                 <option value="repair">แจ้งซ่อม</option>
               </select>
               <div className={`p-3 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>
-                พบ {proofDuplicateStats.realImages.toLocaleString('th-TH')} รูปจริง • เชื่อมโยง {proofDuplicateStats.itemLinkCount.toLocaleString('th-TH')} อุปกรณ์/รายการ
+                รูปจริง {proofDuplicateStats.realImages.toLocaleString('th-TH')} • จุดเชื่อมโยง {proofDuplicateStats.itemLinkCount.toLocaleString('th-TH')} รายการ
               </div>
             </div>
+            <div className={`px-5 py-3 border-b grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
+              <div className={`p-3 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-pink-50 border-pink-200 text-pink-800'}`}>
+                <div className="font-black">ดูหลักฐานทั้งหมด</div>
+                <div className="text-xs mt-1">กดที่รูปเพื่อเปิดภาพเต็ม ไม่ครอปแนวตั้ง/แนวนอน</div>
+              </div>
+              <div className={`p-3 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                <div className="font-black">แก้ไข/แทนที่</div>
+                <div className="text-xs mt-1">ใช้เมื่อเลือกรูปผิด หรืออยากแก้ชื่อ/หมายเหตุของรูปหลักฐาน</div>
+              </div>
+              <div className={`p-3 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+                <div className="font-black">รับคืนแบบกลุ่ม</div>
+                <div className="text-xs mt-1">รูปเดียวที่ผูกหลายรายการจะถูกแสดงเป็นกลุ่มเดียว</div>
+              </div>
+            </div>
+
             <div className={`px-5 py-3 border-b text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-              จากข้อมูลเดิมมีการแสดงผล {proofDuplicateStats.linkCount.toLocaleString('th-TH')} จุดเชื่อมโยง ระบบรวมรูปซ้ำออกไป {proofDuplicateStats.duplicateLinks.toLocaleString('th-TH')} จุด • รูปตัวอย่างใช้โหมดภาพเต็ม ไม่ตัดหัว/ตัดขอบ
+              ระบบรวมรูปซ้ำให้อัตโนมัติ เพื่อไม่ให้รูปหลักฐานกลุ่มเดียวกันแสดงซ้ำหลายใบ • รูปตัวอย่างใช้โหมดภาพเต็ม ไม่ตัดหัว/ตัดขอบ
             </div>
             <div className="p-5 overflow-y-auto custom-scrollbar flex-1">
               {filteredProofGroups.length === 0 ? (
@@ -14472,8 +14511,8 @@ S.N.: ${item.sn || '-'}
                           </button>
                           {canUseOperationalTools && (
                             <div className="grid grid-cols-2 gap-2 mt-2">
-                              <button type="button" onClick={() => openProofEditModal(group)} className={`py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>แก้ไข/แทนที่</button>
-                              <button type="button" onClick={() => handleDeleteProofGroup(group)} className="py-2 rounded-xl border text-xs font-black bg-rose-600 text-white border-rose-600 hover:bg-rose-700">ลบรูปนี้</button>
+                              <button type="button" onClick={() => openProofEditModal(group)} className={`py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>แก้ไข / แทนที่</button>
+                              <button type="button" onClick={() => handleDeleteProofGroup(group)} className="py-2 rounded-xl border text-xs font-black bg-rose-600 text-white border-rose-600 hover:bg-rose-700">ลบหลักฐานนี้</button>
                             </div>
                           )}
                           {expanded && (
@@ -14563,7 +14602,7 @@ S.N.: ${item.sn || '-'}
                 {[
                   ['เริ่มDaily Operations', 'เปิด Daily Workflow เพื่อสแกน QR, เพิ่มอุปกรณ์, ดูของรอคืน และหลักฐานรูปภาพ'],
                   ['ยืม / ออกงาน', 'เลือกอุปกรณ์ → กดยืมหรือออกงาน → กรอกผู้รับผิดชอบ → แนบรูปหลักฐานถ้าต้องการ → บันทึก'],
-                  ['รับคืน', 'เปิดศูนย์ติดตามงานหรือรายละเอียดอุปกรณ์ → กดรับคืน → ตรวจสภาพ → แนบหลักฐานรับคืนได้']
+                  ['รับคืน', 'เปิดติดตามการคืนงานหรือรายละเอียดอุปกรณ์ → กดรับคืน → ตรวจสภาพ → แนบหลักฐานรับคืนได้']
                 ].map(([title, desc], idx) => (
                   <div key={title} className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black mb-3">{idx + 1}</div>
@@ -14606,7 +14645,7 @@ S.N.: ${item.sn || '-'}
               <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
                 <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>🧭 ชื่อเมนูหลักที่ใช้ในระบบ</h4>
                 <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-bold ${theme.textMuted}`}>
-                  <div><b>ศูนย์ติดตามงาน</b> = ดูของรอคืน ออกงานอยู่ วันนี้ และเลยกำหนด</div>
+                  <div><b>ติดตามการคืนงาน</b> = ดูของรอคืน ออกงานอยู่ วันนี้ และเลยกำหนด</div>
                   <div><b>ศูนย์หลักฐานรูปภาพ</b> = ดู แก้ไข แทนที่ หรือลบรูปหลักฐาน</div>
                   <div><b>จัดเก็บและจัดชุด</b> = กล่องเก็บของ เซ็ตอุปกรณ์ และรายการเตรียมของ</div>
                   <div><b>Documents & Labels</b> = QR ฉลากกล่อง ใบยืม และตั้งค่าโลโก้เอกสาร</div>
@@ -14712,13 +14751,13 @@ S.N.: ${item.sn || '-'}
 
       {/* เอกสารย้อนหลัง / Borrow Documents Archive */}
       {showBorrowDocsModal && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[9990] mdec-history-proof-safe`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
             <div className={`p-5 sm:p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
               <div className="min-w-0">
                 <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-500">Documents Archive</div>
                 <h3 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>เอกสารย้อนหลัง</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมใบยืมและใบนำอุปกรณ์ออกงานที่ระบบบันทึกไว้ สามารถค้นหา กรองสถานะ และพิมพ์ซ้ำได้</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมใบยืม ใบออกงาน และสถานะการคืน ค้นหาได้จากเลขเอกสาร ผู้ยืม ชื่องาน วันที่ และรายการอุปกรณ์</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button type="button" onClick={() => { setBorrowDocSearch(''); setBorrowDocFilter('all'); }} className={`px-4 py-3 rounded-2xl text-sm font-black border ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
@@ -14740,6 +14779,21 @@ S.N.: ${item.sn || '-'}
               ))}
             </div>
 
+            <div className={`px-5 sm:px-6 py-4 border-b grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
+              <button type="button" onClick={() => { setShowBorrowDocsModal(false); setShowHistoryCenterModal(true); }} className={`p-4 rounded-2xl border text-left font-black transition-all ${theme.btnSecondary}`}>
+                <div className={theme.textTitle}>ค้นประวัติส่วนกลาง</div>
+                <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ใช้เมื่อต้องหาจากทุกอุปกรณ์หรือจำชื่อชิ้นงานไม่ได้</div>
+              </button>
+              <button type="button" onClick={() => { setShowBorrowDocsModal(false); setProofCenterSearch(borrowDocSearch || ''); setProofCenterFilter('all'); setShowProofCenterModal(true); }} className={`p-4 rounded-2xl border text-left font-black transition-all ${theme.btnSecondary}`}>
+                <div className={theme.textTitle}>ศูนย์หลักฐานรูปภาพ</div>
+                <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ดู/แก้ไข/แทนที่รูปหลักฐานจากส่วนกลาง</div>
+              </button>
+              <div className={`p-4 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                <div className="font-black">คำแนะนำ</div>
+                <div className="text-xs mt-1">ถ้าต้องเพิ่มหลักฐานย้อนหลังและจำไม่ได้ว่าอยู่รายการไหน ให้เริ่มจาก “ประวัติส่วนกลาง”</div>
+              </div>
+            </div>
+
             <div className={`p-5 sm:p-6 border-b grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3 ${theme.divide}`}>
               <div className="relative">
                 <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.textMuted}`} />
@@ -14747,7 +14801,7 @@ S.N.: ${item.sn || '-'}
                   type="text"
                   value={borrowDocSearch}
                   onChange={(e) => setBorrowDocSearch(e.target.value)}
-                  placeholder="ค้นหาเลขที่เอกสาร / ผู้ยืม / เจ้าหน้าที่ / ชื่ออุปกรณ์ / S.N."
+                  placeholder="ค้นหาเลขเอกสาร / ผู้ยืม / ชื่องาน / วันที่ / อุปกรณ์ / S.N."
                   className={`w-full pl-12 pr-4 py-4 rounded-2xl border font-bold outline-none ${theme.input}`}
                 />
               </div>
@@ -14821,7 +14875,7 @@ S.N.: ${item.sn || '-'}
                             <Icons.Printer className="w-5 h-5" /> พิมพ์ซ้ำ
                           </button>
                           <button type="button" onClick={() => { setTrackingTab('today'); setShowTrackingCenterModal(true); }} className={`px-4 py-3 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
-                            ศูนย์ติดตาม
+                            ติดตามการคืน
                           </button>
                         </div>
                       </div>
