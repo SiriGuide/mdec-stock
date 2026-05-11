@@ -1,3 +1,4 @@
+// v22.52.0 Complete Workflow UX Polish Pack - UI/UX safe polish, no QR/camera/database changes
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
@@ -2872,7 +2873,7 @@ function FactoryPolishStyle({ isDarkMode }) {
 
 
 
-      /* v22.50.0 Final Production Polish Pack: พิมพ์ / Mobile / Detail / Settings / Empty States */
+      /* v22.50.0 Final Production Polish Pack: พิมพ์ / Mobile / Detail / Settings / หน้าว่างs */
       .factory-stock-polish {
         --mdec-radius-soft: 16px;
         --mdec-radius-card: 20px;
@@ -3424,7 +3425,7 @@ function FactoryPolishStyle({ isDarkMode }) {
 
     
 
-/* v22.51.26 Settings & Data Safety Final Polish
+/* v22.52.0 Complete Workflow UX Polish Pack
    UI-only safety polish: no Firebase path, no QR scanner, no camera permission changes */
 .settings-safety-zone,
 .danger-zone,
@@ -4295,7 +4296,7 @@ function MainApp() {
       }
       const data = snap.data();
       const src = data.dataUrl || data.url;
-      if (!src) throw new Error('เอกสารหลักฐานไม่มีข้อมูลรูปภาพ');
+      if (!src) throw new Error('เอกสารหลักฐานยังไม่มีข้อมูลรูปภาพ');
       const caption = `${data.contextLabel || 'หลักฐาน'}`;
       if (win) {
         win.document.open();
@@ -8437,7 +8438,7 @@ S.N.: ${item.sn || '-'}
       return `
         <section class="section">
           <div class="sectionHead"><h2>${backupHtmlEscape(title)}</h2><span>${rows.length.toLocaleString('th-TH')} รายการ</span></div>
-          <div class="tableWrap"><table><thead><tr>${headHtml}</tr></thead><tbody>${rowHtml || `<tr><td colspan="${headers.length}">ไม่มีข้อมูล</td></tr>`}</tbody></table></div>
+          <div class="tableWrap"><table><thead><tr>${headHtml}</tr></thead><tbody>${rowHtml || `<tr><td colspan="${headers.length}">ยังไม่มีข้อมูล</td></tr>`}</tbody></table></div>
           ${moreText}
         </section>`;
     };
@@ -12673,7 +12674,7 @@ S.N.: ${item.sn || '-'}
                     </div>
                     <p className={`text-xs mt-3 font-bold ${theme.textMuted}`}>* CSV เปิดใน Google Sheets ได้แต่ไม่มีรูปจริง ส่วนไฟล์ HTML Gallery ใช้เปิดดูรูปหลักฐานจริงได้ทันที</p>
                     <div className={`mt-3 p-3 rounded-xl border text-xs font-bold ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-white border-blue-100 text-slate-600'}`}>
-                      สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่มีข้อมูลการสำรองในระบบ'}
+                      สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังยังไม่มีข้อมูลการสำรองในระบบ'}
                     </div>
                     <div className={`mt-4 p-4 rounded-xl border ${isDarkMode ? 'bg-amber-900/20 border-amber-800' : 'bg-amber-50 border-amber-200'}`}>
                       <h5 className={`text-base font-black mb-1 flex items-center gap-2 ${isDarkMode ? 'text-amber-300' : 'text-amber-700'}`}>
@@ -12877,7 +12878,7 @@ S.N.: ${item.sn || '-'}
                       <div>3) ถ้าจะทำงานใน Excel/Sheets ให้ดาวน์โหลด CSV เพิ่ม</div>
                     </div>
                   </div>
-                  <div className={`mt-4 text-xs font-bold ${theme.textMuted}`}>สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่มีข้อมูลการสำรองในระบบ'}</div>
+                  <div className={`mt-4 text-xs font-bold ${theme.textMuted}`}>สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังยังไม่มีข้อมูลการสำรองในระบบ'}</div>
                 </div>
 
                 <div className="space-y-4">
@@ -13716,7 +13717,7 @@ S.N.: ${item.sn || '-'}
                             <div className={`font-black text-right break-words ${theme.textTitle}`}>{value || '-'}</div>
                           </div>
                         ))}
-                        {specificInfoCards.length <= 1 && <div className={`p-4 text-center rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>ยังไม่มีข้อมูลเฉพาะเพิ่มเติม</div>}
+                        {specificInfoCards.length <= 1 && <div className={`p-4 text-center rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>ยังยังไม่มีข้อมูลเฉพาะเพิ่มเติม</div>}
                       </div>
                     </div>
                   </div>
