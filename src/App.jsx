@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.51.9 Central History Restore';
+const APP_VERSION = 'v22.51.12 Mobile Return Checklist Final Hotfix';
 const APP_UPDATE_NOTE = 'Final QA & Stability Pass: เก็บความนิ่งหลังอัปเดตใหญ่ ปรับมือถือ/ดีไซน์เล็กน้อย เช็กปุ่ม ฟอร์ม เอกสาร Backup และ QR โดยไม่แตะระบบกล้องหรือฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -2561,6 +2561,69 @@ function FactoryPolishStyle({ isDarkMode }) {
         }
       }
 
+
+
+      /* v22.51.12 Mobile Return Checklist Final Hotfix: กันเช็กลิสต์รับคืนบนมือถือโดนบีบจนข้อความเรียงแนวตั้ง */
+      @media (max-width: 767px) {
+        .factory-stock-polish .return-operation-modal label.return-checklist-card {
+          display: block !important;
+          grid-template-columns: none !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          padding: 12px !important;
+          overflow: hidden !important;
+        }
+        .factory-stock-polish .return-operation-modal label.return-checklist-card > .return-checklist-row {
+          display: flex !important;
+          flex-direction: row !important;
+          align-items: flex-start !important;
+          gap: 10px !important;
+          width: 100% !important;
+          min-width: 0 !important;
+        }
+        .factory-stock-polish .return-operation-modal label.return-checklist-card input[type="checkbox"] {
+          flex: 0 0 20px !important;
+          width: 20px !important;
+          height: 20px !important;
+          margin-top: 2px !important;
+        }
+        .factory-stock-polish .return-operation-modal .return-checklist-main {
+          display: block !important;
+          flex: 1 1 auto !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          white-space: normal !important;
+          word-break: normal !important;
+          overflow-wrap: anywhere !important;
+          line-break: strict !important;
+          line-height: 1.35 !important;
+          writing-mode: horizontal-tb !important;
+        }
+        .factory-stock-polish .return-operation-modal .return-checklist-main span {
+          writing-mode: horizontal-tb !important;
+        }
+        .factory-stock-polish .return-operation-modal label.return-checklist-card > .return-inspection-fields,
+        .factory-stock-polish .return-operation-modal .return-inspection-fields {
+          display: grid !important;
+          grid-template-columns: 1fr !important;
+          gap: 8px !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          padding-left: 30px !important;
+          margin-top: 10px !important;
+        }
+        .factory-stock-polish .return-operation-modal .return-inspection-fields :is(select,input) {
+          width: 100% !important;
+          min-width: 0 !important;
+          font-size: 16px !important;
+          min-height: 42px !important;
+        }
+        .factory-stock-polish .return-operation-modal .space-y-2.max-h-\[34vh\] {
+          max-height: 32dvh !important;
+          overflow-x: hidden !important;
+        }
+      }
       @media print {
         .factory-stock-polish,
         .factory-stock-polish * {
@@ -3580,16 +3643,7 @@ function MainApp() {
   };
 
 
-  const getProofLocationText = async () => {
-    if (!navigator?.geolocation) return 'ไม่ระบุตำแหน่ง';
-    return new Promise((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => resolve(`พิกัด GPS: ${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`),
-        () => resolve('ไม่ระบุตำแหน่ง'),
-        { enableHighAccuracy: true, timeout: 4500, maximumAge: 60000 }
-      );
-    });
-  };
+  const getProofLocationText = async () => '';
 
   const loadImageFromFile = (file) => new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -3598,6 +3652,29 @@ function MainApp() {
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('ไม่สามารถอ่านไฟล์รูปภาพได้')); };
     img.src = url;
   });
+
+  const loadImageFromSrc = (src) => new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('โหลดโลโก้ไม่สำเร็จ'));
+    img.src = src;
+  });
+
+  const drawRoundedRect = (ctx, x, y, w, h, r) => {
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + w - radius, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+    ctx.lineTo(x + w, y + h - radius);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+    ctx.lineTo(x + radius, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+  };
 
   const canvasToJpegBlob = (canvas, quality = 0.7) => new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
 
@@ -3615,7 +3692,7 @@ function MainApp() {
     return `${(n / 1024 / 1024).toFixed(2)} MB`;
   };
 
-  const drawStampedProofCanvas = (img, maxSide, contextLabel, timestampText, locationText) => {
+  const drawStampedProofCanvas = async (img, maxSide, contextLabel, timestampText, locationText) => {
     const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
     const width = Math.max(1, Math.round(img.width * scale));
     const height = Math.max(1, Math.round(img.height * scale));
@@ -3625,36 +3702,44 @@ function MainApp() {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0, width, height);
 
+    // Proof images already come from the college timestamp app.
+    // Keep only the MDEC logo mark on the photo and do not add time/GPS/text overlays.
     if (showDocumentLogo('proofStamp')) {
       const badgePad = Math.max(10, Math.round(width * 0.018));
-      const badgeW = Math.max(170, Math.round(width * 0.25));
-      const badgeH = Math.max(42, Math.round(width * 0.055));
-      ctx.fillStyle = 'rgba(255,255,255,0.88)';
-      ctx.fillRect(badgePad, badgePad, badgeW, badgeH);
-      ctx.strokeStyle = 'rgba(37,99,235,0.45)';
-      ctx.lineWidth = Math.max(2, Math.round(width * 0.002));
-      ctx.strokeRect(badgePad, badgePad, badgeW, badgeH);
-      ctx.fillStyle = '#1d4ed8';
-      ctx.font = `800 ${Math.max(14, Math.round(width * 0.018))}px sans-serif`;
-      ctx.fillText('MDEC STOCK', badgePad + Math.round(badgeH * 0.35), badgePad + Math.round(badgeH * 0.45));
-      ctx.fillStyle = '#334155';
-      ctx.font = `700 ${Math.max(10, Math.round(width * 0.013))}px sans-serif`;
-      ctx.fillText('ศูนย์มัลติมีเดียทางการศึกษา', badgePad + Math.round(badgeH * 0.35), badgePad + Math.round(badgeH * 0.78));
+      const chipW = Math.max(92, Math.round(width * 0.145));
+      const chipH = Math.max(42, Math.round(width * 0.058));
+      const chipRadius = Math.max(7, Math.round(chipH * 0.18));
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.86)';
+      drawRoundedRect(ctx, badgePad, badgePad, chipW, chipH, chipRadius);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(37,99,235,0.32)';
+      ctx.lineWidth = Math.max(1, Math.round(width * 0.0016));
+      ctx.stroke();
+      try {
+        const logoImg = await loadImageFromSrc(ORG_LOGO_SRC);
+        const ratio = (logoImg.width && logoImg.height) ? logoImg.width / logoImg.height : 2.6;
+        let logoW = Math.round(chipW * 0.76);
+        let logoH = Math.round(logoW / ratio);
+        if (logoH > chipH * 0.72) {
+          logoH = Math.round(chipH * 0.72);
+          logoW = Math.round(logoH * ratio);
+        }
+        const logoX = badgePad + Math.round((chipW - logoW) / 2);
+        const logoY = badgePad + Math.round((chipH - logoH) / 2);
+        ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
+      } catch (logoError) {
+        ctx.fillStyle = '#0ea5e9';
+        ctx.font = `900 ${Math.max(14, Math.round(width * 0.018))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('MDEC', badgePad + chipW / 2, badgePad + chipH / 2);
+        ctx.textAlign = 'start';
+        ctx.textBaseline = 'alphabetic';
+      }
+      ctx.restore();
     }
 
-    const stripHeight = Math.max(82, Math.round(height * 0.12));
-    const y = Math.max(0, height - stripHeight);
-    ctx.fillStyle = 'rgba(0,0,0,0.70)';
-    ctx.fillRect(0, y, width, stripHeight);
-    const pad = Math.max(14, Math.round(width * 0.024));
-    const fontBig = Math.max(18, Math.round(width * 0.030));
-    const fontSmall = Math.max(14, Math.round(width * 0.021));
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `700 ${fontBig}px sans-serif`;
-    ctx.fillText(`MDEC STOCK • ${contextLabel}`, pad, y + Math.round(stripHeight * 0.35));
-    ctx.font = `600 ${fontSmall}px sans-serif`;
-    ctx.fillText(`เวลา: ${timestampText}`, pad, y + Math.round(stripHeight * 0.62));
-    ctx.fillText(locationText, pad, y + Math.round(stripHeight * 0.85));
     return canvas;
   };
 
@@ -3677,7 +3762,7 @@ function MainApp() {
     let blob = null;
 
     for (let round = 0; round < 12; round++) {
-      canvas = drawStampedProofCanvas(img, maxSide, contextLabel, timestampText, locationText);
+      canvas = await drawStampedProofCanvas(img, maxSide, contextLabel, timestampText, locationText);
       blob = await canvasToJpegBlob(canvas, quality);
       if (!blob) throw new Error('ไม่สามารถสร้างไฟล์หลักฐานได้');
       if (blob.size <= targetBytes) break;
@@ -3699,7 +3784,7 @@ function MainApp() {
     }
 
     const dataUrl = await blobToDataUrl(blob);
-    const thumbCanvas = drawStampedProofCanvas(img, 320, contextLabel, timestampText, locationText);
+    const thumbCanvas = await drawStampedProofCanvas(img, 320, contextLabel, timestampText, locationText);
     const thumbBlob = await canvasToJpegBlob(thumbCanvas, 0.55);
     const thumbUrl = thumbBlob ? await blobToDataUrl(thumbBlob) : dataUrl;
 
@@ -3812,7 +3897,7 @@ function MainApp() {
     return (
       <div className={`p-4 rounded-xl border ${toneClass}`}>
         <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>📷 {label} <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่บังคับ)</span></label>
-        <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>เลือกภาพจากคลังรูป/ไฟล์ หรือเลือกถ่ายใหม่จากเมนูของมือถือได้ ระบบจะย่อไฟล์ ประทับเวลา และพิกัด GPS ลงบนรูปถ้าอนุญาตตำแหน่ง แล้วเก็บไว้ใน Firestore โดยไม่ใช้ Firebase Storage • เป้าหมายประมาณ {activeProofSettings.targetKB} KB/รูป • สูงสุด {activeProofSettings.maxImagesPerAction} รูป/ครั้ง</p>
+        <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>เลือกภาพจากคลังรูป/ไฟล์ หรือเลือกถ่ายใหม่จากเมนูของมือถือได้ ระบบจะย่อไฟล์และใส่โลโก้ศูนย์บนรูปเท่านั้น แล้วเก็บไว้ใน Firestore โดยไม่ใช้ Firebase Storage • เป้าหมายประมาณ {activeProofSettings.targetKB} KB/รูป • สูงสุด {activeProofSettings.maxImagesPerAction} รูป/ครั้ง</p>
         <input
           type="file"
           accept="image/*"
@@ -3855,7 +3940,7 @@ function MainApp() {
       const data = snap.data();
       const src = data.dataUrl || data.url;
       if (!src) throw new Error('เอกสารหลักฐานไม่มีข้อมูลรูปภาพ');
-      const caption = `${data.contextLabel || 'หลักฐาน'} | ${data.timestampText || ''} | ${data.locationText || ''}`;
+      const caption = `${data.contextLabel || 'หลักฐาน'}`;
       if (win) {
         win.document.open();
         win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>MDEC Proof</title></head><body style="margin:0;background:#111;color:#fff;font-family:sans-serif;"><div style="padding:12px 16px;background:#000;font-size:14px;font-weight:700;">${caption.replace(/</g, '&lt;')}</div><div style="height:calc(100vh - 52px);display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box;"><img src="${src}" style="display:block;max-width:100%;max-height:100%;object-fit:contain;margin:0 auto;" /></div></body></html>`);
@@ -3892,7 +3977,7 @@ function MainApp() {
         </div>
         <div className="grid grid-cols-2 gap-2 mt-3">
           <button type="button" onClick={() => openProofImage(first)} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>เปิดรูปแรก</button>
-          <button type="button" onClick={openProofCenterFromHistory} className="px-3 py-2 rounded-xl text-xs font-black bg-pink-600 text-white">ดูในศูนย์หลักฐาน</button>
+          <button type="button" onClick={openProofCenterFromHistory} className="px-3 py-2 rounded-xl text-xs font-black bg-pink-600 text-white">จัดการหลักฐาน</button>
         </div>
       </div>
     );
@@ -12578,8 +12663,8 @@ S.N.: ${item.sn || '-'}
                   if(!item) return null;
                   const isChecked = returnChecklist.includes(id);
                   return (
-                    <label key={id} className={`block p-3 rounded-2xl cursor-pointer border transition-colors ${isChecked ? (isDarkMode ? 'bg-emerald-900/40 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
-                      <div className="flex items-start gap-3 min-w-0">
+                    <label key={id} className={`return-checklist-card block p-3 rounded-2xl cursor-pointer border transition-colors ${isChecked ? (isDarkMode ? 'bg-emerald-900/40 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
+                      <div className="return-checklist-row flex items-start gap-3 min-w-0">
                         <input type="checkbox" className="w-5 h-5 accent-emerald-600 rounded mt-0.5 cursor-pointer shrink-0"
                           checked={isChecked}
                           onChange={(e) => {
@@ -12587,14 +12672,14 @@ S.N.: ${item.sn || '-'}
                             else setReturnChecklist(returnChecklist.filter(c => c !== id));
                           }}
                         />
-                        <span className={`font-bold text-sm sm:text-base leading-snug flex-1 min-w-0 break-words ${isChecked ? (isDarkMode ? 'text-emerald-400 line-through opacity-70' : 'text-emerald-700 line-through opacity-70') : theme.textMain}`}>
+                        <span className={`return-checklist-main font-bold text-sm sm:text-base leading-snug flex-1 min-w-0 break-words ${isChecked ? (isDarkMode ? 'text-emerald-400 line-through opacity-70' : 'text-emerald-700 line-through opacity-70') : theme.textMain}`}>
                           {item.name} <span className={`text-xs font-normal block mt-0.5 ${theme.textMuted}`}>(S.N: {item.sn || '-'})</span>
                           {item.internalNote && <span className={`text-xs font-bold block mt-1 px-2 py-1 rounded-lg ${isDarkMode ? 'bg-amber-900/30 text-amber-300 border border-amber-800/50' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>โน้ตภายใน: {item.internalNote}</span>}
                         </span>
                         {item.owner && <span className={`text-[10px] px-2 py-0.5 rounded font-bold shrink-0 max-w-[92px] truncate ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>👤 {item.owner}</span>}
                       </div>
                       {isChecked && (
-                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 pl-8 sm:pl-0" onClick={(e) => e.stopPropagation()}>
+                        <div className="return-inspection-fields mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 pl-8 sm:pl-0" onClick={(e) => e.stopPropagation()}>
                           <select className={`w-full min-w-0 px-3 py-2.5 rounded-xl text-sm sm:text-xs font-bold border ${theme.input}`} value={(returnInspection[id]?.condition) || 'ปกติ'} onChange={(e) => setReturnInspection(prev => ({...prev, [id]: {...(prev[id] || {}), condition: e.target.value}}))}>
                             <option value="ปกติ">ปกติ</option>
                             <option value="มีรอย/ต้องตรวจเพิ่ม">มีรอย/ต้องตรวจเพิ่ม</option>
@@ -13627,7 +13712,7 @@ S.N.: ${item.sn || '-'}
                           </button>
                           {canUseOperationalTools && (
                             <div className="grid grid-cols-2 gap-2 mt-2">
-                              <button type="button" onClick={() => openProofEditModal(group)} className={`py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>แก้ไขข้อมูล</button>
+                              <button type="button" onClick={() => openProofEditModal(group)} className={`py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>แก้ไข/แทนที่</button>
                               <button type="button" onClick={() => handleDeleteProofGroup(group)} className="py-2 rounded-xl border text-xs font-black bg-rose-600 text-white border-rose-600 hover:bg-rose-700">ลบรูปนี้</button>
                             </div>
                           )}
@@ -13659,8 +13744,8 @@ S.N.: ${item.sn || '-'}
           <div className={`rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border ${theme.cardBg}`}>
             <div className={`p-6 border-b flex justify-between items-start gap-4 ${theme.divide}`}>
               <div>
-                <h3 className={`text-2xl font-black ${theme.textTitle}`}>แก้ไขข้อมูลรูปหลักฐาน</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แก้ชื่อ/หมายเหตุของรูปนี้ โดยไม่ต้องอัปโหลดรูปใหม่</p>
+                <h3 className={`text-2xl font-black ${theme.textTitle}`}>แก้ไข / แทนที่รูปหลักฐาน</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แก้ชื่อ หมายเหตุ หรือเลือกรูปใหม่เพื่อแทนที่หลักฐานเดิม</p>
               </div>
               <button type="button" onClick={() => { setProofEditTarget(null); setProofEditForm({ contextLabel: '', note: '' }); setProofEditReplaceFiles([]); }} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -13673,13 +13758,26 @@ S.N.: ${item.sn || '-'}
                 <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>หมายเหตุรูปภาพ</label>
                 <textarea className={`w-full px-4 py-3 rounded-xl border font-bold min-h-[110px] ${theme.input}`} value={proofEditForm.note} onChange={e => setProofEditForm(prev => ({ ...prev, note: e.target.value }))} placeholder="เช่น รูปนี้เป็นภาพรวมของรายการยืมชุดลำโพง..." />
               </div>
+              <div>
+                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>แทนที่รูปหลักฐานเดิม (ไม่บังคับ)</label>
+                <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className={`w-full text-sm font-bold file:mr-3 file:px-4 file:py-2 file:rounded-xl file:border-0 file:font-black file:bg-white file:text-slate-800 ${theme.textMuted}`}
+                    onChange={e => setProofEditReplaceFiles(Array.from(e.target.files || []).slice(0, 1))}
+                  />
+                  <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>ถ้าเลือกไฟล์ใหม่ ระบบจะแทนที่รูปเดิม และอัปเดตทุกประวัติที่ใช้รูปนี้ร่วมกัน</p>
+                  {proofEditReplaceFiles.length > 0 && <div className="mt-2 text-xs font-black text-emerald-500">เลือกรูปใหม่แล้ว: {proofEditReplaceFiles[0]?.name || 'รูปใหม่'}</div>}
+                </div>
+              </div>
               <div className={`p-4 rounded-2xl border text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
                 รูปนี้เชื่อมโยงกับ {Number(proofEditTarget.itemRefs?.length || proofEditTarget.entries?.length || 1).toLocaleString('th-TH')} อุปกรณ์/รายการ การแก้ไขจะอัปเดตข้อมูลรูปนี้ในทุกจุดที่เกี่ยวข้อง
               </div>
             </div>
             <div className={`p-4 border-t grid grid-cols-2 gap-2 ${theme.divide}`}>
-              <button type="button" onClick={() => { setProofEditTarget(null); setProofEditForm({ contextLabel: '', note: '' }); }} className={`py-3 rounded-xl font-black ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={handleSaveProofEdit} disabled={isBusy} className="py-3 rounded-xl font-black bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60">บันทึก</button>
+              <button type="button" onClick={() => { setProofEditTarget(null); setProofEditForm({ contextLabel: '', note: '' }); setProofEditReplaceFiles([]); }} className={`py-3 rounded-xl font-black ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={handleSaveProofEdit} disabled={isBusy} className="py-3 rounded-xl font-black bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60">{proofEditReplaceFiles.length > 0 ? 'แทนที่และบันทึก' : 'บันทึก'}</button>
             </div>
           </div>
         </div>
@@ -13719,7 +13817,7 @@ S.N.: ${item.sn || '-'}
                 <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>📷 การจัดการรูปหลักฐาน</h4>
                 <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-bold ${theme.textMuted}`}>
                   <div>• รูปหลักฐานไม่บังคับ ยกเว้นผู้ดูแลตั้งค่าให้บังคับ</div>
-                  <div>• ระบบจะย่อรูปและประทับเวลา/พิกัดให้เอง</div>
+                  <div>• ระบบจะย่อรูปและใส่โลโก้ศูนย์บนรูปเท่านั้น</div>
                   <div>• รูปเดียวที่ผูกหลายอุปกรณ์จะแสดงรวมเป็น 1 ใบใน Gallery</div>
                   <div>• เจ้าหน้าที่สามารถแก้ชื่อ/หมายเหตุ แทนที่รูปใหม่ หรือลบรูปหลักฐานที่อัปโหลดผิดได้</div>
                 </div>
