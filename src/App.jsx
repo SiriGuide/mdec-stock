@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.51.24 Full UI Consistency & Premium Polish';
+const APP_VERSION = 'v22.51.25 พิมพ์ & ส่งออก Final Polish';
 const APP_UPDATE_NOTE = 'Equipment Metadata & Theme Polish: เพิ่มช่องข้อมูลเฉพาะกล้อง/เลนส์/แบต/เมม และเก็บธีมฟอร์ม/การ์ดให้เป็นภาษาเดียวกัน โดยไม่แตะ QR/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -80,7 +80,7 @@ const Icons = {
   Monitor: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
   Truck: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.92l-1.09-1.09A4 4 0 0 0 16.92 9H14v8h2"/><circle cx="8.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="17.5" r="2.5"/></svg>,
   QrCode: ({ className = "" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m-4 8h.01M16 12h.01M8 16h.01M16 16h.01M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6z" /></svg>,
-  Printer: ({ className = "" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+  พิมพ์er: ({ className = "" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
 };
 
 const STATUSES = [
@@ -1408,7 +1408,7 @@ function FactoryPolishStyle({ isDarkMode }) {
       }
 
 
-      /* v22.46.0 Full Polish Pack: Dashboard / Reports / Borrow-Return / Project / Print */
+      /* v22.46.0 Full Polish Pack: Dashboard / Reports / Borrow-Return / Project / พิมพ์ */
       .factory-stock-polish .dashboard-polish,
       .factory-stock-polish .report-polish,
       .factory-stock-polish .tracking-polish,
@@ -2250,7 +2250,7 @@ function FactoryPolishStyle({ isDarkMode }) {
         border-color: rgba(148,163,184,.22) !important;
       }
 
-      /* Document / report / backup polish */
+      /* เอกสาร / report / backup polish */
       .factory-stock-polish :is(.print-preview,.print-sheet,.document-preview) {
         border-radius: 18px !important;
         box-shadow: 0 12px 34px rgba(15,23,42,.08) !important;
@@ -2377,7 +2377,7 @@ function FactoryPolishStyle({ isDarkMode }) {
           }
         }
 
-      /* v22.51.24 Full UI Consistency & Premium Polish — UI รอบนอกเท่านั้น ไม่แตะระบบกล้อง/permission/qrbox */
+      /* v22.51.25 พิมพ์ & ส่งออก Final Polish — UI รอบนอกเท่านั้น ไม่แตะระบบกล้อง/permission/qrbox */
       .factory-stock-polish .qr-safe-zone {
         background: #fff !important;
         border-radius: 14px !important;
@@ -2713,7 +2713,7 @@ function FactoryPolishStyle({ isDarkMode }) {
 
 
 
-      /* v22.47.0 Borrow-Return & Document Polish */
+      /* v22.47.0 Borrow-Return & เอกสาร Polish */
       .factory-stock-polish .operation-workspace-card {
         overflow: visible !important;
       }
@@ -2872,7 +2872,7 @@ function FactoryPolishStyle({ isDarkMode }) {
 
 
 
-      /* v22.50.0 Final Production Polish Pack: Print / Mobile / Detail / Settings / Empty States */
+      /* v22.50.0 Final Production Polish Pack: พิมพ์ / Mobile / Detail / Settings / Empty States */
       .factory-stock-polish {
         --mdec-radius-soft: 16px;
         --mdec-radius-card: 20px;
@@ -2888,7 +2888,7 @@ function FactoryPolishStyle({ isDarkMode }) {
       .factory-stock-polish :is(.solid-panel,.operation-workspace-card,.purchase-project-card) p {
         line-height: 1.55;
       }
-      /* Print & Document polish */
+      /* พิมพ์ & เอกสาร polish */
       .factory-stock-polish .print-preview,
       .factory-stock-polish .print-sheet,
       .factory-stock-polish .document-preview,
@@ -3519,9 +3519,9 @@ function MainApp() {
   
   const [showQuickReturnModal, setShowQuickReturnModal] = useState(false);
   const [showTodayModal, setShowTodayModal] = useState(false);
-  const [printSlipData, setPrintSlipData] = useState(null);
-  const [printProjectData, setPrintProjectData] = useState(null);
-  const [borrowDocuments, setBorrowDocuments] = useState([]);
+  const [printSlipData, setพิมพ์SlipData] = useState(null);
+  const [printProjectData, setพิมพ์ProjectData] = useState(null);
+  const [borrowเอกสารs, setBorrowเอกสารs] = useState([]);
   const [showBorrowDocsModal, setShowBorrowDocsModal] = useState(false);
   const [borrowDocSearch, setBorrowDocSearch] = useState('');
   const [borrowDocFilter, setBorrowDocFilter] = useState('all');
@@ -3619,12 +3619,12 @@ function MainApp() {
     try { localStorage.setItem('mdec_ui_mode', mode); } catch(e) {}
   };
 
-  // 🖨️ สถานะสำหรับ Print & Scan QR Code
-  const [showPrintModal, setShowPrintModal] = useState(false);
-  const [qrPrintSize, setQrPrintSize] = useState('scanEasy');
-  const [qrPrintMode, setQrPrintMode] = useState('plain');
-  const [qrPrintColumns, setQrPrintColumns] = useState('auto');
-  const [showBoxLabelPrintModal, setShowBoxLabelPrintModal] = useState(false);
+  // 🖨️ สถานะสำหรับ พิมพ์ & Scan QR Code
+  const [showพิมพ์Modal, setShowพิมพ์Modal] = useState(false);
+  const [qrพิมพ์Size, setQrพิมพ์Size] = useState('scanEasy');
+  const [qrพิมพ์Mode, setQrพิมพ์Mode] = useState('plain');
+  const [qrพิมพ์Columns, setQrพิมพ์Columns] = useState('auto');
+  const [showBoxLabelพิมพ์Modal, setShowBoxLabelพิมพ์Modal] = useState(false);
   const [showStorageBoxesModal, setShowStorageBoxesModal] = useState(false);
   const [showStorageBoxAssignModal, setShowStorageBoxAssignModal] = useState(false);
   const [showStorageBoxEditor, setShowStorageBoxEditor] = useState(false);
@@ -3756,11 +3756,11 @@ function MainApp() {
 
 
   const documentBrandSettings = { ...DEFAULT_DOCUMENT_SETTINGS, ...(settingsOptions.documentSettings || {}) };
-  const showDocumentLogo = (area) => documentBrandSettings?.[area] !== false;
+  const showเอกสารLogo = (area) => documentBrandSettings?.[area] !== false;
   const logoScaleClass = documentBrandSettings.logoSize === 'large' ? 'scale-110' : documentBrandSettings.logoSize === 'small' ? 'scale-90' : '';
-  const isInkSavingDocument = documentBrandSettings.printTone === 'ink';
+  const isInkSavingเอกสาร = documentBrandSettings.printTone === 'ink';
 
-  const makeDocumentRef = (prefix = 'DOC') => {
+  const makeเอกสารRef = (prefix = 'DOC') => {
     const d = new Date();
     const buddhistYear = d.getFullYear() + 543;
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -3771,7 +3771,7 @@ function MainApp() {
     return `${prefix}-${buddhistYear}${month}${day}-${hour}${minute}${second}`;
   };
 
-  const makeBorrowDocumentSnapshot = ({ type = 'borrow', ref, date, subject, staffOut, expectedReturn, note, selectedItems = [], proofs = [] }) => {
+  const makeBorrowเอกสารSnapshot = ({ type = 'borrow', ref, date, subject, staffOut, expectedReturn, note, selectedItems = [], proofs = [] }) => {
     const title = type === 'event' ? 'ใบนำอุปกรณ์ออกงาน' : 'ใบยืมอุปกรณ์';
     return {
       id: ref,
@@ -3807,12 +3807,12 @@ function MainApp() {
     };
   };
 
-  const openBorrowDocumentPrint = (docData) => {
+  const openBorrowเอกสารพิมพ์ = (docData) => {
     if (!docData) return;
-    setPrintSlipData({
+    setพิมพ์SlipData({
       type: docData.type || 'borrow',
       title: docData.title || (docData.type === 'event' ? 'ใบนำอุปกรณ์ออกงาน' : 'ใบยืมอุปกรณ์'),
-      ref: docData.ref || docData.id || makeDocumentRef('DOC'),
+      ref: docData.ref || docData.id || makeเอกสารRef('DOC'),
       date: docData.date || docData.createdAt || new Date().toISOString(),
       borrower: docData.borrower || docData.eventName || '-',
       staffOut: docData.staffOut || '-',
@@ -3823,9 +3823,9 @@ function MainApp() {
     });
   };
 
-  const saveDocumentSettings = async (patch = {}) => {
-    const nextDocumentSettings = { ...DEFAULT_DOCUMENT_SETTINGS, ...(settingsOptions.documentSettings || {}), ...patch };
-    const nextSettings = { ...settingsOptions, documentSettings: nextDocumentSettings };
+  const saveเอกสารSettings = async (patch = {}) => {
+    const nextเอกสารSettings = { ...DEFAULT_DOCUMENT_SETTINGS, ...(settingsOptions.documentSettings || {}), ...patch };
+    const nextSettings = { ...settingsOptions, documentSettings: nextเอกสารSettings };
     setSettingsOptions(nextSettings);
     try {
       await setDoc(getSettingsDoc(), nextSettings);
@@ -3957,7 +3957,7 @@ function MainApp() {
 
     // Proof images already come from the college timestamp app.
     // Keep only the MDEC logo mark on the photo and do not add time/GPS/text overlays.
-    if (showDocumentLogo('proofStamp')) {
+    if (showเอกสารLogo('proofStamp')) {
       const badgePad = Math.max(10, Math.round(width * 0.018));
       const chipW = Math.max(92, Math.round(width * 0.145));
       const chipH = Math.max(42, Math.round(width * 0.058));
@@ -4498,7 +4498,7 @@ function MainApp() {
       const docs = [];
       snapshot.forEach((docSnap) => docs.push({ id: docSnap.id, ...docSnap.data() }));
       docs.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0));
-      setBorrowDocuments(docs);
+      setBorrowเอกสารs(docs);
     }, (error) => {
       console.warn('Borrow document archive snapshot skipped:', error);
     });
@@ -4926,9 +4926,9 @@ function MainApp() {
     return chips;
   }, [searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterProject, filterAssetStatus, filterQrTagged, quickProblemOnly]);
 
-  const filteredBorrowDocuments = useMemo(() => {
+  const filteredBorrowเอกสารs = useMemo(() => {
     const q = String(borrowDocSearch || '').trim().toLowerCase();
-    return (borrowDocuments || []).filter(doc => {
+    return (borrowเอกสารs || []).filter(doc => {
       const status = doc.status || 'active';
       const matchFilter = borrowDocFilter === 'all' || status === borrowDocFilter || doc.type === borrowDocFilter;
       if (!matchFilter) return false;
@@ -4944,7 +4944,7 @@ function MainApp() {
              dateText.toLowerCase().includes(q) ||
              itemText.toLowerCase().includes(q);
     }).sort((a, b) => new Date(b.date || b.createdAt || b.updatedAt || 0) - new Date(a.date || a.createdAt || a.updatedAt || 0));
-  }, [borrowDocuments, borrowDocSearch, borrowDocFilter]);
+  }, [borrowเอกสารs, borrowDocSearch, borrowDocFilter]);
 
   const clearAllFilters = () => {
     setSearchTerm('');
@@ -5336,9 +5336,9 @@ function MainApp() {
     }
   };
 
-  const openProjectPrint = (projectName) => {
+  const openProjectพิมพ์ = (projectName) => {
     const project = projectStats.find(p => String(p.name) === String(projectName)) || { name: projectName, items: [], total: 0 };
-    setPrintProjectData({
+    setพิมพ์ProjectData({
       name: project.name,
       date: new Date().toISOString(),
       ref: `PROJECT-${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}-${String(project.name || '').slice(0, 12)}`,
@@ -5710,7 +5710,7 @@ S.N.: ${item.sn || '-'}
                         </div>
                         <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
                           {canAddEditItems && selectedProject.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectMetaEditor(selectedProject.name)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>แก้ไขโครงการ</button>}
-                          <button type="button" onClick={() => openProjectPrint(selectedProject.name)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>พิมพ์รายงาน</button>
+                          <button type="button" onClick={() => openProjectพิมพ์(selectedProject.name)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>พิมพ์รายงาน</button>
                           {canAddEditItems && selectedProject.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectAssign(selectedProject.name)} className="px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black">ผูกของจากคลัง</button>}
                           {canAddEditItems && selectedProject.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openNewItemForProject(selectedProject.name)} className="px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">+ เพิ่มสินค้าใหม่</button>}
                         </div>
@@ -6497,7 +6497,7 @@ S.N.: ${item.sn || '-'}
     { id: 'staff', label: 'เจ้าหน้าที่', desc: 'รายชื่อผู้ทำรายการ', icon: Icons.Users, group: 'ข้อมูลพื้นฐาน' },
     { id: 'accounts', label: 'บัญชีผู้ใช้', desc: 'ล็อกอินและสิทธิ์', icon: Icons.UserPlus, group: 'ผู้ใช้งาน' },
     { id: 'display', label: 'การแสดงผล', desc: 'ความแน่น / การ์ด / เอฟเฟกต์', icon: Icons.Monitor, group: 'หน้าตาเว็บ' },
-    { id: 'documents', label: 'เอกสาร / โลโก้', desc: 'ใบยืม ฉลาก QR และโลโก้', icon: Icons.Printer, group: 'เอกสาร' },
+    { id: 'documents', label: 'เอกสาร / โลโก้', desc: 'ใบยืม ฉลาก QR และโลโก้', icon: Icons.พิมพ์er, group: 'เอกสาร' },
     { id: 'proofs', label: 'หลักฐานรูปภาพ', desc: 'กติกาการแนบรูป', icon: Icons.Camera, group: 'หลักฐาน' },
     { id: 'database', label: 'ฐานข้อมูล / สำรอง', desc: 'Backup, Restore, Cleanup', icon: Icons.Database, group: 'ระบบ' },
   ];
@@ -7383,9 +7383,9 @@ S.N.: ${item.sn || '-'}
       if (!requireProofIfNeeded('borrow', borrowProofFiles)) return;
       const uploadedProofs = await uploadProofsOrConfirm(borrowProofFiles, `หลักฐานการยืม • ${borrowData.borrower || ''}`);
       const docDate = new Date().toISOString();
-      const docRef = makeDocumentRef('BR');
+      const docRef = makeเอกสารRef('BR');
       const selectedBorrowItems = packingChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
-      const documentSnapshot = makeBorrowDocumentSnapshot({
+      const documentSnapshot = makeBorrowเอกสารSnapshot({
         type: 'borrow',
         ref: docRef,
         date: docDate,
@@ -7405,7 +7405,7 @@ S.N.: ${item.sn || '-'}
       await Promise.all([setDoc(getBorrowDoc(docRef), documentSnapshot, { merge: true }), ...promises]);
 
       logAction('ให้ยืมอุปกรณ์', `ทำรายการ ${selectedBorrowItems.length} ชิ้น`, `เลขที่เอกสาร: ${docRef}\nยืมโดย: ${borrowData.borrower} (จนท.ผู้ให้ยืม: ${finalStaff})\nรายการ: ${borrowedNames.join(', ')}`);
-      setPrintSlipData(documentSnapshot);
+      setพิมพ์SlipData(documentSnapshot);
       setBorrowTargetIds([]);
       setPackingChecklist([]);
       setSelectedItems([]); 
@@ -7440,9 +7440,9 @@ S.N.: ${item.sn || '-'}
       if (!requireProofIfNeeded('event', eventProofFiles)) return;
       const uploadedProofs = await uploadProofsOrConfirm(eventProofFiles, `หลักฐานออกงาน • ${eventData.eventName || ''}`);
       const docDate = new Date().toISOString();
-      const docRef = makeDocumentRef('EV');
+      const docRef = makeเอกสารRef('EV');
       const selectedEventItems = eventChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
-      const documentSnapshot = makeBorrowDocumentSnapshot({
+      const documentSnapshot = makeBorrowเอกสารSnapshot({
         type: 'event',
         ref: docRef,
         date: docDate,
@@ -7462,7 +7462,7 @@ S.N.: ${item.sn || '-'}
       await Promise.all([setDoc(getBorrowDoc(docRef), documentSnapshot, { merge: true }), ...promises]);
 
       logAction('นำออกงาน', `ทำรายการ ${selectedEventItems.length} ชิ้น`, `เลขที่เอกสาร: ${docRef}\nชื่องาน: ${eventData.eventName} (ผู้นำออก: ${finalStaff})\nรายการ: ${eventNames.join(', ')}`);
-      setPrintSlipData(documentSnapshot);
+      setพิมพ์SlipData(documentSnapshot);
       setEventTargetIds([]);
       setEventChecklist([]);
       setSelectedItems([]); 
@@ -7515,7 +7515,7 @@ S.N.: ${item.sn || '-'}
       await Promise.all(promises);
 
       const returnedSet = new Set(returnChecklist);
-      const activeArchiveDocs = (borrowDocuments || []).filter(doc => {
+      const activeArchiveDocs = (borrowเอกสารs || []).filter(doc => {
         const ids = Array.isArray(doc.itemIds) ? doc.itemIds : [];
         const isOpen = !doc.status || doc.status === 'active' || doc.status === 'partial';
         return isOpen && ids.some(id => returnedSet.has(id));
@@ -8071,7 +8071,7 @@ S.N.: ${item.sn || '-'}
         totalHistoryProofLinks: historyProofCount,
         estimatedProofBytes: proofBytes,
         totalAuditLogs: latestAuditLogs.length,
-        totalBorrowDocuments: (borrowDocuments || []).length,
+        totalBorrowเอกสารs: (borrowเอกสารs || []).length,
         totalBundles: (settingsOptions.bundles || []).length,
         totalCategories: (settingsOptions.categories || []).length,
         totalLocations: (settingsOptions.locations || []).length,
@@ -8082,7 +8082,7 @@ S.N.: ${item.sn || '-'}
       settings: settingsOptions,
       items: items,
       auditLogs: latestAuditLogs,
-      borrowDocuments: borrowDocuments || [],
+      borrowเอกสารs: borrowเอกสารs || [],
       proofs: proofDocs
     };
 
@@ -8426,7 +8426,7 @@ S.N.: ${item.sn || '-'}
     <div class="tile"><b>${(collected.payload.summary.totalItems || 0).toLocaleString('th-TH')}</b><span>อุปกรณ์ทั้งหมด</span></div>
     <div class="tile"><b>${(collected.payload.summary.totalHistoryEntries || 0).toLocaleString('th-TH')}</b><span>ประวัติทั้งหมด</span></div>
     <div class="tile"><b>${(collected.proofDocs.length || 0).toLocaleString('th-TH')}</b><span>รูปหลักฐาน</span></div>
-    <div class="tile"><b>${(collected.payload.summary.totalBorrowDocuments || 0).toLocaleString('th-TH')}</b><span>เอกสารยืม/ออกงาน</span></div>
+    <div class="tile"><b>${(collected.payload.summary.totalBorrowเอกสารs || 0).toLocaleString('th-TH')}</b><span>เอกสารยืม/ออกงาน</span></div>
     <div class="tile"><b>${backupHtmlEscape(backupFormatBytes(collected.proofBytes || 0))}</b><span>ขนาดรูปโดยประมาณ</span></div>
   </section>
   ${makeTable('รายการอุปกรณ์ / Inventory', inventory.headers, inventory.rows, 400)}
@@ -8923,7 +8923,7 @@ S.N.: ${item.sn || '-'}
     setBoxLabelNote(box.note || '');
     setBoxLabelSize(box.size || 'normal');
     setShowStorageBoxesModal(false);
-    setShowBoxLabelPrintModal(true);
+    setShowBoxLabelพิมพ์Modal(true);
   };
 
   const selectStorageBoxItems = (box) => {
@@ -9037,13 +9037,13 @@ S.N.: ${item.sn || '-'}
     setShowPrepAssignModal(true);
   };
 
-  const openPrepPrint = (prep) => {
+  const openPrepพิมพ์ = (prep) => {
     const prepItems = (prep.itemIds || []).map((id) => items.find((item) => item.id === id)).filter(Boolean);
     if (prepItems.length === 0) return alert('❌ รายการเตรียมของนี้ยังไม่มีอุปกรณ์ที่พิมพ์ได้');
-    setPrintSlipData({
+    setพิมพ์SlipData({
       type: 'prep',
       title: 'ใบเตรียมของ',
-      ref: makeDocumentRef('PREP'),
+      ref: makeเอกสารRef('PREP'),
       date: new Date().toISOString(),
       borrower: prep.name || '-',
       staffOut: prep.staff || '-',
@@ -9131,7 +9131,7 @@ S.N.: ${item.sn || '-'}
     }
   };
 
-  if (showBoxLabelPrintModal) {
+  if (showBoxLabelพิมพ์Modal) {
     const selectedLabelItems = selectedItems.map((id) => items.find((i) => i.id === id)).filter(Boolean);
     const boxLabelSizePresets = {
       small: {
@@ -9245,9 +9245,9 @@ S.N.: ${item.sn || '-'}
               <button type="button" onClick={() => setBoxLabelStyle('ink')} className={`px-4 py-2 rounded-lg font-black transition-colors ${boxLabelStyle === 'ink' ? 'bg-white text-slate-900 shadow' : 'text-slate-200 hover:bg-slate-700'}`}>ประหยัดหมึก</button>
             </div>
             <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-black flex items-center gap-2 transition-colors">
-              <Icons.Printer className="w-5 h-5"/> พิมพ์ฉลาก
+              <Icons.พิมพ์er className="w-5 h-5"/> พิมพ์ฉลาก
             </button>
-            <button onClick={() => { setShowBoxLabelPrintModal(false); setShowStorageBoxesModal(true); }} className="bg-slate-700 hover:bg-slate-600 px-6 py-2.5 rounded-xl font-black transition-colors">กลับหน้ากล่อง</button>
+            <button onClick={() => { setShowBoxLabelพิมพ์Modal(false); setShowStorageBoxesModal(true); }} className="bg-slate-700 hover:bg-slate-600 px-6 py-2.5 rounded-xl font-black transition-colors">กลับหน้ากล่อง</button>
           </div>
         </div>
 
@@ -9292,7 +9292,7 @@ S.N.: ${item.sn || '-'}
                       <div className={`${boxPreset.meta} font-bold mt-2 text-slate-700`}>รายการอุปกรณ์ประจำกล่อง • ศูนย์มัลติมีเดียทางการศึกษา</div>
                       <div className={`${boxPreset.meta} font-black mt-1 text-slate-900`}>ทรัพย์สินของ MDEC • ใช้ภายในศูนย์</div>
                     </div>
-                    {!isInkMode && showDocumentLogo('boxLabelLogo') && renderOrgLogoBox({ className: 'w-20 h-12 rounded-2xl border border-slate-300 px-2 py-1.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-5 h-5' })}
+                    {!isInkMode && showเอกสารLogo('boxLabelLogo') && renderOrgLogoBox({ className: 'w-20 h-12 rounded-2xl border border-slate-300 px-2 py-1.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-5 h-5' })}
                   </div>
                 </div>
 
@@ -9356,7 +9356,7 @@ S.N.: ${item.sn || '-'}
 
             <div className={`${isInkMode ? 'border-t-2 border-black bg-white' : 'border-t border-slate-300 bg-slate-50'} px-4 py-2 print:px-3 print:py-1.5 flex justify-between items-center gap-3 text-[10px] print:text-[7pt] font-black`}>
               <div className="flex items-center gap-2 min-w-0">
-                {!isInkMode && showDocumentLogo('boxLabelLogo') && renderOrgLogoBox({ className: 'w-12 h-7 rounded-lg border border-slate-300 px-1.5 py-1', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                {!isInkMode && showเอกสารLogo('boxLabelLogo') && renderOrgLogoBox({ className: 'w-12 h-7 rounded-lg border border-slate-300 px-1.5 py-1', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
                 <span className="truncate">กรุณาตรวจเช็กก่อนใช้งานและหลังเก็บคืนทุกครั้ง • ทรัพย์สินของศูนย์ MDEC</span>
               </div>
               <span className="shrink-0">พิมพ์วันที่ {new Date().toLocaleDateString('th-TH')}</span>
@@ -9366,7 +9366,7 @@ S.N.: ${item.sn || '-'}
       </div>
     );
   }
-  if (showPrintModal) {
+  if (showพิมพ์Modal) {
     const qrSizePresets = {
       small: {
         label: 'เล็ก',
@@ -9445,15 +9445,15 @@ S.N.: ${item.sn || '-'}
         labelTextClass: 'text-xs print:text-[8px]'
       }
     };
-    const qrPreset = qrSizePresets[qrPrintSize] || qrSizePresets.normal;
-    const isLabelMode = qrPrintMode === 'label';
+    const qrPreset = qrSizePresets[qrพิมพ์Size] || qrSizePresets.normal;
+    const isLabelMode = qrพิมพ์Mode === 'label';
     const qrColumnPresets = {
       auto: { label: 'อัตโนมัติ', plain: qrPreset.grid, labelGrid: qrPreset.labelGrid },
       '3': { label: '3 คอลัมน์', plain: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3', labelGrid: 'grid-cols-1 md:grid-cols-3' },
       '4': { label: '4 คอลัมน์', plain: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4', labelGrid: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4' },
       '5': { label: '5 คอลัมน์', plain: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5', labelGrid: 'grid-cols-1 sm:grid-cols-3 md:grid-cols-5' }
     };
-    const qrColumnPreset = qrColumnPresets[qrPrintColumns] || qrColumnPresets.auto;
+    const qrColumnPreset = qrColumnPresets[qrพิมพ์Columns] || qrColumnPresets.auto;
     const activeQrGrid = isLabelMode ? qrColumnPreset.labelGrid : qrColumnPreset.plain;
 
     return (
@@ -9482,16 +9482,16 @@ S.N.: ${item.sn || '-'}
                <div className="flex bg-slate-700/80 p-1 rounded-xl gap-1">
                  <button
                    type="button"
-                   onClick={() => setQrPrintMode('plain')}
-                   className={`px-4 py-2 rounded-lg font-black transition-colors ${qrPrintMode === 'plain' ? 'bg-blue-600 text-white shadow' : 'text-slate-200 hover:bg-slate-600'}`}
+                   onClick={() => setQrพิมพ์Mode('plain')}
+                   className={`px-4 py-2 rounded-lg font-black transition-colors ${qrพิมพ์Mode === 'plain' ? 'bg-blue-600 text-white shadow' : 'text-slate-200 hover:bg-slate-600'}`}
                    title="แบบเดิม เรียบง่าย สแกนง่าย"
                  >
                    แบบธรรมดา
                  </button>
                  <button
                    type="button"
-                   onClick={() => setQrPrintMode('label')}
-                   className={`px-4 py-2 rounded-lg font-black transition-colors ${qrPrintMode === 'label' ? 'bg-blue-600 text-white shadow' : 'text-slate-200 hover:bg-slate-600'}`}
+                   onClick={() => setQrพิมพ์Mode('label')}
+                   className={`px-4 py-2 rounded-lg font-black transition-colors ${qrพิมพ์Mode === 'label' ? 'bg-blue-600 text-white shadow' : 'text-slate-200 hover:bg-slate-600'}`}
                    title="แบบฉลากอ่านง่าย มีโลโก้ ชื่ออุปกรณ์ S.N. และรหัสสั้นถ้ามี"
                  >
                    แบบฉลาก
@@ -9503,8 +9503,8 @@ S.N.: ${item.sn || '-'}
                    <button
                      key={key}
                      type="button"
-                     onClick={() => setQrPrintSize(key)}
-                     className={`px-4 py-2 rounded-lg font-black transition-colors ${qrPrintSize === key ? 'bg-blue-600 text-white shadow' : 'text-slate-200 hover:bg-slate-600'}`}
+                     onClick={() => setQrพิมพ์Size(key)}
+                     className={`px-4 py-2 rounded-lg font-black transition-colors ${qrพิมพ์Size === key ? 'bg-blue-600 text-white shadow' : 'text-slate-200 hover:bg-slate-600'}`}
                      title={preset.desc}
                    >
                      {preset.label}
@@ -9517,8 +9517,8 @@ S.N.: ${item.sn || '-'}
                    <button
                      key={key}
                      type="button"
-                     onClick={() => setQrPrintColumns(key)}
-                     className={`px-3 py-2 rounded-lg font-black transition-colors ${qrPrintColumns === key ? 'bg-blue-600 text-white shadow' : 'text-slate-200 hover:bg-slate-600'}`}
+                     onClick={() => setQrพิมพ์Columns(key)}
+                     className={`px-3 py-2 rounded-lg font-black transition-colors ${qrพิมพ์Columns === key ? 'bg-blue-600 text-white shadow' : 'text-slate-200 hover:bg-slate-600'}`}
                      title="ปรับจำนวนคอลัมน์บนหน้าพิมพ์"
                    >
                      {preset.label}
@@ -9531,12 +9531,12 @@ S.N.: ${item.sn || '-'}
                </div>
 
                <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
-                 <Icons.Printer className="w-5 h-5"/> สั่งพิมพ์
+                 <Icons.พิมพ์er className="w-5 h-5"/> สั่งพิมพ์
                </button>
                <button onClick={markSelectedQrTagged} className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
                  <Icons.CheckCircle className="w-5 h-5"/> ติด QR แล้ว
                </button>
-               <button onClick={() => setShowPrintModal(false)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button>
+               <button onClick={() => setShowพิมพ์Modal(false)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button>
             </div>
          </div>
 
@@ -9552,7 +9552,7 @@ S.N.: ${item.sn || '-'}
                    <div key={id} className={`qr-plain-card border border-slate-300 flex flex-col items-center text-center break-inside-avoid print:border-solid print:border-slate-400 rounded-xl print:rounded-none relative print:min-h-0 bg-white ${qrPreset.card}`}>
                       <div className="w-full flex items-center justify-between gap-2 mb-2 print:mb-1">
                         <div className="qr-brand-logo">
-                          {showDocumentLogo('qrLogo') && renderOrgLogoBox({ className: 'w-12 h-7 print:w-10 print:h-6 rounded-lg border border-slate-200 px-1.5 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                          {showเอกสารLogo('qrLogo') && renderOrgLogoBox({ className: 'w-12 h-7 print:w-10 print:h-6 rounded-lg border border-slate-200 px-1.5 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
                         </div>
                         <div className="text-[9px] print:text-[6.5px] font-black tracking-wide text-blue-700 border border-blue-200 bg-blue-50 rounded-lg px-2 py-1">MDEC ASSET</div>
                       </div>
@@ -9580,7 +9580,7 @@ S.N.: ${item.sn || '-'}
                       <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-1.5 mb-2 print:pb-0.5 print:mb-1">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="qr-brand-logo">
-                            {showDocumentLogo('qrLogo') && renderOrgLogoBox({ className: 'w-12 h-7 print:w-10 print:h-6 rounded-lg border border-slate-200 px-1.5 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                            {showเอกสารLogo('qrLogo') && renderOrgLogoBox({ className: 'w-12 h-7 print:w-10 print:h-6 rounded-lg border border-slate-200 px-1.5 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
                           </div>
                           <div className="leading-tight min-w-0">
                             <div className={`${qrPreset.labelTitleClass} font-black tracking-wide text-blue-700`}>MDEC STOCK</div>
@@ -9615,7 +9615,7 @@ S.N.: ${item.sn || '-'}
                         </div>
                       ) : (
                         <div className="mt-1.5 print:mt-0.5 flex items-center gap-1 text-[8px] print:text-[6px] font-black bg-blue-50 border border-blue-200 text-blue-700 px-1.5 py-0.5 rounded-md truncate">
-                          {showDocumentLogo('qrLogo') && renderOrgLogoBox({ className: 'w-7 h-4 print:w-6 print:h-3.5 rounded-sm border border-blue-100 px-0.5 py-0.5', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-2.5 h-2.5' })}
+                          {showเอกสารLogo('qrLogo') && renderOrgLogoBox({ className: 'w-7 h-4 print:w-6 print:h-3.5 rounded-sm border border-blue-100 px-0.5 py-0.5', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-2.5 h-2.5' })}
                           <span className="truncate">ทรัพย์สินศูนย์มัลติมีเดีย</span>
                         </div>
                       )}
@@ -9631,23 +9631,23 @@ S.N.: ${item.sn || '-'}
   if (printProjectData) {
     const projectItems = printProjectData.items || [];
     return (
-      <div className={`factory-stock-polish min-h-screen font-sans text-slate-900 print:bg-white ${isInkSavingDocument ? "bg-white" : "bg-slate-100"}`}>
+      <div className={`factory-stock-polish min-h-screen font-sans text-slate-900 print:bg-white ${isInkSavingเอกสาร ? "bg-white" : "bg-slate-100"}`}>
         <div className="print-actions-bar print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
           <div>
-            <h2 className="font-bold text-xl flex items-center gap-2"><Icons.Printer className="w-6 h-6" /> รายงานโครงการ</h2>
+            <h2 className="font-bold text-xl flex items-center gap-2"><Icons.พิมพ์er className="w-6 h-6" /> รายงานโครงการ</h2>
             <p className="text-slate-300 text-sm font-bold mt-1">ตัวอย่างนี้คือหน้าที่จะพิมพ์จริง ปรับข้อมูลได้จากหน้าโครงการจัดซื้อ</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors"><Icons.Printer className="w-5 h-5"/> พิมพ์รายงาน</button>
-            <button onClick={() => setPrintProjectData(null)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button>
+            <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors"><Icons.พิมพ์er className="w-5 h-5"/> พิมพ์รายงาน</button>
+            <button onClick={() => setพิมพ์ProjectData(null)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button>
           </div>
         </div>
         <div className="pt-24 print:pt-0 p-6 print:p-0 max-w-5xl mx-auto">
           <div className="print-paper-shell relative overflow-hidden bg-white p-8 print:p-6 shadow-xl print:shadow-none border border-slate-200 print:border-0 rounded-2xl print:rounded-none">
-            {showDocumentLogo('watermark') && !isInkSavingDocument && !brandLogoError && <img src={ORG_LOGO_SRC} alt="MDEC Watermark" className="absolute right-8 top-8 w-44 opacity-[0.045] pointer-events-none select-none" onError={() => setBrandLogoError(true)} />}
+            {showเอกสารLogo('watermark') && !isInkSavingเอกสาร && !brandLogoError && <img src={ORG_LOGO_SRC} alt="MDEC Watermark" className="absolute right-8 top-8 w-44 opacity-[0.045] pointer-events-none select-none" onError={() => setBrandLogoError(true)} />}
             <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6 gap-4 relative z-[1]">
               <div className="min-w-0">
-                {showDocumentLogo('slipLogo') ? renderOrgSignature({
+                {showเอกสารLogo('slipLogo') ? renderOrgSignature({
                   title: 'รายงานอุปกรณ์ตามโครงการ',
                   subtitle: 'ศูนย์มัลติมีเดียทางการศึกษา (MDEC)',
                   compact: false,
@@ -9724,7 +9724,7 @@ S.N.: ${item.sn || '-'}
             </div>
             <div className="mt-10 pt-3 border-t border-slate-200 flex items-center justify-between gap-3 text-[11px] font-bold text-slate-500 relative z-[1]">
               <div className="flex items-center gap-2 min-w-0">
-                {showDocumentLogo('slipLogo') && renderOrgLogoBox({ className: 'w-16 h-9 rounded-xl border border-slate-200 px-2 py-1 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                {showเอกสารLogo('slipLogo') && renderOrgLogoBox({ className: 'w-16 h-9 rounded-xl border border-slate-200 px-2 py-1 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
                 <span className="truncate">เอกสารนี้ออกโดยระบบ MDEC-Stock สำหรับตรวจรายการอุปกรณ์ตามโครงการและประกอบงานพัสดุภายในศูนย์</span>
               </div>
               <span className="shrink-0">{APP_VERSION}</span>
@@ -9738,19 +9738,19 @@ S.N.: ${item.sn || '-'}
   if (printSlipData) {
     const isPrepSlip = printSlipData.type === 'prep';
     return (
-      <div className={`factory-stock-polish min-h-screen font-sans text-slate-900 print:bg-white ${isInkSavingDocument ? "bg-white" : "bg-slate-100"}`}>
+      <div className={`factory-stock-polish min-h-screen font-sans text-slate-900 print:bg-white ${isInkSavingเอกสาร ? "bg-white" : "bg-slate-100"}`}>
         <div className="print-actions-bar print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
           <div>
-            <h2 className="font-bold text-xl flex items-center gap-2"><Icons.Printer className="w-6 h-6" /> {printSlipData.title}</h2>
+            <h2 className="font-bold text-xl flex items-center gap-2"><Icons.พิมพ์er className="w-6 h-6" /> {printSlipData.title}</h2>
             <p className="text-slate-300 text-sm font-bold mt-1">ตัวอย่างนี้คือเอกสารที่จะพิมพ์จริง ตรวจข้อมูลก่อนกดพิมพ์</p>
           </div>
-          <div className="flex gap-3"><button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors"><Icons.Printer className="w-5 h-5"/> {isPrepSlip ? 'พิมพ์ใบเตรียมของ' : 'พิมพ์ใบยืม'}</button><button onClick={() => setPrintSlipData(null)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button></div>
+          <div className="flex gap-3"><button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors"><Icons.พิมพ์er className="w-5 h-5"/> {isPrepSlip ? 'พิมพ์ใบเตรียมของ' : 'พิมพ์ใบยืม'}</button><button onClick={() => setพิมพ์SlipData(null)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-bold transition-colors">ปิด</button></div>
         </div>
         <div className="pt-24 print:pt-0 p-6 print:p-0 max-w-4xl mx-auto"><div className="print-paper-shell relative overflow-hidden bg-white p-8 print:p-6 shadow-xl print:shadow-none border border-slate-200 print:border-0 rounded-2xl print:rounded-none">
-          {showDocumentLogo('watermark') && !isInkSavingDocument && !brandLogoError && <img src={ORG_LOGO_SRC} alt="MDEC Watermark" className="absolute right-8 top-8 w-40 opacity-[0.045] pointer-events-none select-none" onError={() => setBrandLogoError(true)} />}
+          {showเอกสารLogo('watermark') && !isInkSavingเอกสาร && !brandLogoError && <img src={ORG_LOGO_SRC} alt="MDEC Watermark" className="absolute right-8 top-8 w-40 opacity-[0.045] pointer-events-none select-none" onError={() => setBrandLogoError(true)} />}
           <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-6 gap-4 relative z-[1]">
             <div className="min-w-0">
-              {showDocumentLogo('slipLogo') ? renderOrgSignature({
+              {showเอกสารLogo('slipLogo') ? renderOrgSignature({
                 title: printSlipData.title,
                 subtitle: 'ศูนย์มัลติมีเดียทางการศึกษา (MDEC)',
                 compact: false,
@@ -9776,7 +9776,7 @@ S.N.: ${item.sn || '-'}
           <div className="grid grid-cols-2 gap-12 mt-14 text-center font-bold relative z-[1]"><div><div className="border-b border-slate-900 h-12 mb-2"></div><div>{isPrepSlip ? 'ลงชื่อผู้เตรียมของ' : 'ลงชื่อผู้ยืม / ผู้รับผิดชอบงาน'}</div></div><div><div className="border-b border-slate-900 h-12 mb-2"></div><div>{isPrepSlip ? 'ลงชื่อผู้ตรวจรายการ' : 'ลงชื่อเจ้าหน้าที่ผู้ให้ยืม'}</div></div></div>
           <div className="mt-10 pt-3 border-t border-slate-200 flex items-center justify-between gap-3 text-[11px] font-bold text-slate-500 relative z-[1]">
             <div className="flex items-center gap-2 min-w-0">
-              {showDocumentLogo('slipLogo') && renderOrgLogoBox({ className: 'w-16 h-9 rounded-xl border border-slate-200 px-2 py-1 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+              {showเอกสารLogo('slipLogo') && renderOrgLogoBox({ className: 'w-16 h-9 rounded-xl border border-slate-200 px-2 py-1 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
               <span className="truncate">เอกสารนี้ออกโดยระบบ MDEC-Stock เพื่อแสดงความเป็นเจ้าของและใช้ประกอบการยืม-คืนภายในศูนย์</span>
             </div>
             <span className="shrink-0">{APP_VERSION}</span>
@@ -10113,7 +10113,7 @@ S.N.: ${item.sn || '-'}
             <Icons.Camera className="w-5 h-5" /> หลักฐานรูปภาพ
           </button>
           <button type="button" onClick={() => setShowBorrowDocsModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-            <Icons.Printer className="w-5 h-5" /> เอกสารย้อนหลัง
+            <Icons.พิมพ์er className="w-5 h-5" /> เอกสารย้อนหลัง
           </button>
           <button type="button" onClick={openControlCenter} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
             <Icons.ViewGrid className="w-5 h-5" /> Control Center
@@ -10355,13 +10355,13 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div>
-                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Printer className="w-5 h-5 text-indigo-500" /> Documents & Labels</h4>
+                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.พิมพ์er className="w-5 h-5 text-indigo-500" /> เอกสารs & Labels</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowPrintModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowพิมพ์Modal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> QR / สติ๊กเกอร์อุปกรณ์</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>พิมพ์ QR/ฉลาก</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowBoxLabelPrintModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowBoxLabelพิมพ์Modal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Folder className="w-5 h-5" /> ฉลากกล่อง</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>พิมพ์ฉลากกล่องพร้อมโลโก้ MDEC</p>
                   </button>
@@ -10797,7 +10797,7 @@ S.N.: ${item.sn || '-'}
                     </button>
                     <div className="flex flex-wrap gap-2">
                       <button type="button" onClick={() => setFilterLocation(room.name)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ดูเฉพาะห้องนี้</button>
-                      <button type="button" onClick={() => { setSelectedItems(room.items.map(i => i.id)); setShowPrintModal(true); }} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">พิมพ์ QR ห้องนี้</button>
+                      <button type="button" onClick={() => { setSelectedItems(room.items.map(i => i.id)); setShowพิมพ์Modal(true); }} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">พิมพ์ QR ห้องนี้</button>
                     </div>
                   </div>
 
@@ -11207,7 +11207,7 @@ S.N.: ${item.sn || '-'}
                       <span className="text-lg leading-none">⋯</span>
                     </summary>
                     <div className={`bulk-more-menu-panel absolute right-0 bottom-full mb-3 w-[min(82vw,330px)] rounded-3xl border shadow-2xl p-3 space-y-2 ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
-                      <button type="button" onClick={() => setShowPrintModal(true)} className={secondaryButtonClass}>
+                      <button type="button" onClick={() => setShowพิมพ์Modal(true)} className={secondaryButtonClass}>
                         <Icons.QrCode className="w-5 h-5 shrink-0" />
                         <span><span className="block">พิมพ์ QR / ฉลาก</span><span className={`block text-xs font-bold ${theme.textMuted}`}>พิมพ์ให้รายการที่เลือก</span></span>
                       </button>
@@ -11434,7 +11434,7 @@ S.N.: ${item.sn || '-'}
                       </div>
                       <div className="flex flex-col gap-2 w-full lg:w-56 shrink-0">
                         <button type="button" onClick={() => setPrepOpenId(isOpen ? null : prep.id)} className={`px-4 py-3 font-black rounded-xl border flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.CheckCircle className="w-5 h-5"/> {isOpen ? 'ซ่อนเช็กลิสต์' : 'เช็กของ'}</button>
-                        <button type="button" onClick={() => openPrepPrint(prep)} className={`px-4 py-3 font-black rounded-xl border flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.Printer className="w-5 h-5"/> พิมพ์ใบเตรียมของ</button>
+                        <button type="button" onClick={() => openPrepพิมพ์(prep)} className={`px-4 py-3 font-black rounded-xl border flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.พิมพ์er className="w-5 h-5"/> พิมพ์ใบเตรียมของ</button>
                         <button type="button" onClick={() => startPrepAsEvent(prep)} disabled={isCancelled} className={`px-4 py-3 font-black rounded-xl shadow-md flex items-center justify-center gap-2 ${isCancelled ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-500 text-white'}`}><Icons.Truck className="w-5 h-5"/> ยืนยันนำออกงาน</button>
                         <button type="button" onClick={() => openPrepEditor(prep)} className="px-4 py-3 bg-sky-600 hover:bg-sky-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.Edit className="w-4 h-4"/> แก้ไข</button>
                         <div className="grid grid-cols-2 gap-2">
@@ -12080,7 +12080,7 @@ S.N.: ${item.sn || '-'}
                         </div>
                       </div>
                       <div className="flex flex-col gap-2 w-full lg:w-56 shrink-0">
-                        <button type="button" onClick={() => openStorageBoxLabel(box)} className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.Printer className="w-5 h-5"/> พิมพ์ฉลาก</button>
+                        <button type="button" onClick={() => openStorageBoxLabel(box)} className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.พิมพ์er className="w-5 h-5"/> พิมพ์ฉลาก</button>
                         <button type="button" onClick={() => openStorageBoxEditor(box)} className="px-4 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.Edit className="w-4 h-4"/> แก้ไขกล่อง</button>
                         <button type="button" onClick={() => selectStorageBoxItems(box)} className={`px-4 py-3 font-black rounded-xl border flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.CheckCircle className="w-5 h-5"/> เลือกรายการนี้</button>
                         <button type="button" onClick={() => deleteStorageBox(box)} className="px-4 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.Trash className="w-4 h-4"/> ลบกล่อง</button>
@@ -12423,7 +12423,7 @@ S.N.: ${item.sn || '-'}
               ) : settingsTab === 'documents' ? (
                 <div className="p-6 space-y-6">
                   <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-sky-900/20 border-sky-800' : 'bg-sky-50 border-sky-200'}`}>
-                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Printer className="w-6 h-6 text-sky-500"/> ตั้งค่าเอกสารและโลโก้</h4>
+                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.พิมพ์er className="w-6 h-6 text-sky-500"/> ตั้งค่าเอกสารและโลโก้</h4>
                     <p className={`text-sm font-bold ${theme.textMuted}`}>เลือกได้ว่าโลโก้ MDEC จะแสดงบน QR ใบยืม ฉลากกล่อง รูปหลักฐาน และ watermark มากน้อยแค่ไหน โดยไม่ต้องแก้โค้ดใหม่</p>
                   </div>
 
@@ -12440,7 +12440,7 @@ S.N.: ${item.sn || '-'}
                           type="checkbox"
                           className="w-5 h-5 mt-1 accent-sky-600 shrink-0"
                           checked={documentBrandSettings[key] !== false}
-                          onChange={(e) => saveDocumentSettings({ [key]: e.target.checked })}
+                          onChange={(e) => saveเอกสารSettings({ [key]: e.target.checked })}
                         />
                         <span className="min-w-0">
                           <span className={`block font-black ${theme.textTitle}`}>{title}</span>
@@ -12461,7 +12461,7 @@ S.N.: ${item.sn || '-'}
                         <button
                           key={value}
                           type="button"
-                          onClick={() => saveDocumentSettings({ logoSize: value })}
+                          onClick={() => saveเอกสารSettings({ logoSize: value })}
                           className={`px-3 py-3 rounded-xl font-black border ${documentBrandSettings.logoSize === value ? 'bg-sky-600 text-white border-sky-600' : theme.btnSecondary}`}
                         >
                           {label}
@@ -12480,7 +12480,7 @@ S.N.: ${item.sn || '-'}
                         <button
                           key={value}
                           type="button"
-                          onClick={() => saveDocumentSettings({ printTone: value })}
+                          onClick={() => saveเอกสารSettings({ printTone: value })}
                           className={`px-3 py-3 rounded-xl font-black border ${documentBrandSettings.printTone === value ? 'bg-sky-600 text-white border-sky-600' : theme.btnSecondary}`}
                         >
                           {label}
@@ -12494,8 +12494,8 @@ S.N.: ${item.sn || '-'}
                     <div className={`font-black mb-2 ${theme.textTitle}`}>ตัวอย่างภาพลักษณ์</div>
                     <div className={`rounded-2xl p-5 border bg-white text-slate-900 ${isDarkMode ? 'border-blue-800' : 'border-blue-100'}`}>
                       <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
-                        {showDocumentLogo('slipLogo') ? renderOrgSignature({ title: 'ใบยืมอุปกรณ์', subtitle: 'ศูนย์มัลติมีเดียทางการศึกษา', titleClass: 'text-slate-900 text-xl', subtitleClass: 'text-slate-500', logoClassName: 'w-24 h-14 rounded-2xl border border-slate-200 px-3 py-2 shadow-sm' }) : <div className="font-black text-2xl">ใบยืมอุปกรณ์</div>}
-                        <div className="text-right text-sm font-black text-slate-500">{makeDocumentRef('BR')}</div>
+                        {showเอกสารLogo('slipLogo') ? renderOrgSignature({ title: 'ใบยืมอุปกรณ์', subtitle: 'ศูนย์มัลติมีเดียทางการศึกษา', titleClass: 'text-slate-900 text-xl', subtitleClass: 'text-slate-500', logoClassName: 'w-24 h-14 rounded-2xl border border-slate-200 px-3 py-2 shadow-sm' }) : <div className="font-black text-2xl">ใบยืมอุปกรณ์</div>}
+                        <div className="text-right text-sm font-black text-slate-500">{makeเอกสารRef('BR')}</div>
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                         <div className="rounded-xl border border-slate-200 p-3"><div className="text-slate-400 font-bold">ผู้ยืม</div><div className="font-black">ตัวอย่างผู้ยืม</div></div>
@@ -12606,7 +12606,7 @@ S.N.: ${item.sn || '-'}
                     </div>
                   </div>
                   <div className={`p-6 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-6 h-6 text-emerald-500"/> สำรองข้อมูล (Export)</h4>
+                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-6 h-6 text-emerald-500"/> สำรองข้อมูล (ส่งออก)</h4>
                     <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>ดาวน์ดาวน์โหลดข้อมูลสต๊อกทั้งหมดออกมาเป็นไฟล์ Excel (.csv) เพื่อเก็บสำรองไว้ในคอมพิวเตอร์ของคุณ</p>
                     <button onClick={exportToCSV} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-lg">
                       <Icons.Download className="w-5 h-5"/> ดาวน์โหลดไฟล์ CSV
@@ -13552,7 +13552,7 @@ S.N.: ${item.sn || '-'}
                     <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>รายละเอียดอุปกรณ์ ประวัติการใช้งาน และหลักฐานที่เกี่ยวข้อง</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <button type="button" onClick={() => exportItemHistoryCSV(detailItem)} className={`hidden sm:inline-flex px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>Export CSV</button>
+                    <button type="button" onClick={() => exportItemHistoryCSV(detailItem)} className={`hidden sm:inline-flex px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ส่งออก CSV</button>
                     <button type="button" onClick={() => setShowHistory(null)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center ${theme.btnCancel}`} title="ปิดหน้าต่าง"><Icons.X className="w-5 h-5" /></button>
                   </div>
                 </div>
@@ -14322,7 +14322,7 @@ S.N.: ${item.sn || '-'}
                             </div>
                             <div className="flex flex-wrap gap-2 shrink-0">
                               {canAddEditItems && project.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectAssign(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 hover:bg-blue-500 text-white">จัดอุปกรณ์</button>}
-                              <button type="button" onClick={() => openProjectPrint(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 text-white">พิมพ์รายงาน</button>
+                              <button type="button" onClick={() => openProjectพิมพ์(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 text-white">พิมพ์รายงาน</button>
                               <button type="button" onClick={() => { setFilterProject(project.name); setShowProjectsModal(false); }} className="px-3 py-2 rounded-xl text-sm font-black bg-indigo-600 hover:bg-indigo-500 text-white">ดูเฉพาะโครงการนี้</button>
                             </div>
                           </div>
@@ -14759,7 +14759,7 @@ S.N.: ${item.sn || '-'}
                   <div><b>ติดตามการคืนงาน</b> = ดูของรอคืน ออกงานอยู่ วันนี้ และเลยกำหนด</div>
                   <div><b>ศูนย์หลักฐานรูปภาพ</b> = ดู แก้ไข แทนที่ หรือลบรูปหลักฐาน</div>
                   <div><b>จัดเก็บและจัดชุด</b> = กล่องเก็บของ เซ็ตอุปกรณ์ และรายการเตรียมของ</div>
-                  <div><b>Documents & Labels</b> = QR ฉลากกล่อง ใบยืม และตั้งค่าโลโก้เอกสาร</div>
+                  <div><b>เอกสารs & Labels</b> = QR ฉลากกล่อง ใบยืม และตั้งค่าโลโก้เอกสาร</div>
                 </div>
               </div>
 
@@ -14860,13 +14860,13 @@ S.N.: ${item.sn || '-'}
       )}
 
 
-      {/* เอกสารย้อนหลัง / Borrow Documents Archive */}
+      {/* เอกสารย้อนหลัง / Borrow เอกสารs Archive */}
       {showBorrowDocsModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[9990] mdec-history-proof-safe`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
             <div className={`p-5 sm:p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
               <div className="min-w-0">
-                <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-500">Documents Archive</div>
+                <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-500">เอกสารs Archive</div>
                 <h3 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>เอกสารย้อนหลัง</h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมใบยืม ใบออกงาน และสถานะการคืน ค้นหาได้จากเลขเอกสาร ผู้ยืม ชื่องาน วันที่ และรายการอุปกรณ์</p>
               </div>
@@ -14878,10 +14878,10 @@ S.N.: ${item.sn || '-'}
 
             <div className="p-5 sm:p-6 border-b border-slate-200/60 dark:border-slate-800/80 grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
-                ['เอกสารทั้งหมด', borrowDocuments.length, 'bg-blue-500/10 text-blue-600 border-blue-500/20'],
-                ['รอคืน', borrowDocuments.filter(d => !d.status || d.status === 'active').length, 'bg-amber-500/10 text-amber-600 border-amber-500/20'],
-                ['คืนบางส่วน', borrowDocuments.filter(d => d.status === 'partial').length, 'bg-purple-500/10 text-purple-600 border-purple-500/20'],
-                ['ปิดเอกสารแล้ว', borrowDocuments.filter(d => d.status === 'closed').length, 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20']
+                ['เอกสารทั้งหมด', borrowเอกสารs.length, 'bg-blue-500/10 text-blue-600 border-blue-500/20'],
+                ['รอคืน', borrowเอกสารs.filter(d => !d.status || d.status === 'active').length, 'bg-amber-500/10 text-amber-600 border-amber-500/20'],
+                ['คืนบางส่วน', borrowเอกสารs.filter(d => d.status === 'partial').length, 'bg-purple-500/10 text-purple-600 border-purple-500/20'],
+                ['ปิดเอกสารแล้ว', borrowเอกสารs.filter(d => d.status === 'closed').length, 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20']
               ].map(([label, value, tone]) => (
                 <div key={label} className={`rounded-2xl border p-4 ${tone}`}>
                   <div className="text-xs font-black opacity-80">{label}</div>
@@ -14927,14 +14927,14 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-6 space-y-3">
-              {filteredBorrowDocuments.length === 0 ? (
+              {filteredBorrowเอกสารs.length === 0 ? (
                 <div className={`min-h-[280px] rounded-3xl border border-dashed flex flex-col items-center justify-center text-center p-8 ${isDarkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-200 bg-slate-50'}`}>
-                  <Icons.Printer className={`w-14 h-14 mb-4 ${theme.textMuted}`} />
+                  <Icons.พิมพ์er className={`w-14 h-14 mb-4 ${theme.textMuted}`} />
                   <div className={`text-xl font-black ${theme.textTitle}`}>ไม่พบเอกสารย้อนหลัง</div>
                   <p className={`text-sm font-bold mt-2 max-w-md ${theme.textMuted}`}>ลองล้างตัวกรอง หรือสร้างใบยืม/ใบออกงานใหม่ ระบบจะบันทึกเอกสารไว้ในหน้านี้อัตโนมัติ</p>
                 </div>
               ) : (
-                filteredBorrowDocuments.map((docData) => {
+                filteredBorrowเอกสารs.map((docData) => {
                   const itemCount = Array.isArray(docData.items) ? docData.items.length : (Array.isArray(docData.itemIds) ? docData.itemIds.length : 0);
                   const returnedCount = Array.isArray(docData.returnedItemIds) ? docData.returnedItemIds.length : 0;
                   const status = docData.status || 'active';
@@ -14982,8 +14982,8 @@ S.N.: ${item.sn || '-'}
                           {docData.note && <div className={`mt-3 text-xs font-bold rounded-2xl px-3 py-2 ${isDarkMode ? 'bg-amber-950/20 text-amber-300' : 'bg-amber-50 text-amber-700'}`}>หมายเหตุ: {docData.note}</div>}
                         </div>
                         <div className="flex xl:flex-col gap-2 shrink-0">
-                          <button type="button" onClick={() => openBorrowDocumentPrint(docData)} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2">
-                            <Icons.Printer className="w-5 h-5" /> พิมพ์ซ้ำ
+                          <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2">
+                            <Icons.พิมพ์er className="w-5 h-5" /> พิมพ์ซ้ำ
                           </button>
                           <button type="button" onClick={() => { setTrackingTab('today'); setShowTrackingCenterModal(true); }} className={`px-4 py-3 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
                             ติดตามการคืน
@@ -14997,7 +14997,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className={`p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-3 ${theme.divide}`}>
-              <div className={`text-sm font-bold ${theme.textMuted}`}>กำลังแสดง {filteredBorrowDocuments.length.toLocaleString('th-TH')} จาก {borrowDocuments.length.toLocaleString('th-TH')} เอกสาร</div>
+              <div className={`text-sm font-bold ${theme.textMuted}`}>กำลังแสดง {filteredBorrowเอกสารs.length.toLocaleString('th-TH')} จาก {borrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร</div>
               <button type="button" onClick={() => setShowBorrowDocsModal(false)} className={`w-full sm:w-auto px-6 py-3 rounded-2xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
             </div>
           </div>
