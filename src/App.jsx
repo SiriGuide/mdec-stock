@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.51.20 QR Visual Polish v2';
+const APP_VERSION = 'v22.51.21 Real Device QA & Workflow Cleanup';
 const APP_UPDATE_NOTE = 'Backup Center Final Polish: เก็บหน้าสำรองข้อมูลให้ชัดและปลอดภัยขึ้น เพิ่มสรุปขนาดโดยประมาณ คำเตือนไฟล์ใหญ่ Checklist และลำดับการสำรอง โดยไม่แตะ QR/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
