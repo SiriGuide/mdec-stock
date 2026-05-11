@@ -3173,6 +3173,139 @@ function FactoryPolishStyle({ isDarkMode }) {
         }
       }
 
+
+      /* v22.51.13 Mobile Operational Modal Fix: แก้รับคืนกลุ่ม / multi-select action bar บนมือถือ */
+      @media (max-width: 767px) {
+        .factory-stock-polish .return-operation-modal {
+          width: calc(100vw - 14px) !important;
+          max-width: calc(100vw - 14px) !important;
+          max-height: calc(100dvh - 14px) !important;
+          padding: 12px !important;
+          overflow-x: hidden !important;
+        }
+        .factory-stock-polish .return-operation-modal label.return-checklist-card {
+          display: block !important;
+          grid-template-columns: none !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          padding: 10px !important;
+          overflow: hidden !important;
+        }
+        .factory-stock-polish .return-operation-modal label.return-checklist-card > .return-checklist-row {
+          display: grid !important;
+          grid-template-columns: 24px minmax(0, 1fr) !important;
+          grid-auto-flow: row !important;
+          align-items: start !important;
+          column-gap: 10px !important;
+          row-gap: 6px !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+        }
+        .factory-stock-polish .return-operation-modal label.return-checklist-card input[type="checkbox"] {
+          grid-column: 1 !important;
+          grid-row: 1 !important;
+          flex: none !important;
+          width: 20px !important;
+          height: 20px !important;
+          margin: 2px 0 0 0 !important;
+        }
+        .factory-stock-polish .return-operation-modal .return-checklist-main {
+          grid-column: 2 !important;
+          grid-row: 1 !important;
+          display: block !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          white-space: normal !important;
+          word-break: keep-all !important;
+          overflow-wrap: break-word !important;
+          line-break: auto !important;
+          writing-mode: horizontal-tb !important;
+          line-height: 1.35 !important;
+        }
+        .factory-stock-polish .return-operation-modal .return-checklist-main * {
+          white-space: normal !important;
+          word-break: keep-all !important;
+          overflow-wrap: break-word !important;
+          writing-mode: horizontal-tb !important;
+        }
+        .factory-stock-polish .return-operation-modal .return-checklist-row > span:not(.return-checklist-main) {
+          grid-column: 2 !important;
+          grid-row: auto !important;
+          justify-self: start !important;
+          max-width: 100% !important;
+          writing-mode: horizontal-tb !important;
+        }
+        .factory-stock-polish .return-operation-modal .return-inspection-fields {
+          display: grid !important;
+          grid-template-columns: 1fr !important;
+          gap: 8px !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          padding-left: 34px !important;
+          margin-top: 10px !important;
+        }
+        .factory-stock-polish .return-operation-modal .return-inspection-fields :is(select,input) {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          font-size: 16px !important;
+          min-height: 42px !important;
+        }
+        .factory-stock-polish .return-operation-modal > .grid.grid-cols-1.sm\:grid-cols-2,
+        .factory-stock-polish .return-operation-modal > .flex.gap-3 {
+          position: sticky !important;
+          bottom: -12px !important;
+          z-index: 8 !important;
+          margin-left: -12px !important;
+          margin-right: -12px !important;
+          margin-bottom: -12px !important;
+          padding: 10px 12px max(10px, env(safe-area-inset-bottom)) !important;
+          background: inherit !important;
+          border-top: 1px solid rgba(148,163,184,.22) !important;
+        }
+        .factory-stock-polish .bulk-selection-actionbar {
+          left: 10px !important;
+          right: 10px !important;
+          bottom: max(10px, env(safe-area-inset-bottom)) !important;
+          z-index: 70 !important;
+        }
+        .factory-stock-polish .bulk-selection-panel {
+          max-height: min(52dvh, 420px) !important;
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
+          border-radius: 22px !important;
+          padding: 10px !important;
+        }
+        .factory-stock-polish .bulk-selection-panel button,
+        .factory-stock-polish .bulk-selection-panel summary {
+          min-height: 44px !important;
+          padding: 10px 12px !important;
+          font-size: 13px !important;
+          line-height: 1.15 !important;
+          white-space: normal !important;
+        }
+        .factory-stock-polish .bulk-more-menu-panel {
+          position: fixed !important;
+          left: 12px !important;
+          right: 12px !important;
+          bottom: calc(120px + env(safe-area-inset-bottom)) !important;
+          width: auto !important;
+          max-width: none !important;
+          max-height: min(48dvh, 360px) !important;
+          overflow-y: auto !important;
+          z-index: 90 !important;
+        }
+        .factory-stock-polish .quick-return-modal {
+          width: calc(100vw - 14px) !important;
+          max-width: calc(100vw - 14px) !important;
+          max-height: calc(100dvh - 14px) !important;
+          border-radius: 22px !important;
+        }
+      }
+
     `}</style>
   );
 }
@@ -10439,8 +10572,8 @@ S.N.: ${item.sn || '-'}
         const secondaryButtonClass = `w-full px-4 py-3 rounded-2xl font-black text-sm border flex items-center gap-3 text-left transition-colors ${isDarkMode ? 'bg-slate-950 hover:bg-slate-800 border-slate-700 text-slate-200' : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'}`;
 
         return (
-          <div className="fixed inset-x-3 bottom-4 sm:bottom-6 lg:inset-x-auto lg:right-6 lg:bottom-6 lg:w-[390px] z-40 flex justify-center pointer-events-none">
-            <div className={`pointer-events-auto w-full max-w-4xl lg:max-w-none rounded-[1.5rem] border shadow-[0_18px_55px_rgba(0,0,0,0.32)] p-3 sm:p-4 animate-[slideUp_0.3s_ease-out] ${isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+          <div className="bulk-selection-actionbar fixed inset-x-3 bottom-4 sm:bottom-6 lg:inset-x-auto lg:right-6 lg:bottom-6 lg:w-[390px] z-40 flex justify-center pointer-events-none">
+            <div className={`bulk-selection-panel pointer-events-auto w-full max-w-4xl lg:max-w-none rounded-[1.5rem] border shadow-[0_18px_55px_rgba(0,0,0,0.32)] p-3 sm:p-4 animate-[slideUp_0.3s_ease-out] ${isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3 shrink-0">
                   <div className="flex items-center gap-3 min-w-0">
@@ -10527,12 +10660,12 @@ S.N.: ${item.sn || '-'}
                     </div>
                   )}
 
-                  <details className="relative col-span-2 sm:col-span-1">
+                  <details className="bulk-more-menu relative col-span-2 sm:col-span-1">
                     <summary className={`list-none cursor-pointer px-4 py-3 rounded-2xl font-black border flex items-center justify-center gap-2 text-sm sm:text-base ${theme.btnSecondary}`}>
                       <span>เพิ่มเติม</span>
                       <span className="text-lg leading-none">⋯</span>
                     </summary>
-                    <div className={`absolute right-0 bottom-full mb-3 w-[min(82vw,330px)] rounded-3xl border shadow-2xl p-3 space-y-2 ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className={`bulk-more-menu-panel absolute right-0 bottom-full mb-3 w-[min(82vw,330px)] rounded-3xl border shadow-2xl p-3 space-y-2 ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
                       <button type="button" onClick={() => setShowPrintModal(true)} className={secondaryButtonClass}>
                         <Icons.QrCode className="w-5 h-5 shrink-0" />
                         <span><span className="block">พิมพ์ QR / ฉลาก</span><span className={`block text-xs font-bold ${theme.textMuted}`}>พิมพ์ให้รายการที่เลือก</span></span>
@@ -11414,7 +11547,7 @@ S.N.: ${item.sn || '-'}
       {/* 💡 Modal รับคืนด่วน */}
       {showQuickReturnModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
+          <div className={`quick-return-modal rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
             <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
               <h3 className={`text-xl sm:text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
                 <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-indigo-900/50 text-indigo-400' : 'bg-indigo-100 text-indigo-600'}`}><Icons.Users className="w-6 h-6"/></div>
