@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.51.5 Mobile & Desktop Responsive QA';
+const APP_VERSION = 'v22.51.9 Central History Restore';
 const APP_UPDATE_NOTE = 'Final QA & Stability Pass: เก็บความนิ่งหลังอัปเดตใหญ่ ปรับมือถือ/ดีไซน์เล็กน้อย เช็กปุ่ม ฟอร์ม เอกสาร Backup และ QR โดยไม่แตะระบบกล้องหรือฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -3258,6 +3258,9 @@ function MainApp() {
   const [showProofCenterModal, setShowProofCenterModal] = useState(false);
   const [proofCenterFilter, setProofCenterFilter] = useState('all');
   const [proofCenterSearch, setProofCenterSearch] = useState('');
+  const [showHistoryCenterModal, setShowHistoryCenterModal] = useState(false);
+  const [historyCenterFilter, setHistoryCenterFilter] = useState('all');
+  const [historyCenterSearch, setHistoryCenterSearch] = useState('');
   const [expandedProofGroupId, setExpandedProofGroupId] = useState(null);
   const [proofEditTarget, setProofEditTarget] = useState(null);
   const [proofEditForm, setProofEditForm] = useState({ contextLabel: '', note: '' });
@@ -6091,6 +6094,56 @@ S.N.: ${item.sn || '-'}
       total: overdue.length + dueToday.length + maintenance.length + untagged.length + deleted.length + prepIncomplete.length + brokenBoxes.length
     };
   }, [items, settingsOptions.prepLists, settingsOptions.storageBoxes, todayFollowup]);
+
+  const allHistoryCenterEntries = useMemo(() => {
+    const rows = [];
+    items.filter(i => i && !i.isDeleted).forEach((item) => {
+      const historyList = Array.isArray(item.history) ? item.history : [];
+      historyList.forEach((h, historyIndex) => {
+        const historyType = h.type || 'other';
+        const typeLabel = historyType === 'borrow' ? 'ยืม' : historyType === 'event' ? 'ออกงาน' : historyType === 'return' ? 'รับคืน' : historyType === 'projectChange' ? 'โครงการ' : String(historyType).includes('repair') ? 'ซ่อม' : 'อื่น ๆ';
+        const subject = h.borrower || h.eventName || h.problem || h.staffIn || h.note || '-';
+        const staff = h.staffOut || h.staffIn || h.operatorName || '-';
+        const groupKey = historyType === 'return' && h.date ? `${h.date}__${h.staffIn || ''}__${h.operatorName || ''}` : '';
+        rows.push({
+          id: `${item.id}_${historyIndex}`,
+          itemId: item.id,
+          itemName: item.name || '-',
+          sn: item.sn || '-',
+          category: item.category || '-',
+          location: item.location || '-',
+          status: item.status || '-',
+          historyIndex,
+          historyType,
+          typeLabel,
+          date: h.date || '',
+          subject,
+          staff,
+          note: h.note || h.problem || '',
+          proofCount: Array.isArray(h.proofs) ? h.proofs.length : 0,
+          groupKey,
+        });
+      });
+    });
+
+    const returnGroupCounts = new Map();
+    rows.forEach((row) => {
+      if (row.groupKey) returnGroupCounts.set(row.groupKey, (returnGroupCounts.get(row.groupKey) || 0) + 1);
+    });
+
+    return rows
+      .map(row => ({ ...row, groupCount: row.groupKey ? (returnGroupCounts.get(row.groupKey) || 1) : 1 }))
+      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+  }, [items]);
+
+  const filteredHistoryCenterEntries = useMemo(() => {
+    const keyword = String(historyCenterSearch || '').toLowerCase().trim();
+    return allHistoryCenterEntries.filter((entry) => {
+      const matchType = historyCenterFilter === 'all' || entry.historyType === historyCenterFilter || (historyCenterFilter === 'repair' && String(entry.historyType || '').includes('repair'));
+      const haystack = `${entry.itemName} ${entry.sn} ${entry.category} ${entry.location} ${entry.subject} ${entry.staff} ${entry.note} ${entry.typeLabel}`.toLowerCase();
+      return matchType && (!keyword || haystack.includes(keyword));
+    });
+  }, [allHistoryCenterEntries, historyCenterFilter, historyCenterSearch]);
 
   const getProofUniqueKey = (proof = {}) => String(
     proof.proofDocId ||
@@ -9283,6 +9336,9 @@ S.N.: ${item.sn || '-'}
           <button type="button" onClick={() => openTrackingCenter('today')} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
             <Icons.History className="w-5 h-5" /> ศูนย์ติดตาม
           </button>
+          <button type="button" onClick={() => { setHistoryCenterFilter('all'); setHistoryCenterSearch(''); setShowHistoryCenterModal(true); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+            <Icons.ClipboardList className="w-5 h-5" /> ประวัติส่วนกลาง
+          </button>
           {canAddEditItems && (
             <button type="button" onClick={openAddItemForm} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
               <Icons.Plus className="w-5 h-5" /> เพิ่มอุปกรณ์
@@ -9500,6 +9556,10 @@ S.N.: ${item.sn || '-'}
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Camera className="w-5 h-5" /> หลักฐานรูปภาพ</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูและจัดการรูปหลักฐาน</p>
                   </button>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setHistoryCenterFilter('all'); setHistoryCenterSearch(''); setShowHistoryCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> ประวัติส่วนกลาง</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นหายืม/คืน/ออกงานทุกอุปกรณ์ และเพิ่มหลักฐานย้อนหลัง</p>
+                  </button>
                 </div>
               </div>
 
@@ -9626,7 +9686,7 @@ S.N.: ${item.sn || '-'}
           </div>
         </div>
 
-        <div className="p-4 sm:p-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2.5">
+        <div className="p-4 sm:p-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2.5">
           {canUseOperationalTools && (
             <button type="button" onClick={() => openSelectionScanner()} className={`group relative overflow-hidden p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-900 border-slate-900 text-white'}`}>
               <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center mb-3"><Icons.QrCode className="w-5 h-5" /></div>
@@ -9655,6 +9715,11 @@ S.N.: ${item.sn || '-'}
             <div className="w-10 h-10 rounded-2xl bg-pink-600 text-white flex items-center justify-center mb-3"><Icons.Camera className="w-5 h-5" /></div>
             <div className="font-black text-lg">หลักฐานรูปภาพ</div>
             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>รวมรูปทุกอุปกรณ์</div>
+          </button>
+          <button type="button" onClick={() => { setHistoryCenterFilter('all'); setHistoryCenterSearch(''); setShowHistoryCenterModal(true); }} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-sky-950/40 border-sky-800 text-sky-200' : 'bg-sky-50 border-sky-100 text-sky-700'}`}>
+            <div className="w-10 h-10 rounded-2xl bg-sky-600 text-white flex items-center justify-center mb-3"><Icons.ClipboardList className="w-5 h-5" /></div>
+            <div className="font-black text-lg">ประวัติส่วนกลาง</div>
+            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ค้นทุกยืม/คืน/ออกงาน</div>
           </button>
         </div>
 
@@ -13411,6 +13476,80 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
+
+      {/* 🧾 ศูนย์ประวัติส่วนกลาง */}
+      {showHistoryCenterModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[9996]`}>
+          <div className={`rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[92vh] overflow-hidden flex flex-col border ${theme.cardBg}`}>
+            <div className={`p-4 sm:p-6 border-b flex items-start justify-between gap-4 ${theme.divide}`}>
+              <div className="min-w-0">
+                <h3 className={`text-2xl sm:text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-lg">🧾</span> ประวัติส่วนกลาง</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นหายืม / ออกงาน / รับคืน / ซ่อม จากทุกอุปกรณ์ ไม่ต้องจำว่าเปิดจากชิ้นไหน</p>
+              </div>
+              <button type="button" onClick={() => setShowHistoryCenterModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+
+            <div className={`p-4 border-b grid grid-cols-1 lg:grid-cols-[1fr_220px_auto] gap-3 ${theme.divide}`}>
+              <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหา ชื่ออุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / ผู้รับคืน / หมายเหตุ" value={historyCenterSearch} onChange={e => setHistoryCenterSearch(e.target.value)} />
+              <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={historyCenterFilter} onChange={e => setHistoryCenterFilter(e.target.value)}>
+                <option value="all">ทุกประเภท</option>
+                <option value="borrow">ยืม</option>
+                <option value="event">ออกงาน</option>
+                <option value="return">รับคืน</option>
+                <option value="repair">ซ่อม/ชำรุด</option>
+                <option value="projectChange">โครงการ</option>
+              </select>
+              <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{filteredHistoryCenterEntries.length.toLocaleString('th-TH')} รายการ</div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5">
+              {filteredHistoryCenterEntries.length === 0 ? (
+                <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบประวัติที่ค้นหา</div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredHistoryCenterEntries.slice(0, 250).map((entry) => {
+                    const tone = entry.historyType === 'borrow'
+                      ? (isDarkMode ? 'bg-purple-950/35 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-800')
+                      : entry.historyType === 'event'
+                        ? (isDarkMode ? 'bg-orange-950/35 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800')
+                        : entry.historyType === 'return'
+                          ? (isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
+                          : (isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-800');
+                    return (
+                      <div key={entry.id} className={`rounded-2xl border p-4 ${tone}`}>
+                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <span className="px-3 py-1 rounded-full bg-black/10 dark:bg-white/10 text-xs font-black">{entry.typeLabel}{entry.historyType === 'return' && entry.groupCount > 1 ? `แบบกลุ่ม ${entry.groupCount} ชิ้น` : ''}</span>
+                              <span className={`text-xs font-black ${theme.textMuted}`}>{entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : 'ไม่ระบุวันเวลา'}</span>
+                              <span className={`text-xs font-black ${theme.textMuted}`}>หลักฐาน {entry.proofCount} รูป</span>
+                            </div>
+                            <div className={`font-black text-lg truncate ${theme.textTitle}`}>{entry.itemName}</div>
+                            <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {entry.sn || '-'} • {entry.category || '-'} • {entry.location || '-'}</div>
+                            <div className={`text-sm font-bold mt-2 ${theme.textTitle}`}>เรื่อง/ผู้เกี่ยวข้อง: {entry.subject || '-'} <span className={theme.textMuted}>• โดย {entry.staff || '-'}</span></div>
+                            {entry.note && <div className={`text-xs font-bold mt-2 ${theme.textMuted}`}>หมายเหตุ: {entry.note}</div>}
+                          </div>
+                          <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 lg:w-48 shrink-0">
+                            <button type="button" onClick={() => { setShowHistoryCenterModal(false); setShowHistory(entry.itemId); }} className={`px-3 py-2.5 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ดูรายละเอียด</button>
+                            <button type="button" onClick={() => { setShowHistoryCenterModal(false); setProofAttachTarget({ itemId: entry.itemId, historyIndex: entry.historyIndex }); setProofAttachFiles([]); }} className="px-3 py-2.5 rounded-xl text-sm font-black bg-pink-600 hover:bg-pink-500 text-white">เพิ่มหลักฐาน</button>
+                            {entry.proofCount > 0 && <button type="button" onClick={() => { setShowHistoryCenterModal(false); setProofCenterSearch(entry.sn || entry.itemName || ''); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setShowProofCenterModal(true); }} className="col-span-2 lg:col-span-1 px-3 py-2.5 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 text-white">ดูรูป</button>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {filteredHistoryCenterEntries.length > 250 && <div className={`text-center text-sm font-bold ${theme.textMuted}`}>แสดง 250 รายการล่าสุดจากผลค้นหา กรุณาพิมพ์ค้นหาให้แคบลงถ้าต้องการรายการเก่า</div>}
+                </div>
+              )}
+            </div>
+
+            <div className={`p-4 border-t grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 ${theme.divide}`}>
+              <div className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>ใช้หน้านี้เมื่อต้องการเพิ่มหลักฐานย้อนหลัง แต่จำไม่ได้ว่าอยู่ในอุปกรณ์ชิ้นไหน</div>
+              <button type="button" onClick={() => setShowHistoryCenterModal(false)} className={`px-6 py-3 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ศูนย์หลักฐานรูปภาพทั้งหมด */}
       {showProofCenterModal && (
