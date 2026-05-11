@@ -34,7 +34,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.51.2 Final QA & Stability Pass';
+const APP_VERSION = 'v22.51.5 Mobile & Desktop Responsive QA';
 const APP_UPDATE_NOTE = 'Final QA & Stability Pass: เก็บความนิ่งหลังอัปเดตใหญ่ ปรับมือถือ/ดีไซน์เล็กน้อย เช็กปุ่ม ฟอร์ม เอกสาร Backup และ QR โดยไม่แตะระบบกล้องหรือฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -2928,6 +2928,188 @@ function FactoryPolishStyle({ isDarkMode }) {
       @media (prefers-reduced-motion: reduce) {
         .factory-stock-polish *, .factory-stock-polish *::before, .factory-stock-polish *::after { transition: none !important; animation: none !important; }
       }
+
+      /* v22.51.5 Mobile & Desktop Responsive QA
+         Scope: layout/UI only. No QR scanner, camera permission, Firebase path, or data logic changes. */
+      .factory-stock-polish {
+        overflow-x: hidden !important;
+      }
+      .factory-stock-polish * {
+        box-sizing: border-box;
+      }
+      .factory-stock-polish :is(.solid-panel,.solid-workspace,.workspace-action-card,.operation-workspace-card,.purchase-project-card,.document-archive-card,.tracking-list-card,.asset-detail-card,.history-detail-card) {
+        min-width: 0 !important;
+      }
+      .factory-stock-polish :is(button,a,input,select,textarea) {
+        max-width: 100%;
+      }
+      .factory-stock-polish :is(.grid,.flex) > * {
+        min-width: 0;
+      }
+
+      /* Operational modals: ยืม / ออกงาน / รับคืน — responsive QA */
+      .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) {
+        width: min(620px, calc(100vw - 32px)) !important;
+        max-width: min(620px, calc(100vw - 32px)) !important;
+        max-height: min(90vh, 780px) !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        box-sizing: border-box !important;
+      }
+      .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) * {
+        min-width: 0;
+      }
+      .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) :is(h3,h4,p,label,span,div) {
+        overflow-wrap: anywhere;
+      }
+      .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+      }
+      .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) > .flex.gap-3 {
+        align-items: stretch !important;
+      }
+      .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) > .flex.gap-3 > button {
+        min-width: 0 !important;
+        white-space: normal !important;
+        line-height: 1.25 !important;
+      }
+      .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .custom-scrollbar {
+        overscroll-behavior: contain;
+      }
+
+      @media (min-width: 768px) {
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal) {
+          padding: 22px !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal) :is(input:not([type="checkbox"]):not([type="radio"]),select) {
+          min-height: 46px !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal) textarea {
+          min-height: 82px !important;
+        }
+      }
+
+      @media (max-width: 767px) {
+        .factory-stock-polish {
+          padding-bottom: env(safe-area-inset-bottom) !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) {
+          width: calc(100vw - 16px) !important;
+          max-width: calc(100vw - 16px) !important;
+          max-height: calc(100dvh - 18px) !important;
+          border-radius: 22px !important;
+          padding: 14px !important;
+          margin: 0 auto !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) > .flex.justify-between.items-center.mb-6 {
+          margin-bottom: 12px !important;
+          gap: 8px !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) h3 {
+          font-size: 18px !important;
+          line-height: 1.15 !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) h4 {
+          font-size: 15px !important;
+          line-height: 1.2 !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) label {
+          font-size: 13px !important;
+          line-height: 1.25 !important;
+          margin-bottom: 6px !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) :is(input:not([type="checkbox"]):not([type="radio"]),select) {
+          min-height: 44px !important;
+          font-size: 16px !important;
+          padding: 10px 12px !important;
+          border-radius: 14px !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) textarea {
+          min-height: 72px !important;
+          font-size: 16px !important;
+          padding: 10px 12px !important;
+          border-radius: 14px !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .space-y-4 {
+          gap: 10px !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .mb-6 {
+          margin-bottom: 12px !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .mb-8 {
+          margin-bottom: 14px !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .p-4 {
+          padding: 12px !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .rounded-xl {
+          border-radius: 14px !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .rounded-2xl {
+          border-radius: 16px !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .flex.items-center.gap-2 {
+          flex-wrap: wrap !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .flex.items-center.gap-2 > button {
+          flex: 1 1 118px !important;
+          justify-content: center !important;
+          min-height: 38px !important;
+          white-space: normal !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .space-y-2.max-h-40,
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .space-y-2.max-h-52 {
+          max-height: 30dvh !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) label:has(input[type="checkbox"]) {
+          display: grid !important;
+          grid-template-columns: 24px minmax(0,1fr) auto !important;
+          align-items: start !important;
+          gap: 10px !important;
+          padding: 10px !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) input[type="checkbox"] {
+          width: 20px !important;
+          height: 20px !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) > .flex.gap-3 {
+          flex-direction: column !important;
+          gap: 8px !important;
+          position: sticky;
+          bottom: -14px;
+          z-index: 5;
+          margin-left: -14px;
+          margin-right: -14px;
+          margin-bottom: -14px;
+          padding: 10px 14px max(10px, env(safe-area-inset-bottom));
+          background: inherit;
+          border-top: 1px solid rgba(148,163,184,.22);
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) > .flex.gap-3 > button {
+          width: 100% !important;
+          flex: none !important;
+          min-height: 46px !important;
+          font-size: 15px !important;
+          padding: 12px 14px !important;
+          border-radius: 16px !important;
+        }
+
+        /* Whole-site mobile QA: prevent side overflow from long Thai labels / grids */
+        .factory-stock-polish :is(.factory-topbar,.factory-top-actions,.workspace-tabbar) {
+          max-width: 100% !important;
+        }
+        .factory-stock-polish :is(.factory-top-actions,.workspace-tabbar) {
+          overflow-x: auto !important;
+          -webkit-overflow-scrolling: touch;
+        }
+        .factory-stock-polish :is(.bottom-mobile-nav,.mobile-bottom-nav) {
+          max-width: 100vw !important;
+          overflow-x: hidden !important;
+        }
+      }
+
     `}</style>
   );
 }
