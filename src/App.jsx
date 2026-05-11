@@ -13389,112 +13389,193 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
-      {/* History Modal ของแต่ละอุปกรณ์ */}
-      {showHistory && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-5 z-[9999]`}>
-          <div className={`item-detail-shell compact-modal-shell rounded-3xl p-4 sm:p-5 max-w-[900px] w-full max-h-[84vh] flex flex-col shadow-2xl ${theme.cardBg}`}>
-            <div className="flex justify-between items-center mb-4 gap-3">
-              <h3 className={`text-2xl font-black ${theme.textTitle}`}>รายละเอียดและประวัติอุปกรณ์</h3>
-              <div className="flex items-center gap-2">
-                {items.find(i => i.id === showHistory) && <button type="button" onClick={() => exportItemHistoryCSV(items.find(i => i.id === showHistory))} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>Export CSV</button>}
-                <button type="button" onClick={() => setShowHistory(null)} className={`p-2 hover:text-blue-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
+      {/* History Modal ของแต่ละอุปกรณ์ — Asset Profile Detail Polish */}
+      {showHistory && (() => {
+        const detailItem = items.find(i => i.id === showHistory);
+        if (!detailItem) return null;
+
+        const detailStatus = STATUSES.find(s => s.id === detailItem.status) || STATUSES[0];
+        const detailDept = DEPARTMENTS.find(d => d.id === detailItem.department) || DEPARTMENTS[0];
+        const historyList = detailItem.history || [];
+        const latestHistory = historyList.slice(-1)[0];
+        const detailProofCount = getItemProofCount(detailItem);
+        const textOf = (...keys) => {
+          const found = keys.map(k => detailItem?.[k]).find(v => v !== undefined && v !== null && String(v).trim() !== '');
+          return found === undefined || found === null || String(found).trim() === '' ? '-' : String(found);
+        };
+        const itemText = `${detailItem.name || ''} ${detailItem.category || ''} ${detailItem.type || ''} ${detailItem.subType || ''}`.toLowerCase();
+        const isMemoryCard = /เมม|memory|sd card|sdxc|cfexpress|card/.test(itemText);
+        const isBattery = /แบต|battery|np-fz|fz100|charger/.test(itemText);
+        const isCamera = /กล้อง|camera|a7|body|cam/.test(itemText);
+        const isLens = /เลนส์|lens|mm|f\d|f\//.test(itemText);
+        const typeBadge = isMemoryCard ? 'เมมโมรี่การ์ด' : isBattery ? 'แบตเตอรี่' : isCamera ? 'กล้อง' : isLens ? 'เลนส์' : (detailItem.category || 'อุปกรณ์');
+        const primaryInfoCards = [
+          ['ฝ่าย', detailDept.label || detailItem.department || '-'],
+          ['หมวดหมู่', detailItem.category || '-'],
+          ['สถานที่เก็บ', detailItem.location || '-'],
+          ['กล่อง / ที่จัดเก็บ', detailItem.storageBoxName || '-'],
+          ['โครงการจัดซื้อ', detailItem.project || detailItem.purchaseProject || '-'],
+          ['S.N.', detailItem.sn || '-'],
+          ['รหัสสั้น', textOf('shortCode', 'shortLabel', 'assetShortCode', 'localCode')],
+          ['หลักฐาน', `📷 ${detailProofCount} รูป`]
+        ];
+        const specificInfoCards = [
+          ['ประเภทอุปกรณ์', typeBadge],
+          ['ฝ่ายดูแลหลัก', textOf('ownerTeam', 'mainOwnerTeam', 'responsibleTeam', 'ownerDepartment', 'owner')],
+          ['ระบบเมาท์', textOf('mount', 'lensMount', 'cameraMount')],
+          ['ใช้ร่วมกับ', textOf('compatibleWith', 'useWith', 'supportedDevices')],
+          ['ความจุ', textOf('capacity', 'memoryCapacity', 'storageCapacity')],
+          ['ประเภทการ์ด', textOf('cardType', 'memoryType')],
+          ['ความเร็ว', textOf('cardSpeed', 'speedClass', 'memorySpeed')],
+          ['รุ่นแบต', textOf('batteryModel', 'batteryType', 'batteryCode')]
+        ].filter(([, value], idx) => idx === 0 || value !== '-');
+        const historyLabel = (h) => h.type === 'borrow' ? 'ยืมออก' : h.type === 'event' ? 'ออกงาน' : h.type === 'return' ? 'รับคืน' : h.type === 'projectChange' ? 'เปลี่ยนโครงการ' : h.type === 'repair' ? 'แจ้งซ่อม' : h.type || 'ประวัติ';
+        const historyTone = (h) => h.type === 'borrow'
+          ? (isDarkMode ? 'bg-purple-900/30 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-800')
+          : h.type === 'event'
+            ? (isDarkMode ? 'bg-orange-900/30 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800')
+            : h.type === 'return'
+              ? (isDarkMode ? 'bg-emerald-900/30 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
+              : (isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700');
+        const latestText = latestHistory ? `${historyLabel(latestHistory)} • ${latestHistory.date ? new Date(latestHistory.date).toLocaleString('th-TH', { hour12: false }) : '-'}` : 'ยังไม่มีประวัติ';
+
+        return (
+          <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-2 sm:p-5 z-[9999]`}>
+            <div className={`asset-profile-modal compact-modal-shell rounded-[1.7rem] sm:rounded-[2rem] w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`shrink-0 px-4 sm:px-6 py-4 border-b ${theme.divide} ${isDarkMode ? 'bg-slate-950' : 'bg-white'}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className={`text-xs font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>Asset Profile</div>
+                    <h3 className={`text-xl sm:text-2xl font-black leading-tight truncate mt-1 ${theme.textTitle}`}>แฟ้มประวัติทรัพย์สิน</h3>
+                    <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>รายละเอียดอุปกรณ์ ประวัติการใช้งาน และหลักฐานที่เกี่ยวข้อง</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button type="button" onClick={() => exportItemHistoryCSV(detailItem)} className={`hidden sm:inline-flex px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>Export CSV</button>
+                    <button type="button" onClick={() => setShowHistory(null)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center ${theme.btnCancel}`} title="ปิดหน้าต่าง"><Icons.X className="w-5 h-5" /></button>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
-              {(() => {
-                const detailItem = items.find(i => i.id === showHistory);
-                if (!detailItem) return null;
-                const detailStatus = STATUSES.find(s => s.id === detailItem.status) || STATUSES[0];
-                const detailDept = DEPARTMENTS.find(d => d.id === detailItem.department) || DEPARTMENTS[0];
-                const latestHistory = (detailItem.history || []).slice(-1)[0];
-                const detailProofCount = getItemProofCount(detailItem);
-                return (
-                  <div className={`item-detail-summary p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className={`text-2xl font-black leading-tight ${theme.textTitle}`}>{detailItem.name || '-'}</div>
-                        <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {detailItem.sn || '-'} • {detailItem.category || '-'} • {detailItem.location || '-'}</div>
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 space-y-4">
+                <div className={`rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`p-5 sm:p-6 border-b ${isDarkMode ? 'border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950' : 'border-slate-200 bg-gradient-to-br from-sky-50 to-white'}`}>
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap mb-3">
+                          <span className={`inline-flex px-3 py-1.5 rounded-xl text-xs font-black border ${isDarkMode ? detailStatus.darkColor : detailStatus.color}`}>{detailStatus.label}</span>
+                          <span className={`inline-flex px-3 py-1.5 rounded-xl text-xs font-black border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>{typeBadge}</span>
+                          <span className={`inline-flex px-3 py-1.5 rounded-xl text-xs font-black border ${detailItem.qrTagged ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-amber-500 text-white border-amber-500'}`}>QR: {detailItem.qrTagged ? 'ติดแล้ว' : 'ยังไม่ติด'}</span>
+                        </div>
+                        <div className={`text-2xl sm:text-3xl font-black leading-tight ${theme.textTitle}`}>{detailItem.name || '-'}</div>
+                        <div className={`text-sm sm:text-base font-bold mt-2 ${theme.textMuted}`}>S.N. {detailItem.sn || '-'} • {detailItem.category || '-'} • {detailItem.location || '-'}</div>
+                        <div className={`mt-3 text-sm font-bold ${theme.textMuted}`}>ประวัติล่าสุด: {latestText}</div>
                       </div>
-                      <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-xl text-sm font-black border ${isDarkMode ? detailStatus.darkColor : detailStatus.color}`}>{detailStatus.label}</span>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
-                      <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        <div className={`text-xs font-bold ${theme.textMuted}`}>ฝ่าย</div>
-                        <div className={`font-black truncate ${theme.textTitle}`}>{detailDept.label || detailItem.department || '-'}</div>
-                      </div>
-                      <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        <div className={`text-xs font-bold ${theme.textMuted}`}>กล่อง</div>
-                        <div className={`font-black truncate ${theme.textTitle}`}>{detailItem.storageBoxName || '-'}</div>
-                      </div>
-                      <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        <div className={`text-xs font-bold ${theme.textMuted}`}>หลักฐาน</div>
-                        <div className={`font-black ${theme.textTitle}`}>📷 {detailProofCount} รูป</div>
-                      </div>
-                      <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        <div className={`text-xs font-bold ${theme.textMuted}`}>QR</div>
-                        <div className={`font-black ${detailItem.qrTagged ? 'text-emerald-500' : 'text-amber-500'}`}>{detailItem.qrTagged ? 'ติดแล้ว' : 'ยังไม่ติด'}</div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2 lg:w-72 shrink-0">
+                        <div className={`p-3 rounded-2xl border text-center ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}><div className={`text-xs font-bold ${theme.textMuted}`}>ประวัติ</div><div className={`text-xl font-black ${theme.textTitle}`}>{historyList.length}</div></div>
+                        <div className={`p-3 rounded-2xl border text-center ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}><div className={`text-xs font-bold ${theme.textMuted}`}>หลักฐาน</div><div className={`text-xl font-black ${theme.textTitle}`}>{detailProofCount}</div></div>
+                        <div className={`p-3 rounded-2xl border text-center ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}><div className={`text-xs font-bold ${theme.textMuted}`}>ฝ่าย</div><div className={`font-black truncate ${theme.textTitle}`}>{detailDept.label || '-'}</div></div>
+                        <div className={`p-3 rounded-2xl border text-center ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}><div className={`text-xs font-bold ${theme.textMuted}`}>โครงการ</div><div className={`font-black truncate ${theme.textTitle}`}>{detailItem.project || '-'}</div></div>
                       </div>
                     </div>
-                    {latestHistory && <div className={`mt-4 text-sm font-bold ${theme.textMuted}`}>ประวัติล่าสุด: {latestHistory.type === 'borrow' ? 'ยืม' : latestHistory.type === 'event' ? 'ออกงาน' : latestHistory.type === 'return' ? 'รับคืน' : latestHistory.type || '-'} • {latestHistory.date ? new Date(latestHistory.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>}
-                    {detailItem.internalNote && <div className={`mt-3 p-3 rounded-2xl border text-sm font-bold ${isDarkMode ? 'bg-amber-950/20 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>โน้ตภายใน: {detailItem.internalNote}</div>}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
-                      {canUseOperationalTools && detailItem.status === 'available' && <button type="button" onClick={(e) => { setShowHistory(null); handleOpenRowBorrow(e, detailItem); }} className="px-3 py-2.5 rounded-xl font-black text-sm bg-purple-600 text-white">ยืม</button>}
-                      {canUseOperationalTools && detailItem.status === 'available' && <button type="button" onClick={(e) => { setShowHistory(null); handleOpenRowEvent(e, detailItem); }} className="px-3 py-2.5 rounded-xl font-black text-sm bg-orange-500 text-white">ออกงาน</button>}
-                      {canUseOperationalTools && (detailItem.status === 'borrowed' || detailItem.status === 'out-for-event') && <button type="button" onClick={() => { setShowHistory(null); openReturnForItems([detailItem.id]); }} className="px-3 py-2.5 rounded-xl font-black text-sm bg-emerald-600 text-white">รับคืน</button>}
-                      <button type="button" onClick={() => copyItemSummary(detailItem)} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>คัดลอก</button>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mt-5">
+                      {canUseOperationalTools && detailItem.status === 'available' && <button type="button" onClick={(e) => { setShowHistory(null); handleOpenRowBorrow(e, detailItem); }} className="px-3 py-3 rounded-2xl font-black text-sm bg-purple-600 text-white shadow-sm">ยืม</button>}
+                      {canUseOperationalTools && detailItem.status === 'available' && <button type="button" onClick={(e) => { setShowHistory(null); handleOpenRowEvent(e, detailItem); }} className="px-3 py-3 rounded-2xl font-black text-sm bg-orange-500 text-white shadow-sm">ออกงาน</button>}
+                      {canUseOperationalTools && (detailItem.status === 'borrowed' || detailItem.status === 'out-for-event') && <button type="button" onClick={() => { setShowHistory(null); openReturnForItems([detailItem.id]); }} className="px-3 py-3 rounded-2xl font-black text-sm bg-emerald-600 text-white shadow-sm">รับคืน</button>}
+                      {canAddEditItems && <button type="button" onClick={() => { setShowHistory(null); openItemEditor(detailItem); }} className="px-3 py-3 rounded-2xl font-black text-sm bg-blue-600 text-white shadow-sm">แก้ไข</button>}
+                      <button type="button" onClick={() => copyItemSummary(detailItem)} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>คัดลอก</button>
+                      <button type="button" onClick={() => exportItemHistoryCSV(detailItem)} className={`sm:hidden px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>CSV</button>
                     </div>
                   </div>
-                );
-              })()}
 
-              {(() => {
-                const historyItem = items.find(i => i.id === showHistory);
-                const historyList = historyItem?.history || [];
-                if (historyList.length === 0) {
-                  return <div className={`text-center py-8 font-bold text-xl ${theme.textMuted}`}>ยังไม่มีประวัติการใช้งาน</div>;
-                }
-                return historyList.map((entry, originalIndex) => ({ entry, originalIndex })).reverse().map(({ entry: h, originalIndex }) => {
-                  const isBorrow = h.type === 'borrow';
-                  const isEvent = h.type === 'event';
-                  return (
-                    <div key={originalIndex} className={`p-5 rounded-xl border ${isBorrow ? (isDarkMode ? 'bg-purple-900/20 border-purple-800/50' : 'bg-purple-50 border-purple-100') : isEvent ? (isDarkMode ? 'bg-orange-900/20 border-orange-800/50' : 'bg-orange-50 border-orange-100') : (isDarkMode ? 'bg-emerald-900/20 border-emerald-800/50' : 'bg-emerald-50 border-emerald-100')}`}>
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className={`text-sm font-black px-3 py-1.5 rounded-md ${isBorrow ? (isDarkMode ? 'bg-purple-900/50 text-purple-400' : 'bg-purple-200 text-purple-700') : isEvent ? (isDarkMode ? 'bg-orange-900/50 text-orange-400' : 'bg-orange-200 text-orange-700') : (isDarkMode ? 'bg-emerald-900/50 text-emerald-400' : 'bg-emerald-200 text-emerald-700')}`}>{isBorrow ? 'ยืมออก' : isEvent ? 'ออกงาน' : 'รับคืน'}</span>
-                        <span className={`text-base font-bold ${theme.textMuted}`}>{h.date ? new Date(h.date).toLocaleString('th-TH') : '-'}</span>
+                  <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-[1.15fr_.85fr] gap-4">
+                    <div className={`rounded-[1.7rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                      <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>ข้อมูลหลัก</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {primaryInfoCards.map(([label, value]) => (
+                          <div key={label} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                            <div className={`text-xs font-bold ${theme.textMuted}`}>{label}</div>
+                            <div className={`font-black break-words ${theme.textTitle}`}>{value || '-'}</div>
+                          </div>
+                        ))}
                       </div>
-                      {(h.operatorName || h.performedBy) && (
-                        <div className={`text-sm font-bold mb-3 ${theme.textMuted}`}>ผู้ทำรายการในระบบ: {h.operatorName || h.performedBy}</div>
-                      )}
-                      {isBorrow ? (
-                        <div className={`text-lg ${theme.textMain}`}>
-                          <p className="mb-1"><span className={`font-bold ${theme.textTitle}`}>ผู้ยืม:</span> {h.borrower}</p>
-                          <p><span className={`font-bold ${theme.textTitle}`}>ผู้ให้ยืม (จนท.):</span> {h.staffOut || '-'}</p>
-                          {h.note && <p className="mt-2 text-sm italic opacity-80"><span className={`font-bold ${theme.textTitle}`}>หมายเหตุ:</span> {h.note}</p>}
-                        </div>
-                      ) : isEvent ? (
-                        <div className={`text-lg ${theme.textMain}`}>
-                          <p className="mb-1"><span className={`font-bold ${theme.textTitle}`}>ชื่องาน:</span> {h.eventName}</p>
-                          <p><span className={`font-bold ${theme.textTitle}`}>ผู้นำออก (จนท.):</span> {h.staffOut || '-'}</p>
-                          {h.note && <p className="mt-2 text-sm italic opacity-80"><span className={`font-bold ${theme.textTitle}`}>หมายเหตุ:</span> {h.note}</p>}
-                        </div>
-                      ) : (
-                        <div className={`text-lg ${theme.textMain}`}><p><span className={`font-bold ${theme.textTitle}`}>ผู้รับคืน (จนท.):</span> {h.staffIn || '-'}</p></div>
-                      )}
-                      {renderProofGallery(h.proofs, historyItem?.sn || historyItem?.name || '')}
-                      {canUseOperationalTools && (
-                        <button type="button" onClick={() => { setProofAttachTarget({ itemId: historyItem.id, historyIndex: originalIndex }); setProofAttachFiles([]); }} className={`mt-4 w-full px-4 py-3 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>+ เพิ่มรูปหลักฐานย้อนหลัง</button>
-                      )}
+                      {detailItem.internalNote && <div className={`mt-3 p-3 rounded-2xl border text-sm font-bold ${isDarkMode ? 'bg-amber-950/20 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>โน้ตภายใน: {detailItem.internalNote}</div>}
                     </div>
-                  );
-                });
-              })()}
-            </div>
-            <div className={`mt-6 pt-4 border-t ${theme.divide}`}>
-              <button type="button" onClick={() => setShowHistory(null)} className={`w-full py-4 font-bold rounded-xl transition-colors text-lg ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+
+                    <div className={`rounded-[1.7rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                      <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>ข้อมูลเฉพาะอุปกรณ์</div>
+                      <div className="space-y-2">
+                        {specificInfoCards.map(([label, value]) => (
+                          <div key={label} className={`flex items-start justify-between gap-3 p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                            <div className={`text-xs font-bold shrink-0 ${theme.textMuted}`}>{label}</div>
+                            <div className={`font-black text-right break-words ${theme.textTitle}`}>{value || '-'}</div>
+                          </div>
+                        ))}
+                        {specificInfoCards.length <= 1 && <div className={`p-4 text-center rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>ยังไม่มีข้อมูลเฉพาะเพิ่มเติม</div>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                  <div className={`px-5 py-4 border-b flex items-center justify-between gap-3 ${theme.divide}`}>
+                    <div>
+                      <div className={`font-black text-lg ${theme.textTitle}`}>Timeline ประวัติการใช้งาน</div>
+                      <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>ยืม / ออกงาน / รับคืน / ซ่อม พร้อมหลักฐานที่เกี่ยวข้อง</div>
+                    </div>
+                    <span className={`px-3 py-1.5 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>{historyList.length} รายการ</span>
+                  </div>
+
+                  <div className="p-4 sm:p-5">
+                    {historyList.length === 0 ? (
+                      <div className={`text-center py-10 rounded-3xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>ยังไม่มีประวัติการใช้งาน</div>
+                    ) : (
+                      <div className="space-y-3">
+                        {historyList.map((entry, originalIndex) => ({ entry, originalIndex })).reverse().map(({ entry: h, originalIndex }) => {
+                          const isBorrow = h.type === 'borrow';
+                          const isEvent = h.type === 'event';
+                          const isReturn = h.type === 'return';
+                          const mainName = isBorrow ? h.borrower : isEvent ? h.eventName : isReturn ? h.staffIn : (h.target || '-');
+                          const subName = isBorrow ? h.staffOut : isEvent ? h.staffOut : isReturn ? h.operatorName || h.performedBy : h.operatorName || h.performedBy;
+                          return (
+                            <div key={originalIndex} className={`timeline-card p-4 sm:p-5 rounded-[1.5rem] border ${historyTone(h)}`}>
+                              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                                    <span className={`text-sm font-black px-3 py-1.5 rounded-xl border ${historyTone(h)}`}>{historyLabel(h)}</span>
+                                    <span className={`text-sm font-bold ${theme.textMuted}`}>{h.date ? new Date(h.date).toLocaleString('th-TH', { hour12: false }) : '-'}</span>
+                                  </div>
+                                  <div className={`text-lg sm:text-xl font-black break-words ${theme.textTitle}`}>{mainName || '-'}</div>
+                                  {subName && <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ผู้เกี่ยวข้อง/เจ้าหน้าที่: {subName}</div>}
+                                  {(h.operatorName || h.performedBy) && <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ผู้ทำรายการในระบบ: {h.operatorName || h.performedBy}</div>}
+                                  {h.expectedReturn && <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>กำหนดคืน: {new Date(h.expectedReturn).toLocaleDateString('th-TH')}</div>}
+                                  {h.note && <div className={`mt-3 p-3 rounded-2xl border text-sm font-bold ${isDarkMode ? 'bg-slate-950/60 border-slate-700 text-slate-300' : 'bg-white/70 border-white text-slate-700'}`}>หมายเหตุ: {h.note}</div>}
+                                </div>
+                                <div className="shrink-0 sm:text-right">
+                                  <div className={`text-xs font-black ${theme.textMuted}`}>หลักฐาน</div>
+                                  <div className={`text-lg font-black ${theme.textTitle}`}>{(h.proofs || []).length} รูป</div>
+                                </div>
+                              </div>
+                              {renderProofGallery(h.proofs, detailItem?.sn || detailItem?.name || '')}
+                              {canUseOperationalTools && (
+                                <button type="button" onClick={() => { setProofAttachTarget({ itemId: detailItem.id, historyIndex: originalIndex }); setProofAttachFiles([]); }} className={`mt-4 w-full px-4 py-3 rounded-2xl text-sm font-black border ${theme.btnSecondary}`}>+ เพิ่มรูปหลักฐานย้อนหลัง</button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className={`shrink-0 px-4 sm:px-6 py-4 border-t ${theme.divide} ${isDarkMode ? 'bg-slate-950' : 'bg-white'}`}>
+                <button type="button" onClick={() => setShowHistory(null)} className={`w-full py-3.5 font-black rounded-2xl transition-colors text-base ${theme.btnCancel}`}>ปิดแฟ้มประวัติ</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 👤 Modal บัญชีของฉัน */}
       {showMyAccountModal && (
