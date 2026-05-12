@@ -41,8 +41,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.51.25 พิมพ์ & ส่งออก Final Polish';
-const APP_UPDATE_NOTE = 'Equipment Metadata & Theme Polish: เพิ่มช่องข้อมูลเฉพาะกล้อง/เลนส์/แบต/เมม และเก็บธีมฟอร์ม/การ์ดให้เป็นภาษาเดียวกัน โดยไม่แตะ QR/กล้อง/ฐานข้อมูล';
+const APP_VERSION = 'v22.52.7 Navigation Return Flow Fix';
+const APP_UPDATE_NOTE = 'Navigation Return Flow Fix: แก้การเปิดประวัติส่วนกลาง/ศูนย์หลักฐานรูปภาพจากหน้าเอกสารย้อนหลัง ให้ปิดแล้วกลับมาหน้าเดิมได้ โดยไม่แตะ QR/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -3700,6 +3700,7 @@ function MainApp() {
   const [historyCenterFilter, setHistoryCenterFilter] = useState('all');
   const [historyCenterSearch, setHistoryCenterSearch] = useState('');
   const [expandedProofGroupId, setExpandedProofGroupId] = useState(null);
+  const [modalReturnTarget, setModalReturnTarget] = useState(null); // 'borrowDocs' | null
   const [proofEditTarget, setProofEditTarget] = useState(null);
   const [proofEditForm, setProofEditForm] = useState({ contextLabel: '', note: '' });
   const [proofEditReplaceFiles, setProofEditReplaceFiles] = useState([]);
@@ -3736,6 +3737,41 @@ function MainApp() {
     setTrackingTab(tab);
     setShowTrackingCenterModal(true);
   };
+
+  // v22.52.7 Navigation Return Flow Fix
+  // จำว่าศูนย์ประวัติ/ศูนย์หลักฐานถูกเปิดมาจากหน้าเอกสารย้อนหลังหรือไม่
+  // เพื่อให้ปิดแล้วกลับมาหน้าเดิมได้ โดยไม่แตะ QR/กล้อง/ฐานข้อมูล
+  const openHistoryCenterFromBorrowDocs = () => {
+    setModalReturnTarget('borrowDocs');
+    setShowBorrowDocsModal(false);
+    setShowHistoryCenterModal(true);
+  };
+
+  const openProofCenterFromBorrowDocs = () => {
+    setModalReturnTarget('borrowDocs');
+    setShowBorrowDocsModal(false);
+    setProofCenterSearch(borrowDocSearch || '');
+    setProofCenterFilter('all');
+    setShowProofCenterModal(true);
+  };
+
+  const closeHistoryCenterModal = () => {
+    setShowHistoryCenterModal(false);
+    if (modalReturnTarget === 'borrowDocs') {
+      setModalReturnTarget(null);
+      setShowBorrowDocsModal(true);
+    }
+  };
+
+  const closeProofCenterModal = () => {
+    setShowProofCenterModal(false);
+    setExpandedProofGroupId(null);
+    if (modalReturnTarget === 'borrowDocs') {
+      setModalReturnTarget(null);
+      setShowBorrowDocsModal(true);
+    }
+  };
+
   const updateUiMode = (mode) => {
     setUiMode(mode);
     try { localStorage.setItem('mdec_ui_mode', mode); } catch(e) {}
@@ -14925,7 +14961,7 @@ S.N.: ${item.sn || '-'}
                 <h3 className={`text-2xl sm:text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-lg">🧾</span> ประวัติส่วนกลาง</h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นทุกประวัติจากทุกอุปกรณ์ พร้อมเพิ่มหลักฐานย้อนหลังได้จากจุดเดียว</p>
               </div>
-              <button type="button" onClick={() => setShowHistoryCenterModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+              <button type="button" onClick={closeHistoryCenterModal} className={`p-2 hover:text-rose-500 ${theme.textMuted}`} title={modalReturnTarget === 'borrowDocs' ? 'กลับไปหน้าเอกสารย้อนหลัง' : 'ปิดหน้าต่าง'}><Icons.X className="w-5 h-5" /></button>
             </div>
 
             <div className={`px-4 sm:px-6 py-4 border-b grid grid-cols-2 md:grid-cols-5 gap-2 ${theme.divide}`}>
@@ -15004,7 +15040,7 @@ S.N.: ${item.sn || '-'}
 
             <div className={`p-4 border-t grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 ${theme.divide}`}>
               <div className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>ใช้หน้านี้เมื่อต้องการค้นประวัติหรือเพิ่มหลักฐานย้อนหลัง โดยไม่ต้องจำว่าอยู่ในอุปกรณ์ชิ้นไหน</div>
-              <button type="button" onClick={() => setShowHistoryCenterModal(false)} className={`px-6 py-3 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+              <button type="button" onClick={closeHistoryCenterModal} className={`px-6 py-3 rounded-xl font-black ${theme.btnCancel}`}>{modalReturnTarget === 'borrowDocs' ? 'กลับไปเอกสารย้อนหลัง' : 'ปิดหน้าต่าง'}</button>
             </div>
           </div>
         </div>
@@ -15019,7 +15055,7 @@ S.N.: ${item.sn || '-'}
                 <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-lg">📷</span> ศูนย์หลักฐานรูปภาพ</h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมรูปหลักฐานจากทุกอุปกรณ์ ใช้ดู แก้ไข แทนที่ หรือลบรูปหลักฐานจากจุดเดียว</p>
               </div>
-              <button type="button" onClick={() => setShowProofCenterModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+              <button type="button" onClick={closeProofCenterModal} className={`p-2 hover:text-rose-500 ${theme.textMuted}`} title={modalReturnTarget === 'borrowDocs' ? 'กลับไปหน้าเอกสารย้อนหลัง' : 'ปิดหน้าต่าง'}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className={`p-4 border-b grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
               <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / งาน / กล่อง / หมายเหตุ" value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} />
@@ -15122,7 +15158,7 @@ S.N.: ${item.sn || '-'}
                 </div>
               )}
             </div>
-            <div className={`p-4 border-t ${theme.divide}`}><button type="button" onClick={() => setShowProofCenterModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button></div>
+            <div className={`p-4 border-t ${theme.divide}`}><button type="button" onClick={closeProofCenterModal} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>{modalReturnTarget === 'borrowDocs' ? 'กลับไปเอกสารย้อนหลัง' : 'ปิดหน้าต่าง'}</button></div>
           </div>
         </div>
       )}
@@ -15443,11 +15479,11 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className={`px-5 sm:px-6 py-4 border-b grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
-              <button type="button" onClick={() => { setShowBorrowDocsModal(false); setShowHistoryCenterModal(true); }} className={`p-4 rounded-2xl border text-left font-black transition-all ${theme.btnSecondary}`}>
+              <button type="button" onClick={openHistoryCenterFromBorrowDocs} className={`p-4 rounded-2xl border text-left font-black transition-all ${theme.btnSecondary}`}>
                 <div className={theme.textTitle}>ค้นประวัติส่วนกลาง</div>
                 <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ใช้เมื่อต้องหาจากทุกอุปกรณ์หรือจำชื่อชิ้นงานไม่ได้</div>
               </button>
-              <button type="button" onClick={() => { setShowBorrowDocsModal(false); setProofCenterSearch(borrowDocSearch || ''); setProofCenterFilter('all'); setShowProofCenterModal(true); }} className={`p-4 rounded-2xl border text-left font-black transition-all ${theme.btnSecondary}`}>
+              <button type="button" onClick={openProofCenterFromBorrowDocs} className={`p-4 rounded-2xl border text-left font-black transition-all ${theme.btnSecondary}`}>
                 <div className={theme.textTitle}>ศูนย์หลักฐานรูปภาพ</div>
                 <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ดู/แก้ไข/แทนที่รูปหลักฐานจากส่วนกลาง</div>
               </button>
