@@ -1,3 +1,4 @@
+// v22.52.8 Modal Chain Return Fix - fixes nested modal back flow from borrow docs/history/proof centers, no QR/camera/database changes
 // v22.52.6 Data Quality Action Polish - edit actions in data quality audit, no QR/camera/database changes
 // v22.52.6 Data Quality Action Polish - UI-only helper stepper, no QR/camera/database changes
 // v22.52.6 Data Quality Action Polish - conditional equipment metadata form, no QR/camera/database path changes
@@ -3700,7 +3701,8 @@ function MainApp() {
   const [historyCenterFilter, setHistoryCenterFilter] = useState('all');
   const [historyCenterSearch, setHistoryCenterSearch] = useState('');
   const [expandedProofGroupId, setExpandedProofGroupId] = useState(null);
-  const [modalReturnTarget, setModalReturnTarget] = useState(null); // 'borrowDocs' | null
+  const [modalReturnStack, setModalReturnStack] = useState([]); // v22.52.8: ['borrowDocs', 'historyCenter', 'proofCenter']
+  const modalReturnTarget = modalReturnStack[modalReturnStack.length - 1] || null;
   const [proofEditTarget, setProofEditTarget] = useState(null);
   const [proofEditForm, setProofEditForm] = useState({ contextLabel: '', note: '' });
   const [proofEditReplaceFiles, setProofEditReplaceFiles] = useState([]);
@@ -3738,27 +3740,68 @@ function MainApp() {
     setShowTrackingCenterModal(true);
   };
 
-  // v22.52.7 Navigation Return Flow Fix
-  // จำว่าศูนย์ประวัติ/ศูนย์หลักฐานถูกเปิดมาจากหน้าเอกสารย้อนหลังหรือไม่
-  // เพื่อให้ปิดแล้วกลับมาหน้าเดิมได้ โดยไม่แตะ QR/กล้อง/ฐานข้อมูล
+  // v22.52.8 Modal Chain Return Fix
+  // ทำทางกลับให้ modal ที่เปิดซ้อนกัน เช่น
+  // เอกสารย้อนหลัง → ประวัติส่วนกลาง → แฟ้มประวัติ / เพิ่มหลักฐาน / ศูนย์หลักฐาน → กลับมาหน้าเดิมได้
+  // เป็น UI state อย่างเดียว ไม่แตะ QR/กล้อง/ฐานข้อมูล
+  const pushModalReturnTarget = (target) => {
+    if (!target) return;
+    setModalReturnStack(prev => [...prev, target].slice(-6));
+  };
+
+  const popModalReturnTarget = () => {
+    setModalReturnStack(prev => prev.slice(0, -1));
+  };
+
   const openHistoryCenterFromBorrowDocs = () => {
-    setModalReturnTarget('borrowDocs');
+    setModalReturnStack(['borrowDocs']);
     setShowBorrowDocsModal(false);
     setShowHistoryCenterModal(true);
   };
 
   const openProofCenterFromBorrowDocs = () => {
-    setModalReturnTarget('borrowDocs');
+    setModalReturnStack(['borrowDocs']);
     setShowBorrowDocsModal(false);
     setProofCenterSearch(borrowDocSearch || '');
     setProofCenterFilter('all');
     setShowProofCenterModal(true);
   };
 
+  const openItemHistoryFromHistoryCenter = (itemId) => {
+    if (!itemId) return;
+    pushModalReturnTarget('historyCenter');
+    setShowHistoryCenterModal(false);
+    setShowHistory(itemId);
+  };
+
+  const openProofAttachFromHistoryCenter = (entry) => {
+    if (!entry?.itemId || Number.isNaN(Number(entry?.historyIndex))) return;
+    pushModalReturnTarget('historyCenter');
+    setShowHistoryCenterModal(false);
+    setProofAttachTarget({ itemId: entry.itemId, historyIndex: entry.historyIndex });
+    setProofAttachFiles([]);
+  };
+
+  const openProofCenterFromHistoryCenter = (entry) => {
+    if (!entry) return;
+    pushModalReturnTarget('historyCenter');
+    setShowHistoryCenterModal(false);
+    setProofCenterSearch(entry.sn || entry.itemName || '');
+    setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType);
+    setShowProofCenterModal(true);
+  };
+
+  const openItemHistoryFromProofCenter = (itemId) => {
+    if (!itemId) return;
+    pushModalReturnTarget('proofCenter');
+    setShowProofCenterModal(false);
+    setShowHistory(itemId);
+  };
+
   const closeHistoryCenterModal = () => {
     setShowHistoryCenterModal(false);
     if (modalReturnTarget === 'borrowDocs') {
-      setModalReturnTarget(null);
+      popModalReturnTarget();
       setShowBorrowDocsModal(true);
     }
   };
@@ -3767,8 +3810,31 @@ function MainApp() {
     setShowProofCenterModal(false);
     setExpandedProofGroupId(null);
     if (modalReturnTarget === 'borrowDocs') {
-      setModalReturnTarget(null);
+      popModalReturnTarget();
       setShowBorrowDocsModal(true);
+    } else if (modalReturnTarget === 'historyCenter') {
+      popModalReturnTarget();
+      setShowHistoryCenterModal(true);
+    }
+  };
+
+  const closeItemHistoryModal = () => {
+    setShowHistory(null);
+    if (modalReturnTarget === 'historyCenter') {
+      popModalReturnTarget();
+      setShowHistoryCenterModal(true);
+    } else if (modalReturnTarget === 'proofCenter') {
+      popModalReturnTarget();
+      setShowProofCenterModal(true);
+    }
+  };
+
+  const closeProofAttachModal = () => {
+    setProofAttachTarget(null);
+    setProofAttachFiles([]);
+    if (modalReturnTarget === 'historyCenter') {
+      popModalReturnTarget();
+      setShowHistoryCenterModal(true);
     }
   };
 
@@ -4439,8 +4505,7 @@ function MainApp() {
         await logAction('เพิ่มหลักฐานรับคืนย้อนหลังเป็นกลุ่ม', `ผูกหลักฐาน ${affectedCount} รายการ`, `เพิ่มหลักฐาน ${uploadedProofs.length} รูป ให้กลุ่มรับคืนวันที่ ${targetHistory.date}
 ผู้รับคืน: ${targetHistory.staffIn || '-'}
 เริ่มจากรายการ: ${item.name || '-'}`);
-        setProofAttachTarget(null);
-        setProofAttachFiles([]);
+        closeProofAttachModal();
         pushToast(`เพิ่มหลักฐานรับคืนย้อนหลังให้ทั้งกลุ่มแล้ว (${affectedCount} รายการ)`, 'success');
         return;
       }
@@ -4448,8 +4513,7 @@ function MainApp() {
       history[historyIndex] = { ...targetHistory, proofs: [...(targetHistory.proofs || []), ...uploadedProofs] };
       await setDoc(getItemDoc(item.id), { history, updatedAt: new Date().toISOString(), updatedBy: currentAccountLabel }, { merge: true });
       await logAction('เพิ่มหลักฐานรูปภาพ', item.name || '-', `เพิ่มหลักฐาน ${uploadedProofs.length} รูป ในประวัติรายการที่ ${historyIndex + 1}`);
-      setProofAttachTarget(null);
-      setProofAttachFiles([]);
+      closeProofAttachModal();
       pushToast('เพิ่มหลักฐานรูปภาพเรียบร้อยแล้ว', 'success');
     } catch (error) {
       console.error(error);
@@ -13966,7 +14030,7 @@ S.N.: ${item.sn || '-'}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button type="button" onClick={() => exportItemHistoryCSV(detailItem)} className={`hidden sm:inline-flex px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ส่งออก CSV</button>
-                    <button type="button" onClick={() => setShowHistory(null)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center ${theme.btnCancel}`} title="ปิดหน้าต่าง"><Icons.X className="w-5 h-5" /></button>
+                    <button type="button" onClick={closeItemHistoryModal} className={`w-10 h-10 rounded-2xl border flex items-center justify-center ${theme.btnCancel}`} title={modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : modalReturnTarget === 'proofCenter' ? 'กลับไปศูนย์หลักฐาน' : 'ปิดหน้าต่าง'}><Icons.X className="w-5 h-5" /></button>
                   </div>
                 </div>
               </div>
@@ -14085,7 +14149,7 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div className={`shrink-0 px-4 sm:px-6 py-4 border-t ${theme.divide} ${isDarkMode ? 'bg-slate-950' : 'bg-white'}`}>
-                <button type="button" onClick={() => setShowHistory(null)} className={`w-full py-3.5 font-black rounded-2xl transition-colors text-base ${theme.btnCancel}`}>ปิดแฟ้มประวัติ</button>
+                <button type="button" onClick={closeItemHistoryModal} className={`w-full py-3.5 font-black rounded-2xl transition-colors text-base ${theme.btnCancel}`}>{modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : modalReturnTarget === 'proofCenter' ? 'กลับไปศูนย์หลักฐาน' : 'ปิดแฟ้มประวัติ'}</button>
               </div>
             </div>
           </div>
@@ -14194,14 +14258,14 @@ S.N.: ${item.sn || '-'}
           <div className={`rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-5">
               <h3 className={`text-xl font-black ${theme.textTitle}`}>เพิ่มรูปหลักฐานย้อนหลัง</h3>
-              <button type="button" onClick={() => { setProofAttachTarget(null); setProofAttachFiles([]); }} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+              <button type="button" onClick={closeProofAttachModal} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className={`mb-4 p-3 rounded-2xl border text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-sky-50 border-sky-200 text-sky-800'}`}>
               ถ้าเป็นประวัติ “รับคืน” ที่ทำเป็นกลุ่ม ระบบจะผูกหลักฐานชุดนี้ให้ทุกอุปกรณ์ในกลุ่มรับคืนเดียวกันอัตโนมัติ
             </div>
             {renderProofUploader('รูปหลักฐานย้อนหลัง', proofAttachFiles, setProofAttachFiles, 'blue')}
             <div className="flex gap-3 mt-6">
-              <button type="button" onClick={() => { setProofAttachTarget(null); setProofAttachFiles([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={closeProofAttachModal} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button type="button" onClick={() => runWithBusy(handleAttachProofsToHistory)} disabled={isBusy || proofAttachFiles.length === 0} className={`flex-1 py-4 font-bold rounded-xl text-lg text-white ${isBusy || proofAttachFiles.length === 0 ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}>{isBusy ? 'กำลังอัปดาวน์โหลด...' : 'บันทึกหลักฐาน'}</button>
             </div>
           </div>
@@ -14961,7 +15025,7 @@ S.N.: ${item.sn || '-'}
                 <h3 className={`text-2xl sm:text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-lg">🧾</span> ประวัติส่วนกลาง</h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นทุกประวัติจากทุกอุปกรณ์ พร้อมเพิ่มหลักฐานย้อนหลังได้จากจุดเดียว</p>
               </div>
-              <button type="button" onClick={closeHistoryCenterModal} className={`p-2 hover:text-rose-500 ${theme.textMuted}`} title={modalReturnTarget === 'borrowDocs' ? 'กลับไปหน้าเอกสารย้อนหลัง' : 'ปิดหน้าต่าง'}><Icons.X className="w-5 h-5" /></button>
+              <button type="button" onClick={closeHistoryCenterModal} className={`p-2 hover:text-rose-500 ${theme.textMuted}`} title={modalReturnTarget === 'borrowDocs' ? 'กลับไปหน้าเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดหน้าต่าง'}><Icons.X className="w-5 h-5" /></button>
             </div>
 
             <div className={`px-4 sm:px-6 py-4 border-b grid grid-cols-2 md:grid-cols-5 gap-2 ${theme.divide}`}>
@@ -15025,9 +15089,9 @@ S.N.: ${item.sn || '-'}
                             {entry.note && <div className={`text-xs font-bold mt-2 ${theme.textMuted}`}>หมายเหตุ: {entry.note}</div>}
                           </div>
                           <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 lg:w-48 shrink-0">
-                            <button type="button" onClick={() => { setShowHistoryCenterModal(false); setShowHistory(entry.itemId); }} className={`px-3 py-2.5 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ดูรายละเอียด</button>
-                            <button type="button" onClick={() => { setShowHistoryCenterModal(false); setProofAttachTarget({ itemId: entry.itemId, historyIndex: entry.historyIndex }); setProofAttachFiles([]); }} className="px-3 py-2.5 rounded-xl text-sm font-black bg-pink-600 hover:bg-pink-500 text-white">เพิ่มหลักฐานย้อนหลัง</button>
-                            {entry.proofCount > 0 && <button type="button" onClick={() => { setShowHistoryCenterModal(false); setProofCenterSearch(entry.sn || entry.itemName || ''); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setShowProofCenterModal(true); }} className="col-span-2 lg:col-span-1 px-3 py-2.5 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 text-white">จัดการรูป</button>}
+                            <button type="button" onClick={() => openItemHistoryFromHistoryCenter(entry.itemId)} className={`px-3 py-2.5 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ดูรายละเอียด</button>
+                            <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2.5 rounded-xl text-sm font-black bg-pink-600 hover:bg-pink-500 text-white">เพิ่มหลักฐานย้อนหลัง</button>
+                            {entry.proofCount > 0 && <button type="button" onClick={() => openProofCenterFromHistoryCenter(entry)} className="col-span-2 lg:col-span-1 px-3 py-2.5 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 text-white">จัดการรูป</button>}
                           </div>
                         </div>
                       </div>
@@ -15040,7 +15104,7 @@ S.N.: ${item.sn || '-'}
 
             <div className={`p-4 border-t grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 ${theme.divide}`}>
               <div className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>ใช้หน้านี้เมื่อต้องการค้นประวัติหรือเพิ่มหลักฐานย้อนหลัง โดยไม่ต้องจำว่าอยู่ในอุปกรณ์ชิ้นไหน</div>
-              <button type="button" onClick={closeHistoryCenterModal} className={`px-6 py-3 rounded-xl font-black ${theme.btnCancel}`}>{modalReturnTarget === 'borrowDocs' ? 'กลับไปเอกสารย้อนหลัง' : 'ปิดหน้าต่าง'}</button>
+              <button type="button" onClick={closeHistoryCenterModal} className={`px-6 py-3 rounded-xl font-black ${theme.btnCancel}`}>{modalReturnTarget === 'borrowDocs' ? 'กลับไปเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดหน้าต่าง'}</button>
             </div>
           </div>
         </div>
@@ -15055,7 +15119,7 @@ S.N.: ${item.sn || '-'}
                 <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-lg">📷</span> ศูนย์หลักฐานรูปภาพ</h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมรูปหลักฐานจากทุกอุปกรณ์ ใช้ดู แก้ไข แทนที่ หรือลบรูปหลักฐานจากจุดเดียว</p>
               </div>
-              <button type="button" onClick={closeProofCenterModal} className={`p-2 hover:text-rose-500 ${theme.textMuted}`} title={modalReturnTarget === 'borrowDocs' ? 'กลับไปหน้าเอกสารย้อนหลัง' : 'ปิดหน้าต่าง'}><Icons.X className="w-5 h-5" /></button>
+              <button type="button" onClick={closeProofCenterModal} className={`p-2 hover:text-rose-500 ${theme.textMuted}`} title={modalReturnTarget === 'borrowDocs' ? 'กลับไปหน้าเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดหน้าต่าง'}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className={`p-4 border-b grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
               <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / งาน / กล่อง / หมายเหตุ" value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} />
@@ -15144,7 +15208,7 @@ S.N.: ${item.sn || '-'}
                           {expanded && (
                             <div className="mt-2 space-y-1.5">
                               {group.itemRefs.map((ref, idx) => (
-                                <button key={`${group.groupId}_${ref.itemId || idx}`} type="button" onClick={() => { setShowProofCenterModal(false); setShowHistory(ref.itemId); }} className={`w-full p-2 rounded-xl border text-left ${isDarkMode ? 'bg-slate-900 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-white'}`}>
+                                <button key={`${group.groupId}_${ref.itemId || idx}`} type="button" onClick={() => openItemHistoryFromProofCenter(ref.itemId)} className={`w-full p-2 rounded-xl border text-left ${isDarkMode ? 'bg-slate-900 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-white'}`}>
                                   <div className={`font-black text-xs truncate ${theme.textTitle}`}>{ref.itemName}</div>
                                   <div className={`text-[11px] font-bold truncate ${theme.textMuted}`}>S.N. {ref.sn} • {ref.typeLabel} • {ref.subject}</div>
                                 </button>
@@ -15158,7 +15222,7 @@ S.N.: ${item.sn || '-'}
                 </div>
               )}
             </div>
-            <div className={`p-4 border-t ${theme.divide}`}><button type="button" onClick={closeProofCenterModal} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>{modalReturnTarget === 'borrowDocs' ? 'กลับไปเอกสารย้อนหลัง' : 'ปิดหน้าต่าง'}</button></div>
+            <div className={`p-4 border-t ${theme.divide}`}><button type="button" onClick={closeProofCenterModal} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>{modalReturnTarget === 'borrowDocs' ? 'กลับไปเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดหน้าต่าง'}</button></div>
           </div>
         </div>
       )}
