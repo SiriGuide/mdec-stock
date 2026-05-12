@@ -1,3 +1,4 @@
+// v22.53.1 Mobile Empty State Polish - clearer empty document archive on mobile, no QR/camera/database changes
 // v22.52.8 Modal Chain Return Fix - fixes nested modal back flow from borrow docs/history/proof centers, no QR/camera/database changes
 // v22.52.6 Data Quality Action Polish - edit actions in data quality audit, no QR/camera/database changes
 // v22.52.6 Data Quality Action Polish - UI-only helper stepper, no QR/camera/database changes
@@ -42,8 +43,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.0 Mobile UX Big Polish';
-const APP_UPDATE_NOTE = 'Mobile UX Big Polish: เก็บงานมือถือครั้งใหญ่ เพิ่มแผงทางลัดหน้างาน ปรับเอกสารย้อนหลัง/เมนู/ปุ่มล่าง/Modal ให้กดง่ายและหาเมนูสำคัญเจอเร็ว โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
+const APP_VERSION = 'v22.53.1 Mobile Empty State Polish';
+const APP_UPDATE_NOTE = 'Mobile Empty State Polish: ปรับหน้าเอกสารย้อนหลังบนมือถือเมื่อยังไม่มีข้อมูลให้เข้าใจง่ายขึ้น เพิ่มปุ่มเริ่มทำรายการ/ค้นประวัติ/หลักฐาน และลดความงงจากหน้าว่าง โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -2595,7 +2596,7 @@ function FactoryPolishStyle({ isDarkMode }) {
           border-radius: 14px !important;
         }
 
-        /* v22.53.0 Mobile UX Big Polish: ทางลัดหน้างาน + bottom nav + เอกสารย้อนหลัง */
+        /* v22.53.1 Mobile Empty State Polish: ทางลัดหน้างาน + bottom nav + เอกสารย้อนหลัง + หน้าว่างที่เข้าใจง่าย */
         .factory-stock-polish .mobile-field-launcher {
           margin-top: -2px;
         }
@@ -2640,6 +2641,14 @@ function FactoryPolishStyle({ isDarkMode }) {
           white-space: nowrap;
           flex: 0 0 auto;
         }
+        .factory-stock-polish .borrow-docs-empty-hero {
+          background:
+            radial-gradient(circle at top left, rgba(37,99,235,.14), transparent 34%),
+            radial-gradient(circle at bottom right, rgba(16,185,129,.10), transparent 30%);
+        }
+        .factory-stock-polish .borrow-docs-empty-action {
+          min-height: 54px !important;
+        }
         @media (max-width: 767px) {
           .factory-stock-polish .mobile-field-launcher {
             display: block !important;
@@ -2671,6 +2680,13 @@ function FactoryPolishStyle({ isDarkMode }) {
             background: var(--factory-card);
             padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
             z-index: 3;
+          }
+          .factory-stock-polish .borrow-docs-archive-shell .borrow-docs-mobile-tight {
+            padding-top: 12px !important;
+            padding-bottom: 12px !important;
+          }
+          .factory-stock-polish .borrow-docs-archive-shell .borrow-docs-empty-hero {
+            margin: 12px !important;
           }
         }
 
@@ -15690,10 +15706,10 @@ S.N.: ${item.sn || '-'}
       {/* เอกสารย้อนหลัง / Borrow เอกสารs Archive */}
       {showBorrowDocsModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[9990] mdec-history-proof-safe`}>
-          <div className={`rounded-3xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
+          <div className={`borrow-docs-archive-shell rounded-3xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
             <div className={`p-5 sm:p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
               <div className="min-w-0">
-                <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-500">เอกสารs Archive</div>
+                <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-500">DOCUMENTS ARCHIVE</div>
                 <h3 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>เอกสารย้อนหลัง</h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมใบยืม ใบออกงาน และสถานะการคืน ค้นหาได้จากเลขเอกสาร ผู้ยืม ชื่องาน วันที่ และรายการอุปกรณ์</p>
               </div>
@@ -15717,68 +15733,100 @@ S.N.: ${item.sn || '-'}
               ))}
             </div>
 
-            <div className={`px-5 sm:px-6 py-4 border-b grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
-              <button type="button" onClick={openHistoryCenterFromBorrowDocs} className={`p-4 rounded-2xl border text-left font-black transition-all ${theme.btnSecondary}`}>
-                <div className={theme.textTitle}>ค้นประวัติส่วนกลาง</div>
-                <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ใช้เมื่อต้องหาจากทุกอุปกรณ์หรือจำชื่อชิ้นงานไม่ได้</div>
-              </button>
-              <button type="button" onClick={openProofCenterFromBorrowDocs} className={`p-4 rounded-2xl border text-left font-black transition-all ${theme.btnSecondary}`}>
-                <div className={theme.textTitle}>ศูนย์หลักฐานรูปภาพ</div>
-                <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ดู/แก้ไข/แทนที่รูปหลักฐานจากส่วนกลาง</div>
-              </button>
-              <div className={`p-4 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-                <div className="font-black">คำแนะนำ</div>
-                <div className="text-xs mt-1">ถ้าต้องเพิ่มหลักฐานย้อนหลังและจำไม่ได้ว่าอยู่รายการไหน ให้เริ่มจาก “ประวัติส่วนกลาง”</div>
+            {borrowเอกสารs.length > 0 ? (
+              <div className={`borrow-docs-mobile-tight px-4 sm:px-6 py-3 sm:py-4 border-b grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
+                <button type="button" onClick={openHistoryCenterFromBorrowDocs} className={`p-4 rounded-2xl border text-left font-black transition-all ${theme.btnSecondary}`}>
+                  <div className={theme.textTitle}>ค้นประวัติส่วนกลาง</div>
+                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ใช้เมื่อต้องหาจากทุกอุปกรณ์หรือจำชื่อชิ้นงานไม่ได้</div>
+                </button>
+                <button type="button" onClick={openProofCenterFromBorrowDocs} className={`p-4 rounded-2xl border text-left font-black transition-all ${theme.btnSecondary}`}>
+                  <div className={theme.textTitle}>ศูนย์หลักฐานรูปภาพ</div>
+                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ดู/แก้ไข/แทนที่รูปหลักฐานจากส่วนกลาง</div>
+                </button>
+                <div className={`p-4 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                  <div className="font-black">คำแนะนำ</div>
+                  <div className="text-xs mt-1">ถ้าต้องเพิ่มหลักฐานย้อนหลังและจำไม่ได้ว่าอยู่รายการไหน ให้เริ่มจาก “ประวัติส่วนกลาง”</div>
+                </div>
               </div>
-            </div>
+            ) : null}
 
-            <div className={`p-5 sm:p-6 border-b grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3 ${theme.divide}`}>
-              <div className="relative">
-                <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.textMuted}`} />
-                <input
-                  type="text"
-                  value={borrowDocSearch}
-                  onChange={(e) => setBorrowDocSearch(e.target.value)}
-                  placeholder="ค้นหาเลขเอกสาร / ผู้ยืม / ชื่องาน / วันที่ / อุปกรณ์ / S.N."
-                  className={`w-full pl-12 pr-4 py-4 rounded-2xl border font-bold outline-none ${theme.input}`}
-                />
+            {borrowเอกสารs.length > 0 ? (
+              <div className={`borrow-docs-mobile-tight p-4 sm:p-6 border-b grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3 ${theme.divide}`}>
+                <div className="relative">
+                  <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.textMuted}`} />
+                  <input
+                    type="text"
+                    value={borrowDocSearch}
+                    onChange={(e) => setBorrowDocSearch(e.target.value)}
+                    placeholder="ค้นหาเลขเอกสาร / ผู้ยืม / ชื่องาน / วันที่ / อุปกรณ์ / S.N."
+                    className={`w-full pl-12 pr-4 py-4 rounded-2xl border font-bold outline-none ${theme.input}`}
+                  />
+                </div>
+                <select value={borrowDocFilter} onChange={(e) => setBorrowDocFilter(e.target.value)} className={`px-4 py-4 rounded-2xl border font-black outline-none ${theme.input}`}>
+                  <option value="all">ทั้งหมด</option>
+                  <option value="borrow">เฉพาะใบยืม</option>
+                  <option value="event">เฉพาะใบออกงาน</option>
+                  <option value="active">รอคืน</option>
+                  <option value="partial">คืนบางส่วน</option>
+                  <option value="closed">คืนครบแล้ว</option>
+                </select>
+                <div className="md:col-span-2 borrow-docs-filter-row mobile-scroll-row flex gap-2 overflow-x-auto">
+                  {[
+                    ['all', 'ทั้งหมด'],
+                    ['active', 'รอคืน'],
+                    ['partial', 'คืนบางส่วน'],
+                    ['closed', 'ปิดแล้ว'],
+                    ['borrow', 'ใบยืม'],
+                    ['event', 'ใบออกงาน']
+                  ].map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setBorrowDocFilter(id)}
+                      className={`borrow-docs-filter-chip px-4 py-2 rounded-full border text-xs font-black ${borrowDocFilter === id ? 'bg-blue-600 border-blue-600 text-white shadow-md' : theme.btnSecondary}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <select value={borrowDocFilter} onChange={(e) => setBorrowDocFilter(e.target.value)} className={`px-4 py-4 rounded-2xl border font-black outline-none ${theme.input}`}>
-                <option value="all">ทั้งหมด</option>
-                <option value="borrow">เฉพาะใบยืม</option>
-                <option value="event">เฉพาะใบออกงาน</option>
-                <option value="active">รอคืน</option>
-                <option value="partial">คืนบางส่วน</option>
-                <option value="closed">คืนครบแล้ว</option>
-              </select>
-              <div className="md:col-span-2 borrow-docs-filter-row mobile-scroll-row flex gap-2 overflow-x-auto">
-                {[
-                  ['all', 'ทั้งหมด'],
-                  ['active', 'รอคืน'],
-                  ['partial', 'คืนบางส่วน'],
-                  ['closed', 'ปิดแล้ว'],
-                  ['borrow', 'ใบยืม'],
-                  ['event', 'ใบออกงาน']
-                ].map(([id, label]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setBorrowDocFilter(id)}
-                    className={`borrow-docs-filter-chip px-4 py-2 rounded-full border text-xs font-black ${borrowDocFilter === id ? 'bg-blue-600 border-blue-600 text-white shadow-md' : theme.btnSecondary}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            ) : null}
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-6 space-y-3">
               {filteredBorrowเอกสารs.length === 0 ? (
-                <div className={`min-h-[280px] rounded-3xl border border-dashed flex flex-col items-center justify-center text-center p-8 ${isDarkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-200 bg-slate-50'}`}>
-                  <Icons.พิมพ์er className={`w-14 h-14 mb-4 ${theme.textMuted}`} />
-                  <div className={`text-xl font-black ${theme.textTitle}`}>ไม่พบเอกสารย้อนหลัง</div>
-                  <p className={`text-sm font-bold mt-2 max-w-md ${theme.textMuted}`}>ลองล้างตัวกรอง หรือสร้างใบยืม/ใบออกงานใหม่ ระบบจะบันทึกเอกสารไว้ในหน้านี้อัตโนมัติ</p>
-                </div>
+                borrowเอกสารs.length === 0 ? (
+                  <div className={`borrow-docs-empty-hero min-h-[260px] rounded-3xl border flex flex-col items-center justify-center text-center p-5 sm:p-8 ${isDarkMode ? 'border-slate-700 bg-slate-950' : 'border-blue-100 bg-blue-50/50'}`}>
+                    <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-4 ${isDarkMode ? 'bg-blue-500/15 text-blue-300' : 'bg-white text-blue-600 shadow-sm'}`}>
+                      <Icons.พิมพ์er className="w-8 h-8" />
+                    </div>
+                    <div className={`text-xl sm:text-2xl font-black ${theme.textTitle}`}>ยังไม่มีเอกสารย้อนหลัง</div>
+                    <p className={`text-sm font-bold mt-2 max-w-lg ${theme.textMuted}`}>เมื่อมีการยืมอุปกรณ์หรือออกงาน ระบบจะเก็บใบเอกสารและสถานะการคืนไว้ตรงนี้ให้อัตโนมัติ</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-xl mt-5">
+                      <button type="button" onClick={() => { setShowBorrowDocsModal(false); openWorkspace('borrowReturn'); }} className="borrow-docs-empty-action px-4 py-3 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-black shadow-lg shadow-purple-500/20 transition-all">
+                        ทำรายการยืม / ออกงาน
+                      </button>
+                      <button type="button" onClick={openHistoryCenterFromBorrowDocs} className={`borrow-docs-empty-action px-4 py-3 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
+                        ค้นประวัติส่วนกลาง
+                      </button>
+                      <button type="button" onClick={openProofCenterFromBorrowDocs} className={`borrow-docs-empty-action px-4 py-3 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
+                        ศูนย์หลักฐานรูปภาพ
+                      </button>
+                      <button type="button" onClick={() => setShowBorrowDocsModal(false)} className={`borrow-docs-empty-action px-4 py-3 rounded-2xl border font-black transition-all ${theme.btnCancel}`}>
+                        กลับไปหน้าหลัก
+                      </button>
+                    </div>
+                    <div className={`mt-4 text-xs font-bold ${theme.textMuted}`}>ตอนนี้ขึ้น 0 เอกสารถือว่าปกติ เพราะยังไม่มีรายการยืม/ออกงานที่ถูกบันทึก</div>
+                  </div>
+                ) : (
+                  <div className={`min-h-[240px] rounded-3xl border border-dashed flex flex-col items-center justify-center text-center p-6 ${isDarkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-200 bg-slate-50'}`}>
+                    <Icons.Search className={`w-12 h-12 mb-4 ${theme.textMuted}`} />
+                    <div className={`text-xl font-black ${theme.textTitle}`}>ไม่พบเอกสารตามตัวกรอง</div>
+                    <p className={`text-sm font-bold mt-2 max-w-md ${theme.textMuted}`}>ลองล้างคำค้นหา หรือเลือกตัวกรอง “ทั้งหมด” เพื่อดูเอกสารที่มีอยู่</p>
+                    <button type="button" onClick={() => { setBorrowDocSearch(''); setBorrowDocFilter('all'); }} className="mt-5 px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg shadow-blue-500/20 transition-all">
+                      ล้างตัวกรอง
+                    </button>
+                  </div>
+                )
               ) : (
                 filteredBorrowเอกสารs.map((docData) => {
                   const itemCount = Array.isArray(docData.items) ? docData.items.length : (Array.isArray(docData.itemIds) ? docData.itemIds.length : 0);
@@ -15843,7 +15891,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className={`borrow-docs-footer p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-3 ${theme.divide}`}>
-              <div className={`text-sm font-bold ${theme.textMuted}`}>กำลังแสดง {filteredBorrowเอกสารs.length.toLocaleString('th-TH')} จาก {borrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร</div>
+              <div className={`text-sm font-bold ${theme.textMuted}`}>{borrowเอกสารs.length === 0 ? 'ยังไม่มีเอกสารในระบบ' : `กำลังแสดง ${filteredBorrowเอกสารs.length.toLocaleString('th-TH')} จาก ${borrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร`}</div>
               <button type="button" onClick={() => setShowBorrowDocsModal(false)} className={`w-full sm:w-auto px-6 py-3 rounded-2xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
             </div>
           </div>
