@@ -42,8 +42,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.52.9 Mobile Documents Shortcut Fix';
-const APP_UPDATE_NOTE = 'Mobile Documents Shortcut Fix: เพิ่มทางเข้าเอกสารย้อนหลังบนมือถือที่ Bottom Nav และ Top Bar ให้หาเจอง่ายขึ้น พร้อมคง flow ย้อนกลับของเอกสารย้อนหลัง โดยไม่แตะ QR/กล้อง/ฐานข้อมูล';
+const APP_VERSION = 'v22.53.0 Mobile UX Big Polish';
+const APP_UPDATE_NOTE = 'Mobile UX Big Polish: เก็บงานมือถือครั้งใหญ่ เพิ่มแผงทางลัดหน้างาน ปรับเอกสารย้อนหลัง/เมนู/ปุ่มล่าง/Modal ให้กดง่ายและหาเมนูสำคัญเจอเร็ว โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -2595,6 +2595,85 @@ function FactoryPolishStyle({ isDarkMode }) {
           border-radius: 14px !important;
         }
 
+        /* v22.53.0 Mobile UX Big Polish: ทางลัดหน้างาน + bottom nav + เอกสารย้อนหลัง */
+        .factory-stock-polish .mobile-field-launcher {
+          margin-top: -2px;
+        }
+        .factory-stock-polish .mobile-field-launcher button {
+          min-height: 62px !important;
+          align-items: flex-start;
+        }
+        .factory-stock-polish .mobile-field-launcher .mobile-field-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 14px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .factory-stock-polish .mobile-docs-bottom-active {
+          background: #2563eb !important;
+          color: #ffffff !important;
+          box-shadow: 0 10px 22px rgba(37,99,235,.24) !important;
+        }
+        .factory-stock-polish .mobile-bottom-badge {
+          position: absolute;
+          top: 3px;
+          right: 16px;
+          min-width: 17px;
+          height: 17px;
+          padding: 0 4px;
+          border-radius: 999px;
+          background: #ef4444;
+          color: #ffffff;
+          font-size: 10px;
+          line-height: 17px;
+          font-weight: 950;
+          border: 2px solid var(--factory-card);
+        }
+        .factory-stock-polish .borrow-docs-archive-shell {
+          max-height: calc(100dvh - 16px) !important;
+        }
+        .factory-stock-polish .borrow-docs-filter-chip {
+          min-height: 38px !important;
+          white-space: nowrap;
+          flex: 0 0 auto;
+        }
+        @media (max-width: 767px) {
+          .factory-stock-polish .mobile-field-launcher {
+            display: block !important;
+          }
+          .factory-stock-polish .borrow-docs-archive-shell {
+            border-radius: 22px 22px 0 0 !important;
+            align-self: flex-end !important;
+            max-height: 94dvh !important;
+          }
+          .factory-stock-polish .borrow-docs-archive-shell .borrow-doc-card-actions {
+            width: 100% !important;
+          }
+          .factory-stock-polish .borrow-docs-archive-shell .borrow-doc-card-actions button {
+            width: 100% !important;
+            min-height: 44px !important;
+          }
+          .factory-stock-polish .borrow-docs-filter-row {
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            scrollbar-width: none !important;
+            padding-bottom: 2px;
+          }
+          .factory-stock-polish .borrow-docs-filter-row::-webkit-scrollbar {
+            display: none !important;
+          }
+          .factory-stock-polish .borrow-docs-footer {
+            position: sticky;
+            bottom: 0;
+            background: var(--factory-card);
+            padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+            z-index: 3;
+          }
+        }
+
         /* QR: ปรับเฉพาะกรอบรอบนอก ไม่แตะกล้อง / qrbox / scanner logic */
         .factory-stock-polish #qr-reader {
           max-width: 100% !important;
@@ -3765,6 +3844,39 @@ function MainApp() {
     setProofCenterSearch(borrowDocSearch || '');
     setProofCenterFilter('all');
     setShowProofCenterModal(true);
+  };
+
+  // v22.53.0 Mobile UX Big Polish
+  // รวมทางเข้าเมนูที่ใช้บ่อยบนมือถือไว้เป็น function กลาง ลดปัญหากดจากหลายจุดแล้ว state ค้าง
+  const openBorrowDocsArchive = ({ reset = false } = {}) => {
+    setShowMoreMenu(false);
+    setShowCommandCenter(false);
+    setModalReturnStack([]);
+    if (reset) {
+      setBorrowDocSearch('');
+      setBorrowDocFilter('all');
+    }
+    setShowBorrowDocsModal(true);
+  };
+
+  const openMainProofCenter = ({ reset = true } = {}) => {
+    setShowMoreMenu(false);
+    setShowCommandCenter(false);
+    if (reset) {
+      setProofCenterFilter('all');
+      setProofCenterSearch('');
+    }
+    setShowProofCenterModal(true);
+  };
+
+  const openMainHistoryCenter = ({ reset = true } = {}) => {
+    setShowMoreMenu(false);
+    setShowCommandCenter(false);
+    if (reset) {
+      setHistoryCenterFilter('all');
+      setHistoryCenterSearch('');
+    }
+    setShowHistoryCenterModal(true);
   };
 
   const openItemHistoryFromHistoryCenter = (itemId) => {
@@ -6706,7 +6818,7 @@ S.N.: ${item.sn || '-'}
             </div>
             <div className="grid grid-cols-2 sm:flex gap-2">
               <button type="button" onClick={() => openSelectionScanner({ camera: true })} className="px-4 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black flex items-center justify-center gap-2"><Icons.QrCode className="w-5 h-5" /> สแกน QR</button>
-              <button type="button" onClick={() => setShowBorrowDocsModal(true)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>เอกสารย้อนหลัง</button>
+              <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>เอกสารย้อนหลัง</button>
               {borrowReturnMode !== 'return' && <button type="button" onClick={() => openCameraAccessoryHelper(borrowReturnMode)} className="col-span-2 sm:col-span-1 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black flex items-center justify-center gap-2"><Icons.Camera className="w-5 h-5" /> ตัวช่วยกล้อง</button>}
             </div>
           </div>
@@ -10530,7 +10642,7 @@ S.N.: ${item.sn || '-'}
                   <button type="button" onClick={() => { setShowCommandCenter(false); openWorkspace('borrowReturn'); }} className="rounded-2xl border border-purple-400/20 bg-purple-400/10 text-purple-100 p-3 font-black text-sm">ยืม-คืน</button>
                   <button type="button" onClick={() => { setShowCommandCenter(false); openSelectionScanner({ camera: true }); }} className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-100 p-3 font-black text-sm">สแกน QR</button>
                   <button type="button" onClick={() => { setShowCommandCenter(false); openWorkspace('projects'); }} className="rounded-2xl border border-indigo-400/20 bg-indigo-400/10 text-indigo-100 p-3 font-black text-sm">โครงการ</button>
-                  <button type="button" onClick={() => { setShowCommandCenter(false); setShowBorrowDocsModal(true); }} className="rounded-2xl border border-blue-400/20 bg-blue-400/10 text-blue-100 p-3 font-black text-sm">เอกสารย้อนหลัง</button>
+                  <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className="rounded-2xl border border-blue-400/20 bg-blue-400/10 text-blue-100 p-3 font-black text-sm">เอกสารย้อนหลัง</button>
                   <button type="button" onClick={() => { setShowCommandCenter(false); openTrackingCenter('today'); }} className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-100 p-3 font-black text-sm">ติดตาม</button>
                 </div>
               </div>
@@ -10573,7 +10685,7 @@ S.N.: ${item.sn || '-'}
           <button type="button" onClick={() => openTrackingCenter('today')} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
             <Icons.History className="w-5 h-5" /> ติดตามการคืน
           </button>
-          <button type="button" onClick={() => { setHistoryCenterFilter('all'); setHistoryCenterSearch(''); setShowHistoryCenterModal(true); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+          <button type="button" onClick={() => openMainHistoryCenter({ reset: true })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
             <Icons.ClipboardList className="w-5 h-5" /> ประวัติส่วนกลาง
           </button>
           {canAddEditItems && (
@@ -10590,7 +10702,7 @@ S.N.: ${item.sn || '-'}
           <button type="button" onClick={() => setShowProofCenterModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
             <Icons.Camera className="w-5 h-5" /> หลักฐานรูปภาพ
           </button>
-          <button type="button" onClick={() => setShowBorrowDocsModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+          <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
             <Icons.พิมพ์er className="w-5 h-5" /> เอกสารย้อนหลัง
           </button>
           <button type="button" onClick={openControlCenter} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
@@ -10678,7 +10790,7 @@ S.N.: ${item.sn || '-'}
               <button type="button" onClick={() => openWorkspace('borrowReturn')} className="factory-ghost-btn" title="ยืม-คืนอุปกรณ์">
                 <Icons.UserPlus className="w-5 h-5" /><span className="hidden-mobile">ยืม-คืน</span>
               </button>
-              <button type="button" onClick={() => setShowBorrowDocsModal(true)} className="factory-ghost-btn" title="เอกสารย้อนหลัง">
+              <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className="factory-ghost-btn" title="เอกสารย้อนหลัง">
                 <Icons.พิมพ์er className="w-5 h-5" /><span className="hidden-mobile">เอกสาร</span>
               </button>
               <button type="button" onClick={() => openTrackingCenter('today')} className="factory-ghost-btn" title="ติดตามการคืน">
@@ -10729,6 +10841,56 @@ S.N.: ${item.sn || '-'}
             </div>
           </div>
           <div className={`text-xs font-black px-3 py-2 rounded-xl border ${roleBadgeClass(currentAccountRole)}`}>{currentFullAccount?.username ? '@' + currentFullAccount.username : 'บัญชีภายใน'}</div>
+        </div>
+      )}
+
+      {isLoggedIn && activeWorkspace === 'overview' && (
+        <div className={`mobile-field-launcher lg:hidden w-full mb-5 rounded-[1.5rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
+          <div className={`p-4 border-b ${theme.divide}`}>
+            <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>MOBILE FIELD MODE</div>
+            <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>ทางลัดสำหรับใช้งานในโทรศัพท์</div>
+            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมปุ่มที่ใช้บ่อยตอนออกหน้างาน กดง่าย ไม่ต้องเลื่อนหาเมนูลึก</p>
+          </div>
+          <div className="p-3 grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+              <span className="mobile-field-icon bg-purple-600 text-white mb-2"><Icons.UserPlus className="w-5 h-5" /></span>
+              <span className={`block ${theme.textTitle}`}>ยืม / คืน</span>
+              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ทำรายการหลัก</span>
+            </button>
+            {canUseOperationalTools ? (
+              <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`p-3 rounded-2xl border text-left font-black ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-900 border-slate-900 text-white'}`}>
+                <span className="mobile-field-icon bg-white/15 text-white mb-2"><Icons.QrCode className="w-5 h-5" /></span>
+                <span className="block">สแกน QR</span>
+                <span className="block text-[11px] font-bold mt-0.5 text-white/70">เลือกของเร็ว</span>
+              </button>
+            ) : (
+              <button type="button" onClick={() => setShowFilterModal(true)} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+                <span className="mobile-field-icon bg-slate-600 text-white mb-2"><Icons.Settings className="w-5 h-5" /></span>
+                <span className={`block ${theme.textTitle}`}>ตัวกรอง</span>
+                <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ค้นหาของ</span>
+              </button>
+            )}
+            <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+              <span className="mobile-field-icon bg-blue-600 text-white mb-2"><Icons.พิมพ์er className="w-5 h-5" /></span>
+              <span className={`block ${theme.textTitle}`}>เอกสารย้อนหลัง</span>
+              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{borrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร</span>
+            </button>
+            <button type="button" onClick={() => openTrackingCenter('today')} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+              <span className="mobile-field-icon bg-emerald-600 text-white mb-2"><Icons.History className="w-5 h-5" /></span>
+              <span className={`block ${theme.textTitle}`}>ติดตามคืน</span>
+              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{(currentBorrowedItems.length + currentEventItems.length).toLocaleString('th-TH')} รายการค้าง</span>
+            </button>
+            <button type="button" onClick={() => openMainProofCenter({ reset: true })} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+              <span className="mobile-field-icon bg-pink-600 text-white mb-2"><Icons.Camera className="w-5 h-5" /></span>
+              <span className={`block ${theme.textTitle}`}>หลักฐานรูปภาพ</span>
+              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ดู/จัดการรูป</span>
+            </button>
+            <button type="button" onClick={openControlCenter} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+              <span className="mobile-field-icon bg-indigo-600 text-white mb-2"><Icons.ViewGrid className="w-5 h-5" /></span>
+              <span className={`block ${theme.textTitle}`}>เมนูทั้งหมด</span>
+              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ตั้งค่า/รายงาน</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -10788,6 +10950,10 @@ S.N.: ${item.sn || '-'}
                     <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ติดตามการคืนงาน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ติดตามยืม/คืน/ออกงาน</p>
                   </button>
+                  <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.พิมพ์er className="w-5 h-5" /> เอกสารย้อนหลัง</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ใบยืม ใบออกงาน ค้นหาและพิมพ์ซ้ำ</p>
+                  </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); openSelectionScanner({ camera: true }); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> โหมดสแกนเร็ว</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สแกนเพื่อเลือกอุปกรณ์</p>
@@ -10836,7 +11002,7 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div>
-                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.พิมพ์er className="w-5 h-5 text-indigo-500" /> เอกสารs & Labels</h4>
+                <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.พิมพ์er className="w-5 h-5 text-indigo-500" /> เอกสารและฉลาก</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <button type="button" onClick={() => { setShowMoreMenu(false); setShowพิมพ์Modal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> QR / สติ๊กเกอร์อุปกรณ์</div>
@@ -10926,7 +11092,7 @@ S.N.: ${item.sn || '-'}
           </div>
         </div>
 
-        <div className="p-4 sm:p-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2.5">
+        <div className="p-4 sm:p-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-2.5">
           {canUseOperationalTools && (
             <button type="button" onClick={() => openSelectionScanner()} className={`group relative overflow-hidden p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-900 border-slate-900 text-white'}`}>
               <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center mb-3"><Icons.QrCode className="w-5 h-5" /></div>
@@ -10951,12 +11117,17 @@ S.N.: ${item.sn || '-'}
             <div className="font-black text-lg">ติดตามของรอคืน</div>
             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ดูตามผู้ยืม/งาน</div>
           </button>
-          <button type="button" onClick={() => { setProofCenterFilter('all'); setProofCenterSearch(''); setShowProofCenterModal(true); }} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-pink-950/40 border-pink-800 text-pink-200' : 'bg-pink-50 border-pink-100 text-pink-700'}`}>
+          <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-blue-950/40 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-100 text-blue-700'}`}>
+            <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-3"><Icons.พิมพ์er className="w-5 h-5" /></div>
+            <div className="font-black text-lg">เอกสารย้อนหลัง</div>
+            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ใบยืม/ใบออกงาน</div>
+          </button>
+          <button type="button" onClick={() => openMainProofCenter({ reset: true })} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-pink-950/40 border-pink-800 text-pink-200' : 'bg-pink-50 border-pink-100 text-pink-700'}`}>
             <div className="w-10 h-10 rounded-2xl bg-pink-600 text-white flex items-center justify-center mb-3"><Icons.Camera className="w-5 h-5" /></div>
             <div className="font-black text-lg">หลักฐานรูปภาพ</div>
             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>รวมรูปทุกอุปกรณ์</div>
           </button>
-          <button type="button" onClick={() => { setHistoryCenterFilter('all'); setHistoryCenterSearch(''); setShowHistoryCenterModal(true); }} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-sky-950/40 border-sky-800 text-sky-200' : 'bg-sky-50 border-sky-100 text-sky-700'}`}>
+          <button type="button" onClick={() => openMainHistoryCenter({ reset: true })} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-sky-950/40 border-sky-800 text-sky-200' : 'bg-sky-50 border-sky-100 text-sky-700'}`}>
             <div className="w-10 h-10 rounded-2xl bg-sky-600 text-white flex items-center justify-center mb-3"><Icons.ClipboardList className="w-5 h-5" /></div>
             <div className="font-black text-lg">ประวัติส่วนกลาง</div>
             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ค้นทุกยืม/คืน/ออกงาน</div>
@@ -14809,7 +14980,7 @@ S.N.: ${item.sn || '-'}
       {/* 🗂️ Legacy Project Manager (เก็บไว้เผื่อปุ่มเก่าเรียก แต่เมนูหลักใช้หน้าโครงการจัดซื้อแบบเต็มหน้าแล้ว) */}
       {showProjectsModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990] mdec-history-proof-safe`}>
-          <div className={`rounded-[2rem] shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900 border-slate-700 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
+          <div className={`borrow-docs-archive-shell rounded-[2rem] shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900 border-slate-700 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
             <div className={`p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
               <div>
                 <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}>
@@ -15342,7 +15513,7 @@ S.N.: ${item.sn || '-'}
                   <div><b>ติดตามการคืนงาน</b> = ดูของรอคืน ออกงานอยู่ วันนี้ และเลยกำหนด</div>
                   <div><b>ศูนย์หลักฐานรูปภาพ</b> = ดู แก้ไข แทนที่ หรือลบรูปหลักฐาน</div>
                   <div><b>จัดเก็บและจัดชุด</b> = กล่องเก็บของ เซ็ตอุปกรณ์ และรายการเตรียมของ</div>
-                  <div><b>เอกสารs & Labels</b> = QR ฉลากกล่อง ใบยืม และตั้งค่าโลโก้เอกสาร</div>
+                  <div><b>เอกสารและฉลาก</b> = QR ฉลากกล่อง ใบยืม และตั้งค่าโลโก้เอกสาร</div>
                 </div>
               </div>
 
@@ -15527,7 +15698,7 @@ S.N.: ${item.sn || '-'}
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมใบยืม ใบออกงาน และสถานะการคืน ค้นหาได้จากเลขเอกสาร ผู้ยืม ชื่องาน วันที่ และรายการอุปกรณ์</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <button type="button" onClick={() => { setBorrowDocSearch(''); setBorrowDocFilter('all'); }} className={`px-4 py-3 rounded-2xl text-sm font-black border ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
+                <button type="button" onClick={() => { setBorrowDocSearch(''); setBorrowDocFilter('all'); }} className={`px-4 py-3 rounded-2xl text-sm font-black border ${theme.btnSecondary}`}>ล้าง</button>
                 <button type="button" onClick={() => setShowBorrowDocsModal(false)} className={`p-3 rounded-2xl border ${theme.btnSecondary}`}><Icons.X className="w-5 h-5" /></button>
               </div>
             </div>
@@ -15580,6 +15751,25 @@ S.N.: ${item.sn || '-'}
                 <option value="partial">คืนบางส่วน</option>
                 <option value="closed">คืนครบแล้ว</option>
               </select>
+              <div className="md:col-span-2 borrow-docs-filter-row mobile-scroll-row flex gap-2 overflow-x-auto">
+                {[
+                  ['all', 'ทั้งหมด'],
+                  ['active', 'รอคืน'],
+                  ['partial', 'คืนบางส่วน'],
+                  ['closed', 'ปิดแล้ว'],
+                  ['borrow', 'ใบยืม'],
+                  ['event', 'ใบออกงาน']
+                ].map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setBorrowDocFilter(id)}
+                    className={`borrow-docs-filter-chip px-4 py-2 rounded-full border text-xs font-black ${borrowDocFilter === id ? 'bg-blue-600 border-blue-600 text-white shadow-md' : theme.btnSecondary}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-6 space-y-3">
@@ -15637,11 +15827,11 @@ S.N.: ${item.sn || '-'}
                           )}
                           {docData.note && <div className={`mt-3 text-xs font-bold rounded-2xl px-3 py-2 ${isDarkMode ? 'bg-amber-950/20 text-amber-300' : 'bg-amber-50 text-amber-700'}`}>หมายเหตุ: {docData.note}</div>}
                         </div>
-                        <div className="flex xl:flex-col gap-2 shrink-0">
+                        <div className="borrow-doc-card-actions flex flex-col sm:flex-row xl:flex-col gap-2 shrink-0 w-full xl:w-auto">
                           <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2">
                             <Icons.พิมพ์er className="w-5 h-5" /> พิมพ์ซ้ำ
                           </button>
-                          <button type="button" onClick={() => { setTrackingTab('today'); setShowTrackingCenterModal(true); }} className={`px-4 py-3 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
+                          <button type="button" onClick={() => { setShowBorrowDocsModal(false); setTrackingTab('today'); setShowTrackingCenterModal(true); }} className={`px-4 py-3 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
                             ติดตามการคืน
                           </button>
                         </div>
@@ -15652,7 +15842,7 @@ S.N.: ${item.sn || '-'}
               )}
             </div>
 
-            <div className={`p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-3 ${theme.divide}`}>
+            <div className={`borrow-docs-footer p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-3 ${theme.divide}`}>
               <div className={`text-sm font-bold ${theme.textMuted}`}>กำลังแสดง {filteredBorrowเอกสารs.length.toLocaleString('th-TH')} จาก {borrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร</div>
               <button type="button" onClick={() => setShowBorrowDocsModal(false)} className={`w-full sm:w-auto px-6 py-3 rounded-2xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
             </div>
@@ -15678,8 +15868,9 @@ S.N.: ${item.sn || '-'}
               <Icons.Settings className="w-5 h-5" />กรอง
             </button>
           )}
-          <button type="button" onClick={() => setShowBorrowDocsModal(true)} className={`py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
+          <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`relative py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${showBorrowDocsModal ? 'mobile-docs-bottom-active' : theme.textMuted}`}>
             <Icons.พิมพ์er className="w-5 h-5" />เอกสาร
+            {borrowเอกสารs.length > 0 && <span className="mobile-bottom-badge">{borrowเอกสารs.length > 99 ? '99+' : borrowเอกสารs.length}</span>}
           </button>
           <button type="button" onClick={openControlCenter} className={`py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
             <Icons.ViewGrid className="w-5 h-5" />เมนู
