@@ -1,4 +1,6 @@
-// v22.52.0 Complete Workflow UX Polish Pack - UI/UX safe polish, no QR/camera/database changes
+// v22.52.2 Camera Memory Flow Polish - supports camera/department/flexible memory choice without fixed sets
+// v22.52.2 Camera Memory Flow Polish - UI-only polish, no QR/camera/database changes
+// v22.52.1 ตัวช่วยกล้อง Final UX - UI/UX safe polish, no QR/camera/database changes
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
@@ -3425,7 +3427,7 @@ function FactoryPolishStyle({ isDarkMode }) {
 
     
 
-/* v22.52.0 Complete Workflow UX Polish Pack
+/* v22.52.1 ตัวช่วยกล้อง Final UX
    UI-only safety polish: no Firebase path, no QR scanner, no camera permission changes */
 .settings-safety-zone,
 .danger-zone,
@@ -6149,6 +6151,96 @@ S.N.: ${item.sn || '-'}
     return [capacity, type, speed].filter(Boolean).join(' • ');
   };
 
+  const getCameraHelperText = (item) => String([
+    item?.name,
+    item?.sn,
+    item?.shortCode,
+    item?.category,
+    item?.equipmentType,
+    item?.subType,
+    item?.ownerDepartment,
+    item?.department,
+    item?.location,
+    item?.storageBoxName,
+    item?.compatibleWith,
+    item?.internalNote,
+    item?.project,
+    item?.owner
+  ].filter(Boolean).join(' ')).toLowerCase();
+
+  const getCameraHelperIdentityTokens = (camera) => {
+    if (!camera) return [];
+    const raw = [
+      camera.id,
+      camera.name,
+      camera.sn,
+      camera.shortCode,
+      camera.model,
+      camera.category
+    ].filter(Boolean).map(v => String(v).trim()).filter(Boolean);
+    return Array.from(new Set(raw.flatMap(v => {
+      const parts = [v.toLowerCase()];
+      String(v).split(/\s+|\/|-|_/).filter(x => x && x.length >= 3).forEach(x => parts.push(x.toLowerCase()));
+      return parts;
+    }))).filter(Boolean);
+  };
+
+  const isMemoryDedicatedToCamera = (memory, camera) => {
+    if (!memory || !camera) return false;
+    const text = getCameraHelperText(memory);
+    const hasDedicatedWord = /ประจำกล้อง|ติดกล้อง|ประจำตัวกล้อง|ใส่กล้อง|camera assigned|dedicated/i.test(text);
+    const tokens = getCameraHelperIdentityTokens(camera).filter(t => t.length >= 3);
+    const matchedCamera = tokens.some(t => text.includes(t));
+    return hasDedicatedWord && matchedCamera;
+  };
+
+  const isFlexibleMemory = (memory) => {
+    const text = getCameraHelperText(memory);
+    const dept = getCameraHelperDepartment(memory);
+    return /ส่วนกลาง|กลาง|shared|common|pool|ยืดหยุ่น|สำรอง|เผื่อ|กลาง\/ยืดหยุ่น/i.test(text) ||
+      !dept || dept === 'ไม่ระบุฝ่าย' || dept === 'ส่วนกลาง';
+  };
+
+  const getCameraHelperMemoryGroups = (memoryList = [], camera) => {
+    const selectedDept = camera ? getCameraHelperDepartment(camera) : '';
+    const groups = [
+      {
+        id: 'camera',
+        title: 'เมมประจำกล้อง',
+        desc: camera ? `เมมที่ระบุว่าอยู่ประจำ/ใส่กับ ${camera.name}` : 'เลือกกล้องก่อน ระบบจะแสดงเมมประจำกล้องถ้ามี',
+        items: []
+      },
+      {
+        id: 'department',
+        title: selectedDept && selectedDept !== 'ไม่ระบุฝ่าย' ? `เมมประจำฝ่าย ${selectedDept}` : 'เมมประจำฝ่าย',
+        desc: 'เมมของฝ่ายเดียวกับกล้องหรือฝ่ายเจ้าของงาน ใช้ได้ตามการดูแลจริง',
+        items: []
+      },
+      {
+        id: 'flexible',
+        title: 'เมมส่วนกลาง / ยืดหยุ่น',
+        desc: 'เมมที่ไม่ได้ผูกกับกล้องหรือฝ่ายใดชัดเจน ใช้ได้ตามดุลยพินิจผู้ดูแล',
+        items: []
+      },
+      {
+        id: 'other',
+        title: 'เมมจากฝ่ายอื่น',
+        desc: 'เลือกได้ถ้าหน้างานจำเป็น แต่ควรตรวจสอบกับผู้ดูแลก่อน',
+        items: []
+      }
+    ];
+
+    (memoryList || []).forEach(memory => {
+      const dept = getCameraHelperDepartment(memory);
+      if (isMemoryDedicatedToCamera(memory, camera)) groups[0].items.push(memory);
+      else if (selectedDept && selectedDept !== 'ไม่ระบุฝ่าย' && dept === selectedDept) groups[1].items.push(memory);
+      else if (isFlexibleMemory(memory)) groups[2].items.push(memory);
+      else groups[3].items.push(memory);
+    });
+
+    return groups.filter(group => group.items.length > 0 || group.id === 'camera');
+  };
+
   const groupCameraHelperItems = (list = []) => {
     return list.reduce((acc, item) => {
       const key = getCameraHelperDepartment(item);
@@ -6176,7 +6268,7 @@ S.N.: ${item.sn || '-'}
     if (!cameraId) return alert('กรุณาเลือกกล้องก่อน');
     const ids = [
       cameraId,
-      ...(cameraHelperForm.kitMode === 'withLens' ? cameraHelperForm.lensIds : []),
+      ...(cameraHelperForm.kitMode === 'withเลนส์' ? cameraHelperForm.lensIds : []),
       ...cameraHelperForm.batteryIds,
       ...cameraHelperForm.memoryIds
     ].filter(Boolean);
@@ -6205,10 +6297,10 @@ S.N.: ${item.sn || '-'}
     const memories = availableItems.filter(item => inferCameraHelperKind(item) === 'memory').sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true }));
     const selectedCamera = items.find(item => item.id === cameraHelperForm.cameraId);
     const selectedCameraMount = selectedCamera ? inferCameraHelperMount(selectedCamera) : '';
-    const suggestedLensIds = new Set(lenses.filter(item => selectedCameraMount && inferCameraHelperMount(item) === selectedCameraMount).map(item => item.id));
+    const suggestedเลนส์Ids = new Set(lenses.filter(item => selectedCameraMount && inferCameraHelperMount(item) === selectedCameraMount).map(item => item.id));
     const groupedBatteries = groupCameraHelperItems(batteries);
-    const groupedMemories = groupCameraHelperItems(memories);
-    const selectedCount = [cameraHelperForm.cameraId, ...(cameraHelperForm.kitMode === 'withLens' ? cameraHelperForm.lensIds : []), ...cameraHelperForm.batteryIds, ...cameraHelperForm.memoryIds].filter(Boolean).length;
+    const memoryGroups = getCameraHelperMemoryGroups(memories, selectedCamera);
+    const selectedCount = [cameraHelperForm.cameraId, ...(cameraHelperForm.kitMode === 'withเลนส์' ? cameraHelperForm.lensIds : []), ...cameraHelperForm.batteryIds, ...cameraHelperForm.memoryIds].filter(Boolean).length;
     const contextLabel = cameraHelperContext === 'event' ? 'ออกงาน' : 'ให้ยืม';
 
     return (
@@ -6247,18 +6339,18 @@ S.N.: ${item.sn || '-'}
                   <div className={`text-sm font-black mb-2 ${theme.textTitle}`}>2) รูปแบบการยืม/ออกงาน</div>
                   <div className="grid grid-cols-2 gap-2">
                     <button type="button" onClick={() => setCameraHelperForm(prev => ({ ...prev, kitMode: 'body', lensIds: [] }))} className={`p-3 rounded-2xl border font-black ${cameraHelperForm.kitMode === 'body' ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>เฉพาะบอดี้</button>
-                    <button type="button" onClick={() => setCameraHelperForm(prev => ({ ...prev, kitMode: 'withLens' }))} className={`p-3 rounded-2xl border font-black ${cameraHelperForm.kitMode === 'withLens' ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>พร้อมเลนส์</button>
+                    <button type="button" onClick={() => setCameraHelperForm(prev => ({ ...prev, kitMode: 'withเลนส์' }))} className={`p-3 rounded-2xl border font-black ${cameraHelperForm.kitMode === 'withเลนส์' ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>พร้อมเลนส์</button>
                   </div>
                 </div>
 
-                {cameraHelperForm.kitMode === 'withLens' && (
+                {cameraHelperForm.kitMode === 'withเลนส์' && (
                   <div>
                     <div className={`text-sm font-black mb-2 ${theme.textTitle}`}>3) เลือกเลนส์</div>
                     <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-1">
                       {lenses.length === 0 ? <div className={`p-4 text-center rounded-2xl border font-bold ${theme.textMuted}`}>ยังไม่พบเลนส์ที่พร้อมใช้งาน</div> : lenses.map(item => {
                         const checked = cameraHelperForm.lensIds.includes(item.id);
                         const mount = inferCameraHelperMount(item);
-                        const isSuggested = suggestedLensIds.has(item.id);
+                        const isSuggested = suggestedเลนส์Ids.has(item.id);
                         const warn = selectedCameraMount && mount && mount !== selectedCameraMount;
                         return (
                           <button key={item.id} type="button" onClick={() => toggleCameraHelperArray('lensIds', item.id)} className={`w-full p-3 rounded-2xl border text-left transition ${checked ? (isDarkMode ? 'bg-blue-950/40 border-blue-700' : 'bg-blue-50 border-blue-300') : (isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200')}`}>
@@ -6321,23 +6413,45 @@ S.N.: ${item.sn || '-'}
                     <span className={`px-3 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-white text-slate-600 border border-slate-200'}`}>เลือก {cameraHelperForm.memoryIds.length}</span>
                   </div>
                   <div className="space-y-3 max-h-60 overflow-y-auto custom-scrollbar pr-1">
-                    {Object.entries(groupedMemories).length === 0 ? <div className={`p-4 text-center rounded-2xl border font-bold ${theme.textMuted}`}>ยังไม่พบเมมโมรี่การ์ดที่พร้อมใช้งาน</div> : Object.entries(groupedMemories).map(([dept, list]) => (
-                      <div key={dept}>
-                        <div className={`text-xs font-black mb-1 ${theme.textMuted}`}>{dept}</div>
-                        <div className="space-y-2">
-                          {list.map(item => {
-                            const checked = cameraHelperForm.memoryIds.includes(item.id);
-                            const spec = getMemoryCardSpec(item);
-                            return (
-                              <button key={item.id} type="button" onClick={() => toggleCameraHelperArray('memoryIds', item.id)} className={`w-full p-3 rounded-2xl border text-left ${checked ? (isDarkMode ? 'bg-cyan-950/30 border-cyan-700' : 'bg-cyan-50 border-cyan-300') : (isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200')}`}>
-                                <div className="flex items-start gap-3">
-                                  <span className={`mt-0.5 w-6 h-6 rounded-lg border flex items-center justify-center shrink-0 ${checked ? 'bg-cyan-600 border-cyan-600 text-white' : isDarkMode ? 'border-slate-600' : 'border-slate-300'}`}>{checked ? '✓' : ''}</span>
-                                  <div className="min-w-0 flex-1"><div className={`font-black ${theme.textTitle}`}>{item.name}</div><div className={`text-xs font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'}</div>{spec && <div className="mt-1 inline-flex px-2 py-1 rounded-full text-[11px] font-black bg-cyan-600 text-white">{spec}</div>}</div>
-                                </div>
-                              </button>
-                            );
-                          })}
+                    {memories.length === 0 ? <div className={`p-4 text-center rounded-2xl border font-bold ${theme.textMuted}`}>ยังไม่พบเมมโมรี่การ์ดที่พร้อมใช้งาน</div> : memoryGroups.map(group => (
+                      <div key={group.id} className={`rounded-2xl border p-2 ${group.id === 'camera' ? (isDarkMode ? 'bg-slate-900/70 border-slate-700' : 'bg-white border-slate-200') : group.id === 'department' ? (isDarkMode ? 'bg-blue-950/20 border-blue-800' : 'bg-blue-50 border-blue-200') : group.id === 'flexible' ? (isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-amber-950/20 border-amber-800' : 'bg-amber-50 border-amber-200')}`}>
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div>
+                            <div className={`text-xs font-black ${theme.textTitle}`}>{group.title}</div>
+                            <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{group.desc}</div>
+                          </div>
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-black ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-white text-slate-600 border border-slate-200'}`}>{group.items.length} ใบ</span>
                         </div>
+                        {group.items.length === 0 ? (
+                          <div className={`p-3 text-center rounded-xl border text-xs font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                            ยังไม่พบเมมประจำกล้องนี้ — เลือกเมมประจำฝ่ายหรือเมมส่วนกลางแทนได้
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {group.items.map(item => {
+                              const checked = cameraHelperForm.memoryIds.includes(item.id);
+                              const spec = getMemoryCardSpec(item);
+                              const dept = getCameraHelperDepartment(item);
+                              const isOtherDept = group.id === 'other';
+                              return (
+                                <button key={item.id} type="button" onClick={() => toggleCameraHelperArray('memoryIds', item.id)} className={`w-full p-3 rounded-2xl border text-left ${checked ? (isDarkMode ? 'bg-cyan-950/30 border-cyan-700' : 'bg-cyan-50 border-cyan-300') : (isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200')}`}>
+                                  <div className="flex items-start gap-3">
+                                    <span className={`mt-0.5 w-6 h-6 rounded-lg border flex items-center justify-center shrink-0 ${checked ? 'bg-cyan-600 border-cyan-600 text-white' : isDarkMode ? 'border-slate-600' : 'border-slate-300'}`}>{checked ? '✓' : ''}</span>
+                                    <div className="min-w-0 flex-1">
+                                      <div className={`font-black ${theme.textTitle}`}>{item.name}</div>
+                                      <div className={`text-xs font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'} • {dept} • {item.location || '-'}</div>
+                                      <div className="flex flex-wrap gap-1.5 mt-2">
+                                        {spec && <span className="inline-flex px-2 py-1 rounded-full text-[11px] font-black bg-cyan-600 text-white">{spec}</span>}
+                                        {item.shortCode && <span className={`inline-flex px-2 py-1 rounded-full text-[11px] font-black ${isDarkMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>{item.shortCode}</span>}
+                                        {isOtherDept && <span className="inline-flex px-2 py-1 rounded-full text-[11px] font-black bg-amber-500 text-white">ข้ามฝ่าย</span>}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -13611,10 +13725,10 @@ S.N.: ${item.sn || '-'}
         const itemText = `${detailItem.name || ''} ${detailItem.category || ''} ${detailItem.equipmentType || ''} ${detailItem.type || ''} ${detailItem.subType || ''}`.toLowerCase();
         const explicitEquipmentType = String(detailItem.equipmentType || detailItem.subType || detailItem.type || '').toLowerCase();
         const isMemoryCard = /เมม|memory|sd card|sdxc|cfexpress|card/.test(itemText) || /memory|เมม|card/.test(explicitEquipmentType);
-        const isBattery = /แบต|battery|np-fz|fz100|charger/.test(itemText) || /battery|แบต/.test(explicitEquipmentType);
+        const isแบตเตอรี่ = /แบต|battery|np-fz|fz100|charger/.test(itemText) || /battery|แบต/.test(explicitEquipmentType);
         const isCamera = /กล้อง|camera|a7|body|cam/.test(itemText) || /camera|กล้อง/.test(explicitEquipmentType);
-        const isLens = /เลนส์|lens|mm|f\d|f\//.test(itemText) || /lens|เลนส์/.test(explicitEquipmentType);
-        const typeBadge = isMemoryCard ? 'เมมโมรี่การ์ด' : isBattery ? 'แบตเตอรี่' : isCamera ? 'กล้อง' : isLens ? 'เลนส์' : (detailItem.category || 'อุปกรณ์');
+        const isเลนส์ = /เลนส์|lens|mm|f\d|f\//.test(itemText) || /lens|เลนส์/.test(explicitEquipmentType);
+        const typeBadge = isMemoryCard ? 'เมมโมรี่การ์ด' : isแบตเตอรี่ ? 'แบตเตอรี่' : isCamera ? 'กล้อง' : isเลนส์ ? 'เลนส์' : (detailItem.category || 'อุปกรณ์');
         const primaryInfoCards = [
           ['ฝ่าย', detailDept.label || detailItem.department || '-'],
           ['หมวดหมู่', detailItem.category || '-'],
