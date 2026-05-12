@@ -42,8 +42,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.52.7 Navigation Return Flow Fix';
-const APP_UPDATE_NOTE = 'Navigation Return Flow Fix: แก้การเปิดประวัติส่วนกลาง/ศูนย์หลักฐานรูปภาพจากหน้าเอกสารย้อนหลัง ให้ปิดแล้วกลับมาหน้าเดิมได้ โดยไม่แตะ QR/กล้อง/ฐานข้อมูล';
+const APP_VERSION = 'v22.52.9 Mobile Documents Shortcut Fix';
+const APP_UPDATE_NOTE = 'Mobile Documents Shortcut Fix: เพิ่มทางเข้าเอกสารย้อนหลังบนมือถือที่ Bottom Nav และ Top Bar ให้หาเจอง่ายขึ้น พร้อมคง flow ย้อนกลับของเอกสารย้อนหลัง โดยไม่แตะ QR/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -10524,12 +10524,13 @@ S.N.: ${item.sn || '-'}
                 </div>
               </div>
 
-              <div className={`mc-panel mc-panel-pad ${mc.panelSoft} mc-desktop-only`}>
+              <div className={`mc-panel mc-panel-pad ${mc.panelSoft}`}>
                 <div className="text-xs font-black tracking-[.18em] text-slate-400 uppercase mb-2">QUICK ACTIONS</div>
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => { setShowCommandCenter(false); openWorkspace('borrowReturn'); }} className="rounded-2xl border border-purple-400/20 bg-purple-400/10 text-purple-100 p-3 font-black text-sm">ยืม-คืน</button>
                   <button type="button" onClick={() => { setShowCommandCenter(false); openSelectionScanner({ camera: true }); }} className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-100 p-3 font-black text-sm">สแกน QR</button>
                   <button type="button" onClick={() => { setShowCommandCenter(false); openWorkspace('projects'); }} className="rounded-2xl border border-indigo-400/20 bg-indigo-400/10 text-indigo-100 p-3 font-black text-sm">โครงการ</button>
+                  <button type="button" onClick={() => { setShowCommandCenter(false); setShowBorrowDocsModal(true); }} className="rounded-2xl border border-blue-400/20 bg-blue-400/10 text-blue-100 p-3 font-black text-sm">เอกสารย้อนหลัง</button>
                   <button type="button" onClick={() => { setShowCommandCenter(false); openTrackingCenter('today'); }} className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-100 p-3 font-black text-sm">ติดตาม</button>
                 </div>
               </div>
@@ -10676,6 +10677,9 @@ S.N.: ${item.sn || '-'}
               </button>
               <button type="button" onClick={() => openWorkspace('borrowReturn')} className="factory-ghost-btn" title="ยืม-คืนอุปกรณ์">
                 <Icons.UserPlus className="w-5 h-5" /><span className="hidden-mobile">ยืม-คืน</span>
+              </button>
+              <button type="button" onClick={() => setShowBorrowDocsModal(true)} className="factory-ghost-btn" title="เอกสารย้อนหลัง">
+                <Icons.พิมพ์er className="w-5 h-5" /><span className="hidden-mobile">เอกสาร</span>
               </button>
               <button type="button" onClick={() => openTrackingCenter('today')} className="factory-ghost-btn" title="ติดตามการคืน">
                 <Icons.History className="w-5 h-5" /><span>ติดตาม</span>
@@ -15674,8 +15678,8 @@ S.N.: ${item.sn || '-'}
               <Icons.Settings className="w-5 h-5" />กรอง
             </button>
           )}
-          <button type="button" onClick={() => openWorkspace('projects')} className={`py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${activeWorkspace === 'projects' ? 'bg-indigo-600 text-white' : theme.textMuted}`}>
-            <Icons.Folder className="w-5 h-5" />โครงการ
+          <button type="button" onClick={() => setShowBorrowDocsModal(true)} className={`py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
+            <Icons.พิมพ์er className="w-5 h-5" />เอกสาร
           </button>
           <button type="button" onClick={openControlCenter} className={`py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
             <Icons.ViewGrid className="w-5 h-5" />เมนู
