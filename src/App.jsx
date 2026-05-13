@@ -44,8 +44,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.6 Dedicated Report Page Print Fix';
-const APP_UPDATE_NOTE = 'Dedicated Report Page Print Fix: เปลี่ยนรายงานประจำเดือนจาก popup เป็นหน้าเต็ม และพิมพ์ผ่านหน้าเอกสารแยก ไม่ลากเว็บทั้งหน้าไปพิมพ์';
+const APP_VERSION = 'v22.53.7 Print Document Design Polish';
+const APP_UPDATE_NOTE = 'Print Document Design Polish: ปรับรายงานประจำเดือนให้เป็นเอกสาร A4 ทางการ แยกดีไซน์พิมพ์ออกจากหน้าตาเว็บ และจัดหัวกระดาษ ตาราง สรุปผล ช่องลงนามให้สวยขึ้น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -3150,6 +3150,547 @@ function FactoryPolishStyle({ isDarkMode }) {
           border-radius: 0 !important;
           background: #fff !important;
           color: #000 !important;
+        }
+      }
+
+      /* v22.53.7 Print Document Design Polish: แยกดีไซน์เอกสารพิมพ์ออกจาก UI เว็บ */
+      .factory-stock-polish .monthly-report-document {
+        position: relative;
+        max-width: 1040px;
+        margin: 0 auto;
+        overflow: hidden;
+        border-radius: 28px;
+        border: 1px solid #dbe3ee;
+        background: #ffffff;
+        color: #0f172a;
+        box-shadow: 0 24px 65px rgba(15,23,42,.10);
+      }
+      .factory-stock-polish .report-doc-watermark {
+        position: absolute;
+        right: -34px;
+        top: 40%;
+        transform: rotate(-90deg);
+        font-size: 72px;
+        line-height: 1;
+        font-weight: 950;
+        letter-spacing: .18em;
+        color: rgba(37,99,235,.055);
+        pointer-events: none;
+        user-select: none;
+      }
+      .factory-stock-polish .report-doc-header {
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        gap: 22px;
+        padding: 28px;
+        border-bottom: 1px solid #dbe3ee;
+        background: linear-gradient(135deg,#f8fafc 0%,#eff6ff 56%,#ffffff 100%);
+      }
+      .factory-stock-polish .report-doc-brand {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        min-width: 0;
+      }
+      .factory-stock-polish .report-doc-logo {
+        width: 58px;
+        height: 58px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #ffffff;
+        border: 1px solid #dbe3ee;
+        box-shadow: 0 10px 24px rgba(15,23,42,.08);
+        overflow: hidden;
+        flex: 0 0 auto;
+      }
+      .factory-stock-polish .report-doc-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 8px;
+      }
+      .factory-stock-polish .report-doc-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #1d4ed8;
+        font-size: 11px;
+        line-height: 1;
+        font-weight: 950;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+      }
+      .factory-stock-polish .report-doc-kicker::before {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #2563eb;
+        box-shadow: 0 0 0 5px rgba(37,99,235,.12);
+      }
+      .factory-stock-polish .report-doc-title {
+        margin-top: 8px;
+        color: #0f172a;
+        font-size: clamp(24px,3vw,34px);
+        line-height: 1.08;
+        font-weight: 950;
+        letter-spacing: -.035em;
+      }
+      .factory-stock-polish .report-doc-subtitle {
+        margin-top: 8px;
+        color: #475569;
+        font-size: 13px;
+        line-height: 1.55;
+        font-weight: 800;
+      }
+      .factory-stock-polish .report-doc-meta {
+        min-width: 250px;
+        border: 1px solid #cbd5e1;
+        border-radius: 18px;
+        background: rgba(255,255,255,.82);
+        overflow: hidden;
+      }
+      .factory-stock-polish .report-doc-meta-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 10px 13px;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 12px;
+      }
+      .factory-stock-polish .report-doc-meta-row:last-child { border-bottom: 0; }
+      .factory-stock-polish .report-doc-meta-row span:first-child { color: #64748b; font-weight: 900; }
+      .factory-stock-polish .report-doc-meta-row span:last-child { color: #0f172a; font-weight: 950; text-align: right; }
+      .factory-stock-polish .report-doc-body {
+        position: relative;
+        padding: 24px 28px 28px;
+        background: #ffffff;
+      }
+      .factory-stock-polish .report-doc-summary {
+        display: grid;
+        grid-template-columns: 1.3fr .7fr;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+      .factory-stock-polish .report-doc-note {
+        border-radius: 20px;
+        border: 1px solid #dbe3ee;
+        background: #f8fafc;
+        padding: 16px 18px;
+      }
+      .factory-stock-polish .report-doc-note-title {
+        color: #0f172a;
+        font-size: 15px;
+        font-weight: 950;
+      }
+      .factory-stock-polish .report-doc-note-text {
+        color: #475569;
+        margin-top: 6px;
+        font-size: 12px;
+        line-height: 1.62;
+        font-weight: 750;
+      }
+      .factory-stock-polish .report-doc-total-box {
+        border-radius: 20px;
+        border: 1px solid #1d4ed8;
+        background: linear-gradient(135deg,#2563eb,#1d4ed8);
+        color: #ffffff;
+        padding: 16px 18px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .factory-stock-polish .report-doc-total-label {
+        font-size: 11px;
+        font-weight: 950;
+        letter-spacing: .08em;
+        opacity: .85;
+      }
+      .factory-stock-polish .report-doc-total-number {
+        margin-top: 4px;
+        font-size: 38px;
+        line-height: 1;
+        font-weight: 950;
+      }
+      .factory-stock-polish .report-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4,minmax(0,1fr));
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+      .factory-stock-polish .report-kpi-card {
+        border-radius: 18px;
+        border: 1px solid #dbe3ee;
+        background: #ffffff;
+        padding: 13px 14px;
+        box-shadow: 0 8px 20px rgba(15,23,42,.04);
+      }
+      .factory-stock-polish .report-kpi-label {
+        color: #64748b;
+        font-size: 11px;
+        line-height: 1.25;
+        font-weight: 950;
+      }
+      .factory-stock-polish .report-kpi-value {
+        margin-top: 4px;
+        color: #0f172a;
+        font-size: 26px;
+        line-height: 1;
+        font-weight: 950;
+      }
+      .factory-stock-polish .report-analysis-grid {
+        display: grid;
+        grid-template-columns: repeat(3,minmax(0,1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      .factory-stock-polish .report-section {
+        border-radius: 20px;
+        border: 1px solid #dbe3ee;
+        background: #ffffff;
+        overflow: hidden;
+        box-shadow: 0 10px 24px rgba(15,23,42,.035);
+      }
+      .factory-stock-polish .report-section-header {
+        padding: 13px 16px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: #0f172a;
+        font-size: 14px;
+        font-weight: 950;
+      }
+      .factory-stock-polish .report-section-body {
+        padding: 12px 16px 14px;
+      }
+      .factory-stock-polish .report-list-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid #eef2f7;
+        font-size: 12px;
+      }
+      .factory-stock-polish .report-list-row:last-child { border-bottom: 0; }
+      .factory-stock-polish .report-list-name {
+        min-width: 0;
+        color: #0f172a;
+        font-weight: 950;
+      }
+      .factory-stock-polish .report-list-sub {
+        margin-top: 2px;
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 800;
+      }
+      .factory-stock-polish .report-list-count {
+        flex: 0 0 auto;
+        color: #0f172a;
+        font-weight: 950;
+      }
+      .factory-stock-polish .report-empty-text {
+        color: #64748b;
+        font-size: 12px;
+        line-height: 1.5;
+        font-weight: 800;
+      }
+      .factory-stock-polish .report-table-wrap {
+        overflow: hidden;
+        border-radius: 20px;
+        border: 1px solid #dbe3ee;
+      }
+      .factory-stock-polish .report-table-title {
+        padding: 13px 16px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: #0f172a;
+        font-size: 14px;
+        font-weight: 950;
+      }
+      .factory-stock-polish .monthly-report-document table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .factory-stock-polish .monthly-report-document th {
+        background: #f1f5f9 !important;
+        color: #334155 !important;
+        border-bottom: 1px solid #cbd5e1;
+        padding: 10px 12px !important;
+        font-size: 11px !important;
+        font-weight: 950 !important;
+      }
+      .factory-stock-polish .monthly-report-document td {
+        color: #0f172a !important;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 10px 12px !important;
+        font-size: 12px !important;
+        font-weight: 800;
+      }
+      .factory-stock-polish .report-doc-footer {
+        display: grid;
+        grid-template-columns: repeat(3,minmax(0,1fr));
+        gap: 14px;
+        margin-top: 22px;
+      }
+      .factory-stock-polish .report-sign-box {
+        min-height: 92px;
+        border: 1px dashed #94a3b8;
+        border-radius: 16px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        color: #334155;
+        font-size: 11px;
+        font-weight: 900;
+        text-align: center;
+      }
+      .factory-stock-polish .report-sign-line {
+        border-top: 1px solid #64748b;
+        padding-top: 8px;
+      }
+      @media (max-width: 767px) {
+        .factory-stock-polish .monthly-report-document {
+          border-radius: 20px;
+        }
+        .factory-stock-polish .report-doc-header,
+        .factory-stock-polish .report-doc-summary,
+        .factory-stock-polish .report-analysis-grid,
+        .factory-stock-polish .report-doc-footer {
+          grid-template-columns: 1fr !important;
+          display: grid;
+        }
+        .factory-stock-polish .report-doc-header {
+          padding: 18px;
+        }
+        .factory-stock-polish .report-doc-meta {
+          min-width: 0;
+        }
+        .factory-stock-polish .report-doc-body {
+          padding: 16px;
+        }
+        .factory-stock-polish .report-kpi-grid {
+          grid-template-columns: repeat(2,minmax(0,1fr));
+        }
+      }
+      @page {
+        size: A4;
+        margin: 12mm;
+      }
+      @media print {
+        html, body {
+          background: #ffffff !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish {
+          background: #ffffff !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish main,
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-page,
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-page-shell,
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-print-area {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+          border: 0 !important;
+          box-shadow: none !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-document {
+          max-width: none !important;
+          width: 100% !important;
+          margin: 0 !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          overflow: visible !important;
+          color: #000 !important;
+          background: #fff !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-watermark {
+          display: none !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-header {
+          display: grid !important;
+          grid-template-columns: 1.45fr .85fr !important;
+          gap: 10mm !important;
+          padding: 0 0 8mm !important;
+          background: #fff !important;
+          border-bottom: 2px solid #111827 !important;
+          break-inside: avoid !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-logo {
+          width: 16mm !important;
+          height: 16mm !important;
+          border-radius: 4mm !important;
+          box-shadow: none !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-kicker {
+          color: #000 !important;
+          font-size: 8pt !important;
+          letter-spacing: .12em !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-kicker::before {
+          background: #000 !important;
+          box-shadow: none !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-title {
+          color: #000 !important;
+          font-size: 20pt !important;
+          line-height: 1.12 !important;
+          margin-top: 4mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-subtitle {
+          color: #333 !important;
+          font-size: 9pt !important;
+          line-height: 1.5 !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-meta {
+          min-width: 0 !important;
+          border: 1px solid #111827 !important;
+          border-radius: 0 !important;
+          background: #fff !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-meta-row {
+          padding: 2.2mm 3mm !important;
+          border-bottom: 1px solid #9ca3af !important;
+          font-size: 8pt !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-body {
+          padding: 7mm 0 0 !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-summary {
+          grid-template-columns: 1.25fr .75fr !important;
+          gap: 5mm !important;
+          margin-bottom: 5mm !important;
+          break-inside: avoid !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-note,
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-total-box {
+          border: 1px solid #111827 !important;
+          border-radius: 0 !important;
+          background: #fff !important;
+          color: #000 !important;
+          padding: 4mm !important;
+          box-shadow: none !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-note-title {
+          font-size: 10pt !important;
+          color: #000 !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-note-text {
+          font-size: 8pt !important;
+          color: #333 !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-total-label {
+          color: #333 !important;
+          font-size: 8pt !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-total-number {
+          color: #000 !important;
+          font-size: 26pt !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-kpi-grid {
+          grid-template-columns: repeat(4,1fr) !important;
+          gap: 3mm !important;
+          margin-bottom: 5mm !important;
+          break-inside: avoid !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-kpi-card {
+          border: 1px solid #111827 !important;
+          border-radius: 0 !important;
+          background: #fff !important;
+          box-shadow: none !important;
+          padding: 3mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-kpi-label {
+          color: #333 !important;
+          font-size: 7.5pt !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-kpi-value {
+          color: #000 !important;
+          font-size: 18pt !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-analysis-grid {
+          grid-template-columns: repeat(3,1fr) !important;
+          gap: 4mm !important;
+          margin-bottom: 5mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-section,
+        body.mdec-report-page-printing .factory-stock-polish .report-table-wrap {
+          border: 1px solid #111827 !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          break-inside: avoid !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-section-header,
+        body.mdec-report-page-printing .factory-stock-polish .report-table-title {
+          background: #f3f4f6 !important;
+          color: #000 !important;
+          border-bottom: 1px solid #111827 !important;
+          padding: 2.6mm 3mm !important;
+          font-size: 9pt !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-section-body {
+          padding: 2.5mm 3mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-list-row {
+          padding: 1.9mm 0 !important;
+          border-bottom: 1px solid #d1d5db !important;
+          font-size: 8pt !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-list-name,
+        body.mdec-report-page-printing .factory-stock-polish .report-list-count {
+          color: #000 !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-list-sub,
+        body.mdec-report-page-printing .factory-stock-polish .report-empty-text {
+          color: #444 !important;
+          font-size: 7.3pt !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-document table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+          page-break-inside: auto !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-document thead {
+          display: table-header-group !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-document tr {
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-document th,
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-document td {
+          border: 1px solid #111827 !important;
+          color: #000 !important;
+          padding: 2.4mm 3mm !important;
+          font-size: 8.2pt !important;
+          background: #fff !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-document th {
+          background: #f3f4f6 !important;
+          font-weight: 950 !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .print-show-table-cell {
+          display: table-cell !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-footer {
+          grid-template-columns: repeat(3,1fr) !important;
+          gap: 5mm !important;
+          margin-top: 8mm !important;
+          break-inside: avoid !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-sign-box {
+          min-height: 24mm !important;
+          border: 1px solid #111827 !important;
+          border-radius: 0 !important;
+          padding: 4mm !important;
+          color: #000 !important;
+          font-size: 8pt !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-sign-line {
+          border-top: 1px solid #111827 !important;
         }
       }
       .factory-stock-polish .document-archive-card,
@@ -7296,6 +7837,20 @@ S.N.: ${item.sn || '-'}
   };
 
   const renderReportsWorkspace = () => {
+    const reportGeneratedAt = new Date();
+    const reportPrintedDate = reportGeneratedAt.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+    const reportPrintedTime = reportGeneratedAt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    const reportSummaryCards = [
+      ['ยืม', monthlyReportData.borrow],
+      ['ออกงาน', monthlyReportData.event],
+      ['รับคืน', monthlyReportData.return],
+      ['แจ้งซ่อม', monthlyReportData.repairs],
+      ['เอกสาร', monthlyReportData.documents],
+      ['รูปหลักฐาน', monthlyReportData.proofs],
+      ['เลยกำหนดตอนนี้', monthlyReportData.overdueNow],
+      ['ชำรุดตอนนี้', monthlyReportData.maintenanceNow]
+    ];
+
     return (
       <div className="monthly-report-page solid-workspace space-y-5">
         {renderWorkspaceTabs()}
@@ -7304,7 +7859,7 @@ S.N.: ${item.sn || '-'}
             <div className="min-w-0">
               <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-amber-300' : 'text-amber-600'}`}>MONTHLY REPORT PAGE</div>
               <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>รายงานประจำเดือน</h2>
-              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หน้านี้เป็นหน้าเต็ม ไม่ใช่ popup เวลากดพิมพ์จะเปิดหน้าเอกสารแยกและพิมพ์เฉพาะรายงาน</p>
+              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หน้านี้เป็นหน้าเต็ม และมีดีไซน์เอกสาร A4 แยกจาก UI เว็บสำหรับพิมพ์รายงานให้ดูเป็นทางการ</p>
             </div>
             <div className="monthly-report-page-actions flex flex-wrap items-center gap-2 shrink-0">
               <input type="month" className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`} value={monthlyReportMonth} onChange={e => setMonthlyReportMonth(e.target.value)} />
@@ -7314,111 +7869,137 @@ S.N.: ${item.sn || '-'}
             </div>
           </div>
 
-          <div className="monthly-report-print-area p-4 sm:p-6 space-y-5">
-            <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                <div>
-                  <div className={`text-xs font-black ${theme.textMuted}`}>MDEC STOCK REPORT</div>
-                  <h1 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>รายงานสรุปประจำเดือน {monthlyReportData.monthKey}</h1>
-                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>พิมพ์วันที่ {new Date().toLocaleDateString('th-TH')} • {APP_VERSION}</p>
+          <div className="monthly-report-print-area p-4 sm:p-6">
+            <article className="monthly-report-document">
+              <div className="report-doc-watermark">MDEC</div>
+              <header className="report-doc-header">
+                <div className="report-doc-brand">
+                  <div className="report-doc-logo">
+                    <img src={ORG_LOGO_SRC} alt="MDEC" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="report-doc-kicker">MDEC STOCK REPORT</div>
+                    <h1 className="report-doc-title">รายงานสรุปประจำเดือน {monthlyReportData.monthKey}</h1>
+                    <p className="report-doc-subtitle">
+                      ศูนย์มัลติมีเดียทางการศึกษา วิทยาลัยเทคโนโลยีภาคตะวันออก (อี.เทค)<br />
+                      รายงานภาพรวมการยืม คืน ออกงาน หลักฐานรูปภาพ และสถานะอุปกรณ์ เพื่อใช้แนบสรุปงานภายใน
+                    </p>
+                  </div>
                 </div>
-                <div className={`px-4 py-3 rounded-2xl border text-right ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                  <div className={`text-xs font-black ${theme.textMuted}`}>ประวัติรวมเดือนนี้</div>
-                  <div className={`text-3xl font-black ${theme.textTitle}`}>{monthlyReportData.total.toLocaleString('th-TH')}</div>
+                <div className="report-doc-meta">
+                  <div className="report-doc-meta-row"><span>เดือนรายงาน</span><span>{monthlyReportData.monthKey}</span></div>
+                  <div className="report-doc-meta-row"><span>วันที่พิมพ์</span><span>{reportPrintedDate}</span></div>
+                  <div className="report-doc-meta-row"><span>เวลา</span><span>{reportPrintedTime} น.</span></div>
+                  <div className="report-doc-meta-row"><span>เวอร์ชันระบบ</span><span>{APP_VERSION}</span></div>
                 </div>
-              </div>
-            </div>
+              </header>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {[
-                ['ยืม', monthlyReportData.borrow, 'bg-purple-100 text-purple-700 border-purple-200'],
-                ['ออกงาน', monthlyReportData.event, 'bg-orange-100 text-orange-700 border-orange-200'],
-                ['รับคืน', monthlyReportData.return, 'bg-emerald-100 text-emerald-700 border-emerald-200'],
-                ['แจ้งซ่อม', monthlyReportData.repairs, 'bg-rose-100 text-rose-700 border-rose-200'],
-                ['เอกสาร', monthlyReportData.documents, 'bg-blue-100 text-blue-700 border-blue-200'],
-                ['รูปหลักฐาน', monthlyReportData.proofs, 'bg-pink-100 text-pink-700 border-pink-200'],
-                ['เลยกำหนดตอนนี้', monthlyReportData.overdueNow, 'bg-red-100 text-red-700 border-red-200'],
-                ['ชำรุดตอนนี้', monthlyReportData.maintenanceNow, 'bg-amber-100 text-amber-700 border-amber-200']
-              ].map(([label, value, tone]) => (
-                <div key={label} className={`p-4 rounded-2xl border ${tone}`}>
-                  <div className="text-xs font-black opacity-80">{label}</div>
-                  <div className="text-3xl font-black mt-1">{Number(value || 0).toLocaleString('th-TH')}</div>
-                </div>
-              ))}
-            </div>
+              <div className="report-doc-body">
+                <section className="report-doc-summary">
+                  <div className="report-doc-note">
+                    <div className="report-doc-note-title">สรุปภาพรวมประจำเดือน</div>
+                    <p className="report-doc-note-text">
+                      รายงานนี้รวบรวมข้อมูลจากประวัติการทำรายการในระบบ MDEC Stock เฉพาะเดือนที่เลือก
+                      เพื่อช่วยตรวจสอบความเคลื่อนไหวของอุปกรณ์ เอกสารย้อนหลัง หลักฐานรูปภาพ และรายการที่ต้องติดตามต่อ
+                    </p>
+                  </div>
+                  <div className="report-doc-total-box">
+                    <div className="report-doc-total-label">ประวัติรวมเดือนนี้</div>
+                    <div className="report-doc-total-number">{monthlyReportData.total.toLocaleString('th-TH')}</div>
+                  </div>
+                </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>อุปกรณ์ที่ถูกใช้งานบ่อย</h4>
-                <div className="space-y-2">
-                  {monthlyReportData.topUsed.length === 0 ? (
-                    <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีรายการในเดือนนี้</div>
-                  ) : monthlyReportData.topUsed.map((row, idx) => (
-                    <div key={row.item.id} className={`flex justify-between gap-3 py-2 border-b ${theme.divide}`}>
-                      <div className="min-w-0">
-                        <div className={`font-black truncate ${theme.textTitle}`}>{idx + 1}. {row.item.name}</div>
-                        <div className={`text-xs font-bold ${theme.textMuted}`}>S.N. {row.item.sn || '-'}</div>
-                      </div>
-                      <div className="font-black shrink-0">{row.count} ครั้ง</div>
+                <section className="report-kpi-grid" aria-label="สรุปตัวเลขรายงาน">
+                  {reportSummaryCards.map(([label, value]) => (
+                    <div key={label} className="report-kpi-card">
+                      <div className="report-kpi-label">{label}</div>
+                      <div className="report-kpi-value">{Number(value || 0).toLocaleString('th-TH')}</div>
                     </div>
                   ))}
-                </div>
-              </div>
+                </section>
 
-              <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>หมวดหมู่ที่มีความเคลื่อนไหว</h4>
-                <div className="space-y-2">
-                  {monthlyReportData.topCategories.length === 0 ? <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีข้อมูลหมวดหมู่</div> : monthlyReportData.topCategories.map((row, idx) => (
-                    <div key={row.label} className="flex justify-between gap-3 text-sm">
-                      <span className={`font-bold truncate ${theme.textMuted}`}>{idx + 1}. {row.label}</span>
-                      <span className={`font-black ${theme.textTitle}`}>{row.count.toLocaleString('th-TH')}</span>
+                <section className="report-analysis-grid">
+                  <div className="report-section">
+                    <div className="report-section-header">อุปกรณ์ที่ถูกใช้งานบ่อย</div>
+                    <div className="report-section-body">
+                      {monthlyReportData.topUsed.length === 0 ? (
+                        <div className="report-empty-text">ยังไม่มีรายการในเดือนนี้</div>
+                      ) : monthlyReportData.topUsed.map((row, idx) => (
+                        <div key={row.item.id} className="report-list-row">
+                          <div className="report-list-name truncate">
+                            {idx + 1}. {row.item.name}
+                            <div className="report-list-sub">S.N. {row.item.sn || '-'}</div>
+                          </div>
+                          <div className="report-list-count">{row.count} ครั้ง</div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>ฝ่าย/พื้นที่ที่มีความเคลื่อนไหว</h4>
-                <div className="space-y-2">
-                  {monthlyReportData.topDepartments.length === 0 ? <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีข้อมูลฝ่าย</div> : monthlyReportData.topDepartments.map((row, idx) => (
-                    <div key={row.label} className="flex justify-between gap-3 text-sm">
-                      <span className={`font-bold truncate ${theme.textMuted}`}>{idx + 1}. {row.label}</span>
-                      <span className={`font-black ${theme.textTitle}`}>{row.count.toLocaleString('th-TH')}</span>
+                  <div className="report-section">
+                    <div className="report-section-header">หมวดหมู่ที่มีความเคลื่อนไหว</div>
+                    <div className="report-section-body">
+                      {monthlyReportData.topCategories.length === 0 ? (
+                        <div className="report-empty-text">ยังไม่มีข้อมูลหมวดหมู่</div>
+                      ) : monthlyReportData.topCategories.map((row, idx) => (
+                        <div key={row.label} className="report-list-row">
+                          <div className="report-list-name truncate">{idx + 1}. {row.label}</div>
+                          <div className="report-list-count">{row.count.toLocaleString('th-TH')}</div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+                  </div>
 
-            <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>ตารางสรุปสำหรับแนบรายงาน</h4>
-              <div className="overflow-x-auto rounded-2xl border border-slate-200/70 dark:border-slate-800">
-                <table className="monthly-report-table">
-                  <thead className={isDarkMode ? 'bg-slate-900 text-slate-300' : 'bg-slate-50 text-slate-600'}>
-                    <tr>
-                      <th className="text-left">รายการ</th>
-                      <th className="text-right">จำนวน</th>
-                      <th className="text-left hidden sm:table-cell">หมายเหตุ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {monthlyReportData.typeRows.map(row => (
-                      <tr key={row.label} className={`border-t ${theme.divide}`}>
-                        <td className={`font-black ${theme.textTitle}`}>{row.label}</td>
-                        <td className={`text-right font-black ${theme.textTitle}`}>{Number(row.value || 0).toLocaleString('th-TH')}</td>
-                        <td className={`hidden sm:table-cell font-bold ${theme.textMuted}`}>{row.desc}</td>
+                  <div className="report-section">
+                    <div className="report-section-header">ฝ่าย/พื้นที่ที่มีความเคลื่อนไหว</div>
+                    <div className="report-section-body">
+                      {monthlyReportData.topDepartments.length === 0 ? (
+                        <div className="report-empty-text">ยังไม่มีข้อมูลฝ่าย</div>
+                      ) : monthlyReportData.topDepartments.map((row, idx) => (
+                        <div key={row.label} className="report-list-row">
+                          <div className="report-list-name truncate">{idx + 1}. {row.label}</div>
+                          <div className="report-list-count">{row.count.toLocaleString('th-TH')}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+
+                <section className="report-table-wrap">
+                  <div className="report-table-title">ตารางสรุปสำหรับแนบรายงาน</div>
+                  <table className="monthly-report-table">
+                    <thead>
+                      <tr>
+                        <th className="text-left">รายการ</th>
+                        <th className="text-right">จำนวน</th>
+                        <th className="text-left hidden sm:table-cell print-show-table-cell">หมายเหตุ</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                    </thead>
+                    <tbody>
+                      {monthlyReportData.typeRows.map(row => (
+                        <tr key={row.label}>
+                          <td>{row.label}</td>
+                          <td className="text-right font-black">{Number(row.value || 0).toLocaleString('th-TH')}</td>
+                          <td className="hidden sm:table-cell print-show-table-cell">{row.desc}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
 
-            <div className={`monthly-report-no-print monthly-report-mobile-actions rounded-2xl border flex flex-col sm:flex-row gap-2 p-3 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <button type="button" onClick={exportMonthlyReportCSV} className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">ส่งออก CSV</button>
-              <button type="button" onClick={printMonthlyReport} className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black">พิมพ์รายงาน</button>
-              <button type="button" onClick={() => openWorkspace('overview')} className={`flex-1 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>กลับหน้าหลัก</button>
-            </div>
+                <footer className="report-doc-footer">
+                  <div className="report-sign-box"><div className="report-sign-line">ผู้จัดทำรายงาน</div></div>
+                  <div className="report-sign-box"><div className="report-sign-line">ผู้ตรวจสอบ</div></div>
+                  <div className="report-sign-box"><div className="report-sign-line">วันที่รับรองรายงาน</div></div>
+                </footer>
+
+                <div className={`monthly-report-no-print monthly-report-mobile-actions rounded-2xl border flex flex-col sm:flex-row gap-2 p-3 mt-5 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <button type="button" onClick={exportMonthlyReportCSV} className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">ส่งออก CSV</button>
+                  <button type="button" onClick={printMonthlyReport} className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black">พิมพ์รายงาน</button>
+                  <button type="button" onClick={() => openWorkspace('overview')} className={`flex-1 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>กลับหน้าหลัก</button>
+                </div>
+              </div>
+            </article>
           </div>
         </div>
       </div>
