@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.30 Dashboard Daily Command Center Polish';
-const APP_UPDATE_NOTE = 'Dashboard Daily Command Center Polish: ปรับหน้าแรกให้สรุปวันนี้ต้องทำอะไร ต้องคืน/เลยกำหนด/ออกงาน/เตรียมของ/ข้อมูลควรเติม พร้อมทางลัดไปหน้าที่เกี่ยวข้อง โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
+const APP_VERSION = 'v22.53.31 Mobile Navigation / Bottom Bar Polish';
+const APP_UPDATE_NOTE = 'Mobile Navigation / Bottom Bar Polish: ปรับเมนูล่างมือถือให้เป็นทางกลับหลัก หน้าแรก/ยืมคืน/สแกน/เอกสาร/เมนู พร้อมสถานะ active และเมนูเพิ่มเติมแบบ bottom sheet โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -2605,15 +2605,87 @@ function FactoryPolishStyle({ isDarkMode }) {
           padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
         }
 
-        /* Bottom nav บนมือถือให้ไม่บังเนื้อหาเกินจำเป็น */
-        .factory-stock-polish div.lg\:hidden.fixed.bottom-0 {
-          backdrop-filter: blur(14px) !important;
+        /* v22.53.31 Mobile Navigation / Bottom Bar Polish */
+        .factory-stock-polish .mobile-bottom-nav {
+          backdrop-filter: blur(18px) !important;
+          -webkit-backdrop-filter: blur(18px) !important;
         }
-        .factory-stock-polish div.lg\:hidden.fixed.bottom-0 button,
-        .factory-stock-polish div.lg\:hidden.fixed.bottom-0 a {
-          min-height: 44px !important;
+        .factory-stock-polish .mobile-bottom-nav-grid {
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 4px;
+          padding: 8px 6px max(8px, env(safe-area-inset-bottom));
+        }
+        .factory-stock-polish .mobile-bottom-nav-btn {
+          position: relative;
+          min-height: 54px !important;
+          border-radius: 18px !important;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 3px;
           font-size: 10.5px !important;
-          border-radius: 14px !important;
+          font-weight: 950;
+          line-height: 1;
+          transition: transform .16s ease, background .16s ease, color .16s ease, box-shadow .16s ease;
+        }
+        .factory-stock-polish .mobile-bottom-nav-btn:active {
+          transform: scale(.96);
+        }
+        .factory-stock-polish .mobile-bottom-nav-btn.is-active {
+          background: #2563eb !important;
+          color: #ffffff !important;
+          box-shadow: 0 10px 22px rgba(37,99,235,.24) !important;
+        }
+        .factory-stock-polish .mobile-bottom-nav-scan {
+          min-height: 58px !important;
+          margin-top: -12px;
+          border: 3px solid var(--factory-card);
+          box-shadow: 0 14px 30px rgba(15,23,42,.26);
+        }
+        .factory-stock-polish .mobile-bottom-badge {
+          position: absolute;
+          top: 4px;
+          right: 14px;
+          min-width: 17px;
+          height: 17px;
+          padding: 0 4px;
+          border-radius: 999px;
+          background: #ef4444;
+          color: #ffffff;
+          font-size: 10px;
+          line-height: 17px;
+          font-weight: 950;
+          border: 2px solid var(--factory-card);
+        }
+        .factory-stock-polish .mobile-bottom-dot {
+          position: absolute;
+          top: 6px;
+          right: 18px;
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background: #ef4444;
+          border: 2px solid var(--factory-card);
+        }
+        .factory-stock-polish .mobile-more-menu-shell {
+          max-height: 88vh;
+        }
+        @media (max-width: 767px) {
+          .factory-stock-polish .mobile-more-menu-overlay {
+            align-items: flex-end !important;
+            padding: 8px !important;
+          }
+          .factory-stock-polish .mobile-more-menu-shell {
+            width: 100% !important;
+            max-height: 92dvh !important;
+            border-radius: 28px 28px 18px 18px !important;
+          }
+          .factory-stock-polish .mobile-more-menu-body {
+            max-height: calc(92dvh - 92px) !important;
+            padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
+          }
         }
 
         /* v22.53.1 Mobile Empty State Polish: ทางลัดหน้างาน + bottom nav + เอกสารย้อนหลัง + หน้าว่างที่เข้าใจง่าย */
@@ -2632,26 +2704,6 @@ function FactoryPolishStyle({ isDarkMode }) {
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-        }
-        .factory-stock-polish .mobile-docs-bottom-active {
-          background: #2563eb !important;
-          color: #ffffff !important;
-          box-shadow: 0 10px 22px rgba(37,99,235,.24) !important;
-        }
-        .factory-stock-polish .mobile-bottom-badge {
-          position: absolute;
-          top: 3px;
-          right: 16px;
-          min-width: 17px;
-          height: 17px;
-          padding: 0 4px;
-          border-radius: 999px;
-          background: #ef4444;
-          color: #ffffff;
-          font-size: 10px;
-          line-height: 17px;
-          font-weight: 950;
-          border: 2px solid var(--factory-card);
         }
         .factory-stock-polish .borrow-docs-archive-shell {
           max-height: calc(100dvh - 16px) !important;
@@ -14519,8 +14571,8 @@ S.N.: ${item.sn || '-'}
 
       {/* Control Center: รวมฟังก์ชันที่คล้ายกันให้เป็นหมวดใหญ่ */}
       {showMoreMenu && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-[2rem] shadow-2xl w-full max-w-6xl overflow-hidden border ring-1 ring-white/10 ${isDarkMode ? 'bg-slate-900 border-slate-700 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
+        <div className={`mobile-more-menu-overlay fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`mobile-more-menu-shell rounded-[2rem] shadow-2xl w-full max-w-6xl overflow-hidden border ring-1 ring-white/10 ${isDarkMode ? 'bg-slate-900 border-slate-700 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
             <div className={`flex justify-between items-start gap-4 p-6 border-b ${theme.divide}`}>
               <div>
                 <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
@@ -14529,12 +14581,12 @@ S.N.: ${item.sn || '-'}
                   </div>
                   Control Center
                 </h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมDaily Operations งานข้อมูล เอกสาร และระบบไว้เป็นหมวดแบบหลังบ้าน</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมเมนูที่ไม่ควรยัดไว้ในแถบล่าง แยกเป็นหมวดสำหรับใช้งานบนมือถือ</p>
               </div>
               <button type="button" onClick={() => setShowMoreMenu(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
 
-            <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar max-h-[78vh] space-y-6">
+            <div className="mobile-more-menu-body p-4 sm:p-6 overflow-y-auto custom-scrollbar max-h-[78vh] space-y-6">
               <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                 <div>
                   <div className={`font-black text-lg ${theme.textTitle}`}>มุมมองเมนู</div>
@@ -14583,6 +14635,10 @@ S.N.: ${item.sn || '-'}
                   <button type="button" onClick={() => { setShowMoreMenu(false); setHistoryCenterFilter('all'); setHistoryCenterSearch(''); setShowHistoryCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> ประวัติส่วนกลาง</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นหายืม/คืน/ออกงานทุกอุปกรณ์ และเพิ่มหลักฐานย้อนหลัง</p>
+                  </button>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); setBorrowReturnMode('return'); openWorkspace('borrowReturn'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.CheckCircle className="w-5 h-5" /> รับคืนเร็ว</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เปิดหน้า flow รับคืนจากมือถือ</p>
                   </button>
                 </div>
               </div>
@@ -20421,30 +20477,71 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
-      {/* FactoryStock Mobile Bottom Nav */}
-      <div className={`lg:hidden fixed bottom-0 inset-x-0 z-40 border-t shadow-[0_-16px_40px_rgba(15,23,42,0.14)] ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-        <div className="grid grid-cols-5 gap-1 px-1.5 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
-          <button type="button" onClick={() => openWorkspace('overview')} className={`py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${activeWorkspace === 'overview' ? 'bg-blue-600 text-white' : theme.textMuted}`}>
-            <Icons.Package className="w-5 h-5" />หน้าหลัก
+      {/* v22.53.31 Mobile Bottom Navigation */}
+      <div className={`mobile-bottom-nav lg:hidden fixed bottom-0 inset-x-0 z-40 border-t shadow-[0_-16px_40px_rgba(15,23,42,0.14)] ${isDarkMode ? 'bg-slate-950/95 border-slate-800' : 'bg-white/95 border-slate-200'}`}>
+        <div className="mobile-bottom-nav-grid">
+          <button
+            type="button"
+            onClick={() => { setShowMoreMenu(false); openWorkspace('overview'); }}
+            className={`mobile-bottom-nav-btn ${activeWorkspace === 'overview' && !showBorrowDocsModal && !showMoreMenu ? 'is-active' : theme.textMuted}`}
+            title="กลับหน้าแรก"
+          >
+            <Icons.Package className="w-5 h-5" />
+            <span>หน้าแรก</span>
+            {(dueTodayItems.length + overdueItems.length) > 0 && <span className="mobile-bottom-dot" title="มีงานที่ควรดูวันนี้"></span>}
           </button>
-          <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${activeWorkspace === 'borrowReturn' ? 'bg-purple-600 text-white' : theme.textMuted}`}>
-            <Icons.UserPlus className="w-5 h-5" />ยืมคืน
+
+          <button
+            type="button"
+            onClick={() => { setShowMoreMenu(false); openWorkspace('borrowReturn'); }}
+            className={`mobile-bottom-nav-btn ${activeWorkspace === 'borrowReturn' ? 'is-active' : theme.textMuted}`}
+            title="ยืม / รับคืน"
+          >
+            <Icons.UserPlus className="w-5 h-5" />
+            <span>ยืมคืน</span>
           </button>
+
           {canUseOperationalTools ? (
-            <button type="button" onClick={() => openSelectionScanner({ camera: true })} className="py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 bg-slate-900 text-white shadow-md">
-              <Icons.QrCode className="w-5 h-5" />สแกน
+            <button
+              type="button"
+              onClick={() => openSelectionScanner({ camera: true })}
+              className="mobile-bottom-nav-btn mobile-bottom-nav-scan bg-slate-900 text-white"
+              title="สแกน QR"
+            >
+              <Icons.QrCode className="w-6 h-6" />
+              <span>สแกน</span>
             </button>
           ) : (
-            <button type="button" onClick={() => setShowFilterModal(true)} className={`py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
-              <Icons.Settings className="w-5 h-5" />กรอง
+            <button
+              type="button"
+              onClick={() => setShowFilterModal(true)}
+              className={`mobile-bottom-nav-btn mobile-bottom-nav-scan ${theme.textMuted}`}
+              title="ตัวกรอง"
+            >
+              <Icons.Settings className="w-6 h-6" />
+              <span>กรอง</span>
             </button>
           )}
-          <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`relative py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${showBorrowDocsModal ? 'mobile-docs-bottom-active' : theme.textMuted}`}>
-            <Icons.พิมพ์er className="w-5 h-5" />เอกสาร
+
+          <button
+            type="button"
+            onClick={() => { setShowMoreMenu(false); openBorrowDocsArchive({ reset: false }); }}
+            className={`mobile-bottom-nav-btn ${showBorrowDocsModal ? 'is-active' : theme.textMuted}`}
+            title="เอกสารย้อนหลัง"
+          >
+            <Icons.พิมพ์er className="w-5 h-5" />
+            <span>เอกสาร</span>
             {borrowเอกสารs.length > 0 && <span className="mobile-bottom-badge">{borrowเอกสารs.length > 99 ? '99+' : borrowเอกสารs.length}</span>}
           </button>
-          <button type="button" onClick={openControlCenter} className={`py-2 rounded-2xl text-[11px] font-black flex flex-col items-center gap-1 ${theme.textMuted}`}>
-            <Icons.ViewGrid className="w-5 h-5" />เมนู
+
+          <button
+            type="button"
+            onClick={openControlCenter}
+            className={`mobile-bottom-nav-btn ${showMoreMenu || showSettings ? 'is-active' : theme.textMuted}`}
+            title="เมนูเพิ่มเติม"
+          >
+            <Icons.ViewGrid className="w-5 h-5" />
+            <span>เมนู</span>
           </button>
         </div>
       </div>
