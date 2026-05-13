@@ -1,4 +1,4 @@
-// v22.53.18 Classic Operational Forms Watermark Redesign - classic A4 borrow/event/return/prep forms with subtle center watermark, no QR/camera/database path changes
+// v22.53.19 Official Form Readability Polish - refined A4 borrow/event/return/prep forms for better readability, signatures, tables and watermark, no QR/camera/database path changes
 // v22.53.17 Operational Slip Clean Design - fixed clean A4 borrow/event/return documents, removes before-print logo/watermark controls, no QR/camera/database path changes
 // v22.53.15 Operational Documents One-Page Print Polish - compact one-page print layout for borrow/event/return slips, no QR/camera/database path changes
 // v22.53.9 Equipment Detail / Asset History Polish - asset profile file, mobile action shortcuts, no QR/camera/database path changes
@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.18 Classic Operational Forms Watermark Redesign';
-const APP_UPDATE_NOTE = 'Classic Operational Forms Watermark Redesign: รีดีไซน์ใบยืม ใบออกงาน ใบรับคืน และใบเตรียมอุปกรณ์เป็นฟอร์ม A4 แนวเอกสารธุรการ พร้อมลายน้ำจางกลางกระดาษ โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
+const APP_VERSION = 'v22.53.19 Official Form Readability Polish';
+const APP_UPDATE_NOTE = 'Official Form Readability Polish: เก็บดีไซน์ใบยืม ใบออกงาน ใบรับคืน และใบเตรียมอุปกรณ์ให้อ่านง่ายขึ้น ลดเส้นประ จัดหัวเอกสาร ตาราง ลายเซ็น และลายน้ำให้เป็นฟอร์มใช้งานจริง โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -13154,9 +13154,10 @@ S.N.: ${item.sn || '-'}
             --classic-soft-ink: #374151;
             --classic-muted: #6b7280;
             --classic-line: #111827;
-            --classic-soft-line: #d1d5db;
+            --classic-soft-line: #cbd5e1;
+            --classic-form-line: #9ca3af;
             --classic-fill: #f8fafc;
-            --classic-watermark-opacity: .055;
+            --classic-watermark-opacity: .043;
           }
           .classic-print-toolbar {
             background: #0f172a;
@@ -13174,7 +13175,7 @@ S.N.: ${item.sn || '-'}
             color: var(--classic-ink);
             border: 1px solid #e5e7eb;
             box-shadow: 0 22px 70px rgba(15,23,42,.16);
-            padding: 13mm 14mm 10mm;
+            padding: 14mm 14.5mm 10mm;
             position: relative;
             overflow: hidden;
           }
@@ -13183,10 +13184,10 @@ S.N.: ${item.sn || '-'}
             left: 50%;
             top: 52%;
             transform: translate(-50%, -50%);
-            width: 118mm;
-            max-width: 62%;
+            width: 112mm;
+            max-width: 58%;
             opacity: var(--classic-watermark-opacity);
-            filter: grayscale(1) contrast(.85);
+            filter: grayscale(1) contrast(.78);
             pointer-events: none;
             user-select: none;
             z-index: 0;
@@ -13196,26 +13197,26 @@ S.N.: ${item.sn || '-'}
             left: 50%;
             top: 52%;
             transform: translate(-50%, -50%) rotate(-18deg);
-            font-size: 62pt;
+            font-size: 58pt;
             font-weight: 950;
             letter-spacing: .12em;
-            color: rgba(17,24,39,.045);
+            color: rgba(17,24,39,.036);
             white-space: nowrap;
             z-index: 0;
           }
           .classic-sheet-content { position: relative; z-index: 1; }
           .classic-letterhead {
             display: grid;
-            grid-template-columns: 42mm 1fr 46mm;
-            gap: 6mm;
+            grid-template-columns: 38mm 1fr 43mm;
+            gap: 5mm;
             align-items: start;
-            border-bottom: 1.8px solid var(--classic-line);
-            padding-bottom: 4mm;
-            margin-bottom: 4mm;
+            border-bottom: 1.35px solid var(--classic-line);
+            padding-bottom: 3.8mm;
+            margin-bottom: 4.2mm;
           }
           .classic-logo-box {
-            width: 34mm !important;
-            height: 15mm !important;
+            width: 30mm !important;
+            height: 13mm !important;
             border: 0 !important;
             box-shadow: none !important;
             padding: 0 !important;
@@ -13224,33 +13225,33 @@ S.N.: ${item.sn || '-'}
           .classic-logo-box img { object-fit: contain !important; }
           .classic-title-group { text-align: center; min-width: 0; }
           .classic-doc-code {
-            font-size: 7.5pt;
+            font-size: 7.2pt;
             font-weight: 900;
-            letter-spacing: .16em;
-            color: var(--classic-muted);
+            letter-spacing: .18em;
+            color: #9ca3af;
             text-transform: uppercase;
             margin-bottom: 1mm;
           }
           .classic-doc-title {
             margin: 0;
-            font-size: 20pt;
-            line-height: 1.05;
+            font-size: 19pt;
+            line-height: 1.06;
             font-weight: 950;
             color: #000;
           }
           .classic-doc-subtitle {
-            margin: 1.4mm 0 0;
-            font-size: 8.5pt;
-            line-height: 1.25;
+            margin: 1.2mm 0 0;
+            font-size: 8.7pt;
+            line-height: 1.28;
             font-weight: 700;
             color: var(--classic-soft-ink);
           }
           .classic-ref-box {
-            border: 1px solid var(--classic-line);
-            padding: 2.2mm 2.6mm;
+            border: 1px solid #6b7280;
+            padding: 2.1mm 2.5mm;
             font-size: 8pt;
-            line-height: 1.35;
-            background: rgba(255,255,255,.78);
+            line-height: 1.36;
+            background: rgba(255,255,255,.86);
           }
           .classic-ref-row {
             display: grid;
@@ -13260,22 +13261,23 @@ S.N.: ${item.sn || '-'}
           }
           .classic-ref-row + .classic-ref-row { margin-top: 1.2mm; }
           .classic-dot-line {
-            border-bottom: 1px dotted #111827;
-            min-height: 4.5mm;
-            font-weight: 800;
+            border-bottom: 1px solid var(--classic-form-line);
+            min-height: 4.8mm;
+            font-weight: 900;
+            color: #000;
           }
           .classic-org-line {
             margin-top: 1.5mm;
             font-size: 7pt;
             font-weight: 800;
-            color: var(--classic-muted);
+            color: #9ca3af;
             line-height: 1.2;
           }
           .classic-form-intro {
-            font-size: 9.2pt;
+            font-size: 9.6pt;
             line-height: 1.55;
-            font-weight: 750;
-            margin-bottom: 3.2mm;
+            font-weight: 780;
+            margin-bottom: 3.4mm;
           }
           .classic-form-intro .classic-fill-line {
             display: inline-block;
@@ -13287,87 +13289,91 @@ S.N.: ${item.sn || '-'}
           .classic-form-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 2.2mm 4mm;
-            margin-bottom: 3.5mm;
+            gap: 2mm 4mm;
+            margin-bottom: 3.6mm;
+            padding: 2.8mm 3.2mm;
+            border: 1px solid var(--classic-soft-line);
+            background: rgba(248,250,252,.68);
           }
           .classic-field-line {
             display: grid;
-            grid-template-columns: 29mm 1fr;
+            grid-template-columns: 30mm 1fr;
             align-items: end;
             gap: 2mm;
-            min-height: 7.2mm;
-            font-size: 8.4pt;
-            font-weight: 800;
+            min-height: 7mm;
+            font-size: 8.7pt;
+            font-weight: 850;
           }
           .classic-field-wide { grid-column: 1 / -1; grid-template-columns: 34mm 1fr; }
           .classic-field-line span { color: var(--classic-soft-ink); }
           .classic-field-line strong {
-            min-height: 5.2mm;
-            border-bottom: 1px dotted var(--classic-line);
-            padding: 0 1.4mm .4mm;
-            font-size: 8.8pt;
+            min-height: 5.3mm;
+            border-bottom: 1px solid var(--classic-form-line);
+            padding: 0 1.2mm .35mm;
+            font-size: 9.2pt;
             color: #000;
             overflow-wrap: anywhere;
+            background: rgba(255,255,255,.62);
           }
           .classic-summary-strip {
-            border: 1px solid var(--classic-line);
-            background: #fff;
+            border: 1px solid #4b5563;
+            background: #f8fafc;
             padding: 2mm 2.6mm;
-            font-size: 8.4pt;
-            font-weight: 900;
-            margin-bottom: 3mm;
+            font-size: 8.8pt;
+            font-weight: 950;
+            margin-bottom: 3.2mm;
             display: flex;
             justify-content: space-between;
             gap: 3mm;
           }
-          .classic-table-wrap { margin-bottom: 3.2mm; }
+          .classic-table-wrap { margin-bottom: 3.4mm; }
           .classic-table-title {
             display: flex;
             justify-content: space-between;
             align-items: end;
             gap: 3mm;
-            font-size: 8.3pt;
+            font-size: 8.8pt;
             font-weight: 950;
-            margin-bottom: 1.4mm;
+            margin-bottom: 1.5mm;
           }
           .classic-equipment-table {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
-            font-size: 7.8pt;
-            line-height: 1.22;
-            background: rgba(255,255,255,.86);
+            font-size: 8.25pt;
+            line-height: 1.25;
+            background: rgba(255,255,255,.9);
           }
           .classic-equipment-table th,
           .classic-equipment-table td {
-            border: 1px solid var(--classic-line);
-            padding: 1.4mm 1.4mm;
+            border: 1px solid #111827;
+            padding: 1.45mm 1.45mm;
             vertical-align: top;
             color: #000;
           }
           .classic-equipment-table th {
-            background: #f1f5f9;
-            font-size: 7pt;
+            background: #eef2f7;
+            font-size: 7.4pt;
             font-weight: 950;
             text-align: center;
           }
           .classic-equipment-table tr { break-inside: avoid; page-break-inside: avoid; }
-          .classic-table-subtext { display: block; color: var(--classic-muted); font-size: 6.6pt; font-weight: 750; margin-top: .6mm; }
+          .classic-table-subtext { display: block; color: var(--classic-muted); font-size: 6.8pt; font-weight: 750; margin-top: .5mm; }
           .classic-note-rules {
             display: grid;
-            grid-template-columns: 1fr 1.1fr;
-            gap: 4mm;
-            margin-bottom: 4mm;
+            grid-template-columns: 1fr 1.08fr;
+            gap: 3.5mm;
+            margin-bottom: 3.6mm;
           }
           .classic-note-box,
           .classic-rules-box {
-            border: 1px solid var(--classic-line);
-            background: rgba(255,255,255,.88);
-            min-height: 22mm;
-            padding: 2.3mm 2.8mm;
-            font-size: 7.7pt;
-            line-height: 1.38;
-            font-weight: 750;
+            border: 1px solid #4b5563;
+            background: rgba(255,255,255,.9);
+            min-height: 19mm;
+            padding: 2.3mm 2.7mm;
+            font-size: 8pt;
+            line-height: 1.36;
+            font-weight: 760;
           }
           .classic-box-title {
             font-size: 7.5pt;
@@ -13380,24 +13386,26 @@ S.N.: ${item.sn || '-'}
           .classic-signatures {
             display: grid;
             grid-template-columns: repeat(3, minmax(0,1fr));
-            gap: 5mm;
-            margin-top: 4mm;
+            gap: 4mm;
+            margin-top: 3.2mm;
             break-inside: avoid;
             page-break-inside: avoid;
           }
           .classic-sign-box {
             text-align: center;
-            font-size: 7.5pt;
+            font-size: 8pt;
             font-weight: 850;
             color: #000;
-            min-height: 27mm;
+            min-height: 22mm;
+            padding: 1mm 1.5mm 0;
           }
           .classic-sign-line {
-            height: 12mm;
+            height: 8mm;
             border-bottom: 1px solid #000;
-            margin: 0 2mm 1.8mm;
+            margin: 0 3mm 1.4mm;
           }
-          .classic-sign-date { margin-top: 1.6mm; font-size: 6.7pt; color: var(--classic-muted); }
+          .classic-sign-caption { font-size: 8pt; line-height: 1.22; font-weight: 900; }
+          .classic-sign-date { margin-top: 1.2mm; font-size: 6.8pt; color: #9ca3af; }
           .classic-footer {
             margin-top: 3mm;
             padding-top: 1.7mm;
@@ -13406,10 +13414,10 @@ S.N.: ${item.sn || '-'}
             align-items: center;
             justify-content: space-between;
             gap: 3mm;
-            font-size: 6.4pt;
-            line-height: 1.25;
-            font-weight: 750;
-            color: var(--classic-muted);
+            font-size: 5.8pt;
+            line-height: 1.22;
+            font-weight: 700;
+            color: #9ca3af;
             break-inside: avoid;
             page-break-inside: avoid;
           }
@@ -13437,34 +13445,35 @@ S.N.: ${item.sn || '-'}
               box-shadow: none !important;
               overflow: visible !important;
             }
-            .classic-doc-watermark { width: 112mm !important; max-width: none !important; opacity: .052 !important; }
-            .classic-watermark-text { color: rgba(17,24,39,.042) !important; }
-            .classic-letterhead { grid-template-columns: 36mm 1fr 42mm !important; gap: 4mm !important; padding-bottom: 3mm !important; margin-bottom: 3mm !important; }
-            .classic-logo-box { width: 31mm !important; height: 12mm !important; }
-            .classic-doc-title { font-size: 18pt !important; }
-            .classic-doc-subtitle { font-size: 7.6pt !important; }
-            .classic-doc-code { font-size: 6.8pt !important; }
-            .classic-ref-box { padding: 1.6mm 2mm !important; font-size: 7pt !important; }
-            .classic-form-intro { font-size: 8.4pt !important; margin-bottom: 2.4mm !important; }
-            .classic-form-grid { gap: 1.5mm 3mm !important; margin-bottom: 2.6mm !important; }
-            .classic-field-line { min-height: 6mm !important; font-size: 7.7pt !important; }
-            .classic-field-line strong { min-height: 4.3mm !important; font-size: 7.9pt !important; }
-            .classic-summary-strip { padding: 1.5mm 2mm !important; font-size: 7.4pt !important; margin-bottom: 2.2mm !important; }
-            .classic-table-title { font-size: 7.4pt !important; margin-bottom: 1mm !important; }
-            .classic-equipment-table { font-size: 7pt !important; line-height: 1.13 !important; }
-            .classic-equipment-table th { font-size: 6.2pt !important; }
+            .classic-doc-watermark { width: 104mm !important; max-width: none !important; opacity: .04 !important; }
+            .classic-watermark-text { color: rgba(17,24,39,.034) !important; }
+            .classic-letterhead { grid-template-columns: 34mm 1fr 40mm !important; gap: 4mm !important; padding-bottom: 3mm !important; margin-bottom: 3.2mm !important; }
+            .classic-logo-box { width: 28mm !important; height: 10.5mm !important; }
+            .classic-doc-title { font-size: 17.5pt !important; }
+            .classic-doc-subtitle { font-size: 7.7pt !important; }
+            .classic-doc-code { font-size: 6.6pt !important; }
+            .classic-ref-box { padding: 1.5mm 1.8mm !important; font-size: 7pt !important; }
+            .classic-dot-line { min-height: 4.2mm !important; }
+            .classic-form-intro { font-size: 8.3pt !important; margin-bottom: 2.4mm !important; }
+            .classic-form-grid { gap: 1.4mm 2.8mm !important; margin-bottom: 2.5mm !important; padding: 2mm 2.4mm !important; }
+            .classic-field-line { min-height: 5.9mm !important; font-size: 7.7pt !important; }
+            .classic-field-line strong { min-height: 4.35mm !important; font-size: 8.1pt !important; }
+            .classic-summary-strip { padding: 1.4mm 1.9mm !important; font-size: 7.6pt !important; margin-bottom: 2.2mm !important; }
+            .classic-table-title { font-size: 7.6pt !important; margin-bottom: 1mm !important; }
+            .classic-equipment-table { font-size: 7.35pt !important; line-height: 1.15 !important; }
+            .classic-equipment-table th { font-size: 6.35pt !important; }
             .classic-equipment-table th,
-            .classic-equipment-table td { padding: .95mm 1mm !important; }
+            .classic-equipment-table td { padding: .9mm .95mm !important; }
             .classic-table-subtext { font-size: 5.9pt !important; }
-            .classic-note-rules { gap: 2.8mm !important; margin-bottom: 2.8mm !important; }
+            .classic-note-rules { gap: 2.6mm !important; margin-bottom: 2.4mm !important; }
             .classic-note-box,
-            .classic-rules-box { min-height: 17mm !important; padding: 1.7mm 2mm !important; font-size: 6.8pt !important; line-height: 1.22 !important; }
-            .classic-box-title { font-size: 6.8pt !important; margin-bottom: 1mm !important; }
-            .classic-signatures { gap: 3.5mm !important; margin-top: 2.8mm !important; }
-            .classic-sign-box { min-height: 21mm !important; font-size: 6.8pt !important; }
-            .classic-sign-line { height: 8.5mm !important; margin-bottom: 1.2mm !important; }
-            .classic-sign-date { font-size: 6pt !important; }
-            .classic-footer { margin-top: 2mm !important; padding-top: 1mm !important; font-size: 5.8pt !important; }
+            .classic-rules-box { min-height: 15.5mm !important; padding: 1.6mm 1.8mm !important; font-size: 6.8pt !important; line-height: 1.2 !important; }
+            .classic-box-title { font-size: 6.8pt !important; margin-bottom: .9mm !important; }
+            .classic-signatures { gap: 3.2mm !important; margin-top: 2.4mm !important; }
+            .classic-sign-box { min-height: 17.5mm !important; font-size: 6.85pt !important; padding-top: 0 !important; }
+            .classic-sign-line { height: 6.8mm !important; margin-bottom: 1mm !important; }
+            .classic-sign-date { font-size: 5.9pt !important; }
+            .classic-footer { margin-top: 1.5mm !important; padding-top: .8mm !important; font-size: 5.2pt !important; color: #a8b0bd !important; }
           }
           @media (max-width: 720px) {
             .classic-operation-sheet { padding: 20px; max-width: calc(100vw - 16px); }
@@ -13482,7 +13491,7 @@ S.N.: ${item.sn || '-'}
           <div className="max-w-6xl mx-auto flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
             <div className="min-w-0">
               <h2 className="font-black text-xl flex items-center gap-2"><Icons.พิมพ์er className="w-6 h-6" /> {docTitle}</h2>
-              <p className="text-slate-300 text-sm font-bold mt-1">ฟอร์ม A4 แนวเอกสารธุรการ พร้อมลายน้ำจางกลางกระดาษ ใช้ดีไซน์เดียวกันทั้งใบยืม / ใบออกงาน / ใบรับคืน / ใบเตรียมอุปกรณ์</p>
+              <p className="text-slate-300 text-sm font-bold mt-1">ฟอร์ม A4 อ่านง่ายขึ้น ลดเส้นประ จัดตารางและลายเซ็นใหม่ พร้อมลายน้ำจางกลางกระดาษ</p>
             </div>
             <div className="flex flex-wrap gap-3 w-full xl:w-auto shrink-0">
               <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-black flex items-center justify-center gap-2 transition-colors flex-1 sm:flex-none"><Icons.พิมพ์er className="w-5 h-5"/> {isReturnSlip ? 'พิมพ์ใบรับคืน' : isPrepSlip ? 'พิมพ์ใบเตรียมของ' : isEventSlip ? 'พิมพ์ใบออกงาน' : 'พิมพ์ใบยืม'}</button>
@@ -13600,9 +13609,8 @@ S.N.: ${item.sn || '-'}
                 {signatureLabels.map((label) => (
                   <div key={label} className="classic-sign-box">
                     <div className="classic-sign-line"></div>
-                    <div>ลงชื่อ................................................</div>
-                    <div>({label})</div>
-                    <div className="classic-sign-date">วันที่ ........../........../..........</div>
+                    <div className="classic-sign-caption">({label})</div>
+                    <div className="classic-sign-date">ลงชื่อ / วันที่ ........../........../..........</div>
                   </div>
                 ))}
               </section>
