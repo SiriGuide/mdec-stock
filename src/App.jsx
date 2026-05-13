@@ -1,3 +1,4 @@
+// v22.53.15 Operational Documents One-Page Print Polish - compact one-page print layout for borrow/event/return slips, no QR/camera/database path changes
 // v22.53.9 Equipment Detail / Asset History Polish - asset profile file, mobile action shortcuts, no QR/camera/database path changes
 // v22.53.8 Operational Print Documents Polish - official A4 borrow/event/return documents and QR label print polish, no QR/camera/database path changes
 // v22.53.3 Data Safety Confirm Polish - safer destructive actions and mobile-friendly confirmation gates, no QR/camera/database changes
@@ -47,7 +48,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.14 Home Dashboard Command Center Polish';
+const APP_VERSION = 'v22.53.15 Operational Documents One-Page Print Polish';
 const APP_UPDATE_NOTE = 'Settings Back Flow Usability Fix: ปรับหน้าตั้งค่าให้เป็นหน้ารวมก่อนเข้าแต่ละหมวด เพิ่มปุ่มกลับหน้ารวมและแถบสลับหมวดแบบกะทัดรัด ลดความรู้สึกแบ่งครึ่งหน้าต่าง โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -4048,6 +4049,251 @@ function FactoryPolishStyle({ isDarkMode }) {
         .qr-label-card {
           border-color: #111827 !important;
           box-shadow: none !important;
+        }
+      }
+
+      /* v22.53.15 Operational Documents One-Page Print Polish: ใบยืม / ใบออกงาน / ใบรับคืน รายการน้อยต้องจบใน 1 หน้า */
+      .factory-stock-polish .operation-doc-brand {
+        max-width: 100%;
+      }
+      .factory-stock-polish .operation-doc-brand-logo {
+        width: 92px !important;
+        height: 54px !important;
+      }
+      .factory-stock-polish .operation-doc-footer-logo {
+        width: 58px !important;
+        height: 32px !important;
+      }
+      .factory-stock-polish .operation-doc-print-hint {
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        color: #475569;
+        font-size: 12px;
+        font-weight: 850;
+        padding: 9px 12px;
+        border-radius: 12px;
+        margin-top: 10px;
+      }
+      @media print {
+        @page { size: A4; margin: 8mm; }
+        .factory-stock-polish.operation-print-page,
+        .factory-stock-polish .operation-print-page {
+          background: #fff !important;
+        }
+        .factory-stock-polish .operation-print-document {
+          width: 194mm !important;
+          max-width: 194mm !important;
+          min-height: 0 !important;
+          margin: 0 auto !important;
+          padding: 0 !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          overflow: visible !important;
+          page-break-after: auto !important;
+        }
+        .factory-stock-polish .operation-doc-watermark {
+          width: 30mm !important;
+          right: 2mm !important;
+          top: 5mm !important;
+          opacity: .035 !important;
+        }
+        .factory-stock-polish .operation-doc-header {
+          display: grid !important;
+          grid-template-columns: minmax(0, 1fr) 38mm !important;
+          gap: 4mm !important;
+          align-items: start !important;
+          border-bottom: 1.2pt solid #111827 !important;
+          padding-bottom: 3mm !important;
+          margin-bottom: 3mm !important;
+        }
+        .factory-stock-polish .operation-doc-brand {
+          gap: 2mm !important;
+          margin-bottom: 1.2mm !important;
+          align-items: center !important;
+        }
+        .factory-stock-polish .operation-doc-brand-logo {
+          width: 24mm !important;
+          height: 12mm !important;
+          min-width: 24mm !important;
+          max-width: 24mm !important;
+          min-height: 12mm !important;
+          max-height: 12mm !important;
+          padding: 1.2mm !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          overflow: hidden !important;
+        }
+        .factory-stock-polish .operation-doc-brand-logo img,
+        .factory-stock-polish .operation-doc-header img[alt="MDEC Logo"] {
+          width: 100% !important;
+          height: 100% !important;
+          max-width: 100% !important;
+          max-height: 100% !important;
+          object-fit: contain !important;
+          transform: none !important;
+        }
+        .factory-stock-polish .operation-doc-brand-title { font-size: 8.5pt !important; line-height: 1.1 !important; }
+        .factory-stock-polish .operation-doc-brand-subtitle { font-size: 6.5pt !important; line-height: 1.15 !important; }
+        .factory-stock-polish .operation-doc-kicker {
+          font-size: 6.5pt !important;
+          letter-spacing: .12em !important;
+          margin-top: 0 !important;
+          color: #1d4ed8 !important;
+        }
+        .factory-stock-polish .operation-doc-title {
+          font-size: 15.5pt !important;
+          line-height: 1.05 !important;
+          margin: .8mm 0 0 !important;
+        }
+        .factory-stock-polish .operation-doc-subtitle {
+          font-size: 7.2pt !important;
+          line-height: 1.25 !important;
+          margin-top: 1mm !important;
+          max-width: 128mm !important;
+        }
+        .factory-stock-polish .operation-doc-refbox {
+          min-width: 0 !important;
+          width: 38mm !important;
+          border-radius: 0 !important;
+          background: #fff !important;
+          padding: 2mm !important;
+          font-size: 7.2pt !important;
+          line-height: 1.2 !important;
+        }
+        .factory-stock-polish .operation-doc-refbox .text-lg {
+          font-size: 9pt !important;
+          margin-top: .5mm !important;
+        }
+        .factory-stock-polish .operation-doc-summary {
+          grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+          gap: 2mm !important;
+          margin-bottom: 3mm !important;
+        }
+        .factory-stock-polish .operation-doc-card {
+          min-height: 10mm !important;
+          padding: 1.8mm 2mm !important;
+          border-radius: 0 !important;
+        }
+        .factory-stock-polish .operation-doc-card-label {
+          font-size: 6.2pt !important;
+          line-height: 1.05 !important;
+          margin-bottom: .8mm !important;
+        }
+        .factory-stock-polish .operation-doc-card-value {
+          font-size: 8.2pt !important;
+          line-height: 1.16 !important;
+        }
+        .factory-stock-polish .operation-doc-alert {
+          border-radius: 0 !important;
+          border-left-width: 3pt !important;
+          background: #fff !important;
+          font-size: 7.5pt !important;
+          line-height: 1.25 !important;
+          padding: 1.8mm 2.2mm !important;
+          margin-bottom: 3mm !important;
+        }
+        .factory-stock-polish .operation-doc-table-wrap {
+          margin-bottom: 3mm !important;
+          break-inside: auto !important;
+          page-break-inside: auto !important;
+        }
+        .factory-stock-polish .operation-doc-table {
+          font-size: 7.8pt !important;
+          line-height: 1.2 !important;
+          border-collapse: collapse !important;
+          table-layout: fixed !important;
+          width: 100% !important;
+        }
+        .factory-stock-polish .operation-doc-table th,
+        .factory-stock-polish .operation-doc-table td {
+          padding: 1.25mm 1.4mm !important;
+          vertical-align: top !important;
+          word-break: break-word !important;
+        }
+        .factory-stock-polish .operation-doc-table th:first-child,
+        .factory-stock-polish .operation-doc-table td:first-child {
+          width: 8mm !important;
+        }
+        .factory-stock-polish .operation-doc-table tr {
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
+        }
+        .factory-stock-polish .operation-doc-note-box {
+          min-height: 10mm !important;
+          padding: 2mm !important;
+          margin-bottom: 3mm !important;
+          border-radius: 0 !important;
+          font-size: 7.6pt !important;
+          line-height: 1.25 !important;
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
+        }
+        .factory-stock-polish .operation-doc-signatures {
+          gap: 3mm !important;
+          margin-top: 4mm !important;
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
+        }
+        .factory-stock-polish .operation-doc-sign-box {
+          min-height: 20mm !important;
+          padding: 3mm 2mm 2mm !important;
+          font-size: 7.4pt !important;
+          line-height: 1.25 !important;
+        }
+        .factory-stock-polish .operation-doc-sign-line {
+          margin: 7mm 2mm 1.4mm !important;
+        }
+        .factory-stock-polish .operation-doc-footer {
+          margin-top: 3mm !important;
+          padding-top: 1.8mm !important;
+          font-size: 6.5pt !important;
+          line-height: 1.15 !important;
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
+          break-before: avoid !important;
+          page-break-before: avoid !important;
+        }
+        .factory-stock-polish .operation-doc-footer-logo {
+          width: 14mm !important;
+          height: 7mm !important;
+          min-width: 14mm !important;
+          max-width: 14mm !important;
+          min-height: 7mm !important;
+          max-height: 7mm !important;
+          padding: .7mm !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          overflow: hidden !important;
+        }
+        .factory-stock-polish .operation-doc-footer-logo img,
+        .factory-stock-polish .operation-doc-footer img[alt="MDEC Logo"] {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: contain !important;
+          transform: none !important;
+        }
+        .factory-stock-polish .operation-doc-print-hint {
+          display: none !important;
+        }
+        .factory-stock-polish .operation-print-document.operation-doc-onepage .operation-doc-subtitle {
+          display: none !important;
+        }
+        .factory-stock-polish .operation-print-document.operation-doc-onepage .operation-doc-header {
+          padding-bottom: 2.4mm !important;
+          margin-bottom: 2.4mm !important;
+        }
+        .factory-stock-polish .operation-print-document.operation-doc-onepage .operation-doc-summary,
+        .factory-stock-polish .operation-print-document.operation-doc-onepage .operation-doc-alert,
+        .factory-stock-polish .operation-print-document.operation-doc-onepage .operation-doc-table-wrap,
+        .factory-stock-polish .operation-print-document.operation-doc-onepage .operation-doc-note-box {
+          margin-bottom: 2.4mm !important;
+        }
+        .factory-stock-polish .operation-print-document.operation-doc-onepage .operation-doc-signatures {
+          margin-top: 3mm !important;
+        }
+        .factory-stock-polish .operation-print-document.operation-doc-onepage .operation-doc-sign-box {
+          min-height: 18mm !important;
         }
       }
       @media (max-width: 1279px) {
@@ -12215,6 +12461,7 @@ S.N.: ${item.sn || '-'}
         : isEventSlip
           ? ['ลงชื่อผู้รับผิดชอบงาน', 'ลงชื่อเจ้าหน้าที่ผู้นำออก', 'ลงชื่อผู้ตรวจสอบ']
           : ['ลงชื่อผู้ยืม / ผู้รับผิดชอบงาน', 'ลงชื่อเจ้าหน้าที่ผู้ให้ยืม', 'ลงชื่อผู้ตรวจสอบ'];
+    const onePageSlipCandidate = printItems.length <= 8;
 
     return (
       <div className={`factory-stock-polish operation-print-page min-h-screen font-sans text-slate-900 print:bg-white ${isInkSavingเอกสาร ? "bg-white" : "bg-slate-100"}`}>
@@ -12222,6 +12469,7 @@ S.N.: ${item.sn || '-'}
           <div>
             <h2 className="font-black text-xl flex items-center gap-2"><Icons.พิมพ์er className="w-6 h-6" /> {docTitle}</h2>
             <p className="text-slate-300 text-sm font-bold mt-1">ตัวอย่างเอกสาร A4 สำหรับพิมพ์จริง ตรวจข้อมูลก่อนกดพิมพ์</p>
+            <div className="operation-doc-print-hint print:hidden">แพ็กนี้คุมรูปแบบเดียวกันทั้งใบยืม ใบออกงาน และใบรับคืน — ถ้ารายการน้อยควรจบใน 1 หน้า</div>
           </div>
           <div className="flex flex-wrap gap-3 w-full sm:w-auto">
             <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-black flex items-center justify-center gap-2 transition-colors flex-1 sm:flex-none"><Icons.พิมพ์er className="w-5 h-5"/> {isReturnSlip ? 'พิมพ์ใบรับคืน' : isPrepSlip ? 'พิมพ์ใบเตรียมของ' : isEventSlip ? 'พิมพ์ใบออกงาน' : 'พิมพ์ใบยืม'}</button>
@@ -12230,7 +12478,7 @@ S.N.: ${item.sn || '-'}
         </div>
 
         <div className="pt-28 print:pt-0 p-4 sm:p-6 print:p-0 mx-auto">
-          <article className="operation-print-document relative overflow-hidden p-6 sm:p-8 print:p-0 rounded-2xl print:rounded-none">
+          <article className={`operation-print-document relative overflow-hidden p-6 sm:p-8 print:p-0 rounded-2xl print:rounded-none ${onePageSlipCandidate ? 'operation-doc-onepage' : 'operation-doc-multipage'} ${isReturnSlip ? 'operation-doc-return' : isEventSlip ? 'operation-doc-event' : isPrepSlip ? 'operation-doc-prep' : 'operation-doc-borrow'}`}>
             {showเอกสารLogo('watermark') && !isInkSavingเอกสาร && !brandLogoError && <img src={ORG_LOGO_SRC} alt="MDEC Watermark" className="operation-doc-watermark" onError={() => setBrandLogoError(true)} />}
 
             <header className="operation-doc-header relative z-[1]">
@@ -12238,19 +12486,19 @@ S.N.: ${item.sn || '-'}
                 {showเอกสารLogo('slipLogo') ? renderOrgSignature({
                   title: 'ศูนย์มัลติมีเดียทางการศึกษา',
                   subtitle: 'วิทยาลัยเทคโนโลยีภาคตะวันออก (อี.เทค)',
-                  compact: false,
-                  containerClass: 'mb-2',
-                  titleClass: 'text-slate-900 text-base sm:text-lg print:text-[12pt]',
-                  subtitleClass: 'text-slate-600 text-xs print:text-[8pt]',
+                  compact: true,
+                  containerClass: 'operation-doc-brand mb-2',
+                  titleClass: 'operation-doc-brand-title text-slate-900 text-sm sm:text-base print:text-[8.5pt]',
+                  subtitleClass: 'operation-doc-brand-subtitle text-slate-600 text-[11px] print:text-[6.5pt]',
                   textWrapClass: 'min-w-0',
-                  logoClassName: 'w-24 h-14 print:w-[28mm] print:h-[16mm] rounded-2xl print:rounded-none border border-slate-200 px-3 py-2 shadow-sm print:shadow-none'
+                  logoClassName: 'operation-doc-brand-logo w-20 h-12 print:w-[24mm] print:h-[12mm] rounded-xl print:rounded-none border border-slate-200 px-2 py-1 shadow-sm print:shadow-none'
                 }) : (
                   <div className="font-black text-base text-slate-900">ศูนย์มัลติมีเดียทางการศึกษา</div>
                 )}
                 <div className="operation-doc-kicker">{docKicker}</div>
                 <h1 className="operation-doc-title">{docTitle}</h1>
                 <p className="operation-doc-subtitle">
-                  เอกสารนี้ออกโดยระบบ MDEC-Stock ใช้สำหรับประกอบการตรวจนับ ยืม-คืน นำออกงาน และติดตามสถานะอุปกรณ์ภายในศูนย์
+                  เอกสารจากระบบ MDEC-Stock สำหรับตรวจนับ ยืม-คืน นำออกงาน และติดตามสถานะอุปกรณ์ภายในศูนย์
                 </p>
               </div>
               <div className="operation-doc-refbox">
@@ -12333,7 +12581,7 @@ S.N.: ${item.sn || '-'}
 
             <footer className="operation-doc-footer relative z-[1]">
               <div className="flex items-center gap-2 min-w-0">
-                {showเอกสารLogo('slipLogo') && renderOrgLogoBox({ className: 'w-14 h-8 print:w-[18mm] print:h-[9mm] rounded-xl print:rounded-none border border-slate-200 px-2 py-1 shadow-sm print:shadow-none', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                {showเอกสารLogo('slipLogo') && renderOrgLogoBox({ className: 'operation-doc-footer-logo w-14 h-8 print:w-[14mm] print:h-[7mm] rounded-xl print:rounded-none border border-slate-200 px-2 py-1 shadow-sm print:shadow-none', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
                 <span className="truncate">เอกสารนี้สร้างจากระบบ MDEC-Stock • พิมพ์เมื่อ {printedAt.toLocaleString('th-TH', { hour12: false })}</span>
               </div>
               <span className="shrink-0">{APP_VERSION}</span>
