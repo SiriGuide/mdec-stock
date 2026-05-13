@@ -44,8 +44,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.5 Print Scope Fix';
-const APP_UPDATE_NOTE = 'Print Scope Fix: แก้การพิมพ์รายงานประจำเดือนให้พิมพ์เฉพาะพื้นที่รายงาน ไม่พิมพ์ทั้งเว็บ และยังไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล/flow ยืมคืน';
+const APP_VERSION = 'v22.53.6 Dedicated Report Page Print Fix';
+const APP_UPDATE_NOTE = 'Dedicated Report Page Print Fix: เปลี่ยนรายงานประจำเดือนจาก popup เป็นหน้าเต็ม และพิมพ์ผ่านหน้าเอกสารแยก ไม่ลากเว็บทั้งหน้าไปพิมพ์';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -3095,6 +3095,63 @@ function FactoryPolishStyle({ isDarkMode }) {
           display: none !important;
         }
       }
+
+      /* v22.53.6 Dedicated Report Page Print Fix: รายงานเป็นหน้าเต็ม ไม่ใช่ popup */
+      .factory-stock-polish .monthly-report-page {
+        width: 100%;
+      }
+      .factory-stock-polish .monthly-report-page-shell {
+        min-height: 72vh;
+      }
+      .factory-stock-polish .monthly-report-page .monthly-report-print-area {
+        overflow: visible !important;
+      }
+      .factory-stock-polish .monthly-report-page-toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 12;
+      }
+      @media (max-width: 767px) {
+        .factory-stock-polish .monthly-report-page-toolbar {
+          position: static;
+        }
+        .factory-stock-polish .monthly-report-page-actions {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          width: 100%;
+        }
+        .factory-stock-polish .monthly-report-page-actions input[type="month"] {
+          grid-column: 1 / -1;
+          width: 100%;
+        }
+      }
+      @media print {
+        .factory-stock-polish .monthly-report-no-print,
+        .factory-stock-polish .monthly-report-page .monthly-report-no-print,
+        .factory-stock-polish .monthly-report-page-toolbar,
+        .factory-stock-polish .workspace-tabbar,
+        .factory-stock-polish aside,
+        .factory-stock-polish .factory-topbar,
+        .factory-stock-polish .lg\:hidden.fixed.bottom-0 {
+          display: none !important;
+        }
+        .factory-stock-polish .monthly-report-page,
+        .factory-stock-polish .monthly-report-page-shell,
+        .factory-stock-polish .monthly-report-print-area {
+          display: block !important;
+          position: static !important;
+          width: 100% !important;
+          max-width: none !important;
+          min-height: auto !important;
+          max-height: none !important;
+          overflow: visible !important;
+          box-shadow: none !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: #fff !important;
+          color: #000 !important;
+        }
+      }
       .factory-stock-polish .document-archive-card,
       .factory-stock-polish .tracking-list-card {
         border-radius: 16px !important;
@@ -4020,7 +4077,6 @@ function MainApp() {
   const [proofEditForm, setProofEditForm] = useState({ contextLabel: '', note: '' });
   const [proofEditReplaceFiles, setProofEditReplaceFiles] = useState([]);
   const [showระบบHealthModal, setShowระบบHealthModal] = useState(false);
-  const [showMonthlyReportModal, setShowMonthlyReportModal] = useState(false);
   const [monthlyReportMonth, setMonthlyReportMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -6107,6 +6163,11 @@ S.N.: ${item.sn || '-'}
       kicker: 'ORGANIZE WORKSPACE',
       title: 'กล่อง / เซ็ต / เตรียมของ',
       desc: 'จัดเก็บอุปกรณ์เป็นกล่อง จัดเซ็ตใช้งานประจำ และเตรียมรายการออกงาน'
+    },
+    reports: {
+      kicker: 'REPORTS CENTER',
+      title: 'รายงานและการพิมพ์',
+      desc: 'หน้ารายงานแยกสำหรับดูสรุป ส่งออก CSV และพิมพ์เฉพาะเอกสารรายงาน'
     }
   };
   const currentWorkspaceMeta = workspaceMeta[activeWorkspace] || workspaceMeta.overview;
@@ -6117,7 +6178,8 @@ S.N.: ${item.sn || '-'}
         ['overview', 'ภาพรวม', Icons.Package, 'กลับหน้ารายการทั้งหมด'],
         ['borrowReturn', 'ยืม-คืน', Icons.UserPlus, `${currentBorrowedItems.length + currentEventItems.length} รายการค้าง`],
         ['projects', 'โครงการจัดซื้อ', Icons.Database, `${projectStats.length.toLocaleString('th-TH')} โครงการ`],
-        ['organize', 'กล่อง / เซ็ต', Icons.Layers, `${(settingsOptions.storageBoxes || []).length} กล่อง • ${(settingsOptions.bundles || []).length} เซ็ต`]
+        ['organize', 'กล่อง / เซ็ต', Icons.Layers, `${(settingsOptions.storageBoxes || []).length} กล่อง • ${(settingsOptions.bundles || []).length} เซ็ต`],
+        ['reports', 'รายงาน', Icons.ClipboardList, `${monthlyReportData.total.toLocaleString('th-TH')} ประวัติเดือนนี้`]
       ].map(([id, label, Icon, desc]) => (
         <button
           key={id}
@@ -7233,10 +7295,141 @@ S.N.: ${item.sn || '-'}
     );
   };
 
+  const renderReportsWorkspace = () => {
+    return (
+      <div className="monthly-report-page solid-workspace space-y-5">
+        {renderWorkspaceTabs()}
+        <div className={`monthly-report-page-shell rounded-[1.75rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
+          <div className={`monthly-report-page-toolbar monthly-report-no-print p-5 sm:p-6 border-b flex flex-col lg:flex-row lg:items-start justify-between gap-4 ${theme.divide} ${theme.cardBg}`}>
+            <div className="min-w-0">
+              <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-amber-300' : 'text-amber-600'}`}>MONTHLY REPORT PAGE</div>
+              <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>รายงานประจำเดือน</h2>
+              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หน้านี้เป็นหน้าเต็ม ไม่ใช่ popup เวลากดพิมพ์จะเปิดหน้าเอกสารแยกและพิมพ์เฉพาะรายงาน</p>
+            </div>
+            <div className="monthly-report-page-actions flex flex-wrap items-center gap-2 shrink-0">
+              <input type="month" className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`} value={monthlyReportMonth} onChange={e => setMonthlyReportMonth(e.target.value)} />
+              <button type="button" onClick={exportMonthlyReportCSV} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>CSV</button>
+              <button type="button" onClick={printMonthlyReport} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">พิมพ์รายงาน</button>
+              <button type="button" onClick={() => openWorkspace('overview')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับหน้าหลัก</button>
+            </div>
+          </div>
+
+          <div className="monthly-report-print-area p-4 sm:p-6 space-y-5">
+            <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div>
+                  <div className={`text-xs font-black ${theme.textMuted}`}>MDEC STOCK REPORT</div>
+                  <h1 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>รายงานสรุปประจำเดือน {monthlyReportData.monthKey}</h1>
+                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>พิมพ์วันที่ {new Date().toLocaleDateString('th-TH')} • {APP_VERSION}</p>
+                </div>
+                <div className={`px-4 py-3 rounded-2xl border text-right ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`text-xs font-black ${theme.textMuted}`}>ประวัติรวมเดือนนี้</div>
+                  <div className={`text-3xl font-black ${theme.textTitle}`}>{monthlyReportData.total.toLocaleString('th-TH')}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                ['ยืม', monthlyReportData.borrow, 'bg-purple-100 text-purple-700 border-purple-200'],
+                ['ออกงาน', monthlyReportData.event, 'bg-orange-100 text-orange-700 border-orange-200'],
+                ['รับคืน', monthlyReportData.return, 'bg-emerald-100 text-emerald-700 border-emerald-200'],
+                ['แจ้งซ่อม', monthlyReportData.repairs, 'bg-rose-100 text-rose-700 border-rose-200'],
+                ['เอกสาร', monthlyReportData.documents, 'bg-blue-100 text-blue-700 border-blue-200'],
+                ['รูปหลักฐาน', monthlyReportData.proofs, 'bg-pink-100 text-pink-700 border-pink-200'],
+                ['เลยกำหนดตอนนี้', monthlyReportData.overdueNow, 'bg-red-100 text-red-700 border-red-200'],
+                ['ชำรุดตอนนี้', monthlyReportData.maintenanceNow, 'bg-amber-100 text-amber-700 border-amber-200']
+              ].map(([label, value, tone]) => (
+                <div key={label} className={`p-4 rounded-2xl border ${tone}`}>
+                  <div className="text-xs font-black opacity-80">{label}</div>
+                  <div className="text-3xl font-black mt-1">{Number(value || 0).toLocaleString('th-TH')}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>อุปกรณ์ที่ถูกใช้งานบ่อย</h4>
+                <div className="space-y-2">
+                  {monthlyReportData.topUsed.length === 0 ? (
+                    <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีรายการในเดือนนี้</div>
+                  ) : monthlyReportData.topUsed.map((row, idx) => (
+                    <div key={row.item.id} className={`flex justify-between gap-3 py-2 border-b ${theme.divide}`}>
+                      <div className="min-w-0">
+                        <div className={`font-black truncate ${theme.textTitle}`}>{idx + 1}. {row.item.name}</div>
+                        <div className={`text-xs font-bold ${theme.textMuted}`}>S.N. {row.item.sn || '-'}</div>
+                      </div>
+                      <div className="font-black shrink-0">{row.count} ครั้ง</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>หมวดหมู่ที่มีความเคลื่อนไหว</h4>
+                <div className="space-y-2">
+                  {monthlyReportData.topCategories.length === 0 ? <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีข้อมูลหมวดหมู่</div> : monthlyReportData.topCategories.map((row, idx) => (
+                    <div key={row.label} className="flex justify-between gap-3 text-sm">
+                      <span className={`font-bold truncate ${theme.textMuted}`}>{idx + 1}. {row.label}</span>
+                      <span className={`font-black ${theme.textTitle}`}>{row.count.toLocaleString('th-TH')}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>ฝ่าย/พื้นที่ที่มีความเคลื่อนไหว</h4>
+                <div className="space-y-2">
+                  {monthlyReportData.topDepartments.length === 0 ? <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีข้อมูลฝ่าย</div> : monthlyReportData.topDepartments.map((row, idx) => (
+                    <div key={row.label} className="flex justify-between gap-3 text-sm">
+                      <span className={`font-bold truncate ${theme.textMuted}`}>{idx + 1}. {row.label}</span>
+                      <span className={`font-black ${theme.textTitle}`}>{row.count.toLocaleString('th-TH')}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>ตารางสรุปสำหรับแนบรายงาน</h4>
+              <div className="overflow-x-auto rounded-2xl border border-slate-200/70 dark:border-slate-800">
+                <table className="monthly-report-table">
+                  <thead className={isDarkMode ? 'bg-slate-900 text-slate-300' : 'bg-slate-50 text-slate-600'}>
+                    <tr>
+                      <th className="text-left">รายการ</th>
+                      <th className="text-right">จำนวน</th>
+                      <th className="text-left hidden sm:table-cell">หมายเหตุ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthlyReportData.typeRows.map(row => (
+                      <tr key={row.label} className={`border-t ${theme.divide}`}>
+                        <td className={`font-black ${theme.textTitle}`}>{row.label}</td>
+                        <td className={`text-right font-black ${theme.textTitle}`}>{Number(row.value || 0).toLocaleString('th-TH')}</td>
+                        <td className={`hidden sm:table-cell font-bold ${theme.textMuted}`}>{row.desc}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className={`monthly-report-no-print monthly-report-mobile-actions rounded-2xl border flex flex-col sm:flex-row gap-2 p-3 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <button type="button" onClick={exportMonthlyReportCSV} className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">ส่งออก CSV</button>
+              <button type="button" onClick={printMonthlyReport} className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black">พิมพ์รายงาน</button>
+              <button type="button" onClick={() => openWorkspace('overview')} className={`flex-1 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>กลับหน้าหลัก</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderActiveWorkspace = () => {
     if (activeWorkspace === 'borrowReturn') return renderBorrowReturnWorkspace();
     if (activeWorkspace === 'projects') return renderProjectWorkspace();
     if (activeWorkspace === 'organize') return renderOrganizeWorkspace();
+    if (activeWorkspace === 'reports') return renderReportsWorkspace();
     return null;
   };
 
@@ -9029,39 +9222,36 @@ S.N.: ${item.sn || '-'}
     pushToast('ดาวน์โหลดรายงานประจำเดือนเป็น CSV แล้ว', 'success');
   };
 
+  const openMonthlyReportPage = () => {
+    setShowMoreMenu(false);
+    setShowBorrowDocsModal(false);
+    setShowHistoryCenterModal(false);
+    setShowProofCenterModal(false);
+    openWorkspace('reports');
+    window.setTimeout(() => {
+      document.querySelector('.monthly-report-page')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  };
+
   const printMonthlyReport = () => {
     if (typeof document === 'undefined' || typeof window === 'undefined') return;
     const source = document.querySelector('.monthly-report-print-area');
     if (!source) {
-      pushToast('ยังไม่พบพื้นที่รายงานสำหรับพิมพ์', 'warning');
+      pushToast('ยังไม่พบหน้ารายงานสำหรับพิมพ์ ให้เปิดหน้ารายงานประจำเดือนก่อน', 'warning');
+      openMonthlyReportPage();
       return;
     }
 
-    const oldRoot = document.getElementById('mdec-monthly-report-print-root');
-    if (oldRoot) oldRoot.remove();
-
-    const printRoot = document.createElement('div');
-    printRoot.id = 'mdec-monthly-report-print-root';
-    printRoot.className = 'mdec-monthly-report-print-root monthly-report-print-area';
-    printRoot.innerHTML = source.innerHTML;
-    document.body.appendChild(printRoot);
-    document.body.classList.add('mdec-printing-monthly');
-
-    let cleaned = false;
+    document.body.classList.add('mdec-report-page-printing');
     const cleanup = () => {
-      if (cleaned) return;
-      cleaned = true;
-      document.body.classList.remove('mdec-printing-monthly');
-      const root = document.getElementById('mdec-monthly-report-print-root');
-      if (root) root.remove();
+      document.body.classList.remove('mdec-report-page-printing');
       window.removeEventListener('afterprint', cleanup);
     };
-
     window.addEventListener('afterprint', cleanup);
     window.setTimeout(() => {
       window.print();
       window.setTimeout(cleanup, 1200);
-    }, 80);
+    }, 120);
   };
 
   const backupDownloadMultipleFiles = (files = []) => {
@@ -11150,6 +11340,9 @@ S.N.: ${item.sn || '-'}
           <button type="button" onClick={() => openWorkspace('organize')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'organize' ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
             <Icons.Layers className="w-5 h-5" /> กล่อง / เซ็ต / เตรียมของ
           </button>
+          <button type="button" onClick={() => openMonthlyReportPage()} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'reports' ? 'bg-gradient-to-r from-amber-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
+            <Icons.ClipboardList className="w-5 h-5" /> รายงาน
+          </button>
           <button type="button" onClick={() => setShowProofCenterModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
             <Icons.Camera className="w-5 h-5" /> หลักฐานรูปภาพ
           </button>
@@ -11283,7 +11476,7 @@ S.N.: ${item.sn || '-'}
       </div>
 
       {isLoggedIn && (
-        <div className={`w-full mb-6 p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className={`login-status-bar monthly-report-no-print w-full mb-6 p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>👤</div>
             <div>
@@ -11336,7 +11529,7 @@ S.N.: ${item.sn || '-'}
               <span className={`block ${theme.textTitle}`}>หลักฐานรูปภาพ</span>
               <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ดู/จัดการรูป</span>
             </button>
-            <button type="button" onClick={() => setShowMonthlyReportModal(true)} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+            <button type="button" onClick={() => openMonthlyReportPage()} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
               <span className="mobile-field-icon bg-amber-600 text-white mb-2"><Icons.ClipboardList className="w-5 h-5" /></span>
               <span className={`block ${theme.textTitle}`}>รายงาน</span>
               <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>สรุป/พิมพ์/CSV</span>
@@ -11478,7 +11671,7 @@ S.N.: ${item.sn || '-'}
               <div>
                 <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.Monitor className="w-5 h-5 text-emerald-500" /> ระบบและรายงาน</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowMonthlyReportModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); openMonthlyReportPage(); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายงานประจำเดือน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปการยืม คืน ออกงาน และหลักฐาน</p>
                   </button>
@@ -11622,7 +11815,7 @@ S.N.: ${item.sn || '-'}
             <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>มองภาพรวมก่อนทำรายงาน / ส่งออก CSV / ตรวจจุดที่ควรเคลียร์</p>
           </div>
           <div className="report-action-grid grid grid-cols-2 sm:flex gap-2 shrink-0">
-            <button type="button" onClick={() => setShowMonthlyReportModal(true)} className="px-4 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black shadow-sm">รายงานเดือนนี้</button>
+            <button type="button" onClick={() => openMonthlyReportPage()} className="px-4 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black shadow-sm">รายงานเดือนนี้</button>
             <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เอกสารย้อนหลัง</button>
             <button type="button" onClick={() => { setShowMoreMenu(false); setShowระบบHealthModal(true); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ตรวจสุขภาพ</button>
           </div>
@@ -16314,135 +16507,6 @@ S.N.: ${item.sn || '-'}
           </div>
         </div>
       )}
-
-      {/* รายงานประจำเดือน */}
-      {showMonthlyReportModal && (
-        <div className={`monthly-report-polish fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[9990]`}>
-          <div className={`monthly-report-modal-shell rounded-3xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[92vh] border ${theme.cardBg} ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`}>
-            <div className={`monthly-report-no-print p-5 sm:p-6 border-b flex flex-col lg:flex-row lg:items-start justify-between gap-4 ${theme.divide}`}>
-              <div className="min-w-0">
-                <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-amber-300' : 'text-amber-600'}`}>MONTHLY REPORT</div>
-                <h3 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>รายงานประจำเดือน</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปการยืม คืน ออกงาน หลักฐาน และสถานะปัจจุบันของศูนย์</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
-                <input type="month" className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`} value={monthlyReportMonth} onChange={e => setMonthlyReportMonth(e.target.value)} />
-                <button type="button" onClick={exportMonthlyReportCSV} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>CSV</button>
-                <button type="button" onClick={printMonthlyReport} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">พิมพ์</button>
-                <button type="button" onClick={() => setShowMonthlyReportModal(false)} className={`p-3 rounded-2xl border ${theme.btnSecondary}`}><Icons.X className="w-5 h-5" /></button>
-              </div>
-            </div>
-
-            <div className="monthly-report-print-area p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-5">
-              <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                  <div>
-                    <div className={`text-xs font-black ${theme.textMuted}`}>MDEC STOCK REPORT</div>
-                    <h1 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>รายงานสรุปประจำเดือน {monthlyReportData.monthKey}</h1>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>พิมพ์วันที่ {new Date().toLocaleDateString('th-TH')} • {APP_VERSION}</p>
-                  </div>
-                  <div className={`px-4 py-3 rounded-2xl border text-right ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className={`text-xs font-black ${theme.textMuted}`}>ประวัติรวมเดือนนี้</div>
-                    <div className={`text-3xl font-black ${theme.textTitle}`}>{monthlyReportData.total.toLocaleString('th-TH')}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {[
-                  ['ยืม', monthlyReportData.borrow, 'bg-purple-100 text-purple-700 border-purple-200'],
-                  ['ออกงาน', monthlyReportData.event, 'bg-orange-100 text-orange-700 border-orange-200'],
-                  ['รับคืน', monthlyReportData.return, 'bg-emerald-100 text-emerald-700 border-emerald-200'],
-                  ['แจ้งซ่อม', monthlyReportData.repairs, 'bg-rose-100 text-rose-700 border-rose-200'],
-                  ['เอกสาร', monthlyReportData.documents, 'bg-blue-100 text-blue-700 border-blue-200'],
-                  ['รูปหลักฐาน', monthlyReportData.proofs, 'bg-pink-100 text-pink-700 border-pink-200'],
-                  ['เลยกำหนดตอนนี้', monthlyReportData.overdueNow, 'bg-red-100 text-red-700 border-red-200'],
-                  ['ชำรุดตอนนี้', monthlyReportData.maintenanceNow, 'bg-amber-100 text-amber-700 border-amber-200']
-                ].map(([label, value, tone]) => (
-                  <div key={label} className={`p-4 rounded-2xl border ${tone}`}>
-                    <div className="text-xs font-black opacity-80">{label}</div>
-                    <div className="text-3xl font-black mt-1">{Number(value || 0).toLocaleString('th-TH')}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                  <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>อุปกรณ์ที่ถูกใช้งานบ่อย</h4>
-                  <div className="space-y-2">
-                    {monthlyReportData.topUsed.length === 0 ? (
-                      <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีรายการในเดือนนี้</div>
-                    ) : monthlyReportData.topUsed.map((row, idx) => (
-                      <div key={row.item.id} className={`flex justify-between gap-3 py-2 border-b ${theme.divide}`}>
-                        <div className="min-w-0">
-                          <div className={`font-black truncate ${theme.textTitle}`}>{idx + 1}. {row.item.name}</div>
-                          <div className={`text-xs font-bold ${theme.textMuted}`}>S.N. {row.item.sn || '-'}</div>
-                        </div>
-                        <div className="font-black shrink-0">{row.count} ครั้ง</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                  <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>หมวดหมู่ที่มีความเคลื่อนไหว</h4>
-                  <div className="space-y-2">
-                    {monthlyReportData.topCategories.length === 0 ? <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีข้อมูลหมวดหมู่</div> : monthlyReportData.topCategories.map((row, idx) => (
-                      <div key={row.label} className="flex justify-between gap-3 text-sm">
-                        <span className={`font-bold truncate ${theme.textMuted}`}>{idx + 1}. {row.label}</span>
-                        <span className={`font-black ${theme.textTitle}`}>{row.count.toLocaleString('th-TH')}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                  <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>ฝ่าย/พื้นที่ที่มีความเคลื่อนไหว</h4>
-                  <div className="space-y-2">
-                    {monthlyReportData.topDepartments.length === 0 ? <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีข้อมูลฝ่าย</div> : monthlyReportData.topDepartments.map((row, idx) => (
-                      <div key={row.label} className="flex justify-between gap-3 text-sm">
-                        <span className={`font-bold truncate ${theme.textMuted}`}>{idx + 1}. {row.label}</span>
-                        <span className={`font-black ${theme.textTitle}`}>{row.count.toLocaleString('th-TH')}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>ตารางสรุปสำหรับแนบรายงาน</h4>
-                <div className="overflow-x-auto rounded-2xl border border-slate-200/70 dark:border-slate-800">
-                  <table className="monthly-report-table">
-                    <thead className={isDarkMode ? 'bg-slate-900 text-slate-300' : 'bg-slate-50 text-slate-600'}>
-                      <tr>
-                        <th className="text-left">รายการ</th>
-                        <th className="text-right">จำนวน</th>
-                        <th className="text-left hidden sm:table-cell">หมายเหตุ</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {monthlyReportData.typeRows.map(row => (
-                        <tr key={row.label} className={`border-t ${theme.divide}`}>
-                          <td className={`font-black ${theme.textTitle}`}>{row.label}</td>
-                          <td className={`text-right font-black ${theme.textTitle}`}>{Number(row.value || 0).toLocaleString('th-TH')}</td>
-                          <td className={`hidden sm:table-cell font-bold ${theme.textMuted}`}>{row.desc}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className={`monthly-report-no-print monthly-report-mobile-actions rounded-2xl border flex flex-col sm:flex-row gap-2 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <button type="button" onClick={exportMonthlyReportCSV} className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">ส่งออก CSV</button>
-                <button type="button" onClick={printMonthlyReport} className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black">พิมพ์รายงาน</button>
-                <button type="button" onClick={() => setShowMonthlyReportModal(false)} className={`flex-1 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ปิดหน้าต่าง</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
 
       {/* เอกสารย้อนหลัง / Borrow เอกสารs Archive */}
       {showBorrowDocsModal && (
