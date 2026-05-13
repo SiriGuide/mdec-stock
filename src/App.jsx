@@ -44,8 +44,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.4 Reports Dashboard Print Polish';
-const APP_UPDATE_NOTE = 'Mobile Borrow / Return Flow Polish: เก็บ flow ยืม/ออกงาน/รับคืนบนมือถือ เพิ่มสรุปรายการก่อนยืนยัน แถบสถานะเช็กของ ปุ่มยืนยันแบบ sticky และ modal ตรวจสอบก่อนบันทึก โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
+const APP_VERSION = 'v22.53.5 Print Scope Fix';
+const APP_UPDATE_NOTE = 'Print Scope Fix: แก้การพิมพ์รายงานประจำเดือนให้พิมพ์เฉพาะพื้นที่รายงาน ไม่พิมพ์ทั้งเว็บ และยังไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล/flow ยืมคืน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -3029,6 +3029,70 @@ function FactoryPolishStyle({ isDarkMode }) {
           background: #fff !important;
           box-shadow: none !important;
           border: 0 !important;
+        }
+      }
+      /* v22.53.5 Print Scope Fix: เวลาพิมพ์รายงาน ให้พิมพ์เฉพาะพื้นที่รายงาน ไม่ลากทั้งเว็บไปด้วย */
+      .mdec-monthly-report-print-root {
+        display: none;
+      }
+      @media print {
+        body.mdec-printing-monthly {
+          background: #fff !important;
+        }
+        body.mdec-printing-monthly * {
+          visibility: hidden !important;
+        }
+        body.mdec-printing-monthly #mdec-monthly-report-print-root,
+        body.mdec-printing-monthly #mdec-monthly-report-print-root * {
+          visibility: visible !important;
+        }
+        body.mdec-printing-monthly #mdec-monthly-report-print-root {
+          display: block !important;
+          position: absolute !important;
+          inset: 0 auto auto 0 !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 10mm !important;
+          background: #fff !important;
+          color: #000 !important;
+          z-index: 2147483647 !important;
+          box-sizing: border-box !important;
+        }
+        body.mdec-printing-monthly #mdec-monthly-report-print-root .monthly-report-no-print {
+          display: none !important;
+        }
+        body.mdec-printing-monthly #mdec-monthly-report-print-root,
+        body.mdec-printing-monthly #mdec-monthly-report-print-root :is(div, section, article, header, footer) {
+          background: #fff !important;
+          color: #000 !important;
+          box-shadow: none !important;
+          text-shadow: none !important;
+        }
+        body.mdec-printing-monthly #mdec-monthly-report-print-root :is(h1,h2,h3,h4,p,span,small,strong,td,th,li) {
+          color: #000 !important;
+        }
+        body.mdec-printing-monthly #mdec-monthly-report-print-root :is(.grid) {
+          display: grid !important;
+        }
+        body.mdec-printing-monthly #mdec-monthly-report-print-root table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+          page-break-inside: auto !important;
+        }
+        body.mdec-printing-monthly #mdec-monthly-report-print-root tr {
+          page-break-inside: avoid !important;
+        }
+        body.mdec-printing-monthly #mdec-monthly-report-print-root :is(th,td) {
+          border: 1px solid #cbd5e1 !important;
+          padding: 8px 10px !important;
+          background: #fff !important;
+          color: #000 !important;
+        }
+        body.mdec-printing-monthly #mdec-monthly-report-print-root :is(.custom-scrollbar,.overflow-y-auto,.overflow-x-auto) {
+          overflow: visible !important;
+        }
+        body.mdec-printing-monthly .monthly-report-polish {
+          display: none !important;
         }
       }
       .factory-stock-polish .document-archive-card,
@@ -8966,7 +9030,38 @@ S.N.: ${item.sn || '-'}
   };
 
   const printMonthlyReport = () => {
-    window.setTimeout(() => window.print(), 80);
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+    const source = document.querySelector('.monthly-report-print-area');
+    if (!source) {
+      pushToast('ยังไม่พบพื้นที่รายงานสำหรับพิมพ์', 'warning');
+      return;
+    }
+
+    const oldRoot = document.getElementById('mdec-monthly-report-print-root');
+    if (oldRoot) oldRoot.remove();
+
+    const printRoot = document.createElement('div');
+    printRoot.id = 'mdec-monthly-report-print-root';
+    printRoot.className = 'mdec-monthly-report-print-root monthly-report-print-area';
+    printRoot.innerHTML = source.innerHTML;
+    document.body.appendChild(printRoot);
+    document.body.classList.add('mdec-printing-monthly');
+
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      document.body.classList.remove('mdec-printing-monthly');
+      const root = document.getElementById('mdec-monthly-report-print-root');
+      if (root) root.remove();
+      window.removeEventListener('afterprint', cleanup);
+    };
+
+    window.addEventListener('afterprint', cleanup);
+    window.setTimeout(() => {
+      window.print();
+      window.setTimeout(cleanup, 1200);
+    }, 80);
   };
 
   const backupDownloadMultipleFiles = (files = []) => {
