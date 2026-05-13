@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.28 Smart Filter Compact Cleanup';
-const APP_UPDATE_NOTE = 'Smart Filter Compact Cleanup: ย้ายตัวกรองด่วนเข้าไปอยู่ในปุ่มตัวกรอง ลดความรกหน้าอุปกรณ์หลัก แต่ยังคงค้นหาอัจฉริยะและ filter chip ที่เลือกไว้ โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
+const APP_VERSION = 'v22.53.29 Return Tracking / Daily Task Polish';
+const APP_UPDATE_NOTE = 'Return Tracking / Daily Task Polish: ปรับศูนย์ติดตามของรอคืนให้เห็นวันนี้/เลยกำหนด/รอคืนทั้งหมด พร้อมปุ่มรับคืน เปิดแฟ้ม ดูเอกสาร และคัดลอกข้อความติดตาม โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -5910,6 +5910,7 @@ function MainApp() {
   const [showTvDashboardModal, setShowTvDashboardModal] = useState(false);
   const [showTrackingCenterModal, setShowTrackingCenterModal] = useState(false);
   const [trackingTab, setTrackingTab] = useState('today');
+  const [trackingSearch, setTrackingSearch] = useState('');
   const [showProofCenterModal, setShowProofCenterModal] = useState(false);
   const [proofCenterFilter, setProofCenterFilter] = useState('all');
   const [proofCenterSearch, setProofCenterSearch] = useState('');
@@ -5952,6 +5953,7 @@ function MainApp() {
   };
   const openTrackingCenter = (tab = 'today') => {
     setTrackingTab(tab);
+    setTrackingSearch('');
     setShowTrackingCenterModal(true);
   };
 
@@ -9823,6 +9825,85 @@ S.N.: ${item.sn || '-'}
       total: overdue.length + dueToday.length + maintenance.length + untagged.length + deleted.length + prepIncomplete.length + brokenBoxes.length
     };
   }, [items, settingsOptions.prepLists, settingsOptions.storageBoxes, todayFollowup]);
+
+  const getReturnTrackingDateInfo = (item = {}) => {
+    const due = item.expectedReturn ? new Date(item.expectedReturn) : null;
+    if (!due || Number.isNaN(due.getTime())) {
+      return { label: 'ไม่ระบุกำหนดคืน', tone: 'slate', daysText: '', dueText: '-' };
+    }
+    const dueMs = due.setHours(0,0,0,0);
+    const diffDays = Math.round((dueMs - todayMs) / 86400000);
+    if (diffDays < 0) return { label: 'เลยกำหนดคืน', tone: 'rose', daysText: `เลยกำหนด ${Math.abs(diffDays)} วัน`, dueText: new Date(item.expectedReturn).toLocaleDateString('th-TH') };
+    if (diffDays === 0) return { label: 'ต้องคืนวันนี้', tone: 'amber', daysText: 'ครบกำหนดวันนี้', dueText: new Date(item.expectedReturn).toLocaleDateString('th-TH') };
+    return { label: 'ยังไม่ถึงกำหนด', tone: 'emerald', daysText: `เหลือ ${diffDays} วัน`, dueText: new Date(item.expectedReturn).toLocaleDateString('th-TH') };
+  };
+
+  const getTrackingText = (item = {}) => {
+    const dateInfo = getReturnTrackingDateInfo(item);
+    const subject = item.status === 'out-for-event'
+      ? `งาน: ${item.currentEvent || item.eventName || '-'}`
+      : `ผู้ยืม: ${item.currentBorrower || item.borrower || '-'}`;
+    return `แจ้งเตือนคืนอุปกรณ์: ${item.name || '-'}${item.sn ? ` (S.N. ${item.sn})` : ''}\n${subject}\nกำหนดคืน: ${dateInfo.dueText}\nสถานะ: ${dateInfo.label}${dateInfo.daysText ? ` • ${dateInfo.daysText}` : ''}\nจากระบบ MDEC Stock`;
+  };
+
+  const copyReturnTrackingMessage = async (item) => {
+    const text = getTrackingText(item);
+    try {
+      await navigator.clipboard.writeText(text);
+      pushToast('คัดลอกข้อความติดตามแล้ว พร้อมส่ง LINE ได้เลย', 'success');
+    } catch (error) {
+      window.prompt('คัดลอกข้อความนี้เพื่อนำไปส่งต่อ', text);
+    }
+  };
+
+  const openReturnFromTracking = (item) => {
+    if (!item || !item.id) return;
+    setReturnData({ staff: '', newStaff: '' });
+    setReturnTargetIds([item.id]);
+    setReturnChecklist([]);
+    setReturnProofFiles([]);
+    setReturnInspection({});
+    setShowTrackingCenterModal(false);
+    setBorrowReturnMode('return');
+    openWorkspace('borrowReturn');
+  };
+
+  const returnTrackingData = useMemo(() => {
+    const active = (todayFollowup.active || []).filter(item => item && !item.isDeleted);
+    const search = String(trackingSearch || '').trim().toLowerCase();
+    const match = (item) => {
+      if (!search) return true;
+      return [
+        item.name,
+        item.sn,
+        item.category,
+        item.location,
+        item.currentBorrower,
+        item.currentEvent,
+        item.borrower,
+        item.eventName,
+        item.staffOut,
+        item.internalNote
+      ].map(v => String(v || '').toLowerCase()).join(' ').includes(search);
+    };
+    const filteredActive = active.filter(match).slice().sort((a, b) => new Date(a.expectedReturn || '9999-12-31') - new Date(b.expectedReturn || '9999-12-31'));
+    const partialDocs = (borrowเอกสารs || []).filter(doc => {
+      const status = String(doc.archivedStatus || doc.status || '').toLowerCase();
+      return status === 'partial' || status.includes('partial') || String(doc.statusLabel || '').includes('คืนบางส่วน');
+    });
+    return {
+      active: filteredActive,
+      dueToday: (todayFollowup.dueToday || []).filter(match),
+      overdue: (todayFollowup.overdue || []).filter(match),
+      borrowed: filteredActive.filter(item => item.status === 'borrowed'),
+      event: filteredActive.filter(item => item.status === 'out-for-event'),
+      partialDocs,
+      urgent: filteredActive.filter(item => {
+        const info = getReturnTrackingDateInfo(item);
+        return info.tone === 'rose' || info.tone === 'amber';
+      })
+    };
+  }, [todayFollowup, trackingSearch, borrowเอกสารs, todayMs]);
 
   const allHistoryCenterEntries = useMemo(() => {
     const rows = [];
@@ -16168,38 +16249,103 @@ S.N.: ${item.sn || '-'}
       })()}
 
 
-      {/* 🧭 Modal ติดตามการคืนงาน: วันนี้ / ต้องจัดการ / ปฏิทิน */}
+      {/* 🧭 Modal ติดตามของรอคืน / งานที่ต้องจัดการวันนี้ */}
       {showTrackingCenterModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[9990] mdec-history-proof-safe`}>
-          <div className={`rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden ${theme.cardBg}`}>
-            <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 border-b ${theme.divide}`}>
-              <div>
-                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.History className="w-6 h-6 text-sky-500" /> ติดตามการคืนงาน</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวม “วันนี้ / ของที่ต้องจัดการ / ปฏิทิน” ไว้หน้าเดียว ลดการกดหลายเมนู</p>
+          <div className={`rounded-3xl shadow-2xl w-full max-w-7xl h-[92vh] sm:max-h-[92vh] flex flex-col overflow-hidden border ${theme.cardBg}`}>
+            <div className={`flex flex-col lg:flex-row lg:items-start justify-between gap-4 p-4 sm:p-6 border-b ${theme.divide}`}>
+              <div className="min-w-0">
+                <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-sky-300' : 'text-sky-600'}`}>RETURN TRACKING CENTER</div>
+                <h3 className={`text-2xl sm:text-3xl font-black flex items-center gap-3 mt-1 ${theme.textTitle}`}><Icons.History className="w-7 h-7 text-sky-500" /> ศูนย์ติดตามของรอคืน</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูของต้องคืนวันนี้ เลยกำหนด ออกงานอยู่ และคัดลอกข้อความติดตามส่ง LINE ได้เร็วขึ้น</p>
               </div>
-              <button onClick={() => setShowTrackingCenterModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+              <button onClick={() => setShowTrackingCenterModal(false)} className={`p-2 hover:text-rose-500 self-end lg:self-start ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
 
-            <div className={`px-6 pt-4 border-b ${theme.divide}`}>
-              <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-3">
+            <div className={`px-4 sm:px-6 py-4 border-b space-y-4 ${theme.divide}`}>
+              <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2.5">
                 {[
-                  ['today', 'วันนี้', todayFollowup.dueToday.length + todayFollowup.overdue.length],
-                  ['action', 'ต้องจัดการ', actionCenterData.total],
+                  ['รอคืนทั้งหมด', returnTrackingData.active.length, 'text-blue-500', 'borrowed'],
+                  ['ต้องคืนวันนี้', returnTrackingData.dueToday.length, 'text-amber-500', 'today'],
+                  ['เลยกำหนด', returnTrackingData.overdue.length, 'text-rose-500', 'overdue'],
+                  ['ยืมทั่วไป', returnTrackingData.borrowed.length, 'text-purple-500', 'borrowed'],
+                  ['ออกงานอยู่', returnTrackingData.event.length, 'text-orange-500', 'event'],
+                  ['คืนบางส่วน', returnTrackingData.partialDocs.length, 'text-emerald-500', 'partial']
+                ].map(([label, value, tone, tab]) => (
+                  <button key={label} type="button" onClick={() => setTrackingTab(tab)} className={`p-3 rounded-2xl border text-left transition-all ${trackingTab === tab ? 'bg-sky-600 border-sky-600 text-white shadow-md' : theme.btnSecondary}`}>
+                    <div className={`text-2xl font-black leading-none ${trackingTab === tab ? 'text-white' : tone}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                    <div className="text-xs font-black mt-2">{label}</div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3">
+                <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border ${theme.input}`}>
+                  <Icons.Search className={`w-5 h-5 shrink-0 ${theme.textMuted}`} />
+                  <input
+                    value={trackingSearch}
+                    onChange={e => setTrackingSearch(e.target.value)}
+                    className="bg-transparent outline-none w-full font-bold"
+                    placeholder="ค้นหา ชื่ออุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / ที่เก็บ..."
+                  />
+                </div>
+                <button type="button" onClick={() => { setTrackingSearch(''); setTrackingTab('today'); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ล้าง / กลับวันนี้</button>
+              </div>
+
+              <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+                {[
+                  ['today', 'วันนี้', returnTrackingData.dueToday.length],
+                  ['overdue', 'เลยกำหนด', returnTrackingData.overdue.length],
+                  ['borrowed', 'รอคืนทั้งหมด', returnTrackingData.active.length],
+                  ['event', 'ออกงานอยู่', returnTrackingData.event.length],
+                  ['partial', 'คืนบางส่วน', returnTrackingData.partialDocs.length],
+                  ['action', 'งานที่ควรจัดการ', actionCenterData.total],
                   ['calendar', 'ปฏิทิน', calendarDays.length]
                 ].map(([id, label, count]) => (
-                  <button key={id} type="button" onClick={() => setTrackingTab(id)} className={`px-5 py-3 rounded-xl border font-black whitespace-nowrap transition-colors ${trackingTab === id ? 'bg-sky-600 text-white border-sky-600 shadow-md' : theme.btnSecondary}`}>
-                    {label} <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${trackingTab === id ? 'bg-white/20 text-white' : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700')}`}>{count}</span>
+                  <button key={id} type="button" onClick={() => setTrackingTab(id)} className={`px-4 py-2.5 rounded-xl border font-black whitespace-nowrap transition-colors ${trackingTab === id ? 'bg-sky-600 text-white border-sky-600 shadow-md' : theme.btnSecondary}`}>
+                    {label} <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${trackingTab === id ? 'bg-white/20 text-white' : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700')}`}>{Number(count || 0).toLocaleString('th-TH')}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6">
               {trackingTab === 'today' && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <TodayPanel title="ต้องคืนวันนี้" color="amber" items={todayFollowup.dueToday} empty="วันนี้ยังไม่มีรายการครบกำหนดคืน" isDarkMode={isDarkMode} theme={theme} />
-                  <TodayPanel title="เลยกำหนดคืน" color="rose" items={todayFollowup.overdue} empty="ไม่มีรายการเลยกำหนด" isDarkMode={isDarkMode} theme={theme} />
-                  <TodayPanel title="ถูกยืม / ออกงาน" color="purple" items={todayFollowup.active} empty="ไม่มีอุปกรณ์ที่ถูกยืมหรือออกงาน" isDarkMode={isDarkMode} theme={theme} />
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                  <TodayPanel title="ต้องคืนวันนี้" color="amber" items={returnTrackingData.dueToday} empty="วันนี้ยังไม่มีรายการครบกำหนดคืน" isDarkMode={isDarkMode} theme={theme} dateInfoOf={getReturnTrackingDateInfo} onReturn={openReturnFromTracking} onDetail={(item) => setShowHistory(item.id)} onDocs={() => openBorrowDocsArchive({ reset: false })} onCopy={copyReturnTrackingMessage} />
+                  <TodayPanel title="เลยกำหนดคืน" color="rose" items={returnTrackingData.overdue} empty="ไม่มีรายการเลยกำหนด" isDarkMode={isDarkMode} theme={theme} dateInfoOf={getReturnTrackingDateInfo} onReturn={openReturnFromTracking} onDetail={(item) => setShowHistory(item.id)} onDocs={() => openBorrowDocsArchive({ reset: false })} onCopy={copyReturnTrackingMessage} />
+                  <TodayPanel title="รายการที่ควรรีบตาม" color="purple" items={returnTrackingData.urgent} empty="ไม่มีรายการเร่งด่วนตอนนี้" isDarkMode={isDarkMode} theme={theme} dateInfoOf={getReturnTrackingDateInfo} onReturn={openReturnFromTracking} onDetail={(item) => setShowHistory(item.id)} onDocs={() => openBorrowDocsArchive({ reset: false })} onCopy={copyReturnTrackingMessage} />
+                </div>
+              )}
+
+              {trackingTab === 'overdue' && (
+                <TodayPanel title="เลยกำหนดคืนทั้งหมด" color="rose" items={returnTrackingData.overdue} empty="ไม่มีรายการเลยกำหนด" isDarkMode={isDarkMode} theme={theme} dateInfoOf={getReturnTrackingDateInfo} onReturn={openReturnFromTracking} onDetail={(item) => setShowHistory(item.id)} onDocs={() => openBorrowDocsArchive({ reset: false })} onCopy={copyReturnTrackingMessage} wide />
+              )}
+
+              {trackingTab === 'borrowed' && (
+                <TodayPanel title="รอคืนทั้งหมด" color="purple" items={returnTrackingData.active} empty="ไม่มีรายการรอคืนตอนนี้ อุปกรณ์ที่ยืม/ออกงานถูกจัดการเรียบร้อยแล้ว" isDarkMode={isDarkMode} theme={theme} dateInfoOf={getReturnTrackingDateInfo} onReturn={openReturnFromTracking} onDetail={(item) => setShowHistory(item.id)} onDocs={() => openBorrowDocsArchive({ reset: false })} onCopy={copyReturnTrackingMessage} wide />
+              )}
+
+              {trackingTab === 'event' && (
+                <TodayPanel title="อุปกรณ์ที่ออกงานอยู่" color="amber" items={returnTrackingData.event} empty="ไม่มีอุปกรณ์ออกงานอยู่ตอนนี้" isDarkMode={isDarkMode} theme={theme} dateInfoOf={getReturnTrackingDateInfo} onReturn={openReturnFromTracking} onDetail={(item) => setShowHistory(item.id)} onDocs={() => openBorrowDocsArchive({ reset: false })} onCopy={copyReturnTrackingMessage} wide />
+              )}
+
+              {trackingTab === 'partial' && (
+                <div className="space-y-3">
+                  {returnTrackingData.partialDocs.length === 0 ? (
+                    <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ยังไม่มีเอกสารคืนบางส่วน</div>
+                  ) : returnTrackingData.partialDocs.slice(0, 120).map(doc => (
+                    <div key={doc.id || doc.ref} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className={`font-black text-lg truncate ${theme.textTitle}`}>{doc.title || doc.ref || 'เอกสารคืนบางส่วน'}</div>
+                          <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เลขที่: {doc.ref || '-'} • ผู้เกี่ยวข้อง: {doc.borrower || doc.eventName || '-'}</div>
+                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>วันที่: {doc.date ? new Date(doc.date).toLocaleDateString('th-TH') : '-'}</div>
+                        </div>
+                        <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-4 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>เปิดเอกสารย้อนหลัง</button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -16217,8 +16363,13 @@ S.N.: ${item.sn || '-'}
                         <button onClick={() => { setShowTrackingCenterModal(false); applyProblemFilter(type); }} className={`text-xs font-black px-3 py-1.5 rounded-lg ${theme.btnCancel}`}>ดู/กรอง</button>
                       </div>
                       <div className={`text-4xl font-black mb-2 ${tone}`}>{list.length}</div>
-                      <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
-                        {list.slice(0, 8).map(i => <div key={i.id} className={`text-sm font-bold px-3 py-2 rounded-xl ${isDarkMode ? 'bg-slate-800 text-slate-200' : 'bg-white text-slate-700'}`}>{i.name} <span className={theme.textMuted}>{i.sn ? `• ${i.sn}` : ''}</span></div>)}
+                      <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">
+                        {list.slice(0, 10).map(i => (
+                          <div key={i.id} className={`text-sm font-bold px-3 py-2 rounded-xl flex items-center justify-between gap-2 ${isDarkMode ? 'bg-slate-800 text-slate-200' : 'bg-white text-slate-700'}`}>
+                            <span className="truncate">{i.name} <span className={theme.textMuted}>{i.sn ? `• ${i.sn}` : ''}</span></span>
+                            {(i.status === 'borrowed' || i.status === 'out-for-event') && <button type="button" onClick={() => copyReturnTrackingMessage(i)} className={`px-2 py-1 rounded-lg text-xs font-black ${theme.btnSecondary}`}>คัดลอก</button>}
+                          </div>
+                        ))}
                         {list.length === 0 && <div className={`text-sm font-bold ${theme.textMuted}`}>ไม่มีรายการ</div>}
                       </div>
                     </div>
@@ -20207,10 +20358,72 @@ S.N.: ${item.sn || '-'}
   );
 }
 
-function TodayPanel({ title, color, items, empty, isDarkMode, theme }) {
-  const palette = { amber: isDarkMode ? 'bg-amber-900/20 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800', rose: isDarkMode ? 'bg-rose-900/20 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-800', purple: isDarkMode ? 'bg-purple-900/20 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-800' };
+function TodayPanel({ title, color, items, empty, isDarkMode, theme, dateInfoOf, onReturn, onDetail, onDocs, onCopy, wide = false }) {
+  const palette = {
+    amber: isDarkMode ? 'bg-amber-900/20 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800',
+    rose: isDarkMode ? 'bg-rose-900/20 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-800',
+    purple: isDarkMode ? 'bg-purple-900/20 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-800'
+  };
   const proofCountOf = (item) => (Array.isArray(item?.history) ? item.history : []).reduce((sum, h) => sum + (Array.isArray(h.proofs) ? h.proofs.length : 0), 0);
-  return (<div className={`rounded-2xl border p-4 flex flex-col min-h-[300px] ${palette[color] || palette.purple}`}><h4 className="text-xl font-black mb-3 flex justify-between items-center"><span>{title}</span><span className="text-sm px-2 py-1 rounded-lg bg-white/40">{items.length}</span></h4><div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">{items.length === 0 ? (<div className={`h-full flex items-center justify-center text-center font-bold ${theme.textMuted}`}>{empty}</div>) : items.map(item => { const pc = proofCountOf(item); return (<div key={item.id} className={`p-3 rounded-xl border shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}><div className="font-black truncate">{item.name}</div><div className="text-xs font-bold opacity-80 mt-1">{item.status === 'out-for-event' ? 'งาน' : 'ผู้ยืม'}: {item.currentBorrower || item.currentEvent || '-'}</div><div className="text-xs font-bold opacity-80">กำหนดคืน: {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</div>{pc > 0 && <div className="text-xs font-black mt-2 inline-block px-2 py-1 rounded-lg bg-pink-500/10 border border-pink-500/20">📷 หลักฐาน {pc} รูป</div>}{item.internalNote && <div className="text-xs font-bold mt-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">โน้ต: {item.internalNote}</div>}</div>);})}</div></div>);
+  const dateInfo = (item) => typeof dateInfoOf === 'function' ? dateInfoOf(item) : { label: '', dueText: item?.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-', daysText: '' };
+  return (
+    <div className={`rounded-2xl border p-4 flex flex-col ${wide ? 'min-h-[520px]' : 'min-h-[360px]'} ${palette[color] || palette.purple}`}>
+      <h4 className="text-xl font-black mb-3 flex justify-between items-center gap-3">
+        <span>{title}</span>
+        <span className="text-sm px-2 py-1 rounded-lg bg-white/40">{items.length.toLocaleString('th-TH')}</span>
+      </h4>
+      <div className={`flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-1 ${wide ? 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 space-y-0 content-start' : ''}`}>
+        {items.length === 0 ? (
+          <div className={`h-full flex items-center justify-center text-center font-bold ${theme.textMuted}`}>{empty}</div>
+        ) : items.map(item => {
+          const pc = proofCountOf(item);
+          const info = dateInfo(item);
+          const subject = item.status === 'out-for-event' ? (item.currentEvent || item.eventName || '-') : (item.currentBorrower || item.borrower || '-');
+          const statusText = item.status === 'out-for-event' ? 'ออกงาน' : 'ยืมทั่วไป';
+          return (
+            <div key={item.id} className={`p-4 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-black text-base sm:text-lg leading-tight truncate">{item.name}</div>
+                  <div className="text-xs font-bold opacity-75 mt-1">S.N. {item.sn || '-'} • {item.category || '-'}</div>
+                </div>
+                <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black border shrink-0 ${info.tone === 'rose' ? 'bg-rose-500/10 border-rose-500/25 text-rose-500' : info.tone === 'amber' ? 'bg-amber-500/10 border-amber-500/25 text-amber-500' : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-500'}`}>{info.label}</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 text-xs font-bold">
+                <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-900/70' : 'bg-slate-50'}`}>
+                  <div className="opacity-60">{item.status === 'out-for-event' ? 'ชื่องาน' : 'ผู้ยืม'}</div>
+                  <div className="font-black truncate">{subject}</div>
+                </div>
+                <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-900/70' : 'bg-slate-50'}`}>
+                  <div className="opacity-60">กำหนดคืน</div>
+                  <div className="font-black truncate">{info.dueText} {info.daysText ? `• ${info.daysText}` : ''}</div>
+                </div>
+                <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-900/70' : 'bg-slate-50'}`}>
+                  <div className="opacity-60">สถานะ</div>
+                  <div className="font-black truncate">{statusText}</div>
+                </div>
+                <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-900/70' : 'bg-slate-50'}`}>
+                  <div className="opacity-60">ที่เก็บ / ฝ่าย</div>
+                  <div className="font-black truncate">{item.location || '-'} • {item.department || '-'}</div>
+                </div>
+              </div>
+
+              {pc > 0 && <div className="text-xs font-black mt-3 inline-block px-2 py-1 rounded-lg bg-pink-500/10 border border-pink-500/20">📷 หลักฐาน {pc.toLocaleString('th-TH')} รูป</div>}
+              {item.internalNote && <div className="text-xs font-bold mt-3 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">โน้ต: {item.internalNote}</div>}
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+                <button type="button" onClick={() => onReturn?.(item)} className="px-3 py-2 rounded-xl text-xs sm:text-sm font-black bg-emerald-600 text-white">รับคืน</button>
+                <button type="button" onClick={() => onDetail?.(item)} className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
+                <button type="button" onClick={() => onDocs?.(item)} className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>เอกสาร</button>
+                <button type="button" onClick={() => onCopy?.(item)} className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>คัดลอก</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 class ErrorBoundary extends React.Component {
