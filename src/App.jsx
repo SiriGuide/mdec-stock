@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.29 Return Tracking / Daily Task Polish';
-const APP_UPDATE_NOTE = 'Return Tracking / Daily Task Polish: ปรับศูนย์ติดตามของรอคืนให้เห็นวันนี้/เลยกำหนด/รอคืนทั้งหมด พร้อมปุ่มรับคืน เปิดแฟ้ม ดูเอกสาร และคัดลอกข้อความติดตาม โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
+const APP_VERSION = 'v22.53.30 Dashboard Daily Command Center Polish';
+const APP_UPDATE_NOTE = 'Dashboard Daily Command Center Polish: ปรับหน้าแรกให้สรุปวันนี้ต้องทำอะไร ต้องคืน/เลยกำหนด/ออกงาน/เตรียมของ/ข้อมูลควรเติม พร้อมทางลัดไปหน้าที่เกี่ยวข้อง โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -9677,6 +9677,43 @@ S.N.: ${item.sn || '-'}
     return items.filter(item => !item?.isDeleted && (item.status === 'maintenance' || isProblemItem(item))).slice(0, 8);
   }, [items, todayMs]);
 
+  const dashboardDailyTasks = useMemo(() => {
+    const tasks = [];
+    overdueItems.slice(0, 3).forEach(item => tasks.push({
+      id: `overdue_${item.id}`,
+      tone: 'rose',
+      label: 'เลยกำหนดคืน',
+      title: item.name || '-',
+      desc: `${item.currentBorrower || item.currentEvent || '-'} • ${item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}`,
+      action: () => openTrackingCenter('overdue')
+    }));
+    dueTodayItems.slice(0, 2).forEach(item => tasks.push({
+      id: `due_${item.id}`,
+      tone: 'amber',
+      label: 'ต้องคืนวันนี้',
+      title: item.name || '-',
+      desc: `${item.currentBorrower || item.currentEvent || '-'} • ${item.sn || '-'}`,
+      action: () => openTrackingCenter('today')
+    }));
+    prepTodayLists.slice(0, 2).forEach(prep => tasks.push({
+      id: `prep_${prep.id || prep.name}`,
+      tone: 'blue',
+      label: 'เตรียมของวันนี้',
+      title: prep.name || 'รายการเตรียมของ',
+      desc: `${(prep.checkedIds || []).length}/${(prep.itemIds || []).length} รายการ • ${prep.staff || '-'}`,
+      action: () => setShowPrepListsModal(true)
+    }));
+    dailyIssueItems.slice(0, 2).forEach(item => tasks.push({
+      id: `issue_${item.id}`,
+      tone: item.status === 'maintenance' ? 'rose' : 'slate',
+      label: item.status === 'maintenance' ? 'ซ่อม/ชำรุด' : 'ข้อมูลควรเติม',
+      title: item.name || '-',
+      desc: `${item.sn || '-'} • ${getMissingDataLabels(item).join(', ') || item.location || '-'}`,
+      action: () => setShowHistory(item.id)
+    }));
+    return tasks.slice(0, 5);
+  }, [overdueItems, dueTodayItems, prepTodayLists, dailyIssueItems]);
+
   const recentActivity = useMemo(() => {
     return (auditLogs || [])
       .slice()
@@ -14767,6 +14804,103 @@ S.N.: ${item.sn || '-'}
           </div>
         </div>
       </section>
+
+      {/* v22.53.30 Dashboard Daily Command Center */}
+      <div className={`w-full mb-5 rounded-[1.8rem] border shadow-sm overflow-hidden relative ${theme.cardBg}`}>
+        <div className={`relative p-4 sm:p-5 border-b overflow-hidden ${theme.divide}`}>
+          <div className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950/30' : 'bg-gradient-to-br from-blue-50 via-white to-slate-50'}`}></div>
+          <div className="relative flex flex-col xl:flex-row xl:items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-sky-300' : 'text-sky-600'}`}>DAILY COMMAND CENTER</div>
+              <h2 className={`text-2xl sm:text-3xl font-black mt-1 tracking-tight ${theme.textTitle}`}>วันนี้ต้องทำอะไร</h2>
+              <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>สรุปงานที่ควรดูทันที: ของรอคืน งานเลยกำหนด รายการเตรียมของ และข้อมูลที่ควรเติม</p>
+            </div>
+            <div className="flex flex-wrap gap-2 shrink-0">
+              <button type="button" onClick={() => openTrackingCenter('today')} className="px-4 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-black shadow-sm">เปิดศูนย์ติดตาม</button>
+              <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ยืม / คืน</button>
+              {canUseOperationalTools && <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>สแกน QR</button>}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2.5">
+          {[
+            ['ต้องคืนวันนี้', dueTodayItems.length, 'amber', () => openTrackingCenter('today'), 'ครบกำหนดวันนี้'],
+            ['เลยกำหนด', overdueItems.length, 'rose', () => openTrackingCenter('overdue'), 'ควรรีบตาม'],
+            ['รอคืนทั้งหมด', currentBorrowedItems.length + currentEventItems.length, 'blue', () => openTrackingCenter('borrowed'), 'ยืม + ออกงาน'],
+            ['ออกงานอยู่', currentEventItems.length, 'orange', () => openTrackingCenter('event'), 'รอคืนจากงาน'],
+            ['เตรียมของวันนี้', prepTodayLists.length, 'purple', () => setShowPrepListsModal(true), 'เช็กลิสต์ใช้งาน'],
+            ['ข้อมูลควรเติม', dataQualityAudit.issueItemCount, 'slate', () => { setShowSettings(true); openSettingsTab('quality'); }, `${dataQualityAudit.qualityScore}% ครบถ้วน`]
+          ].map(([label, value, tone, action, desc]) => {
+            const cls = {
+              amber: isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700',
+              rose: isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700',
+              blue: isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700',
+              orange: isDarkMode ? 'bg-orange-950/35 border-orange-800 text-orange-300' : 'bg-orange-50 border-orange-200 text-orange-700',
+              purple: isDarkMode ? 'bg-purple-950/35 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-700',
+              slate: isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
+            }[tone];
+            return (
+              <button key={label} type="button" onClick={action} className={`p-3.5 rounded-2xl border text-left hover:-translate-y-0.5 transition-all shadow-sm ${cls}`}>
+                <div className="text-2xl sm:text-3xl font-black leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
+                <div className="text-xs sm:text-sm font-black mt-2">{label}</div>
+                <div className="text-[11px] font-bold mt-1 opacity-75 truncate">{desc}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className={`px-4 sm:px-5 pb-4 sm:pb-5 grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-3 ${theme.textTitle}`}>
+          <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <div className="font-black">รายการเร่งด่วน</div>
+                <div className={`text-xs font-bold ${theme.textMuted}`}>แสดงไม่เกิน 5 รายการ เพื่อไม่ให้หน้าแรกยาวเกินไป</div>
+              </div>
+              <button type="button" onClick={() => openTrackingCenter('today')} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ดูทั้งหมด</button>
+            </div>
+            {dashboardDailyTasks.length === 0 ? (
+              <div className={`p-6 rounded-2xl border text-center ${isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
+                <div className="text-2xl mb-1">✅</div>
+                <div className="font-black">วันนี้ยังไม่มีรายการเร่งด่วน</div>
+                <div className="text-sm font-bold mt-1 opacity-80">ไม่มีของเลยกำหนดคืน และไม่มีงานด่วนที่ต้องจัดการทันที</div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {dashboardDailyTasks.map(task => {
+                  const toneClass = task.tone === 'rose'
+                    ? (isDarkMode ? 'bg-rose-950/25 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')
+                    : task.tone === 'amber'
+                      ? (isDarkMode ? 'bg-amber-950/25 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800')
+                      : task.tone === 'blue'
+                        ? (isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800')
+                        : (isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700');
+                  return (
+                    <button key={task.id} type="button" onClick={task.action} className={`w-full p-3 rounded-2xl border text-left flex items-start justify-between gap-3 ${toneClass}`}>
+                      <span className="min-w-0">
+                        <span className="block text-[11px] font-black opacity-70">{task.label}</span>
+                        <span className="block font-black truncate mt-0.5">{task.title}</span>
+                        <span className="block text-xs font-bold opacity-75 truncate mt-0.5">{task.desc}</span>
+                      </span>
+                      <span className="text-xs font-black opacity-60 shrink-0">เปิดดู →</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <div className="font-black mb-3">ทางลัดประจำวัน</div>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => openTrackingCenter('today')} className={`p-3 rounded-xl border text-left font-black ${theme.btnSecondary}`}>ติดตามคืน<span className={`block text-[11px] mt-1 font-bold ${theme.textMuted}`}>วันนี้/เลยกำหนด</span></button>
+              <button type="button" onClick={() => { setBorrowReturnMode('return'); openWorkspace('borrowReturn'); }} className={`p-3 rounded-xl border text-left font-black ${theme.btnSecondary}`}>รับคืน<span className={`block text-[11px] mt-1 font-bold ${theme.textMuted}`}>ทำรายการเร็ว</span></button>
+              <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`p-3 rounded-xl border text-left font-black ${theme.btnSecondary}`}>เอกสาร<span className={`block text-[11px] mt-1 font-bold ${theme.textMuted}`}>พิมพ์ซ้ำ/ค้นหา</span></button>
+              <button type="button" onClick={() => openMainProofCenter({ reset: true })} className={`p-3 rounded-xl border text-left font-black ${theme.btnSecondary}`}>หลักฐาน<span className={`block text-[11px] mt-1 font-bold ${theme.textMuted}`}>ดูรูปทั้งหมด</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ⚡ Daily Quick Actions */}
       <div className={`w-full mb-5 rounded-[1.5rem] border shadow-sm overflow-hidden relative ${theme.cardBg}`}>
