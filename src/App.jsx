@@ -1,3 +1,4 @@
+// v22.53.18 Classic Operational Forms Watermark Redesign - classic A4 borrow/event/return/prep forms with subtle center watermark, no QR/camera/database path changes
 // v22.53.17 Operational Slip Clean Design - fixed clean A4 borrow/event/return documents, removes before-print logo/watermark controls, no QR/camera/database path changes
 // v22.53.15 Operational Documents One-Page Print Polish - compact one-page print layout for borrow/event/return slips, no QR/camera/database path changes
 // v22.53.9 Equipment Detail / Asset History Polish - asset profile file, mobile action shortcuts, no QR/camera/database path changes
@@ -49,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.17 Operational Slip Clean Design';
-const APP_UPDATE_NOTE = 'Operational Slip Clean Design: ปรับใบยืม ใบออกงาน และใบรับคืนเป็นฟอร์ม A4 สะอาด อ่านง่าย ใช้งานจริง พร้อมตัดตัวเลือกตั้งค่าลายน้ำ/ขนาดโลโก้ก่อนพิมพ์ออก โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
+const APP_VERSION = 'v22.53.18 Classic Operational Forms Watermark Redesign';
+const APP_UPDATE_NOTE = 'Classic Operational Forms Watermark Redesign: รีดีไซน์ใบยืม ใบออกงาน ใบรับคืน และใบเตรียมอุปกรณ์เป็นฟอร์ม A4 แนวเอกสารธุรการ พร้อมลายน้ำจางกลางกระดาษ โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -13095,47 +13096,394 @@ S.N.: ${item.sn || '-'}
         ? d.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short', hour12: false })
         : d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
     };
-    const docKicker = isReturnSlip ? 'MDEC RETURN DOCUMENT' : isEventSlip ? 'MDEC EVENT OUT DOCUMENT' : isPrepSlip ? 'MDEC PREPARATION CHECKLIST' : 'MDEC BORROW DOCUMENT';
-    const docTitle = printSlipData.title || (isReturnSlip ? 'ใบรับคืนอุปกรณ์' : isEventSlip ? 'ใบนำอุปกรณ์ออกงาน' : isPrepSlip ? 'ใบเตรียมอุปกรณ์' : 'ใบยืมอุปกรณ์');
-    const primaryLabel = isReturnSlip ? 'รายการรับคืน' : isPrepSlip ? 'ชื่องาน / รายการเตรียมของ' : isEventSlip ? 'ชื่องาน' : 'ผู้ยืม / ผู้รับผิดชอบ';
-    const primaryValue = isReturnSlip ? `${printItems.length.toLocaleString('th-TH')} รายการ` : (printSlipData.borrower || '-');
-    const staffLabel = isReturnSlip ? 'เจ้าหน้าที่ผู้รับคืน' : isPrepSlip ? 'ผู้รับผิดชอบ' : isEventSlip ? 'ผู้นำอุปกรณ์ออกงาน' : 'เจ้าหน้าที่ผู้ให้ยืม';
-    const staffValue = isReturnSlip ? (printSlipData.staffIn || printSlipData.returnStaff || '-') : (printSlipData.staffOut || '-');
+    const safeText = (value, fallback = '-') => {
+      const text = String(value ?? '').trim();
+      return text || fallback;
+    };
+    const docTitle = printSlipData.title || (isReturnSlip ? 'ใบรับคืนอุปกรณ์' : isEventSlip ? 'ใบนำอุปกรณ์ออกงาน' : isPrepSlip ? 'ใบเตรียมอุปกรณ์' : 'ใบยืมสิ่งของ / อุปกรณ์');
+    const docCode = isReturnSlip ? 'RETURN FORM' : isEventSlip ? 'EVENT OUT FORM' : isPrepSlip ? 'PREPARATION CHECKLIST' : 'BORROW FORM';
+    const docSubtitle = isReturnSlip
+      ? 'แบบฟอร์มบันทึกการรับคืนและตรวจสภาพอุปกรณ์'
+      : isEventSlip
+        ? 'แบบฟอร์มนำอุปกรณ์ออกนอกศูนย์เพื่อปฏิบัติงาน'
+        : isPrepSlip
+          ? 'แบบฟอร์มตรวจเช็กรายการอุปกรณ์ก่อนปฏิบัติงาน'
+          : 'แบบฟอร์มยืมสิ่งของและอุปกรณ์สำหรับการปฏิบัติงาน';
+    const subjectLabel = isReturnSlip ? 'รายการรับคืน / อ้างอิง' : isPrepSlip ? 'ชื่องาน / รายการเตรียมของ' : isEventSlip ? 'ชื่องาน / สถานที่' : 'ผู้ยืม / ผู้รับผิดชอบ';
+    const subjectValue = isReturnSlip ? safeText(printSlipData.ref, 'รับคืนตามรายการที่เลือก') : safeText(printSlipData.borrower);
+    const staffLabel = isReturnSlip ? 'เจ้าหน้าที่ผู้รับคืน' : isPrepSlip ? 'ผู้เตรียม / ผู้รับผิดชอบ' : isEventSlip ? 'ผู้นำอุปกรณ์ออกงาน' : 'เจ้าหน้าที่ผู้ให้ยืม';
+    const staffValue = isReturnSlip ? safeText(printSlipData.staffIn || printSlipData.returnStaff) : safeText(printSlipData.staffOut);
     const dateLabel = isReturnSlip ? 'วันที่รับคืน' : isPrepSlip ? 'วันที่ใช้งาน' : 'กำหนดคืน';
     const dateValue = isReturnSlip ? formatThaiDate(printSlipData.date, true) : formatThaiDate(printSlipData.expectedReturn, false);
     const statusLabel = isReturnSlip ? 'บันทึกรับคืน' : isPrepSlip ? 'ใช้สำหรับเตรียมของ' : (printSlipData.statusLabel || (printSlipData.archivedStatus === 'closed' ? 'คืนครบแล้ว' : printSlipData.archivedStatus === 'partial' ? 'คืนบางส่วน' : 'รอคืน'));
     const proofCount = Array.isArray(printSlipData.proofs) ? printSlipData.proofs.length : 0;
     const problemReturnCount = isReturnSlip ? printItems.filter(item => item.returnCondition && item.returnCondition !== 'ปกติ').length : 0;
     const signatureLabels = isReturnSlip
-      ? ['ลงชื่อเจ้าหน้าที่ผู้รับคืน', 'ลงชื่อผู้ส่งคืน / ผู้รับผิดชอบ', 'ลงชื่อผู้ตรวจสอบ']
+      ? ['ผู้ส่งคืน / ผู้รับผิดชอบ', 'เจ้าหน้าที่ผู้รับคืน', 'ผู้ตรวจสอบ']
       : isPrepSlip
-        ? ['ลงชื่อผู้เตรียมของ', 'ลงชื่อผู้ตรวจรายการ', 'ลงชื่อผู้รับผิดชอบงาน']
+        ? ['ผู้เตรียมอุปกรณ์', 'ผู้ตรวจรายการ', 'ผู้รับผิดชอบงาน']
         : isEventSlip
-          ? ['ลงชื่อผู้รับผิดชอบงาน', 'ลงชื่อเจ้าหน้าที่ผู้นำออก', 'ลงชื่อผู้ตรวจสอบ']
-          : ['ลงชื่อผู้ยืม / ผู้รับผิดชอบงาน', 'ลงชื่อเจ้าหน้าที่ผู้ให้ยืม', 'ลงชื่อผู้ตรวจสอบ'];
-    const onePageSlipCandidate = printItems.length <= 10;
-    // v22.53.17: เอกสารปฏิบัติงานใช้ดีไซน์คงที่ เพื่อไม่ให้หน้าพิมพ์เพี้ยนจากการตั้งค่าโลโก้/ลายน้ำเดิม
-    const slipLogoEnabled = true;
-    const watermarkEnabled = false;
+          ? ['ผู้รับผิดชอบงาน', 'เจ้าหน้าที่ผู้นำออก', 'ผู้อนุมัติ / ตรวจสอบ']
+          : ['ผู้ยืม / ผู้รับผิดชอบ', 'เจ้าหน้าที่ผู้ให้ยืม', 'ผู้อนุมัติ / ตรวจสอบ'];
+    const ruleLines = isReturnSlip
+      ? ['ตรวจนับอุปกรณ์ตามรายการและบันทึกสภาพจริงทุกครั้ง', 'หากพบชำรุด/สูญหาย ให้บันทึกหมายเหตุและแจ้งผู้รับผิดชอบทันที', 'เอกสารนี้ใช้ประกอบการติดตามประวัติอุปกรณ์ภายในศูนย์']
+      : isPrepSlip
+        ? ['ตรวจเช็กรายการก่อนนำอุปกรณ์ออกจากพื้นที่จัดเก็บ', 'รายการที่ยังไม่พร้อมใช้ต้องแจ้งผู้รับผิดชอบก่อนวันงาน', 'หลังจบงานให้นำข้อมูลไปทำรายการออกงาน/รับคืนตามขั้นตอนจริง']
+        : isEventSlip
+          ? ['อุปกรณ์ที่นำออกงานต้องอยู่ภายใต้ความรับผิดชอบของผู้รับผิดชอบงาน', 'ต้องคืนตามกำหนด หรือแจ้งเหตุผลหากมีความจำเป็นต้องขยายเวลา', 'หากเกิดความเสียหาย/สูญหาย ต้องรายงานเจ้าหน้าที่ศูนย์ทันที']
+          : ['ผู้ยืมต้องตรวจสภาพอุปกรณ์ก่อนรับไปใช้งานทุกครั้ง', 'ต้องคืนอุปกรณ์ตามกำหนดและครบถ้วนตามรายการในเอกสาร', 'หากอุปกรณ์ชำรุดหรือสูญหาย ผู้ยืม/ผู้รับผิดชอบต้องแจ้งเจ้าหน้าที่ศูนย์ทันที'];
+    const summaryLine = isReturnSlip
+      ? `รับคืน ${printItems.length.toLocaleString('th-TH')} รายการ${problemReturnCount ? ` • พบรายการมีหมายเหตุ ${problemReturnCount.toLocaleString('th-TH')} รายการ` : ''}`
+      : isPrepSlip
+        ? `เตรียมอุปกรณ์ ${printItems.length.toLocaleString('th-TH')} รายการ`
+        : `${statusLabel} • จำนวน ${printItems.length.toLocaleString('th-TH')} รายการ${proofCount ? ` • หลักฐาน ${proofCount.toLocaleString('th-TH')} รูป` : ''}`;
+    const onePageSlipCandidate = printItems.length <= 12;
+
+    const FieldLine = ({ label, value, wide = false }) => (
+      <div className={`classic-field-line ${wide ? 'classic-field-wide' : ''}`}>
+        <span>{label}</span>
+        <strong>{safeText(value)}</strong>
+      </div>
+    );
 
     return (
-      <div className="factory-stock-polish operation-print-page min-h-screen font-sans text-slate-900 print:bg-white bg-slate-100">
-        <div className="print-actions-bar print:hidden p-4 bg-slate-900 text-white fixed top-0 w-full z-50 shadow-md">
+      <div className="factory-stock-polish operation-print-page classic-operation-print min-h-screen font-sans text-slate-900 print:bg-white bg-slate-100">
+        <style>{`
+          .classic-operation-print {
+            --classic-ink: #111827;
+            --classic-soft-ink: #374151;
+            --classic-muted: #6b7280;
+            --classic-line: #111827;
+            --classic-soft-line: #d1d5db;
+            --classic-fill: #f8fafc;
+            --classic-watermark-opacity: .055;
+          }
+          .classic-print-toolbar {
+            background: #0f172a;
+            color: white;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+          }
+          .classic-form-wrap {
+            max-width: 900px;
+          }
+          .classic-operation-sheet {
+            width: 210mm;
+            max-width: calc(100vw - 32px);
+            margin: 0 auto;
+            background: #fff;
+            color: var(--classic-ink);
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 22px 70px rgba(15,23,42,.16);
+            padding: 13mm 14mm 10mm;
+            position: relative;
+            overflow: hidden;
+          }
+          .classic-doc-watermark {
+            position: absolute;
+            left: 50%;
+            top: 52%;
+            transform: translate(-50%, -50%);
+            width: 118mm;
+            max-width: 62%;
+            opacity: var(--classic-watermark-opacity);
+            filter: grayscale(1) contrast(.85);
+            pointer-events: none;
+            user-select: none;
+            z-index: 0;
+          }
+          .classic-watermark-text {
+            position: absolute;
+            left: 50%;
+            top: 52%;
+            transform: translate(-50%, -50%) rotate(-18deg);
+            font-size: 62pt;
+            font-weight: 950;
+            letter-spacing: .12em;
+            color: rgba(17,24,39,.045);
+            white-space: nowrap;
+            z-index: 0;
+          }
+          .classic-sheet-content { position: relative; z-index: 1; }
+          .classic-letterhead {
+            display: grid;
+            grid-template-columns: 42mm 1fr 46mm;
+            gap: 6mm;
+            align-items: start;
+            border-bottom: 1.8px solid var(--classic-line);
+            padding-bottom: 4mm;
+            margin-bottom: 4mm;
+          }
+          .classic-logo-box {
+            width: 34mm !important;
+            height: 15mm !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            background: transparent !important;
+          }
+          .classic-logo-box img { object-fit: contain !important; }
+          .classic-title-group { text-align: center; min-width: 0; }
+          .classic-doc-code {
+            font-size: 7.5pt;
+            font-weight: 900;
+            letter-spacing: .16em;
+            color: var(--classic-muted);
+            text-transform: uppercase;
+            margin-bottom: 1mm;
+          }
+          .classic-doc-title {
+            margin: 0;
+            font-size: 20pt;
+            line-height: 1.05;
+            font-weight: 950;
+            color: #000;
+          }
+          .classic-doc-subtitle {
+            margin: 1.4mm 0 0;
+            font-size: 8.5pt;
+            line-height: 1.25;
+            font-weight: 700;
+            color: var(--classic-soft-ink);
+          }
+          .classic-ref-box {
+            border: 1px solid var(--classic-line);
+            padding: 2.2mm 2.6mm;
+            font-size: 8pt;
+            line-height: 1.35;
+            background: rgba(255,255,255,.78);
+          }
+          .classic-ref-row {
+            display: grid;
+            grid-template-columns: 16mm 1fr;
+            gap: 1.2mm;
+            align-items: end;
+          }
+          .classic-ref-row + .classic-ref-row { margin-top: 1.2mm; }
+          .classic-dot-line {
+            border-bottom: 1px dotted #111827;
+            min-height: 4.5mm;
+            font-weight: 800;
+          }
+          .classic-org-line {
+            margin-top: 1.5mm;
+            font-size: 7pt;
+            font-weight: 800;
+            color: var(--classic-muted);
+            line-height: 1.2;
+          }
+          .classic-form-intro {
+            font-size: 9.2pt;
+            line-height: 1.55;
+            font-weight: 750;
+            margin-bottom: 3.2mm;
+          }
+          .classic-form-intro .classic-fill-line {
+            display: inline-block;
+            min-width: 52mm;
+            border-bottom: 1px dotted var(--classic-line);
+            padding: 0 1mm;
+            font-weight: 900;
+          }
+          .classic-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 2.2mm 4mm;
+            margin-bottom: 3.5mm;
+          }
+          .classic-field-line {
+            display: grid;
+            grid-template-columns: 29mm 1fr;
+            align-items: end;
+            gap: 2mm;
+            min-height: 7.2mm;
+            font-size: 8.4pt;
+            font-weight: 800;
+          }
+          .classic-field-wide { grid-column: 1 / -1; grid-template-columns: 34mm 1fr; }
+          .classic-field-line span { color: var(--classic-soft-ink); }
+          .classic-field-line strong {
+            min-height: 5.2mm;
+            border-bottom: 1px dotted var(--classic-line);
+            padding: 0 1.4mm .4mm;
+            font-size: 8.8pt;
+            color: #000;
+            overflow-wrap: anywhere;
+          }
+          .classic-summary-strip {
+            border: 1px solid var(--classic-line);
+            background: #fff;
+            padding: 2mm 2.6mm;
+            font-size: 8.4pt;
+            font-weight: 900;
+            margin-bottom: 3mm;
+            display: flex;
+            justify-content: space-between;
+            gap: 3mm;
+          }
+          .classic-table-wrap { margin-bottom: 3.2mm; }
+          .classic-table-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            gap: 3mm;
+            font-size: 8.3pt;
+            font-weight: 950;
+            margin-bottom: 1.4mm;
+          }
+          .classic-equipment-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 7.8pt;
+            line-height: 1.22;
+            background: rgba(255,255,255,.86);
+          }
+          .classic-equipment-table th,
+          .classic-equipment-table td {
+            border: 1px solid var(--classic-line);
+            padding: 1.4mm 1.4mm;
+            vertical-align: top;
+            color: #000;
+          }
+          .classic-equipment-table th {
+            background: #f1f5f9;
+            font-size: 7pt;
+            font-weight: 950;
+            text-align: center;
+          }
+          .classic-equipment-table tr { break-inside: avoid; page-break-inside: avoid; }
+          .classic-table-subtext { display: block; color: var(--classic-muted); font-size: 6.6pt; font-weight: 750; margin-top: .6mm; }
+          .classic-note-rules {
+            display: grid;
+            grid-template-columns: 1fr 1.1fr;
+            gap: 4mm;
+            margin-bottom: 4mm;
+          }
+          .classic-note-box,
+          .classic-rules-box {
+            border: 1px solid var(--classic-line);
+            background: rgba(255,255,255,.88);
+            min-height: 22mm;
+            padding: 2.3mm 2.8mm;
+            font-size: 7.7pt;
+            line-height: 1.38;
+            font-weight: 750;
+          }
+          .classic-box-title {
+            font-size: 7.5pt;
+            font-weight: 950;
+            margin-bottom: 1.4mm;
+            color: #000;
+          }
+          .classic-rules-list { margin: 0; padding-left: 4mm; }
+          .classic-rules-list li + li { margin-top: .7mm; }
+          .classic-signatures {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0,1fr));
+            gap: 5mm;
+            margin-top: 4mm;
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+          .classic-sign-box {
+            text-align: center;
+            font-size: 7.5pt;
+            font-weight: 850;
+            color: #000;
+            min-height: 27mm;
+          }
+          .classic-sign-line {
+            height: 12mm;
+            border-bottom: 1px solid #000;
+            margin: 0 2mm 1.8mm;
+          }
+          .classic-sign-date { margin-top: 1.6mm; font-size: 6.7pt; color: var(--classic-muted); }
+          .classic-footer {
+            margin-top: 3mm;
+            padding-top: 1.7mm;
+            border-top: 1px solid var(--classic-soft-line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 3mm;
+            font-size: 6.4pt;
+            line-height: 1.25;
+            font-weight: 750;
+            color: var(--classic-muted);
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+          .classic-footer span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          @media print {
+            @page { size: A4 portrait; margin: 11mm 10mm 10mm; }
+            html, body { background: #fff !important; }
+            .classic-print-toolbar { display: none !important; }
+            .classic-operation-print {
+              background: #fff !important;
+              min-height: auto !important;
+            }
+            .classic-form-wrap {
+              max-width: none !important;
+              width: auto !important;
+              padding: 0 !important;
+              margin: 0 !important;
+            }
+            .classic-operation-sheet {
+              width: auto !important;
+              max-width: none !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              border: 0 !important;
+              box-shadow: none !important;
+              overflow: visible !important;
+            }
+            .classic-doc-watermark { width: 112mm !important; max-width: none !important; opacity: .052 !important; }
+            .classic-watermark-text { color: rgba(17,24,39,.042) !important; }
+            .classic-letterhead { grid-template-columns: 36mm 1fr 42mm !important; gap: 4mm !important; padding-bottom: 3mm !important; margin-bottom: 3mm !important; }
+            .classic-logo-box { width: 31mm !important; height: 12mm !important; }
+            .classic-doc-title { font-size: 18pt !important; }
+            .classic-doc-subtitle { font-size: 7.6pt !important; }
+            .classic-doc-code { font-size: 6.8pt !important; }
+            .classic-ref-box { padding: 1.6mm 2mm !important; font-size: 7pt !important; }
+            .classic-form-intro { font-size: 8.4pt !important; margin-bottom: 2.4mm !important; }
+            .classic-form-grid { gap: 1.5mm 3mm !important; margin-bottom: 2.6mm !important; }
+            .classic-field-line { min-height: 6mm !important; font-size: 7.7pt !important; }
+            .classic-field-line strong { min-height: 4.3mm !important; font-size: 7.9pt !important; }
+            .classic-summary-strip { padding: 1.5mm 2mm !important; font-size: 7.4pt !important; margin-bottom: 2.2mm !important; }
+            .classic-table-title { font-size: 7.4pt !important; margin-bottom: 1mm !important; }
+            .classic-equipment-table { font-size: 7pt !important; line-height: 1.13 !important; }
+            .classic-equipment-table th { font-size: 6.2pt !important; }
+            .classic-equipment-table th,
+            .classic-equipment-table td { padding: .95mm 1mm !important; }
+            .classic-table-subtext { font-size: 5.9pt !important; }
+            .classic-note-rules { gap: 2.8mm !important; margin-bottom: 2.8mm !important; }
+            .classic-note-box,
+            .classic-rules-box { min-height: 17mm !important; padding: 1.7mm 2mm !important; font-size: 6.8pt !important; line-height: 1.22 !important; }
+            .classic-box-title { font-size: 6.8pt !important; margin-bottom: 1mm !important; }
+            .classic-signatures { gap: 3.5mm !important; margin-top: 2.8mm !important; }
+            .classic-sign-box { min-height: 21mm !important; font-size: 6.8pt !important; }
+            .classic-sign-line { height: 8.5mm !important; margin-bottom: 1.2mm !important; }
+            .classic-sign-date { font-size: 6pt !important; }
+            .classic-footer { margin-top: 2mm !important; padding-top: 1mm !important; font-size: 5.8pt !important; }
+          }
+          @media (max-width: 720px) {
+            .classic-operation-sheet { padding: 20px; max-width: calc(100vw - 16px); }
+            .classic-letterhead { grid-template-columns: 1fr; text-align: center; }
+            .classic-ref-box { max-width: 100%; }
+            .classic-form-grid,
+            .classic-note-rules,
+            .classic-signatures { grid-template-columns: 1fr; }
+            .classic-field-line,
+            .classic-field-wide { grid-template-columns: 1fr; gap: 4px; }
+          }
+        `}</style>
+
+        <div className="classic-print-toolbar print:hidden p-4 fixed top-0 w-full z-50 shadow-md">
           <div className="max-w-6xl mx-auto flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
             <div className="min-w-0">
               <h2 className="font-black text-xl flex items-center gap-2"><Icons.พิมพ์er className="w-6 h-6" /> {docTitle}</h2>
-              <p className="text-slate-300 text-sm font-bold mt-1">แบบฟอร์ม A4 ดีไซน์คงที่ พร้อมพิมพ์ใช้งานจริง ไม่ต้องตั้งค่าลายน้ำหรือขนาดโลโก้</p>
-              <div className="operation-doc-print-hint print:hidden">ดีไซน์นี้ถูกจัดเป็นฟอร์มเอกสารสำหรับใบยืม / ใบออกงาน / ใบรับคืนโดยเฉพาะ</div>
+              <p className="text-slate-300 text-sm font-bold mt-1">ฟอร์ม A4 แนวเอกสารธุรการ พร้อมลายน้ำจางกลางกระดาษ ใช้ดีไซน์เดียวกันทั้งใบยืม / ใบออกงาน / ใบรับคืน / ใบเตรียมอุปกรณ์</p>
             </div>
-
-            <div className="operation-print-ready-panel print:hidden">
-              <div className="operation-print-ready-badge">A4 READY</div>
-              <div className="operation-print-ready-text">
-                <div>ใช้ดีไซน์เอกสารมาตรฐานของระบบ</div>
-                <span>ตัดลายน้ำและตัวเลือกขนาดโลโก้ออก เพื่อให้พรีวิวก่อนพิมพ์นิ่งและสวยเหมือนกันทุกครั้ง</span>
-              </div>
-            </div>
-
             <div className="flex flex-wrap gap-3 w-full xl:w-auto shrink-0">
               <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-black flex items-center justify-center gap-2 transition-colors flex-1 sm:flex-none"><Icons.พิมพ์er className="w-5 h-5"/> {isReturnSlip ? 'พิมพ์ใบรับคืน' : isPrepSlip ? 'พิมพ์ใบเตรียมของ' : isEventSlip ? 'พิมพ์ใบออกงาน' : 'พิมพ์ใบยืม'}</button>
               <button onClick={() => setพิมพ์SlipData(null)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2.5 rounded-xl font-black transition-colors flex-1 sm:flex-none">ปิด</button>
@@ -13143,120 +13491,127 @@ S.N.: ${item.sn || '-'}
           </div>
         </div>
 
-        <div className="pt-64 xl:pt-36 print:pt-0 p-4 sm:p-6 print:p-0 mx-auto">
-          <article className={`operation-print-document operation-form-document operation-doc-clean relative overflow-hidden p-6 sm:p-8 print:p-0 rounded-2xl print:rounded-none ${onePageSlipCandidate ? 'operation-doc-onepage' : 'operation-doc-multipage'} ${isReturnSlip ? 'operation-doc-return' : isEventSlip ? 'operation-doc-event' : isPrepSlip ? 'operation-doc-prep' : 'operation-doc-borrow'} operation-doc-official`}>
-            {watermarkEnabled && !brandLogoError && <img src={ORG_LOGO_SRC} alt="MDEC Watermark" className="operation-doc-watermark" onError={() => setBrandLogoError(true)} />}
+        <div className="classic-form-wrap pt-36 print:pt-0 p-4 sm:p-6 print:p-0 mx-auto">
+          <article className={`classic-operation-sheet ${onePageSlipCandidate ? 'classic-onepage' : 'classic-multipage'} ${isReturnSlip ? 'classic-return' : isEventSlip ? 'classic-event' : isPrepSlip ? 'classic-prep' : 'classic-borrow'}`}>
+            {!brandLogoError ? (
+              <img src={ORG_LOGO_SRC} alt="MDEC Watermark" className="classic-doc-watermark" onError={() => setBrandLogoError(true)} />
+            ) : (
+              <div className="classic-watermark-text">MDEC</div>
+            )}
 
-            <header className="operation-doc-header operation-form-header relative z-[1]">
-              <div className="operation-doc-letterhead">
-                {slipLogoEnabled && renderOrgLogoBox({ className: 'operation-doc-letterhead-logo rounded-xl print:rounded-none border border-slate-200 bg-white px-2 py-1 shadow-sm print:shadow-none', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-4 h-4' })}
-                <div className="min-w-0">
-                  <div className="operation-doc-org-name">ศูนย์มัลติมีเดียทางการศึกษา</div>
-                  <div className="operation-doc-org-subtitle">วิทยาลัยเทคโนโลยีภาคตะวันออก (อี.เทค)</div>
-                  <div className="operation-doc-kicker">{docKicker}</div>
+            <div className="classic-sheet-content">
+              <header className="classic-letterhead">
+                <div>
+                  {renderOrgLogoBox({ className: 'classic-logo-box', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-5 h-5' })}
+                  <div className="classic-org-line">ศูนย์มัลติมีเดียทางการศึกษา<br/>วิทยาลัยเทคโนโลยีภาคตะวันออก (อี.เทค)</div>
                 </div>
+
+                <div className="classic-title-group">
+                  <div className="classic-doc-code">{docCode}</div>
+                  <h1 className="classic-doc-title">{docTitle}</h1>
+                  <p className="classic-doc-subtitle">{docSubtitle}</p>
+                </div>
+
+                <div className="classic-ref-box">
+                  <div className="classic-ref-row"><span>เล่มที่</span><div className="classic-dot-line"></div></div>
+                  <div className="classic-ref-row"><span>เลขที่</span><div className="classic-dot-line">{safeText(printSlipData.ref)}</div></div>
+                  <div className="classic-ref-row"><span>วันที่</span><div className="classic-dot-line">{formatThaiDate(printSlipData.date, true)}</div></div>
+                </div>
+              </header>
+
+              <section className="classic-form-intro">
+                เอกสารฉบับนี้จัดทำขึ้นเพื่อใช้เป็นหลักฐานการ{isReturnSlip ? 'รับคืนและตรวจสภาพอุปกรณ์' : isPrepSlip ? 'เตรียมและตรวจเช็กรายการอุปกรณ์' : isEventSlip ? 'นำอุปกรณ์ออกปฏิบัติงาน' : 'ยืมสิ่งของ/อุปกรณ์'}ของศูนย์มัลติมีเดียทางการศึกษา โดยมีรายละเอียดดังต่อไปนี้
+              </section>
+
+              <section className="classic-form-grid">
+                <FieldLine label={subjectLabel} value={subjectValue} wide />
+                <FieldLine label={staffLabel} value={staffValue} />
+                <FieldLine label={dateLabel} value={dateValue} />
+                <FieldLine label="สถานะเอกสาร" value={statusLabel} />
+                <FieldLine label="จำนวนรายการ" value={`${printItems.length.toLocaleString('th-TH')} รายการ`} />
+                <FieldLine label="หลักฐานแนบ" value={proofCount ? `${proofCount.toLocaleString('th-TH')} รูป` : 'ไม่มี / ไม่ได้แนบ'} />
+                <FieldLine label="ผู้บันทึก" value={safeText(printSlipData.operatorName || printSlipData.createdBy || printSlipData.staffOut || printSlipData.returnStaff)} />
+              </section>
+
+              <div className="classic-summary-strip">
+                <span>{summaryLine}</span>
+                <span>ใช้ประกอบการตรวจรับ-ส่งอุปกรณ์ภายในศูนย์</span>
               </div>
 
-              <div className="operation-doc-title-block">
-                <h1 className="operation-doc-title">{docTitle}</h1>
-                <p className="operation-doc-subtitle">แบบฟอร์มเอกสารสำหรับตรวจรับ-ส่งอุปกรณ์และใช้ประกอบการติดตามภายในศูนย์</p>
-              </div>
+              <section className="classic-table-wrap">
+                <div className="classic-table-title">
+                  <span>รายการอุปกรณ์</span>
+                  <span>โปรดตรวจสอบชื่ออุปกรณ์ / S.N. / ที่เก็บ ก่อนลงนาม</span>
+                </div>
+                <table className="classic-equipment-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: isPrepSlip ? '9mm' : '10mm' }}>{isPrepSlip ? 'เช็ก' : 'ลำดับ'}</th>
+                      {isPrepSlip && <th style={{ width: '9mm' }}>#</th>}
+                      <th>รายการ</th>
+                      <th style={{ width: '28mm' }}>S.N. / รหัส</th>
+                      <th style={{ width: '30mm' }}>หมวดหมู่ / ฝ่าย</th>
+                      <th style={{ width: '27mm' }}>ที่เก็บ</th>
+                      <th style={{ width: '32mm' }}>{isReturnSlip ? 'สภาพ / หมายเหตุ' : 'หมายเหตุ'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {printItems.length === 0 ? (
+                      <tr><td colSpan={isPrepSlip ? 7 : 6} className="text-center font-bold text-slate-500 py-8">ยังไม่มีรายการอุปกรณ์ในเอกสารนี้</td></tr>
+                    ) : printItems.map((item, index) => {
+                      const itemReturned = returnedIdSet.has(item.id);
+                      const conditionText = isReturnSlip
+                        ? `${item.returnCondition || 'ปกติ'}${item.returnNote ? ` • ${item.returnNote}` : ''}`
+                        : (item.internalNote || item.project || '-');
+                      return (
+                        <tr key={item.id || index}>
+                          <td className="text-center font-black">{isPrepSlip ? (item.checked ? '☑' : '☐') : index + 1}</td>
+                          {isPrepSlip && <td className="text-center font-black">{index + 1}</td>}
+                          <td>
+                            <strong>{safeText(item.name)}</strong>
+                            {itemReturned && <span className="classic-table-subtext">คืนแล้ว</span>}
+                          </td>
+                          <td>{safeText(item.sn || item.shortCode || item.localCode)}</td>
+                          <td>{safeText(item.category)}<span className="classic-table-subtext">{safeText(item.department)}</span></td>
+                          <td>{safeText(item.storageBoxName || item.location)}</td>
+                          <td>{safeText(conditionText)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </section>
 
-              <div className="operation-doc-refbox">
-                <div className="operation-doc-ref-label">เลขที่เอกสาร</div>
-                <div className="operation-doc-ref-number">{printSlipData.ref || '-'}</div>
-                <div className="operation-doc-ref-label mt-2">วันที่ออกเอกสาร</div>
-                <div>{formatThaiDate(printSlipData.date, true)}</div>
-              </div>
-            </header>
+              <section className="classic-note-rules">
+                <div className="classic-note-box">
+                  <div className="classic-box-title">หมายเหตุ / วัตถุประสงค์</div>
+                  <div>{safeText(printSlipData.note, '-')}</div>
+                  {!isReturnSlip && printSlipData.expectedReturn && <div className="mt-2">กำหนดคืน / วันที่ใช้งาน: {formatThaiDate(printSlipData.expectedReturn, false)}</div>}
+                </div>
+                <div className="classic-rules-box">
+                  <div className="classic-box-title">ข้อกำหนดการใช้งานเอกสาร</div>
+                  <ol className="classic-rules-list">
+                    {ruleLines.map((line, index) => <li key={index}>{line}</li>)}
+                  </ol>
+                </div>
+              </section>
 
-            <section className="operation-doc-info-grid relative z-[1]">
-              <div className="operation-doc-info-panel">
-                <div className="operation-doc-info-heading">ข้อมูลเอกสาร</div>
-                <div className="operation-doc-info-row"><span>ประเภท</span><strong>{docTitle}</strong></div>
-                <div className="operation-doc-info-row"><span>สถานะ</span><strong>{statusLabel}</strong></div>
-                <div className="operation-doc-info-row"><span>จำนวนอุปกรณ์</span><strong>{printItems.length.toLocaleString('th-TH')} รายการ</strong></div>
-                <div className="operation-doc-info-row"><span>หลักฐานในระบบ</span><strong>{proofCount ? `${proofCount.toLocaleString('th-TH')} รายการ` : '-'}</strong></div>
-              </div>
-              <div className="operation-doc-info-panel">
-                <div className="operation-doc-info-heading">ผู้เกี่ยวข้อง / งาน</div>
-                <div className="operation-doc-info-row"><span>{primaryLabel}</span><strong>{primaryValue}</strong></div>
-                <div className="operation-doc-info-row"><span>{staffLabel}</span><strong>{staffValue}</strong></div>
-                <div className="operation-doc-info-row"><span>{dateLabel}</span><strong>{dateValue}</strong></div>
-                <div className="operation-doc-info-row"><span>บันทึกโดยระบบ</span><strong>MDEC-Stock</strong></div>
-              </div>
-            </section>
+              <section className="classic-signatures">
+                {signatureLabels.map((label) => (
+                  <div key={label} className="classic-sign-box">
+                    <div className="classic-sign-line"></div>
+                    <div>ลงชื่อ................................................</div>
+                    <div>({label})</div>
+                    <div className="classic-sign-date">วันที่ ........../........../..........</div>
+                  </div>
+                ))}
+              </section>
 
-            <div className="operation-doc-alert relative z-[1]">
-              {isReturnSlip
-                ? `ใบรับคืนนี้บันทึกรายการที่รับเข้าคลังแล้ว ${printItems.length.toLocaleString('th-TH')} รายการ${problemReturnCount ? ` • มีรายการต้องตรวจเพิ่มเติม ${problemReturnCount.toLocaleString('th-TH')} รายการ` : ''}`
-                : isPrepSlip
-                  ? 'ใช้เอกสารนี้สำหรับเช็กอุปกรณ์ก่อนออกงานจริง และตรวจกลับเข้าที่เก็บหลังจบงาน'
-                  : `โปรดตรวจสอบรายการอุปกรณ์ จำนวน ${printItems.length.toLocaleString('th-TH')} รายการ และกำหนดคืนก่อนลงนามรับทราบ`}
-              {proofCount ? ` • มีหลักฐานแนบในระบบ ${proofCount.toLocaleString('th-TH')} รายการ` : ''}
+              <footer className="classic-footer">
+                <span>เอกสารนี้สร้างจากระบบ MDEC-Stock • พิมพ์เมื่อ {printedAt.toLocaleString('th-TH', { hour12: false })}</span>
+                <span>{APP_VERSION}</span>
+              </footer>
             </div>
-
-            <section className="operation-doc-table-wrap relative z-[1]">
-              <table className="operation-doc-table">
-                <thead>
-                  <tr>
-                    {isPrepSlip && <th className="w-12 text-center">เช็ก</th>}
-                    <th className="w-10 text-center">#</th>
-                    <th>รายการอุปกรณ์</th>
-                    <th>S.N.</th>
-                    <th>หมวดหมู่ / ฝ่าย</th>
-                    <th>ที่เก็บ</th>
-                    {isReturnSlip ? <th>ผลตรวจรับคืน</th> : <th>หมายเหตุ</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {printItems.length === 0 ? (
-                    <tr><td colSpan={isPrepSlip ? 7 : 6} className="text-center font-bold text-slate-500 py-8">ไม่มีรายการอุปกรณ์ในเอกสารนี้</td></tr>
-                  ) : printItems.map((item, index) => {
-                    const itemReturned = returnedIdSet.has(item.id);
-                    return (
-                      <tr key={item.id || index}>
-                        {isPrepSlip && <td className="text-center text-lg font-black">□</td>}
-                        <td className="text-center font-black">{index + 1}</td>
-                        <td><div className="font-black">{item.name || '-'}</div>{itemReturned && <div className="operation-doc-mini-status">คืนแล้ว</div>}</td>
-                        <td>{item.sn || '-'}</td>
-                        <td><div>{item.category || '-'}</div><div className="operation-doc-table-subtext">{item.department || '-'}</div></td>
-                        <td>{item.storageBoxName || item.location || '-'}</td>
-                        {isReturnSlip ? (
-                          <td><div className="font-black">{item.returnCondition || 'ปกติ'}</div>{item.returnNote && <div className="operation-doc-table-subtext">{item.returnNote}</div>}</td>
-                        ) : (
-                          <td>{item.internalNote || item.project || '-'}</td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </section>
-
-            <section className="operation-doc-note-box relative z-[1]">
-              <div className="font-black text-slate-900 mb-1">หมายเหตุ / บันทึกเพิ่มเติม</div>
-              <div>{printSlipData.note || '-'}</div>
-              {!isReturnSlip && printSlipData.expectedReturn && <div className="mt-2">กำหนดคืน / วันที่ใช้งาน: {formatThaiDate(printSlipData.expectedReturn, false)}</div>}
-            </section>
-
-            <section className="operation-doc-signatures relative z-[1]">
-              {signatureLabels.map((label) => (
-                <div key={label} className="operation-doc-sign-box">
-                  <div className="operation-doc-sign-line"></div>
-                  <div>{label}</div>
-                  <div className="mt-2 text-[10px] print:text-[7pt] text-slate-500">วันที่ ........../........../..........</div>
-                </div>
-              ))}
-            </section>
-
-            <footer className="operation-doc-footer relative z-[1]">
-              <div className="flex items-center gap-2 min-w-0">
-                {slipLogoEnabled && renderOrgLogoBox({ className: 'operation-doc-footer-logo rounded-md print:rounded-none border border-slate-200 px-1.5 py-0.5 shadow-sm print:shadow-none', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
-                <span className="truncate">เอกสารนี้สร้างจากระบบ MDEC-Stock • พิมพ์เมื่อ {printedAt.toLocaleString('th-TH', { hour12: false })}</span>
-              </div>
-              <span className="shrink-0">{APP_VERSION}</span>
-            </footer>
           </article>
         </div>
       </div>
