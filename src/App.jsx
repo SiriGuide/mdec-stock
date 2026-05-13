@@ -1,6 +1,6 @@
-// v22.53.21 Official Form Final Balance Polish - removes excessive long form/signature lines, keeps classic A4 watermark forms, no QR/camera/database path changes
+// v22.53.22 Header Fields Unboxed Polish - removes excessive long form/signature lines, keeps classic A4 watermark forms, no QR/camera/database path changes
 // v22.53.17 Operational Slip Clean Design - fixed clean A4 borrow/event/return documents, removes before-print logo/watermark controls, no QR/camera/database path changes
-// v22.53.21 Official Form Final Balance Polish - final visual balance for operational print forms, no QR/camera/database path changes
+// v22.53.22 Header Fields Unboxed Polish - final visual balance for operational print forms, no QR/camera/database path changes
 // v22.53.9 Equipment Detail / Asset History Polish - asset profile file, mobile action shortcuts, no QR/camera/database path changes
 // v22.53.8 Operational Print Documents Polish - official A4 borrow/event/return documents and QR label print polish, no QR/camera/database path changes
 // v22.53.3 Data Safety Confirm Polish - safer destructive actions and mobile-friendly confirmation gates, no QR/camera/database changes
@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.21 Official Form Final Balance Polish';
+const APP_VERSION = 'v22.53.22 Header Fields Unboxed Polish';
 const APP_UPDATE_NOTE = 'Official Form Line Cleanup Polish: ลดเส้นยาวในฟอร์มเอกสาร ปรับช่องข้อมูลและลายเซ็นให้ดูสะอาด อ่านง่าย และยังคงรูปแบบ A4 พร้อมลายน้ำกลางกระดาษ โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -13289,19 +13289,19 @@ S.N.: ${item.sn || '-'}
           .classic-form-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 2mm;
+            gap: 1.65mm 4mm;
             margin-bottom: 3.1mm;
-            padding: 2.4mm;
-            border: 1px solid #cfd8e3;
-            background: rgba(248,250,252,.38);
+            padding: 0;
+            border: 0;
+            background: transparent;
           }
           .classic-field-line {
             display: block;
-            min-height: 9.4mm;
-            padding: 1.15mm 1.55mm;
-            border: 1px solid #d7dee8;
-            border-left: 2.4px solid #94a3b8;
-            background: rgba(255,255,255,.88);
+            min-height: 0;
+            padding: .15mm 0 1.1mm;
+            border: 0;
+            border-bottom: 1px solid #cbd5e1;
+            background: transparent;
             font-size: 8pt;
             font-weight: 850;
             break-inside: avoid;
@@ -13310,7 +13310,7 @@ S.N.: ${item.sn || '-'}
           .classic-field-wide { grid-column: 1 / -1; }
           .classic-field-line span {
             display: block;
-            margin-bottom: .45mm;
+            margin-bottom: .4mm;
             color: #64748b;
             font-size: 6.9pt;
             font-weight: 950;
@@ -13318,11 +13318,10 @@ S.N.: ${item.sn || '-'}
           }
           .classic-field-line strong {
             display: block;
-            min-height: 4.1mm;
-            border-bottom: 0;
+            min-height: 4.2mm;
             padding: 0;
-            font-size: 8.85pt;
-            line-height: 1.2;
+            font-size: 9pt;
+            line-height: 1.24;
             color: #000;
             overflow-wrap: anywhere;
             background: transparent;
