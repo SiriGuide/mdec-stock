@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.33 Reports Dashboard / Export Polish';
-const APP_UPDATE_NOTE = 'Reports Dashboard / Export Polish: ปรับหน้า Reports ให้เป็น sub-dashboard มีตัวกรองรายเดือน/ฝ่าย/หมวด/สถานะ/โครงการ/ค้นหา พร้อม Export CSV ตามตัวกรอง โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
+const APP_VERSION = 'v22.53.34 Report Print Preview Compact Fix';
+const APP_UPDATE_NOTE = 'Report Print Preview Compact Fix: แก้ Print Preview รายงานไม่ให้มี UI เว็บติดเข้าไป และบีบเอกสารรายงานให้กระชับขึ้นเพื่อพยายามจบใน 1 หน้า A4 โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -3820,6 +3820,191 @@ function FactoryPolishStyle({ isDarkMode }) {
         body.mdec-report-page-printing .factory-stock-polish .report-sign-line {
           border-top: 1px solid #111827 !important;
         }
+
+        /* v22.53.34: Report-only print isolation + compact A4 */
+        body.mdec-report-page-printing {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #ffffff !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish {
+          padding: 0 !important;
+          min-height: auto !important;
+          overflow: visible !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish > :not(.monthly-report-page) {
+          display: none !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-page > :not(.monthly-report-page-shell) {
+          display: none !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-page-shell > :not(.monthly-report-print-area) {
+          display: none !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-no-print,
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-page-toolbar,
+        body.mdec-report-page-printing .factory-stock-polish .workspace-tabbar,
+        body.mdec-report-page-printing .factory-stock-polish .mobile-bottom-nav,
+        body.mdec-report-page-printing .factory-stock-polish .factory-topbar,
+        body.mdec-report-page-printing .factory-stock-polish aside,
+        body.mdec-report-page-printing .factory-stock-polish .login-status-bar,
+        body.mdec-report-page-printing .factory-stock-polish .mobile-field-launcher {
+          display: none !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-page,
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-page-shell,
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-print-area {
+          display: block !important;
+          position: static !important;
+          width: 100% !important;
+          max-width: none !important;
+          min-height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+          box-shadow: none !important;
+          background: #ffffff !important;
+          overflow: visible !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-document {
+          width: 100% !important;
+          max-width: none !important;
+          min-height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+          box-shadow: none !important;
+          page-break-after: avoid !important;
+          break-after: avoid !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-header {
+          grid-template-columns: 1.55fr .75fr !important;
+          gap: 5mm !important;
+          padding: 0 0 3mm !important;
+          border-bottom: 1.2px solid #111827 !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-logo {
+          width: 12mm !important;
+          height: 12mm !important;
+          border-radius: 2mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-logo img {
+          padding: 1mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-kicker {
+          font-size: 6.5pt !important;
+          letter-spacing: .10em !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-kicker::before {
+          width: 4px !important;
+          height: 4px !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-title {
+          font-size: 15.5pt !important;
+          margin-top: 1.2mm !important;
+          line-height: 1.04 !important;
+          letter-spacing: -.01em !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-subtitle {
+          font-size: 6.8pt !important;
+          line-height: 1.25 !important;
+          margin-top: 1mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-meta-row {
+          padding: 1.15mm 1.7mm !important;
+          font-size: 6.6pt !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-body {
+          padding: 3mm 0 0 !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-summary {
+          grid-template-columns: 1.45fr .55fr !important;
+          gap: 2.2mm !important;
+          margin-bottom: 2.2mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-note,
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-total-box {
+          padding: 2mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-note-title {
+          font-size: 7.6pt !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-note-text {
+          font-size: 6.4pt !important;
+          line-height: 1.22 !important;
+          margin-top: .8mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-total-label {
+          font-size: 6.2pt !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-total-number {
+          font-size: 18pt !important;
+          margin-top: .6mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-kpi-grid {
+          grid-template-columns: repeat(4,1fr) !important;
+          gap: 1.5mm !important;
+          margin-bottom: 2.2mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-kpi-card {
+          padding: 1.6mm 1.8mm !important;
+          border-width: .8px !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-kpi-label {
+          font-size: 6.2pt !important;
+          line-height: 1.1 !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-kpi-value {
+          font-size: 13.5pt !important;
+          line-height: 1 !important;
+          margin-top: .5mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-analysis-grid {
+          grid-template-columns: repeat(3,1fr) !important;
+          gap: 1.8mm !important;
+          margin-bottom: 2mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-section-header,
+        body.mdec-report-page-printing .factory-stock-polish .report-table-title {
+          padding: 1.25mm 1.7mm !important;
+          font-size: 6.9pt !important;
+          line-height: 1.15 !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-section-body {
+          padding: 1.2mm 1.6mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-list-row {
+          padding: .75mm 0 !important;
+          font-size: 6.7pt !important;
+          line-height: 1.15 !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-list-sub,
+        body.mdec-report-page-printing .factory-stock-polish .report-empty-text {
+          font-size: 5.9pt !important;
+          line-height: 1.12 !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-document th,
+        body.mdec-report-page-printing .factory-stock-polish .monthly-report-document td {
+          padding: 1.1mm 1.6mm !important;
+          font-size: 6.8pt !important;
+          line-height: 1.15 !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-doc-footer {
+          gap: 2.2mm !important;
+          margin-top: 2.4mm !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-sign-box {
+          min-height: 10mm !important;
+          padding: 1.6mm !important;
+          font-size: 6.4pt !important;
+        }
+        body.mdec-report-page-printing .factory-stock-polish .report-sign-line {
+          padding-top: 1.4mm !important;
+        }
+      }
+      @page {
+        size: A4;
+        margin: 7mm;
       }
       .factory-stock-polish .document-archive-card,
       .factory-stock-polish .tracking-list-card {
@@ -9576,7 +9761,7 @@ S.N.: ${item.sn || '-'}
                     <h1 className="report-doc-title">รายงานสรุปประจำเดือน {monthlyReportData.monthKey}</h1>
                     <p className="report-doc-subtitle">
                       ศูนย์มัลติมีเดียทางการศึกษา วิทยาลัยเทคโนโลยีภาคตะวันออก (อี.เทค)<br />
-                      รายงานภาพรวมการยืม คืน ออกงาน หลักฐานรูปภาพ และสถานะอุปกรณ์ เพื่อใช้แนบสรุปงานภายใน
+                      รายงานภาพรวมการยืม คืน ออกงาน หลักฐาน และสถานะอุปกรณ์
                     </p>
                   </div>
                 </div>
@@ -9618,7 +9803,7 @@ S.N.: ${item.sn || '-'}
                     <div className="report-section-body">
                       {monthlyReportData.topUsed.length === 0 ? (
                         <div className="report-empty-text">ยังไม่มีรายการในเดือนนี้</div>
-                      ) : monthlyReportData.topUsed.map((row, idx) => (
+                      ) : monthlyReportData.topUsed.slice(0, 4).map((row, idx) => (
                         <div key={row.item.id} className="report-list-row">
                           <div className="report-list-name truncate">
                             {idx + 1}. {row.item.name}
@@ -9635,7 +9820,7 @@ S.N.: ${item.sn || '-'}
                     <div className="report-section-body">
                       {monthlyReportData.topCategories.length === 0 ? (
                         <div className="report-empty-text">ยังไม่มีข้อมูลหมวดหมู่</div>
-                      ) : monthlyReportData.topCategories.map((row, idx) => (
+                      ) : monthlyReportData.topCategories.slice(0, 4).map((row, idx) => (
                         <div key={row.label} className="report-list-row">
                           <div className="report-list-name truncate">{idx + 1}. {row.label}</div>
                           <div className="report-list-count">{row.count.toLocaleString('th-TH')}</div>
@@ -9649,7 +9834,7 @@ S.N.: ${item.sn || '-'}
                     <div className="report-section-body">
                       {monthlyReportData.topDepartments.length === 0 ? (
                         <div className="report-empty-text">ยังไม่มีข้อมูลฝ่าย</div>
-                      ) : monthlyReportData.topDepartments.map((row, idx) => (
+                      ) : monthlyReportData.topDepartments.slice(0, 4).map((row, idx) => (
                         <div key={row.label} className="report-list-row">
                           <div className="report-list-name truncate">{idx + 1}. {row.label}</div>
                           <div className="report-list-count">{row.count.toLocaleString('th-TH')}</div>
@@ -11954,14 +12139,16 @@ S.N.: ${item.sn || '-'}
     }
 
     document.body.classList.add('mdec-report-page-printing');
+    document.documentElement.classList.add('mdec-report-page-printing');
     const cleanup = () => {
       document.body.classList.remove('mdec-report-page-printing');
+      document.documentElement.classList.remove('mdec-report-page-printing');
       window.removeEventListener('afterprint', cleanup);
     };
     window.addEventListener('afterprint', cleanup);
     window.setTimeout(() => {
       window.print();
-      window.setTimeout(cleanup, 1200);
+      window.setTimeout(cleanup, 2200);
     }, 120);
   };
 
