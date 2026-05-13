@@ -1,4 +1,4 @@
-// v22.53.24 QR Label Print Polish - professional QR asset labels, no QR scanner/camera/database path changes
+// v22.53.25 Evidence Center Polish - gallery, filters, proof cards and empty states, no QR scanner/camera/database path changes
 // v22.53.17 Operational Slip Clean Design - fixed clean A4 borrow/event/return documents, removes before-print logo/watermark controls, no QR/camera/database path changes
 // v22.53.24 QR Label Print Polish - final visual balance for operational print forms, no QR/camera/database path changes
 // v22.53.9 Equipment Detail / Asset History Polish - asset profile file, mobile action shortcuts, no QR/camera/database path changes
@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.24 QR Label Print Polish';
+const APP_VERSION = 'v22.53.25 Evidence Center Polish';
 const APP_UPDATE_NOTE = 'Official Form Line Cleanup Polish: ลดเส้นยาวในฟอร์มเอกสาร ปรับช่องข้อมูลและลายเซ็นให้ดูสะอาด อ่านง่าย และยังคงรูปแบบ A4 พร้อมลายน้ำกลางกระดาษ โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -9880,7 +9880,16 @@ S.N.: ${item.sn || '-'}
   const filteredProofGroups = useMemo(() => {
     const keyword = String(proofCenterSearch || '').toLowerCase().trim();
     return dedupedProofGroups.filter((group) => {
-      const matchType = proofCenterFilter === 'all' || group.historyTypes.includes(proofCenterFilter) || (proofCenterFilter === 'repair' && group.historyTypes.some(t => String(t).includes('repair')));
+      const hasAnyNote = group.entries.some(entry => String(entry.note || entry.proof?.note || entry.proof?.contextLabel || '').trim());
+      const hasPreviewImage = Boolean(group.proof?.url || group.proof?.thumbUrl || group.proof?.dataUrl);
+      const isMultiLinked = (group.itemRefs?.length || 0) > 1;
+      const matchType =
+        proofCenterFilter === 'all' ||
+        group.historyTypes.includes(proofCenterFilter) ||
+        (proofCenterFilter === 'repair' && group.historyTypes.some(t => String(t).includes('repair'))) ||
+        (proofCenterFilter === 'multi' && isMultiLinked) ||
+        (proofCenterFilter === 'noNote' && !hasAnyNote) ||
+        (proofCenterFilter === 'withImage' && hasPreviewImage);
       return matchType && (!keyword || group.searchText.includes(keyword));
     });
   }, [dedupedProofGroups, proofCenterFilter, proofCenterSearch]);
@@ -9891,6 +9900,24 @@ S.N.: ${item.sn || '-'}
     const duplicateLinks = Math.max(0, linkCount - filteredProofGroups.length);
     return { realImages: filteredProofGroups.length, linkCount, itemLinkCount, duplicateLinks };
   }, [filteredProofGroups]);
+
+  const proofCenterSummaryStats = useMemo(() => {
+    const countType = (type) => dedupedProofGroups.filter(group => group.historyTypes.includes(type) || (type === 'repair' && group.historyTypes.some(t => String(t).includes('repair')))).length;
+    const noNote = dedupedProofGroups.filter(group => !group.entries.some(entry => String(entry.note || entry.proof?.note || entry.proof?.contextLabel || '').trim())).length;
+    const multi = dedupedProofGroups.filter(group => (group.itemRefs?.length || 0) > 1).length;
+    const withImage = dedupedProofGroups.filter(group => Boolean(group.proof?.url || group.proof?.thumbUrl || group.proof?.dataUrl)).length;
+    return {
+      total: dedupedProofGroups.length,
+      borrow: countType('borrow'),
+      event: countType('event'),
+      return: countType('return'),
+      repair: countType('repair'),
+      multi,
+      noNote,
+      withImage,
+      itemLinks: dedupedProofGroups.reduce((sum, group) => sum + (group.itemRefs?.length || 0), 0)
+    };
+  }, [dedupedProofGroups]);
 
   const proofStorageForecast = useMemo(() => {
     const proofBytes = Number(settingsOptions.proofStorageMeta?.totalBytes || 0);
@@ -19192,103 +19219,180 @@ S.N.: ${item.sn || '-'}
 
       {/* ศูนย์หลักฐานรูปภาพทั้งหมด */}
       {showProofCenterModal && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990] mdec-history-proof-safe`}>
-          <div className={`rounded-[2rem] shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900 border-slate-700 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
-            <div className={`p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
-              <div>
-                <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-lg">📷</span> ศูนย์หลักฐานรูปภาพ</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมรูปหลักฐานจากทุกอุปกรณ์ ใช้ดู แก้ไข แทนที่ หรือลบรูปหลักฐานจากจุดเดียว</p>
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-2 sm:p-4 z-[9990] mdec-history-proof-safe`}>
+          <div className={`rounded-[1.75rem] sm:rounded-[2rem] shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[94vh] border ${isDarkMode ? 'bg-slate-900 border-slate-700 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
+            <div className={`p-4 sm:p-6 border-b ${theme.divide}`}>
+              <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className={`text-xs font-black tracking-[0.16em] uppercase ${isDarkMode ? 'text-pink-300' : 'text-pink-600'}`}>EVIDENCE CENTER</div>
+                  <h3 className={`text-2xl sm:text-3xl font-black flex items-center gap-3 mt-1 ${theme.textTitle}`}>
+                    <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white flex items-center justify-center shadow-lg">📷</span>
+                    ศูนย์หลักฐานรูปภาพ
+                  </h3>
+                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>คลังหลักฐานจากการยืม / ออกงาน / รับคืน / ซ่อม พร้อมค้นหาและเปิดแฟ้มอุปกรณ์ที่เกี่ยวข้องได้ทันที</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button type="button" onClick={() => { setProofCenterSearch(''); setProofCenterFilter('all'); }} className={`px-4 py-2.5 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
+                  <button type="button" onClick={closeProofCenterModal} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`} title={modalReturnTarget === 'borrowDocs' ? 'กลับไปหน้าเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดหน้าต่าง'}><Icons.X className="w-5 h-5" /></button>
+                </div>
               </div>
-              <button type="button" onClick={closeProofCenterModal} className={`p-2 hover:text-rose-500 ${theme.textMuted}`} title={modalReturnTarget === 'borrowDocs' ? 'กลับไปหน้าเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดหน้าต่าง'}><Icons.X className="w-5 h-5" /></button>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2 mt-5">
+                {[
+                  ['all', 'ทั้งหมด', proofCenterSummaryStats.total, 'bg-slate-500/10 text-slate-700 border-slate-500/20'],
+                  ['borrow', 'ยืม', proofCenterSummaryStats.borrow, 'bg-purple-500/10 text-purple-700 border-purple-500/20'],
+                  ['event', 'ออกงาน', proofCenterSummaryStats.event, 'bg-orange-500/10 text-orange-700 border-orange-500/20'],
+                  ['return', 'รับคืน', proofCenterSummaryStats.return, 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'],
+                  ['repair', 'ซ่อม', proofCenterSummaryStats.repair, 'bg-rose-500/10 text-rose-700 border-rose-500/20'],
+                  ['multi', 'รูปกลุ่ม', proofCenterSummaryStats.multi, 'bg-blue-500/10 text-blue-700 border-blue-500/20'],
+                  ['noNote', 'ไม่มีหมายเหตุ', proofCenterSummaryStats.noNote, 'bg-amber-500/10 text-amber-700 border-amber-500/20'],
+                  ['withImage', 'มีรูป', proofCenterSummaryStats.withImage, 'bg-pink-500/10 text-pink-700 border-pink-500/20']
+                ].map(([id, label, value, tone]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setProofCenterFilter(id)}
+                    className={`rounded-2xl border p-3 text-left transition-all ${proofCenterFilter === id ? 'ring-2 ring-blue-500/35 scale-[1.01]' : ''} ${tone}`}
+                  >
+                    <div className="text-[11px] font-black opacity-80">{label}</div>
+                    <div className="text-xl font-black">{Number(value || 0).toLocaleString('th-TH')}</div>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className={`p-4 border-b grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
-              <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / งาน / กล่อง / หมายเหตุ" value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} />
+
+            <div className={`p-4 border-b grid grid-cols-1 xl:grid-cols-[1fr_220px_220px] gap-3 ${theme.divide}`}>
+              <div className="relative">
+                <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.textMuted}`} />
+                <input
+                  className={`w-full pl-12 pr-4 py-3 rounded-xl border font-bold ${theme.input}`}
+                  placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / ผู้รับคืน / หมายเหตุ"
+                  value={proofCenterSearch}
+                  onChange={e => setProofCenterSearch(e.target.value)}
+                />
+              </div>
               <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={proofCenterFilter} onChange={e => setProofCenterFilter(e.target.value)}>
                 <option value="all">หลักฐานทั้งหมด</option>
                 <option value="borrow">การยืม</option>
                 <option value="event">ออกงาน</option>
                 <option value="return">รับคืน</option>
-                <option value="repair">แจ้งซ่อม</option>
+                <option value="repair">แจ้งซ่อม / ชำรุด</option>
+                <option value="multi">รูปเดียวผูกหลายรายการ</option>
+                <option value="noNote">ยังไม่มีหมายเหตุ</option>
+                <option value="withImage">มีรูปตัวอย่าง</option>
               </select>
               <div className={`p-3 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>
-                รูปจริง {proofDuplicateStats.realImages.toLocaleString('th-TH')} • จุดเชื่อมโยง {proofDuplicateStats.itemLinkCount.toLocaleString('th-TH')} รายการ
-              </div>
-            </div>
-            <div className={`px-5 py-3 border-b grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
-              <div className={`p-3 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-pink-50 border-pink-200 text-pink-800'}`}>
-                <div className="font-black">ดูหลักฐานทั้งหมด</div>
-                <div className="text-xs mt-1">กดที่รูปเพื่อเปิดภาพเต็ม ไม่ครอปแนวตั้ง/แนวนอน</div>
-              </div>
-              <div className={`p-3 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-                <div className="font-black">แก้ไข/แทนที่</div>
-                <div className="text-xs mt-1">ใช้เมื่อเลือกรูปผิด หรืออยากแก้ชื่อ/หมายเหตุของรูปหลักฐาน</div>
-              </div>
-              <div className={`p-3 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
-                <div className="font-black">รับคืนแบบกลุ่ม</div>
-                <div className="text-xs mt-1">รูปเดียวที่ผูกหลายรายการจะถูกแสดงเป็นกลุ่มเดียว</div>
+                รูปจริง {proofDuplicateStats.realImages.toLocaleString('th-TH')} • เชื่อมโยง {proofDuplicateStats.itemLinkCount.toLocaleString('th-TH')} รายการ
               </div>
             </div>
 
-            <div className={`px-5 py-3 border-b text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-              ระบบรวมรูปซ้ำให้อัตโนมัติ เพื่อไม่ให้รูปหลักฐานกลุ่มเดียวกันแสดงซ้ำหลายใบ • รูปตัวอย่างใช้โหมดภาพเต็ม ไม่ตัดหัว/ตัดขอบ
+            <div className={`px-4 sm:px-5 py-3 border-b grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
+              <div className={`p-3 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-pink-50 border-pink-200 text-pink-800'}`}>
+                <div className="font-black">Gallery ภาพเต็ม</div>
+                <div className="text-xs mt-1">กด “เปิดภาพใหญ่” เพื่อดูรูปจริงโดยไม่ครอปหัว/ขอบภาพ</div>
+              </div>
+              <div className={`p-3 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                <div className="font-black">เปิดแฟ้มอุปกรณ์</div>
+                <div className="text-xs mt-1">จากการ์ดหลักฐานสามารถเปิดแฟ้มประวัติอุปกรณ์ที่เกี่ยวข้องได้ทันที</div>
+              </div>
+              <div className={`p-3 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+                <div className="font-black">รวมรูปซ้ำอัตโนมัติ</div>
+                <div className="text-xs mt-1">รูปเดียวที่ผูกหลายอุปกรณ์จะแสดงเป็นกลุ่มเดียว ลดความรกเวลารับคืนกลุ่ม</div>
+              </div>
             </div>
-            <div className="p-5 overflow-y-auto custom-scrollbar flex-1">
+
+            <div className="p-3 sm:p-5 overflow-y-auto custom-scrollbar flex-1">
               {filteredProofGroups.length === 0 ? (
-                <div className={`text-center py-16 font-black text-xl ${theme.textMuted}`}>ยังไม่มีรูปหลักฐาน หรือไม่พบจากคำค้นหา</div>
+                <div className={`rounded-[2rem] border p-6 sm:p-10 text-center ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="text-5xl mb-4">📷</div>
+                  <div className={`text-2xl font-black ${theme.textTitle}`}>{allProofEntries.length === 0 ? 'ยังไม่มีหลักฐานรูปภาพ' : 'ไม่พบหลักฐานตามตัวกรอง'}</div>
+                  <p className={`text-sm font-bold mt-2 max-w-2xl mx-auto ${theme.textMuted}`}>
+                    {allProofEntries.length === 0
+                      ? 'เมื่อมีการแนบรูปตอนยืม / ออกงาน / รับคืน ระบบจะแสดงหลักฐานไว้ที่นี่เพื่อย้อนตรวจสอบได้ภายหลัง'
+                      : 'ลองล้างตัวกรอง หรือค้นหาด้วยชื่ออุปกรณ์, S.N., ผู้ยืม, ชื่องาน หรือหมายเหตุ'}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 max-w-3xl mx-auto">
+                    <button type="button" onClick={() => { setProofCenterSearch(''); setProofCenterFilter('all'); }} className={`py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
+                    <button type="button" onClick={() => { setShowProofCenterModal(false); setActiveWorkspace('borrowReturn'); setBorrowReturnMode('borrow'); }} className="py-3 rounded-xl bg-purple-600 text-white font-black">ไปหน้ายืม / ออกงาน</button>
+                    <button type="button" onClick={() => { setShowProofCenterModal(false); setShowHistoryCenterModal(true); }} className={`py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ค้นประวัติส่วนกลาง</button>
+                  </div>
+                </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                   {filteredProofGroups.map((group) => {
                     const entry = group.representative || {};
                     const proof = group.proof || {};
-                    const previewSrc = proof.url || proof.thumbUrl || '';
+                    const previewSrc = proof.url || proof.thumbUrl || proof.dataUrl || '';
                     const expanded = expandedProofGroupId === group.groupId;
+                    const firstRef = group.itemRefs?.[0] || {};
+                    const proofDateText = proof.timestampText || (entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-');
+                    const hasNote = Boolean(String(proof.note || entry.note || proof.contextLabel || '').trim());
                     return (
                       <div key={group.groupId} className={`rounded-[1.35rem] border overflow-hidden text-left hover:shadow-xl transition-all ${isDarkMode ? 'bg-slate-950 border-slate-700 shadow-black/20' : 'bg-white border-slate-100 shadow-slate-200/70'}`}>
-                        <button type="button" onClick={() => openProofImage(proof)} className="block w-full text-left">
-                          <div className="relative">
+                        <div className="relative">
+                          <button type="button" onClick={() => openProofImage(proof)} className={`block w-full ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'}`}>
                             {previewSrc ? (
                               <div className={`w-full h-56 sm:h-60 flex items-center justify-center ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'} bg-[linear-gradient(45deg,rgba(148,163,184,0.12)_25%,transparent_25%,transparent_75%,rgba(148,163,184,0.12)_75%),linear-gradient(45deg,rgba(148,163,184,0.12)_25%,transparent_25%,transparent_75%,rgba(148,163,184,0.12)_75%)] bg-[length:18px_18px] bg-[position:0_0,9px_9px]`}>
                                 <img src={previewSrc} alt="หลักฐาน" className="max-w-full max-h-full object-contain block" loading="lazy" />
                               </div>
-                            ) : <div className={`w-full h-56 flex items-center justify-center font-black ${theme.textMuted}`}>คลิกเพื่อเปิดรูป</div>}
-                            <div className="absolute right-3 top-3 px-3 py-1.5 rounded-full bg-white text-slate-800 text-xs font-black border border-white/70">
-                              ภาพเต็ม
-                            </div>
-                            {group.itemRefs.length > 1 && (
-                              <div className="absolute left-3 top-3 px-3 py-1.5 rounded-full bg-black/70 text-white text-xs font-black">
-                                รูปเดียว • {group.itemRefs.length} อุปกรณ์
-                              </div>
+                            ) : (
+                              <div className={`w-full h-56 flex items-center justify-center font-black ${theme.textMuted}`}>ไม่มีภาพตัวอย่าง</div>
                             )}
-                          </div>
-                          <div className="p-3 space-y-1">
-                            <div className={`font-black truncate ${theme.textTitle}`}>{group.itemRefs.length > 1 ? `เกี่ยวข้องกับ ${group.itemRefs.length} อุปกรณ์` : (entry.itemName || '-')}</div>
-                            <div className={`text-xs font-bold ${theme.textMuted}`}>{group.itemRefs.map(ref => ref.itemName).slice(0, 2).join(' • ')}{group.itemRefs.length > 2 ? ` +${group.itemRefs.length - 2}` : ''}</div>
-                            <div className="flex flex-wrap gap-1">
-                              {group.typeLabels.slice(0, 3).map((label) => (
-                                <span key={label} className={`inline-block text-xs px-2 py-1 rounded-lg font-black ${label === 'ยืม' ? 'bg-purple-100 text-purple-700' : label === 'ออกงาน' ? 'bg-orange-100 text-orange-700' : label === 'รับคืน' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>{label}</span>
-                              ))}
-                            </div>
-                            <div className={`text-xs font-bold ${theme.textMuted}`}>เรื่อง: {entry.subject || '-'}</div>
-                            <div className={`text-xs font-bold ${theme.textMuted}`}>เวลา: {proof.timestampText || (entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-')}</div>
-                            <div className={`text-xs font-bold ${theme.textMuted}`}>โดย: {proof.createdBy || entry.staff || '-'}</div>
-                            {proof.note && <div className={`text-xs font-bold ${theme.textMuted}`}>หมายเหตุ: {proof.note}</div>}
-                          </div>
-                        </button>
-
-                        <div className={`px-3 pb-3 ${theme.textMuted}`}>
-                          <button type="button" onClick={() => setExpandedProofGroupId(expanded ? null : group.groupId)} className={`w-full py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>
-                            {expanded ? 'ซ่อนรายการที่เกี่ยวข้อง' : `ดูรายการที่เกี่ยวข้อง (${group.itemRefs.length})`}
                           </button>
-                          {canUseOperationalTools && (
-                            <div className="grid grid-cols-2 gap-2 mt-2">
-                              <button type="button" onClick={() => openProofEditModal(group)} className={`py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>แก้ไข / แทนที่</button>
-                              <button type="button" onClick={() => handleDeleteProofGroup(group)} className="py-2 rounded-xl border text-xs font-black bg-rose-600 text-white border-rose-600 hover:bg-rose-700">ลบหลักฐานนี้</button>
+                          <div className="absolute right-3 top-3 px-3 py-1.5 rounded-full bg-white text-slate-800 text-xs font-black border border-white/70 shadow-sm">
+                            ภาพเต็ม
+                          </div>
+                          {group.itemRefs.length > 1 && (
+                            <div className="absolute left-3 top-3 px-3 py-1.5 rounded-full bg-black/75 text-white text-xs font-black shadow-sm">
+                              รูปเดียว • {group.itemRefs.length} อุปกรณ์
                             </div>
                           )}
+                          {!hasNote && (
+                            <div className="absolute left-3 bottom-3 px-3 py-1.5 rounded-full bg-amber-500 text-white text-xs font-black shadow-sm">
+                              ยังไม่มีหมายเหตุ
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="p-4 space-y-3">
+                          <div>
+                            <div className={`font-black text-lg leading-tight line-clamp-2 ${theme.textTitle}`}>{group.itemRefs.length > 1 ? `เกี่ยวข้องกับ ${group.itemRefs.length} อุปกรณ์` : (entry.itemName || '-')}</div>
+                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{group.itemRefs.map(ref => ref.itemName).slice(0, 2).join(' • ')}{group.itemRefs.length > 2 ? ` +${group.itemRefs.length - 2}` : ''}</div>
+                          </div>
+
+                          <div className="flex flex-wrap gap-1.5">
+                            {group.typeLabels.slice(0, 3).map((label) => (
+                              <span key={label} className={`inline-block text-xs px-2.5 py-1 rounded-lg font-black ${label === 'ยืม' ? 'bg-purple-100 text-purple-700' : label === 'ออกงาน' ? 'bg-orange-100 text-orange-700' : label === 'รับคืน' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>{label}</span>
+                            ))}
+                            <span className={`inline-block text-xs px-2.5 py-1 rounded-lg font-black ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{group.entries.length.toLocaleString('th-TH')} จุดบันทึก</span>
+                          </div>
+
+                          <div className={`rounded-2xl border p-3 text-xs font-bold space-y-1.5 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                            <div><span className="font-black">เรื่อง:</span> {entry.subject || '-'}</div>
+                            <div><span className="font-black">เวลา:</span> {proofDateText}</div>
+                            <div><span className="font-black">ผู้บันทึก:</span> {proof.createdBy || entry.staff || '-'}</div>
+                            {(proof.note || entry.note || proof.contextLabel) && <div><span className="font-black">หมายเหตุ:</span> {proof.note || entry.note || proof.contextLabel}</div>}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <button type="button" onClick={() => openProofImage(proof)} className={`py-2.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดภาพใหญ่</button>
+                            <button type="button" onClick={() => firstRef.itemId && openItemHistoryFromProofCenter(firstRef.itemId)} disabled={!firstRef.itemId} className={`py-2.5 rounded-xl border text-xs font-black ${theme.btnSecondary} disabled:opacity-50`}>เปิดแฟ้มอุปกรณ์</button>
+                            <button type="button" onClick={() => setExpandedProofGroupId(expanded ? null : group.groupId)} className={`col-span-2 py-2.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>
+                              {expanded ? 'ซ่อนรายการที่เกี่ยวข้อง' : `ดูรายการที่เกี่ยวข้อง (${group.itemRefs.length})`}
+                            </button>
+                          </div>
+
+                          {canUseOperationalTools && (
+                            <div className="grid grid-cols-2 gap-2">
+                              <button type="button" onClick={() => openProofEditModal(group)} className={`py-2.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>แก้ไข / แทนที่</button>
+                              <button type="button" onClick={() => handleDeleteProofGroup(group)} className="py-2.5 rounded-xl border text-xs font-black bg-rose-600 text-white border-rose-600 hover:bg-rose-700">ลบหลักฐาน</button>
+                            </div>
+                          )}
+
                           {expanded && (
-                            <div className="mt-2 space-y-1.5">
+                            <div className="space-y-1.5 pt-1">
                               {group.itemRefs.map((ref, idx) => (
-                                <button key={`${group.groupId}_${ref.itemId || idx}`} type="button" onClick={() => openItemHistoryFromProofCenter(ref.itemId)} className={`w-full p-2 rounded-xl border text-left ${isDarkMode ? 'bg-slate-900 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-white'}`}>
+                                <button key={`${group.groupId}_${ref.itemId || idx}`} type="button" onClick={() => openItemHistoryFromProofCenter(ref.itemId)} className={`w-full p-2.5 rounded-xl border text-left ${isDarkMode ? 'bg-slate-900 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-white'}`}>
                                   <div className={`font-black text-xs truncate ${theme.textTitle}`}>{ref.itemName}</div>
                                   <div className={`text-[11px] font-bold truncate ${theme.textMuted}`}>S.N. {ref.sn} • {ref.typeLabel} • {ref.subject}</div>
                                 </button>
@@ -19302,7 +19406,11 @@ S.N.: ${item.sn || '-'}
                 </div>
               )}
             </div>
-            <div className={`p-4 border-t ${theme.divide}`}><button type="button" onClick={closeProofCenterModal} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>{modalReturnTarget === 'borrowDocs' ? 'กลับไปเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดหน้าต่าง'}</button></div>
+
+            <div className={`p-3 sm:p-4 border-t grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 ${theme.divide}`}>
+              <div className={`text-xs font-bold ${theme.textMuted}`}>ระบบจะแสดงรูปเดียวที่ผูกหลายอุปกรณ์เป็นกลุ่มเดียว เพื่อลดรายการซ้ำและช่วยย้อนดูหลักฐานรับคืนกลุ่มได้ง่ายขึ้น</div>
+              <button type="button" onClick={closeProofCenterModal} className={`px-5 py-3 rounded-xl font-black ${theme.btnCancel}`}>{modalReturnTarget === 'borrowDocs' ? 'กลับไปเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดหน้าต่าง'}</button>
+            </div>
           </div>
         </div>
       )}
