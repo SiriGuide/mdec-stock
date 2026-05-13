@@ -3,7 +3,7 @@
 // v22.53.3 Data Safety Confirm Polish - safer destructive actions and mobile-friendly confirmation gates, no QR/camera/database changes
 // v22.53.1 Mobile Empty State Polish - clearer empty document archive on mobile, no QR/camera/database changes
 // v22.52.8 Modal Chain Return Fix - fixes nested modal back flow from borrow docs/history/proof centers, no QR/camera/database changes
-// v22.52.6 Data Quality Action Polish - edit actions in data quality audit, no QR/camera/database changes
+// v22.53.10 Direct Detail Access Polish - click/tap item row or card to open asset profile, keeps checkbox selection
 // v22.52.6 Data Quality Action Polish - UI-only helper stepper, no QR/camera/database changes
 // v22.52.6 Data Quality Action Polish - conditional equipment metadata form, no QR/camera/database path changes
 // v22.52.6 Data Quality Action Polish - adds data completeness audit, no QR/camera/database changes
@@ -46,8 +46,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.9 Equipment Detail / Asset History Polish';
-const APP_UPDATE_NOTE = 'Equipment Detail / Asset History Polish: ปรับหน้าแฟ้มประวัติทรัพย์สินให้เป็น Asset Profile อ่านง่ายบนมือถือ เพิ่มสถานะปัจจุบัน ทางลัดหลักฐาน/QR/CSV และตัวชี้ว่าข้อมูลควรเติมอะไร โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
+const APP_VERSION = 'v22.53.10 Direct Detail Access Polish';
+const APP_UPDATE_NOTE = 'Direct Detail Access Polish: เปิดแฟ้มประวัติอุปกรณ์ได้จากการคลิก/แตะรายการโดยตรง พร้อมคง checkbox สำหรับเลือกหลายรายการและปุ่มรายละเอียดเดิมไว้ โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7335,7 +7335,7 @@ S.N.: ${item.sn || '-'}
                                       <td className={`px-4 py-3 text-sm font-bold ${theme.textMuted}`}>{item.category || '-'}<br />{item.location || '-'}</td>
                                       <td className={`px-4 py-3 text-center font-black ${theme.textTitle}`}>{Number(item.quantity || 1).toLocaleString('th-TH')}</td>
                                       <td className="px-4 py-3"><div className="flex flex-col gap-1 items-start"><span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span><span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? assetInfo.darkColor : assetInfo.color}`}>{assetInfo.label}</span></div></td>
-                                      <td className="px-4 py-3 text-right"><div className="inline-flex gap-2"><button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>{canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">แก้ไข</button>}</div></td>
+                                      <td className="px-4 py-3 text-right"><div className="inline-flex gap-2"><button type="button" onClick={(e) => { e.stopPropagation(); setShowHistory(item.id); }} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>{canAddEditItems && <button type="button" onClick={(e) => { e.stopPropagation(); openItemEditor(item); }} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">แก้ไข</button>}</div></td>
                                     </tr>
                                   );
                                 })}
@@ -13218,8 +13218,8 @@ S.N.: ${item.sn || '-'}
                       </div>
                     </button>
                     <div className="flex flex-wrap gap-2">
-                      <button type="button" onClick={() => setFilterLocation(room.name)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ดูเฉพาะห้องนี้</button>
-                      <button type="button" onClick={() => { setSelectedItems(room.items.map(i => i.id)); setShowพิมพ์Modal(true); }} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">พิมพ์ QR ห้องนี้</button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setFilterLocation(room.name); }} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ดูเฉพาะห้องนี้</button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedItems(room.items.map(i => i.id)); setShowพิมพ์Modal(true); }} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">พิมพ์ QR ห้องนี้</button>
                     </div>
                   </div>
 
@@ -13228,7 +13228,7 @@ S.N.: ${item.sn || '-'}
                       {room.items.map((item) => {
                         const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
                         return (
-                          <div key={item.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                          <div key={item.id} onClick={() => setShowHistory(item.id)} onKeyDown={(e) => { if (e.key === 'Enter') setShowHistory(item.id); }} role="button" tabIndex={0} title="เปิดแฟ้มประวัติอุปกรณ์" className={`p-4 rounded-2xl border cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500/35 ${isDarkMode ? 'bg-slate-900 border-slate-700 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-blue-50/45'}`}>
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <div className={`font-black text-lg truncate ${theme.textTitle}`}>{item.name}</div>
@@ -13238,8 +13238,8 @@ S.N.: ${item.sn || '-'}
                               <span className={`px-2 py-1 rounded-lg text-xs font-black border shrink-0 ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-2 mt-3">
-                              <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>
-                              {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">แก้ไข</button>}
+                              <button type="button" onClick={(e) => { e.stopPropagation(); setShowHistory(item.id); }} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>
+                              {canAddEditItems && <button type="button" onClick={(e) => { e.stopPropagation(); openItemEditor(item); }} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">แก้ไข</button>}
                             </div>
                           </div>
                         );
@@ -13260,7 +13260,7 @@ S.N.: ${item.sn || '-'}
         <div className={`px-5 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${theme.divide}`}>
           <div>
             <div className={`font-black text-xl ${theme.textTitle}`}>รายการอุปกรณ์</div>
-            <div className={`text-sm font-bold ${theme.textMuted}`}>พบ {filteredItems.length.toLocaleString('th-TH')} รายการ • เลือกแล้ว {selectedItems.length.toLocaleString('th-TH')} รายการ</div>
+            <div className={`text-sm font-bold ${theme.textMuted}`}>พบ {filteredItems.length.toLocaleString('th-TH')} รายการ • เลือกแล้ว {selectedItems.length.toLocaleString('th-TH')} รายการ • แตะ/คลิกรายการเพื่อเปิดแฟ้ม</div>
           </div>
           <div className={`text-xs font-black px-3 py-2 rounded-full border ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>{mobileCardsEnabled ? 'Clean List / Mobile Cards' : 'Premium Table View'}</div>
         </div>
@@ -13285,11 +13285,11 @@ S.N.: ${item.sn || '-'}
               const isOverdue = (isBorrowed || isEvent) && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
               const canSelectThis = item.status === 'available' || isBorrowed || isEvent;
               return (
-                <div key={`mobile_${item.id}_${index}`} className={`stock-mobile-card rounded-3xl border shadow-sm overflow-hidden ${isOverdue ? (isDarkMode ? 'bg-rose-950/30 border-rose-800' : 'bg-rose-50 border-rose-200') : (isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200')}`}>
+                <div key={`mobile_${item.id}_${index}`} onClick={() => setShowHistory(item.id)} onKeyDown={(e) => { if (e.key === 'Enter') setShowHistory(item.id); }} role="button" tabIndex={0} title="แตะเพื่อเปิดแฟ้มประวัติอุปกรณ์" className={`stock-mobile-card rounded-3xl border shadow-sm overflow-hidden cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/35 ${isOverdue ? (isDarkMode ? 'bg-rose-950/30 border-rose-800 hover:bg-rose-950/45' : 'bg-rose-50 border-rose-200 hover:bg-rose-100') : (isDarkMode ? 'bg-slate-900 border-slate-700 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-blue-50/40')}`}>
                   <div className={`p-4 ${isOverdue ? 'border-l-4 border-rose-500' : isEvent ? 'border-l-4 border-orange-400' : isBorrowed ? 'border-l-4 border-purple-400' : item.status === 'maintenance' ? 'border-l-4 border-rose-700' : 'border-l-4 border-blue-200'}`}>
                     <div className="flex items-start gap-3">
                       {canUseOperationalTools && (
-                        <div className="stock-mobile-select-col">
+                        <div className="stock-mobile-select-col" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           className="stock-check mt-1 shrink-0"
@@ -13309,10 +13309,10 @@ S.N.: ${item.sn || '-'}
                           <span className={`mobile-secondary-chip inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? deptInfo.darkColor : deptInfo.color}`}>{deptInfo.label}</span>
                           {qty > 1 && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>x{qty}</span>}
                           {item.storageBoxName && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-50 text-cyan-700'}`}>📦 {item.storageBoxName}</span>}
-                          {normalizeProjectName(item.project) && <button type="button" onClick={() => setFilterProject(normalizeProjectName(item.project))} className={`mobile-secondary-chip px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-indigo-900/40 text-indigo-300' : 'bg-indigo-50 text-indigo-700'}`}>🗂️ {normalizeProjectName(item.project)}</button>}
+                          {normalizeProjectName(item.project) && <button type="button" onClick={(e) => { e.stopPropagation(); setFilterProject(normalizeProjectName(item.project)); }} className={`mobile-secondary-chip px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-indigo-900/40 text-indigo-300' : 'bg-indigo-50 text-indigo-700'}`}>🗂️ {normalizeProjectName(item.project)}</button>}
                           {item.assetStatus && item.assetStatus !== 'active' && <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? getAssetStatusInfo(item.assetStatus).darkColor : getAssetStatusInfo(item.assetStatus).color}`}>{getAssetStatusInfo(item.assetStatus).label}</span>}
                           {missingLabels.length > 0 && <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>ข้อมูลไม่ครบ {missingLabels.length}</span>}
-                          {proofCount > 0 && <button type="button" onClick={() => { setProofCenterSearch(item.sn || item.name || ''); setProofCenterFilter('all'); setShowProofCenterModal(true); }} className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-pink-900/40 text-pink-300' : 'bg-pink-50 text-pink-700'}`}>📷 {proofCount}</button>}
+                          {proofCount > 0 && <button type="button" onClick={(e) => { e.stopPropagation(); setProofCenterSearch(item.sn || item.name || ''); setProofCenterFilter('all'); setShowProofCenterModal(true); }} className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-pink-900/40 text-pink-300' : 'bg-pink-50 text-pink-700'}`}>📷 {proofCount}</button>}
                           {isOverdue && <span className="px-2.5 py-1 rounded-full text-xs font-black bg-rose-600 text-white">เลยกำหนดคืน</span>}
                         </div>
                         {(isBorrowed || isEvent) && (
@@ -13323,7 +13323,7 @@ S.N.: ${item.sn || '-'}
                         )}
                       </div>
                     </div>
-                    <div className="mt-4 grid grid-cols-2 gap-2">
+                    <div className="mt-4 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
                       <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>รายละเอียด</button>
                       {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowBorrow(e, item)} className="px-3 py-2.5 rounded-xl font-black text-sm bg-purple-600 text-white">ยืม</button>}
                       {canUseOperationalTools && (isBorrowed || isEvent) && <button type="button" onClick={() => { setReturnData({ staff: '', newStaff: '' }); setReturnTargetIds([item.id]); setReturnChecklist([]); }} className="px-3 py-2.5 rounded-xl font-black text-sm bg-emerald-600 text-white">รับคืน</button>}
@@ -13395,7 +13395,7 @@ S.N.: ${item.sn || '-'}
                 const rowBorder = isOverdue ? 'border-l-4 border-l-rose-500' : isEvent ? 'border-l-4 border-l-orange-400' : isBorrowed ? 'border-l-4 border-l-purple-400' : item.status === 'maintenance' ? 'border-l-4 border-l-rose-700' : '';
                 
                 return (
-                  <tr key={`${item.id}_${index}`} className={`group transition-all ${rowTextSizeClass} ${rowBg} ${rowBorder} hover:shadow-[inset_4px_0_0_rgba(59,130,246,0.45)]`}>
+                  <tr key={`${item.id}_${index}`} onClick={() => setShowHistory(item.id)} title="คลิกเพื่อเปิดแฟ้มประวัติอุปกรณ์" className={`group cursor-pointer transition-all ${rowTextSizeClass} ${rowBg} ${rowBorder} hover:shadow-[inset_4px_0_0_rgba(59,130,246,0.45)]`}>
 
                     {canUseOperationalTools && (
                       <td className="stock-select-cell px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
