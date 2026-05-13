@@ -1,4 +1,4 @@
-// v22.53.25 Evidence Center Polish - gallery, filters, proof cards and empty states, no QR scanner/camera/database path changes
+// v22.53.26 Data Quality Center Polish - gallery, filters, proof cards and empty states, no QR scanner/camera/database path changes
 // v22.53.17 Operational Slip Clean Design - fixed clean A4 borrow/event/return documents, removes before-print logo/watermark controls, no QR/camera/database path changes
 // v22.53.24 QR Label Print Polish - final visual balance for operational print forms, no QR/camera/database path changes
 // v22.53.9 Equipment Detail / Asset History Polish - asset profile file, mobile action shortcuts, no QR/camera/database path changes
@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.25 Evidence Center Polish';
-const APP_UPDATE_NOTE = 'Official Form Line Cleanup Polish: ลดเส้นยาวในฟอร์มเอกสาร ปรับช่องข้อมูลและลายเซ็นให้ดูสะอาด อ่านง่าย และยังคงรูปแบบ A4 พร้อมลายน้ำกลางกระดาษ โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
+const APP_VERSION = 'v22.53.26 Data Quality Center Polish';
+const APP_UPDATE_NOTE = 'Data Quality Center Polish: ปรับศูนย์ตรวจความครบถ้วนข้อมูลให้เป็น checklist ใช้งานจริง พร้อมตัวกรอง รายการแก้ไข และปุ่มเปิดแฟ้ม/แก้ไข โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -5713,14 +5713,47 @@ button[class*="orange"]:not(:disabled) {
   }
 }
 
-/* v22.52.6 Data Quality Action Polish */
+/* v22.53.26 Data Quality Center Polish */
 .data-quality-card,
 .metadata-audit-card,
-.system-health-audit {
+.system-health-audit,
+.data-quality-health-card,
+.data-quality-issue-card,
+.data-quality-item-card {
   border-radius: 22px !important;
 }
-.data-quality-sample {
+.data-quality-sample,
+.data-quality-item-card {
   overflow-wrap: anywhere;
+}
+.data-quality-filter-row {
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}
+.data-quality-filter-row button {
+  min-width: max-content;
+}
+.data-quality-score-ring {
+  position: relative;
+  isolation: isolate;
+}
+.data-quality-score-ring::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, rgba(59,130,246,.16), rgba(16,185,129,.10));
+  z-index: -1;
+}
+@media (max-width: 640px) {
+  .data-quality-issue-card {
+    border-radius: 18px !important;
+  }
+  .data-quality-filter-row {
+    margin-left: -4px;
+    margin-right: -4px;
+    padding-bottom: 4px;
+  }
 }
 
 `}</style>
@@ -5810,6 +5843,8 @@ function MainApp() {
 
   const [showSettings, setShowSettings] = useState(false);
   const [settingsTab, setSettingsTab] = useState('categories');
+  const [dataQualityFilter, setDataQualityFilter] = useState('all');
+  const [dataQualitySearch, setDataQualitySearch] = useState('');
   const [newSettingItem, setNewSettingItem] = useState('');
   const [editingSettingItem, setEditingSettingItem] = useState(null);
 
@@ -10207,6 +10242,7 @@ S.N.: ${item.sn || '-'}
     const missingSn = activeItems.filter(i => !has(i.sn));
     const missingLocation = activeItems.filter(i => !has(i.location));
     const missingCategory = activeItems.filter(i => !has(i.category));
+    const missingProject = activeItems.filter(i => !has(i.project) || String(i.project || '').trim() === 'ไม่ระบุโครงการ');
     const missingQrTag = activeItems.filter(i => !i.qrTagged);
     const missingShortCode = activeItems.filter(i => (isBattery(i) || isMemory(i)) && !has(i.shortCode));
     const missingOwnerDepartment = activeItems.filter(i => (isCamera(i) || isLens(i) || isBattery(i) || isMemory(i)) && !has(i.ownerDepartment) && !has(i.department));
@@ -10221,6 +10257,7 @@ S.N.: ${item.sn || '-'}
       ...missingSn,
       ...missingLocation,
       ...missingCategory,
+      ...missingProject,
       ...missingQrTag,
       ...missingShortCode,
       ...missingOwnerDepartment,
@@ -10232,12 +10269,15 @@ S.N.: ${item.sn || '-'}
       ...memoryMissingSpec
     ].map(i => i.id));
 
-    const makeCard = (id, title, list, desc, tone = 'amber') => ({
+    const makeCard = (id, title, list, desc, tone = 'amber', group = 'core', priority = 'normal', actionHint = 'เปิดฟอร์มแก้ไขเพื่อเติมข้อมูล') => ({
       id,
       title,
       count: list.length,
       desc,
       tone,
+      group,
+      priority,
+      actionHint,
       samples: list.slice(0, 3).map(i => i.name || i.sn || i.id).filter(Boolean),
       sampleItems: list.slice(0, 3).map(i => ({
         id: i.id,
@@ -10245,28 +10285,45 @@ S.N.: ${item.sn || '-'}
         sn: i.sn || '',
         shortCode: i.shortCode || '',
         category: i.category || '',
-        location: i.location || ''
+        location: i.location || '',
+        department: i.department || i.ownerDepartment || '',
+        project: i.project || ''
+      })),
+      items: list.slice(0, 80).map(i => ({
+        id: i.id,
+        name: i.name || i.sn || i.id,
+        sn: i.sn || '',
+        shortCode: i.shortCode || '',
+        category: i.category || '',
+        location: i.location || '',
+        department: i.department || i.ownerDepartment || '',
+        project: i.project || '',
+        status: i.status || '',
+        assetStatus: i.assetStatus || '',
+        equipmentType: i.equipmentType || i.type || i.subType || ''
       }))
     });
 
     const issueCards = [
-      makeCard('sn', 'ไม่มี S.N.', missingSn, 'ควรเติมรหัสประจำตัว/เลขเครื่อง เพื่อค้นหาและตรวจรับคืนง่ายขึ้น', 'rose'),
-      makeCard('location', 'ไม่ระบุที่เก็บ', missingLocation, 'ช่วยให้รู้ว่าของควรอยู่ที่ไหนหลังคืน', 'amber'),
-      makeCard('category', 'ไม่ระบุหมวดหมู่', missingCategory, 'ทำให้ filter และรายงานแม่นขึ้น', 'amber'),
-      makeCard('qr', 'ยังไม่ติด QR', missingQrTag, 'ควรติดฉลาก QR หรือกำหนดรหัสสั้นสำหรับของชิ้นเล็ก', 'sky'),
-      makeCard('shortCode', 'แบต/เมมไม่มีรหัสสั้น', missingShortCode, 'แนะนำรหัสแบบ PH-B01, OB-M02 สำหรับติดบนตัวของ', 'cyan'),
-      makeCard('ownerDept', 'ยังไม่ระบุฝ่ายดูแล', missingOwnerDepartment, 'ควรระบุ ภาพนิ่ง / วิดีโอ / OB-Live / ส่วนกลาง', 'indigo'),
-      makeCard('cameraMount', 'กล้องยังไม่มีเมาท์', cameraMissingMount, 'ช่วยให้ตัวช่วยกล้องแนะนำเลนส์ได้แม่นขึ้น', 'blue'),
-      makeCard('lensMount', 'เลนส์ยังไม่มีเมาท์', lensMissingMount, 'ช่วยป้องกันเลือกเลนส์ผิดระบบเมาท์', 'blue'),
-      makeCard('batteryModel', 'แบตยังไม่มีรุ่น', batteryMissingModel, 'เช่น NP-FZ100 เพื่อให้ระบบแนะนำแบตถูกกล้อง', 'emerald'),
-      makeCard('batteryCompat', 'แบตยังไม่ระบุใช้กับ', batteryMissingCompatible, 'ระบุรุ่นกล้องที่ใช้ร่วมกันได้', 'emerald'),
-      makeCard('memCapacity', 'เมมยังไม่มีความจุ', memoryMissingCapacity, 'เช่น 64GB, 128GB, 256GB', 'cyan'),
-      makeCard('memSpec', 'เมมยังไม่มีประเภท/ความเร็ว', memoryMissingSpec, 'เช่น SDXC, CFexpress, V30, V60, V90', 'cyan')
+      makeCard('sn', 'ไม่มี S.N.', missingSn, 'ควรเติมรหัสประจำตัว/เลขเครื่อง เพื่อค้นหาและตรวจรับคืนง่ายขึ้น', 'rose', 'core', 'high', 'เติม S.N. หรือรหัสประจำตัว'),
+      makeCard('location', 'ไม่ระบุที่เก็บ', missingLocation, 'ช่วยให้รู้ว่าของควรอยู่ที่ไหนหลังคืน', 'amber', 'core', 'high', 'ระบุห้อง / ตู้ / กล่องเก็บ'),
+      makeCard('category', 'ไม่ระบุหมวดหมู่', missingCategory, 'ทำให้ filter และรายงานแม่นขึ้น', 'amber', 'core', 'high', 'เลือกหมวดหมู่หลักของอุปกรณ์'),
+      makeCard('project', 'ยังไม่ระบุโครงการ', missingProject, 'ช่วยแยกของตามโครงการจัดซื้อ/จัดหา และทำรายงานพัสดุได้ง่ายขึ้น', 'slate', 'core', 'normal', 'เลือกโครงการหรือปล่อยไว้ถ้ายังไม่ทราบ'),
+      makeCard('qr', 'ยังไม่ติด QR', missingQrTag, 'ควรติดฉลาก QR หรือกำหนดรหัสสั้นสำหรับของชิ้นเล็ก', 'sky', 'qr', 'normal', 'พิมพ์ฉลาก QR หรือติ๊กว่าติดแล้ว'),
+      makeCard('shortCode', 'แบต/เมมไม่มีรหัสสั้น', missingShortCode, 'แนะนำรหัสแบบ PH-B01, OB-M02 สำหรับติดบนตัวของ', 'cyan', 'small', 'normal', 'เติมรหัสสั้นที่อ่านได้บนตัวของ'),
+      makeCard('ownerDept', 'ยังไม่ระบุฝ่ายดูแล', missingOwnerDepartment, 'ควรระบุ ภาพนิ่ง / วิดีโอ / OB-Live / ส่วนกลาง', 'indigo', 'core', 'normal', 'ระบุฝ่ายดูแลหรือฝ่ายเจ้าของอุปกรณ์'),
+      makeCard('cameraMount', 'กล้องยังไม่มีเมาท์', cameraMissingMount, 'ช่วยให้ตัวช่วยกล้องแนะนำเลนส์ได้แม่นขึ้น', 'blue', 'camera', 'normal', 'เติม Mount เช่น Sony E / Canon RF'),
+      makeCard('lensMount', 'เลนส์ยังไม่มีเมาท์', lensMissingMount, 'ช่วยป้องกันเลือกเลนส์ผิดระบบเมาท์', 'blue', 'lens', 'normal', 'เติม Mount ของเลนส์'),
+      makeCard('batteryModel', 'แบตยังไม่มีรุ่น', batteryMissingModel, 'เช่น NP-FZ100 เพื่อให้ระบบแนะนำแบตถูกกล้อง', 'emerald', 'battery', 'normal', 'เติมรุ่นแบตเตอรี่'),
+      makeCard('batteryCompat', 'แบตยังไม่ระบุใช้กับ', batteryMissingCompatible, 'ระบุรุ่นกล้องที่ใช้ร่วมกันได้', 'emerald', 'battery', 'normal', 'เติมอุปกรณ์ที่ใช้ร่วมกันได้'),
+      makeCard('memCapacity', 'เมมยังไม่มีความจุ', memoryMissingCapacity, 'เช่น 64GB, 128GB, 256GB', 'cyan', 'memory', 'normal', 'เติมความจุเมม'),
+      makeCard('memSpec', 'เมมยังไม่มีประเภท/ความเร็ว', memoryMissingSpec, 'เช่น SDXC, CFexpress, V30, V60, V90', 'cyan', 'memory', 'normal', 'เติมประเภทการ์ดหรือความเร็ว')
     ];
 
-    const priorityCards = issueCards.filter(card => card.count > 0).slice(0, 8);
+    const priorityCards = issueCards.filter(card => card.count > 0).sort((a, b) => (a.priority === 'high' ? -1 : 1) - (b.priority === 'high' ? -1 : 1) || b.count - a.count).slice(0, 8);
     const qualityScore = activeItems.length === 0 ? 100 : Math.max(0, Math.round(100 - ((uniqueIssueIds.size / activeItems.length) * 100)));
-    const scoreTone = qualityScore >= 85 ? 'emerald' : qualityScore >= 65 ? 'amber' : 'rose';
+    const scoreTone = qualityScore >= 90 ? 'emerald' : qualityScore >= 75 ? 'blue' : qualityScore >= 60 ? 'amber' : 'rose';
+    const scoreLabel = qualityScore >= 90 ? 'ดีมาก' : qualityScore >= 75 ? 'ใช้งานได้ดี' : qualityScore >= 60 ? 'ควรเติมเพิ่ม' : 'ต้องตรวจสอบ';
 
     return {
       activeCount: activeItems.length,
@@ -10274,7 +10331,10 @@ S.N.: ${item.sn || '-'}
       issueCards,
       priorityCards,
       qualityScore,
-      scoreTone
+      scoreTone,
+      scoreLabel,
+      highPriorityCount: issueCards.filter(card => card.priority === 'high' && card.count > 0).length,
+      totalIssueTopics: issueCards.filter(card => card.count > 0).length
     };
   }, [items]);
 
@@ -16748,87 +16808,208 @@ S.N.: ${item.sn || '-'}
                   </div>
                 </div>
               ) : settingsTab === 'quality' ? (
-                <div className="p-5 sm:p-6 space-y-5">
-                  <div className={`p-5 rounded-3xl border ${dataQualityAudit.scoreTone === 'emerald' ? (isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : dataQualityAudit.scoreTone === 'amber' ? (isDarkMode ? 'bg-amber-950/20 border-amber-800' : 'bg-amber-50 border-amber-200') : (isDarkMode ? 'bg-rose-950/20 border-rose-800' : 'bg-rose-50 border-rose-200')}`}>
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="p-4 sm:p-6 space-y-5 data-quality-center">
+                  <div className={`data-quality-health-card p-5 sm:p-6 rounded-3xl border overflow-hidden relative ${dataQualityAudit.scoreTone === 'emerald' ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : dataQualityAudit.scoreTone === 'blue' ? (isDarkMode ? 'bg-blue-950/25 border-blue-800' : 'bg-blue-50 border-blue-200') : dataQualityAudit.scoreTone === 'amber' ? (isDarkMode ? 'bg-amber-950/25 border-amber-800' : 'bg-amber-50 border-amber-200') : (isDarkMode ? 'bg-rose-950/25 border-rose-800' : 'bg-rose-50 border-rose-200')}`}>
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-[1]">
                       <div className="min-w-0">
                         <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-500">DATA QUALITY CENTER</div>
-                        <h4 className={`text-2xl font-black mt-1 ${theme.textTitle}`}>ตรวจคุณภาพข้อมูลอุปกรณ์</h4>
-                        <p className={`text-sm font-bold mt-2 ${theme.textMuted}`}>รวมจุดที่ควรเติมข้อมูลเพื่อให้ค้นหา รายงาน ตัวช่วยกล้อง และงานตรวจรับคืนแม่นขึ้น</p>
+                        <h4 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>ตรวจสุขภาพข้อมูลอุปกรณ์</h4>
+                        <p className={`text-sm font-bold mt-2 max-w-3xl ${theme.textMuted}`}>เช็กข้อมูลที่ควรเติมก่อนใช้งานยาว ๆ เพื่อให้ค้นหา ยืมคืน รายงาน เอกสารพิมพ์ ฉลาก QR และตัวช่วยกล้องทำงานแม่นขึ้น</p>
                       </div>
-                      <div className={`shrink-0 px-5 py-4 rounded-2xl text-center ${isDarkMode ? 'bg-slate-950/60 border border-slate-800' : 'bg-white/80 border border-white shadow-sm'}`}>
+                      <div className={`data-quality-score-ring shrink-0 px-5 py-4 rounded-[1.6rem] text-center ${isDarkMode ? 'bg-slate-950/70 border border-slate-800' : 'bg-white/90 border border-white shadow-sm'}`}>
                         <div className={`text-xs font-black ${theme.textMuted}`}>คะแนนความครบถ้วน</div>
-                        <div className={`text-4xl font-black leading-none mt-1 ${theme.textTitle}`}>{dataQualityAudit.qualityScore}%</div>
-                        <div className={`text-xs font-bold mt-2 ${theme.textMuted}`}>{dataQualityAudit.activeCount.toLocaleString('th-TH')} รายการในระบบ</div>
+                        <div className={`text-5xl font-black leading-none mt-1 ${theme.textTitle}`}>{dataQualityAudit.qualityScore}%</div>
+                        <div className={`text-sm font-black mt-2 ${dataQualityAudit.scoreTone === 'emerald' ? 'text-emerald-500' : dataQualityAudit.scoreTone === 'blue' ? 'text-blue-500' : dataQualityAudit.scoreTone === 'amber' ? 'text-amber-500' : 'text-rose-500'}`}>{dataQualityAudit.scoreLabel}</div>
                       </div>
+                    </div>
+                    <div className={`mt-5 h-3 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-950/80' : 'bg-white/80'}`}>
+                      <div className={`h-full rounded-full ${dataQualityAudit.scoreTone === 'emerald' ? 'bg-emerald-500' : dataQualityAudit.scoreTone === 'blue' ? 'bg-blue-500' : dataQualityAudit.scoreTone === 'amber' ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${dataQualityAudit.qualityScore}%` }}></div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                     {[
-                      ['อุปกรณ์ทั้งหมด', dataQualityAudit.activeCount],
-                      ['รายการที่ควรเติม', dataQualityAudit.issueItemCount],
-                      ['หัวข้อที่พบปัญหา', dataQualityAudit.issueCards.filter(c => c.count > 0).length],
-                      ['ควรรีบแก้ก่อน', dataQualityAudit.priorityCards.length]
-                    ].map(([label,value]) => (
+                      ['อุปกรณ์ทั้งหมด', dataQualityAudit.activeCount, 'รายการในระบบ'],
+                      ['ควรเติมข้อมูล', dataQualityAudit.issueItemCount, 'รายการไม่ซ้ำ'],
+                      ['หัวข้อที่พบ', dataQualityAudit.totalIssueTopics, 'หมวดปัญหา'],
+                      ['เร่งแก้ก่อน', dataQualityAudit.highPriorityCount, 'หัวข้อสำคัญ'],
+                      ['คะแนน', `${dataQualityAudit.qualityScore}%`, dataQualityAudit.scoreLabel]
+                    ].map(([label,value,sub]) => (
                       <div key={label} className={`p-4 rounded-2xl border ${theme.btnSecondary}`}>
                         <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
-                        <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                        <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{typeof value === 'number' ? Number(value || 0).toLocaleString('th-TH') : value}</div>
+                        <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>{sub}</div>
                       </div>
                     ))}
                   </div>
 
-                  {dataQualityAudit.priorityCards.length === 0 ? (
-                    <div className={`p-6 rounded-3xl border text-center ${isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
-                      <div className="text-3xl mb-2">✅</div>
-                      <div className="text-xl font-black">ข้อมูลหลักครบถ้วนดีมาก</div>
-                      <div className="text-sm font-bold mt-1 opacity-80">ตอนนี้ยังไม่พบจุดที่ต้องรีบแก้ในข้อมูลอุปกรณ์</div>
+                  <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-950/50 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-start">
+                      <div>
+                        <div className={`font-black text-lg ${theme.textTitle}`}>ตัวกรองรายการที่ควรเติม</div>
+                        <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกหมวดแล้วกด “แก้ไข” เพื่อเปิดฟอร์มอุปกรณ์โดยตรง หรือ “เปิดแฟ้ม” เพื่อดูประวัติชิ้นนั้น</p>
+                      </div>
+                      <input
+                        value={dataQualitySearch}
+                        onChange={e => setDataQualitySearch(e.target.value)}
+                        className={`w-full lg:w-80 px-4 py-3 rounded-2xl border font-bold ${theme.input}`}
+                        placeholder="ค้นหาอุปกรณ์ / S.N. / ที่เก็บ / หมวดหมู่"
+                      />
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                      {dataQualityAudit.priorityCards.map(card => (
-                        <div key={card.id} className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-950/50 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className={`font-black text-lg ${theme.textTitle}`}>{card.title}</div>
-                              <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{card.desc}</div>
-                            </div>
-                            <div className="shrink-0 px-3 py-2 rounded-2xl bg-blue-600 text-white font-black">{card.count.toLocaleString('th-TH')}</div>
-                          </div>
-                          {card.sampleItems.length > 0 && (
-                            <div className="mt-4 space-y-2">
-                              <div className={`text-[11px] font-black tracking-[0.08em] uppercase ${theme.textMuted}`}>ตัวอย่างที่ควรแก้</div>
-                              {card.sampleItems.map(sample => (
-                                <div key={sample.id} className={`p-3 rounded-2xl border flex items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                                  <div className="min-w-0">
-                                    <div className={`font-black truncate ${theme.textTitle}`}>{sample.name}</div>
-                                    <div className={`text-xs font-bold truncate ${theme.textMuted}`}>{sample.sn ? `S.N. ${sample.sn}` : 'ยังไม่มี S.N.'}{sample.shortCode ? ` • ${sample.shortCode}` : ''}{sample.location ? ` • ${sample.location}` : ''}</div>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const target = items.find(i => i.id === sample.id);
-                                      if (target) {
-                                        setShowSettings(false);
-                                        openItemEditor(target);
-                                      }
-                                    }}
-                                    className="shrink-0 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black shadow-sm"
-                                  >
-                                    แก้ไข
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                    <div className="data-quality-filter-row mt-4 flex gap-2 overflow-x-auto pb-1">
+                      {[
+                        ['all', 'ทั้งหมด'],
+                        ['core', 'ข้อมูลหลัก'],
+                        ['qr', 'QR / ฉลาก'],
+                        ['small', 'ของชิ้นเล็ก'],
+                        ['camera', 'กล้อง'],
+                        ['lens', 'เลนส์'],
+                        ['battery', 'แบต'],
+                        ['memory', 'เมม'],
+                        ['high', 'เร่งแก้ก่อน']
+                      ].map(([id,label]) => (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => setDataQualityFilter(id)}
+                          className={`px-4 py-2 rounded-2xl border text-sm font-black transition-colors ${dataQualityFilter === id ? 'bg-blue-600 text-white border-blue-500 shadow-sm' : theme.btnSecondary}`}
+                        >{label}</button>
                       ))}
                     </div>
-                  )}
+                  </div>
+
+                  {(() => {
+                    const q = String(dataQualitySearch || '').trim().toLowerCase();
+                    const matchText = (item) => String([item.name, item.sn, item.shortCode, item.category, item.location, item.department, item.project, item.equipmentType].filter(Boolean).join(' ')).toLowerCase();
+                    const issueCards = (dataQualityAudit.issueCards || [])
+                      .filter(card => card.count > 0)
+                      .filter(card => dataQualityFilter === 'all' || (dataQualityFilter === 'high' ? card.priority === 'high' : card.group === dataQualityFilter))
+                      .map(card => ({ ...card, visibleItems: (card.items || []).filter(item => !q || matchText(item).includes(q)) }))
+                      .filter(card => !q || card.visibleItems.length > 0 || String(card.title + ' ' + card.desc).toLowerCase().includes(q));
+
+                    if (dataQualityAudit.activeCount === 0) {
+                      return (
+                        <div className={`p-8 rounded-3xl border text-center ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                          <div className="text-4xl mb-2">📦</div>
+                          <div className="text-xl font-black">ยังไม่มีอุปกรณ์ให้ตรวจคุณภาพข้อมูล</div>
+                          <div className="text-sm font-bold mt-1 opacity-80">เมื่อเพิ่มอุปกรณ์แล้ว ระบบจะช่วยเช็กข้อมูลที่ควรเติมให้อัตโนมัติ</div>
+                        </div>
+                      );
+                    }
+
+                    if (dataQualityAudit.issueItemCount === 0) {
+                      return (
+                        <div className={`p-8 rounded-3xl border text-center ${isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+                          <div className="text-4xl mb-2">✅</div>
+                          <div className="text-xl font-black">ข้อมูลอุปกรณ์ครบถ้วนดีแล้ว</div>
+                          <div className="text-sm font-bold mt-1 opacity-80">พร้อมใช้งานยืม/คืน รายงาน เอกสารพิมพ์ และฉลาก QR ได้อย่างมั่นใจ</div>
+                        </div>
+                      );
+                    }
+
+                    if (issueCards.length === 0) {
+                      return (
+                        <div className={`p-8 rounded-3xl border text-center ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                          <div className="text-4xl mb-2">🔎</div>
+                          <div className="text-xl font-black">ไม่พบรายการตามตัวกรองนี้</div>
+                          <div className="text-sm font-bold mt-1 opacity-80">ลองล้างคำค้นหา หรือกลับไปดูทั้งหมด</div>
+                          <button type="button" onClick={() => { setDataQualityFilter('all'); setDataQualitySearch(''); }} className="mt-4 px-5 py-3 rounded-2xl bg-blue-600 text-white font-black">ล้างตัวกรอง</button>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        {issueCards.map(card => {
+                          const visibleItems = card.visibleItems && card.visibleItems.length ? card.visibleItems : card.items || [];
+                          const toneClass = card.tone === 'rose'
+                            ? (isDarkMode ? 'bg-rose-950/20 border-rose-800' : 'bg-rose-50 border-rose-200')
+                            : card.tone === 'amber'
+                              ? (isDarkMode ? 'bg-amber-950/20 border-amber-800' : 'bg-amber-50 border-amber-200')
+                              : card.tone === 'cyan'
+                                ? (isDarkMode ? 'bg-cyan-950/20 border-cyan-800' : 'bg-cyan-50 border-cyan-200')
+                                : card.tone === 'emerald'
+                                  ? (isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200')
+                                  : card.tone === 'blue'
+                                    ? (isDarkMode ? 'bg-blue-950/20 border-blue-800' : 'bg-blue-50 border-blue-200')
+                                    : card.tone === 'indigo'
+                                      ? (isDarkMode ? 'bg-indigo-950/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200')
+                                      : (isDarkMode ? 'bg-slate-950/45 border-slate-800' : 'bg-white border-slate-200 shadow-sm');
+                          return (
+                            <div key={card.id} className={`data-quality-issue-card p-4 rounded-3xl border ${toneClass}`}>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <div className={`font-black text-lg ${theme.textTitle}`}>{card.title}</div>
+                                    {card.priority === 'high' && <span className="px-2 py-1 rounded-lg text-[10px] font-black bg-rose-600 text-white">ควรแก้ก่อน</span>}
+                                  </div>
+                                  <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{card.desc}</div>
+                                  <div className={`text-xs font-black mt-2 ${theme.textMuted}`}>คำแนะนำ: {card.actionHint}</div>
+                                </div>
+                                <div className="shrink-0 px-3 py-2 rounded-2xl bg-blue-600 text-white font-black text-center min-w-16">
+                                  <div className="text-xl leading-none">{card.count.toLocaleString('th-TH')}</div>
+                                  <div className="text-[10px] opacity-90">รายการ</div>
+                                </div>
+                              </div>
+
+                              <div className="mt-4 space-y-2">
+                                {visibleItems.slice(0, 8).map(item => {
+                                  const target = items.find(i => i.id === item.id);
+                                  return (
+                                    <div key={item.id} className={`data-quality-item-card p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950/45 border-slate-800' : 'bg-white/90 border-slate-200'}`}>
+                                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                        <div className="min-w-0 flex-1">
+                                          <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
+                                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>
+                                            {item.sn ? `S.N. ${item.sn}` : 'S.N. -'}{item.shortCode ? ` • ${item.shortCode}` : ''}{item.category ? ` • ${item.category}` : ' • หมวด -'}{item.location ? ` • ${item.location}` : ' • ที่เก็บ -'}
+                                          </div>
+                                          <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>{item.department || 'ฝ่าย -'} {item.project ? `• ${item.project}` : ''}</div>
+                                        </div>
+                                        <div className="grid grid-cols-3 sm:grid-cols-1 gap-2 shrink-0">
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              if (target) {
+                                                setShowSettings(false);
+                                                openItemEditor(target);
+                                              }
+                                            }}
+                                            className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black shadow-sm"
+                                          >แก้ไข</button>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              if (target) {
+                                                setShowSettings(false);
+                                                setShowHistory(target.id);
+                                              }
+                                            }}
+                                            className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}
+                                          >เปิดแฟ้ม</button>
+                                          <button
+                                            type="button"
+                                            onClick={() => target && copyItemSummary(target)}
+                                            className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}
+                                          >คัดลอก</button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                                {card.count > visibleItems.slice(0, 8).length && (
+                                  <div className={`text-xs font-black text-center pt-1 ${theme.textMuted}`}>แสดงตัวอย่าง {visibleItems.slice(0, 8).length.toLocaleString('th-TH')} จาก {card.count.toLocaleString('th-TH')} รายการ • ใช้ช่องค้นหาเพื่อเจาะจงรายการ</div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
 
                   <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
                     <div className="font-black mb-1">ลำดับแนะนำสำหรับเก็บข้อมูล</div>
-                    <div className="text-sm font-bold opacity-90">เริ่มจาก S.N. → ที่เก็บ → หมวดหมู่ → QR/รหัสสั้น → ฝ่ายดูแล → metadata เฉพาะกล้อง/เลนส์/แบต/เมม จะช่วยให้ค้นหาและรายงานแม่นขึ้นมาก</div>
+                    <div className="text-sm font-bold opacity-90">เริ่มจาก S.N. → ที่เก็บ → หมวดหมู่ → QR/รหัสสั้น → ฝ่ายดูแล → metadata เฉพาะกล้อง/เลนส์/แบต/เมม จะช่วยให้ค้นหา รายงาน เอกสารพิมพ์ และตัวช่วยเลือกอุปกรณ์แม่นขึ้นมาก</div>
                   </div>
                 </div>
               ) : settingsTab === 'database' ? (
