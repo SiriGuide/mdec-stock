@@ -44,7 +44,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.3 Data Safety Confirm Polish';
+const APP_VERSION = 'v22.53.4 Reports Dashboard Print Polish';
 const APP_UPDATE_NOTE = 'Mobile Borrow / Return Flow Polish: เก็บ flow ยืม/ออกงาน/รับคืนบนมือถือ เพิ่มสรุปรายการก่อนยืนยัน แถบสถานะเช็กของ ปุ่มยืนยันแบบ sticky และ modal ตรวจสอบก่อนบันทึก โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -2969,6 +2969,67 @@ function FactoryPolishStyle({ isDarkMode }) {
       .factory-stock-polish .document-archive-polish {
         border-radius: 22px !important;
         overflow: hidden !important;
+      }
+      /* v22.53.4 Reports / Dashboard / Print Polish */
+      .factory-stock-polish .report-dashboard-card {
+        border-radius: 22px !important;
+        overflow: hidden !important;
+      }
+      .factory-stock-polish .report-dashboard-card button {
+        min-height: 46px;
+      }
+      .factory-stock-polish .monthly-report-polish .monthly-report-print-area {
+        border-radius: 22px;
+      }
+      .factory-stock-polish .monthly-report-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        overflow: hidden;
+      }
+      .factory-stock-polish .monthly-report-table th,
+      .factory-stock-polish .monthly-report-table td {
+        padding: 10px 12px !important;
+        font-size: 12px !important;
+      }
+      @media (max-width: 767px) {
+        .factory-stock-polish .report-dashboard-card {
+          border-radius: 18px !important;
+        }
+        .factory-stock-polish .report-dashboard-card .report-action-grid {
+          grid-template-columns: 1fr !important;
+        }
+        .factory-stock-polish .monthly-report-polish .monthly-report-mobile-actions {
+          position: sticky;
+          bottom: 0;
+          z-index: 15;
+          padding: 10px;
+        }
+      }
+      @media print {
+        .factory-stock-polish .monthly-report-polish {
+          position: static !important;
+          inset: auto !important;
+          background: #fff !important;
+          padding: 0 !important;
+        }
+        .factory-stock-polish .monthly-report-polish .monthly-report-modal-shell {
+          max-width: none !important;
+          width: 100% !important;
+          max-height: none !important;
+          box-shadow: none !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+        }
+        .factory-stock-polish .monthly-report-polish .monthly-report-no-print {
+          display: none !important;
+        }
+        .factory-stock-polish .monthly-report-print-area {
+          color: #000 !important;
+          background: #fff !important;
+          box-shadow: none !important;
+          border: 0 !important;
+        }
       }
       .factory-stock-polish .document-archive-card,
       .factory-stock-polish .tracking-list-card {
@@ -7537,26 +7598,110 @@ S.N.: ${item.sn || '-'}
     });
     const countType = (type) => historyEntries.filter(e => e.h.type === type).length;
     const useMap = {};
+    const categoryMap = {};
+    const departmentMap = {};
+    const ownerMap = {};
+    historyEntries.forEach(({ item }) => {
+      const categoryKey = item.category || 'ไม่ระบุหมวดหมู่';
+      const departmentKey = item.department || item.ownerDepartment || 'ไม่ระบุฝ่าย';
+      const ownerKey = item.owner || item.ownerDepartment || item.department || 'ไม่ระบุผู้ดูแล';
+      categoryMap[categoryKey] = (categoryMap[categoryKey] || 0) + 1;
+      departmentMap[departmentKey] = (departmentMap[departmentKey] || 0) + 1;
+      ownerMap[ownerKey] = (ownerMap[ownerKey] || 0) + 1;
+    });
     historyEntries.filter(e => ['borrow','event','return'].includes(e.h.type)).forEach(({item}) => {
       const key = item.id;
       if (!useMap[key]) useMap[key] = { item, count: 0 };
       useMap[key].count += 1;
     });
+    const makeRankRows = (map, limit = 6) => Object.entries(map)
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'th', { numeric: true }))
+      .slice(0, limit);
+    const documentsInMonth = (borrowเอกสารs || []).filter((docData) => {
+      const dKey = getDateKey(docData.createdAt || docData.issueDate || docData.borrowDate || docData.eventDate || docData.date || '');
+      return String(dKey || '').startsWith(monthKey);
+    });
     const repairItems = historyEntries.filter(e => String(e.h.type || '').includes('repair'));
+    const borrowCount = countType('borrow');
+    const eventCount = countType('event');
+    const returnCount = countType('return');
+    const activeItems = items.filter(i => i && !i.isDeleted);
     return {
       monthKey,
       total: historyEntries.length,
-      borrow: countType('borrow'),
-      event: countType('event'),
-      return: countType('return'),
+      borrow: borrowCount,
+      event: eventCount,
+      return: returnCount,
       repairs: repairItems.length,
       proofs: historyEntries.reduce((sum, e) => sum + (Array.isArray(e.h.proofs) ? e.h.proofs.length : 0), 0),
+      documents: documentsInMonth.length,
+      documentActive: documentsInMonth.filter(d => !d.status || d.status === 'active').length,
+      documentPartial: documentsInMonth.filter(d => d.status === 'partial').length,
+      documentClosed: documentsInMonth.filter(d => d.status === 'closed').length,
       topUsed: Object.values(useMap).sort((a, b) => b.count - a.count).slice(0, 8),
+      topCategories: makeRankRows(categoryMap, 6),
+      topDepartments: makeRankRows(departmentMap, 6),
+      topOwners: makeRankRows(ownerMap, 6),
+      typeRows: [
+        { label: 'ยืมอุปกรณ์', value: borrowCount, desc: 'รายการยืมออกในเดือนนี้' },
+        { label: 'ออกงาน', value: eventCount, desc: 'รายการนำอุปกรณ์ออกงาน' },
+        { label: 'รับคืน', value: returnCount, desc: 'รายการคืนเข้าระบบ' },
+        { label: 'แจ้งซ่อม', value: repairItems.length, desc: 'ประวัติซ่อม/ชำรุด' },
+        { label: 'เอกสาร', value: documentsInMonth.length, desc: 'ใบยืม/ใบออกงานในเดือนนี้' },
+        { label: 'หลักฐานรูป', value: historyEntries.reduce((sum, e) => sum + (Array.isArray(e.h.proofs) ? e.h.proofs.length : 0), 0), desc: 'รูปที่แนบกับประวัติเดือนนี้' }
+      ],
       overdueNow: overdueItems.length,
-      maintenanceNow: items.filter(i => i.status === 'maintenance' && !i.isDeleted).length
+      maintenanceNow: activeItems.filter(i => i.status === 'maintenance').length,
+      activeItemCount: activeItems.length
     };
-  }, [items, monthlyReportMonth, overdueItems.length]);
+  }, [items, borrowเอกสารs, monthlyReportMonth, overdueItems.length]);
 
+  const reportDashboardData = useMemo(() => {
+    const activeItems = items.filter(item => item && !item.isDeleted);
+    const outsideCount = currentBorrowedItems.length + currentEventItems.length;
+    const documentActive = (borrowเอกสารs || []).filter(d => !d.status || d.status === 'active').length;
+    const documentPartial = (borrowเอกสารs || []).filter(d => d.status === 'partial').length;
+    const documentClosed = (borrowเอกสารs || []).filter(d => d.status === 'closed').length;
+    const totalProofs = activeItems.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.reduce((s, h) => s + (Array.isArray(h.proofs) ? h.proofs.length : 0), 0) : 0), 0);
+    const missingCore = activeItems.filter(item => !item.sn || !item.category || !item.location || !item.ownerDepartment).length;
+    const readyPercent = activeItems.length ? Math.round((activeItems.filter(i => i.status === 'available').length / activeItems.length) * 100) : 0;
+    const outsidePercent = activeItems.length ? Math.round((outsideCount / activeItems.length) * 100) : 0;
+    const statusRows = STATUSES.map(status => ({
+      id: status.id,
+      label: status.label,
+      count: activeItems.filter(item => item.status === status.id).length
+    })).filter(row => row.count > 0);
+    const departmentRows = DEPARTMENTS.map(dep => ({
+      id: dep.id,
+      label: dep.label,
+      count: activeItems.filter(item => item.department === dep.id || item.ownerDepartment === dep.id).length
+    })).filter(row => row.count > 0);
+    const nextReturnItems = [...currentBorrowedItems, ...currentEventItems]
+      .filter(item => item.expectedReturn)
+      .sort((a, b) => new Date(a.expectedReturn || '9999-12-31') - new Date(b.expectedReturn || '9999-12-31'))
+      .slice(0, 5);
+    return {
+      activeItems: activeItems.length,
+      outsideCount,
+      documentActive,
+      documentPartial,
+      documentClosed,
+      totalProofs,
+      missingCore,
+      readyPercent,
+      outsidePercent,
+      statusRows,
+      departmentRows,
+      nextReturnItems,
+      quickCards: [
+        { label: 'ใช้งานได้ทันที', value: readyPercent + '%', desc: 'สัดส่วนของที่พร้อมใช้' },
+        { label: 'อยู่นอกศูนย์', value: outsideCount, desc: 'ยืม/ออกงานรวมกัน' },
+        { label: 'รอคืนเอกสาร', value: documentActive + documentPartial, desc: 'เอกสารที่ยังไม่ปิดครบ' },
+        { label: 'ข้อมูลควรเติม', value: missingCore, desc: 'S.N./หมวด/ที่เก็บ/ฝ่ายดูแล' }
+      ]
+    };
+  }, [items, borrowเอกสารs, currentBorrowedItems, currentEventItems]);
 
   const stockCountStats = useMemo(() => {
     const activeItems = items.filter(i => !i.isDeleted);
@@ -8793,6 +8938,35 @@ S.N.: ${item.sn || '-'}
     const bom = String.fromCharCode(0xfeff);
     const csv = [headers, ...rows].map(row => row.map(backupCsvEscape).join(',')).join(newline);
     backupDownloadTextFile(filename, bom + csv, 'text/csv;charset=utf-8;');
+  };
+
+  const exportMonthlyReportCSV = async () => {
+    const headers = ['หมวดรายงาน', 'รายการ', 'จำนวน/ค่า', 'หมายเหตุ'];
+    const rows = [
+      ['สรุปเดือน', 'เดือนรายงาน', monthlyReportData.monthKey, 'รูปแบบ YYYY-MM'],
+      ['สรุปเดือน', 'ประวัติรวม', monthlyReportData.total, 'ทุก action ที่เกิดในเดือนนี้'],
+      ['สรุปเดือน', 'ยืมอุปกรณ์', monthlyReportData.borrow, ''],
+      ['สรุปเดือน', 'ออกงาน', monthlyReportData.event, ''],
+      ['สรุปเดือน', 'รับคืน', monthlyReportData.return, ''],
+      ['สรุปเดือน', 'แจ้งซ่อม', monthlyReportData.repairs, ''],
+      ['สรุปเดือน', 'เอกสารย้อนหลัง', monthlyReportData.documents, 'ใบยืม/ใบออกงานที่สร้างในเดือนนี้'],
+      ['สรุปเดือน', 'หลักฐานรูปภาพ', monthlyReportData.proofs, 'จำนวนรูปที่ผูกกับประวัติเดือนนี้'],
+      ['สถานะปัจจุบัน', 'เลยกำหนดคืน', monthlyReportData.overdueNow, 'จำนวน ณ วันที่ส่งออก'],
+      ['สถานะปัจจุบัน', 'ซ่อม/ชำรุด', monthlyReportData.maintenanceNow, 'จำนวน ณ วันที่ส่งออก'],
+      ['สถานะปัจจุบัน', 'อยู่นอกศูนย์', reportDashboardData.outsideCount, 'ยืม + ออกงาน'],
+      ['สถานะปัจจุบัน', 'เอกสารรอปิด', reportDashboardData.documentActive + reportDashboardData.documentPartial, 'active + partial'],
+      ['สถานะปัจจุบัน', 'ข้อมูลควรเติม', reportDashboardData.missingCore, 'S.N./หมวด/ที่เก็บ/ฝ่ายดูแล']
+    ];
+    monthlyReportData.topUsed.forEach((row, index) => rows.push(['อุปกรณ์ใช้บ่อย', `${index + 1}. ${row.item.name || '-'}`, row.count, row.item.sn ? `S.N. ${row.item.sn}` : '']));
+    monthlyReportData.topCategories.forEach((row, index) => rows.push(['หมวดหมู่ใช้บ่อย', `${index + 1}. ${row.label}`, row.count, 'นับจากประวัติเดือนนี้']));
+    monthlyReportData.topDepartments.forEach((row, index) => rows.push(['ฝ่าย/พื้นที่ใช้บ่อย', `${index + 1}. ${row.label}`, row.count, 'นับจากประวัติเดือนนี้']));
+    backupDownloadCSV(`MDEC_Monthly_Report_${monthlyReportData.monthKey || monthlyReportMonth}_${getBackupFileTag()}.csv`, headers, rows);
+    await logAction('ส่งออกรายงานประจำเดือน CSV', monthlyReportData.monthKey || '-', `ส่งออก ${rows.length} แถว`);
+    pushToast('ดาวน์โหลดรายงานประจำเดือนเป็น CSV แล้ว', 'success');
+  };
+
+  const printMonthlyReport = () => {
+    window.setTimeout(() => window.print(), 80);
   };
 
   const backupDownloadMultipleFiles = (files = []) => {
@@ -11067,6 +11241,11 @@ S.N.: ${item.sn || '-'}
               <span className={`block ${theme.textTitle}`}>หลักฐานรูปภาพ</span>
               <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ดู/จัดการรูป</span>
             </button>
+            <button type="button" onClick={() => setShowMonthlyReportModal(true)} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+              <span className="mobile-field-icon bg-amber-600 text-white mb-2"><Icons.ClipboardList className="w-5 h-5" /></span>
+              <span className={`block ${theme.textTitle}`}>รายงาน</span>
+              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>สรุป/พิมพ์/CSV</span>
+            </button>
             <button type="button" onClick={openControlCenter} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
               <span className="mobile-field-icon bg-indigo-600 text-white mb-2"><Icons.ViewGrid className="w-5 h-5" /></span>
               <span className={`block ${theme.textTitle}`}>เมนูทั้งหมด</span>
@@ -11339,6 +11518,68 @@ S.N.: ${item.sn || '-'}
         </div>
       </div>
 
+      {/* v22.53.4 Reports / Dashboard Snapshot */}
+      <div className={`report-dashboard-card w-full mb-6 rounded-3xl border shadow-sm overflow-hidden ${theme.cardBg}`}>
+        <div className={`p-4 sm:p-5 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
+          <div className="min-w-0">
+            <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-amber-300' : 'text-amber-600'}`}>REPORT DASHBOARD</div>
+            <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>สรุปรายงานพร้อมพิมพ์</h2>
+            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>มองภาพรวมก่อนทำรายงาน / ส่งออก CSV / ตรวจจุดที่ควรเคลียร์</p>
+          </div>
+          <div className="report-action-grid grid grid-cols-2 sm:flex gap-2 shrink-0">
+            <button type="button" onClick={() => setShowMonthlyReportModal(true)} className="px-4 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black shadow-sm">รายงานเดือนนี้</button>
+            <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เอกสารย้อนหลัง</button>
+            <button type="button" onClick={() => { setShowMoreMenu(false); setShowระบบHealthModal(true); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ตรวจสุขภาพ</button>
+          </div>
+        </div>
+        <div className="p-4 sm:p-5 grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {reportDashboardData.quickCards.map(card => (
+            <div key={card.label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`text-xs font-black ${theme.textMuted}`}>{card.label}</div>
+              <div className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>{typeof card.value === 'number' ? Number(card.value || 0).toLocaleString('th-TH') : card.value}</div>
+              <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>{card.desc}</div>
+            </div>
+          ))}
+        </div>
+        <div className={`px-4 sm:px-5 pb-4 sm:pb-5 grid grid-cols-1 lg:grid-cols-3 gap-3 ${theme.textTitle}`}>
+          <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <div className="font-black mb-3">สถานะอุปกรณ์</div>
+            <div className="space-y-2">
+              {reportDashboardData.statusRows.slice(0, 5).map(row => (
+                <div key={row.id} className="flex items-center justify-between gap-3 text-sm">
+                  <span className={`font-bold truncate ${theme.textMuted}`}>{row.label}</span>
+                  <span className="font-black">{row.count.toLocaleString('th-TH')}</span>
+                </div>
+              ))}
+              {reportDashboardData.statusRows.length === 0 && <div className={`text-sm font-bold ${theme.textMuted}`}>ยังไม่มีข้อมูลสถานะ</div>}
+            </div>
+          </div>
+          <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <div className="font-black mb-3">ฝ่าย/พื้นที่ที่มีอุปกรณ์</div>
+            <div className="space-y-2">
+              {reportDashboardData.departmentRows.slice(0, 5).map(row => (
+                <div key={row.id} className="flex items-center justify-between gap-3 text-sm">
+                  <span className={`font-bold truncate ${theme.textMuted}`}>{row.label}</span>
+                  <span className="font-black">{row.count.toLocaleString('th-TH')}</span>
+                </div>
+              ))}
+              {reportDashboardData.departmentRows.length === 0 && <div className={`text-sm font-bold ${theme.textMuted}`}>ยังไม่ได้แยกฝ่ายดูแล</div>}
+            </div>
+          </div>
+          <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <div className="font-black mb-3">คิวคืนใกล้สุด</div>
+            <div className="space-y-2">
+              {reportDashboardData.nextReturnItems.map(item => (
+                <button key={item.id} type="button" onClick={() => setShowHistory(item.id)} className={`w-full flex items-center justify-between gap-3 text-left text-sm rounded-xl px-2 py-1.5 ${isDarkMode ? 'hover:bg-slate-900' : 'hover:bg-slate-50'}`}>
+                  <span className="font-black truncate">{item.name}</span>
+                  <span className={`text-xs font-bold shrink-0 ${theme.textMuted}`}>{item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</span>
+                </button>
+              ))}
+              {reportDashboardData.nextReturnItems.length === 0 && <div className={`text-sm font-bold ${theme.textMuted}`}>ไม่มีของค้างคืนตอนนี้</div>}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* 📊 Factory Stock Metrics */}
       <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-6">
@@ -15981,35 +16222,128 @@ S.N.: ${item.sn || '-'}
 
       {/* รายงานประจำเดือน */}
       {showMonthlyReportModal && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
-            <div className={`p-6 border-b flex justify-between items-start gap-4 ${theme.divide}`}>
-              <div><h3 className={`text-2xl font-black ${theme.textTitle}`}>รายงานประจำเดือน</h3><p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปการใช้งานอุปกรณ์จากประวัติในระบบ</p></div>
-              <button type="button" onClick={() => setShowMonthlyReportModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
-            </div>
-            <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
-              <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-                <label className={`font-black ${theme.textTitle}`}>เลือกเดือน</label>
-                <input type="month" className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={monthlyReportMonth} onChange={e => setMonthlyReportMonth(e.target.value)} />
+        <div className={`monthly-report-polish fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[9990]`}>
+          <div className={`monthly-report-modal-shell rounded-3xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[92vh] border ${theme.cardBg} ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+            <div className={`monthly-report-no-print p-5 sm:p-6 border-b flex flex-col lg:flex-row lg:items-start justify-between gap-4 ${theme.divide}`}>
+              <div className="min-w-0">
+                <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-amber-300' : 'text-amber-600'}`}>MONTHLY REPORT</div>
+                <h3 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>รายงานประจำเดือน</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปการยืม คืน ออกงาน หลักฐาน และสถานะปัจจุบันของศูนย์</p>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <input type="month" className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`} value={monthlyReportMonth} onChange={e => setMonthlyReportMonth(e.target.value)} />
+                <button type="button" onClick={exportMonthlyReportCSV} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>CSV</button>
+                <button type="button" onClick={printMonthlyReport} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">พิมพ์</button>
+                <button type="button" onClick={() => setShowMonthlyReportModal(false)} className={`p-3 rounded-2xl border ${theme.btnSecondary}`}><Icons.X className="w-5 h-5" /></button>
+              </div>
+            </div>
+
+            <div className="monthly-report-print-area p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-5">
+              <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div>
+                    <div className={`text-xs font-black ${theme.textMuted}`}>MDEC STOCK REPORT</div>
+                    <h1 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>รายงานสรุปประจำเดือน {monthlyReportData.monthKey}</h1>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>พิมพ์วันที่ {new Date().toLocaleDateString('th-TH')} • {APP_VERSION}</p>
+                  </div>
+                  <div className={`px-4 py-3 rounded-2xl border text-right ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className={`text-xs font-black ${theme.textMuted}`}>ประวัติรวมเดือนนี้</div>
+                    <div className={`text-3xl font-black ${theme.textTitle}`}>{monthlyReportData.total.toLocaleString('th-TH')}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
-                  ['ยืม', monthlyReportData.borrow, 'bg-purple-100 text-purple-700'],
-                  ['ออกงาน', monthlyReportData.event, 'bg-orange-100 text-orange-700'],
-                  ['รับคืน', monthlyReportData.return, 'bg-emerald-100 text-emerald-700'],
-                  ['แจ้งซ่อม', monthlyReportData.repairs, 'bg-rose-100 text-rose-700'],
-                  ['ประวัติรวม', monthlyReportData.total, 'bg-slate-100 text-slate-700'],
-                  ['รูปหลักฐาน', monthlyReportData.proofs, 'bg-pink-100 text-pink-700'],
-                  ['เลยกำหนดตอนนี้', monthlyReportData.overdueNow, 'bg-red-100 text-red-700'],
-                  ['ชำรุดตอนนี้', monthlyReportData.maintenanceNow, 'bg-amber-100 text-amber-700']
-                ].map(([label,value,tone]) => <div key={label} className={`p-4 rounded-2xl border ${tone}`}><div className="text-xs font-bold opacity-80">{label}</div><div className="text-3xl font-black">{Number(value || 0).toLocaleString('th-TH')}</div></div>)}
+                  ['ยืม', monthlyReportData.borrow, 'bg-purple-100 text-purple-700 border-purple-200'],
+                  ['ออกงาน', monthlyReportData.event, 'bg-orange-100 text-orange-700 border-orange-200'],
+                  ['รับคืน', monthlyReportData.return, 'bg-emerald-100 text-emerald-700 border-emerald-200'],
+                  ['แจ้งซ่อม', monthlyReportData.repairs, 'bg-rose-100 text-rose-700 border-rose-200'],
+                  ['เอกสาร', monthlyReportData.documents, 'bg-blue-100 text-blue-700 border-blue-200'],
+                  ['รูปหลักฐาน', monthlyReportData.proofs, 'bg-pink-100 text-pink-700 border-pink-200'],
+                  ['เลยกำหนดตอนนี้', monthlyReportData.overdueNow, 'bg-red-100 text-red-700 border-red-200'],
+                  ['ชำรุดตอนนี้', monthlyReportData.maintenanceNow, 'bg-amber-100 text-amber-700 border-amber-200']
+                ].map(([label, value, tone]) => (
+                  <div key={label} className={`p-4 rounded-2xl border ${tone}`}>
+                    <div className="text-xs font-black opacity-80">{label}</div>
+                    <div className="text-3xl font-black mt-1">{Number(value || 0).toLocaleString('th-TH')}</div>
+                  </div>
+                ))}
               </div>
-              <div className={`p-5 rounded-2xl border ${theme.cardBg}`}>
-                <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>อุปกรณ์ที่ถูกใช้งานบ่อยในเดือนนี้</h4>
-                {monthlyReportData.topUsed.length === 0 ? <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีรายการในเดือนนี้</div> : monthlyReportData.topUsed.map((row, idx) => <div key={row.item.id} className={`flex justify-between gap-3 py-2 border-b ${theme.divide}`}><div className="font-bold">{idx + 1}. {row.item.name} <span className={`text-xs ${theme.textMuted}`}>S.N. {row.item.sn || '-'}</span></div><div className="font-black">{row.count} ครั้ง</div></div>)}
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>อุปกรณ์ที่ถูกใช้งานบ่อย</h4>
+                  <div className="space-y-2">
+                    {monthlyReportData.topUsed.length === 0 ? (
+                      <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีรายการในเดือนนี้</div>
+                    ) : monthlyReportData.topUsed.map((row, idx) => (
+                      <div key={row.item.id} className={`flex justify-between gap-3 py-2 border-b ${theme.divide}`}>
+                        <div className="min-w-0">
+                          <div className={`font-black truncate ${theme.textTitle}`}>{idx + 1}. {row.item.name}</div>
+                          <div className={`text-xs font-bold ${theme.textMuted}`}>S.N. {row.item.sn || '-'}</div>
+                        </div>
+                        <div className="font-black shrink-0">{row.count} ครั้ง</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>หมวดหมู่ที่มีความเคลื่อนไหว</h4>
+                  <div className="space-y-2">
+                    {monthlyReportData.topCategories.length === 0 ? <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีข้อมูลหมวดหมู่</div> : monthlyReportData.topCategories.map((row, idx) => (
+                      <div key={row.label} className="flex justify-between gap-3 text-sm">
+                        <span className={`font-bold truncate ${theme.textMuted}`}>{idx + 1}. {row.label}</span>
+                        <span className={`font-black ${theme.textTitle}`}>{row.count.toLocaleString('th-TH')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>ฝ่าย/พื้นที่ที่มีความเคลื่อนไหว</h4>
+                  <div className="space-y-2">
+                    {monthlyReportData.topDepartments.length === 0 ? <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีข้อมูลฝ่าย</div> : monthlyReportData.topDepartments.map((row, idx) => (
+                      <div key={row.label} className="flex justify-between gap-3 text-sm">
+                        <span className={`font-bold truncate ${theme.textMuted}`}>{idx + 1}. {row.label}</span>
+                        <span className={`font-black ${theme.textTitle}`}>{row.count.toLocaleString('th-TH')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>ตารางสรุปสำหรับแนบรายงาน</h4>
+                <div className="overflow-x-auto rounded-2xl border border-slate-200/70 dark:border-slate-800">
+                  <table className="monthly-report-table">
+                    <thead className={isDarkMode ? 'bg-slate-900 text-slate-300' : 'bg-slate-50 text-slate-600'}>
+                      <tr>
+                        <th className="text-left">รายการ</th>
+                        <th className="text-right">จำนวน</th>
+                        <th className="text-left hidden sm:table-cell">หมายเหตุ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {monthlyReportData.typeRows.map(row => (
+                        <tr key={row.label} className={`border-t ${theme.divide}`}>
+                          <td className={`font-black ${theme.textTitle}`}>{row.label}</td>
+                          <td className={`text-right font-black ${theme.textTitle}`}>{Number(row.value || 0).toLocaleString('th-TH')}</td>
+                          <td className={`hidden sm:table-cell font-bold ${theme.textMuted}`}>{row.desc}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className={`monthly-report-no-print monthly-report-mobile-actions rounded-2xl border flex flex-col sm:flex-row gap-2 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <button type="button" onClick={exportMonthlyReportCSV} className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">ส่งออก CSV</button>
+                <button type="button" onClick={printMonthlyReport} className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black">พิมพ์รายงาน</button>
+                <button type="button" onClick={() => setShowMonthlyReportModal(false)} className={`flex-1 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ปิดหน้าต่าง</button>
               </div>
             </div>
-            <div className={`p-4 border-t ${theme.divide}`}><button type="button" onClick={() => setShowMonthlyReportModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button></div>
           </div>
         </div>
       )}
