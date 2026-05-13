@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.27 Smart Search & Filter Polish';
-const APP_UPDATE_NOTE = 'Smart Search & Filter Polish: ปรับค้นหาและตัวกรองอุปกรณ์ให้หาไวขึ้น มีตัวกรองด่วนบนมือถือ และค้นได้จากชื่อ/S.N./รหัส/หมวด/ที่เก็บ/ฝ่าย โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
+const APP_VERSION = 'v22.53.28 Smart Filter Compact Cleanup';
+const APP_UPDATE_NOTE = 'Smart Filter Compact Cleanup: ย้ายตัวกรองด่วนเข้าไปอยู่ในปุ่มตัวกรอง ลดความรกหน้าอุปกรณ์หลัก แต่ยังคงค้นหาอัจฉริยะและ filter chip ที่เลือกไว้ โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -14964,31 +14964,6 @@ S.N.: ${item.sn || '-'}
           </div>
         </div>
 
-        <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-          <div className={`px-4 py-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${theme.divide}`}>
-            <div>
-              <div className={`font-black ${theme.textTitle}`}>ตัวกรองด่วน</div>
-              <div className={`text-xs font-bold ${theme.textMuted}`}>แตะครั้งเดียวเพื่อดูรายการที่ใช้บ่อย เหมาะกับมือถือและตอนค้นของหน้างาน</div>
-            </div>
-            <div className={`text-xs font-black ${theme.textMuted}`}>พบ {filteredItems.length.toLocaleString('th-TH')} / {items.filter(i => i && !i.isDeleted).length.toLocaleString('th-TH')} รายการ</div>
-          </div>
-          <div className="p-3 flex gap-2 overflow-x-auto w-full custom-scrollbar">
-            {smartQuickFilterOptions.map(option => (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => setSmartQuickFilter(option.id)}
-                className={`min-w-[132px] sm:min-w-[148px] text-left px-4 py-3 rounded-2xl border transition-all shrink-0 ${smartQuickFilter === option.id ? 'bg-blue-600 text-white border-blue-600 shadow-md' : theme.btnSecondary}`}
-                title={option.desc}
-              >
-                <div className="text-lg font-black leading-none">{Number(option.count || 0).toLocaleString('th-TH')}</div>
-                <div className="text-sm font-black mt-1 truncate">{option.label}</div>
-                <div className={`text-[11px] font-bold mt-1 truncate ${smartQuickFilter === option.id ? 'text-white/75' : theme.textMuted}`}>{option.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
         {activeFilterChips.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {activeFilterChips.map(chip => (
@@ -15102,7 +15077,8 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div className={`p-4 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <div className={`font-black mb-3 ${theme.textTitle}`}>ตัวกรองด่วน</div>
+                <div className={`font-black mb-1 ${theme.textTitle}`}>ตัวกรองด่วน</div>
+                <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>เลือกเฉพาะตอนต้องการกรอง เพื่อให้หน้าอุปกรณ์หลักไม่รก</p>
                 <div className="flex flex-wrap gap-2">
                   {smartQuickFilterOptions.map(option => (
                     <button
