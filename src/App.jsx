@@ -1,4 +1,4 @@
-// v22.53.2 Mobile Borrow / Return Flow Polish - clearer mobile operation summary and confirm step, no QR/camera/database changes
+// v22.53.3 Data Safety Confirm Polish - safer destructive actions and mobile-friendly confirmation gates, no QR/camera/database changes
 // v22.53.1 Mobile Empty State Polish - clearer empty document archive on mobile, no QR/camera/database changes
 // v22.52.8 Modal Chain Return Fix - fixes nested modal back flow from borrow docs/history/proof centers, no QR/camera/database changes
 // v22.52.6 Data Quality Action Polish - edit actions in data quality audit, no QR/camera/database changes
@@ -44,7 +44,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.2 Mobile Borrow / Return Flow Polish';
+const APP_VERSION = 'v22.53.3 Data Safety Confirm Polish';
 const APP_UPDATE_NOTE = 'Mobile Borrow / Return Flow Polish: เก็บ flow ยืม/ออกงาน/รับคืนบนมือถือ เพิ่มสรุปรายการก่อนยืนยัน แถบสถานะเช็กของ ปุ่มยืนยันแบบ sticky และ modal ตรวจสอบก่อนบันทึก โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -3862,6 +3862,7 @@ function MainApp() {
   const [isBusy, setIsBusy] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [operationConfirm, setOperationConfirm] = useState(null);
+  const [dangerConfirm, setDangerConfirm] = useState(null);
 
   // 🧭 Final Operations Pack: ปฏิทิน / ตรวจนับ / แจ้งซ่อม / ติดตามการคืน / จอทีวี
   const [showCalendarModal, setShowCalendarModal] = useState(false);
@@ -4333,6 +4334,38 @@ function MainApp() {
     setIsBusy(true);
     try { await task(); }
     finally { setIsBusy(false); }
+  };
+
+  const openDangerConfirm = ({ title, subtitle = 'ตรวจสอบก่อนดำเนินการ', message = '', confirmText = '', actionLabel = 'ยืนยันดำเนินการ', tone = 'rose', checklist = [], onConfirm }) => {
+    setDangerConfirm({ title, subtitle, message, confirmText, actionLabel, tone, checklist, onConfirm, inputValue: '' });
+  };
+
+  const closeDangerConfirm = () => setDangerConfirm(null);
+
+  const executeDangerConfirm = async () => {
+    if (!dangerConfirm || isBusy) return;
+    const required = String(dangerConfirm.confirmText || '').trim();
+    const typed = String(dangerConfirm.inputValue || '').trim();
+    if (required && typed !== required) {
+      pushToast(`กรุณาพิมพ์ ${required} ให้ถูกต้องก่อนยืนยัน`, 'warning');
+      return;
+    }
+    const action = dangerConfirm.onConfirm;
+    setDangerConfirm(null);
+    if (typeof action === 'function') await runWithBusy(action);
+  };
+
+  const requestRestoreBackupJSON = () => {
+    openDangerConfirm({
+      title: 'กู้คืนข้อมูลจากไฟล์ JSON',
+      subtitle: 'ปุ่มนี้มีผลกับข้อมูลจริง',
+      tone: 'amber',
+      confirmText: 'RESTORE',
+      actionLabel: 'เลือกไฟล์ JSON เพื่อกู้คืน',
+      message: 'ระบบจะเขียนทับ/เพิ่มข้อมูลที่มี ID ตรงกับไฟล์สำรอง แต่จะไม่ลบอุปกรณ์ที่ไม่มีในไฟล์ เพื่อความปลอดภัย',
+      checklist: ['ควรใช้เฉพาะกรณีต้องกู้ข้อมูลกลับจากไฟล์สำรอง', 'แนะนำให้มีไฟล์สำรองล่าสุดอยู่ในเครื่องก่อน', 'ต้องพิมพ์ RESTORE ก่อน ระบบจึงจะเปิดหน้าต่างเลือกไฟล์'],
+      onConfirm: () => restoreInputRef.current?.click()
+    });
   };
 
   const confirmCloseIfDirty = (isDirty, closeFn) => {
@@ -7982,16 +8015,25 @@ S.N.: ${item.sn || '-'}
   const handlePermanentDeleteTrashItem = async (item) => {
     if (!canDeleteItems) return alert('❌ เฉพาะบัญชีกลาง/ผู้ดูแลเท่านั้นที่ลบถาวรได้');
     if (!item || !item.id) return;
-    const confirmText = prompt(`ลบถาวร "${item.name}" หรือไม่?\n\nการลบถาวรจะกู้คืนไม่ได้ หากยืนยันให้พิมพ์ DELETE`);
-    if (String(confirmText || '').trim() !== 'DELETE') return;
-    try {
-      await deleteDoc(getItemDoc(item.id));
-      await logAction('ลบอุปกรณ์ถาวร', item.name || '-', `ลบถาวรจากถังขยะ`);
-      alert('✅ ลบถาวรเรียบร้อยแล้ว');
-    } catch (error) {
-      console.error(error);
-      alert('❌ ลบถาวรไม่สำเร็จ: ' + error.message);
-    }
+    openDangerConfirm({
+      title: 'ลบอุปกรณ์ถาวร',
+      subtitle: 'การลบถาวรกู้คืนไม่ได้',
+      tone: 'rose',
+      confirmText: 'DELETE',
+      actionLabel: 'ยืนยันลบถาวร',
+      message: `ต้องการลบ "${item.name || '-'}" ออกจากฐานข้อมูลถาวรหรือไม่? แนะนำให้ใช้เฉพาะรายการที่แน่ใจว่าไม่ต้องการเก็บแล้ว`,
+      checklist: ['รายการนี้จะหายจากถังขยะและกู้คืนจากในเว็บไม่ได้', 'ประวัติที่ผูกกับอุปกรณ์นี้อาจค้นย้อนกลับไม่ได้ครบเหมือนเดิม', 'ต้องพิมพ์ DELETE ให้ถูกต้องก่อนยืนยัน'],
+      onConfirm: async () => {
+        try {
+          await deleteDoc(getItemDoc(item.id));
+          await logAction('ลบอุปกรณ์ถาวร', item.name || '-', `ลบถาวรจากถังขยะ`);
+          alert('✅ ลบถาวรเรียบร้อยแล้ว');
+        } catch (error) {
+          console.error(error);
+          alert('❌ ลบถาวรไม่สำเร็จ: ' + error.message);
+        }
+      }
+    });
   };
 
   const handleOpenRowBorrow = (e, item) => {
@@ -9350,19 +9392,7 @@ S.N.: ${item.sn || '-'}
           return;
         }
 
-        const warning = confirm(
-          '⚠️ กู้คืนข้อมูลจาก JSON\n\n' +
-          'โหมดนี้จะเขียนทับข้อมูลอุปกรณ์ที่มี ID ตรงกัน และเพิ่มอุปกรณ์ที่ยังไม่มี\n' +
-          'ระบบจะไม่ลบอุปกรณ์ที่ไม่ได้อยู่ในไฟล์สำรอง เพื่อความปลอดภัย\n\n' +
-          'ต้องการดำเนินการต่อหรือไม่?'
-        );
-        if (!warning) return;
-
-        const confirmText = prompt('พิมพ์ RESTORE เพื่อยืนยันการกู้คืนข้อมูลจากไฟล์ JSON');
-        if (confirmText !== 'RESTORE') {
-          alert('ยกเลิกการกู้คืน เนื่องจากไม่ได้พิมพ์ RESTORE ให้ถูกต้อง');
-          return;
-        }
+        // v22.53.3: ผ่าน Safety Confirm Modal แล้ว จึงไม่ใช้ confirm/prompt ของ browser ซ้ำ
 
         if (data.settings && typeof data.settings === 'object') {
           await setDoc(getSettingsDoc(), data.settings, { merge: true });
@@ -9405,52 +9435,30 @@ S.N.: ${item.sn || '-'}
 
   const clearAllBorrowReturnHistory = async () => {
     if (!user) return;
-
-    const historyCount = items.reduce((sum, item) => {
-      return sum + (Array.isArray(item.history) ? item.history.length : 0);
-    }, 0);
-
+    const historyCount = items.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.length : 0), 0);
     if (historyCount === 0) {
       alert('ℹ️ ตอนนี้ยังไม่มีประวัติยืม-คืนให้ล้าง');
       return;
     }
-
-    const backupFirst = confirm(
-      '⚠️ ก่อนล้างประวัติยืม-คืนทั้งหมด\n\n' +
-      'แนะนำให้กดสำรองข้อมูลทั้งหมด JSON และประวัติยืม-คืน CSV เก็บไว้ก่อน\n\n' +
-      'คุณสำรองข้อมูลเรียบร้อยแล้ว และต้องการดำเนินการต่อหรือไม่?'
-    );
-    if (!backupFirst) return;
-
-    const confirmText = prompt(
-      'เพื่อป้องกันการกดพลาด กรุณาพิมพ์คำว่า CLEAR เพื่อยืนยันการล้างประวัติยืม-คืนทั้งหมด\n\n' +
-      'ระบบจะล้างเฉพาะ history ของอุปกรณ์ทุกชิ้น\n' +
-      'ไม่ลบรายการอุปกรณ์ ไม่ลบสถานะปัจจุบัน ไม่ลบหมวดหมู่ สถานที่ หรือเจ้าของ'
-    );
-
-    if (confirmText !== 'CLEAR') {
-      alert('ยกเลิกการล้างประวัติ เนื่องจากไม่ได้พิมพ์ CLEAR ให้ถูกต้อง');
-      return;
-    }
-
-    try {
-      const promises = items.map((item) => {
-        return setDoc(getItemDoc(item.id), { history: [] }, { merge: true });
-      });
-
-      await Promise.all(promises);
-
-      await logAction(
-        'ล้างประวัติยืม-คืนทั้งหมด',
-        'ล้างประวัติ ' + historyCount + ' รายการ',
-        'ล้างเฉพาะ history ของอุปกรณ์ทุกชิ้น โดยไม่ลบรายการอุปกรณ์หลักและไม่เปลี่ยนสถานะปัจจุบัน'
-      );
-
-      alert('✅ ล้างประวัติยืม-คืนทั้งหมดเรียบร้อยแล้ว\nรายการอุปกรณ์หลักและสถานะปัจจุบันยังอยู่เหมือนเดิม');
-    } catch (error) {
-      console.error(error);
-      alert('❌ ล้างประวัติยืม-คืนไม่สำเร็จ: ' + error.message);
-    }
+    openDangerConfirm({
+      title: 'ล้างประวัติยืม-คืนทั้งหมด',
+      subtitle: 'โหมดปิดปี / ใช้เมื่อสำรองข้อมูลแล้วเท่านั้น',
+      tone: 'rose',
+      confirmText: 'CLEAR',
+      actionLabel: 'ยืนยันล้างประวัติ',
+      message: `ระบบจะล้างเฉพาะ history ของอุปกรณ์ทุกชิ้น รวมประมาณ ${historyCount.toLocaleString('th-TH')} รายการ โดยไม่ลบรายการอุปกรณ์ ไม่เปลี่ยนสถานะปัจจุบัน และไม่ลบหมวดหมู่/สถานที่`,
+      checklist: ['ควรกด “สำรองครบชุดไฟล์เดียว” ก่อน', 'ควรกด “JSON กู้คืนระบบ” เก็บแยกไว้ด้วย', 'ต้องพิมพ์ CLEAR ให้ถูกต้องก่อนปุ่มยืนยันจะใช้งานได้'],
+      onConfirm: async () => {
+        try {
+          await Promise.all(items.map((item) => setDoc(getItemDoc(item.id), { history: [] }, { merge: true })));
+          await logAction('ล้างประวัติยืม-คืนทั้งหมด', 'ล้างประวัติ ' + historyCount + ' รายการ', 'ล้างเฉพาะ history ของอุปกรณ์ทุกชิ้น โดยไม่ลบรายการอุปกรณ์หลักและไม่เปลี่ยนสถานะปัจจุบัน');
+          alert('✅ ล้างประวัติยืม-คืนทั้งหมดเรียบร้อยแล้ว\nรายการอุปกรณ์หลักและสถานะปัจจุบันยังอยู่เหมือนเดิม');
+        } catch (error) {
+          console.error(error);
+          alert('❌ ล้างประวัติยืม-คืนไม่สำเร็จ: ' + error.message);
+        }
+      }
+    });
   };
 
   const exportToCSV = () => {
@@ -13406,7 +13414,7 @@ S.N.: ${item.sn || '-'}
                         ใช้เมื่อจำเป็นเท่านั้น ระบบจะเขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON แต่จะไม่ลบอุปกรณ์ที่ไม่มีในไฟล์สำรอง
                       </p>
                       <input type="file" accept=".json,application/json" className="hidden" ref={restoreInputRef} onChange={handleRestoreBackupJSON} />
-                      <button type="button" onClick={() => restoreInputRef.current?.click()} className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
+                      <button type="button" onClick={requestRestoreBackupJSON} className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
                         <Icons.Upload className="w-5 h-5"/> เลือกไฟล์ JSON เพื่อกู้คืน
                       </button>
                     </div>
@@ -13608,7 +13616,7 @@ S.N.: ${item.sn || '-'}
                     <h4 className={`text-lg font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Upload className="w-5 h-5 text-indigo-500"/> กู้คืนจาก JSON</h4>
                     <p className={`text-sm font-bold mb-4 ${theme.textMuted}`}>ใช้เมื่อจำเป็นเท่านั้น ระบบจะเขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON โดยไม่ลบข้อมูลที่ไม่มีในไฟล์</p>
                     <input type="file" accept=".json,application/json" className="hidden" ref={restoreInputRef} onChange={handleRestoreBackupJSON} />
-                    <button type="button" onClick={() => restoreInputRef.current?.click()} className={`w-full py-3 rounded-2xl font-black border flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
+                    <button type="button" onClick={requestRestoreBackupJSON} className={`w-full py-3 rounded-2xl font-black border flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
                       <Icons.Upload className="w-5 h-5"/> เลือกไฟล์ JSON เพื่อกู้คืน
                     </button>
                   </div>
@@ -13887,6 +13895,62 @@ S.N.: ${item.sn || '-'}
           </div>
         </div>
       )}
+
+      {/* 🛡️ v22.53.3 Safety Confirm Modal สำหรับปุ่มเสี่ยง: ล้าง / กู้คืน / ลบถาวร */}
+      {dangerConfirm && (() => {
+        const tone = dangerConfirm.tone === 'amber'
+          ? { icon: '🛡️', badge: isDarkMode ? 'bg-amber-950/45 text-amber-200 border-amber-800' : 'bg-amber-50 text-amber-700 border-amber-200', button: 'bg-amber-600 hover:bg-amber-500 text-white', ring: 'focus:ring-amber-500' }
+          : { icon: '⚠️', badge: isDarkMode ? 'bg-rose-950/45 text-rose-200 border-rose-800' : 'bg-rose-50 text-rose-700 border-rose-200', button: 'bg-rose-600 hover:bg-rose-500 text-white', ring: 'focus:ring-rose-500' };
+        const requiredText = String(dangerConfirm.confirmText || '').trim();
+        const typedText = String(dangerConfirm.inputValue || '').trim();
+        const canConfirm = !requiredText || typedText === requiredText;
+        return (
+          <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[10030]`}>
+            <div className={`danger-confirm-modal rounded-3xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto custom-scrollbar border ${theme.cardBg} ${theme.divide}`}>
+              <div className={`p-5 border-b ${theme.divide}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-black ${tone.badge}`}><span>{tone.icon}</span> DATA SAFETY</div>
+                    <h3 className={`text-xl sm:text-2xl font-black mt-3 ${theme.textTitle}`}>{dangerConfirm.title}</h3>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{dangerConfirm.subtitle}</p>
+                  </div>
+                  <button type="button" onClick={closeDangerConfirm} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnCancel}`}><Icons.X className="w-5 h-5" /></button>
+                </div>
+              </div>
+              <div className="p-5 space-y-4">
+                {dangerConfirm.message && <div className={`p-4 rounded-2xl border text-sm font-bold leading-relaxed ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>{dangerConfirm.message}</div>}
+                {(dangerConfirm.checklist || []).length > 0 && (
+                  <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+                    <div className={`px-4 py-3 font-black border-b ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>เช็กก่อนกดยืนยัน</div>
+                    <div className="p-4 space-y-2">
+                      {(dangerConfirm.checklist || []).map((item, idx) => (
+                        <div key={idx} className={`flex items-start gap-2 text-sm font-bold ${theme.textMain}`}><span className="mt-0.5 text-emerald-500">✓</span><span>{item}</span></div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {requiredText && (
+                  <div>
+                    <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>พิมพ์ <span className="font-black text-rose-500">{requiredText}</span> เพื่อปลดล็อกปุ่มยืนยัน</label>
+                    <input
+                      autoFocus
+                      value={dangerConfirm.inputValue || ''}
+                      onChange={(e) => setDangerConfirm(prev => ({ ...prev, inputValue: e.target.value }))}
+                      className={`w-full px-4 py-4 rounded-2xl border font-black text-lg outline-none focus:ring-2 ${tone.ring} ${theme.input}`}
+                      placeholder={requiredText}
+                    />
+                    <p className={`mt-2 text-xs font-bold ${theme.textMuted}`}>ปุ่มยืนยันจะกดได้เมื่อพิมพ์ตรงตัวพิมพ์ใหญ่/เล็กครบถ้วน</p>
+                  </div>
+                )}
+              </div>
+              <div className={`p-4 border-t grid grid-cols-1 sm:grid-cols-2 gap-3 ${theme.divide}`}>
+                <button type="button" onClick={closeDangerConfirm} className={`py-4 rounded-xl font-black border ${theme.btnSecondary}`}>ยกเลิก</button>
+                <button type="button" onClick={executeDangerConfirm} disabled={!canConfirm || isBusy} className={`py-4 rounded-xl font-black shadow-lg ${(!canConfirm || isBusy) ? 'bg-slate-400 text-white cursor-not-allowed' : tone.button}`}>{isBusy ? 'กำลังดำเนินการ...' : dangerConfirm.actionLabel}</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ✅ v22.53.2 Modal ตรวจสอบก่อนบันทึก ยืม / ออกงาน / รับคืน */}
       {operationConfirm && (() => {
