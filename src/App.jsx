@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.34 Report Print Preview Compact Fix';
-const APP_UPDATE_NOTE = 'Report Print Preview Compact Fix: แก้ Print Preview รายงานไม่ให้มี UI เว็บติดเข้าไป และบีบเอกสารรายงานให้กระชับขึ้นเพื่อพยายามจบใน 1 หน้า A4 โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
+const APP_VERSION = 'v22.53.35 Stock Count / Physical Audit Full Pack';
+const APP_UPDATE_NOTE = 'Stock Count / Physical Audit Full Pack: เพิ่มระบบตรวจนับสต๊อกจริงแบบเต็มแพ็ก มี session, ติ๊กพบแล้ว, กรอง, รายงาน A4, Export CSV และ scan mode เพื่อตรวจนับ โดยไม่แตะ QR Scanner core/กล้อง/ฐานข้อมูลหลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6133,7 +6133,26 @@ function MainApp() {
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [showStockCountModal, setShowStockCountModal] = useState(false);
   const [stockCountFoundIds, setStockCountFoundIds] = useState([]);
+  const [stockCountFoundMeta, setStockCountFoundMeta] = useState({});
   const [stockCountInput, setStockCountInput] = useState('');
+  const [stockCountFilter, setStockCountFilter] = useState('all');
+  const [stockCountSearch, setStockCountSearch] = useState('');
+  const [stockCountCategory, setStockCountCategory] = useState('all');
+  const [stockCountLocation, setStockCountLocation] = useState('all');
+  const [stockCountDept, setStockCountDept] = useState('all');
+  const [stockCountSession, setStockCountSession] = useState(() => {
+    const d = new Date();
+    return {
+      id: `stock_count_${d.getTime()}`,
+      name: `ตรวจนับสต๊อก ${d.toLocaleDateString('th-TH')}`,
+      date: d.toISOString().slice(0, 10),
+      inspector: '',
+      note: '',
+      status: 'draft',
+      startedAt: '',
+      completedAt: ''
+    };
+  });
   const [showActionCenterModal, setShowActionCenterModal] = useState(false);
   const [showRepairModal, setShowRepairModal] = useState(false);
   const [repairTargetId, setRepairTargetId] = useState(null);
@@ -8374,6 +8393,11 @@ S.N.: ${item.sn || '-'}
       kicker: 'REPORTS CENTER',
       title: 'รายงานและการพิมพ์',
       desc: 'หน้ารายงานแยกสำหรับดูสรุป ส่งออก CSV และพิมพ์เฉพาะเอกสารรายงาน'
+    },
+    stockCount: {
+      kicker: 'PHYSICAL AUDIT',
+      title: 'ตรวจนับสต๊อกจริง',
+      desc: 'สร้างรอบตรวจนับ ติ๊กพบแล้ว ตรวจของหาย และพิมพ์รายงานตรวจนับ'
     }
   };
   const currentWorkspaceMeta = workspaceMeta[activeWorkspace] || workspaceMeta.overview;
@@ -8385,6 +8409,7 @@ S.N.: ${item.sn || '-'}
         ['borrowReturn', 'ยืม-คืน', Icons.UserPlus, `${currentBorrowedItems.length + currentEventItems.length} รายการค้าง`],
         ['projects', 'โครงการจัดซื้อ', Icons.Database, `${projectStats.length.toLocaleString('th-TH')} โครงการ`],
         ['organize', 'กล่อง / เซ็ต', Icons.Layers, `${(settingsOptions.storageBoxes || []).length} กล่อง • ${(settingsOptions.bundles || []).length} เซ็ต`],
+        ['stockCount', 'ตรวจนับ', Icons.CheckCircle, `${stockCountStats.found.length.toLocaleString('th-TH')}/${stockCountStats.auditTarget.length.toLocaleString('th-TH')} พบแล้ว`],
         ['reports', 'รายงาน', Icons.ClipboardList, `${monthlyReportData.total.toLocaleString('th-TH')} ประวัติเดือนนี้`]
       ].map(([id, label, Icon, desc]) => (
         <button
@@ -9886,10 +9911,425 @@ S.N.: ${item.sn || '-'}
     );
   };
 
+  const renderStockCountWorkspace = () => {
+    const foundTargetCount = stockCountStats.foundTarget.length;
+    const targetCount = stockCountStats.auditTarget.length;
+    const printDateText = stockCountSession.date ? new Date(stockCountSession.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : '-';
+    const statusLabel = stockCountSession.status === 'completed' ? 'ตรวจเสร็จแล้ว' : stockCountSession.status === 'active' ? 'กำลังตรวจ' : 'ร่างรอบตรวจ';
+    const stockCountFilterOptions = [
+      ['all', 'ทั้งหมด', stockCountStats.activeItems.length],
+      ['notFound', 'ยังไม่พบ', stockCountStats.notFound.length],
+      ['found', 'พบแล้ว', stockCountStats.found.length],
+      ['outside', 'ยืม/ออกงาน', stockCountStats.out.length],
+      ['borrowed', 'ถูกยืม', stockCountStats.borrowed.length],
+      ['event', 'ออกงาน', stockCountStats.event.length],
+      ['maintenance', 'ซ่อม', stockCountStats.maintenance.length],
+      ['noQr', 'ไม่มี QR', stockCountStats.noQr.length],
+      ['incomplete', 'ข้อมูลไม่ครบ', stockCountStats.incomplete.length],
+      ['recheck', 'ควรตรวจซ้ำ', stockCountStats.recheck.length]
+    ];
+
+    const StockCountItemCard = ({ item }) => {
+      const found = stockCountStats.foundSet.has(item.id);
+      const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
+      const auditStatus = getStockCountAuditStatus(item);
+      const missing = getMissingDataLabels(item);
+      return (
+        <div className={`p-4 rounded-3xl border shadow-sm ${found ? (isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className={`text-lg font-black truncate ${theme.textTitle}`}>{item.name || '-'}</div>
+              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || item.assetShortCode || item.localCode || 'ไม่มีรหัสสั้น'}</div>
+            </div>
+            <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black border shrink-0 ${found ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-500' : item.status === 'maintenance' ? 'bg-rose-500/10 border-rose-500/25 text-rose-500' : item.status === 'borrowed' || item.status === 'out-for-event' ? 'bg-purple-500/10 border-purple-500/25 text-purple-500' : 'bg-amber-500/10 border-amber-500/25 text-amber-500'}`}>{auditStatus}</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mt-3 text-xs font-bold">
+            <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
+              <div className={theme.textMuted}>หมวด / สถานะ</div>
+              <div className={`font-black truncate ${theme.textTitle}`}>{item.category || '-'} • {statusInfo.label}</div>
+            </div>
+            <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
+              <div className={theme.textMuted}>ที่เก็บ</div>
+              <div className={`font-black truncate ${theme.textTitle}`}>{item.location || item.storageBoxName || '-'}</div>
+            </div>
+            <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
+              <div className={theme.textMuted}>ฝ่ายดูแล</div>
+              <div className={`font-black truncate ${theme.textTitle}`}>{DEPARTMENTS.find(d => d.id === (item.department || item.ownerDepartment))?.label || item.department || item.ownerDepartment || '-'}</div>
+            </div>
+            <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
+              <div className={theme.textMuted}>QR / โครงการ</div>
+              <div className={`font-black truncate ${theme.textTitle}`}>{item.qrTagged ? 'ติด QR แล้ว' : 'ยังไม่มี QR'} • {projectDisplayName(item.project)}</div>
+            </div>
+          </div>
+
+          {missing.length > 0 && (
+            <div className={`mt-3 text-xs font-bold rounded-2xl px-3 py-2 ${isDarkMode ? 'bg-amber-950/20 text-amber-300 border border-amber-800' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+              ข้อมูลควรเติม: {missing.slice(0, 4).join(', ')}{missing.length > 4 ? ` +${missing.length - 4}` : ''}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+            {found ? (
+              <button type="button" onClick={() => unmarkStockCountFound(item)} className={`px-3 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ยกเลิกพบ</button>
+            ) : (
+              <button type="button" onClick={() => markStockCountFound(item, 'button')} className="px-3 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">พบแล้ว</button>
+            )}
+            <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
+            <button type="button" onClick={() => openItemEditor(item)} className={`px-3 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>แก้ข้อมูล</button>
+            <button type="button" onClick={() => openRepairForItem(item)} className={`px-3 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>แจ้งซ่อม</button>
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="stock-count-page solid-workspace space-y-5">
+        <style>{`
+          .stock-count-print-area { display: none; }
+          @media print {
+            body.mdec-stock-count-printing {
+              margin: 0 !important;
+              padding: 0 !important;
+              background: #fff !important;
+            }
+            body.mdec-stock-count-printing .factory-stock-polish * {
+              visibility: hidden !important;
+            }
+            body.mdec-stock-count-printing .stock-count-print-area,
+            body.mdec-stock-count-printing .stock-count-print-area * {
+              visibility: visible !important;
+            }
+            body.mdec-stock-count-printing .stock-count-print-area {
+              display: block !important;
+              position: absolute !important;
+              inset: 0 auto auto 0 !important;
+              width: 100% !important;
+              padding: 0 !important;
+              margin: 0 !important;
+              background: #fff !important;
+              color: #000 !important;
+            }
+            body.mdec-stock-count-printing .stock-count-report-doc {
+              width: 100% !important;
+              max-width: none !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              font-family: "Sarabun", "TH Sarabun New", sans-serif !important;
+              color: #000 !important;
+            }
+            body.mdec-stock-count-printing .stock-count-report-head {
+              display: grid !important;
+              grid-template-columns: 1.3fr .7fr !important;
+              gap: 5mm !important;
+              border-bottom: 1.4px solid #111 !important;
+              padding-bottom: 3mm !important;
+              margin-bottom: 3mm !important;
+            }
+            body.mdec-stock-count-printing .stock-count-report-title {
+              font-size: 18pt !important;
+              font-weight: 950 !important;
+              line-height: 1.08 !important;
+            }
+            body.mdec-stock-count-printing .stock-count-report-sub,
+            body.mdec-stock-count-printing .stock-count-report-meta {
+              font-size: 7.2pt !important;
+              line-height: 1.28 !important;
+              font-weight: 800 !important;
+            }
+            body.mdec-stock-count-printing .stock-count-report-kpi {
+              display: grid !important;
+              grid-template-columns: repeat(5,1fr) !important;
+              gap: 1.6mm !important;
+              margin-bottom: 2.5mm !important;
+            }
+            body.mdec-stock-count-printing .stock-count-report-kpi > div {
+              border: .8px solid #111 !important;
+              padding: 1.4mm !important;
+              min-height: 12mm !important;
+            }
+            body.mdec-stock-count-printing .stock-count-report-kpi b {
+              display: block !important;
+              font-size: 13pt !important;
+              line-height: 1 !important;
+            }
+            body.mdec-stock-count-printing .stock-count-report-kpi span {
+              font-size: 6.2pt !important;
+              font-weight: 850 !important;
+            }
+            body.mdec-stock-count-printing .stock-count-report-table {
+              width: 100% !important;
+              border-collapse: collapse !important;
+              font-size: 6.8pt !important;
+              line-height: 1.15 !important;
+            }
+            body.mdec-stock-count-printing .stock-count-report-table th,
+            body.mdec-stock-count-printing .stock-count-report-table td {
+              border: .8px solid #111 !important;
+              padding: 1mm 1.3mm !important;
+              vertical-align: top !important;
+            }
+            body.mdec-stock-count-printing .stock-count-report-table th {
+              background: #f3f4f6 !important;
+              font-weight: 950 !important;
+            }
+            body.mdec-stock-count-printing .stock-count-report-sign {
+              display: grid !important;
+              grid-template-columns: repeat(3,1fr) !important;
+              gap: 3mm !important;
+              margin-top: 4mm !important;
+            }
+            body.mdec-stock-count-printing .stock-count-report-sign > div {
+              border: .8px solid #111 !important;
+              min-height: 13mm !important;
+              padding: 2mm !important;
+              font-size: 6.8pt !important;
+              display: flex !important;
+              align-items: end !important;
+              justify-content: center !important;
+              font-weight: 850 !important;
+            }
+          }
+          @page { size: A4; margin: 7mm; }
+        `}</style>
+
+        {renderWorkspaceTabs()}
+
+        <div className={`rounded-[1.8rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
+          <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-4 ${theme.divide}`}>
+            <div className="min-w-0">
+              <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>STOCK COUNT / PHYSICAL AUDIT</div>
+              <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>ตรวจนับสต๊อกจริง</h2>
+              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้เดินตรวจของจริง เทียบกับข้อมูลในระบบ ติ๊กพบแล้ว คัดรายการยังไม่พบ และพิมพ์รายงานตรวจนับ</p>
+            </div>
+            <div className="flex flex-wrap gap-2 shrink-0">
+              <button type="button" onClick={startNewStockCountSession} className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">เริ่มรอบใหม่</button>
+              <button type="button" onClick={openStockCountScanner} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">สแกนตรวจนับ</button>
+              <button type="button" onClick={() => exportStockCountCSV('summary')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>Export CSV</button>
+              <button type="button" onClick={printStockCountReport} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>พิมพ์รายงาน</button>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-5 space-y-5">
+            <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
+              <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                  <label className="block xl:col-span-2">
+                    <span className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>ชื่อรอบตรวจนับ</span>
+                    <input value={stockCountSession.name || ''} onChange={e => setStockCountSession(prev => ({ ...prev, name: e.target.value }))} className={`w-full px-4 py-3 rounded-2xl border font-black ${theme.input}`} placeholder="เช่น ตรวจนับปลายปี 2569" />
+                  </label>
+                  <label className="block">
+                    <span className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>วันที่ตรวจ</span>
+                    <input type="date" value={stockCountSession.date || ''} onChange={e => setStockCountSession(prev => ({ ...prev, date: e.target.value }))} className={`w-full px-4 py-3 rounded-2xl border font-black ${theme.input}`} />
+                  </label>
+                  <label className="block">
+                    <span className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>ผู้ตรวจนับ</span>
+                    <input value={stockCountSession.inspector || ''} onChange={e => setStockCountSession(prev => ({ ...prev, inspector: e.target.value }))} className={`w-full px-4 py-3 rounded-2xl border font-black ${theme.input}`} placeholder={currentAccountLabel || 'ชื่อผู้ตรวจ'} />
+                  </label>
+                  <label className="block md:col-span-2 xl:col-span-4">
+                    <span className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>หมายเหตุรอบตรวจ</span>
+                    <textarea rows={2} value={stockCountSession.note || ''} onChange={e => setStockCountSession(prev => ({ ...prev, note: e.target.value }))} className={`w-full px-4 py-3 rounded-2xl border font-bold resize-none ${theme.input}`} placeholder="เช่น ตรวจเฉพาะของในศูนย์ MDEC / ตรวจเตรียมปิดปี / ตรวจก่อนเปิดเทอม" />
+                  </label>
+                </div>
+              </div>
+
+              <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200'}`}>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <div className={`text-xs font-black ${theme.textMuted}`}>สถานะรอบตรวจ</div>
+                    <div className={`text-xl font-black ${theme.textTitle}`}>{statusLabel}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-xs font-black ${theme.textMuted}`}>ความคืบหน้า</div>
+                    <div className="text-3xl font-black text-emerald-500">{stockCountStats.percent}%</div>
+                  </div>
+                </div>
+                <div className={`h-4 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
+                  <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full transition-all" style={{ width: `${stockCountStats.percent}%` }} />
+                </div>
+                <div className={`text-sm font-bold mt-3 ${theme.textMuted}`}>ตรวจแล้ว {foundTargetCount.toLocaleString('th-TH')} / {targetCount.toLocaleString('th-TH')} รายการ • {stockCountStats.progressLabel}</div>
+                <div className="grid grid-cols-2 gap-2 mt-4">
+                  <button type="button" onClick={finishStockCountSession} className="px-3 py-2 rounded-xl bg-emerald-600 text-white font-black">ปิดรอบตรวจ</button>
+                  <button type="button" onClick={() => { setStockCountFoundIds([]); setStockCountFoundMeta({}); }} className={`px-3 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างพบแล้ว</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2.5">
+              {[
+                ['ทั้งหมด', stockCountStats.activeItems.length, 'blue'],
+                ['เป้าหมายตรวจ', stockCountStats.auditTarget.length, 'slate'],
+                ['พบแล้ว', stockCountStats.found.length, 'emerald'],
+                ['ยังไม่พบ', stockCountStats.notFound.length, 'amber'],
+                ['ยืม/ออกงาน', stockCountStats.out.length, 'purple'],
+                ['ซ่อม/ชำรุด', stockCountStats.maintenance.length, 'rose'],
+                ['ไม่มี QR', stockCountStats.noQr.length, 'sky'],
+                ['ควรตรวจซ้ำ', stockCountStats.recheck.length, 'orange']
+              ].map(([label, value, tone]) => {
+                const cls = {
+                  blue: isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800',
+                  slate: isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700',
+                  emerald: isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800',
+                  amber: isDarkMode ? 'bg-amber-950/25 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800',
+                  purple: isDarkMode ? 'bg-purple-950/25 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-800',
+                  rose: isDarkMode ? 'bg-rose-950/25 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800',
+                  sky: isDarkMode ? 'bg-sky-950/25 border-sky-800 text-sky-200' : 'bg-sky-50 border-sky-200 text-sky-800',
+                  orange: isDarkMode ? 'bg-orange-950/25 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800'
+                }[tone];
+                return (
+                  <div key={label} className={`p-3 rounded-2xl border ${cls}`}>
+                    <div className="text-2xl font-black leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
+                    <div className="text-[11px] font-black mt-1">{label}</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleStockCountScan(); }} className={`p-3 rounded-3xl border flex flex-col lg:flex-row gap-3 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-2xl border ${theme.input}`}>
+                <Icons.Search className={`w-5 h-5 shrink-0 ${theme.textMuted}`} />
+                <input value={stockCountInput} onChange={(e) => setStockCountInput(e.target.value)} className="bg-transparent outline-none w-full font-black text-base" placeholder="ยิงบาร์โค้ด / พิมพ์ S.N. / รหัสสั้น / ชื่ออุปกรณ์ แล้วกด Enter" />
+              </div>
+              <button className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">บันทึกว่าพบ</button>
+              <button type="button" onClick={openStockCountScanner} className="px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black">สแกนด้วยกล้องเดิม</button>
+            </form>
+
+            <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`p-4 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${theme.divide}`}>
+                <div>
+                  <h3 className={`text-xl font-black ${theme.textTitle}`}>รายการตรวจนับ</h3>
+                  <p className={`text-sm font-bold ${theme.textMuted}`}>พบ {stockCountStats.filteredItems.length.toLocaleString('th-TH')} รายการตามตัวกรอง</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => exportStockCountCSV('missing')} className={`px-4 py-2.5 rounded-xl border font-black ${theme.btnSecondary}`}>CSV ยังไม่พบ</button>
+                  <button type="button" onClick={() => exportStockCountCSV('found')} className={`px-4 py-2.5 rounded-xl border font-black ${theme.btnSecondary}`}>CSV พบแล้ว</button>
+                  <button type="button" onClick={() => exportStockCountCSV('recheck')} className={`px-4 py-2.5 rounded-xl border font-black ${theme.btnSecondary}`}>CSV ตรวจซ้ำ</button>
+                </div>
+              </div>
+
+              <div className="p-4 space-y-4">
+                <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+                  {stockCountFilterOptions.map(([id, label, count]) => (
+                    <button key={id} type="button" onClick={() => setStockCountFilter(id)} className={`px-4 py-2.5 rounded-xl border font-black whitespace-nowrap ${stockCountFilter === id ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : theme.btnSecondary}`}>
+                      {label} <span className={`ml-1 text-xs ${stockCountFilter === id ? 'text-white/75' : theme.textMuted}`}>({Number(count || 0).toLocaleString('th-TH')})</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+                  <input value={stockCountSearch} onChange={e => setStockCountSearch(e.target.value)} className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`} placeholder="ค้นหา ชื่อ / S.N. / ที่เก็บ" />
+                  <select value={stockCountCategory} onChange={e => setStockCountCategory(e.target.value)} className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
+                    <option value="all">ทุกหมวดหมู่</option>
+                    {(settingsOptions.categories || []).filter(Boolean).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                  <select value={stockCountLocation} onChange={e => setStockCountLocation(e.target.value)} className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
+                    <option value="all">ทุกที่เก็บ</option>
+                    {(settingsOptions.locations || []).filter(Boolean).map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                  </select>
+                  <select value={stockCountDept} onChange={e => setStockCountDept(e.target.value)} className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
+                    <option value="all">ทุกฝ่าย</option>
+                    {DEPARTMENTS.map(dep => <option key={dep.id} value={dep.id}>{dep.label}</option>)}
+                  </select>
+                  <button type="button" onClick={resetStockCountFilters} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
+                </div>
+
+                {stockCountStats.recheck.length > 0 && (
+                  <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-amber-950/20 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="font-black text-lg">รายการควรตรวจซ้ำ {stockCountStats.recheck.length.toLocaleString('th-TH')} รายการ</div>
+                        <div className="text-sm font-bold opacity-80">รวมของที่ยังไม่พบ ไม่มี QR ไม่มี S.N. ไม่มีที่เก็บ หรือสถานะซ่อม/ชำรุด</div>
+                      </div>
+                      <button type="button" onClick={() => setStockCountFilter('recheck')} className="px-4 py-2 rounded-xl bg-amber-600 text-white font-black">ดูรายการตรวจซ้ำ</button>
+                    </div>
+                  </div>
+                )}
+
+                {stockCountStats.filteredItems.length === 0 ? (
+                  <div className={`min-h-[260px] rounded-3xl border border-dashed flex flex-col items-center justify-center text-center p-6 ${isDarkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-200 bg-slate-50'}`}>
+                    <Icons.Search className={`w-12 h-12 mb-4 ${theme.textMuted}`} />
+                    <div className={`text-2xl font-black ${theme.textTitle}`}>ไม่พบรายการตามตัวกรอง</div>
+                    <p className={`text-sm font-bold mt-2 max-w-md ${theme.textMuted}`}>ลองล้างตัวกรอง หรือค้นหาด้วย S.N. / รหัสสั้น / ชื่ออุปกรณ์</p>
+                    <button type="button" onClick={resetStockCountFilters} className="mt-5 px-5 py-3 rounded-2xl bg-emerald-600 text-white font-black">ล้างตัวกรอง</button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                    {stockCountStats.filteredItems.slice(0, 160).map(item => <StockCountItemCard key={item.id} item={item} />)}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="stock-count-print-area">
+              <div className="stock-count-report-doc">
+                <div className="stock-count-report-head">
+                  <div>
+                    <div className="stock-count-report-title">รายงานสรุปการตรวจนับอุปกรณ์</div>
+                    <div className="stock-count-report-sub">
+                      ศูนย์มัลติมีเดียทางการศึกษา วิทยาลัยเทคโนโลยีภาคตะวันออก (อี.เทค)<br/>
+                      {stockCountSession.name || '-'} • วันที่ตรวจ {printDateText} • ผู้ตรวจนับ {stockCountSession.inspector || '-'}
+                    </div>
+                  </div>
+                  <div className="stock-count-report-meta">
+                    สถานะ: {statusLabel}<br/>
+                    พิมพ์เมื่อ: {new Date().toLocaleString('th-TH', { hour12: false })}<br/>
+                    เวอร์ชัน: {APP_VERSION}
+                  </div>
+                </div>
+                <div className="stock-count-report-kpi">
+                  <div><b>{stockCountStats.auditTarget.length}</b><span>เป้าหมายตรวจ</span></div>
+                  <div><b>{stockCountStats.foundTarget.length}</b><span>พบแล้ว</span></div>
+                  <div><b>{stockCountStats.notFound.length}</b><span>ยังไม่พบ</span></div>
+                  <div><b>{stockCountStats.out.length}</b><span>ยืม/ออกงาน</span></div>
+                  <div><b>{stockCountStats.maintenance.length}</b><span>ซ่อม/ชำรุด</span></div>
+                </div>
+                <table className="stock-count-report-table">
+                  <thead>
+                    <tr>
+                      <th>ลำดับ</th>
+                      <th>รายการตรวจ</th>
+                      <th>S.N.</th>
+                      <th>หมวด / ที่เก็บ</th>
+                      <th>สถานะระบบ</th>
+                      <th>ผลตรวจนับ</th>
+                      <th>หมายเหตุ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...stockCountStats.notFound.slice(0, 18), ...stockCountStats.out.slice(0, 6), ...stockCountStats.maintenance.slice(0, 6)].slice(0, 28).map((item, idx) => (
+                      <tr key={`print_${item.id}`}>
+                        <td>{idx + 1}</td>
+                        <td>{item.name || '-'}</td>
+                        <td>{item.sn || '-'}</td>
+                        <td>{item.category || '-'} / {item.location || '-'}</td>
+                        <td>{STATUSES.find(s => s.id === item.status)?.label || item.status || '-'}</td>
+                        <td>{getStockCountAuditStatus(item)}</td>
+                        <td>{getMissingDataLabels(item).slice(0, 2).join(', ') || '-'}</td>
+                      </tr>
+                    ))}
+                    {stockCountStats.notFound.length === 0 && stockCountStats.out.length === 0 && stockCountStats.maintenance.length === 0 && (
+                      <tr><td>1</td><td colSpan="6">ตรวจนับเรียบร้อย ไม่พบรายการค้างตรวจสำคัญ</td></tr>
+                    )}
+                  </tbody>
+                </table>
+                <div className="stock-count-report-sign">
+                  <div>ผู้ตรวจนับ</div>
+                  <div>ผู้ตรวจสอบ</div>
+                  <div>ผู้รับรอง</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderActiveWorkspace = () => {
     if (activeWorkspace === 'borrowReturn') return renderBorrowReturnWorkspace();
     if (activeWorkspace === 'projects') return renderProjectWorkspace();
     if (activeWorkspace === 'organize') return renderOrganizeWorkspace();
+    if (activeWorkspace === 'stockCount') return renderStockCountWorkspace();
     if (activeWorkspace === 'reports') return renderReportsWorkspace();
     return null;
   };
@@ -10759,14 +11199,92 @@ S.N.: ${item.sn || '-'}
   }, [items, borrowเอกสารs, currentBorrowedItems, currentEventItems]);
 
   const stockCountStats = useMemo(() => {
-    const activeItems = items.filter(i => !i.isDeleted);
+    const activeItems = items.filter(i => i && !i.isDeleted);
     const foundSet = new Set(stockCountFoundIds);
     const found = activeItems.filter(i => foundSet.has(i.id));
-    const notFound = activeItems.filter(i => !foundSet.has(i.id) && i.status === 'available');
     const out = activeItems.filter(i => i.status === 'borrowed' || i.status === 'out-for-event');
+    const borrowed = activeItems.filter(i => i.status === 'borrowed');
+    const event = activeItems.filter(i => i.status === 'out-for-event');
     const maintenance = activeItems.filter(i => i.status === 'maintenance');
-    return { activeItems, found, notFound, out, maintenance };
-  }, [items, stockCountFoundIds]);
+    const auditTarget = activeItems.filter(i => i.status !== 'borrowed' && i.status !== 'out-for-event' && i.status !== 'maintenance');
+    const notFound = auditTarget.filter(i => !foundSet.has(i.id));
+    const noQr = activeItems.filter(i => !i.qrTagged);
+    const incomplete = activeItems.filter(i => getMissingDataLabels(i).length > 0);
+    const recheck = activeItems.filter(i => {
+      const missing = getMissingDataLabels(i);
+      return (!foundSet.has(i.id) && i.status === 'available') ||
+        i.status === 'maintenance' ||
+        !i.qrTagged ||
+        !i.location ||
+        !i.sn ||
+        missing.length >= 2;
+    });
+    const keyword = String(stockCountSearch || '').trim().toLowerCase();
+    const textOf = (item = {}) => [
+      item.name,
+      item.sn,
+      item.shortCode,
+      item.assetShortCode,
+      item.localCode,
+      item.category,
+      item.location,
+      item.storageBoxName,
+      item.department,
+      item.ownerDepartment,
+      item.project,
+      item.owner,
+      item.internalNote,
+      item.id
+    ].map(v => String(v || '').toLowerCase()).join(' ');
+    const passesMainFilter = (item) => {
+      if (stockCountFilter === 'found') return foundSet.has(item.id);
+      if (stockCountFilter === 'notFound') return auditTarget.some(i => i.id === item.id) && !foundSet.has(item.id);
+      if (stockCountFilter === 'outside') return item.status === 'borrowed' || item.status === 'out-for-event';
+      if (stockCountFilter === 'borrowed') return item.status === 'borrowed';
+      if (stockCountFilter === 'event') return item.status === 'out-for-event';
+      if (stockCountFilter === 'maintenance') return item.status === 'maintenance';
+      if (stockCountFilter === 'noQr') return !item.qrTagged;
+      if (stockCountFilter === 'incomplete') return getMissingDataLabels(item).length > 0;
+      if (stockCountFilter === 'recheck') return recheck.some(i => i.id === item.id);
+      return true;
+    };
+    const filteredItems = activeItems.filter(item => {
+      const matchFilter = passesMainFilter(item);
+      const matchCategory = stockCountCategory === 'all' || String(item.category || '') === String(stockCountCategory);
+      const matchLocation = stockCountLocation === 'all' || String(item.location || '') === String(stockCountLocation);
+      const matchDept = stockCountDept === 'all' || String(item.department || item.ownerDepartment || '') === String(stockCountDept);
+      const matchSearch = !keyword || textOf(item).includes(keyword);
+      return matchFilter && matchCategory && matchLocation && matchDept && matchSearch;
+    }).sort((a, b) => {
+      const af = foundSet.has(a.id) ? 1 : 0;
+      const bf = foundSet.has(b.id) ? 1 : 0;
+      if (stockCountFilter === 'notFound' && af !== bf) return af - bf;
+      const ar = recheck.some(i => i.id === a.id) ? 1 : 0;
+      const br = recheck.some(i => i.id === b.id) ? 1 : 0;
+      if (ar !== br) return br - ar;
+      return String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true, sensitivity: 'base' });
+    });
+    const percent = auditTarget.length ? Math.min(100, Math.round((found.filter(i => auditTarget.some(t => t.id === i.id)).length / auditTarget.length) * 100)) : 100;
+    const progressLabel = percent >= 100 ? 'ตรวจครบแล้ว' : percent >= 80 ? 'ใกล้ครบ' : percent >= 35 ? 'กำลังตรวจ' : stockCountSession.status === 'draft' ? 'ยังไม่เริ่ม' : 'เริ่มตรวจ';
+    return {
+      activeItems,
+      found,
+      foundSet,
+      foundTarget: found.filter(i => auditTarget.some(t => t.id === i.id)),
+      notFound,
+      out,
+      borrowed,
+      event,
+      maintenance,
+      auditTarget,
+      noQr,
+      incomplete,
+      recheck,
+      filteredItems,
+      percent,
+      progressLabel
+    };
+  }, [items, stockCountFoundIds, stockCountFilter, stockCountSearch, stockCountCategory, stockCountLocation, stockCountDept, stockCountSession.status, todayMs]);
 
   const sortedBundleItems = useMemo(() => {
     if (!showBundleManager) return [];
@@ -11015,18 +11533,166 @@ S.N.: ${item.sn || '-'}
   }, [items]);
 
 
+  const markStockCountFound = (item, source = 'manual') => {
+    if (!item || !item.id) return;
+    const already = stockCountFoundIds.includes(item.id);
+    setStockCountFoundIds(prev => prev.includes(item.id) ? prev : [...prev, item.id]);
+    setStockCountFoundMeta(prev => ({
+      ...prev,
+      [item.id]: prev[item.id] || {
+        foundAt: new Date().toISOString(),
+        foundBy: stockCountSession.inspector || currentAccountLabel || '',
+        source
+      }
+    }));
+    setStockCountSession(prev => ({
+      ...prev,
+      status: prev.status === 'completed' ? 'completed' : 'active',
+      startedAt: prev.startedAt || new Date().toISOString()
+    }));
+    if (already) {
+      notify('ตรวจพบไปแล้ว', item.name || '-', 'info');
+    } else {
+      notify('ตรวจพบแล้ว', item.name || '-', 'success');
+    }
+  };
+
+  const unmarkStockCountFound = (item) => {
+    if (!item || !item.id) return;
+    setStockCountFoundIds(prev => prev.filter(id => id !== item.id));
+    setStockCountFoundMeta(prev => {
+      const next = { ...prev };
+      delete next[item.id];
+      return next;
+    });
+    notify('ยกเลิกพบแล้ว', item.name || '-', 'warning');
+  };
+
   const handleStockCountScan = () => {
     const val = String(stockCountInput || '').trim();
     if (!val) return;
-    const found = items.find(i => !i.isDeleted && (i.id === val || String(i.sn || '').toLowerCase() === val.toLowerCase() || String(i.name || '').toLowerCase() === val.toLowerCase()));
+    const valLower = val.toLowerCase();
+    const found = items.find(i => !i.isDeleted && (
+      i.id === val ||
+      String(i.sn || '').toLowerCase() === valLower ||
+      String(i.shortCode || i.assetShortCode || i.localCode || '').toLowerCase() === valLower ||
+      String(i.name || '').toLowerCase() === valLower
+    ));
     if (!found) {
       notify('ไม่พบอุปกรณ์', `ไม่พบรหัส/ชื่อ: ${val}`, 'error');
       setStockCountInput('');
       return;
     }
-    setStockCountFoundIds(prev => prev.includes(found.id) ? prev : [...prev, found.id]);
-    notify('ตรวจพบแล้ว', found.name, 'success');
+    markStockCountFound(found, 'input');
     setStockCountInput('');
+  };
+
+  const startNewStockCountSession = () => {
+    const d = new Date();
+    setStockCountFoundIds([]);
+    setStockCountFoundMeta({});
+    setStockCountFilter('all');
+    setStockCountSearch('');
+    setStockCountSession({
+      id: `stock_count_${d.getTime()}`,
+      name: `ตรวจนับสต๊อก ${d.toLocaleDateString('th-TH')}`,
+      date: d.toISOString().slice(0, 10),
+      inspector: currentAccountLabel || '',
+      note: '',
+      status: 'active',
+      startedAt: d.toISOString(),
+      completedAt: ''
+    });
+    notify('เริ่มรอบตรวจนับใหม่แล้ว', 'ใช้ค้นหา/ยิงบาร์โค้ด/ติ๊กพบแล้วได้ทันที', 'success');
+  };
+
+  const finishStockCountSession = () => {
+    setStockCountSession(prev => ({ ...prev, status: 'completed', completedAt: new Date().toISOString() }));
+    notify('ปิดรอบตรวจนับแล้ว', `ตรวจพบ ${stockCountStats.found.length}/${stockCountStats.auditTarget.length} รายการ`, 'success');
+  };
+
+  const resetStockCountFilters = () => {
+    setStockCountFilter('all');
+    setStockCountSearch('');
+    setStockCountCategory('all');
+    setStockCountLocation('all');
+    setStockCountDept('all');
+  };
+
+  const openStockCountScanner = () => {
+    setScanMode('stockCount');
+    setUseCamera(true);
+    setShowScanModal(true);
+  };
+
+  const getStockCountAuditStatus = (item) => {
+    if (!item) return 'ไม่ทราบ';
+    if (stockCountStats.foundSet.has(item.id)) return 'พบแล้ว';
+    if (item.status === 'borrowed') return 'ถูกยืมอยู่';
+    if (item.status === 'out-for-event') return 'ออกงานอยู่';
+    if (item.status === 'maintenance') return 'ซ่อม/ชำรุด';
+    return 'ยังไม่พบ';
+  };
+
+  const exportStockCountCSV = async (mode = 'summary') => {
+    const rows = [];
+    rows.push(['ข้อมูลรอบตรวจ', 'ชื่อรอบตรวจ', stockCountSession.name || '-', '']);
+    rows.push(['ข้อมูลรอบตรวจ', 'วันที่ตรวจ', stockCountSession.date || '-', '']);
+    rows.push(['ข้อมูลรอบตรวจ', 'ผู้ตรวจนับ', stockCountSession.inspector || '-', '']);
+    rows.push(['ข้อมูลรอบตรวจ', 'สถานะรอบตรวจ', stockCountSession.status || '-', '']);
+    rows.push(['สรุป', 'อุปกรณ์ในขอบเขตตรวจ', stockCountStats.auditTarget.length, 'ไม่นับรายการยืม/ออกงาน/ซ่อม']);
+    rows.push(['สรุป', 'ตรวจพบแล้ว', stockCountStats.foundTarget.length, `${stockCountStats.percent}%`]);
+    rows.push(['สรุป', 'ยังไม่พบ', stockCountStats.notFound.length, 'ควรตรวจซ้ำ']);
+    rows.push(['สรุป', 'ถูกยืม/ออกงาน', stockCountStats.out.length, 'อยู่นอกศูนย์']);
+    rows.push(['สรุป', 'ซ่อม/ชำรุด', stockCountStats.maintenance.length, '']);
+    rows.push(['สรุป', 'ไม่มี QR', stockCountStats.noQr.length, '']);
+    rows.push(['สรุป', 'ข้อมูลไม่ครบ', stockCountStats.incomplete.length, '']);
+
+    const list = mode === 'missing'
+      ? stockCountStats.notFound
+      : mode === 'found'
+        ? stockCountStats.found
+        : mode === 'recheck'
+          ? stockCountStats.recheck
+          : stockCountStats.activeItems;
+
+    list.forEach((item, index) => {
+      const meta = stockCountFoundMeta[item.id] || {};
+      rows.push([
+        'รายการอุปกรณ์',
+        index + 1,
+        item.name || '-',
+        item.sn || '-',
+        item.shortCode || item.assetShortCode || item.localCode || '',
+        item.category || '',
+        item.location || '',
+        item.department || item.ownerDepartment || '',
+        item.project || '',
+        STATUSES.find(s => s.id === item.status)?.label || item.status || '',
+        getStockCountAuditStatus(item),
+        meta.foundAt ? new Date(meta.foundAt).toLocaleString('th-TH', { hour12: false }) : '',
+        getMissingDataLabels(item).join(', ')
+      ]);
+    });
+
+    const headers = ['หมวด', 'ลำดับ/รายการ', 'ชื่ออุปกรณ์', 'S.N.', 'รหัสสั้น', 'หมวดหมู่', 'ที่เก็บ', 'ฝ่าย', 'โครงการ', 'สถานะระบบ', 'ผลตรวจนับ', 'เวลาที่พบ', 'หมายเหตุ/ข้อมูลที่ขาด'];
+    backupDownloadCSV(`MDEC_Stock_Count_${mode}_${stockCountSession.date || getBackupFileTag()}.csv`, headers, rows);
+    await logAction('ส่งออก CSV ตรวจนับสต๊อก', stockCountSession.name || '-', `mode=${mode} rows=${rows.length}`);
+    pushToast('ดาวน์โหลด CSV ตรวจนับแล้ว', 'success');
+  };
+
+  const printStockCountReport = () => {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+    document.body.classList.add('mdec-stock-count-printing');
+    const cleanup = () => {
+      document.body.classList.remove('mdec-stock-count-printing');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    window.setTimeout(() => {
+      window.print();
+      window.setTimeout(cleanup, 2200);
+    }, 120);
   };
 
   const openRepairForItem = (item) => {
@@ -11745,6 +12411,7 @@ S.N.: ${item.sn || '-'}
     if (scanMode === 'borrowChecklist') return { title: 'สแกนเช็กก่อนปล่อยยืม', desc: 'สแกน QR ของอุปกรณ์ในรายการยืม เพื่อเช็กแทนการติ๊กเอง', tone: 'purple' };
     if (scanMode === 'eventChecklist') return { title: 'สแกนเช็กของขึ้นงาน', desc: 'สแกน QR ของอุปกรณ์ในรายการออกงาน เพื่อเช็กแทนการติ๊กเอง', tone: 'orange' };
     if (scanMode === 'returnChecklist') return { title: 'สแกนเช็กตอนรับคืน', desc: 'สแกน QR ของอุปกรณ์ที่นำมาคืน เพื่อเช็กแทนการติ๊กเอง', tone: 'emerald' };
+    if (scanMode === 'stockCount') return { title: 'สแกนตรวจนับสต๊อก', desc: 'ใช้กล้องชุดเดิมเพื่อ mark พบแล้วในรอบตรวจนับ โดยไม่เปลี่ยนสถานะอุปกรณ์จริง', tone: 'blue' };
     return { title: 'สแกน QR', desc: 'สแกนเพื่อเลือกอุปกรณ์หลายรายการ หรือดูสแกนล่าสุดแบบรวดเร็ว', tone: 'amber' };
   };
 
@@ -11840,7 +12507,12 @@ S.N.: ${item.sn || '-'}
         try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
       };
 
-      if (scanMode === 'borrowChecklist') {
+      if (scanMode === 'stockCount') {
+        markStockCountFound(foundItem, 'camera');
+        setScanMessage({ text: `✅ ตรวจนับพบแล้ว: "${foundItem.name}"`, type: 'success' });
+        try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
+        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
+      } else if (scanMode === 'borrowChecklist') {
         markChecklist(borrowTargetIds, packingChecklist, setPackingChecklist, 'ก่อนปล่อยยืม');
       } else if (scanMode === 'eventChecklist') {
         markChecklist(eventTargetIds, eventChecklist, setEventChecklist, 'ออกงาน');
@@ -15014,6 +15686,11 @@ S.N.: ${item.sn || '-'}
               <span className={`block ${theme.textTitle}`}>รายงาน</span>
               <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>สรุป/พิมพ์/CSV</span>
             </button>
+            <button type="button" onClick={() => openWorkspace('stockCount')} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+              <span className="mobile-field-icon bg-emerald-600 text-white mb-2"><Icons.CheckCircle className="w-5 h-5" /></span>
+              <span className={`block ${theme.textTitle}`}>ตรวจนับ</span>
+              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{stockCountStats.percent}% พบแล้ว</span>
+            </button>
             <button type="button" onClick={openControlCenter} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
               <span className="mobile-field-icon bg-indigo-600 text-white mb-2"><Icons.ViewGrid className="w-5 h-5" /></span>
               <span className={`block ${theme.textTitle}`}>เมนูทั้งหมด</span>
@@ -15126,9 +15803,9 @@ S.N.: ${item.sn || '-'}
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดกลุ่มตามแหล่งที่มา</p>
                   </button>
                   {isFullMode && canUseOperationalTools && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowStockCountModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> ตรวจนับสต๊อก</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เดินสแกน QR เทียบของจริงกับระบบ</p>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); openWorkspace('stockCount'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                      <div className="font-black text-lg flex items-center gap-2"><Icons.CheckCircle className="w-5 h-5" /> ตรวจนับสต๊อก</div>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รอบตรวจนับ / รายงาน A4 / CSV</p>
                     </button>
                   )}
                 </div>
@@ -16557,9 +17234,9 @@ S.N.: ${item.sn || '-'}
       {/* 📷 หน้าสแกน QR Code แบบใหม่: ใช้งานหน้างาน / มือถือ / เครื่องยิงบาร์โค้ด */}
       {showScanModal && (() => {
         const scanInfo = getScanModeInfo();
-        const isChecklistMode = scanMode !== 'select';
-        const targetIds = scanMode === 'borrowChecklist' ? borrowTargetIds : scanMode === 'eventChecklist' ? eventTargetIds : scanMode === 'returnChecklist' ? returnTargetIds : [];
-        const checkedIds = scanMode === 'borrowChecklist' ? packingChecklist : scanMode === 'eventChecklist' ? eventChecklist : scanMode === 'returnChecklist' ? returnChecklist : [];
+        const isChecklistMode = scanMode !== 'select' && scanMode !== 'stockCount';
+        const targetIds = scanMode === 'borrowChecklist' ? borrowTargetIds : scanMode === 'eventChecklist' ? eventTargetIds : scanMode === 'returnChecklist' ? returnTargetIds : scanMode === 'stockCount' ? stockCountStats.auditTarget.map(i => i.id) : [];
+        const checkedIds = scanMode === 'borrowChecklist' ? packingChecklist : scanMode === 'eventChecklist' ? eventChecklist : scanMode === 'returnChecklist' ? returnChecklist : scanMode === 'stockCount' ? stockCountFoundIds : [];
         const total = targetIds.length || 0;
         const checked = checkedIds.length || 0;
         const percent = total === 0 ? 0 : Math.min(100, Math.round((checked / total) * 100));
@@ -16573,14 +17250,18 @@ S.N.: ${item.sn || '-'}
             ? 'from-orange-500 to-red-600'
             : scanMode === 'returnChecklist'
               ? 'from-emerald-500 to-teal-600'
-              : 'from-amber-500 to-orange-600';
+              : scanMode === 'stockCount'
+                ? 'from-blue-600 to-cyan-600'
+                : 'from-amber-500 to-orange-600';
         const softToneClass = scanMode === 'borrowChecklist'
           ? (isDarkMode ? 'bg-purple-950/30 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-800')
           : scanMode === 'eventChecklist'
             ? (isDarkMode ? 'bg-orange-950/30 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800')
             : scanMode === 'returnChecklist'
               ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
-              : (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800');
+              : scanMode === 'stockCount'
+                ? (isDarkMode ? 'bg-blue-950/30 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800')
+                : (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800');
 
         return (
           <div className={`fixed inset-0 ${theme.modalOverlay} z-[9999] overflow-hidden`}> 
@@ -19998,46 +20679,18 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
-      {/* 🔎 Modal ตรวจนับสต๊อก */}
+      {/* 🔎 Legacy Stock Count Modal Redirect */}
       {showStockCountModal && (
-        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[9990] mdec-history-proof-safe`}>
-          <div className={`rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden ${theme.cardBg}`}>
-            <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
-              <div>
-                <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.QrCode className="w-6 h-6 text-amber-500" /> โหมดตรวจนับสต๊อก</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เดินสแกน QR/S.N. ของจริง ระบบจะเทียบกับรายการในเว็บ</p>
-              </div>
-              <button onClick={() => setShowStockCountModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-3xl p-6 max-w-md w-full shadow-2xl border text-center ${theme.cardBg}`}>
+            <div className={`w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center ${isDarkMode ? 'bg-emerald-950/40 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
+              <Icons.CheckCircle className="w-8 h-8" />
             </div>
-            <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <div className={`p-4 rounded-2xl border text-center ${theme.cardBg}`}><div className="text-sm font-bold text-slate-500">ทั้งหมด</div><div className="text-3xl font-black text-blue-500">{stockCountStats.activeItems.length}</div></div>
-                <div className={`p-4 rounded-2xl border text-center ${theme.cardBg}`}><div className="text-sm font-bold text-slate-500">พบแล้ว</div><div className="text-3xl font-black text-emerald-500">{stockCountStats.found.length}</div></div>
-                <div className={`p-4 rounded-2xl border text-center ${theme.cardBg}`}><div className="text-sm font-bold text-slate-500">ยังไม่พบ</div><div className="text-3xl font-black text-amber-500">{stockCountStats.notFound.length}</div></div>
-                <div className={`p-4 rounded-2xl border text-center ${theme.cardBg}`}><div className="text-sm font-bold text-slate-500">ยืม/ออกงาน</div><div className="text-3xl font-black text-purple-500">{stockCountStats.out.length}</div></div>
-                <div className={`p-4 rounded-2xl border text-center ${theme.cardBg}`}><div className="text-sm font-bold text-slate-500">ซ่อม</div><div className="text-3xl font-black text-rose-500">{stockCountStats.maintenance.length}</div></div>
-              </div>
-              <form onSubmit={(e) => { e.preventDefault(); handleStockCountScan(); }} className="flex flex-col sm:flex-row gap-3">
-                <input value={stockCountInput} onChange={(e) => setStockCountInput(e.target.value)} className={`flex-1 px-4 py-4 rounded-xl font-bold text-lg border ${theme.input}`} placeholder="สแกน QR / พิมพ์ S.N. / ชื่ออุปกรณ์" autoFocus />
-                <button className="px-6 py-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black">บันทึกว่าพบ</button>
-                <button type="button" onClick={() => setStockCountFoundIds([])} className={`px-6 py-4 rounded-xl font-black border ${theme.btnSecondary}`}>เริ่มใหม่</button>
-              </form>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`}>
-                  <h4 className={`font-black mb-3 ${theme.textTitle}`}>พบแล้วล่าสุด</h4>
-                  <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar">
-                    {stockCountStats.found.slice(-30).reverse().map(i => <div key={i.id} className={`p-3 rounded-xl font-bold ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>✅ {i.name} <span className={theme.textMuted}>{i.sn || ''}</span></div>)}
-                    {stockCountStats.found.length === 0 && <div className={`font-bold ${theme.textMuted}`}>ยังไม่ได้สแกนรายการใด</div>}
-                  </div>
-                </div>
-                <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`}>
-                  <h4 className={`font-black mb-3 ${theme.textTitle}`}>ยังไม่พบ (เฉพาะของพร้อมใช้)</h4>
-                  <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar">
-                    {stockCountStats.notFound.slice(0, 60).map(i => <div key={i.id} className={`p-3 rounded-xl font-bold ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>□ {i.name} <span className={theme.textMuted}>{i.sn || ''}</span></div>)}
-                    {stockCountStats.notFound.length === 0 && <div className={`font-bold text-emerald-500`}>ครบแล้วในกลุ่มพร้อมใช้</div>}
-                  </div>
-                </div>
-              </div>
+            <h3 className={`text-2xl font-black ${theme.textTitle}`}>ย้ายไปหน้า “ตรวจนับสต๊อก” แล้ว</h3>
+            <p className={`text-sm font-bold mt-2 ${theme.textMuted}`}>แพ็ก v22.53.35 เปลี่ยนจาก popup เดิมเป็นหน้าเต็ม เพื่อให้เดินตรวจของบนมือถือได้สะดวกขึ้น</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-5">
+              <button type="button" onClick={() => setShowStockCountModal(false)} className={`py-3 rounded-2xl border font-black ${theme.btnCancel}`}>ปิด</button>
+              <button type="button" onClick={() => { setShowStockCountModal(false); openWorkspace('stockCount'); }} className="py-3 rounded-2xl bg-emerald-600 text-white font-black">เปิดหน้าเต็ม</button>
             </div>
           </div>
         </div>
