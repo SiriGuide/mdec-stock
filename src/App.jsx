@@ -1,4 +1,4 @@
-// v22.53.16 Print Template Settings & Slip Redesign - redesigned borrow/event/return documents with before-print logo/watermark controls, no QR/camera/database path changes
+// v22.53.17 Operational Slip Clean Design - fixed clean A4 borrow/event/return documents, removes before-print logo/watermark controls, no QR/camera/database path changes
 // v22.53.15 Operational Documents One-Page Print Polish - compact one-page print layout for borrow/event/return slips, no QR/camera/database path changes
 // v22.53.9 Equipment Detail / Asset History Polish - asset profile file, mobile action shortcuts, no QR/camera/database path changes
 // v22.53.8 Operational Print Documents Polish - official A4 borrow/event/return documents and QR label print polish, no QR/camera/database path changes
@@ -49,8 +49,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.16 Print Template Settings & Slip Redesign';
-const APP_UPDATE_NOTE = 'Settings Back Flow Usability Fix: ปรับหน้าตั้งค่าให้เป็นหน้ารวมก่อนเข้าแต่ละหมวด เพิ่มปุ่มกลับหน้ารวมและแถบสลับหมวดแบบกะทัดรัด ลดความรู้สึกแบ่งครึ่งหน้าต่าง โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
+const APP_VERSION = 'v22.53.17 Operational Slip Clean Design';
+const APP_UPDATE_NOTE = 'Operational Slip Clean Design: ปรับใบยืม ใบออกงาน และใบรับคืนเป็นฟอร์ม A4 สะอาด อ่านง่าย ใช้งานจริง พร้อมตัดตัวเลือกตั้งค่าลายน้ำ/ขนาดโลโก้ก่อนพิมพ์ออก โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -4588,6 +4588,365 @@ function FactoryPolishStyle({ isDarkMode }) {
         .factory-stock-polish .operation-doc-watermark { width: 34mm !important; right: 4mm !important; top: 24mm !important; opacity: .028 !important; }
         .factory-stock-polish .operation-print-document.operation-doc-onepage .operation-doc-subtitle { display: block !important; }
       }
+
+      /* v22.53.17 Operational Slip Clean Design: เอกสารปฏิบัติงานแบบ A4 สะอาด ใช้งานจริง ไม่เปิดตัวเลือกลายน้ำ/ขนาดโลโก้ก่อนพิมพ์ */
+      .factory-stock-polish .operation-print-ready-panel {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: rgba(15, 23, 42, .72);
+        border: 1px solid rgba(148,163,184,.24);
+        color: #e2e8f0;
+        min-width: min(100%, 420px);
+      }
+      .factory-stock-polish .operation-print-ready-badge {
+        flex: 0 0 auto;
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: #2563eb;
+        color: #fff;
+        font-size: 11px;
+        line-height: 1;
+        font-weight: 950;
+        letter-spacing: .12em;
+      }
+      .factory-stock-polish .operation-print-ready-text {
+        min-width: 0;
+        font-size: 12px;
+        line-height: 1.28;
+        font-weight: 900;
+      }
+      .factory-stock-polish .operation-print-ready-text span {
+        display: block;
+        margin-top: 2px;
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .factory-stock-polish .operation-doc-clean {
+        max-width: 210mm !important;
+        background:
+          linear-gradient(90deg, #1d4ed8 0 6mm, transparent 6mm 100%),
+          #ffffff !important;
+        color: #111827 !important;
+        border: 1px solid #d8dee8 !important;
+        box-shadow: 0 22px 60px rgba(15,23,42,.13) !important;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-watermark {
+        display: none !important;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-form-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(140px, 210px) 172px;
+        gap: 18px;
+        align-items: stretch;
+        padding: 0 0 16px 10px;
+        margin-bottom: 16px;
+        border-bottom: 2px solid #111827;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-letterhead {
+        align-items: center;
+        gap: 10px;
+        padding-top: 2px;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-letterhead-logo {
+        width: 84px !important;
+        height: 38px !important;
+        max-width: 84px !important;
+        max-height: 38px !important;
+        min-width: 84px !important;
+        min-height: 38px !important;
+        padding: 5px 7px !important;
+        border-radius: 10px !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: none !important;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-org-name {
+        font-size: 14px;
+        line-height: 1.16;
+        font-weight: 950;
+        color: #0f172a;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-org-subtitle {
+        margin-top: 2px;
+        font-size: 10.5px;
+        line-height: 1.2;
+        font-weight: 850;
+        color: #64748b;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-kicker {
+        margin-top: 7px;
+        font-size: 9px;
+        line-height: 1;
+        font-weight: 950;
+        letter-spacing: .12em;
+        color: #2563eb;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-title-block {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+        padding: 7px 8px;
+        border-left: 1px solid #e2e8f0;
+        border-right: 1px solid #e2e8f0;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-title {
+        margin: 0 !important;
+        font-size: 24px;
+        line-height: 1.05;
+        font-weight: 950;
+        color: #111827 !important;
+      }
+      .factory-stock-polish .operation-doc-clean.operation-doc-event .operation-doc-title { color: #c2410c !important; }
+      .factory-stock-polish .operation-doc-clean.operation-doc-return .operation-doc-title { color: #047857 !important; }
+      .factory-stock-polish .operation-doc-clean.operation-doc-prep .operation-doc-title { color: #7c3aed !important; }
+      .factory-stock-polish .operation-doc-clean .operation-doc-subtitle {
+        display: block !important;
+        margin: 5px auto 0;
+        max-width: 210px;
+        font-size: 10px;
+        line-height: 1.25;
+        font-weight: 800;
+        color: #64748b;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-refbox {
+        width: auto !important;
+        min-width: 0 !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 10px !important;
+        background: #f8fafc !important;
+        padding: 10px 12px !important;
+        text-align: left !important;
+        font-size: 11px;
+        line-height: 1.25;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-ref-label {
+        font-size: 9px;
+        line-height: 1;
+        color: #64748b;
+        font-weight: 950;
+        letter-spacing: .06em;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-ref-number {
+        margin-top: 4px;
+        font-size: 13px;
+        line-height: 1.15;
+        color: #0f172a;
+        font-weight: 950;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-info-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin: 0 0 12px 10px;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-info-panel {
+        border: 1px solid #dbe3ee;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #fff;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-info-heading {
+        padding: 7px 10px;
+        background: #f8fafc;
+        border-bottom: 1px solid #dbe3ee;
+        font-size: 11px;
+        letter-spacing: .04em;
+        color: #0f172a;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-info-row {
+        min-height: 28px;
+        padding: 6px 10px;
+        gap: 8px;
+        grid-template-columns: 35% 65%;
+        font-size: 11px;
+        line-height: 1.23;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-info-row span {
+        color: #64748b;
+        font-weight: 850;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-info-row strong {
+        color: #111827;
+        font-weight: 950;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-alert {
+        margin: 0 0 12px 10px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid #bfdbfe;
+        border-left: 4px solid #2563eb;
+        background: #f8fafc;
+        color: #1e3a8a;
+        font-size: 11px;
+        line-height: 1.3;
+      }
+      .factory-stock-polish .operation-doc-clean.operation-doc-event .operation-doc-alert { border-left-color: #f97316; color: #9a3412; }
+      .factory-stock-polish .operation-doc-clean.operation-doc-return .operation-doc-alert { border-left-color: #10b981; color: #065f46; }
+      .factory-stock-polish .operation-doc-clean .operation-doc-table-wrap {
+        margin: 0 0 12px 10px;
+        border: 1px solid #111827;
+        border-radius: 0;
+        overflow: hidden;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-table {
+        table-layout: fixed;
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+        line-height: 1.25;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-table th {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+        border: 1px solid #111827 !important;
+        padding: 7px 6px !important;
+        font-size: 10px;
+        font-weight: 950;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-table td {
+        background: #fff !important;
+        color: #111827 !important;
+        border: 1px solid #cbd5e1 !important;
+        padding: 6px !important;
+        vertical-align: top;
+        word-break: break-word;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-table tbody tr:nth-child(even) td {
+        background: #fbfdff !important;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-table th:first-child,
+      .factory-stock-polish .operation-doc-clean .operation-doc-table td:first-child { width: 9mm !important; }
+      .factory-stock-polish .operation-doc-clean .operation-doc-table-subtext {
+        font-size: 9px;
+        line-height: 1.2;
+        color: #64748b;
+        margin-top: 2px;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-note-box {
+        margin: 0 0 12px 10px;
+        min-height: 18mm;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        padding: 9px 10px;
+        background: #fff;
+        font-size: 11px;
+        line-height: 1.35;
+        color: #334155;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-signatures {
+        margin: 17mm 0 0 10px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-sign-box {
+        min-height: 28mm;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        background: #fff;
+        padding: 18px 10px 10px;
+        font-size: 10.5px;
+        line-height: 1.25;
+        color: #111827;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-sign-line {
+        margin: 13mm 6mm 4px;
+        border-top: 1px solid #111827;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-footer {
+        margin: 9mm 0 0 10px;
+        padding-top: 7px;
+        border-top: 1px solid #e2e8f0;
+        font-size: 9.5px;
+        line-height: 1.2;
+        color: #64748b;
+      }
+      .factory-stock-polish .operation-doc-clean .operation-doc-footer-logo {
+        width: 42px !important;
+        height: 20px !important;
+        min-width: 42px !important;
+        min-height: 20px !important;
+      }
+      @media (max-width: 767px) {
+        .factory-stock-polish .operation-print-ready-panel { width: 100%; }
+        .factory-stock-polish .operation-doc-clean {
+          background: #ffffff !important;
+        }
+        .factory-stock-polish .operation-doc-clean .operation-form-header,
+        .factory-stock-polish .operation-doc-clean .operation-doc-info-grid,
+        .factory-stock-polish .operation-doc-clean .operation-doc-signatures {
+          grid-template-columns: 1fr;
+          margin-left: 0;
+          padding-left: 0;
+        }
+        .factory-stock-polish .operation-doc-clean .operation-doc-title-block { text-align: left; border-left: 0; border-right: 0; padding-left: 0; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-info-grid,
+        .factory-stock-polish .operation-doc-clean .operation-doc-alert,
+        .factory-stock-polish .operation-doc-clean .operation-doc-table-wrap,
+        .factory-stock-polish .operation-doc-clean .operation-doc-note-box,
+        .factory-stock-polish .operation-doc-clean .operation-doc-signatures,
+        .factory-stock-polish .operation-doc-clean .operation-doc-footer { margin-left: 0; }
+      }
+      @media print {
+        @page { size: A4; margin: 11mm; }
+        .factory-stock-polish .operation-doc-clean {
+          width: 188mm !important;
+          max-width: 188mm !important;
+          min-height: auto !important;
+          border: 0 !important;
+          box-shadow: none !important;
+          background:
+            linear-gradient(90deg, #111827 0 4mm, transparent 4mm 100%),
+            #ffffff !important;
+          color: #000 !important;
+          page-break-after: auto !important;
+        }
+        .factory-stock-polish .operation-doc-clean .operation-form-header {
+          grid-template-columns: 66mm 1fr 38mm !important;
+          gap: 3.2mm !important;
+          padding: 0 0 3mm 6mm !important;
+          margin-bottom: 3mm !important;
+          border-bottom: 1.2pt solid #111827 !important;
+        }
+        .factory-stock-polish .operation-doc-clean .operation-doc-letterhead-logo {
+          width: 22mm !important;
+          height: 10mm !important;
+          min-width: 22mm !important;
+          min-height: 10mm !important;
+          padding: .8mm !important;
+          border-radius: 0 !important;
+        }
+        .factory-stock-polish .operation-doc-clean .operation-doc-org-name { font-size: 8pt !important; line-height: 1.08 !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-org-subtitle { font-size: 5.8pt !important; line-height: 1.12 !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-kicker { font-size: 5.6pt !important; margin-top: 1mm !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-title-block { padding: 1.3mm 1.6mm !important; border-color: #d1d5db !important; text-align: center !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-title { font-size: 15.2pt !important; line-height: 1.05 !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-subtitle { font-size: 6.4pt !important; line-height: 1.15 !important; margin-top: .8mm !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-refbox { border-radius: 0 !important; padding: 1.4mm 1.6mm !important; background: #fff !important; font-size: 6.6pt !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-ref-label { font-size: 5.8pt !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-ref-number { font-size: 8pt !important; margin-top: .5mm !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-info-grid { margin: 0 0 2.5mm 6mm !important; gap: 2.5mm !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-info-panel { border-radius: 0 !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-info-heading { padding: 1.4mm 2mm !important; font-size: 6.8pt !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-info-row { grid-template-columns: 36% 64% !important; min-height: 0 !important; padding: 1mm 2mm !important; font-size: 7pt !important; line-height: 1.13 !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-alert { margin: 0 0 2.5mm 6mm !important; padding: 1.4mm 2mm !important; border-radius: 0 !important; background: #fff !important; font-size: 7pt !important; line-height: 1.18 !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-table-wrap { margin: 0 0 2.5mm 6mm !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-table { font-size: 7.2pt !important; line-height: 1.12 !important; table-layout: fixed !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-table th { background: #f3f4f6 !important; color: #000 !important; font-size: 6.8pt !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-table th,
+        .factory-stock-polish .operation-doc-clean .operation-doc-table td { padding: 1.05mm 1.15mm !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-table tr { break-inside: avoid !important; page-break-inside: avoid !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-table-subtext { font-size: 6.1pt !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-note-box { margin: 0 0 2.5mm 6mm !important; min-height: 8mm !important; padding: 1.5mm 1.8mm !important; border-radius: 0 !important; font-size: 6.8pt !important; line-height: 1.18 !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-signatures { margin: 3.5mm 0 0 6mm !important; gap: 2.5mm !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-sign-box { min-height: 17mm !important; padding: 2mm 1.8mm 1.5mm !important; border-radius: 0 !important; font-size: 6.8pt !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-sign-line { margin: 5.8mm 2mm 1mm !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-footer { margin: 2.5mm 0 0 6mm !important; padding-top: 1.2mm !important; font-size: 5.8pt !important; }
+        .factory-stock-polish .operation-doc-clean .operation-doc-footer-logo { width: 10mm !important; height: 4.8mm !important; min-width: 10mm !important; min-height: 4.8mm !important; }
+      }
+
 
       @media (max-width: 1279px) {
         .factory-stock-polish .operation-workspace-card section:last-of-type {
@@ -12754,50 +13113,27 @@ S.N.: ${item.sn || '-'}
         : isEventSlip
           ? ['ลงชื่อผู้รับผิดชอบงาน', 'ลงชื่อเจ้าหน้าที่ผู้นำออก', 'ลงชื่อผู้ตรวจสอบ']
           : ['ลงชื่อผู้ยืม / ผู้รับผิดชอบงาน', 'ลงชื่อเจ้าหน้าที่ผู้ให้ยืม', 'ลงชื่อผู้ตรวจสอบ'];
-    const onePageSlipCandidate = printItems.length <= 8;
-    const slipLogoEnabled = showเอกสารLogo('slipLogo');
-    const watermarkEnabled = showเอกสารLogo('watermark') && !isInkSavingเอกสาร;
-    const activePrintToneLabel = isInkSavingเอกสาร ? 'ประหยัดหมึก' : 'ทางการ';
-    const logoSizeLabel = documentBrandSettings.logoSize === 'large' ? 'ใหญ่' : documentBrandSettings.logoSize === 'small' ? 'เล็ก' : 'ปกติ';
+    const onePageSlipCandidate = printItems.length <= 10;
+    // v22.53.17: เอกสารปฏิบัติงานใช้ดีไซน์คงที่ เพื่อไม่ให้หน้าพิมพ์เพี้ยนจากการตั้งค่าโลโก้/ลายน้ำเดิม
+    const slipLogoEnabled = true;
+    const watermarkEnabled = false;
 
     return (
-      <div className={`factory-stock-polish operation-print-page min-h-screen font-sans text-slate-900 print:bg-white ${isInkSavingเอกสาร ? "bg-white" : "bg-slate-100"}`}>
+      <div className="factory-stock-polish operation-print-page min-h-screen font-sans text-slate-900 print:bg-white bg-slate-100">
         <div className="print-actions-bar print:hidden p-4 bg-slate-900 text-white fixed top-0 w-full z-50 shadow-md">
           <div className="max-w-6xl mx-auto flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
             <div className="min-w-0">
               <h2 className="font-black text-xl flex items-center gap-2"><Icons.พิมพ์er className="w-6 h-6" /> {docTitle}</h2>
-              <p className="text-slate-300 text-sm font-bold mt-1">ปรับโลโก้ / ลายน้ำ / โทนเอกสารได้ก่อนพิมพ์ แล้วดูตัวอย่างทันที</p>
-              <div className="operation-doc-print-hint print:hidden">ดีไซน์ใหม่เป็นแบบฟอร์มเอกสาร A4 ไม่ใช้หน้าตาเว็บเป็นต้นฉบับพิมพ์</div>
+              <p className="text-slate-300 text-sm font-bold mt-1">แบบฟอร์ม A4 ดีไซน์คงที่ พร้อมพิมพ์ใช้งานจริง ไม่ต้องตั้งค่าลายน้ำหรือขนาดโลโก้</p>
+              <div className="operation-doc-print-hint print:hidden">ดีไซน์นี้ถูกจัดเป็นฟอร์มเอกสารสำหรับใบยืม / ใบออกงาน / ใบรับคืนโดยเฉพาะ</div>
             </div>
 
-            <div className="operation-print-settings-panel print:hidden">
-              <div className="operation-print-setting-title">ตั้งค่าก่อนพิมพ์</div>
-              <label className="operation-print-toggle">
-                <input type="checkbox" checked={slipLogoEnabled} onChange={(e) => saveเอกสารSettings({ slipLogo: e.target.checked })} />
-                <span>โลโก้หัวเอกสาร</span>
-              </label>
-              <label className="operation-print-toggle">
-                <input type="checkbox" checked={documentBrandSettings.watermark !== false} disabled={isInkSavingเอกสาร} onChange={(e) => saveเอกสารSettings({ watermark: e.target.checked })} />
-                <span>ลายน้ำ</span>
-              </label>
-              <div className="operation-print-segment">
-                {[
-                  ['official', 'ทางการ'],
-                  ['ink', 'ประหยัดหมึก']
-                ].map(([value, label]) => (
-                  <button key={value} type="button" onClick={() => saveเอกสารSettings({ printTone: value })} className={documentBrandSettings.printTone === value ? 'active' : ''}>{label}</button>
-                ))}
+            <div className="operation-print-ready-panel print:hidden">
+              <div className="operation-print-ready-badge">A4 READY</div>
+              <div className="operation-print-ready-text">
+                <div>ใช้ดีไซน์เอกสารมาตรฐานของระบบ</div>
+                <span>ตัดลายน้ำและตัวเลือกขนาดโลโก้ออก เพื่อให้พรีวิวก่อนพิมพ์นิ่งและสวยเหมือนกันทุกครั้ง</span>
               </div>
-              <div className="operation-print-segment compact">
-                {[
-                  ['small', 'โลโก้เล็ก'],
-                  ['normal', 'ปกติ'],
-                  ['large', 'ใหญ่']
-                ].map(([value, label]) => (
-                  <button key={value} type="button" onClick={() => saveเอกสารSettings({ logoSize: value })} className={documentBrandSettings.logoSize === value ? 'active' : ''}>{label}</button>
-                ))}
-              </div>
-              <div className="operation-print-setting-note">ตอนนี้: {activePrintToneLabel} • โลโก้ {logoSizeLabel}{isInkSavingเอกสาร ? ' • ปิดลายน้ำอัตโนมัติ' : ''}</div>
             </div>
 
             <div className="flex flex-wrap gap-3 w-full xl:w-auto shrink-0">
@@ -12808,7 +13144,7 @@ S.N.: ${item.sn || '-'}
         </div>
 
         <div className="pt-64 xl:pt-36 print:pt-0 p-4 sm:p-6 print:p-0 mx-auto">
-          <article className={`operation-print-document operation-form-document relative overflow-hidden p-6 sm:p-8 print:p-0 rounded-2xl print:rounded-none ${onePageSlipCandidate ? 'operation-doc-onepage' : 'operation-doc-multipage'} ${isReturnSlip ? 'operation-doc-return' : isEventSlip ? 'operation-doc-event' : isPrepSlip ? 'operation-doc-prep' : 'operation-doc-borrow'} ${isInkSavingเอกสาร ? 'operation-doc-ink' : 'operation-doc-official'}`}>
+          <article className={`operation-print-document operation-form-document operation-doc-clean relative overflow-hidden p-6 sm:p-8 print:p-0 rounded-2xl print:rounded-none ${onePageSlipCandidate ? 'operation-doc-onepage' : 'operation-doc-multipage'} ${isReturnSlip ? 'operation-doc-return' : isEventSlip ? 'operation-doc-event' : isPrepSlip ? 'operation-doc-prep' : 'operation-doc-borrow'} operation-doc-official`}>
             {watermarkEnabled && !brandLogoError && <img src={ORG_LOGO_SRC} alt="MDEC Watermark" className="operation-doc-watermark" onError={() => setBrandLogoError(true)} />}
 
             <header className="operation-doc-header operation-form-header relative z-[1]">
@@ -12823,7 +13159,7 @@ S.N.: ${item.sn || '-'}
 
               <div className="operation-doc-title-block">
                 <h1 className="operation-doc-title">{docTitle}</h1>
-                <p className="operation-doc-subtitle">แบบฟอร์มสำหรับตรวจนับ ยืม-คืน นำออกงาน และติดตามสถานะอุปกรณ์ภายในศูนย์</p>
+                <p className="operation-doc-subtitle">แบบฟอร์มเอกสารสำหรับตรวจรับ-ส่งอุปกรณ์และใช้ประกอบการติดตามภายในศูนย์</p>
               </div>
 
               <div className="operation-doc-refbox">
@@ -15900,17 +16236,31 @@ S.N.: ${item.sn || '-'}
               ) : settingsTab === 'documents' ? (
                 <div className="p-6 space-y-6">
                   <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-sky-900/20 border-sky-800' : 'bg-sky-50 border-sky-200'}`}>
-                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.พิมพ์er className="w-6 h-6 text-sky-500"/> ตั้งค่าเอกสารและโลโก้</h4>
-                    <p className={`text-sm font-bold ${theme.textMuted}`}>เลือกได้ว่าโลโก้ MDEC จะแสดงบน QR ใบยืม ฉลากกล่อง รูปหลักฐาน และ watermark มากน้อยแค่ไหน โดยไม่ต้องแก้โค้ดใหม่</p>
+                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.พิมพ์er className="w-6 h-6 text-sky-500"/> เอกสารและการพิมพ์</h4>
+                    <p className={`text-sm font-bold ${theme.textMuted}`}>ใบยืม ใบออกงาน และใบรับคืนใช้ดีไซน์ A4 มาตรฐานของระบบแล้ว ไม่เปิดให้ปรับลายน้ำหรือขนาดโลโก้ก่อนพิมพ์ เพื่อให้เอกสารออกมาสวยและคงที่ทุกครั้ง</p>
+                  </div>
+
+                  <div className={`p-5 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className={`font-black text-lg mb-2 ${theme.textTitle}`}>มาตรฐานเอกสารปฏิบัติงาน</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        ['ใบยืม', 'ฟอร์ม A4 สำหรับส่งมอบอุปกรณ์และกำหนดคืน'],
+                        ['ใบออกงาน', 'ฟอร์ม A4 สำหรับนำอุปกรณ์ออกใช้นอกศูนย์'],
+                        ['ใบรับคืน', 'ฟอร์ม A4 สำหรับตรวจรับและบันทึกสภาพคืน']
+                      ].map(([title, desc]) => (
+                        <div key={title} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className={`font-black ${theme.textTitle}`}>{title}</div>
+                          <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3">
                     {[
                       ['qrLogo', 'แสดงโลโก้บน QR และฉลาก QR', 'เหมาะกับการยืนยันว่า QR นี้เป็นทรัพย์สินของศูนย์'],
-                      ['slipLogo', 'แสดงโลโก้บนใบยืม / ใบเตรียมของ', 'ทำให้เอกสารดูเป็นทางการและเป็นของ MDEC'],
                       ['boxLabelLogo', 'แสดงโลโก้บนฉลากกล่อง', 'เหมาะกับฉลากกล่องหรือบรรจุภัณฑ์'],
-                      ['proofStamp', 'ประทับตรา MDEC บนรูปหลักฐาน', 'ใช้กับรูปหลักฐานยืม-คืนที่ถ่ายผ่านเว็บ'],
-                      ['watermark', 'แสดง watermark จาง ๆ บนเอกสาร', 'ทำให้ใบยืม/ใบเตรียมของดูเป็นเอกสารระบบ']
+                      ['proofStamp', 'ประทับตรา MDEC บนรูปหลักฐาน', 'ใช้กับรูปหลักฐานยืม-คืนที่ถ่ายผ่านเว็บ']
                     ].map(([key, title, desc]) => (
                       <label key={key} className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
                         <input
@@ -15927,58 +16277,9 @@ S.N.: ${item.sn || '-'}
                     ))}
                   </div>
 
-                  <div className={`p-5 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
-                    <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>ขนาดโลโก้บนเอกสาร</div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        ['small', 'เล็ก'],
-                        ['normal', 'ปกติ'],
-                        ['large', 'ใหญ่']
-                      ].map(([value, label]) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => saveเอกสารSettings({ logoSize: value })}
-                          className={`px-3 py-3 rounded-xl font-black border ${documentBrandSettings.logoSize === value ? 'bg-sky-600 text-white border-sky-600' : theme.btnSecondary}`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className={`p-5 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
-                    <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>โทนเอกสารตอนพิมพ์</div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {[
-                        ['official', 'ทางการ มีโลโก้/Watermark'],
-                        ['ink', 'ประหยัดหมึก ลดพื้นหลัง']
-                      ].map(([value, label]) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => saveเอกสารSettings({ printTone: value })}
-                          className={`px-3 py-3 rounded-xl font-black border ${documentBrandSettings.printTone === value ? 'bg-sky-600 text-white border-sky-600' : theme.btnSecondary}`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                    <p className={`text-xs font-bold mt-3 ${theme.textMuted}`}>แนะนำ: ใช้ “ทางการ” สำหรับเอกสารแนบงานหรือส่งผู้บริหาร และใช้ “ประหยัดหมึก” สำหรับเอกสารภายในที่พิมพ์บ่อย</p>
-                  </div>
-
                   <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
-                    <div className={`font-black mb-2 ${theme.textTitle}`}>ตัวอย่างภาพลักษณ์</div>
-                    <div className={`rounded-2xl p-5 border bg-white text-slate-900 ${isDarkMode ? 'border-blue-800' : 'border-blue-100'}`}>
-                      <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
-                        {showเอกสารLogo('slipLogo') ? renderOrgSignature({ title: 'ใบยืมอุปกรณ์', subtitle: 'ศูนย์มัลติมีเดียทางการศึกษา', titleClass: 'text-slate-900 text-xl', subtitleClass: 'text-slate-500', logoClassName: 'w-24 h-14 rounded-2xl border border-slate-200 px-3 py-2 shadow-sm' }) : <div className="font-black text-2xl">ใบยืมอุปกรณ์</div>}
-                        <div className="text-right text-sm font-black text-slate-500">{makeเอกสารRef('BR')}</div>
-                      </div>
-                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                        <div className="rounded-xl border border-slate-200 p-3"><div className="text-slate-400 font-bold">ผู้ยืม</div><div className="font-black">ตัวอย่างผู้ยืม</div></div>
-                        <div className="rounded-xl border border-slate-200 p-3"><div className="text-slate-400 font-bold">เจ้าหน้าที่</div><div className="font-black">{currentAccountLabel}</div></div>
-                      </div>
-                    </div>
+                    <div className={`font-black mb-2 ${theme.textTitle}`}>หมายเหตุ</div>
+                    <div className={`text-sm font-bold ${theme.textMuted}`}>ระบบล็อกดีไซน์ใบยืม/ใบออกงาน/ใบรับคืนให้เรียบร้อยแล้ว ถ้าจะปรับดีไซน์เอกสารให้แก้ผ่านโค้ดเป็นแพ็กอัปเดต ไม่ให้ผู้ใช้ปลายทางเลือกโลโก้/ลายน้ำจนหน้าพิมพ์เพี้ยน</div>
                   </div>
                 </div>
               ) : settingsTab === 'quality' ? (
