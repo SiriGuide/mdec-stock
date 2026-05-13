@@ -1,6 +1,6 @@
-// v22.53.20 Official Form Line Cleanup Polish - removes excessive long form/signature lines, keeps classic A4 watermark forms, no QR/camera/database path changes
+// v22.53.21 Official Form Final Balance Polish - removes excessive long form/signature lines, keeps classic A4 watermark forms, no QR/camera/database path changes
 // v22.53.17 Operational Slip Clean Design - fixed clean A4 borrow/event/return documents, removes before-print logo/watermark controls, no QR/camera/database path changes
-// v22.53.15 Operational Documents One-Page Print Polish - compact one-page print layout for borrow/event/return slips, no QR/camera/database path changes
+// v22.53.21 Official Form Final Balance Polish - final visual balance for operational print forms, no QR/camera/database path changes
 // v22.53.9 Equipment Detail / Asset History Polish - asset profile file, mobile action shortcuts, no QR/camera/database path changes
 // v22.53.8 Operational Print Documents Polish - official A4 borrow/event/return documents and QR label print polish, no QR/camera/database path changes
 // v22.53.3 Data Safety Confirm Polish - safer destructive actions and mobile-friendly confirmation gates, no QR/camera/database changes
@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.20 Official Form Line Cleanup Polish';
+const APP_VERSION = 'v22.53.21 Official Form Final Balance Polish';
 const APP_UPDATE_NOTE = 'Official Form Line Cleanup Polish: ลดเส้นยาวในฟอร์มเอกสาร ปรับช่องข้อมูลและลายเซ็นให้ดูสะอาด อ่านง่าย และยังคงรูปแบบ A4 พร้อมลายน้ำกลางกระดาษ โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -13157,7 +13157,7 @@ S.N.: ${item.sn || '-'}
             --classic-soft-line: #cbd5e1;
             --classic-form-line: #9ca3af;
             --classic-fill: #f8fafc;
-            --classic-watermark-opacity: .043;
+            --classic-watermark-opacity: .035;
           }
           .classic-print-toolbar {
             background: #0f172a;
@@ -13175,7 +13175,7 @@ S.N.: ${item.sn || '-'}
             color: var(--classic-ink);
             border: 1px solid #e5e7eb;
             box-shadow: 0 22px 70px rgba(15,23,42,.16);
-            padding: 14mm 14.5mm 10mm;
+            padding: 13mm 14mm 9.5mm;
             position: relative;
             overflow: hidden;
           }
@@ -13184,8 +13184,8 @@ S.N.: ${item.sn || '-'}
             left: 50%;
             top: 52%;
             transform: translate(-50%, -50%);
-            width: 112mm;
-            max-width: 58%;
+            width: 106mm;
+            max-width: 54%;
             opacity: var(--classic-watermark-opacity);
             filter: grayscale(1) contrast(.78);
             pointer-events: none;
@@ -13207,16 +13207,16 @@ S.N.: ${item.sn || '-'}
           .classic-sheet-content { position: relative; z-index: 1; }
           .classic-letterhead {
             display: grid;
-            grid-template-columns: 38mm 1fr 43mm;
-            gap: 5mm;
+            grid-template-columns: 34mm 1fr 39mm;
+            gap: 5.5mm;
             align-items: start;
             border-bottom: 1.35px solid var(--classic-line);
-            padding-bottom: 3.8mm;
-            margin-bottom: 4.2mm;
+            padding-bottom: 4.1mm;
+            margin-bottom: 4.4mm;
           }
           .classic-logo-box {
-            width: 30mm !important;
-            height: 13mm !important;
+            width: 27mm !important;
+            height: 11.5mm !important;
             border: 0 !important;
             box-shadow: none !important;
             padding: 0 !important;
@@ -13234,22 +13234,22 @@ S.N.: ${item.sn || '-'}
           }
           .classic-doc-title {
             margin: 0;
-            font-size: 19pt;
-            line-height: 1.06;
+            font-size: 19.4pt;
+            line-height: 1.04;
             font-weight: 950;
             color: #000;
           }
           .classic-doc-subtitle {
-            margin: 1.2mm 0 0;
-            font-size: 8.7pt;
+            margin: 1mm 0 0;
+            font-size: 8.35pt;
             line-height: 1.28;
             font-weight: 700;
             color: var(--classic-soft-ink);
           }
           .classic-ref-box {
             border: 1px solid #6b7280;
-            padding: 2.1mm 2.5mm;
-            font-size: 8pt;
+            padding: 2mm 2.25mm;
+            font-size: 7.75pt;
             line-height: 1.36;
             background: rgba(255,255,255,.86);
           }
@@ -13267,17 +13267,17 @@ S.N.: ${item.sn || '-'}
             color: #000;
           }
           .classic-org-line {
-            margin-top: 1.5mm;
-            font-size: 7pt;
+            margin-top: 1.2mm;
+            font-size: 6.65pt;
             font-weight: 800;
             color: #9ca3af;
             line-height: 1.2;
           }
           .classic-form-intro {
-            font-size: 9.6pt;
-            line-height: 1.55;
+            font-size: 9.25pt;
+            line-height: 1.5;
             font-weight: 780;
-            margin-bottom: 3.4mm;
+            margin-bottom: 3.1mm;
           }
           .classic-form-intro .classic-fill-line {
             display: inline-block;
@@ -13289,20 +13289,20 @@ S.N.: ${item.sn || '-'}
           .classic-form-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 2.4mm;
-            margin-bottom: 3.6mm;
-            padding: 2.8mm;
-            border: 1px solid var(--classic-soft-line);
-            background: rgba(248,250,252,.55);
+            gap: 2mm;
+            margin-bottom: 3.1mm;
+            padding: 2.4mm;
+            border: 1px solid #cfd8e3;
+            background: rgba(248,250,252,.38);
           }
           .classic-field-line {
             display: block;
-            min-height: 10.2mm;
-            padding: 1.4mm 1.8mm;
+            min-height: 9.4mm;
+            padding: 1.15mm 1.55mm;
             border: 1px solid #d7dee8;
             border-left: 2.4px solid #94a3b8;
             background: rgba(255,255,255,.88);
-            font-size: 8.2pt;
+            font-size: 8pt;
             font-weight: 850;
             break-inside: avoid;
             page-break-inside: avoid;
@@ -13321,8 +13321,8 @@ S.N.: ${item.sn || '-'}
             min-height: 4.1mm;
             border-bottom: 0;
             padding: 0;
-            font-size: 9.15pt;
-            line-height: 1.22;
+            font-size: 8.85pt;
+            line-height: 1.2;
             color: #000;
             overflow-wrap: anywhere;
             background: transparent;
@@ -13331,10 +13331,10 @@ S.N.: ${item.sn || '-'}
             border: 1px solid #cbd5e1;
             border-left: 3px solid #334155;
             background: #f8fafc;
-            padding: 2mm 2.6mm;
-            font-size: 8.65pt;
+            padding: 1.8mm 2.4mm;
+            font-size: 8.25pt;
             font-weight: 950;
-            margin-bottom: 3.2mm;
+            margin-bottom: 2.9mm;
             display: flex;
             justify-content: space-between;
             gap: 3mm;
@@ -13345,28 +13345,28 @@ S.N.: ${item.sn || '-'}
             justify-content: space-between;
             align-items: end;
             gap: 3mm;
-            font-size: 8.8pt;
+            font-size: 8.65pt;
             font-weight: 950;
-            margin-bottom: 1.5mm;
+            margin-bottom: 1.35mm;
           }
           .classic-equipment-table {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
-            font-size: 8.25pt;
-            line-height: 1.25;
+            font-size: 8.4pt;
+            line-height: 1.28;
             background: rgba(255,255,255,.9);
           }
           .classic-equipment-table th,
           .classic-equipment-table td {
             border: 1px solid #111827;
-            padding: 1.45mm 1.45mm;
+            padding: 1.55mm 1.55mm;
             vertical-align: top;
             color: #000;
           }
           .classic-equipment-table th {
             background: #eef2f7;
-            font-size: 7.4pt;
+            font-size: 7.35pt;
             font-weight: 950;
             text-align: center;
           }
@@ -13375,16 +13375,16 @@ S.N.: ${item.sn || '-'}
           .classic-note-rules {
             display: grid;
             grid-template-columns: 1fr 1.08fr;
-            gap: 3.5mm;
-            margin-bottom: 3.6mm;
+            gap: 3.2mm;
+            margin-bottom: 3.1mm;
           }
           .classic-note-box,
           .classic-rules-box {
             border: 1px solid #cbd5e1;
             background: rgba(255,255,255,.9);
-            min-height: 18mm;
-            padding: 2.3mm 2.7mm;
-            font-size: 8pt;
+            min-height: 17mm;
+            padding: 2mm 2.4mm;
+            font-size: 7.7pt;
             line-height: 1.36;
             font-weight: 760;
           }
@@ -13399,8 +13399,8 @@ S.N.: ${item.sn || '-'}
           .classic-signatures {
             display: grid;
             grid-template-columns: repeat(3, minmax(0,1fr));
-            gap: 4mm;
-            margin-top: 3.2mm;
+            gap: 3.5mm;
+            margin-top: 2.8mm;
             break-inside: avoid;
             page-break-inside: avoid;
           }
@@ -13409,23 +13409,23 @@ S.N.: ${item.sn || '-'}
             font-size: 8pt;
             font-weight: 850;
             color: #000;
-            min-height: 19mm;
-            padding: 2.2mm 1.4mm 1.2mm;
+            min-height: 18mm;
+            padding: 2mm 1.3mm 1.1mm;
             border: 1px solid #d7dee8;
             background: rgba(255,255,255,.72);
           }
           .classic-sign-line {
-            width: 34mm;
-            max-width: 78%;
-            height: 7mm;
+            width: 32mm;
+            max-width: 76%;
+            height: 6.4mm;
             border-bottom: 1px solid #111827;
             margin: 0 auto 1.2mm;
           }
           .classic-sign-caption { font-size: 7.75pt; line-height: 1.22; font-weight: 900; }
           .classic-sign-date { margin-top: 1mm; font-size: 6.35pt; color: #9ca3af; }
           .classic-footer {
-            margin-top: 3mm;
-            padding-top: 1.7mm;
+            margin-top: 2.2mm;
+            padding-top: 1.2mm;
             border-top: 1px solid var(--classic-soft-line);
             display: flex;
             align-items: center;
@@ -13439,8 +13439,20 @@ S.N.: ${item.sn || '-'}
             page-break-inside: avoid;
           }
           .classic-footer span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+          .classic-onepage .classic-sheet-content {
+            min-height: 262mm;
+            display: flex;
+            flex-direction: column;
+          }
+          .classic-onepage .classic-signatures {
+            margin-top: auto;
+          }
+          .classic-onepage .classic-note-rules {
+            margin-bottom: 3mm;
+          }
           @media print {
-            @page { size: A4 portrait; margin: 11mm 10mm 10mm; }
+            @page { size: A4 portrait; margin: 10mm 10mm 9mm; }
             html, body { background: #fff !important; }
             .classic-print-toolbar { display: none !important; }
             .classic-operation-print {
@@ -13454,6 +13466,8 @@ S.N.: ${item.sn || '-'}
               margin: 0 !important;
             }
             .classic-operation-sheet {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
               width: auto !important;
               max-width: none !important;
               margin: 0 !important;
@@ -13462,36 +13476,40 @@ S.N.: ${item.sn || '-'}
               box-shadow: none !important;
               overflow: visible !important;
             }
-            .classic-doc-watermark { width: 104mm !important; max-width: none !important; opacity: .04 !important; }
+            .classic-doc-watermark { width: 98mm !important; max-width: none !important; opacity: .032 !important; }
             .classic-watermark-text { color: rgba(17,24,39,.034) !important; }
-            .classic-letterhead { grid-template-columns: 34mm 1fr 40mm !important; gap: 4mm !important; padding-bottom: 3mm !important; margin-bottom: 3.2mm !important; }
-            .classic-logo-box { width: 28mm !important; height: 10.5mm !important; }
-            .classic-doc-title { font-size: 17.5pt !important; }
+            .classic-letterhead { grid-template-columns: 32mm 1fr 37mm !important; gap: 4.2mm !important; padding-bottom: 3.2mm !important; margin-bottom: 3.1mm !important; }
+            .classic-logo-box { width: 25mm !important; height: 9.5mm !important; }
+            .classic-doc-title { font-size: 17.8pt !important; }
             .classic-doc-subtitle { font-size: 7.7pt !important; }
             .classic-doc-code { font-size: 6.6pt !important; }
-            .classic-ref-box { padding: 1.5mm 1.8mm !important; font-size: 7pt !important; }
+            .classic-ref-box { padding: 1.35mm 1.65mm !important; font-size: 6.85pt !important; }
             .classic-dot-line { min-height: 4.2mm !important; }
             .classic-form-intro { font-size: 8.3pt !important; margin-bottom: 2.4mm !important; }
-            .classic-form-grid { gap: 1.6mm !important; margin-bottom: 2.5mm !important; padding: 2mm !important; }
-            .classic-field-line { min-height: 8.2mm !important; padding: 1mm 1.35mm !important; font-size: 7.2pt !important; }
+            .classic-form-grid { gap: 1.45mm !important; margin-bottom: 2.2mm !important; padding: 1.8mm !important; }
+            .classic-field-line { min-height: 7.7mm !important; padding: .85mm 1.2mm !important; font-size: 7pt !important; }
             .classic-field-line span { font-size: 6.15pt !important; margin-bottom: .25mm !important; }
-            .classic-field-line strong { min-height: 3.5mm !important; font-size: 8pt !important; }
-            .classic-summary-strip { padding: 1.4mm 1.9mm !important; font-size: 7.6pt !important; margin-bottom: 2.2mm !important; }
+            .classic-field-line strong { min-height: 3.25mm !important; font-size: 7.9pt !important; }
+            .classic-summary-strip { padding: 1.2mm 1.7mm !important; font-size: 7.35pt !important; margin-bottom: 2mm !important; }
             .classic-table-title { font-size: 7.6pt !important; margin-bottom: 1mm !important; }
-            .classic-equipment-table { font-size: 7.35pt !important; line-height: 1.15 !important; }
+            .classic-equipment-table { font-size: 7.45pt !important; line-height: 1.17 !important; }
             .classic-equipment-table th { font-size: 6.35pt !important; }
             .classic-equipment-table th,
-            .classic-equipment-table td { padding: .9mm .95mm !important; }
+            .classic-equipment-table td { padding: .92mm .95mm !important; }
             .classic-table-subtext { font-size: 5.9pt !important; }
-            .classic-note-rules { gap: 2.6mm !important; margin-bottom: 2.4mm !important; }
+            .classic-note-rules { gap: 2.4mm !important; margin-bottom: 2mm !important; }
             .classic-note-box,
-            .classic-rules-box { min-height: 14.5mm !important; padding: 1.6mm 1.8mm !important; font-size: 6.8pt !important; line-height: 1.2 !important; }
+            .classic-rules-box { min-height: 13.2mm !important; padding: 1.35mm 1.6mm !important; font-size: 6.55pt !important; line-height: 1.18 !important; }
             .classic-box-title { font-size: 6.8pt !important; margin-bottom: .9mm !important; }
-            .classic-signatures { display: grid !important; grid-template-columns: repeat(3, minmax(0,1fr)) !important; gap: 3mm !important; margin-top: 2.4mm !important; }
-            .classic-sign-box { min-height: 15.8mm !important; font-size: 6.75pt !important; padding: 1.6mm 1mm .8mm !important; }
-            .classic-sign-line { width: 30mm !important; max-width: 76% !important; height: 5.6mm !important; margin: 0 auto .9mm !important; }
+            .classic-signatures { display: grid !important; grid-template-columns: repeat(3, minmax(0,1fr)) !important; gap: 2.8mm !important; margin-top: 2mm !important; }
+            .classic-sign-box { min-height: 15.2mm !important; font-size: 6.65pt !important; padding: 1.45mm .9mm .75mm !important; }
+            .classic-sign-line { width: 29mm !important; max-width: 74% !important; height: 5.2mm !important; margin: 0 auto .75mm !important; }
             .classic-sign-date { font-size: 5.7pt !important; }
-            .classic-footer { margin-top: 1.5mm !important; padding-top: .8mm !important; font-size: 5.2pt !important; color: #a8b0bd !important; }
+            .classic-footer { margin-top: 1mm !important; padding-top: .65mm !important; font-size: 4.9pt !important; color: #b8c0cc !important; }
+            .classic-onepage .classic-sheet-content { min-height: 268mm !important; display: flex !important; flex-direction: column !important; }
+            .classic-onepage .classic-signatures { margin-top: auto !important; }
+            .classic-onepage .classic-footer { flex-shrink: 0 !important; }
+            .classic-onepage .classic-note-rules { margin-bottom: 2mm !important; }
           }
           @media (max-width: 720px) {
             .classic-operation-sheet { padding: 20px; max-width: calc(100vw - 16px); }
@@ -13510,7 +13528,7 @@ S.N.: ${item.sn || '-'}
           <div className="max-w-6xl mx-auto flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
             <div className="min-w-0">
               <h2 className="font-black text-xl flex items-center gap-2"><Icons.พิมพ์er className="w-6 h-6" /> {docTitle}</h2>
-              <p className="text-slate-300 text-sm font-bold mt-1">ฟอร์ม A4 แบบสะอาด ลดเส้นยาวที่รกตา จัดช่องข้อมูลและลายเซ็นให้อ่านง่าย พร้อมลายน้ำจางกลางกระดาษ</p>
+              <p className="text-slate-300 text-sm font-bold mt-1">ฟอร์ม A4 ปรับสมดุลสุดท้าย หัวเอกสารโปร่งขึ้น ตารางอ่านง่ายขึ้น ลายเซ็นลงตัว และยังคุมลายน้ำจางกลางกระดาษ</p>
             </div>
             <div className="flex flex-wrap gap-3 w-full xl:w-auto shrink-0">
               <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-black flex items-center justify-center gap-2 transition-colors flex-1 sm:flex-none"><Icons.พิมพ์er className="w-5 h-5"/> {isReturnSlip ? 'พิมพ์ใบรับคืน' : isPrepSlip ? 'พิมพ์ใบเตรียมของ' : isEventSlip ? 'พิมพ์ใบออกงาน' : 'พิมพ์ใบยืม'}</button>
