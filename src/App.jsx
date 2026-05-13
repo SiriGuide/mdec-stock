@@ -46,7 +46,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.10 Direct Detail Access Polish';
+const APP_VERSION = 'v22.53.11 Organize Workspace Polish';
 const APP_UPDATE_NOTE = 'Direct Detail Access Polish: เปิดแฟ้มประวัติอุปกรณ์ได้จากการคลิก/แตะรายการโดยตรง พร้อมคง checkbox สำหรับเลือกหลายรายการและปุ่มรายละเอียดเดิมไว้ โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -7396,30 +7396,72 @@ S.N.: ${item.sn || '-'}
     const boxes = settingsOptions.storageBoxes || [];
     const bundles = settingsOptions.bundles || [];
     const prepLists = settingsOptions.prepLists || [];
+    const safeItemById = (id) => items.find((item) => item.id === id) || null;
+    const boxItemTotal = boxes.reduce((s, box) => s + (box.itemIds || []).filter((id) => safeItemById(id)).length, 0);
+    const bundleItemTotal = bundles.reduce((s, bundle) => s + (bundle.itemIds || []).filter((id) => safeItemById(id)).length, 0);
+    const activePrepLists = prepLists.filter((prep) => !['done', 'completed', 'cancelled'].includes(prep.status || 'pending'));
+    const readyPrepLists = prepLists.filter((prep) => {
+      const ids = (prep.itemIds || []).filter((id) => safeItemById(id));
+      return ids.length > 0 && ids.every((id) => (prep.checkedIds || []).includes(id));
+    });
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const upcomingPrepLists = prepLists
+      .slice()
+      .sort((a, b) => String(a.useDate || '').localeCompare(String(b.useDate || '')) || String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true }))
+      .slice(0, 6);
+    const getPrepStatusInfo = (prep) => {
+      const ids = (prep.itemIds || []).filter((id) => safeItemById(id));
+      const checked = (prep.checkedIds || []).filter((id) => ids.includes(id)).length;
+      const status = prep.status || 'pending';
+      if (status === 'cancelled') return { label: 'ยกเลิก', className: isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600', checked, total: ids.length };
+      if (status === 'done' || status === 'completed') return { label: 'เสร็จแล้ว', className: isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700', checked, total: ids.length };
+      if (ids.length > 0 && checked >= ids.length) return { label: 'เช็กครบแล้ว', className: isDarkMode ? 'bg-sky-950/40 border-sky-800 text-sky-300' : 'bg-sky-50 border-sky-200 text-sky-700', checked, total: ids.length };
+      if (prep.useDate && String(prep.useDate) < todayKey) return { label: 'เลยวันใช้แล้ว', className: isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700', checked, total: ids.length };
+      return { label: 'กำลังเตรียม', className: isDarkMode ? 'bg-amber-950/40 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700', checked, total: ids.length };
+    };
+
     return (
       <div className="solid-workspace space-y-5">
         {renderWorkspaceTabs()}
+
         <div className={`rounded-[1.75rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
           <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-4 ${theme.divide}`}>
             <div>
-              <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>ORGANIZE CENTER</div>
-              <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>กล่อง / เซ็ต / รายการเตรียมของ</h2>
-              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หน้านี้รวมงานจัดระเบียบอุปกรณ์ที่เริ่มใหญ่ขึ้น แยกจากรายการสต๊อกหลักให้ดูง่าย</p>
+              <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>ORGANIZE WORKSPACE</div>
+              <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>กล่องจริง / เซ็ตใช้งาน / เช็กลิสต์เตรียมงาน</h2>
+              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แยกให้ชัดว่า “กล่อง” คือที่เก็บของจริง, “เซ็ต” คือชุดหยิบใช้ประจำแบบยืดหยุ่น, และ “เช็กลิสต์” คือรายการเตรียมงานชั่วคราวก่อนนำออกงาน</p>
             </div>
             <div className="grid grid-cols-2 sm:flex gap-2">
-              <button type="button" onClick={() => openStorageBoxEditor()} className="px-4 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black">+ สร้างกล่อง</button>
-              <button type="button" onClick={() => { setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className="px-4 py-3 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-black">+ สร้างเซ็ต</button>
-              <button type="button" onClick={() => setShowPrepListsModal(true)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>รายการเตรียมของ</button>
+              <button type="button" onClick={() => openStorageBoxEditor()} className="px-4 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black">+ กล่องจริง</button>
+              <button type="button" onClick={() => { setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className="px-4 py-3 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-black">+ เซ็ตใช้งาน</button>
+              <button type="button" onClick={() => setShowPrepListsModal(true)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>เช็กลิสต์เตรียมงาน</button>
             </div>
           </div>
 
           <div className="p-5 sm:p-6 space-y-6">
+            <div className={`rounded-[1.75rem] border p-4 sm:p-5 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`font-black mb-3 ${theme.textTitle}`}>แยกความหมายก่อนใช้งาน</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {[
+                  ['📦', 'กล่องจริง', 'ใช้แทนกล่อง/ตู้/ชั้นที่มีอยู่จริงในห้องเก็บของ เหมาะกับพิมพ์ฉลากหน้ากล่องและค้นหาของตามที่เก็บ'],
+                  ['🧩', 'เซ็ตใช้งาน', 'เป็นชุดที่หยิบใช้บ่อย เช่น เซ็ต Live / เซ็ตกล้องหลัก แต่ไม่ล็อกถาวร ยังเลือกแยกชิ้นหรือปรับได้ทุกครั้ง'],
+                  ['🧾', 'เช็กลิสต์เตรียมงาน', 'เป็นรายการชั่วคราวสำหรับงานหนึ่งงาน เช็กของก่อนออกงาน แล้วค่อยกดยืนยันนำออกงานจริง']
+                ].map(([icon, title, desc]) => (
+                  <div key={title} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className="text-3xl mb-3">{icon}</div>
+                    <div className={`font-black text-lg ${theme.textTitle}`}>{title}</div>
+                    <div className={`text-xs sm:text-sm font-bold mt-1 leading-relaxed ${theme.textMuted}`}>{desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
-                ['กล่องเก็บของ', boxes.length, 'text-cyan-500', 'จัดตามกล่อง/ชั้น/ตู้'],
-                ['อุปกรณ์ในกล่อง', boxes.reduce((s,b)=>s+(b.itemIds||[]).length,0), 'text-blue-500', 'รวมจำนวนที่ผูกกล่อง'],
-                ['เซ็ตอุปกรณ์', bundles.length, 'text-fuchsia-500', 'ชุดที่ใช้บ่อย'],
-                ['รายการเตรียมของ', prepLists.length, 'text-amber-500', 'แผนออกงาน/จัดของ']
+                ['กล่องจริง', boxes.length, 'text-cyan-500', `${boxItemTotal.toLocaleString('th-TH')} รายการที่ผูกกล่อง`],
+                ['เซ็ตใช้งาน', bundles.length, 'text-fuchsia-500', `${bundleItemTotal.toLocaleString('th-TH')} รายการในเซ็ต`],
+                ['เช็กลิสต์เตรียมงาน', prepLists.length, 'text-amber-500', `${activePrepLists.length.toLocaleString('th-TH')} รายการยังไม่เสร็จ`],
+                ['เช็กครบแล้ว', readyPrepLists.length, 'text-emerald-500', 'พร้อมนำออกงานจากเช็กลิสต์']
               ].map(([label, value, color, desc]) => (
                 <div key={label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                   <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
@@ -7429,33 +7471,34 @@ S.N.: ${item.sn || '-'}
               ))}
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
               <section className={`rounded-[1.5rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className={`p-4 border-b flex items-center justify-between gap-3 ${theme.divide}`}>
                   <div>
-                    <h3 className={`text-xl font-black ${theme.textTitle}`}>กล่องเก็บของ</h3>
-                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เหมาะกับตู้ ชั้น กล่องอุปกรณ์ และฉลากหน้ากล่อง</p>
+                    <h3 className={`text-xl font-black ${theme.textTitle}`}>📦 กล่องจริง / ที่เก็บจริง</h3>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ใช้กับกล่อง ตู้ ชั้น หรือพื้นที่เก็บที่มีอยู่จริง และพิมพ์ฉลากหน้ากล่องได้</p>
                   </div>
-                  <button type="button" onClick={() => openStorageBoxEditor()} className="px-3 py-2 rounded-xl bg-cyan-600 text-white font-black text-sm">เพิ่มกล่อง</button>
+                  <button type="button" onClick={() => openStorageBoxEditor()} className="px-3 py-2 rounded-xl bg-cyan-600 text-white font-black text-sm shrink-0">เพิ่ม</button>
                 </div>
-                <div className="p-4 space-y-3 max-h-[520px] overflow-y-auto custom-scrollbar">
+                <div className="p-4 space-y-3 max-h-[560px] overflow-y-auto custom-scrollbar">
                   {boxes.length === 0 ? (
-                    <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ยังไม่มีกล่องเก็บของ</div>
+                    <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ยังไม่มีกล่องจริง<br /><span className="text-xs">เริ่มจากเพิ่มชื่อกล่อง เช่น กล่องแบตเตอรี่ / ตู้กล้อง / ชั้นไมค์</span></div>
                   ) : boxes.map((box) => {
-                    const validIds = (box.itemIds || []).filter(id => items.some(item => item.id === id));
+                    const validIds = (box.itemIds || []).filter((id) => safeItemById(id));
+                    const availableCount = validIds.filter((id) => safeItemById(id)?.status === 'available').length;
                     return (
                       <div key={box.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className={`font-black text-lg truncate ${theme.textTitle}`}>📦 {box.name}</div>
-                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{validIds.length} รายการ • {box.note || 'ไม่มีหมายเหตุ'}</div>
+                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{validIds.length} รายการ • พร้อมใช้ {availableCount} • {box.note || 'ไม่มีหมายเหตุ'}</div>
                           </div>
                           <span className={`px-2 py-1 rounded-lg text-xs font-black border ${isDarkMode ? 'bg-cyan-950/40 border-cyan-800 text-cyan-300' : 'bg-cyan-50 border-cyan-200 text-cyan-700'}`}>{box.size || 'normal'}</span>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-                          <button type="button" onClick={() => selectStorageBoxItems(box)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>เลือกของ</button>
+                        <div className="grid grid-cols-2 gap-2 mt-3">
+                          <button type="button" onClick={() => selectStorageBoxItems(box)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>เลือกของในกล่อง</button>
                           <button type="button" onClick={() => openStorageBoxLabel(box)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">พิมพ์ฉลาก</button>
-                          <button type="button" onClick={() => openStorageBoxEditor(box)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>แก้ไข</button>
+                          <button type="button" onClick={() => openStorageBoxEditor(box)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>แก้ไขกล่อง</button>
                           <button type="button" onClick={() => { setFilterLocation('all'); setSearchTerm(box.name || ''); openWorkspace('overview'); }} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ดูในสต๊อก</button>
                         </div>
                       </div>
@@ -7467,27 +7510,28 @@ S.N.: ${item.sn || '-'}
               <section className={`rounded-[1.5rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className={`p-4 border-b flex items-center justify-between gap-3 ${theme.divide}`}>
                   <div>
-                    <h3 className={`text-xl font-black ${theme.textTitle}`}>เซ็ตอุปกรณ์</h3>
-                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ชุดอุปกรณ์ที่หยิบใช้งานพร้อมกัน เช่น เซ็ตกล้องหลัก เซ็ต Live</p>
+                    <h3 className={`text-xl font-black ${theme.textTitle}`}>🧩 เซ็ตใช้งานยืดหยุ่น</h3>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ใช้เป็นชุดช่วยเลือกตอนยืม/ออกงาน ไม่ใช่การล็อกคู่ถาวร</p>
                   </div>
-                  <button type="button" onClick={() => { setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className="px-3 py-2 rounded-xl bg-fuchsia-600 text-white font-black text-sm">เพิ่มเซ็ต</button>
+                  <button type="button" onClick={() => { setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className="px-3 py-2 rounded-xl bg-fuchsia-600 text-white font-black text-sm shrink-0">เพิ่ม</button>
                 </div>
-                <div className="p-4 space-y-3 max-h-[520px] overflow-y-auto custom-scrollbar">
+                <div className="p-4 space-y-3 max-h-[560px] overflow-y-auto custom-scrollbar">
                   {bundles.length === 0 ? (
-                    <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ยังไม่มีเซ็ตอุปกรณ์</div>
+                    <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ยังไม่มีเซ็ตใช้งาน<br /><span className="text-xs">เหมาะกับชุด Live / ชุดถ่ายภาพ / ชุดไมค์ประชุมที่หยิบบ่อย</span></div>
                   ) : bundles.map((bundle) => {
-                    const ids = (bundle.itemIds || []).filter(id => items.some(item => item.id === id));
-                    const availableInBundle = ids.filter(id => items.find(item => item.id === id)?.status === 'available').length;
+                    const ids = (bundle.itemIds || []).filter((id) => safeItemById(id));
+                    const availableInBundle = ids.filter((id) => safeItemById(id)?.status === 'available').length;
+                    const total = ids.length || 0;
                     return (
                       <div key={bundle.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className={`font-black text-lg truncate ${theme.textTitle}`}>🧩 {bundle.name}</div>
-                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{ids.length} รายการ • พร้อมใช้ {availableInBundle} รายการ</div>
+                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{total} รายการ • พร้อมใช้ {availableInBundle} รายการ</div>
                           </div>
-                          <span className={`px-2 py-1 rounded-lg text-xs font-black border ${availableInBundle === ids.length ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700') : (isDarkMode ? 'bg-amber-950/40 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700')}`}>{availableInBundle}/{ids.length}</span>
+                          <span className={`px-2 py-1 rounded-lg text-xs font-black border ${availableInBundle === total && total > 0 ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700') : (isDarkMode ? 'bg-amber-950/40 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700')}`}>{availableInBundle}/{total}</span>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                        <div className="grid grid-cols-2 gap-2 mt-3">
                           <button type="button" onClick={() => setSelectedItems(ids)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>เลือกเซ็ต</button>
                           <button type="button" onClick={() => handleSelectBundleToBorrow(bundle)} className="px-3 py-2 rounded-xl text-sm font-black bg-purple-600 text-white">ยืม</button>
                           <button type="button" onClick={() => handleSelectBundleToEvent(bundle)} className="px-3 py-2 rounded-xl text-sm font-black bg-orange-600 text-white">ออกงาน</button>
@@ -7498,6 +7542,63 @@ S.N.: ${item.sn || '-'}
                   })}
                 </div>
               </section>
+
+              <section className={`rounded-[1.5rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className={`p-4 border-b flex items-center justify-between gap-3 ${theme.divide}`}>
+                  <div>
+                    <h3 className={`text-xl font-black ${theme.textTitle}`}>🧾 เช็กลิสต์เตรียมงาน</h3>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ตรวจของก่อนออกงานจริง แล้วค่อยกดยืนยันนำออกงาน</p>
+                  </div>
+                  <button type="button" onClick={() => setShowPrepListsModal(true)} className="px-3 py-2 rounded-xl bg-amber-600 text-white font-black text-sm shrink-0">เปิด</button>
+                </div>
+                <div className="p-4 space-y-3 max-h-[560px] overflow-y-auto custom-scrollbar">
+                  {upcomingPrepLists.length === 0 ? (
+                    <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ยังไม่มีเช็กลิสต์เตรียมงาน<br /><span className="text-xs">เลือกอุปกรณ์จากคลังก่อน แล้วสร้างรายการเตรียมของจากรายการที่เลือกได้</span></div>
+                  ) : upcomingPrepLists.map((prep) => {
+                    const info = getPrepStatusInfo(prep);
+                    const percent = info.total === 0 ? 0 : Math.min(100, Math.round((info.checked / info.total) * 100));
+                    return (
+                      <div key={prep.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className={`font-black text-lg truncate ${theme.textTitle}`}>🧾 {prep.name}</div>
+                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{prep.useDate || 'ไม่ระบุวันใช้งาน'} • ผู้เตรียม {prep.staff || '-'}</div>
+                          </div>
+                          <span className={`px-2 py-1 rounded-lg text-xs font-black border ${info.className}`}>{info.label}</span>
+                        </div>
+                        <div className="mt-3">
+                          <div className={`flex items-center justify-between text-xs font-black mb-1 ${theme.textMuted}`}><span>เช็กของแล้ว</span><span>{info.checked}/{info.total}</span></div>
+                          <div className={`h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'}`}><div className="h-full rounded-full bg-sky-500" style={{ width: `${percent}%` }} /></div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mt-3">
+                          <button type="button" onClick={() => { setShowPrepListsModal(true); }} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>เช็กของ</button>
+                          <button type="button" onClick={() => startPrepAsEvent(prep)} className="px-3 py-2 rounded-xl text-sm font-black bg-orange-600 text-white">นำออกงาน</button>
+                          <button type="button" onClick={() => openPrepพิมพ์(prep)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">พิมพ์</button>
+                          <button type="button" onClick={() => openPrepEditor(prep)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>แก้ไข</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            </div>
+
+            <div className={`rounded-[1.75rem] border p-4 sm:p-5 ${isDarkMode ? 'bg-blue-950/20 border-blue-900/50' : 'bg-blue-50 border-blue-100'}`}>
+              <div className={`font-black mb-3 ${isDarkMode ? 'text-blue-200' : 'text-blue-800'}`}>Workflow แนะนำสำหรับมือถือ</div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                {[
+                  ['1', 'เลือกจากคลัง', 'แตะรายการอุปกรณ์หรือสแกน QR แล้วเลือกของที่ต้องใช้'],
+                  ['2', 'จัดเป็นเซ็ต/กล่อง', 'ถ้าใช้บ่อยให้บันทึกเป็นเซ็ต หรือถ้าเป็นที่เก็บจริงให้ผูกเข้ากล่อง'],
+                  ['3', 'สร้างเช็กลิสต์', 'ทำรายการเตรียมของสำหรับงานนั้น ๆ เพื่อเช็กก่อนออก'],
+                  ['4', 'นำออกงานจริง', 'เมื่อเช็กครบแล้วค่อยกด “นำออกงาน” เพื่อเปลี่ยนสถานะอุปกรณ์']
+                ].map(([no, title, desc]) => (
+                  <div key={no} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-blue-100'}`}>
+                    <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black mb-3">{no}</div>
+                    <div className={`font-black ${theme.textTitle}`}>{title}</div>
+                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
