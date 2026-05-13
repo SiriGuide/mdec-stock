@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.31 Mobile Navigation / Bottom Bar Polish';
-const APP_UPDATE_NOTE = 'Mobile Navigation / Bottom Bar Polish: ปรับเมนูล่างมือถือให้เป็นทางกลับหลัก หน้าแรก/ยืมคืน/สแกน/เอกสาร/เมนู พร้อมสถานะ active และเมนูเพิ่มเติมแบบ bottom sheet โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
+const APP_VERSION = 'v22.53.32 Trash Modal Restore Fix';
+const APP_UPDATE_NOTE = 'Trash Modal Restore Fix: แก้ปุ่มถังขยะให้เปิด popup ได้จริง พร้อมรายการอุปกรณ์ที่ถูกลบ ปุ่มกู้คืน/ลบถาวร และ empty state โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -18992,6 +18992,129 @@ S.N.: ${item.sn || '-'}
             <div className="flex gap-3 mt-6">
               <button type="button" onClick={closeProofAttachModal} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button type="button" onClick={() => runWithBusy(handleAttachProofsToHistory)} disabled={isBusy || proofAttachFiles.length === 0} className={`flex-1 py-4 font-bold rounded-xl text-lg text-white ${isBusy || proofAttachFiles.length === 0 ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}>{isBusy ? 'กำลังอัปดาวน์โหลด...' : 'บันทึกหลักฐาน'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* v22.53.32 Trash Modal / Deleted Items Restore Center */}
+      {showTrashModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[10000]`}>
+          <div className={`rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh] border ${theme.cardBg}`}>
+            <div className={`p-5 sm:p-6 border-b flex flex-col sm:flex-row sm:items-start justify-between gap-4 ${theme.divide}`}>
+              <div className="min-w-0">
+                <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-rose-300' : 'text-rose-600'}`}>TRASH / DELETED ITEMS</div>
+                <h3 className={`text-2xl sm:text-3xl font-black flex items-center gap-3 mt-1 ${theme.textTitle}`}>
+                  <Icons.Trash className="w-7 h-7 text-rose-500" />
+                  ถังขยะอุปกรณ์
+                </h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>
+                  รายการที่ถูกย้ายออกจากหน้าหลัก สามารถกู้คืนกลับมาใช้งานได้ หรือเลือกลบถาวรเมื่อมั่นใจแล้ว
+                </p>
+              </div>
+              <button type="button" onClick={() => setShowTrashModal(false)} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`}>
+                <Icons.X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className={`px-5 sm:px-6 py-4 border-b grid grid-cols-2 md:grid-cols-4 gap-3 ${theme.divide}`}>
+              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`text-xs font-black ${theme.textMuted}`}>ในถังขยะ</div>
+                <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{deletedItems.length.toLocaleString('th-TH')}</div>
+              </div>
+              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`text-xs font-black ${theme.textMuted}`}>กู้คืนได้</div>
+                <div className="text-3xl font-black mt-1 text-emerald-500">{deletedItems.length.toLocaleString('th-TH')}</div>
+              </div>
+              <div className={`p-4 rounded-2xl border col-span-2 ${isDarkMode ? 'bg-amber-950/20 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                <div className="font-black">คำเตือน</div>
+                <div className="text-xs sm:text-sm font-bold mt-1 opacity-85">ปุ่ม “ลบถาวร” ต้องยืนยันด้วยคำว่า DELETE และไม่สามารถกู้คืนจากในเว็บได้</div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6">
+              {deletedItems.length === 0 ? (
+                <div className={`min-h-[280px] rounded-3xl border border-dashed flex flex-col items-center justify-center text-center p-6 ${isDarkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-200 bg-slate-50'}`}>
+                  <div className={`w-16 h-16 rounded-3xl flex items-center justify-center mb-4 ${isDarkMode ? 'bg-emerald-950/40 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
+                    <Icons.CheckCircle className="w-8 h-8" />
+                  </div>
+                  <div className={`text-2xl font-black ${theme.textTitle}`}>ถังขยะว่างอยู่</div>
+                  <p className={`text-sm font-bold mt-2 max-w-md ${theme.textMuted}`}>ตอนนี้ยังไม่มีอุปกรณ์ที่ถูกย้ายเข้าถังขยะ ถ้าลบผิด ระบบจะแสดงรายการไว้ที่นี่เพื่อกู้คืน</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {deletedItems.map(item => {
+                    const deletedDate = item.deletedAt || item.updatedAt || item.createdAt;
+                    const deletedText = deletedDate ? new Date(deletedDate).toLocaleString('th-TH', { hour12: false }) : '-';
+                    const missingLabels = getMissingDataLabels(item);
+                    return (
+                      <div key={item.id} className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className={`text-lg font-black truncate ${theme.textTitle}`}>{item.name || '-'}</div>
+                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || 'ไม่ระบุหมวด'}</div>
+                          </div>
+                          <span className="px-2.5 py-1 rounded-xl text-[11px] font-black border bg-rose-500/10 border-rose-500/20 text-rose-500 shrink-0">ถูกลบ</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-xs font-bold">
+                          <div className={`p-3 rounded-2xl ${isDarkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
+                            <div className={`font-black ${theme.textMuted}`}>ที่เก็บ</div>
+                            <div className={`font-black truncate ${theme.textTitle}`}>{item.location || '-'}</div>
+                          </div>
+                          <div className={`p-3 rounded-2xl ${isDarkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
+                            <div className={`font-black ${theme.textMuted}`}>ฝ่ายดูแล</div>
+                            <div className={`font-black truncate ${theme.textTitle}`}>{item.department || '-'}</div>
+                          </div>
+                          <div className={`p-3 rounded-2xl ${isDarkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
+                            <div className={`font-black ${theme.textMuted}`}>ลบโดย</div>
+                            <div className={`font-black truncate ${theme.textTitle}`}>{item.deletedBy || '-'}</div>
+                          </div>
+                          <div className={`p-3 rounded-2xl ${isDarkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
+                            <div className={`font-black ${theme.textMuted}`}>วันที่ลบ</div>
+                            <div className={`font-black truncate ${theme.textTitle}`}>{deletedText}</div>
+                          </div>
+                        </div>
+
+                        {missingLabels.length > 0 && (
+                          <div className={`mt-3 text-xs font-bold rounded-2xl px-3 py-2 ${isDarkMode ? 'bg-amber-950/20 text-amber-300 border border-amber-800' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                            ข้อมูลที่ยังขาด: {missingLabels.join(', ')}
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
+                          <button
+                            type="button"
+                            onClick={() => handleRestoreTrashItem(item)}
+                            className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm"
+                          >
+                            กู้คืน
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowHistory(item.id)}
+                            className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}
+                          >
+                            เปิดแฟ้ม
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handlePermanentDeleteTrashItem(item)}
+                            className="px-4 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black shadow-sm"
+                          >
+                            ลบถาวร
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className={`p-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
+              <div className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>ถ้าลบผิด ให้กด “กู้คืน” รายการจะกลับไปอยู่ในหน้ารายการอุปกรณ์หลักทันที</div>
+              <button type="button" onClick={() => setShowTrashModal(false)} className={`px-5 py-3 rounded-2xl border font-black ${theme.btnCancel}`}>ปิดถังขยะ</button>
             </div>
           </div>
         </div>
