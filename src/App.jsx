@@ -1,6 +1,6 @@
-// v22.53.23 Clean Info Block Print Polish - removes excessive long form/signature lines, keeps classic A4 watermark forms, no QR/camera/database path changes
+// v22.53.24 QR Label Print Polish - professional QR asset labels, no QR scanner/camera/database path changes
 // v22.53.17 Operational Slip Clean Design - fixed clean A4 borrow/event/return documents, removes before-print logo/watermark controls, no QR/camera/database path changes
-// v22.53.23 Clean Info Block Print Polish - final visual balance for operational print forms, no QR/camera/database path changes
+// v22.53.24 QR Label Print Polish - final visual balance for operational print forms, no QR/camera/database path changes
 // v22.53.9 Equipment Detail / Asset History Polish - asset profile file, mobile action shortcuts, no QR/camera/database path changes
 // v22.53.8 Operational Print Documents Polish - official A4 borrow/event/return documents and QR label print polish, no QR/camera/database path changes
 // v22.53.3 Data Safety Confirm Polish - safer destructive actions and mobile-friendly confirmation gates, no QR/camera/database changes
@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.23 Clean Info Block Print Polish';
+const APP_VERSION = 'v22.53.24 QR Label Print Polish';
 const APP_UPDATE_NOTE = 'Official Form Line Cleanup Polish: ลดเส้นยาวในฟอร์มเอกสาร ปรับช่องข้อมูลและลายเซ็นให้ดูสะอาด อ่านง่าย และยังคงรูปแบบ A4 พร้อมลายน้ำกลางกระดาษ โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -6065,8 +6065,8 @@ function MainApp() {
 
   // 🖨️ สถานะสำหรับ พิมพ์ & Scan QR Code
   const [showพิมพ์Modal, setShowพิมพ์Modal] = useState(false);
-  const [qrพิมพ์Size, setQrพิมพ์Size] = useState('scanEasy');
-  const [qrพิมพ์Mode, setQrพิมพ์Mode] = useState('plain');
+  const [qrพิมพ์Size, setQrพิมพ์Size] = useState('normal');
+  const [qrพิมพ์Mode, setQrพิมพ์Mode] = useState('label');
   const [qrพิมพ์Columns, setQrพิมพ์Columns] = useState('auto');
   const [showBoxLabelพิมพ์Modal, setShowBoxLabelพิมพ์Modal] = useState(false);
   const [showStorageBoxesModal, setShowStorageBoxesModal] = useState(false);
@@ -12792,14 +12792,47 @@ S.N.: ${item.sn || '-'}
     return (
       <div className="bg-white min-h-screen font-sans text-black">
          <style>{`
+           .qr-label-card {
+             border-color: #cbd5e1;
+             background: #ffffff;
+           }
+           .qr-label-meta {
+             display: grid;
+             grid-template-columns: 28px minmax(0, 1fr);
+             column-gap: 5px;
+             row-gap: 2px;
+           }
+           .qr-label-meta-label {
+             color: #64748b;
+             font-weight: 900;
+             white-space: nowrap;
+           }
+           .qr-label-meta-value {
+             color: #0f172a;
+             font-weight: 900;
+             min-width: 0;
+             overflow: hidden;
+             text-overflow: ellipsis;
+             white-space: nowrap;
+           }
+           .qr-label-footer { letter-spacing: .04em; }
            @media print {
-             @page { size: A4; margin: 8mm; }
+             @page { size: A4; margin: 7mm; }
              body { background: white !important; }
+             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
              .qr-label-card, .qr-plain-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; }
              .qr-plain-grid { grid-template-columns: repeat(auto-fill, var(--qr-card-width)) !important; justify-content: start !important; align-items: start !important; gap: 2mm !important; }
              .qr-plain-card { width: var(--qr-card-width) !important; min-height: var(--qr-card-height) !important; padding: 1.2mm !important; box-sizing: border-box !important; }
              .qr-plain-card .qr-code-image { width: var(--qr-image-size) !important; height: var(--qr-image-size) !important; margin-bottom: 1mm !important; }
-             .qr-plain-card .qr-brand-logo img, .qr-label-card .qr-brand-logo img { width: 100% !important; height: 100% !important; }
+             .qr-label-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 3mm !important; align-items: start !important; }
+             .qr-label-card { min-height: 38mm !important; border: 1.2px solid #111827 !important; border-radius: 2mm !important; padding: 2mm !important; overflow: hidden !important; }
+             .qr-label-card .qr-code-image { width: 23mm !important; height: 23mm !important; }
+             .qr-label-card .qr-safe-zone { padding: 1mm !important; border-color: #111827 !important; border-radius: 1.5mm !important; }
+             .qr-label-card .qr-brand-logo img, .qr-plain-card .qr-brand-logo img { width: 100% !important; height: 100% !important; }
+             .qr-label-meta { grid-template-columns: 9mm minmax(0, 1fr) !important; row-gap: .55mm !important; column-gap: 1mm !important; }
+             .qr-label-meta-label, .qr-label-meta-value { font-size: 6.6pt !important; line-height: 1.18 !important; }
+             .qr-label-footer { font-size: 6pt !important; }
+             .qr-print-header { display: flex !important; align-items: end !important; justify-content: space-between !important; border-bottom: 1.4px solid #111827 !important; padding-bottom: 2mm !important; margin-bottom: 4mm !important; }
            }
          `}</style>
          <div className="print:hidden p-4 bg-slate-800 text-white flex flex-col xl:flex-row justify-between items-center fixed top-0 w-full z-50 shadow-md gap-3">
@@ -12808,7 +12841,7 @@ S.N.: ${item.sn || '-'}
                 <Icons.QrCode className="w-6 h-6" /> พิมพ์ QR / ฉลากอุปกรณ์ ({selectedItems.length} ดวง)
               </h2>
               <p className="text-slate-300 text-sm font-bold mt-1">
-                เลือกขนาดและรูปแบบฉลากให้เหมาะกับอุปกรณ์ ควรทดลองสแกน 1 ดวงก่อนติดจริง
+                จัดฉลาก QR สำหรับติดอุปกรณ์/กล่องจริง แนะนำพิมพ์บนสติกเกอร์ A4 และทดลองสแกน 1 ดวงก่อนติดจริง
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-3">
@@ -12819,15 +12852,15 @@ S.N.: ${item.sn || '-'}
                    className={`px-4 py-2 rounded-lg font-black transition-colors ${qrพิมพ์Mode === 'plain' ? 'bg-blue-600 text-white shadow' : 'text-slate-200 hover:bg-slate-600'}`}
                    title="แบบเดิม เรียบง่าย สแกนง่าย"
                  >
-                   แบบธรรมดา
+                   QR ล้วน
                  </button>
                  <button
                    type="button"
                    onClick={() => setQrพิมพ์Mode('label')}
                    className={`px-4 py-2 rounded-lg font-black transition-colors ${qrพิมพ์Mode === 'label' ? 'bg-blue-600 text-white shadow' : 'text-slate-200 hover:bg-slate-600'}`}
-                   title="แบบฉลากอ่านง่าย มีโลโก้ ชื่ออุปกรณ์ S.N. และรหัสสั้นถ้ามี"
+                   title="ฉลากข้อมูลอ่านง่าย มีโลโก้ ชื่ออุปกรณ์ S.N. และรหัสสั้นถ้ามี"
                  >
-                   แบบฉลาก
+                   ฉลากข้อมูล
                  </button>
                </div>
 
@@ -12860,7 +12893,7 @@ S.N.: ${item.sn || '-'}
                </div>
 
                <div className="w-full text-xs sm:text-sm font-bold text-slate-300 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3">
-                 แนะนำ: ก่อนติดจริงให้ทดลองสแกน 1 ดวงก่อนเสมอ ถ้าเป็นแบต/เมมให้ติดรหัสสั้นบนตัวของ และติด QR ที่ซอง/กล่องเก็บแทน เพื่อไม่ให้รบกวนการใช้งาน
+                 แนะนำ: ใช้ “ฉลากข้อมูล” สำหรับติดอุปกรณ์ทั่วไป / ใช้ “QR ล้วน” เมื่อพื้นที่แคบมาก • ถ้าเป็นแบต/เมมให้ติดรหัสสั้นบนตัวของ และติด QR ที่ซองหรือกล่องเก็บแทน
                </div>
 
                <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
@@ -12875,13 +12908,13 @@ S.N.: ${item.sn || '-'}
 
          <div className="qr-print-header hidden print:flex">
            <div>
-             <div className="text-[9pt] font-black tracking-[0.16em] uppercase text-blue-700">MDEC STOCK QR LABELS</div>
-             <div className="text-[16pt] font-black leading-tight">ฉลาก QR อุปกรณ์ศูนย์มัลติมีเดียทางการศึกษา</div>
-             <div className="text-[8pt] font-bold text-slate-600">จำนวน {selectedItems.length.toLocaleString('th-TH')} ดวง • รูปแบบ {isLabelMode ? 'ฉลาก' : 'ธรรมดา'} • ขนาด {qrPreset.label}</div>
+             <div className="text-[8pt] font-black tracking-[0.18em] uppercase text-slate-600">MDEC STOCK • ASSET QR LABELS</div>
+             <div className="text-[15pt] font-black leading-tight text-slate-950">ฉลาก QR ติดอุปกรณ์ / กล่องจัดเก็บ</div>
+             <div className="text-[7.5pt] font-bold text-slate-600">จำนวน {selectedItems.length.toLocaleString('th-TH')} ดวง • รูปแบบ {isLabelMode ? 'ฉลากข้อมูล' : 'QR ล้วน'} • ขนาด {qrPreset.label}</div>
            </div>
-           <div className="text-right text-[8pt] font-bold text-slate-700">
+           <div className="text-right text-[7.5pt] font-bold text-slate-700">
              <div>วันที่พิมพ์: {new Date().toLocaleDateString('th-TH')}</div>
-             <div>{APP_VERSION}</div>
+             <div className="text-slate-400">{APP_VERSION}</div>
            </div>
          </div>
 
@@ -12913,57 +12946,55 @@ S.N.: ${item.sn || '-'}
              })}
            </div>
          ) : (
-           <div className={`pt-52 xl:pt-36 p-8 grid ${activeQrGrid} gap-5 print:pt-0 print:p-0 print:gap-2`}>
+           <div className={`qr-label-grid pt-52 xl:pt-36 p-8 grid ${activeQrGrid} gap-5 print:pt-0 print:p-0 print:gap-2`}>
              {selectedItems.map(id => {
                 const item = items.find(i => i.id === id);
                 if(!item) return null;
                 const deptInfo = DEPARTMENTS.find(d => d.id === item.department);
                 const qrValue = encodeURIComponent(item.id || item.sn || item.name || 'MDEC-STOCK');
                 const labelShortCode = item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || '';
+                const labelPrimaryCode = labelShortCode || item.sn || (item.id ? String(item.id).slice(0, 10).toUpperCase() : 'MDEC');
+                const labelCategory = item.category || 'ไม่ระบุหมวดหมู่';
+                const labelLocation = item.location || item.storageLocation || item.storage || '-';
+                const labelDepartment = deptInfo?.label || item.department || '-';
                 return (
-                   <div key={id} className={`qr-label-card border border-slate-300 rounded-xl flex flex-col bg-white text-slate-900 break-inside-avoid shadow-sm print:rounded-none overflow-hidden ${qrPreset.labelCard}`}>
-                      <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-1.5 mb-2 print:pb-0.5 print:mb-1">
+                   <div key={id} className={`qr-label-card border rounded-2xl flex flex-col bg-white text-slate-900 break-inside-avoid shadow-sm overflow-hidden ${qrPreset.labelCard}`}>
+                      <div className="flex items-start justify-between gap-2 border-b border-slate-300 pb-1.5 mb-2 print:pb-1 print:mb-1.5">
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="qr-brand-logo">
-                            {showเอกสารLogo('qrLogo') && renderOrgLogoBox({ className: 'w-12 h-7 print:w-10 print:h-6 rounded-lg border border-slate-200 px-1.5 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
+                          <div className="qr-brand-logo shrink-0">
+                            {showเอกสารLogo('qrLogo') && renderOrgLogoBox({ className: 'w-12 h-7 print:w-9 print:h-5 rounded-lg border border-slate-200 px-1.5 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
                           </div>
                           <div className="leading-tight min-w-0">
-                            <div className={`${qrPreset.labelTitleClass} font-black tracking-wide text-blue-700`}>MDEC STOCK</div>
-                            <div className="text-[9px] print:text-[6.5px] font-bold text-slate-500 truncate">ศูนย์มัลติมีเดียทางการศึกษา</div>
+                            <div className={`${qrPreset.labelTitleClass} font-black tracking-[.12em] text-slate-950 uppercase`}>MDEC STOCK</div>
+                            <div className="text-[9px] print:text-[6.4pt] font-bold text-slate-500 truncate">ศูนย์มัลติมีเดียทางการศึกษา</div>
                           </div>
                         </div>
-                        <div className="text-[8px] print:text-[6px] font-black border border-blue-200 bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-md shrink-0">QR SAFE</div>
+                        <div className="text-[9px] print:text-[6.2pt] font-black border border-slate-400 bg-slate-100 text-slate-900 px-1.5 py-0.5 rounded-md shrink-0">{labelPrimaryCode}</div>
                       </div>
 
-                      <div className="flex gap-2 items-stretch">
-                        <div className="qr-safe-zone bg-white p-2 print:p-1 rounded-lg border border-slate-200 shrink-0">
+                      <div className="flex gap-2.5 print:gap-1.5 items-stretch min-h-0">
+                        <div className="qr-safe-zone bg-white p-2 print:p-1 rounded-xl border border-slate-300 shrink-0">
                           <img
                             src={`https://api.qrserver.com/v1/create-qr-code/?size=${qrPreset.labelQrServer}x${qrPreset.labelQrServer}&margin=4&data=${qrValue}`}
                             alt="QR"
                             className={`qr-code-image ${qrPreset.labelQrClass} object-contain block bg-white`}
                           />
                         </div>
-                        <div className="min-w-0 flex-1 leading-tight rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 print:px-1 print:py-1">
-                          <div className={`${qrPreset.labelTitleClass} font-black line-clamp-2 text-slate-950`}>{item.name}</div>
-                          <div className={`mt-1 grid grid-cols-[auto_1fr] gap-x-1 gap-y-0.5 ${qrPreset.labelTextClass} font-bold`}>
-                            <span className="text-slate-400">S.N.</span><span className="truncate text-slate-700">{item.sn || '-'}</span>
-                            {labelShortCode && <><span className="text-slate-400">รหัส</span><span className="truncate text-slate-900 font-black">{labelShortCode}</span></>}
-                            <span className="text-slate-400">ฝ่าย</span><span className="truncate text-slate-700">{deptInfo?.label || item.department || '-'}</span>
-                            <span className="text-slate-400">ที่เก็บ</span><span className="truncate text-slate-700">{item.location || '-'}</span>
+                        <div className="min-w-0 flex-1 leading-tight">
+                          <div className={`${qrPreset.labelTitleClass} font-black line-clamp-2 text-slate-950 leading-tight`}>{item.name || '-'}</div>
+                          <div className={`qr-label-meta mt-1.5 print:mt-1 ${qrPreset.labelTextClass}`}>
+                            <span className="qr-label-meta-label">S.N.</span><span className="qr-label-meta-value">{item.sn || '-'}</span>
+                            <span className="qr-label-meta-label">หมวด</span><span className="qr-label-meta-value">{labelCategory}</span>
+                            <span className="qr-label-meta-label">ที่เก็บ</span><span className="qr-label-meta-value">{labelLocation}</span>
+                            <span className="qr-label-meta-label">ฝ่าย</span><span className="qr-label-meta-value">{labelDepartment}</span>
                           </div>
                         </div>
                       </div>
 
-                      {item.owner ? (
-                        <div className="mt-1.5 print:mt-0.5 text-[8px] print:text-[6px] font-black bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded-md truncate">
-                          ของส่วนตัว: {item.owner}
-                        </div>
-                      ) : (
-                        <div className="mt-1.5 print:mt-0.5 flex items-center gap-1 text-[8px] print:text-[6px] font-black bg-blue-50 border border-blue-200 text-blue-700 px-1.5 py-0.5 rounded-md truncate">
-                          {showเอกสารLogo('qrLogo') && renderOrgLogoBox({ className: 'w-7 h-4 print:w-6 print:h-3.5 rounded-sm border border-blue-100 px-0.5 py-0.5', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-2.5 h-2.5' })}
-                          <span className="truncate">ทรัพย์สินศูนย์มัลติมีเดีย</span>
-                        </div>
-                      )}
+                      <div className={`qr-label-footer mt-2 print:mt-1 border-t border-slate-200 pt-1 print:pt-0.5 text-[8px] print:text-[6pt] font-black text-slate-600 flex items-center justify-between gap-2`}>
+                        <span className="truncate">{item.owner ? `ของส่วนตัว: ${item.owner}` : 'ทรัพย์สินศูนย์มัลติมีเดีย'}</span>
+                        <span className="shrink-0 text-slate-400">SCAN BEFORE USE</span>
+                      </div>
                    </div>
                 )
              })}
