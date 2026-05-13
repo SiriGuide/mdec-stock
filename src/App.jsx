@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.26 Data Quality Center Polish';
-const APP_UPDATE_NOTE = 'Data Quality Center Polish: ปรับศูนย์ตรวจความครบถ้วนข้อมูลให้เป็น checklist ใช้งานจริง พร้อมตัวกรอง รายการแก้ไข และปุ่มเปิดแฟ้ม/แก้ไข โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
+const APP_VERSION = 'v22.53.27 Smart Search & Filter Polish';
+const APP_UPDATE_NOTE = 'Smart Search & Filter Polish: ปรับค้นหาและตัวกรองอุปกรณ์ให้หาไวขึ้น มีตัวกรองด่วนบนมือถือ และค้นได้จากชื่อ/S.N./รหัส/หมวด/ที่เก็บ/ฝ่าย โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -5787,6 +5787,7 @@ function MainApp() {
   const [filterProject, setFilterProject] = useState('all');
   const [filterAssetStatus, setFilterAssetStatus] = useState('all');
   const [filterQrTagged, setFilterQrTagged] = useState('all');
+  const [smartQuickFilter, setSmartQuickFilter] = useState('all');
 
   const [isAdmin, setIsAdmin] = useState(() => {
     try { return localStorage.getItem('mdec_admin') === 'true'; } 
@@ -7387,18 +7388,90 @@ function MainApp() {
     return isLate || item.status === 'maintenance' || missingInfo;
   };
 
+  const normalizeSmartText = (value) => String(value ?? '').trim().toLowerCase();
+
+  const getItemSmartText = (item) => {
+    const deptInfo = DEPARTMENTS.find(d => d.id === item?.department);
+    const statusInfo = STATUSES.find(s => s.id === item?.status);
+    const assetInfo = getAssetStatusInfo(item?.assetStatus);
+    return [
+      item?.name,
+      item?.sn,
+      item?.shortCode,
+      item?.shortLabel,
+      item?.assetShortCode,
+      item?.localCode,
+      item?.category,
+      item?.location,
+      item?.storageBoxName,
+      item?.storageLocation,
+      item?.department,
+      deptInfo?.label,
+      item?.project,
+      item?.owner,
+      item?.borrower,
+      item?.borrowerName,
+      item?.currentBorrower,
+      item?.currentBorrowerName,
+      item?.staffOut,
+      item?.note,
+      statusInfo?.label,
+      assetInfo?.label,
+      item?.id
+    ].map(v => String(v || '').toLowerCase()).join(' ');
+  };
+
+  const itemSmartKeywordText = (item) => normalizeSmartText(`${item?.name || ''} ${item?.category || ''} ${item?.department || ''}`);
+
+  const isCameraLikeItem = (item) => /กล้อง|camera|body|บอดี้/.test(itemSmartKeywordText(item));
+  const isLensLikeItem = (item) => /เลนส์|lens|เลน/.test(itemSmartKeywordText(item));
+  const isBatteryLikeItem = (item) => /แบต|battery|charger|ชาร์จ/.test(itemSmartKeywordText(item));
+  const isMemoryLikeItem = (item) => /เมม|memory|sd|card|การ์ด/.test(itemSmartKeywordText(item));
+
+  const matchesSmartQuickFilter = (item, filterId = smartQuickFilter) => {
+    if (!item || item.isDeleted) return false;
+    switch (filterId) {
+      case 'available': return item.status === 'available';
+      case 'borrowed': return item.status === 'borrowed';
+      case 'event': return item.status === 'out-for-event';
+      case 'maintenance': return item.status === 'maintenance';
+      case 'untaggedQr': return !item.qrTagged;
+      case 'incomplete': return getMissingDataLabels(item).length > 0;
+      case 'camera': return isCameraLikeItem(item);
+      case 'lens': return isLensLikeItem(item);
+      case 'battery': return isBatteryLikeItem(item);
+      case 'memory': return isMemoryLikeItem(item);
+      case 'problem': return isProblemItem(item);
+      default: return true;
+    }
+  };
+
+  const smartQuickFilterOptions = useMemo(() => {
+    const liveItems = items.filter(item => item && !item.isDeleted);
+    const countBy = (filterId) => liveItems.filter(item => matchesSmartQuickFilter(item, filterId)).length;
+    return [
+      { id: 'all', label: 'ทั้งหมด', count: liveItems.length, desc: 'ล้างตัวกรองด่วน' },
+      { id: 'available', label: 'พร้อมใช้', count: countBy('available'), desc: 'หยิบใช้งานได้' },
+      { id: 'borrowed', label: 'ถูกยืม', count: countBy('borrowed'), desc: 'รอคืน' },
+      { id: 'event', label: 'ออกงาน', count: countBy('event'), desc: 'อยู่นอกศูนย์' },
+      { id: 'maintenance', label: 'ซ่อม/ชำรุด', count: countBy('maintenance'), desc: 'ต้องติดตาม' },
+      { id: 'untaggedQr', label: 'ยังไม่ติด QR', count: countBy('untaggedQr'), desc: 'ควรทำฉลาก' },
+      { id: 'incomplete', label: 'ข้อมูลไม่ครบ', count: countBy('incomplete'), desc: 'ควรเติมข้อมูล' },
+      { id: 'camera', label: 'กล้อง', count: countBy('camera'), desc: 'บอดี้/กล้อง' },
+      { id: 'lens', label: 'เลนส์', count: countBy('lens'), desc: 'อุปกรณ์เลนส์' },
+      { id: 'battery', label: 'แบต/ชาร์จ', count: countBy('battery'), desc: 'แบตเตอรี่' },
+      { id: 'memory', label: 'เมม', count: countBy('memory'), desc: 'การ์ด/เมมโมรี่' }
+    ];
+  }, [items, todayMs, smartQuickFilter]);
+
   const filteredItems = useMemo(() => {
     let result = items.filter(item => {
       if (item && item.isDeleted) return false;
-      const searchLower = String(searchTerm || '').trim().toLowerCase();
-      const matchSearch = searchLower === '' || 
-                          (item.name && String(item.name).toLowerCase().includes(searchLower)) || 
-                          (item.sn && String(item.sn).toLowerCase().includes(searchLower)) || 
-                          (item.location && String(item.location).toLowerCase().includes(searchLower)) ||
-                          (item.storageBoxName && String(item.storageBoxName).toLowerCase().includes(searchLower)) ||
-                          (item.project && String(item.project).toLowerCase().includes(searchLower)) ||
-                          (item.owner && String(item.owner).toLowerCase().includes(searchLower)); 
-                          
+      const searchLower = normalizeSmartText(searchTerm);
+      const searchTokens = searchLower ? searchLower.split(/\s+/).filter(Boolean) : [];
+      const smartText = getItemSmartText(item);
+      const matchSearch = searchTokens.length === 0 || searchTokens.every(token => smartText.includes(token));
+
       const matchDept = filterDept === 'all' || String(item.department) === String(filterDept);
       const matchCategory = filterCategory === 'all' || String(item.category) === String(filterCategory);
       const matchStatus = filterStatus === 'all' || String(item.status) === String(filterStatus);
@@ -7407,27 +7480,32 @@ function MainApp() {
       const matchAssetStatus = filterAssetStatus === 'all' || String(item.assetStatus || 'active') === String(filterAssetStatus);
       const matchQrTagged = filterQrTagged === 'all' || (filterQrTagged === 'tagged' && !!item.qrTagged) || (filterQrTagged === 'untagged' && !item.qrTagged);
       const matchProblem = !quickProblemOnly || isProblemItem(item);
-      
-      return matchSearch && matchDept && matchCategory && matchStatus && matchLocation && matchProject && matchAssetStatus && matchQrTagged && matchProblem;
+      const matchSmartQuick = matchesSmartQuickFilter(item);
+
+      return matchSearch && matchDept && matchCategory && matchStatus && matchLocation && matchProject && matchAssetStatus && matchQrTagged && matchProblem && matchSmartQuick;
     });
 
     result.sort((a, b) => {
       try {
+        const priorityA = getMissingDataLabels(a).length + (a.status === 'maintenance' ? 2 : 0);
+        const priorityB = getMissingDataLabels(b).length + (b.status === 'maintenance' ? 2 : 0);
+        if (smartQuickFilter === 'incomplete' && priorityA !== priorityB) return priorityB - priorityA;
         const strA = String(a.name || '');
         const strB = String(b.name || '');
         return strA.localeCompare(strB, 'th', { numeric: true, sensitivity: 'base' });
       } catch (e) { return 0; }
     });
     return result;
-  }, [items, searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterProject, filterAssetStatus, filterQrTagged, quickProblemOnly, todayMs]);
+  }, [items, searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterProject, filterAssetStatus, filterQrTagged, quickProblemOnly, smartQuickFilter, todayMs]);
 
-  const hasActiveFilters = !!searchTerm || filterDept !== 'all' || filterCategory !== 'all' || filterStatus !== 'all' || filterLocation !== 'all' || filterProject !== 'all' || filterAssetStatus !== 'all' || filterQrTagged !== 'all' || quickProblemOnly;
+  const hasActiveFilters = !!searchTerm || filterDept !== 'all' || filterCategory !== 'all' || filterStatus !== 'all' || filterLocation !== 'all' || filterProject !== 'all' || filterAssetStatus !== 'all' || filterQrTagged !== 'all' || quickProblemOnly || smartQuickFilter !== 'all';
 
-  const activeFilterCount = [!!searchTerm, filterDept !== 'all', filterCategory !== 'all', filterStatus !== 'all', filterLocation !== 'all', filterProject !== 'all', filterAssetStatus !== 'all', filterQrTagged !== 'all', quickProblemOnly].filter(Boolean).length;
+  const activeFilterCount = [!!searchTerm, filterDept !== 'all', filterCategory !== 'all', filterStatus !== 'all', filterLocation !== 'all', filterProject !== 'all', filterAssetStatus !== 'all', filterQrTagged !== 'all', quickProblemOnly, smartQuickFilter !== 'all'].filter(Boolean).length;
 
   const activeFilterChips = useMemo(() => {
     const chips = [];
     if (searchTerm) chips.push({ id: 'search', label: `ค้นหา: ${searchTerm}`, clear: () => setSearchTerm('') });
+    if (smartQuickFilter !== 'all') chips.push({ id: 'smart', label: `ตัวกรองด่วน: ${smartQuickFilterOptions.find(f => f.id === smartQuickFilter)?.label || smartQuickFilter}`, clear: () => setSmartQuickFilter('all') });
     if (filterDept !== 'all') chips.push({ id: 'dept', label: `ฝ่าย: ${DEPARTMENTS.find(d => d.id === filterDept)?.label || filterDept}`, clear: () => setFilterDept('all') });
     if (filterLocation !== 'all') chips.push({ id: 'location', label: `ห้อง/ที่เก็บ: ${filterLocation}`, clear: () => setFilterLocation('all') });
     if (filterCategory !== 'all') chips.push({ id: 'category', label: `หมวด: ${filterCategory}`, clear: () => setFilterCategory('all') });
@@ -7437,7 +7515,7 @@ function MainApp() {
     if (filterQrTagged !== 'all') chips.push({ id: 'qr', label: filterQrTagged === 'tagged' ? 'ติด QR แล้ว' : 'ยังไม่ติด QR', clear: () => setFilterQrTagged('all') });
     if (quickProblemOnly) chips.push({ id: 'problem', label: 'ของที่ต้องจัดการ', clear: () => setQuickProblemOnly(false) });
     return chips;
-  }, [searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterProject, filterAssetStatus, filterQrTagged, quickProblemOnly]);
+  }, [searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterProject, filterAssetStatus, filterQrTagged, quickProblemOnly, smartQuickFilter, smartQuickFilterOptions]);
 
   const filteredBorrowเอกสารs = useMemo(() => {
     const q = String(borrowDocSearch || '').trim().toLowerCase();
@@ -7468,6 +7546,7 @@ function MainApp() {
     setFilterProject('all');
     setFilterAssetStatus('all');
     setFilterQrTagged('all');
+    setSmartQuickFilter('all');
     setQuickProblemOnly(false);
   };
 
@@ -14855,7 +14934,7 @@ S.N.: ${item.sn || '-'}
             <input
               type="text"
               className={`w-full pl-12 pr-4 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-bold outline-none transition-all border ${theme.input}`}
-              placeholder="ค้นหาอุปกรณ์ / S.N. / ห้อง / โครงการ / เจ้าของ..."
+              placeholder="ค้นหา ชื่อ / S.N. / รหัสสั้น / หมวด / ที่เก็บ / ฝ่าย / โครงการ..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -14882,6 +14961,31 @@ S.N.: ${item.sn || '-'}
                 <Icons.Plus className="w-5 h-5" /> เพิ่มอุปกรณ์
               </button>
             )}
+          </div>
+        </div>
+
+        <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`px-4 py-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${theme.divide}`}>
+            <div>
+              <div className={`font-black ${theme.textTitle}`}>ตัวกรองด่วน</div>
+              <div className={`text-xs font-bold ${theme.textMuted}`}>แตะครั้งเดียวเพื่อดูรายการที่ใช้บ่อย เหมาะกับมือถือและตอนค้นของหน้างาน</div>
+            </div>
+            <div className={`text-xs font-black ${theme.textMuted}`}>พบ {filteredItems.length.toLocaleString('th-TH')} / {items.filter(i => i && !i.isDeleted).length.toLocaleString('th-TH')} รายการ</div>
+          </div>
+          <div className="p-3 flex gap-2 overflow-x-auto w-full custom-scrollbar">
+            {smartQuickFilterOptions.map(option => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => setSmartQuickFilter(option.id)}
+                className={`min-w-[132px] sm:min-w-[148px] text-left px-4 py-3 rounded-2xl border transition-all shrink-0 ${smartQuickFilter === option.id ? 'bg-blue-600 text-white border-blue-600 shadow-md' : theme.btnSecondary}`}
+                title={option.desc}
+              >
+                <div className="text-lg font-black leading-none">{Number(option.count || 0).toLocaleString('th-TH')}</div>
+                <div className="text-sm font-black mt-1 truncate">{option.label}</div>
+                <div className={`text-[11px] font-bold mt-1 truncate ${smartQuickFilter === option.id ? 'text-white/75' : theme.textMuted}`}>{option.desc}</div>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -14998,6 +15102,22 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div className={`p-4 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`font-black mb-3 ${theme.textTitle}`}>ตัวกรองด่วน</div>
+                <div className="flex flex-wrap gap-2">
+                  {smartQuickFilterOptions.map(option => (
+                    <button
+                      key={`modal_${option.id}`}
+                      type="button"
+                      onClick={() => setSmartQuickFilter(option.id)}
+                      className={`px-3 py-2 rounded-xl border text-sm font-black ${smartQuickFilter === option.id ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}
+                    >
+                      {option.label} <span className="opacity-70">({Number(option.count || 0).toLocaleString('th-TH')})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={`p-4 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input type="checkbox" className="w-5 h-5 accent-rose-600" checked={!!quickProblemOnly} onChange={e => setQuickProblemOnly(e.target.checked)} />
                   <span className={`font-black ${theme.textTitle}`}>แสดงเฉพาะของที่ต้องจัดการ</span>
@@ -15100,7 +15220,7 @@ S.N.: ${item.sn || '-'}
               <div className={`rounded-2xl border p-8 text-center font-bold ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
                 <Icons.Search className="w-10 h-10 mx-auto mb-2 opacity-50" />
                 <div className="text-lg font-black">ไม่พบอุปกรณ์ที่ค้นหา</div>
-                <div className="text-sm mt-1">ลองล้างตัวกรอง หรือค้นหาด้วย S.N. / ชื่อกล่อง / สถานที่</div>
+                <div className="text-sm mt-1">ลองล้างตัวกรอง หรือค้นหาด้วยชื่อ / S.N. / รหัสสั้น / หมวด / ที่เก็บ / ฝ่าย</div>
                 {hasActiveFilters && <button type="button" onClick={clearAllFilters} className="mt-3 px-4 py-2 rounded-xl bg-blue-600 text-white font-black text-sm">ล้างตัวกรองทั้งหมด</button>}
               </div>
             ) : filteredItems.map((item, index) => {
@@ -15206,7 +15326,7 @@ S.N.: ${item.sn || '-'}
                   <div className="flex flex-col items-center gap-2">
                     <Icons.Search className="w-10 h-10 opacity-50" />
                     <div>ไม่พบอุปกรณ์ที่ค้นหา</div>
-                    <div className="text-sm font-bold opacity-80">ลองล้างตัวกรอง หรือค้นหาด้วย S.N. / ชื่อกล่อง / สถานที่</div>
+                    <div className="text-sm font-bold opacity-80">ลองล้างตัวกรอง หรือค้นหาด้วยชื่อ / S.N. / รหัสสั้น / หมวด / ที่เก็บ / ฝ่าย</div>
                     {hasActiveFilters && <button type="button" onClick={clearAllFilters} className="mt-2 px-4 py-2 rounded-xl bg-blue-600 text-white font-black text-sm">ล้างตัวกรองทั้งหมด</button>}
                   </div>
                 </td></tr>
