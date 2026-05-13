@@ -1,3 +1,4 @@
+// v22.53.2 Mobile Borrow / Return Flow Polish - clearer mobile operation summary and confirm step, no QR/camera/database changes
 // v22.53.1 Mobile Empty State Polish - clearer empty document archive on mobile, no QR/camera/database changes
 // v22.52.8 Modal Chain Return Fix - fixes nested modal back flow from borrow docs/history/proof centers, no QR/camera/database changes
 // v22.52.6 Data Quality Action Polish - edit actions in data quality audit, no QR/camera/database changes
@@ -43,8 +44,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.1 Mobile Empty State Polish';
-const APP_UPDATE_NOTE = 'Mobile Empty State Polish: ปรับหน้าเอกสารย้อนหลังบนมือถือเมื่อยังไม่มีข้อมูลให้เข้าใจง่ายขึ้น เพิ่มปุ่มเริ่มทำรายการ/ค้นประวัติ/หลักฐาน และลดความงงจากหน้าว่าง โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
+const APP_VERSION = 'v22.53.2 Mobile Borrow / Return Flow Polish';
+const APP_UPDATE_NOTE = 'Mobile Borrow / Return Flow Polish: เก็บ flow ยืม/ออกงาน/รับคืนบนมือถือ เพิ่มสรุปรายการก่อนยืนยัน แถบสถานะเช็กของ ปุ่มยืนยันแบบ sticky และ modal ตรวจสอบก่อนบันทึก โดยไม่แตะ QR Scanner/กล้อง/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -2732,6 +2733,96 @@ function FactoryPolishStyle({ isDarkMode }) {
 
 
 
+      /* v22.53.2 Mobile Borrow / Return Flow Polish: ให้ modal ยืม/ออกงาน/รับคืนอ่านง่ายและกันกดพลาดบนมือถือ */
+      .factory-stock-polish .operation-mobile-summary {
+        border-radius: 22px;
+        border: 1px solid rgba(148,163,184,.24);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+      }
+      .factory-stock-polish .operation-step-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .factory-stock-polish .operation-step-card {
+        border-radius: 16px;
+        padding: 10px;
+        border: 1px solid rgba(148,163,184,.22);
+        min-width: 0;
+      }
+      .factory-stock-polish .operation-step-card .operation-step-label {
+        font-size: 10px;
+        font-weight: 950;
+        letter-spacing: .03em;
+        opacity: .72;
+      }
+      .factory-stock-polish .operation-step-card .operation-step-value {
+        margin-top: 2px;
+        font-size: 16px;
+        line-height: 1.15;
+        font-weight: 950;
+      }
+      .factory-stock-polish .operation-checklist-panel { position: relative; }
+      .factory-stock-polish .operation-sticky-actions {
+        position: sticky;
+        bottom: -2px;
+        z-index: 5;
+        padding-top: 10px;
+        margin-left: -2px;
+        margin-right: -2px;
+      }
+      .factory-stock-polish[data-polish-theme="dark"] .operation-sticky-actions {
+        background: linear-gradient(180deg, rgba(15,23,42,0), rgba(15,23,42,.98) 28%, rgba(15,23,42,1));
+      }
+      .factory-stock-polish[data-polish-theme="light"] .operation-sticky-actions {
+        background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.98) 28%, rgba(255,255,255,1));
+      }
+      .factory-stock-polish .operation-confirm-modal .operation-confirm-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(148,163,184,.18);
+      }
+      .factory-stock-polish .operation-confirm-modal .operation-confirm-row:last-child { border-bottom: 0; }
+      .factory-stock-polish .operation-item-preview {
+        max-height: 180px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+      @media (max-width: 640px) {
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal) {
+          width: min(100%, calc(100vw - 16px)) !important;
+          max-height: calc(100dvh - 22px) !important;
+          border-radius: 26px !important;
+          padding: 14px !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal) > .flex.justify-between.items-center.mb-6 {
+          margin-bottom: 10px !important;
+          align-items: flex-start !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal) h3 {
+          font-size: 1.08rem !important;
+          line-height: 1.18 !important;
+        }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal) .space-y-4.mb-6 { margin-bottom: 12px !important; }
+        .factory-stock-polish .operation-mobile-summary { margin-bottom: 12px; padding: 12px; }
+        .factory-stock-polish .operation-step-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+        .factory-stock-polish .operation-step-card { padding: 8px; border-radius: 14px; }
+        .factory-stock-polish .operation-step-card .operation-step-value { font-size: 14px; }
+        .factory-stock-polish .operation-checklist-panel { margin-bottom: 12px !important; padding: 12px !important; border-radius: 20px !important; }
+        .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal) .space-y-2.max-h-40,
+        .factory-stock-polish .return-operation-modal .space-y-2.max-h-\[34vh\] { max-height: 31dvh !important; }
+        .factory-stock-polish .operation-sticky-actions { bottom: -14px; padding: 14px 2px 14px; }
+        .factory-stock-polish .operation-sticky-actions > button { min-height: 52px !important; font-size: 15px !important; }
+        .factory-stock-polish .operation-confirm-modal {
+          width: min(100%, calc(100vw - 20px)) !important;
+          max-height: calc(100dvh - 30px) !important;
+          border-radius: 26px !important;
+        }
+      }
+
       /* v22.51.12 Mobile Return Checklist Final Hotfix: กันเช็กลิสต์รับคืนบนมือถือโดนบีบจนข้อความเรียงแนวตั้ง */
       @media (max-width: 767px) {
         .factory-stock-polish .return-operation-modal label.return-checklist-card {
@@ -3770,6 +3861,7 @@ function MainApp() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const [operationConfirm, setOperationConfirm] = useState(null);
 
   // 🧭 Final Operations Pack: ปฏิทิน / ตรวจนับ / แจ้งซ่อม / ติดตามการคืน / จอทีวี
   const [showCalendarModal, setShowCalendarModal] = useState(false);
@@ -6972,7 +7064,7 @@ S.N.: ${item.sn || '-'}
 
                   <div className="grid grid-cols-2 gap-3">
                     <button type="button" onClick={clearOperationSelection} className={`py-4 rounded-xl font-black border ${theme.btnCancel}`}>ยกเลิก</button>
-                    <button type="button" onClick={borrowReturnMode === 'event' ? handleEventOut : borrowReturnMode === 'return' ? handleReturn : handleBorrow} disabled={(borrowReturnMode === 'borrow' && (!borrowData.staff || !borrowData.borrower || packingChecklist.length === 0)) || (borrowReturnMode === 'event' && (!eventData.staff || !eventData.eventName || eventChecklist.length === 0)) || (borrowReturnMode === 'return' && (!returnData.staff || returnChecklist.length === 0))} className={`py-4 rounded-xl font-black text-white ${toneBtn} disabled:bg-slate-400 disabled:cursor-not-allowed`}>ยืนยัน</button>
+                    <button type="button" onClick={() => requestOperationConfirm(borrowReturnMode === 'event' ? 'event' : borrowReturnMode === 'return' ? 'return' : 'borrow')} disabled={(borrowReturnMode === 'borrow' && (!borrowData.staff || !borrowData.borrower || packingChecklist.length === 0)) || (borrowReturnMode === 'event' && (!eventData.staff || !eventData.eventName || eventChecklist.length === 0)) || (borrowReturnMode === 'return' && (!returnData.staff || returnChecklist.length === 0))} className={`py-4 rounded-xl font-black text-white ${toneBtn} disabled:bg-slate-400 disabled:cursor-not-allowed`}>ยืนยัน</button>
                   </div>
                 </div>
               </section>
@@ -7964,6 +8056,72 @@ S.N.: ${item.sn || '-'}
       return confirm(`⚠️ คำเตือน: มี "ของส่วนตัว" รวมอยู่ในรายการนี้\n(เจ้าของ: ${ownerNames})\n\nโปรดตรวจสอบให้แน่ใจว่าคุณได้รับอนุญาตจากเจ้าของแล้ว ต้องการดำเนินการยืม/นำออกงานต่อหรือไม่?`);
     }
     return true; 
+  };
+
+  // v22.53.2 Mobile Borrow / Return Flow Polish
+  // สรุปข้อมูลก่อนบันทึกจริง เพื่อกันกดพลาดบนมือถือและให้เจ้าหน้าที่ตรวจรายการได้ชัดขึ้น
+  const getOperationItemList = (ids = []) => ids.map(id => items.find(i => i.id === id)).filter(Boolean);
+  const getStaffDisplay = (data = {}) => data.staff === 'อื่นๆ' ? ((data.newStaff || '').trim() || 'อื่นๆ') : (data.staff || '-');
+  const buildOperationConfirmData = (type) => {
+    if (type === 'event') {
+      const selected = getOperationItemList(eventChecklist);
+      return {
+        type,
+        title: 'ตรวจสอบก่อนบันทึกออกงาน',
+        subtitle: 'ระบบจะเปลี่ยนสถานะอุปกรณ์ที่เช็กแล้วเป็น “ออกงาน”',
+        tone: 'orange', icon: '🚚', subjectLabel: 'ชื่องาน', subject: eventData.eventName || '-',
+        staffLabel: 'ผู้รับผิดชอบ', staff: getStaffDisplay(eventData), expectedReturn: eventData.returnDate || '-',
+        note: eventData.note || '-', totalCount: eventTargetIds.length, actionCount: eventChecklist.length,
+        skippedCount: Math.max(0, eventTargetIds.length - eventChecklist.length), proofCount: eventProofFiles.length,
+        items: selected
+      };
+    }
+    if (type === 'return') {
+      const selected = getOperationItemList(returnChecklist);
+      const problemCount = returnChecklist.filter(id => ['มีรอย/ต้องตรวจเพิ่ม', 'ชำรุด', 'คืนไม่ครบ'].includes(returnInspection[id]?.condition)).length;
+      return {
+        type,
+        title: 'ตรวจสอบก่อนบันทึกรับคืน',
+        subtitle: 'ระบบจะรับคืนเฉพาะอุปกรณ์ที่ติ๊กหรือสแกนเช็กแล้วเท่านั้น',
+        tone: 'emerald', icon: '📥', subjectLabel: 'รายการรับคืน',
+        subject: returnChecklist.length === returnTargetIds.length ? 'รับคืนครบชุด' : 'รับคืนบางส่วน',
+        staffLabel: 'ผู้รับคืน', staff: getStaffDisplay(returnData), expectedReturn: '-',
+        note: problemCount > 0 ? `มีรายการต้องตรวจเพิ่ม ${problemCount} ชิ้น` : 'สภาพปกติ / ตามที่ระบุรายชิ้น',
+        totalCount: returnTargetIds.length, actionCount: returnChecklist.length,
+        skippedCount: Math.max(0, returnTargetIds.length - returnChecklist.length), proofCount: returnProofFiles.length,
+        problemCount, items: selected
+      };
+    }
+    const selected = getOperationItemList(packingChecklist);
+    return {
+      type: 'borrow',
+      title: 'ตรวจสอบก่อนบันทึกการยืม',
+      subtitle: 'ระบบจะเปลี่ยนสถานะอุปกรณ์ที่เช็กแล้วเป็น “ถูกยืม”',
+      tone: 'purple', icon: '📤', subjectLabel: 'ผู้ยืม', subject: borrowData.borrower || '-',
+      staffLabel: 'ผู้ให้ยืม', staff: getStaffDisplay(borrowData), expectedReturn: borrowData.returnDate || '-',
+      note: borrowData.note || '-', totalCount: borrowTargetIds.length, actionCount: packingChecklist.length,
+      skippedCount: Math.max(0, borrowTargetIds.length - packingChecklist.length), proofCount: borrowProofFiles.length,
+      items: selected
+    };
+  };
+
+  const requestOperationConfirm = (type = 'borrow') => {
+    if (type === 'borrow') {
+      if (!borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return alert('❌ กรุณากรอกผู้ยืม เลือกเจ้าหน้าที่ และติ๊ก/สแกนเช็กอุปกรณ์อย่างน้อย 1 ชิ้น');
+    } else if (type === 'event') {
+      if (!eventData.eventName || !eventData.staff || eventChecklist.length === 0) return alert('❌ กรุณากรอกชื่องาน เลือกผู้รับผิดชอบ และติ๊ก/สแกนเช็กอุปกรณ์อย่างน้อย 1 ชิ้น');
+    } else if (type === 'return') {
+      if (!returnData.staff || returnChecklist.length === 0) return alert('❌ กรุณาเลือกผู้รับคืน และติ๊ก/สแกนเช็กอุปกรณ์ที่รับคืนอย่างน้อย 1 ชิ้น');
+    }
+    setOperationConfirm(buildOperationConfirmData(type));
+  };
+
+  const executeOperationConfirm = async () => {
+    const type = operationConfirm?.type || 'borrow';
+    setOperationConfirm(null);
+    if (type === 'event') return handleEventOut();
+    if (type === 'return') return handleReturn();
+    return handleBorrow();
   };
 
   const handleBorrow = async () => {
@@ -13730,6 +13888,69 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
+      {/* ✅ v22.53.2 Modal ตรวจสอบก่อนบันทึก ยืม / ออกงาน / รับคืน */}
+      {operationConfirm && (() => {
+        const toneMap = {
+          purple: { bg: 'bg-purple-600 hover:bg-purple-500', chip: isDarkMode ? 'bg-purple-900/45 text-purple-200 border-purple-800' : 'bg-purple-50 text-purple-700 border-purple-200' },
+          orange: { bg: 'bg-orange-600 hover:bg-orange-500', chip: isDarkMode ? 'bg-orange-900/45 text-orange-200 border-orange-800' : 'bg-orange-50 text-orange-700 border-orange-200' },
+          emerald: { bg: 'bg-emerald-600 hover:bg-emerald-500', chip: isDarkMode ? 'bg-emerald-900/45 text-emerald-200 border-emerald-800' : 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+        };
+        const tone = toneMap[operationConfirm.tone] || toneMap.purple;
+        return (
+          <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[10010]`}>
+            <div className={`operation-confirm-modal rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar border ${theme.cardBg} ${theme.divide}`}>
+              <div className={`p-5 border-b ${theme.divide}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className={`text-xs font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>RECHECK BEFORE SAVE</div>
+                    <h3 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>{operationConfirm.icon} {operationConfirm.title}</h3>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{operationConfirm.subtitle}</p>
+                  </div>
+                  <button type="button" onClick={() => setOperationConfirm(null)} className={`p-2 rounded-xl border ${theme.btnSecondary}`}><Icons.X className="w-5 h-5" /></button>
+                </div>
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className={`p-3 rounded-2xl border text-center ${tone.chip}`}><div className="text-[10px] font-black opacity-75">ทำรายการ</div><div className="text-2xl font-black">{operationConfirm.actionCount}</div></div>
+                  <div className={`p-3 rounded-2xl border text-center ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}><div className="text-[10px] font-black opacity-75">ทั้งหมด</div><div className="text-2xl font-black">{operationConfirm.totalCount}</div></div>
+                  <div className={`p-3 rounded-2xl border text-center ${operationConfirm.skippedCount > 0 ? (isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-700') : (isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-700')}`}><div className="text-[10px] font-black opacity-75">ไม่ทำรายการ</div><div className="text-2xl font-black">{operationConfirm.skippedCount}</div></div>
+                </div>
+
+                <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div className="operation-confirm-row"><span className={`font-black ${theme.textMuted}`}>{operationConfirm.subjectLabel}</span><span className={`text-right font-black ${theme.textTitle}`}>{operationConfirm.subject}</span></div>
+                  <div className="operation-confirm-row"><span className={`font-black ${theme.textMuted}`}>{operationConfirm.staffLabel}</span><span className={`text-right font-black ${theme.textTitle}`}>{operationConfirm.staff}</span></div>
+                  {operationConfirm.expectedReturn !== '-' && <div className="operation-confirm-row"><span className={`font-black ${theme.textMuted}`}>กำหนดคืน</span><span className={`text-right font-black ${theme.textTitle}`}>{operationConfirm.expectedReturn}</span></div>}
+                  <div className="operation-confirm-row"><span className={`font-black ${theme.textMuted}`}>หลักฐาน</span><span className={`text-right font-black ${theme.textTitle}`}>{operationConfirm.proofCount} ไฟล์</span></div>
+                  <div className="operation-confirm-row"><span className={`font-black ${theme.textMuted}`}>หมายเหตุ</span><span className={`text-right font-black ${theme.textTitle}`}>{operationConfirm.note}</span></div>
+                </div>
+
+                {operationConfirm.skippedCount > 0 && (
+                  <div className={`p-3 rounded-2xl border text-sm font-bold ${isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                    ⚠️ มี {operationConfirm.skippedCount} รายการที่ไม่ได้ติ๊ก/สแกนเช็ก ระบบจะไม่ทำรายการกับชิ้นนั้น
+                  </div>
+                )}
+
+                <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+                  <div className={`px-4 py-3 border-b font-black ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>รายการที่จะบันทึก</div>
+                  <div className="operation-item-preview custom-scrollbar p-2 space-y-2">
+                    {(operationConfirm.items || []).map(item => (
+                      <div key={item.id} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`font-black leading-snug ${theme.textTitle}`}>{item.name}</div>
+                        <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N: {item.sn || '-'} • {item.category || 'ไม่ระบุหมวด'} • {item.department || '-'}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className={`p-4 border-t grid grid-cols-1 sm:grid-cols-2 gap-3 ${theme.divide}`}>
+                <button type="button" onClick={() => setOperationConfirm(null)} className={`py-4 rounded-xl font-black border ${theme.btnSecondary}`}>ย้อนกลับไปแก้ไข</button>
+                <button type="button" onClick={executeOperationConfirm} className={`py-4 rounded-xl font-black text-white shadow-lg ${tone.bg}`}>ยืนยันบันทึกจริง</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* 📋 Borrow Modal */}
       {borrowTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
@@ -13739,6 +13960,15 @@ S.N.: ${item.sn || '-'}
               <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); setBorrowProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             
+            <div className={`operation-mobile-summary ${isDarkMode ? 'bg-purple-950/25 border-purple-900/50' : 'bg-purple-50 border-purple-200'}`}>
+              <div className="flex items-start justify-between gap-3 mb-3"><div><div className={`text-[11px] font-black tracking-[0.16em] uppercase ${isDarkMode ? 'text-purple-300' : 'text-purple-600'}`}>BORROW FLOW</div><div className={`text-base font-black ${theme.textTitle}`}>เช็กของก่อนปล่อยยืม</div></div><span className={`px-3 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-purple-900 text-purple-200' : 'bg-white text-purple-700 border border-purple-200'}`}>{borrowTargetIds.length} รายการ</span></div>
+              <div className="operation-step-row">
+                <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">ผู้ยืม</div><div className="operation-step-value truncate">{borrowData.borrower || 'ยังไม่กรอก'}</div></div>
+                <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">เช็กแล้ว</div><div className="operation-step-value">{packingChecklist.length}/{borrowTargetIds.length}</div></div>
+                <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">หลักฐาน</div><div className="operation-step-value">{borrowProofFiles.length}</div></div>
+              </div>
+            </div>
+
             <div className="space-y-4 mb-6">
               <div>
                 <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ผู้ให้ยืม (จนท.) <span className="text-rose-500">*</span></label>
@@ -13770,7 +14000,7 @@ S.N.: ${item.sn || '-'}
               {renderProofUploader('หลักฐานการยืม', borrowProofFiles, setBorrowProofFiles, 'purple')}
             </div>
 
-            <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+            <div className={`operation-checklist-panel mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                 <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                   <Icons.ClipboardList className="w-5 h-5" /> เช็คลิสต์ก่อนปล่อยยืม ({packingChecklist.length}/{borrowTargetIds.length})
@@ -13830,11 +14060,11 @@ S.N.: ${item.sn || '-'}
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="operation-sticky-actions flex gap-3">
               <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); setBorrowProofFiles([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button 
                 type="button" 
-                onClick={handleBorrow} 
+                onClick={() => requestOperationConfirm('borrow')} 
                 disabled={!borrowData.borrower || !borrowData.staff || packingChecklist.length === 0} 
                 className={`flex-1 py-4 font-bold rounded-xl text-lg transition-colors ${(!borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-purple-600 text-white hover:bg-purple-500 shadow-lg shadow-purple-500/20'}`}
               >
@@ -13863,6 +14093,15 @@ S.N.: ${item.sn || '-'}
               <button type="button" onClick={() => { setEventTargetIds([]); setEventChecklist([]); setEventProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             
+            <div className={`operation-mobile-summary ${isDarkMode ? 'bg-orange-950/25 border-orange-900/50' : 'bg-orange-50 border-orange-200'}`}>
+              <div className="flex items-start justify-between gap-3 mb-3"><div><div className={`text-[11px] font-black tracking-[0.16em] uppercase ${isDarkMode ? 'text-orange-300' : 'text-orange-600'}`}>EVENT FLOW</div><div className={`text-base font-black ${theme.textTitle}`}>เช็กของขึ้นงานก่อนบันทึก</div></div><span className={`px-3 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-orange-900 text-orange-200' : 'bg-white text-orange-700 border border-orange-200'}`}>{eventTargetIds.length} รายการ</span></div>
+              <div className="operation-step-row">
+                <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">ชื่องาน</div><div className="operation-step-value truncate">{eventData.eventName || 'ยังไม่กรอก'}</div></div>
+                <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">เช็กแล้ว</div><div className="operation-step-value">{eventChecklist.length}/{eventTargetIds.length}</div></div>
+                <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">หลักฐาน</div><div className="operation-step-value">{eventProofFiles.length}</div></div>
+              </div>
+            </div>
+
             <div className="space-y-4 mb-6">
               <div>
                 <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ผู้นำออก / ผู้รับผิดชอบ <span className="text-rose-500">*</span></label>
@@ -13894,7 +14133,7 @@ S.N.: ${item.sn || '-'}
               {renderProofUploader('หลักฐานการนำออกงาน', eventProofFiles, setEventProofFiles, 'orange')}
             </div>
 
-            <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+            <div className={`operation-checklist-panel mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                 <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                   <Icons.ClipboardList className="w-5 h-5" /> เช็คของขึ้นรถ ({eventChecklist.length}/{eventTargetIds.length})
@@ -13954,11 +14193,11 @@ S.N.: ${item.sn || '-'}
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="operation-sticky-actions flex gap-3">
               <button type="button" onClick={() => { setEventTargetIds([]); setEventChecklist([]); setEventProofFiles([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button 
                 type="button" 
-                onClick={handleEventOut} 
+                onClick={() => requestOperationConfirm('event')} 
                 disabled={!eventData.eventName || !eventData.staff || eventChecklist.length === 0} 
                 className={`flex-1 py-4 font-bold rounded-xl text-lg transition-colors ${(!eventData.eventName || !eventData.staff || eventChecklist.length === 0) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-orange-600 text-white hover:bg-orange-500 shadow-lg shadow-orange-500/20'}`}
               >
@@ -13987,6 +14226,15 @@ S.N.: ${item.sn || '-'}
               <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); setReturnProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             
+            <div className={`operation-mobile-summary ${isDarkMode ? 'bg-emerald-950/25 border-emerald-900/50' : 'bg-emerald-50 border-emerald-200'}`}>
+              <div className="flex items-start justify-between gap-3 mb-3"><div><div className={`text-[11px] font-black tracking-[0.16em] uppercase ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>RETURN FLOW</div><div className={`text-base font-black ${theme.textTitle}`}>เช็กของเข้ากล่องก่อนรับคืน</div></div><span className={`px-3 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-emerald-900 text-emerald-200' : 'bg-white text-emerald-700 border border-emerald-200'}`}>{returnTargetIds.length} รายการ</span></div>
+              <div className="operation-step-row">
+                <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">ผู้รับคืน</div><div className="operation-step-value truncate">{returnData.staff || 'ยังไม่เลือก'}</div></div>
+                <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">เช็กแล้ว</div><div className="operation-step-value">{returnChecklist.length}/{returnTargetIds.length}</div></div>
+                <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">หลักฐาน</div><div className="operation-step-value">{returnProofFiles.length}</div></div>
+              </div>
+            </div>
+
             <div className="mb-6">
               <label className={`block text-base sm:text-lg font-bold mb-2 ${theme.textTitle}`}>ผู้รับคืน (จนท.) <span className="text-rose-500">*</span></label>
               <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-emerald-500 ${isDarkMode ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-700'}`} value={returnData.staff || ''} onChange={e => setReturnData({...returnData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : returnData.newStaff})}>
@@ -14003,7 +14251,7 @@ S.N.: ${item.sn || '-'}
               {renderProofUploader('หลักฐานการรับคืน', returnProofFiles, setReturnProofFiles, 'emerald')}
             </div>
 
-            <div className={`mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+            <div className={`operation-checklist-panel mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                 <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                   <Icons.ClipboardList className="w-5 h-5" /> เช็คลิสต์ของเข้ากล่อง ({returnChecklist.length}/{returnTargetIds.length})
@@ -14089,11 +14337,11 @@ S.N.: ${item.sn || '-'}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="operation-sticky-actions grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); setReturnProofFiles([]); }} className={`w-full py-3.5 sm:py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button 
                 type="button" 
-                onClick={handleReturn} 
+                onClick={() => requestOperationConfirm('return')} 
                 disabled={!returnData.staff || returnChecklist.length === 0} 
                 className={`w-full py-3.5 sm:py-4 font-bold rounded-xl text-base sm:text-lg transition-colors ${(!returnData.staff || returnChecklist.length === 0) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20'}`}
               >
