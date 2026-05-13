@@ -1,4 +1,4 @@
-// v22.53.19 Official Form Readability Polish - refined A4 borrow/event/return/prep forms for better readability, signatures, tables and watermark, no QR/camera/database path changes
+// v22.53.20 Official Form Line Cleanup Polish - removes excessive long form/signature lines, keeps classic A4 watermark forms, no QR/camera/database path changes
 // v22.53.17 Operational Slip Clean Design - fixed clean A4 borrow/event/return documents, removes before-print logo/watermark controls, no QR/camera/database path changes
 // v22.53.15 Operational Documents One-Page Print Polish - compact one-page print layout for borrow/event/return slips, no QR/camera/database path changes
 // v22.53.9 Equipment Detail / Asset History Polish - asset profile file, mobile action shortcuts, no QR/camera/database path changes
@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.19 Official Form Readability Polish';
-const APP_UPDATE_NOTE = 'Official Form Readability Polish: เก็บดีไซน์ใบยืม ใบออกงาน ใบรับคืน และใบเตรียมอุปกรณ์ให้อ่านง่ายขึ้น ลดเส้นประ จัดหัวเอกสาร ตาราง ลายเซ็น และลายน้ำให้เป็นฟอร์มใช้งานจริง โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
+const APP_VERSION = 'v22.53.20 Official Form Line Cleanup Polish';
+const APP_UPDATE_NOTE = 'Official Form Line Cleanup Polish: ลดเส้นยาวในฟอร์มเอกสาร ปรับช่องข้อมูลและลายเซ็นให้ดูสะอาด อ่านง่าย และยังคงรูปแบบ A4 พร้อมลายน้ำกลางกระดาษ โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -13289,37 +13289,50 @@ S.N.: ${item.sn || '-'}
           .classic-form-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 2mm 4mm;
+            gap: 2.4mm;
             margin-bottom: 3.6mm;
-            padding: 2.8mm 3.2mm;
+            padding: 2.8mm;
             border: 1px solid var(--classic-soft-line);
-            background: rgba(248,250,252,.68);
+            background: rgba(248,250,252,.55);
           }
           .classic-field-line {
-            display: grid;
-            grid-template-columns: 30mm 1fr;
-            align-items: end;
-            gap: 2mm;
-            min-height: 7mm;
-            font-size: 8.7pt;
+            display: block;
+            min-height: 10.2mm;
+            padding: 1.4mm 1.8mm;
+            border: 1px solid #d7dee8;
+            border-left: 2.4px solid #94a3b8;
+            background: rgba(255,255,255,.88);
+            font-size: 8.2pt;
             font-weight: 850;
+            break-inside: avoid;
+            page-break-inside: avoid;
           }
-          .classic-field-wide { grid-column: 1 / -1; grid-template-columns: 34mm 1fr; }
-          .classic-field-line span { color: var(--classic-soft-ink); }
+          .classic-field-wide { grid-column: 1 / -1; }
+          .classic-field-line span {
+            display: block;
+            margin-bottom: .45mm;
+            color: #64748b;
+            font-size: 6.9pt;
+            font-weight: 950;
+            letter-spacing: .01em;
+          }
           .classic-field-line strong {
-            min-height: 5.3mm;
-            border-bottom: 1px solid var(--classic-form-line);
-            padding: 0 1.2mm .35mm;
-            font-size: 9.2pt;
+            display: block;
+            min-height: 4.1mm;
+            border-bottom: 0;
+            padding: 0;
+            font-size: 9.15pt;
+            line-height: 1.22;
             color: #000;
             overflow-wrap: anywhere;
-            background: rgba(255,255,255,.62);
+            background: transparent;
           }
           .classic-summary-strip {
-            border: 1px solid #4b5563;
+            border: 1px solid #cbd5e1;
+            border-left: 3px solid #334155;
             background: #f8fafc;
             padding: 2mm 2.6mm;
-            font-size: 8.8pt;
+            font-size: 8.65pt;
             font-weight: 950;
             margin-bottom: 3.2mm;
             display: flex;
@@ -13367,9 +13380,9 @@ S.N.: ${item.sn || '-'}
           }
           .classic-note-box,
           .classic-rules-box {
-            border: 1px solid #4b5563;
+            border: 1px solid #cbd5e1;
             background: rgba(255,255,255,.9);
-            min-height: 19mm;
+            min-height: 18mm;
             padding: 2.3mm 2.7mm;
             font-size: 8pt;
             line-height: 1.36;
@@ -13396,16 +13409,20 @@ S.N.: ${item.sn || '-'}
             font-size: 8pt;
             font-weight: 850;
             color: #000;
-            min-height: 22mm;
-            padding: 1mm 1.5mm 0;
+            min-height: 19mm;
+            padding: 2.2mm 1.4mm 1.2mm;
+            border: 1px solid #d7dee8;
+            background: rgba(255,255,255,.72);
           }
           .classic-sign-line {
-            height: 8mm;
-            border-bottom: 1px solid #000;
-            margin: 0 3mm 1.4mm;
+            width: 34mm;
+            max-width: 78%;
+            height: 7mm;
+            border-bottom: 1px solid #111827;
+            margin: 0 auto 1.2mm;
           }
-          .classic-sign-caption { font-size: 8pt; line-height: 1.22; font-weight: 900; }
-          .classic-sign-date { margin-top: 1.2mm; font-size: 6.8pt; color: #9ca3af; }
+          .classic-sign-caption { font-size: 7.75pt; line-height: 1.22; font-weight: 900; }
+          .classic-sign-date { margin-top: 1mm; font-size: 6.35pt; color: #9ca3af; }
           .classic-footer {
             margin-top: 3mm;
             padding-top: 1.7mm;
@@ -13455,9 +13472,10 @@ S.N.: ${item.sn || '-'}
             .classic-ref-box { padding: 1.5mm 1.8mm !important; font-size: 7pt !important; }
             .classic-dot-line { min-height: 4.2mm !important; }
             .classic-form-intro { font-size: 8.3pt !important; margin-bottom: 2.4mm !important; }
-            .classic-form-grid { gap: 1.4mm 2.8mm !important; margin-bottom: 2.5mm !important; padding: 2mm 2.4mm !important; }
-            .classic-field-line { min-height: 5.9mm !important; font-size: 7.7pt !important; }
-            .classic-field-line strong { min-height: 4.35mm !important; font-size: 8.1pt !important; }
+            .classic-form-grid { gap: 1.6mm !important; margin-bottom: 2.5mm !important; padding: 2mm !important; }
+            .classic-field-line { min-height: 8.2mm !important; padding: 1mm 1.35mm !important; font-size: 7.2pt !important; }
+            .classic-field-line span { font-size: 6.15pt !important; margin-bottom: .25mm !important; }
+            .classic-field-line strong { min-height: 3.5mm !important; font-size: 8pt !important; }
             .classic-summary-strip { padding: 1.4mm 1.9mm !important; font-size: 7.6pt !important; margin-bottom: 2.2mm !important; }
             .classic-table-title { font-size: 7.6pt !important; margin-bottom: 1mm !important; }
             .classic-equipment-table { font-size: 7.35pt !important; line-height: 1.15 !important; }
@@ -13467,12 +13485,12 @@ S.N.: ${item.sn || '-'}
             .classic-table-subtext { font-size: 5.9pt !important; }
             .classic-note-rules { gap: 2.6mm !important; margin-bottom: 2.4mm !important; }
             .classic-note-box,
-            .classic-rules-box { min-height: 15.5mm !important; padding: 1.6mm 1.8mm !important; font-size: 6.8pt !important; line-height: 1.2 !important; }
+            .classic-rules-box { min-height: 14.5mm !important; padding: 1.6mm 1.8mm !important; font-size: 6.8pt !important; line-height: 1.2 !important; }
             .classic-box-title { font-size: 6.8pt !important; margin-bottom: .9mm !important; }
-            .classic-signatures { gap: 3.2mm !important; margin-top: 2.4mm !important; }
-            .classic-sign-box { min-height: 17.5mm !important; font-size: 6.85pt !important; padding-top: 0 !important; }
-            .classic-sign-line { height: 6.8mm !important; margin-bottom: 1mm !important; }
-            .classic-sign-date { font-size: 5.9pt !important; }
+            .classic-signatures { display: grid !important; grid-template-columns: repeat(3, minmax(0,1fr)) !important; gap: 3mm !important; margin-top: 2.4mm !important; }
+            .classic-sign-box { min-height: 15.8mm !important; font-size: 6.75pt !important; padding: 1.6mm 1mm .8mm !important; }
+            .classic-sign-line { width: 30mm !important; max-width: 76% !important; height: 5.6mm !important; margin: 0 auto .9mm !important; }
+            .classic-sign-date { font-size: 5.7pt !important; }
             .classic-footer { margin-top: 1.5mm !important; padding-top: .8mm !important; font-size: 5.2pt !important; color: #a8b0bd !important; }
           }
           @media (max-width: 720px) {
@@ -13483,7 +13501,8 @@ S.N.: ${item.sn || '-'}
             .classic-note-rules,
             .classic-signatures { grid-template-columns: 1fr; }
             .classic-field-line,
-            .classic-field-wide { grid-template-columns: 1fr; gap: 4px; }
+            .classic-field-wide { display: block; }
+            .classic-sign-line { width: 160px; max-width: 72%; }
           }
         `}</style>
 
@@ -13491,7 +13510,7 @@ S.N.: ${item.sn || '-'}
           <div className="max-w-6xl mx-auto flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
             <div className="min-w-0">
               <h2 className="font-black text-xl flex items-center gap-2"><Icons.พิมพ์er className="w-6 h-6" /> {docTitle}</h2>
-              <p className="text-slate-300 text-sm font-bold mt-1">ฟอร์ม A4 อ่านง่ายขึ้น ลดเส้นประ จัดตารางและลายเซ็นใหม่ พร้อมลายน้ำจางกลางกระดาษ</p>
+              <p className="text-slate-300 text-sm font-bold mt-1">ฟอร์ม A4 แบบสะอาด ลดเส้นยาวที่รกตา จัดช่องข้อมูลและลายเซ็นให้อ่านง่าย พร้อมลายน้ำจางกลางกระดาษ</p>
             </div>
             <div className="flex flex-wrap gap-3 w-full xl:w-auto shrink-0">
               <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-black flex items-center justify-center gap-2 transition-colors flex-1 sm:flex-none"><Icons.พิมพ์er className="w-5 h-5"/> {isReturnSlip ? 'พิมพ์ใบรับคืน' : isPrepSlip ? 'พิมพ์ใบเตรียมของ' : isEventSlip ? 'พิมพ์ใบออกงาน' : 'พิมพ์ใบยืม'}</button>
