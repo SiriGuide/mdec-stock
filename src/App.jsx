@@ -4,6 +4,7 @@
 // v22.53.1 Mobile Empty State Polish - clearer empty document archive on mobile, no QR/camera/database changes
 // v22.52.8 Modal Chain Return Fix - fixes nested modal back flow from borrow docs/history/proof centers, no QR/camera/database changes
 // v22.53.10 Direct Detail Access Polish - click/tap item row or card to open asset profile, keeps checkbox selection
+// v22.53.13 Settings Back Flow Usability Fix - single-page settings overview + back flow, no QR/camera/database path changes
 // v22.52.6 Data Quality Action Polish - UI-only helper stepper, no QR/camera/database changes
 // v22.52.6 Data Quality Action Polish - conditional equipment metadata form, no QR/camera/database path changes
 // v22.52.6 Data Quality Action Polish - adds data completeness audit, no QR/camera/database changes
@@ -46,8 +47,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.12 Settings Admin Center Polish';
-const APP_UPDATE_NOTE = 'Direct Detail Access Polish: เปิดแฟ้มประวัติอุปกรณ์ได้จากการคลิก/แตะรายการโดยตรง พร้อมคง checkbox สำหรับเลือกหลายรายการและปุ่มรายละเอียดเดิมไว้ โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
+const APP_VERSION = 'v22.53.13 Settings Back Flow Usability Fix';
+const APP_UPDATE_NOTE = 'Settings Back Flow Usability Fix: ปรับหน้าตั้งค่าให้เป็นหน้ารวมก่อนเข้าแต่ละหมวด เพิ่มปุ่มกลับหน้ารวมและแถบสลับหมวดแบบกะทัดรัด ลดความรู้สึกแบ่งครึ่งหน้าต่าง โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -4717,29 +4718,42 @@ button[class*="orange"]:not(:disabled) {
 
 
 
-/* v22.53.12 Settings Admin Center Polish */
-.factory-stock-polish .settings-nav-groups {
-  max-height: 34dvh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 2px;
-}
+/* v22.53.13 Settings Back Flow Usability Fix */
 .factory-stock-polish .settings-center-overview button {
   min-height: 142px;
+}
+.factory-stock-polish .settings-section-switcher {
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}
+.factory-stock-polish .settings-section-switcher button {
+  min-height: 42px;
+}
+.factory-stock-polish .settings-back-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  backdrop-filter: none !important;
+}
+.factory-stock-polish .settings-shell .settings-nav-groups {
+  max-height: none !important;
+  overflow: visible !important;
 }
 @media (max-width: 640px) {
   .factory-stock-polish .settings-shell {
     max-height: 96dvh !important;
     border-radius: 22px !important;
   }
-  .factory-stock-polish .settings-nav-groups {
-    max-height: 30dvh;
-  }
-  .factory-stock-polish .settings-nav-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
   .factory-stock-polish .settings-center-overview button {
     min-height: auto;
+  }
+  .factory-stock-polish .settings-section-switcher {
+    margin-left: -2px;
+    margin-right: -2px;
+    padding-bottom: 4px;
+  }
+  .factory-stock-polish .settings-section-switcher button {
+    min-width: max-content;
   }
 }
 
@@ -14875,58 +14889,78 @@ S.N.: ${item.sn || '-'}
       {showSettings && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`settings-shell rounded-[2rem] shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[92vh] transition-all duration-300 border ${theme.cardBg}`}>
-            <div className={`p-5 border-b shrink-0 flex items-start justify-between gap-4 ${theme.divide}`}>
-              <div>
-                <h3 className={`text-2xl sm:text-3xl font-black ${theme.textTitle}`}>ตั้งค่าระบบ</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ตั้งค่าหมวดข้อมูล ผู้ใช้งาน เอกสาร และระบบในรูปแบบเดียวกัน</p>
+            <div className={`p-4 sm:p-5 border-b shrink-0 flex items-start justify-between gap-3 ${theme.divide}`}>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {settingsTab !== 'overview' && (
+                    <button
+                      type="button"
+                      onClick={() => openSettingsTab('overview')}
+                      className={`h-9 px-3 rounded-xl border inline-flex items-center gap-2 text-xs font-black shrink-0 ${theme.btnSecondary}`}
+                      title="กลับหน้ารวมตั้งค่า"
+                    >
+                      ← หน้ารวม
+                    </button>
+                  )}
+                  <h3 className={`text-xl sm:text-3xl font-black ${theme.textTitle}`}>ตั้งค่าระบบ</h3>
+                </div>
+                <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>เริ่มจากหน้ารวม แล้วเข้าไปแก้ทีละหมวดได้ มีปุ่มกลับหน้ารวมตลอดทาง</p>
               </div>
               <button type="button" onClick={() => { setShowSettings(false); resetSettingsFormState(); }} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
 
             <div className="flex flex-col lg:flex-row flex-1 min-h-0">
               <div className="flex flex-col flex-1 min-h-0">
-                <div className={`p-3 sm:p-4 border-b ${theme.divide}`}>
-                  <div className="settings-nav-groups space-y-3">
-                    {settingsNavGroups.map(group => {
-                      const groupItems = settingsNavItems.filter(nav => nav.group === group);
-                      if (!groupItems.length) return null;
-                      return (
-                        <div key={group} className="settings-nav-group">
-                          <div className={`text-[11px] font-black mb-2 px-1 tracking-[0.14em] uppercase ${theme.textMuted}`}>{group}</div>
-                          <div className="settings-nav-grid grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2">
-                            {groupItems.map((nav) => {
-                              const Icon = nav.icon || Icons.Settings;
-                              const active = settingsTab === nav.id;
-                              return (
-                                <button
-                                  key={nav.id}
-                                  type="button"
-                                  onClick={() => openSettingsTab(nav.id)}
-                                  className={`p-3 rounded-2xl border text-left transition-all hover:-translate-y-0.5 hover:shadow-lg ${active ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-blue-600 border-blue-600 text-white shadow-md') : theme.btnSecondary}`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <Icon className="w-5 h-5 shrink-0" />
-                                    <div className="font-black truncate text-sm sm:text-base">{nav.label}</div>
-                                  </div>
-                                  <div className={`hidden sm:block text-xs font-bold truncate mt-1 ${active ? 'text-blue-100' : theme.textMuted}`}>{nav.desc}</div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
+                {settingsTab !== 'overview' && (
+                  <div className={`px-4 sm:px-6 py-3 border-b ${theme.divide}`}>
+                    <div className="settings-section-switcher flex items-center gap-2 overflow-x-auto custom-scrollbar">
+                      <button
+                        type="button"
+                        onClick={() => openSettingsTab('overview')}
+                        className={`px-4 py-2 rounded-2xl border text-sm font-black whitespace-nowrap ${theme.btnCancel}`}
+                        title="กลับไปเลือกหมวดตั้งค่า"
+                      >
+                        ← กลับหน้ารวม
+                      </button>
+                      {settingsNavItems.filter(nav => nav.id !== 'overview').map((nav) => {
+                        const Icon = nav.icon || Icons.Settings;
+                        const active = settingsTab === nav.id;
+                        return (
+                          <button
+                            key={nav.id}
+                            type="button"
+                            onClick={() => openSettingsTab(nav.id)}
+                            className={`px-3 py-2 rounded-2xl border inline-flex items-center gap-2 text-sm font-black whitespace-nowrap transition-colors ${active ? 'bg-blue-600 border-blue-600 text-white shadow-md' : theme.btnSecondary}`}
+                            title={nav.desc}
+                          >
+                            <Icon className="w-4 h-4 shrink-0" />
+                            {nav.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
-                            <div className={`px-5 sm:px-6 pt-5 pb-0`}>
-                <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                  <div className={`text-xs font-black tracking-[0.14em] uppercase ${theme.textMuted}`}>SETTING</div>
-                  <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.label || 'ตั้งค่าระบบ'}</div>
-                  <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.desc || 'จัดการระบบ'}</div>
+                            {settingsTab !== 'overview' && (
+                <div className={`settings-back-toolbar px-4 sm:px-6 pt-4 pb-0 ${isDarkMode ? 'bg-slate-950/95' : 'bg-white/95'}`}>
+                  <div className={`p-3 sm:p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className="min-w-0">
+                      <div className={`text-xs font-black tracking-[0.14em] uppercase ${theme.textMuted}`}>SETTING SECTION</div>
+                      <div className={`text-lg sm:text-xl font-black mt-1 ${theme.textTitle}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.label || 'ตั้งค่าระบบ'}</div>
+                      <div className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.desc || 'จัดการระบบ'}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openSettingsTab('overview')}
+                      className={`px-4 py-3 rounded-2xl border font-black text-sm sm:text-base shrink-0 ${theme.btnSecondary}`}
+                    >
+                      ← กลับหน้ารวมตั้งค่า
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
               {settingsTab === 'overview' ? (
                 <div className="p-5 sm:p-6 space-y-5 settings-center-overview">
                   <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
@@ -14954,7 +14988,10 @@ S.N.: ${item.sn || '-'}
                             <div className="min-w-0 flex-1">
                               <div className="font-black text-lg leading-tight">{card.title}</div>
                               <div className="text-sm font-bold mt-1 opacity-80 leading-snug">{card.desc}</div>
-                              <div className="mt-3 inline-flex px-3 py-1.5 rounded-full bg-white/70 text-slate-900 text-xs font-black border border-white/60">{card.stats}</div>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <span className="inline-flex px-3 py-1.5 rounded-full bg-white/70 text-slate-900 text-xs font-black border border-white/60">{card.stats}</span>
+                                <span className="inline-flex px-3 py-1.5 rounded-full bg-white/70 text-slate-900 text-xs font-black border border-white/60">เข้าไปแก้ไข →</span>
+                              </div>
                             </div>
                           </div>
                         </button>
