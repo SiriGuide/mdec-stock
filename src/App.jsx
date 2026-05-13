@@ -4,7 +4,7 @@
 // v22.53.1 Mobile Empty State Polish - clearer empty document archive on mobile, no QR/camera/database changes
 // v22.52.8 Modal Chain Return Fix - fixes nested modal back flow from borrow docs/history/proof centers, no QR/camera/database changes
 // v22.53.10 Direct Detail Access Polish - click/tap item row or card to open asset profile, keeps checkbox selection
-// v22.53.13 Settings Back Flow Usability Fix - single-page settings overview + back flow, no QR/camera/database path changes
+// v22.53.14 Home Dashboard Command Center Polish - redesigned home command center, mobile-first dashboard, no QR/camera/database path changes
 // v22.52.6 Data Quality Action Polish - UI-only helper stepper, no QR/camera/database changes
 // v22.52.6 Data Quality Action Polish - conditional equipment metadata form, no QR/camera/database path changes
 // v22.52.6 Data Quality Action Polish - adds data completeness audit, no QR/camera/database changes
@@ -47,7 +47,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.13 Settings Back Flow Usability Fix';
+const APP_VERSION = 'v22.53.14 Home Dashboard Command Center Polish';
 const APP_UPDATE_NOTE = 'Settings Back Flow Usability Fix: ปรับหน้าตั้งค่าให้เป็นหน้ารวมก่อนเข้าแต่ละหมวด เพิ่มปุ่มกลับหน้ารวมและแถบสลับหมวดแบบกะทัดรัด ลดความรู้สึกแบ่งครึ่งหน้าต่าง โดยไม่แตะ QR Scanner กล้อง หรือ path ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -2986,6 +2986,63 @@ function FactoryPolishStyle({ isDarkMode }) {
         border-radius: 22px !important;
         overflow: hidden !important;
       }
+      /* v22.53.14 Home Dashboard Command Center Polish */
+      .factory-stock-polish .home-command-center {
+        position: relative;
+        isolation: isolate;
+      }
+      .factory-stock-polish .home-command-center::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 18% 8%, rgba(37,99,235,.20), transparent 34%),
+          radial-gradient(circle at 86% 14%, rgba(16,185,129,.14), transparent 28%),
+          linear-gradient(135deg, rgba(15,23,42,.02), rgba(37,99,235,.05));
+        z-index: -1;
+      }
+      .factory-stock-polish[data-polish-theme="dark"] .home-command-center::before {
+        background:
+          radial-gradient(circle at 18% 8%, rgba(59,130,246,.24), transparent 34%),
+          radial-gradient(circle at 86% 14%, rgba(20,184,166,.18), transparent 28%),
+          linear-gradient(135deg, rgba(15,23,42,.60), rgba(2,6,23,.20));
+      }
+      .factory-stock-polish .home-command-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(320px, .85fr);
+        gap: 14px;
+      }
+      .factory-stock-polish .home-command-card {
+        min-height: 112px;
+      }
+      .factory-stock-polish .home-command-action {
+        min-height: 72px;
+      }
+      .factory-stock-polish .home-priority-row {
+        min-height: 54px;
+      }
+      @media (max-width: 1023px) {
+        .factory-stock-polish .home-command-grid {
+          grid-template-columns: 1fr;
+        }
+        .factory-stock-polish .home-command-action {
+          min-height: 78px;
+        }
+        .factory-stock-polish .home-command-scroll {
+          display: flex;
+          overflow-x: auto;
+          gap: 10px;
+          scroll-snap-type: x mandatory;
+          -webkit-overflow-scrolling: touch;
+          padding-bottom: 2px;
+        }
+        .factory-stock-polish .home-command-scroll > * {
+          min-width: 165px;
+          scroll-snap-align: start;
+        }
+      }
+
       /* v22.53.4 Reports / Dashboard / Print Polish */
       .factory-stock-polish .report-dashboard-card {
         border-radius: 22px !important;
@@ -12990,6 +13047,122 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
+
+      {/* v22.53.14 Home Dashboard Command Center Polish */}
+      <section className={`home-command-center w-full mb-6 rounded-[2rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
+        <div className={`p-4 sm:p-5 border-b ${theme.divide}`}>
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-blue-600'}`}>MDEC COMMAND CENTER</div>
+              <h2 className={`text-2xl sm:text-3xl font-black mt-1 tracking-tight ${theme.textTitle}`}>ภาพรวมวันนี้ของศูนย์สต๊อก</h2>
+              <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>เปิดหน้าแรกแล้วเห็นทันทีว่าควรทำอะไรต่อ เหมาะกับเจ้าหน้าที่ที่ใช้งานบนโทรศัพท์หน้างาน</p>
+            </div>
+            <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
+              <button type="button" onClick={() => openWorkspace('borrowReturn')} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">เริ่มทำรายการ</button>
+              <button type="button" onClick={() => openControlCenter()} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เมนูทั้งหมด</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-5 home-command-grid">
+          <div className="space-y-3 min-w-0">
+            <div className={`home-command-card rounded-3xl border p-4 sm:p-5 overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className={`text-xs font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SYSTEM READINESS</div>
+                  <div className={`text-4xl sm:text-5xl font-black mt-2 ${theme.textTitle}`}>{stats.all ? Math.round((stats.available / stats.all) * 100) : 0}%</div>
+                  <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>พร้อมใช้ {stats.available.toLocaleString('th-TH')} จาก {stats.all.toLocaleString('th-TH')} รายการ • อยู่นอกศูนย์ {(stats.borrowed + stats.outForEvent).toLocaleString('th-TH')}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 w-full md:w-[320px] shrink-0">
+                  {[
+                    ['พร้อมใช้', stats.available, 'bg-emerald-600'],
+                    ['ค้างคืน', stats.borrowed + stats.outForEvent, 'bg-purple-600'],
+                    ['ซ่อม/ชำรุด', stats.maintenance, 'bg-rose-600'],
+                    ['หลักฐาน', reportDashboardData.totalProofs, 'bg-pink-600']
+                  ].map(([label, value, tone]) => (
+                    <div key={label} className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className={`w-8 h-8 rounded-xl ${tone} text-white flex items-center justify-center font-black mb-2`}>•</div>
+                      <div className={`text-2xl font-black ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                      <div className={`text-[11px] font-black ${theme.textMuted}`}>{label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className={`mt-4 h-3 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'}`}>
+                <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-600" style={{ width: `${stats.all ? Math.round((stats.available / stats.all) * 100) : 0}%` }}></div>
+              </div>
+            </div>
+
+            <div className="home-command-scroll lg:grid lg:grid-cols-4 lg:gap-3">
+              {[
+                { label: 'ยืม / ออกงาน / รับคืน', desc: 'ทำรายการหลัก', icon: '⇄', tone: 'bg-blue-600', action: () => openWorkspace('borrowReturn') },
+                { label: 'สแกน QR', desc: canUseOperationalTools ? 'เลือกของด้วยกล้อง' : 'เปิดตัวกรองแทน', icon: '⌗', tone: 'bg-slate-900', action: () => canUseOperationalTools ? openSelectionScanner({ camera: true }) : setShowFilterModal(true) },
+                { label: 'เอกสารย้อนหลัง', desc: `${borrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร`, icon: 'A4', tone: 'bg-indigo-600', action: () => openBorrowDocsArchive({ reset: false }) },
+                { label: 'รายงาน', desc: 'พิมพ์ / CSV', icon: '↗', tone: 'bg-amber-600', action: () => openMonthlyReportPage() }
+              ].map(action => (
+                <button key={action.label} type="button" onClick={action.action} className={`home-command-action rounded-2xl border p-3 text-left shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                  <div className={`w-9 h-9 rounded-xl ${action.tone} text-white flex items-center justify-center font-black text-sm mb-2`}>{action.icon}</div>
+                  <div className="font-black text-sm sm:text-base leading-tight">{action.label}</div>
+                  <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>{action.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3 min-w-0">
+            <div className={`rounded-3xl border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div>
+                  <div className={`text-xs font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>PRIORITY QUEUE</div>
+                  <div className={`font-black text-lg ${theme.textTitle}`}>งานที่ควรดูวันนี้</div>
+                </div>
+                <span className={`px-3 py-1.5 rounded-xl text-xs font-black border ${overdueItems.length ? (isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700') : (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700')}`}>{overdueItems.length ? 'มีรายการต้องดู' : 'ปกติ'}</span>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { label: 'เลยกำหนดคืน', value: overdueItems.length, desc: 'ควรติดตามก่อน', tone: 'rose', action: () => openTrackingCenter('issues') },
+                  { label: 'ต้องคืนวันนี้', value: dueTodayItems.length, desc: 'เช็กก่อนปิดวัน', tone: 'emerald', action: () => openTrackingCenter('today') },
+                  { label: 'เช็กลิสต์เตรียมงาน', value: prepTodayLists.length, desc: 'รายการวันนี้', tone: 'blue', action: () => setShowPrepListsModal(true) },
+                  { label: 'ข้อมูลควรเติม', value: reportDashboardData.missingCore, desc: 'ช่วยให้แฟ้มครบ', tone: 'amber', action: () => { setSettingsTab('quality'); setShowSettings(true); } }
+                ].map(row => {
+                  const toneClass = row.tone === 'rose'
+                    ? (isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-100 text-rose-700')
+                    : row.tone === 'emerald'
+                      ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-100 text-emerald-700')
+                      : row.tone === 'blue'
+                        ? (isDarkMode ? 'bg-blue-950/30 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-100 text-blue-700')
+                        : (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-100 text-amber-700');
+                  return (
+                    <button key={row.label} type="button" onClick={row.action} className={`home-priority-row w-full rounded-2xl border px-3 py-2.5 text-left flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all ${toneClass}`}>
+                      <div className="min-w-0">
+                        <div className="font-black truncate">{row.label}</div>
+                        <div className="text-[11px] font-bold opacity-75 truncate">{row.desc}</div>
+                      </div>
+                      <div className="text-2xl font-black shrink-0">{Number(row.value || 0).toLocaleString('th-TH')}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className={`rounded-3xl border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className={`font-black ${theme.textTitle}`}>ความเคลื่อนไหวล่าสุด</div>
+                <button type="button" onClick={() => setShowAuditModal(true)} className={`text-xs font-black px-3 py-1.5 rounded-xl border ${theme.btnSecondary}`}>ดู Log</button>
+              </div>
+              <div className="space-y-2">
+                {recentActivity.slice(0, 4).map(log => (
+                  <div key={log.id} className={`rounded-2xl border px-3 py-2 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className={`text-xs font-black truncate ${theme.textTitle}`}>{log.action || '-'}</div>
+                    <div className={`text-[11px] font-bold truncate mt-0.5 ${theme.textMuted}`}>{log.target || '-'} • {log.timestamp ? new Date(log.timestamp).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
+                  </div>
+                ))}
+                {recentActivity.length === 0 && <div className={`text-sm font-bold text-center py-4 ${theme.textMuted}`}>ยังไม่มีความเคลื่อนไหวล่าสุด</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ⚡ Daily Quick Actions */}
       <div className={`w-full mb-5 rounded-[1.5rem] border shadow-sm overflow-hidden relative ${theme.cardBg}`}>
