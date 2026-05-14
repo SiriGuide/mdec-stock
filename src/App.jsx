@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.35 Stock Count / Physical Audit Full Pack';
-const APP_UPDATE_NOTE = 'Stock Count / Physical Audit Full Pack: เพิ่มระบบตรวจนับสต๊อกจริงแบบเต็มแพ็ก มี session, ติ๊กพบแล้ว, กรอง, รายงาน A4, Export CSV และ scan mode เพื่อตรวจนับ โดยไม่แตะ QR Scanner core/กล้อง/ฐานข้อมูลหลัก';
+const APP_VERSION = 'v22.53.36 Simple Backup / Year-End Helper';
+const APP_UPDATE_NOTE = 'Simple Backup / Year-End Helper: ปรับศูนย์สำรองข้อมูลให้ใช้ง่ายขึ้น มีสรุปก่อนปิดปี ปุ่ม Export สำคัญ และ checklist เตือนความพร้อม โดยไม่เพิ่มปุ่มล้างข้อมูลจริงใหม่และไม่แตะ QR Scanner/กล้อง/ฐานข้อมูลหลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11286,6 +11286,57 @@ S.N.: ${item.sn || '-'}
     };
   }, [items, stockCountFoundIds, stockCountFilter, stockCountSearch, stockCountCategory, stockCountLocation, stockCountDept, stockCountSession.status, todayMs]);
 
+  const yearEndHelperData = useMemo(() => {
+    const activeItems = items.filter(item => item && !item.isDeleted);
+    const deletedItemsCount = items.filter(item => item && item.isDeleted).length;
+    const historyCount = activeItems.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.length : 0), 0);
+    const historyProofCount = activeItems.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.reduce((s, h) => s + (Array.isArray(h.proofs) ? h.proofs.length : 0), 0) : 0), 0);
+    const activeDocs = (borrowเอกสารs || []).filter(doc => !doc.status || doc.status === 'active').length;
+    const partialDocs = (borrowเอกสารs || []).filter(doc => doc.status === 'partial').length;
+    const outsideCount = currentBorrowedItems.length + currentEventItems.length;
+    const latestBackup = settingsOptions.backupMeta?.latest || '';
+    const lastBackupText = latestBackup ? new Date(latestBackup).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่เคยสำรอง';
+    const warnings = [];
+    if (outsideCount > 0) warnings.push(`ยังมีรายการยืม/ออกงานค้าง ${outsideCount} รายการ`);
+    if (overdueItems.length > 0) warnings.push(`มีรายการเลยกำหนดคืน ${overdueItems.length} รายการ`);
+    if (stockCountStats.notFound.length > 0) warnings.push(`ตรวจนับแล้วยังไม่พบ ${stockCountStats.notFound.length} รายการ`);
+    if (partialDocs > 0) warnings.push(`มีเอกสารคืนบางส่วน ${partialDocs} ใบ`);
+    if (dataQualityAudit.issueItemCount > 0) warnings.push(`มีอุปกรณ์ข้อมูลควรเติม ${dataQualityAudit.issueItemCount} รายการ`);
+    if (!latestBackup) warnings.push('ยังไม่พบประวัติการสำรองข้อมูลล่าสุด');
+    const checklist = [
+      { id: 'stock', label: 'ตรวจนับสต๊อกแล้ว', ok: stockCountStats.found.length > 0 || stockCountStats.percent >= 80, note: `${stockCountStats.percent}%` },
+      { id: 'backup', label: 'สำรองข้อมูลหลักแล้ว', ok: !!latestBackup, note: lastBackupText },
+      { id: 'outside', label: 'ไม่มีของยืม/ออกงานค้าง', ok: outsideCount === 0, note: `${outsideCount} รายการค้าง` },
+      { id: 'missing', label: 'ไม่มีของยังไม่พบจากตรวจนับ', ok: stockCountStats.notFound.length === 0, note: `${stockCountStats.notFound.length} รายการ` },
+      { id: 'docs', label: 'เอกสารไม่ปิดครบถูกตรวจแล้ว', ok: (activeDocs + partialDocs) === 0, note: `${activeDocs + partialDocs} เอกสาร` },
+      { id: 'trash', label: 'ตรวจถังขยะแล้ว', ok: deletedItemsCount === 0, note: `${deletedItemsCount} รายการในถังขยะ` }
+    ];
+    const readyScore = Math.round((checklist.filter(c => c.ok).length / checklist.length) * 100);
+    return {
+      activeItems,
+      deletedItemsCount,
+      historyCount,
+      historyProofCount,
+      activeDocs,
+      partialDocs,
+      outsideCount,
+      latestBackup,
+      lastBackupText,
+      warnings,
+      checklist,
+      readyScore,
+      readyLabel: readyScore >= 85 ? 'ค่อนข้างพร้อม' : readyScore >= 60 ? 'ควรเช็กอีกนิด' : 'ยังควรสำรอง/ตรวจเพิ่ม',
+      summaryCards: [
+        { label: 'อุปกรณ์ใช้งานอยู่', value: activeItems.length, desc: 'ไม่รวมรายการในถังขยะ', tone: 'blue' },
+        { label: 'ประวัติทั้งหมด', value: historyCount, desc: 'ยืม/คืน/ออกงาน/ซ่อม', tone: 'purple' },
+        { label: 'เอกสารย้อนหลัง', value: (borrowเอกสารs || []).length, desc: 'ใบยืม/ใบออกงาน/ใบรับคืน', tone: 'sky' },
+        { label: 'รูปหลักฐาน', value: historyProofCount, desc: 'จากประวัติอุปกรณ์', tone: 'pink' },
+        { label: 'ของค้างคืน/ออกงาน', value: outsideCount, desc: 'ควรปิดก่อนสิ้นปี', tone: outsideCount > 0 ? 'rose' : 'emerald' },
+        { label: 'ยังไม่พบจากตรวจนับ', value: stockCountStats.notFound.length, desc: 'จากรอบตรวจนับล่าสุด', tone: stockCountStats.notFound.length > 0 ? 'amber' : 'emerald' }
+      ]
+    };
+  }, [items, borrowเอกสารs, currentBorrowedItems, currentEventItems, overdueItems.length, stockCountStats, settingsOptions.backupMeta, dataQualityAudit]);
+
   const sortedBundleItems = useMemo(() => {
     if (!showBundleManager) return [];
     const search = bundleSearchTerm.toLowerCase().trim();
@@ -12822,6 +12873,47 @@ S.N.: ${item.sn || '-'}
       window.print();
       window.setTimeout(cleanup, 2200);
     }, 120);
+  };
+
+  const exportYearEndSummaryCSV = async () => {
+    const headers = ['หัวข้อ', 'รายการ', 'จำนวน/สถานะ', 'หมายเหตุ'];
+    const rows = [
+      ['สรุป', 'อุปกรณ์ใช้งานอยู่', yearEndHelperData.activeItems.length, 'ไม่รวมรายการที่ลบเข้าถังขยะ'],
+      ['สรุป', 'รายการในถังขยะ', yearEndHelperData.deletedItemsCount, 'ควรตรวจสอบก่อนปิดปี'],
+      ['สรุป', 'ประวัติทั้งหมด', yearEndHelperData.historyCount, 'ประวัติยืม/คืน/ออกงาน/ซ่อม'],
+      ['สรุป', 'เอกสารย้อนหลัง', (borrowเอกสารs || []).length, 'เอกสารยืม/ออกงาน/รับคืน'],
+      ['สรุป', 'รูปหลักฐานจากประวัติ', yearEndHelperData.historyProofCount, 'นับจาก history ในอุปกรณ์'],
+      ['สรุป', 'ยืม/ออกงานค้าง', yearEndHelperData.outsideCount, 'ควรปิดรายการก่อนปิดปี'],
+      ['สรุป', 'เลยกำหนดคืน', overdueItems.length, 'ควรติดตามก่อนปิดปี'],
+      ['สรุป', 'ยังไม่พบจากตรวจนับ', stockCountStats.notFound.length, 'จากรอบตรวจนับล่าสุด'],
+      ['สรุป', 'ข้อมูลควรเติม', dataQualityAudit.issueItemCount, `${dataQualityAudit.qualityScore}%`],
+      ['สรุป', 'สำรองล่าสุด', yearEndHelperData.lastBackupText, 'จาก backupMeta.latest'],
+      ['ความพร้อม', 'คะแนนความพร้อมปิดปี', `${yearEndHelperData.readyScore}%`, yearEndHelperData.readyLabel]
+    ];
+    yearEndHelperData.checklist.forEach((item, index) => rows.push(['Checklist', `${index + 1}. ${item.label}`, item.ok ? 'ผ่าน' : 'ควรตรวจ', item.note || '']));
+    yearEndHelperData.warnings.forEach((warning, index) => rows.push(['คำเตือน', `${index + 1}`, warning, 'ควรตรวจสอบก่อนปิดปี']));
+    backupDownloadCSV(`MDEC_Year_End_Summary_${getBackupFileTag()}.csv`, headers, rows);
+    await logAction('ส่งออกสรุปก่อนปิดปี CSV', 'Year-End Summary', `ส่งออก ${rows.length} แถว`);
+    await saveBackupTimestamp('yearEndSummaryCsv');
+    pushToast('ดาวน์โหลดสรุปก่อนปิดปี CSV แล้ว', 'success');
+  };
+
+  const exportSimpleYearEndPack = async () => {
+    try {
+      setIsBusy(true);
+      await exportYearEndSummaryCSV();
+      setTimeout(() => exportHistoryCSV(), 450);
+      setTimeout(() => exportStockCountCSV('summary'), 900);
+      setTimeout(() => exportStockCountCSV('missing'), 1350);
+      setTimeout(() => exportSheetsCSVPack(), 1800);
+      await saveBackupTimestamp('simpleYearEndPack');
+      pushToast('เริ่มดาวน์โหลดชุดสำรองปิดปีแบบง่ายแล้ว', 'ไฟล์จะทยอยดาวน์โหลดหลายไฟล์ กรุณารอให้ครบ', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ สำรองชุดปิดปีแบบง่ายไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
+    }
   };
 
   const backupDownloadMultipleFiles = (files = []) => {
@@ -18778,112 +18870,156 @@ S.N.: ${item.sn || '-'}
       )}
 
 
-      {/* ศูนย์สำรองข้อมูล / Backup ปิดปี */}
+      {/* v22.53.36 Simple Backup / Year-End Helper */}
       {showBackupCenterModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[10000]`}>
-          <div className={`rounded-[1.75rem] sm:rounded-[2rem] w-full max-w-4xl max-h-[92dvh] shadow-2xl border overflow-hidden flex flex-col ${theme.cardBg}`}>
-            <div className={`p-4 sm:p-6 border-b shrink-0 ${theme.divide}`}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black mb-3 ${isDarkMode ? 'bg-blue-900/35 text-blue-300 border border-blue-800' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
-                    <Icons.Database className="w-4 h-4" /> Backup / ปิดปี
-                  </div>
-                  <h3 className={`text-xl sm:text-2xl font-black leading-tight ${theme.textTitle}`}>ศูนย์สำรองข้อมูล / ปิดปี</h3>
-                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สำรองข้อมูลแบบไฟล์เดียว พร้อมตัวเลือก JSON / CSV / รูปหลักฐาน และ Checklist ก่อนปิดปี</p>
-                </div>
-                <button type="button" onClick={() => setShowBackupCenterModal(false)} className={`w-10 h-10 rounded-2xl flex items-center justify-center border shrink-0 ${theme.btnCancel}`} title="ปิด">
-                  <Icons.X className="w-5 h-5" />
-                </button>
+          <div className={`rounded-[1.75rem] sm:rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[92vh] overflow-hidden flex flex-col border ${theme.cardBg}`}>
+            <div className={`p-5 sm:p-6 border-b flex flex-col lg:flex-row lg:items-start justify-between gap-4 ${theme.divide}`}>
+              <div className="min-w-0">
+                <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>SIMPLE BACKUP / YEAR-END HELPER</div>
+                <h3 className={`text-2xl sm:text-3xl font-black flex items-center gap-3 mt-1 ${theme.textTitle}`}>
+                  <Icons.Database className="w-7 h-7 text-emerald-500" />
+                  สำรองข้อมูล / เตรียมปิดปีแบบง่าย
+                </h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>
+                  หน้านี้เป็นตัวช่วยสรุปและ Export เท่านั้น ไม่มีปุ่มล้างข้อมูลจริงเพิ่มในรอบนี้ เพื่อลดความเสี่ยงกดพลาด
+                </p>
               </div>
+              <button type="button" onClick={() => setShowBackupCenterModal(false)} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`}>
+                <Icons.X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-4">
-              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-amber-950/25 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
-                <div className="font-black mb-1">แนะนำสำหรับปิดปี</div>
-                <div className="text-sm font-bold opacity-90">ให้กด “สำรองครบชุดไฟล์เดียว” ก่อนเป็นอันดับแรก เพื่อเก็บทั้งข้อความและรูปหลักฐานไว้ในไฟล์เดียว ถ้ารูปหลักฐานเยอะ ไฟล์อาจมีขนาดใหญ่และใช้เวลาสร้างนานขึ้น</div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-5">
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2.5">
+                {yearEndHelperData.summaryCards.map(card => {
+                  const toneClass = {
+                    blue: isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800',
+                    purple: isDarkMode ? 'bg-purple-950/25 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-800',
+                    sky: isDarkMode ? 'bg-sky-950/25 border-sky-800 text-sky-200' : 'bg-sky-50 border-sky-200 text-sky-800',
+                    pink: isDarkMode ? 'bg-pink-950/25 border-pink-800 text-pink-200' : 'bg-pink-50 border-pink-200 text-pink-800',
+                    rose: isDarkMode ? 'bg-rose-950/25 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800',
+                    amber: isDarkMode ? 'bg-amber-950/25 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800',
+                    emerald: isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  }[card.tone] || theme.btnSecondary;
+                  return (
+                    <div key={card.label} className={`p-3.5 rounded-2xl border ${toneClass}`}>
+                      <div className="text-2xl sm:text-3xl font-black leading-none">{Number(card.value || 0).toLocaleString('th-TH')}</div>
+                      <div className="text-xs sm:text-sm font-black mt-2">{card.label}</div>
+                      <div className="text-[11px] font-bold mt-1 opacity-75 truncate">{card.desc}</div>
+                    </div>
+                  );
+                })}
               </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                  <div className={`text-[11px] font-black ${theme.textMuted}`}>อุปกรณ์ทั้งหมด</div>
-                  <div className={`text-xl font-black ${theme.textTitle}`}>{items.length.toLocaleString('th-TH')}</div>
-                </div>
-                <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                  <div className={`text-[11px] font-black ${theme.textMuted}`}>รูปหลักฐาน</div>
-                  <div className={`text-xl font-black ${theme.textTitle}`}>{Number(proofStorageForecast.proofCount || allProofEntries.length || 0).toLocaleString('th-TH')}</div>
-                </div>
-                <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                  <div className={`text-[11px] font-black ${theme.textMuted}`}>ขนาดรูปประมาณ</div>
-                  <div className={`text-xl font-black ${theme.textTitle}`}>{backupFormatBytes(proofStorageForecast.proofBytes || 0)}</div>
-                </div>
-                <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                  <div className={`text-[11px] font-black ${theme.textMuted}`}>สำรองล่าสุด</div>
-                  <div className={`text-sm font-black leading-tight ${theme.textTitle}`}>{settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่เคย'}</div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_.9fr] gap-4">
-                <div className={`p-5 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                  <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
+                <div className={`p-5 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5">
                     <div>
-                      <h4 className={`text-lg sm:text-xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-5 h-5 text-blue-500"/> สำรองข้อมูล</h4>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ปุ่มหลักสำหรับเก็บทุกอย่างไว้ในไฟล์ HTML เดียว เปิดดูย้อนหลังได้ทันที เหมาะกับการเก็บก่อนปิดปีหรือก่อนล้างประวัติ</p>
+                      <h4 className={`text-xl font-black flex items-center gap-2 ${theme.textTitle}`}>
+                        <Icons.Download className="w-5 h-5 text-emerald-500" />
+                        Export ที่ควรกดก่อนปิดปี
+                      </h4>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>
+                        เรียงจากง่ายที่สุดไปละเอียดที่สุด กดแล้วเป็นการดาวน์โหลดไฟล์เท่านั้น ไม่ล้างข้อมูล
+                      </p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{items.length.toLocaleString('th-TH')} อุปกรณ์</span>
+                    <div className={`px-4 py-3 rounded-2xl border text-center ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className={`text-xs font-black ${theme.textMuted}`}>สำรองล่าสุด</div>
+                      <div className={`text-sm font-black ${theme.textTitle}`}>{yearEndHelperData.lastBackupText}</div>
+                    </div>
                   </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button type="button" onClick={exportOneStopBackupSet} disabled={isBusy} className={`sm:col-span-2 w-full py-4 rounded-2xl font-black shadow-md flex items-center justify-center gap-2 ${isBusy ? 'bg-slate-400 text-white cursor-wait' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}>
-                      <Icons.Database className="w-5 h-5"/> {isBusy ? 'กำลังสร้างไฟล์สำรอง...' : 'สำรองครบชุดไฟล์เดียว' }
+                    <button type="button" onClick={exportOneStopBackupSet} disabled={isBusy} className={`sm:col-span-2 py-4 rounded-2xl font-black shadow-md flex items-center justify-center gap-2 ${isBusy ? 'bg-slate-400 text-white cursor-wait' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}>
+                      <Icons.Database className="w-5 h-5"/> {isBusy ? 'กำลังสร้างไฟล์...' : 'สำรองครบชุดไฟล์เดียว'}
                     </button>
-                    <div className={`sm:col-span-2 text-xs font-bold -mt-1 ${theme.textMuted}`}>
-                      ไฟล์นี้รวมข้อมูลและรูปหลักฐานไว้ด้วยกัน หากรูปเยอะให้รอจน browser ดาวน์ดาวน์โหลดเสร็จ ห้ามปิดแท็บระหว่างสร้างไฟล์
-                    </div>
-                    <button type="button" onClick={exportFullBackupJSON} className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black flex items-center justify-center gap-2">
+                    <button type="button" onClick={exportSimpleYearEndPack} disabled={isBusy} className={`sm:col-span-2 py-4 rounded-2xl font-black shadow-md flex items-center justify-center gap-2 ${isBusy ? 'bg-slate-400 text-white cursor-wait' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}>
+                      <Icons.Download className="w-5 h-5"/> ชุดสำรองปิดปีแบบง่าย
+                    </button>
+                    <button type="button" onClick={exportFullBackupJSON} className="py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black flex items-center justify-center gap-2">
                       <Icons.Download className="w-5 h-5"/> JSON กู้คืนระบบ
                     </button>
-                    <button type="button" onClick={exportSheetsCSVPack} className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center justify-center gap-2">
+                    <button type="button" onClick={exportSheetsCSVPack} className="py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center justify-center gap-2">
                       <Icons.Download className="w-5 h-5"/> CSV สำหรับ Sheets
                     </button>
-                    <button type="button" onClick={exportProofGalleryHTML} className={`w-full py-3 rounded-2xl font-black border flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
+                    <button type="button" onClick={exportYearEndSummaryCSV} className={`py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
+                      <Icons.ClipboardList className="w-5 h-5"/> สรุปก่อนปิดปี CSV
+                    </button>
+                    <button type="button" onClick={() => exportStockCountCSV('missing')} className={`py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
+                      <Icons.CheckCircle className="w-5 h-5"/> รายการยังไม่พบ CSV
+                    </button>
+                    <button type="button" onClick={exportProofGalleryHTML} className={`py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
                       <Icons.Camera className="w-5 h-5"/> HTML รูปหลักฐาน
                     </button>
-                    <button type="button" onClick={exportHistoryCSV} className={`w-full py-3 rounded-2xl font-black border flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
+                    <button type="button" onClick={exportHistoryCSV} className={`py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
                       <Icons.History className="w-5 h-5"/> ประวัติยืม-คืน CSV
                     </button>
                   </div>
-                  <div className={`mt-4 p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className={`font-black mb-2 ${theme.textTitle}`}>ลำดับที่แนะนำ</div>
-                    <div className={`space-y-1.5 text-sm font-bold ${theme.textMuted}`}>
-                      <div>1) กด “สำรองครบชุดไฟล์เดียว” เพื่อเก็บข้อมูล+รูปไว้ดูย้อนหลัง</div>
-                      <div>2) กด “JSON กู้คืนระบบ” เก็บแยกอีกไฟล์เพื่อใช้ restore ได้สะดวก</div>
-                      <div>3) ถ้าจะทำงานใน Excel/Sheets ให้ดาวน์โหลด CSV เพิ่ม</div>
-                    </div>
+
+                  <div className={`mt-4 p-4 rounded-2xl border text-sm font-bold leading-relaxed ${isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                    แนะนำง่าย ๆ: กด “สำรองครบชุดไฟล์เดียว” ก่อน แล้วกด “JSON กู้คืนระบบ” เก็บแยกไว้อีกไฟล์ ถ้าจะเปิดใน Google Sheets ค่อยกด CSV เพิ่ม
                   </div>
-                  <div className={`mt-4 text-xs font-bold ${theme.textMuted}`}>สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังยังไม่มีข้อมูลการสำรองในระบบ'}</div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className={`p-5 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                    <h4 className={`text-lg font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Upload className="w-5 h-5 text-indigo-500"/> กู้คืนจาก JSON</h4>
-                    <p className={`text-sm font-bold mb-4 ${theme.textMuted}`}>ใช้เมื่อจำเป็นเท่านั้น ระบบจะเขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON โดยไม่ลบข้อมูลที่ไม่มีในไฟล์</p>
-                    <input type="file" accept=".json,application/json" className="hidden" ref={restoreInputRef} onChange={handleRestoreBackupJSON} />
-                    <button type="button" onClick={requestRestoreBackupJSON} className={`w-full py-3 rounded-2xl font-black border flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
-                      <Icons.Upload className="w-5 h-5"/> เลือกไฟล์ JSON เพื่อกู้คืน
-                    </button>
-                  </div>
-
-                  <div className={`p-5 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-rose-950/20 border-rose-900' : 'bg-rose-50 border-rose-200'}`}>
-                    <h4 className={`text-lg font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Trash className="w-5 h-5 text-rose-500"/> ปิดปี / ล้างประวัติ</h4>
-                    <p className={`text-sm font-bold mb-4 ${theme.textMuted}`}>ล้างเฉพาะประวัติยืม-คืน ไม่ลบอุปกรณ์หลัก แต่ต้องสำรองครบชุดไฟล์เดียวและ JSON กู้คืนระบบก่อนทุกครั้ง</p>
-                    <div className="grid grid-cols-1 gap-2">
-                      <button type="button" onClick={() => setShowAnnualCleanupModal(true)} className={`w-full py-3 rounded-2xl font-black border flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
-                        <Icons.CheckCircle className="w-5 h-5"/> เปิด Checklist ปิดปี
-                      </button>
-                      <button type="button" onClick={clearAllBorrowReturnHistory} className="w-full py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black flex items-center justify-center gap-2">
-                        <Icons.Trash className="w-5 h-5"/> ล้างประวัติยืม-คืนทั้งหมด
-                      </button>
+                  <div className={`p-5 rounded-3xl border shadow-sm ${yearEndHelperData.readyScore >= 85 ? (isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : yearEndHelperData.readyScore >= 60 ? (isDarkMode ? 'bg-amber-950/20 border-amber-800' : 'bg-amber-50 border-amber-200') : (isDarkMode ? 'bg-rose-950/20 border-rose-800' : 'bg-rose-50 border-rose-200')}`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className={`text-xs font-black ${theme.textMuted}`}>ความพร้อมก่อนปิดปี</div>
+                        <div className={`text-xl font-black ${theme.textTitle}`}>{yearEndHelperData.readyLabel}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-xs font-black ${theme.textMuted}`}>คะแนน</div>
+                        <div className={`text-4xl font-black ${theme.textTitle}`}>{yearEndHelperData.readyScore}%</div>
+                      </div>
+                    </div>
+                    <div className={`h-4 rounded-full overflow-hidden mt-4 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
+                      <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full" style={{ width: `${yearEndHelperData.readyScore}%` }} />
                     </div>
                   </div>
+
+                  <div className={`p-5 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>Checklist เบา ๆ ก่อนปิดปี</h4>
+                    <div className="space-y-2">
+                      {yearEndHelperData.checklist.map(item => (
+                        <div key={item.id} className={`p-3 rounded-2xl border flex items-start gap-3 ${item.ok ? (isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200')}`}>
+                          <span className={`mt-0.5 font-black ${item.ok ? 'text-emerald-500' : 'text-amber-500'}`}>{item.ok ? '✓' : '!'}</span>
+                          <span className="min-w-0">
+                            <span className={`block font-black ${theme.textTitle}`}>{item.label}</span>
+                            <span className={`block text-xs font-bold mt-0.5 ${theme.textMuted}`}>{item.note}</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className={`p-5 rounded-3xl border shadow-sm ${yearEndHelperData.warnings.length ? (isDarkMode ? 'bg-amber-950/20 border-amber-800' : 'bg-amber-50 border-amber-200') : (isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200')}`}>
+                    <h4 className={`font-black text-lg mb-2 ${theme.textTitle}`}>คำเตือนก่อนล้างข้อมูล</h4>
+                    {yearEndHelperData.warnings.length === 0 ? (
+                      <div className="font-bold text-emerald-500">ตอนนี้ไม่พบจุดเสี่ยงหลัก แต่ยังควรสำรองครบชุดก่อนทุกครั้ง</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {yearEndHelperData.warnings.map((warning, idx) => (
+                          <div key={idx} className={`text-sm font-bold ${theme.textMain}`}>• {warning}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-rose-950/20 border-rose-900 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-xl font-black">รอบนี้ไม่มีปุ่มล้างข้อมูลจริงเพิ่ม</h4>
+                    <p className="text-sm font-bold mt-1 opacity-85">
+                      แพ็กนี้มีเฉพาะสรุป / Export / Checklist เพื่อกันกดพลาด ถ้าจะล้างข้อมูลจริงให้ใช้ระบบเดิมที่มี Safety Confirm เท่านั้น
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => setShowAnnualCleanupModal(true)} className="px-5 py-3 rounded-2xl border border-rose-300 bg-white/70 text-rose-700 font-black">
+                    ดู Checklist ปิดปี
+                  </button>
                 </div>
               </div>
             </div>
@@ -18904,14 +19040,14 @@ S.N.: ${item.sn || '-'}
               <button type="button" onClick={() => setShowAnnualCleanupModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-3">
-              {['ดาวน์ดาวน์โหลดไฟล์สำรองครบชุดไฟล์เดียวแล้ว', 'เปิดไฟล์สำรองครบชุดแล้วเห็นข้อมูลและรูปหลักฐาน', 'ดาวน์ดาวน์โหลด JSON สำหรับกู้คืนระบบแล้ว', 'ดาวน์ดาวน์โหลด CSV สำหรับ Google Sheets แล้ว', 'ตรวจว่าของที่ยืม/ออกงานถูกคืนครบแล้ว', 'เก็บไฟล์สำรองไว้ใน Drive/External Drive แล้ว', 'พร้อมล้างประวัติยืม-คืนรายปี'].map(item => (
+              {['สำรองครบชุดไฟล์เดียวแล้ว', 'ดาวน์โหลด JSON กู้คืนระบบแล้ว', 'ดาวน์โหลด CSV สำหรับ Sheets แล้ว', 'ตรวจนับสต๊อกแล้ว', 'ตรวจว่าของยืม/ออกงานค้างไม่มีหรือรับทราบแล้ว', 'ตรวจรายการยังไม่พบจากตรวจนับแล้ว', 'เก็บไฟล์สำรองไว้ใน Drive/External Drive แล้ว'].map(item => (
                 <label key={item} className={`flex items-center gap-3 p-3 rounded-xl border ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                   <input type="checkbox" className="w-5 h-5 accent-emerald-600" />
                   <span className={`font-bold ${theme.textMain}`}>{item}</span>
                 </label>
               ))}
             </div>
-            <div className={`mt-5 p-3 rounded-xl border text-sm font-bold ${isDarkMode ? 'bg-rose-900/20 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>เมื่อติ๊กครบแล้ว ค่อยกลับไปกด “ล้างประวัติยืม-คืนทั้งหมด” ในหน้า ฐานข้อมูล</div>
+            <div className={`mt-5 p-3 rounded-xl border text-sm font-bold ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>Checklist นี้เป็นตัวช่วยเตือนเท่านั้น รอบนี้ไม่ได้เพิ่มปุ่มล้างข้อมูลจริงใหม่ เพื่อความปลอดภัย</div>
           </div>
         </div>
       )}
