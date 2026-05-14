@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.36.1 Simple Backup / Year-End Helper Hotfix';
+const APP_VERSION = 'v22.53.37 Asset Profile / Equipment History File Polish';
 const APP_UPDATE_NOTE = 'Simple Backup / Year-End Helper Hotfix: แก้ลำดับ useMemo ของศูนย์สำรองข้อมูลที่ทำให้เกิด ReferenceError ก่อนโหลดหน้าเว็บ พร้อมคงฟีเจอร์ Backup Helper เดิมทั้งหมด';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -2387,6 +2387,141 @@ function FactoryPolishStyle({ isDarkMode }) {
         }
         .factory-stock-polish .asset-profile-modal .asset-profile-action-grid button {
           min-height: 46px;
+        }
+        .factory-stock-polish .asset-profile-print-area {
+          display: none;
+        }
+        @media print {
+          body.mdec-asset-profile-printing {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+          }
+          body.mdec-asset-profile-printing .factory-stock-polish * {
+            visibility: hidden !important;
+          }
+          body.mdec-asset-profile-printing .factory-stock-polish .asset-profile-print-area,
+          body.mdec-asset-profile-printing .factory-stock-polish .asset-profile-print-area * {
+            visibility: visible !important;
+          }
+          body.mdec-asset-profile-printing .factory-stock-polish .asset-profile-print-area {
+            display: block !important;
+            position: absolute !important;
+            inset: 0 auto auto 0 !important;
+            width: 100% !important;
+            background: #fff !important;
+            color: #111 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            font-family: "Sarabun", "TH Sarabun New", sans-serif !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-print-doc {
+            color: #111 !important;
+            font-size: 8pt !important;
+            line-height: 1.28 !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-print-head {
+            display: grid !important;
+            grid-template-columns: 1.45fr .55fr !important;
+            gap: 5mm !important;
+            padding-bottom: 3mm !important;
+            border-bottom: 1.4px solid #111 !important;
+            margin-bottom: 3mm !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-title {
+            font-size: 18pt !important;
+            font-weight: 950 !important;
+            line-height: 1.05 !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-sub {
+            font-size: 7pt !important;
+            font-weight: 800 !important;
+            margin-top: 1mm !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-meta {
+            border: 1px solid #111 !important;
+            padding: 2mm !important;
+            font-size: 6.8pt !important;
+            font-weight: 850 !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-kpi {
+            display: grid !important;
+            grid-template-columns: repeat(5,1fr) !important;
+            gap: 1.5mm !important;
+            margin-bottom: 3mm !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-kpi > div {
+            border: .8px solid #111 !important;
+            padding: 1.4mm !important;
+            min-height: 11mm !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-kpi b {
+            display: block !important;
+            font-size: 12pt !important;
+            line-height: 1 !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-kpi span {
+            display: block !important;
+            font-size: 6pt !important;
+            font-weight: 850 !important;
+            margin-top: .8mm !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 2.2mm !important;
+            margin-bottom: 3mm !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-box {
+            border: .8px solid #111 !important;
+            padding: 2mm !important;
+            break-inside: avoid !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-box h4 {
+            font-size: 8pt !important;
+            font-weight: 950 !important;
+            margin: 0 0 1.3mm !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-row {
+            display: grid !important;
+            grid-template-columns: 22mm 1fr !important;
+            gap: 2mm !important;
+            border-top: .5px solid #d1d5db !important;
+            padding: .8mm 0 !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-row span:first-child {
+            font-weight: 900 !important;
+            color: #374151 !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            margin-top: 2mm !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-table th,
+          body.mdec-asset-profile-printing .asset-file-table td {
+            border: .7px solid #111 !important;
+            padding: 1mm 1.2mm !important;
+            font-size: 6.7pt !important;
+            vertical-align: top !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-table th {
+            background: #f3f4f6 !important;
+            font-weight: 950 !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-sign {
+            display: grid !important;
+            grid-template-columns: repeat(3,1fr) !important;
+            gap: 3mm !important;
+            margin-top: 4mm !important;
+          }
+          body.mdec-asset-profile-printing .asset-file-sign > div {
+            border-top: 1px solid #111 !important;
+            text-align: center !important;
+            padding-top: 1.8mm !important;
+            font-size: 7pt !important;
+            font-weight: 850 !important;
+          }
         }
         @media (max-width: 640px) {
           .factory-stock-polish .asset-profile-modal {
@@ -6078,6 +6213,7 @@ function MainApp() {
   const [returnChecklist, setReturnChecklist] = useState([]);
   
   const [showHistory, setShowHistory] = useState(null);
+  const [assetProfileTab, setAssetProfileTab] = useState('overview');
 
   const [showSettings, setShowSettings] = useState(false);
   const [settingsTab, setSettingsTab] = useState('categories');
@@ -12956,6 +13092,20 @@ S.N.: ${item.sn || '-'}
     backupDownloadCSV(`MDEC_Item_History_${(item.sn || item.id || 'item').replace(/[^a-zA-Z0-9_-]/g, '_')}_${getBackupFileTag()}.csv`, headers, rows);
     if (rows.length === 0) pushToast('ดาวน์ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติของอุปกรณ์นี้', 'warning');
     else pushToast('ดาวน์ดาวน์โหลดประวัติอุปกรณ์นี้เรียบร้อยแล้ว', 'success');
+  };
+
+  const printAssetProfile = () => {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+    document.body.classList.add('mdec-asset-profile-printing');
+    const cleanup = () => {
+      document.body.classList.remove('mdec-asset-profile-printing');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    window.setTimeout(() => {
+      window.print();
+      window.setTimeout(cleanup, 2200);
+    }, 120);
   };
 
   const collectFullBackupPayload = async () => {
@@ -19937,6 +20087,43 @@ S.N.: ${item.sn || '-'}
           { label: 'ความครบถ้วน', value: `${profileCompletion}%`, desc: missingProfileFields.length ? `ควรเติม: ${missingProfileFields.map(([label]) => label).join(', ')}` : 'ข้อมูลหลักครบถ้วนดี' }
         ];
 
+        const usageStats = {
+          borrow: historyList.filter(h => h.type === 'borrow').length,
+          event: historyList.filter(h => h.type === 'event').length,
+          return: historyList.filter(h => h.type === 'return').length,
+          repair: historyList.filter(h => String(h.type || '').includes('repair') || String(h.type || '').includes('maintenance')).length,
+          project: historyList.filter(h => h.type === 'projectChange').length,
+          proof: detailProofCount,
+          lastUsed: latestHistory?.date ? new Date(latestHistory.date).toLocaleDateString('th-TH') : '-'
+        };
+        const maintenanceRows = historyList
+          .map((h, index) => ({ h, index }))
+          .filter(({ h }) => String(h.type || '').includes('repair') || String(h.problem || '').trim() || String(h.sentTo || '').trim() || String(h.cost || '').trim())
+          .slice(-6)
+          .reverse();
+        const relatedDocs = (borrowเอกสารs || []).filter(docData => {
+          const raw = JSON.stringify(docData || {}).toLowerCase();
+          const idMatch = detailItem.id && raw.includes(String(detailItem.id).toLowerCase());
+          const snMatch = detailItem.sn && raw.includes(String(detailItem.sn).toLowerCase());
+          const nameMatch = detailItem.name && raw.includes(String(detailItem.name).toLowerCase());
+          return idMatch || snMatch || nameMatch;
+        }).slice(0, 8);
+        const systemInfoCards = [
+          ['Item ID', detailItem.id || '-'],
+          ['สร้างเมื่อ', detailItem.createdAt ? new Date(detailItem.createdAt).toLocaleString('th-TH', { hour12: false }) : '-'],
+          ['แก้ไขล่าสุด', detailItem.updatedAt ? new Date(detailItem.updatedAt).toLocaleString('th-TH', { hour12: false }) : '-'],
+          ['สถานะลบ', detailItem.isDeleted ? 'อยู่ในถังขยะ' : 'ใช้งานปกติ'],
+          ['QR Tagged', detailItem.qrTagged ? 'Yes' : 'No'],
+          ['จำนวนประวัติ', `${historyList.length} รายการ`]
+        ];
+        const assetProfileTabs = [
+          ['overview', 'ภาพรวม', usageStats.borrow + usageStats.event + usageStats.return],
+          ['history', 'ประวัติ', historyList.length],
+          ['proofs', 'หลักฐาน', detailProofCount],
+          ['docs', 'เอกสาร', relatedDocs.length],
+          ['system', 'ระบบ', profileCompletion]
+        ];
+
         return (
           <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-2 sm:p-5 z-[9999]`}>
             <div className={`asset-profile-modal compact-modal-shell rounded-[1.7rem] sm:rounded-[2rem] w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
@@ -19948,10 +20135,27 @@ S.N.: ${item.sn || '-'}
                     <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>รายละเอียดอุปกรณ์ ประวัติการใช้งาน และหลักฐานที่เกี่ยวข้อง</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    <button type="button" onClick={printAssetProfile} className={`hidden sm:inline-flex px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>พิมพ์แฟ้ม</button>
                     <button type="button" onClick={() => openItemQrLabelFromDetail(detailItem)} className={`hidden sm:inline-flex px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>พิมพ์ QR</button>
                     <button type="button" onClick={() => exportItemHistoryCSV(detailItem)} className={`hidden sm:inline-flex px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ส่งออก CSV</button>
                     <button type="button" onClick={closeItemHistoryModal} className={`w-10 h-10 rounded-2xl border flex items-center justify-center ${theme.btnCancel}`} title={modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : modalReturnTarget === 'proofCenter' ? 'กลับไปศูนย์หลักฐาน' : 'ปิดหน้าต่าง'}><Icons.X className="w-5 h-5" /></button>
                   </div>
+                </div>
+              </div>
+
+              <div className={`shrink-0 px-4 sm:px-6 py-3 border-b ${theme.divide} ${isDarkMode ? 'bg-slate-950' : 'bg-white'}`}>
+                <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+                  {assetProfileTabs.map(([id, label, count]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setAssetProfileTab(id)}
+                      className={`px-4 py-2.5 rounded-2xl border text-sm font-black whitespace-nowrap ${assetProfileTab === id ? 'bg-blue-600 text-white border-blue-600 shadow-md' : theme.btnSecondary}`}
+                    >
+                      {label}
+                      <span className={`ml-1 text-xs ${assetProfileTab === id ? 'text-white/75' : theme.textMuted}`}>{id === 'system' ? `${count}%` : Number(count || 0).toLocaleString('th-TH')}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -20000,7 +20204,64 @@ S.N.: ${item.sn || '-'}
                       <button type="button" onClick={() => openProofCenterFromAssetProfile(detailItem)} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>หลักฐาน</button>
                       <button type="button" onClick={() => openProofAttachFromAssetProfile(detailItem)} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>+ รูปล่าสุด</button>
                       <button type="button" onClick={() => copyItemSummary(detailItem)} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>คัดลอก</button>
+                      <button type="button" onClick={printAssetProfile} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>พิมพ์แฟ้ม</button>
                       <button type="button" onClick={() => exportItemHistoryCSV(detailItem)} className={`sm:hidden px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>CSV</button>
+                    </div>
+                  </div>
+
+                  <div className={`px-4 sm:px-5 pt-4 grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4`}>
+                    <div className={`rounded-[1.7rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                          <div className={`font-black text-lg ${theme.textTitle}`}>สรุปการใช้งานอุปกรณ์ชิ้นนี้</div>
+                          <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>นับจากประวัติที่บันทึกในแฟ้มอุปกรณ์</div>
+                        </div>
+                        <span className={`px-3 py-1.5 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ล่าสุด {usageStats.lastUsed}</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
+                        {[
+                          ['ถูกยืม', usageStats.borrow, 'purple'],
+                          ['ออกงาน', usageStats.event, 'orange'],
+                          ['รับคืน', usageStats.return, 'emerald'],
+                          ['ซ่อม', usageStats.repair, 'rose'],
+                          ['เปลี่ยนโครงการ', usageStats.project, 'blue'],
+                          ['หลักฐาน', usageStats.proof, 'pink']
+                        ].map(([label, value, tone]) => {
+                          const cls = tone === 'purple'
+                            ? (isDarkMode ? 'bg-purple-950/25 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-800')
+                            : tone === 'orange'
+                              ? (isDarkMode ? 'bg-orange-950/25 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800')
+                              : tone === 'emerald'
+                                ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
+                                : tone === 'rose'
+                                  ? (isDarkMode ? 'bg-rose-950/25 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')
+                                  : tone === 'pink'
+                                    ? (isDarkMode ? 'bg-pink-950/25 border-pink-800 text-pink-200' : 'bg-pink-50 border-pink-200 text-pink-800')
+                                    : (isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800');
+                          return (
+                            <div key={label} className={`p-3 rounded-2xl border text-center ${cls}`}>
+                              <div className="text-2xl font-black leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
+                              <div className="text-[11px] font-black mt-1">{label}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className={`rounded-[1.7rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                      <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>เอกสารที่เกี่ยวข้อง</div>
+                      {relatedDocs.length === 0 ? (
+                        <div className={`p-5 rounded-2xl border text-center font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>ยังไม่พบเอกสารที่เชื่อมกับอุปกรณ์นี้</div>
+                      ) : (
+                        <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+                          {relatedDocs.map((docData, idx) => (
+                            <button key={docData.id || docData.ref || idx} type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`w-full p-3 rounded-2xl border text-left ${isDarkMode ? 'bg-slate-900 border-slate-800 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-white'}`}>
+                              <div className={`font-black truncate ${theme.textTitle}`}>{docData.ref || docData.documentNo || docData.title || `เอกสาร #${idx + 1}`}</div>
+                              <div className={`text-xs font-bold mt-1 truncate ${theme.textMuted}`}>{docData.borrower || docData.eventName || docData.staffOut || docData.type || '-'} • {docData.createdAt ? new Date(docData.createdAt).toLocaleDateString('th-TH') : docData.date || '-'}</div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -20084,6 +20345,45 @@ S.N.: ${item.sn || '-'}
                   </div>
                 </div>
 
+                <div className={`grid grid-cols-1 xl:grid-cols-2 gap-4`}>
+                  <div className={`rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className={`px-5 py-4 border-b ${theme.divide}`}>
+                      <div className={`font-black text-lg ${theme.textTitle}`}>ซ่อม / บำรุงรักษา</div>
+                      <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>ดึงจากประวัติแจ้งซ่อมและข้อมูลปัญหาที่เคยบันทึก</div>
+                    </div>
+                    <div className="p-4">
+                      {maintenanceRows.length === 0 ? (
+                        <div className={`p-5 rounded-2xl border text-center font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>ยังไม่มีประวัติซ่อมของอุปกรณ์นี้</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {maintenanceRows.map(({ h, index }) => (
+                            <div key={index} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-rose-950/20 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
+                              <div className="font-black">{h.problem || h.note || historyLabel(h)}</div>
+                              <div className="text-xs font-bold mt-1 opacity-80">{h.date ? new Date(h.date).toLocaleString('th-TH', { hour12: false }) : '-'} • {h.reporter || h.operatorName || h.performedBy || '-'}</div>
+                              {(h.sentTo || h.cost || h.doneDate) && <div className="text-xs font-bold mt-1 opacity-80">ส่งซ่อม: {h.sentTo || '-'} • ค่าใช้จ่าย {h.cost || '-'} • เสร็จ {h.doneDate || '-'}</div>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={`rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className={`px-5 py-4 border-b ${theme.divide}`}>
+                      <div className={`font-black text-lg ${theme.textTitle}`}>ข้อมูลระบบ / ตรวจสอบย้อนหลัง</div>
+                      <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>ข้อมูลสำหรับผู้ดูแลระบบและการตรวจสอบแฟ้ม</div>
+                    </div>
+                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {systemInfoCards.map(([label, value]) => (
+                        <div key={label} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
+                          <div className={`font-black break-words ${theme.textTitle}`}>{value || '-'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
                 <div className={`rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
                   <div className={`px-5 py-4 border-b flex items-center justify-between gap-3 ${theme.divide}`}>
                     <div>
@@ -20140,6 +20440,88 @@ S.N.: ${item.sn || '-'}
                         })}
                       </div>
                     )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="asset-profile-print-area">
+                <div className="asset-file-print-doc">
+                  <div className="asset-file-print-head">
+                    <div>
+                      <div className="asset-file-title">แฟ้มประวัติอุปกรณ์</div>
+                      <div className="asset-file-sub">
+                        ศูนย์มัลติมีเดียทางการศึกษา วิทยาลัยเทคโนโลยีภาคตะวันออก (อี.เทค)<br/>
+                        {detailItem.name || '-'} • S.N. {detailItem.sn || '-'} • {detailItem.category || '-'}
+                      </div>
+                    </div>
+                    <div className="asset-file-meta">
+                      สถานะ: {detailStatus.label}<br/>
+                      พิมพ์เมื่อ: {new Date().toLocaleString('th-TH', { hour12: false })}<br/>
+                      เวอร์ชัน: {APP_VERSION}
+                    </div>
+                  </div>
+
+                  <div className="asset-file-kpi">
+                    <div><b>{usageStats.borrow}</b><span>ยืมออก</span></div>
+                    <div><b>{usageStats.event}</b><span>ออกงาน</span></div>
+                    <div><b>{usageStats.return}</b><span>รับคืน</span></div>
+                    <div><b>{usageStats.repair}</b><span>ซ่อม/บำรุง</span></div>
+                    <div><b>{usageStats.proof}</b><span>หลักฐานรูป</span></div>
+                  </div>
+
+                  <div className="asset-file-grid">
+                    <div className="asset-file-box">
+                      <h4>ข้อมูลอุปกรณ์</h4>
+                      {[
+                        ['ชื่อ', detailItem.name || '-'],
+                        ['S.N.', detailItem.sn || '-'],
+                        ['รหัสสั้น', textOf('shortCode', 'shortLabel', 'assetShortCode', 'localCode')],
+                        ['หมวด', detailItem.category || '-'],
+                        ['ที่เก็บ', detailItem.location || '-'],
+                        ['ฝ่าย', detailDept.label || detailItem.department || '-'],
+                        ['โครงการ', detailItem.project || detailItem.purchaseProject || '-']
+                      ].map(([label, value]) => <div key={label} className="asset-file-row"><span>{label}</span><b>{value}</b></div>)}
+                    </div>
+                    <div className="asset-file-box">
+                      <h4>สถานะปัจจุบัน</h4>
+                      {[
+                        ['ใช้งาน', detailStatus.label],
+                        ['พัสดุ', assetStatusInfo.label],
+                        ['ผู้ถือ/งาน', currentHolderText],
+                        ['เจ้าหน้าที่', currentStaffText],
+                        ['กำหนดคืน', dueText],
+                        ['QR', detailItem.qrTagged ? 'ติดแล้ว' : 'ยังไม่ติด'],
+                        ['ครบถ้วน', `${profileCompletion}%`]
+                      ].map(([label, value]) => <div key={label} className="asset-file-row"><span>{label}</span><b>{value}</b></div>)}
+                    </div>
+                  </div>
+
+                  <div className="asset-file-box">
+                    <h4>ประวัติล่าสุด</h4>
+                    <table className="asset-file-table">
+                      <thead>
+                        <tr><th>#</th><th>ประเภท</th><th>วันที่</th><th>ผู้เกี่ยวข้อง/งาน</th><th>เจ้าหน้าที่</th><th>หมายเหตุ</th></tr>
+                      </thead>
+                      <tbody>
+                        {historyList.slice(-8).reverse().map((h, idx) => (
+                          <tr key={`print_h_${idx}`}>
+                            <td>{idx + 1}</td>
+                            <td>{historyLabel(h)}</td>
+                            <td>{h.date ? new Date(h.date).toLocaleString('th-TH', { hour12: false }) : '-'}</td>
+                            <td>{h.borrower || h.eventName || h.staffIn || h.problem || '-'}</td>
+                            <td>{h.staffOut || h.staffIn || h.operatorName || h.performedBy || '-'}</td>
+                            <td>{h.note || h.expectedReturn || '-'}</td>
+                          </tr>
+                        ))}
+                        {historyList.length === 0 && <tr><td>1</td><td colSpan="5">ยังไม่มีประวัติการใช้งาน</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="asset-file-sign">
+                    <div>ผู้ตรวจสอบแฟ้ม</div>
+                    <div>ผู้รับผิดชอบอุปกรณ์</div>
+                    <div>ผู้อนุมัติ/รับรอง</div>
                   </div>
                 </div>
               </div>
