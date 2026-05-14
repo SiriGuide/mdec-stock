@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.36 Simple Backup / Year-End Helper';
-const APP_UPDATE_NOTE = 'Simple Backup / Year-End Helper: ปรับศูนย์สำรองข้อมูลให้ใช้ง่ายขึ้น มีสรุปก่อนปิดปี ปุ่ม Export สำคัญ และ checklist เตือนความพร้อม โดยไม่เพิ่มปุ่มล้างข้อมูลจริงใหม่และไม่แตะ QR Scanner/กล้อง/ฐานข้อมูลหลัก';
+const APP_VERSION = 'v22.53.36.1 Simple Backup / Year-End Helper Hotfix';
+const APP_UPDATE_NOTE = 'Simple Backup / Year-End Helper Hotfix: แก้ลำดับ useMemo ของศูนย์สำรองข้อมูลที่ทำให้เกิด ReferenceError ก่อนโหลดหน้าเว็บ พร้อมคงฟีเจอร์ Backup Helper เดิมทั้งหมด';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11286,57 +11286,6 @@ S.N.: ${item.sn || '-'}
     };
   }, [items, stockCountFoundIds, stockCountFilter, stockCountSearch, stockCountCategory, stockCountLocation, stockCountDept, stockCountSession.status, todayMs]);
 
-  const yearEndHelperData = useMemo(() => {
-    const activeItems = items.filter(item => item && !item.isDeleted);
-    const deletedItemsCount = items.filter(item => item && item.isDeleted).length;
-    const historyCount = activeItems.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.length : 0), 0);
-    const historyProofCount = activeItems.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.reduce((s, h) => s + (Array.isArray(h.proofs) ? h.proofs.length : 0), 0) : 0), 0);
-    const activeDocs = (borrowเอกสารs || []).filter(doc => !doc.status || doc.status === 'active').length;
-    const partialDocs = (borrowเอกสารs || []).filter(doc => doc.status === 'partial').length;
-    const outsideCount = currentBorrowedItems.length + currentEventItems.length;
-    const latestBackup = settingsOptions.backupMeta?.latest || '';
-    const lastBackupText = latestBackup ? new Date(latestBackup).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่เคยสำรอง';
-    const warnings = [];
-    if (outsideCount > 0) warnings.push(`ยังมีรายการยืม/ออกงานค้าง ${outsideCount} รายการ`);
-    if (overdueItems.length > 0) warnings.push(`มีรายการเลยกำหนดคืน ${overdueItems.length} รายการ`);
-    if (stockCountStats.notFound.length > 0) warnings.push(`ตรวจนับแล้วยังไม่พบ ${stockCountStats.notFound.length} รายการ`);
-    if (partialDocs > 0) warnings.push(`มีเอกสารคืนบางส่วน ${partialDocs} ใบ`);
-    if (dataQualityAudit.issueItemCount > 0) warnings.push(`มีอุปกรณ์ข้อมูลควรเติม ${dataQualityAudit.issueItemCount} รายการ`);
-    if (!latestBackup) warnings.push('ยังไม่พบประวัติการสำรองข้อมูลล่าสุด');
-    const checklist = [
-      { id: 'stock', label: 'ตรวจนับสต๊อกแล้ว', ok: stockCountStats.found.length > 0 || stockCountStats.percent >= 80, note: `${stockCountStats.percent}%` },
-      { id: 'backup', label: 'สำรองข้อมูลหลักแล้ว', ok: !!latestBackup, note: lastBackupText },
-      { id: 'outside', label: 'ไม่มีของยืม/ออกงานค้าง', ok: outsideCount === 0, note: `${outsideCount} รายการค้าง` },
-      { id: 'missing', label: 'ไม่มีของยังไม่พบจากตรวจนับ', ok: stockCountStats.notFound.length === 0, note: `${stockCountStats.notFound.length} รายการ` },
-      { id: 'docs', label: 'เอกสารไม่ปิดครบถูกตรวจแล้ว', ok: (activeDocs + partialDocs) === 0, note: `${activeDocs + partialDocs} เอกสาร` },
-      { id: 'trash', label: 'ตรวจถังขยะแล้ว', ok: deletedItemsCount === 0, note: `${deletedItemsCount} รายการในถังขยะ` }
-    ];
-    const readyScore = Math.round((checklist.filter(c => c.ok).length / checklist.length) * 100);
-    return {
-      activeItems,
-      deletedItemsCount,
-      historyCount,
-      historyProofCount,
-      activeDocs,
-      partialDocs,
-      outsideCount,
-      latestBackup,
-      lastBackupText,
-      warnings,
-      checklist,
-      readyScore,
-      readyLabel: readyScore >= 85 ? 'ค่อนข้างพร้อม' : readyScore >= 60 ? 'ควรเช็กอีกนิด' : 'ยังควรสำรอง/ตรวจเพิ่ม',
-      summaryCards: [
-        { label: 'อุปกรณ์ใช้งานอยู่', value: activeItems.length, desc: 'ไม่รวมรายการในถังขยะ', tone: 'blue' },
-        { label: 'ประวัติทั้งหมด', value: historyCount, desc: 'ยืม/คืน/ออกงาน/ซ่อม', tone: 'purple' },
-        { label: 'เอกสารย้อนหลัง', value: (borrowเอกสารs || []).length, desc: 'ใบยืม/ใบออกงาน/ใบรับคืน', tone: 'sky' },
-        { label: 'รูปหลักฐาน', value: historyProofCount, desc: 'จากประวัติอุปกรณ์', tone: 'pink' },
-        { label: 'ของค้างคืน/ออกงาน', value: outsideCount, desc: 'ควรปิดก่อนสิ้นปี', tone: outsideCount > 0 ? 'rose' : 'emerald' },
-        { label: 'ยังไม่พบจากตรวจนับ', value: stockCountStats.notFound.length, desc: 'จากรอบตรวจนับล่าสุด', tone: stockCountStats.notFound.length > 0 ? 'amber' : 'emerald' }
-      ]
-    };
-  }, [items, borrowเอกสารs, currentBorrowedItems, currentEventItems, overdueItems.length, stockCountStats, settingsOptions.backupMeta, dataQualityAudit]);
-
   const sortedBundleItems = useMemo(() => {
     if (!showBundleManager) return [];
     const search = bundleSearchTerm.toLowerCase().trim();
@@ -11583,6 +11532,57 @@ S.N.: ${item.sn || '-'}
     };
   }, [items]);
 
+
+  const yearEndHelperData = useMemo(() => {
+    const activeItems = items.filter(item => item && !item.isDeleted);
+    const deletedItemsCount = items.filter(item => item && item.isDeleted).length;
+    const historyCount = activeItems.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.length : 0), 0);
+    const historyProofCount = activeItems.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.reduce((s, h) => s + (Array.isArray(h.proofs) ? h.proofs.length : 0), 0) : 0), 0);
+    const activeDocs = (borrowเอกสารs || []).filter(doc => !doc.status || doc.status === 'active').length;
+    const partialDocs = (borrowเอกสารs || []).filter(doc => doc.status === 'partial').length;
+    const outsideCount = currentBorrowedItems.length + currentEventItems.length;
+    const latestBackup = settingsOptions.backupMeta?.latest || '';
+    const lastBackupText = latestBackup ? new Date(latestBackup).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่เคยสำรอง';
+    const warnings = [];
+    if (outsideCount > 0) warnings.push(`ยังมีรายการยืม/ออกงานค้าง ${outsideCount} รายการ`);
+    if (overdueItems.length > 0) warnings.push(`มีรายการเลยกำหนดคืน ${overdueItems.length} รายการ`);
+    if (stockCountStats.notFound.length > 0) warnings.push(`ตรวจนับแล้วยังไม่พบ ${stockCountStats.notFound.length} รายการ`);
+    if (partialDocs > 0) warnings.push(`มีเอกสารคืนบางส่วน ${partialDocs} ใบ`);
+    if (dataQualityAudit.issueItemCount > 0) warnings.push(`มีอุปกรณ์ข้อมูลควรเติม ${dataQualityAudit.issueItemCount} รายการ`);
+    if (!latestBackup) warnings.push('ยังไม่พบประวัติการสำรองข้อมูลล่าสุด');
+    const checklist = [
+      { id: 'stock', label: 'ตรวจนับสต๊อกแล้ว', ok: stockCountStats.found.length > 0 || stockCountStats.percent >= 80, note: `${stockCountStats.percent}%` },
+      { id: 'backup', label: 'สำรองข้อมูลหลักแล้ว', ok: !!latestBackup, note: lastBackupText },
+      { id: 'outside', label: 'ไม่มีของยืม/ออกงานค้าง', ok: outsideCount === 0, note: `${outsideCount} รายการค้าง` },
+      { id: 'missing', label: 'ไม่มีของยังไม่พบจากตรวจนับ', ok: stockCountStats.notFound.length === 0, note: `${stockCountStats.notFound.length} รายการ` },
+      { id: 'docs', label: 'เอกสารไม่ปิดครบถูกตรวจแล้ว', ok: (activeDocs + partialDocs) === 0, note: `${activeDocs + partialDocs} เอกสาร` },
+      { id: 'trash', label: 'ตรวจถังขยะแล้ว', ok: deletedItemsCount === 0, note: `${deletedItemsCount} รายการในถังขยะ` }
+    ];
+    const readyScore = Math.round((checklist.filter(c => c.ok).length / checklist.length) * 100);
+    return {
+      activeItems,
+      deletedItemsCount,
+      historyCount,
+      historyProofCount,
+      activeDocs,
+      partialDocs,
+      outsideCount,
+      latestBackup,
+      lastBackupText,
+      warnings,
+      checklist,
+      readyScore,
+      readyLabel: readyScore >= 85 ? 'ค่อนข้างพร้อม' : readyScore >= 60 ? 'ควรเช็กอีกนิด' : 'ยังควรสำรอง/ตรวจเพิ่ม',
+      summaryCards: [
+        { label: 'อุปกรณ์ใช้งานอยู่', value: activeItems.length, desc: 'ไม่รวมรายการในถังขยะ', tone: 'blue' },
+        { label: 'ประวัติทั้งหมด', value: historyCount, desc: 'ยืม/คืน/ออกงาน/ซ่อม', tone: 'purple' },
+        { label: 'เอกสารย้อนหลัง', value: (borrowเอกสารs || []).length, desc: 'ใบยืม/ใบออกงาน/ใบรับคืน', tone: 'sky' },
+        { label: 'รูปหลักฐาน', value: historyProofCount, desc: 'จากประวัติอุปกรณ์', tone: 'pink' },
+        { label: 'ของค้างคืน/ออกงาน', value: outsideCount, desc: 'ควรปิดก่อนสิ้นปี', tone: outsideCount > 0 ? 'rose' : 'emerald' },
+        { label: 'ยังไม่พบจากตรวจนับ', value: stockCountStats.notFound.length, desc: 'จากรอบตรวจนับล่าสุด', tone: stockCountStats.notFound.length > 0 ? 'amber' : 'emerald' }
+      ]
+    };
+  }, [items, borrowเอกสารs, currentBorrowedItems, currentEventItems, overdueItems.length, stockCountStats, settingsOptions.backupMeta, dataQualityAudit]);
 
   const markStockCountFound = (item, source = 'manual') => {
     if (!item || !item.id) return;
