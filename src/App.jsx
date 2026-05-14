@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.38.1 Daily Operation / Staff Workflow Hotfix';
-const APP_UPDATE_NOTE = 'Daily Operation / Staff Workflow Hotfix: แก้ ReferenceError จาก dailyWorkflowData ที่เรียก dataQualityAudit/stockCountStats ก่อนประกาศ โดยย้าย helper ไปหลังตัวแปรที่ต้องใช้ครบแล้ว พร้อมคงฟีเจอร์ v22.53.38 เดิมทั้งหมด';
+const APP_VERSION = 'v22.53.39 Repair / Maintenance Center Polish';
+const APP_UPDATE_NOTE = 'Repair / Maintenance Center Polish: เพิ่มศูนย์ซ่อม/บำรุงรักษา สรุปงานซ่อม ฟิลเตอร์งานค้าง/ส่งซ่อม/เสร็จแล้ว/เสียซ้ำ Export CSV และรายงาน A4 พร้อมฟอร์มแจ้งซ่อมละเอียดขึ้น โดยไม่แตะ QR Scanner/กล้อง/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -2396,6 +2396,113 @@ function FactoryPolishStyle({ isDarkMode }) {
         }
         .factory-stock-polish .operation-summary-chip {
           min-height: 42px;
+        }
+        .factory-stock-polish .repair-center-card {
+          transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+        }
+        .factory-stock-polish .repair-center-card:active {
+          transform: scale(.985);
+        }
+        .factory-stock-polish .repair-center-print-area {
+          display: none;
+        }
+        @media print {
+          body.mdec-repair-center-printing {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+          }
+          body.mdec-repair-center-printing .factory-stock-polish * {
+            visibility: hidden !important;
+          }
+          body.mdec-repair-center-printing .repair-center-print-area,
+          body.mdec-repair-center-printing .repair-center-print-area * {
+            visibility: visible !important;
+          }
+          body.mdec-repair-center-printing .repair-center-print-area {
+            display: block !important;
+            position: absolute !important;
+            inset: 0 auto auto 0 !important;
+            width: 100% !important;
+            background: #fff !important;
+            color: #111 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            font-family: "Sarabun", "TH Sarabun New", sans-serif !important;
+          }
+          body.mdec-repair-center-printing .repair-report-doc {
+            color: #111 !important;
+            font-size: 7pt !important;
+            line-height: 1.25 !important;
+          }
+          body.mdec-repair-center-printing .repair-report-head {
+            display: grid !important;
+            grid-template-columns: 1.45fr .55fr !important;
+            gap: 5mm !important;
+            border-bottom: 1.4px solid #111 !important;
+            padding-bottom: 3mm !important;
+            margin-bottom: 3mm !important;
+          }
+          body.mdec-repair-center-printing .repair-report-title {
+            font-size: 18pt !important;
+            font-weight: 950 !important;
+            line-height: 1.06 !important;
+          }
+          body.mdec-repair-center-printing .repair-report-sub,
+          body.mdec-repair-center-printing .repair-report-meta {
+            font-size: 7pt !important;
+            font-weight: 850 !important;
+          }
+          body.mdec-repair-center-printing .repair-report-kpi {
+            display: grid !important;
+            grid-template-columns: repeat(5,1fr) !important;
+            gap: 1.4mm !important;
+            margin-bottom: 3mm !important;
+          }
+          body.mdec-repair-center-printing .repair-report-kpi > div {
+            border: .8px solid #111 !important;
+            padding: 1.3mm !important;
+            min-height: 11mm !important;
+          }
+          body.mdec-repair-center-printing .repair-report-kpi b {
+            display: block !important;
+            font-size: 12pt !important;
+            line-height: 1 !important;
+          }
+          body.mdec-repair-center-printing .repair-report-kpi span {
+            display: block !important;
+            font-size: 6pt !important;
+            font-weight: 850 !important;
+            margin-top: .8mm !important;
+          }
+          body.mdec-repair-center-printing .repair-report-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+          }
+          body.mdec-repair-center-printing .repair-report-table th,
+          body.mdec-repair-center-printing .repair-report-table td {
+            border: .7px solid #111 !important;
+            padding: 1mm 1.2mm !important;
+            font-size: 6.6pt !important;
+            vertical-align: top !important;
+          }
+          body.mdec-repair-center-printing .repair-report-table th {
+            background: #f3f4f6 !important;
+            font-weight: 950 !important;
+          }
+          body.mdec-repair-center-printing .repair-report-sign {
+            display: grid !important;
+            grid-template-columns: repeat(3,1fr) !important;
+            gap: 3mm !important;
+            margin-top: 4mm !important;
+          }
+          body.mdec-repair-center-printing .repair-report-sign > div {
+            border-top: 1px solid #111 !important;
+            text-align: center !important;
+            padding-top: 1.8mm !important;
+            font-size: 7pt !important;
+            font-weight: 850 !important;
+          }
         }
         .factory-stock-polish .asset-profile-print-area {
           display: none;
@@ -6299,9 +6406,12 @@ function MainApp() {
     };
   });
   const [showActionCenterModal, setShowActionCenterModal] = useState(false);
+  const [showRepairCenterModal, setShowRepairCenterModal] = useState(false);
+  const [repairCenterFilter, setRepairCenterFilter] = useState('open');
+  const [repairCenterSearch, setRepairCenterSearch] = useState('');
   const [showRepairModal, setShowRepairModal] = useState(false);
   const [repairTargetId, setRepairTargetId] = useState(null);
-  const [repairForm, setRepairForm] = useState({ issueDate: '', problem: '', reporter: '', sentTo: '', cost: '', doneDate: '', note: '', markAvailable: false });
+  const [repairForm, setRepairForm] = useState({ issueDate: '', problem: '', reporter: '', sentTo: '', cost: '', doneDate: '', note: '', urgency: 'normal', statusStage: 'reported', nextAction: '', markAvailable: false });
   const [returnInspection, setReturnInspection] = useState({});
   const [borrowProofFiles, setBorrowProofFiles] = useState([]);
   const [eventProofFiles, setEventProofFiles] = useState([]);
@@ -11838,6 +11948,100 @@ S.N.: ${item.sn || '-'}
     };
   }, [items, borrowเอกสารs, currentBorrowedItems, currentEventItems, overdueItems.length, stockCountStats, settingsOptions.backupMeta, dataQualityAudit]);
 
+  const repairCenterData = useMemo(() => {
+    const activeItems = items.filter(item => item && !item.isDeleted);
+    const isRepairEntry = (h = {}) => {
+      const t = String(h.type || '').toLowerCase();
+      return t.includes('repair') || t.includes('maintenance') || String(h.problem || '').trim() || String(h.sentTo || '').trim();
+    };
+    const getLastRepair = (item = {}) => {
+      const historyRepairs = (Array.isArray(item.history) ? item.history : []).filter(isRepairEntry);
+      const logRepairs = (Array.isArray(item.repairLogs) ? item.repairLogs : []).filter(Boolean);
+      const all = [...historyRepairs, ...logRepairs].filter(Boolean);
+      return all.slice().sort((a, b) => new Date(b.doneDate || b.issueDate || b.date || 0) - new Date(a.doneDate || a.issueDate || a.date || 0))[0] || null;
+    };
+    const rows = activeItems.map(item => {
+      const repairLogs = Array.isArray(item.repairLogs) ? item.repairLogs : [];
+      const historyRepairs = (Array.isArray(item.history) ? item.history : []).filter(isRepairEntry);
+      const repairCount = Math.max(repairLogs.length, historyRepairs.length);
+      const lastRepair = getLastRepair(item);
+      const stage = lastRepair?.statusStage || (lastRepair?.doneDate || String(lastRepair?.type || '').includes('done') ? 'done' : item.status === 'maintenance' ? 'repairing' : 'none');
+      const urgency = lastRepair?.urgency || (item.status === 'maintenance' ? 'normal' : 'low');
+      const isOpen = item.status === 'maintenance' || (lastRepair && stage !== 'done' && !lastRepair.doneDate);
+      return {
+        item,
+        lastRepair,
+        repairLogs,
+        historyRepairs,
+        repairCount,
+        stage,
+        urgency,
+        isOpen,
+        isDone: stage === 'done' || !!lastRepair?.doneDate || String(lastRepair?.type || '').includes('done'),
+        isRepeated: repairCount >= 2,
+        costText: lastRepair?.cost || '',
+        dateText: lastRepair?.issueDate || lastRepair?.date || '',
+        problem: lastRepair?.problem || item.returnNote || item.currentNote || '',
+        sentTo: lastRepair?.sentTo || '',
+        nextAction: lastRepair?.nextAction || '',
+        reporter: lastRepair?.reporter || lastRepair?.operatorName || '',
+      };
+    }).filter(row => row.item.status === 'maintenance' || row.repairCount > 0 || row.problem);
+
+    const search = String(repairCenterSearch || '').trim().toLowerCase();
+    const matchText = (row) => [
+      row.item.name,
+      row.item.sn,
+      row.item.category,
+      row.item.location,
+      row.item.department,
+      row.item.ownerDepartment,
+      row.item.project,
+      row.problem,
+      row.sentTo,
+      row.nextAction,
+      row.reporter
+    ].map(v => String(v || '').toLowerCase()).join(' ');
+
+    const filteredRows = rows.filter(row => {
+      const matchFilter = repairCenterFilter === 'all'
+        || (repairCenterFilter === 'open' && row.isOpen)
+        || (repairCenterFilter === 'sent' && !!row.sentTo && !row.isDone)
+        || (repairCenterFilter === 'done' && row.isDone)
+        || (repairCenterFilter === 'urgent' && (row.urgency === 'high' || row.urgency === 'critical'))
+        || (repairCenterFilter === 'repeated' && row.isRepeated)
+        || (repairCenterFilter === 'maintenance' && row.item.status === 'maintenance');
+      const matchSearch = !search || matchText(row).includes(search);
+      return matchFilter && matchSearch;
+    }).sort((a, b) => {
+      const urgencyScore = (v) => v === 'critical' ? 4 : v === 'high' ? 3 : v === 'normal' ? 2 : 1;
+      if (a.isOpen !== b.isOpen) return a.isOpen ? -1 : 1;
+      if (urgencyScore(a.urgency) !== urgencyScore(b.urgency)) return urgencyScore(b.urgency) - urgencyScore(a.urgency);
+      return new Date(b.dateText || 0) - new Date(a.dateText || 0);
+    });
+
+    const totalCost = rows.reduce((sum, row) => sum + (Number(String(row.costText || '').replace(/[^0-9.]/g, '')) || 0), 0);
+    return {
+      rows,
+      filteredRows,
+      open: rows.filter(row => row.isOpen),
+      sent: rows.filter(row => row.sentTo && !row.isDone),
+      done: rows.filter(row => row.isDone),
+      urgent: rows.filter(row => row.urgency === 'high' || row.urgency === 'critical'),
+      repeated: rows.filter(row => row.isRepeated),
+      maintenance: rows.filter(row => row.item.status === 'maintenance'),
+      totalCost,
+      summaryCards: [
+        { id: 'open', label: 'รอจัดการ', value: rows.filter(row => row.isOpen).length, desc: 'ยังไม่ปิดงานซ่อม', tone: 'rose' },
+        { id: 'sent', label: 'ส่งซ่อมอยู่', value: rows.filter(row => row.sentTo && !row.isDone).length, desc: 'มีข้อมูลร้าน/ศูนย์ซ่อม', tone: 'orange' },
+        { id: 'urgent', label: 'เร่งด่วน', value: rows.filter(row => row.urgency === 'high' || row.urgency === 'critical').length, desc: 'ความเร่งด่วนสูง', tone: 'amber' },
+        { id: 'repeated', label: 'เสียซ้ำ', value: rows.filter(row => row.isRepeated).length, desc: 'มีประวัติซ่อมตั้งแต่ 2 ครั้ง', tone: 'purple' },
+        { id: 'done', label: 'ซ่อมเสร็จแล้ว', value: rows.filter(row => row.isDone).length, desc: 'ปิดงานหรือพร้อมใช้', tone: 'emerald' },
+        { id: 'all', label: 'ทั้งหมด', value: rows.length, desc: 'รวมประวัติซ่อมทั้งหมด', tone: 'blue' }
+      ]
+    };
+  }, [items, repairCenterFilter, repairCenterSearch]);
+
   const markStockCountFound = (item, source = 'manual') => {
     if (!item || !item.id) return;
     const already = stockCountFoundIds.includes(item.id);
@@ -12003,7 +12207,7 @@ S.N.: ${item.sn || '-'}
   const openRepairForItem = (item) => {
     if (!item) return;
     setRepairTargetId(item.id);
-    setRepairForm({ issueDate: new Date().toISOString().slice(0, 10), problem: '', reporter: currentAccountLabel || '', sentTo: '', cost: '', doneDate: '', note: '', markAvailable: false });
+    setRepairForm({ issueDate: new Date().toISOString().slice(0, 10), problem: '', reporter: currentAccountLabel || '', sentTo: '', cost: '', doneDate: '', note: '', urgency: 'normal', statusStage: 'reported', nextAction: '', markAvailable: false });
     setShowRepairModal(true);
   };
 
@@ -12023,17 +12227,83 @@ S.N.: ${item.sn || '-'}
       sentTo: repairForm.sentTo || '',
       cost: repairForm.cost || '',
       doneDate: repairForm.doneDate || '',
+      urgency: repairForm.urgency || 'normal',
+      statusStage: repairForm.markAvailable ? 'done' : (repairForm.statusStage || 'reported'),
+      nextAction: repairForm.nextAction || '',
       note: repairForm.note || '',
       operatorName: currentAccountLabel
     };
     const newHistory = [...(item.history || []), repairEntry];
     const repairLogs = [...(item.repairLogs || []), repairEntry];
     const newStatus = repairForm.markAvailable ? 'available' : 'maintenance';
-    await setDoc(getItemDoc(item.id), { status: newStatus, history: newHistory, repairLogs, updatedAt: new Date().toISOString(), updatedBy: currentAccountLabel }, { merge: true });
-    logAction(repairForm.markAvailable ? 'ปิดงานซ่อม' : 'แจ้งซ่อม', item.name, `${repairForm.problem}\nผู้แจ้ง: ${repairForm.reporter || currentAccountLabel}`);
-    notify('บันทึกงานซ่อมแล้ว', item.name, 'success');
+    await setDoc(getItemDoc(item.id), { status: newStatus, history: newHistory, repairLogs, repairUrgency: repairEntry.urgency, repairStage: repairEntry.statusStage, updatedAt: new Date().toISOString(), updatedBy: currentAccountLabel }, { merge: true });
+    logAction(repairForm.markAvailable ? 'ปิดงานซ่อม' : 'แจ้งซ่อม', item.name, `${repairForm.problem}\nผู้แจ้ง: ${repairForm.reporter || currentAccountLabel}\nสถานะ: ${repairEntry.statusStage}\nความเร่งด่วน: ${repairEntry.urgency}`);
+    notify(repairForm.markAvailable ? 'ปิดงานซ่อมแล้ว' : 'บันทึกงานซ่อมแล้ว', item.name, 'success');
     setShowRepairModal(false);
     setRepairTargetId(null);
+  };
+
+  const openRepairCenter = (filter = 'open') => {
+    setRepairCenterFilter(filter || 'open');
+    setRepairCenterSearch('');
+    setShowRepairCenterModal(true);
+  };
+
+  const getRepairStageLabel = (stage) => {
+    const map = {
+      reported: 'แจ้งปัญหา',
+      inspecting: 'รอตรวจสอบ',
+      repairing: 'ส่งซ่อม/กำลังซ่อม',
+      waiting: 'รออะไหล่/รอดำเนินการ',
+      done: 'ซ่อมเสร็จแล้ว',
+      retired: 'รอจำหน่าย/เลิกใช้งาน'
+    };
+    return map[stage] || 'แจ้งปัญหา';
+  };
+
+  const getRepairUrgencyLabel = (urgency) => {
+    const map = { low: 'ไม่เร่งด่วน', normal: 'ปกติ', high: 'เร่งด่วน', critical: 'ด่วนมาก' };
+    return map[urgency] || 'ปกติ';
+  };
+
+  const exportRepairCenterCSV = async () => {
+    const headers = ['ลำดับ', 'ชื่ออุปกรณ์', 'S.N.', 'หมวดหมู่', 'ที่เก็บ', 'สถานะระบบ', 'สถานะซ่อม', 'ความเร่งด่วน', 'วันที่พบปัญหา', 'อาการ/ปัญหา', 'ผู้แจ้ง', 'ส่งซ่อมที่', 'ค่าใช้จ่าย', 'วันที่เสร็จ', 'แนวทางถัดไป', 'หมายเหตุ', 'จำนวนซ่อม'];
+    const rows = repairCenterData.filteredRows.map((row, index) => [
+      index + 1,
+      row.item.name || '-',
+      row.item.sn || '-',
+      row.item.category || '-',
+      row.item.location || '-',
+      (STATUSES.find(s => s.id === row.item.status)?.label || row.item.status || '-'),
+      getRepairStageLabel(row.stage),
+      getRepairUrgencyLabel(row.urgency),
+      row.dateText || '-',
+      row.problem || '-',
+      row.reporter || '-',
+      row.sentTo || '-',
+      row.costText || '-',
+      row.lastRepair?.doneDate || '-',
+      row.nextAction || '-',
+      row.lastRepair?.note || '-',
+      row.repairCount
+    ]);
+    backupDownloadCSV(`MDEC_Repair_Center_${repairCenterFilter}_${getBackupFileTag()}.csv`, headers, rows);
+    await logAction('ส่งออก CSV ศูนย์ซ่อม', 'Repair Center', `ส่งออก ${rows.length} แถว`);
+    pushToast('ดาวน์โหลด CSV ศูนย์ซ่อมแล้ว', 'success');
+  };
+
+  const printRepairCenterReport = () => {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+    document.body.classList.add('mdec-repair-center-printing');
+    const cleanup = () => {
+      document.body.classList.remove('mdec-repair-center-printing');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    window.setTimeout(() => {
+      window.print();
+      window.setTimeout(cleanup, 2200);
+    }, 120);
   };
 
   const applyProblemFilter = (type) => {
@@ -16166,10 +16436,16 @@ S.N.: ${item.sn || '-'}
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดกลุ่มตามแหล่งที่มา</p>
                   </button>
                   {isFullMode && canUseOperationalTools && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); openWorkspace('stockCount'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.CheckCircle className="w-5 h-5" /> ตรวจนับสต๊อก</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รอบตรวจนับ / รายงาน A4 / CSV</p>
-                    </button>
+                    <>
+                      <button type="button" onClick={() => { setShowMoreMenu(false); openWorkspace('stockCount'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                        <div className="font-black text-lg flex items-center gap-2"><Icons.CheckCircle className="w-5 h-5" /> ตรวจนับสต๊อก</div>
+                        <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รอบตรวจนับ / รายงาน A4 / CSV</p>
+                      </button>
+                      <button type="button" onClick={() => { setShowMoreMenu(false); openRepairCenter('open'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                        <div className="font-black text-lg flex items-center gap-2"><Icons.Settings className="w-5 h-5" /> ศูนย์ซ่อม</div>
+                        <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>งานซ่อม / บำรุงรักษา / รายงาน</p>
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -16515,7 +16791,7 @@ S.N.: ${item.sn || '-'}
           </div>
         </div>
 
-        <div className="p-4 sm:p-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-2.5">
+        <div className="p-4 sm:p-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-8 gap-2.5">
           {canUseOperationalTools && (
             <button type="button" onClick={() => openSelectionScanner()} className={`group relative overflow-hidden p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-900 border-slate-900 text-white'}`}>
               <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center mb-3"><Icons.QrCode className="w-5 h-5" /></div>
@@ -16539,6 +16815,11 @@ S.N.: ${item.sn || '-'}
             <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center mb-3"><Icons.Users className="w-5 h-5" /></div>
             <div className="font-black text-lg">ติดตามของรอคืน</div>
             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ดูตามผู้ยืม/งาน</div>
+          </button>
+          <button type="button" onClick={() => openRepairCenter('open')} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
+            <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center mb-3"><Icons.Settings className="w-5 h-5" /></div>
+            <div className="font-black text-lg">ศูนย์ซ่อม</div>
+            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>รอซ่อม/ส่งซ่อม</div>
           </button>
           <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-blue-950/40 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-100 text-blue-700'}`}>
             <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-3"><Icons.พิมพ์er className="w-5 h-5" /></div>
@@ -21424,6 +21705,165 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
+      {/* 🛠️ v22.53.39 Repair / Maintenance Center */}
+      {showRepairCenterModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-4 z-[9998]`}>
+          <div className={`rounded-[1.85rem] shadow-2xl w-full max-w-7xl max-h-[93vh] overflow-hidden flex flex-col border ${theme.cardBg}`}>
+            <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-4 ${theme.divide}`}>
+              <div className="min-w-0">
+                <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-rose-300' : 'text-rose-600'}`}>REPAIR / MAINTENANCE CENTER</div>
+                <h3 className={`text-2xl sm:text-3xl font-black flex items-center gap-3 mt-1 ${theme.textTitle}`}>
+                  <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-500 text-white flex items-center justify-center shadow-lg">🛠️</span>
+                  ศูนย์ซ่อม / บำรุงรักษา
+                </h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมอุปกรณ์ชำรุด ส่งซ่อม เสียซ้ำ และประวัติบำรุงรักษาไว้ในหน้าเดียว</p>
+              </div>
+              <div className="flex flex-wrap gap-2 shrink-0">
+                <button type="button" onClick={exportRepairCenterCSV} className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">Export CSV</button>
+                <button type="button" onClick={printRepairCenterReport} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>พิมพ์รายงาน</button>
+                <button type="button" onClick={() => setShowRepairCenterModal(false)} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnCancel}`}>ปิด</button>
+              </div>
+            </div>
+
+            <div className={`px-4 sm:px-6 py-4 border-b grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2.5 ${theme.divide}`}>
+              {repairCenterData.summaryCards.map(card => {
+                const cls = card.tone === 'rose'
+                  ? (isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')
+                  : card.tone === 'orange'
+                    ? (isDarkMode ? 'bg-orange-950/30 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800')
+                    : card.tone === 'amber'
+                      ? (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800')
+                      : card.tone === 'purple'
+                        ? (isDarkMode ? 'bg-purple-950/30 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-800')
+                        : card.tone === 'emerald'
+                          ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
+                          : (isDarkMode ? 'bg-blue-950/30 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800');
+                return (
+                  <button key={card.id} type="button" onClick={() => setRepairCenterFilter(card.id)} className={`repair-center-card rounded-2xl border p-3 text-left shadow-sm ${repairCenterFilter === card.id ? 'ring-2 ring-blue-500/40' : ''} ${cls}`}>
+                    <div className="text-2xl font-black leading-none">{Number(card.value || 0).toLocaleString('th-TH')}</div>
+                    <div className="text-xs sm:text-sm font-black mt-2">{card.label}</div>
+                    <div className="text-[11px] font-bold mt-1 opacity-75 truncate">{card.desc}</div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className={`p-4 border-b grid grid-cols-1 xl:grid-cols-[1fr_240px_auto] gap-3 ${theme.divide}`}>
+              <input className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`} placeholder="ค้นหา ชื่ออุปกรณ์ / S.N. / อาการเสีย / ร้านซ่อม / ผู้แจ้ง" value={repairCenterSearch} onChange={e => setRepairCenterSearch(e.target.value)} />
+              <select className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`} value={repairCenterFilter} onChange={e => setRepairCenterFilter(e.target.value)}>
+                <option value="open">รอจัดการ</option>
+                <option value="sent">ส่งซ่อมอยู่</option>
+                <option value="urgent">เร่งด่วน</option>
+                <option value="repeated">เสียซ้ำ</option>
+                <option value="done">ซ่อมเสร็จแล้ว</option>
+                <option value="maintenance">สถานะซ่อม/ชำรุด</option>
+                <option value="all">ทั้งหมด</option>
+              </select>
+              <div className={`px-4 py-3 rounded-2xl border font-black text-center ${theme.btnSecondary}`}>{repairCenterData.filteredRows.length.toLocaleString('th-TH')} รายการ</div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5">
+              {repairCenterData.filteredRows.length === 0 ? (
+                <div className={`p-10 rounded-3xl border text-center ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                  <div className="text-5xl mb-3">🛠️</div>
+                  <div className={`text-2xl font-black ${theme.textTitle}`}>ยังไม่มีงานซ่อมตามตัวกรองนี้</div>
+                  <p className="text-sm font-bold mt-2">ลองเปลี่ยนตัวกรอง หรือแจ้งซ่อมจากแฟ้มอุปกรณ์/รายการอุปกรณ์</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                  {repairCenterData.filteredRows.slice(0, 180).map(row => {
+                    const statusInfo = STATUSES.find(s => s.id === row.item.status) || STATUSES[0];
+                    const urgentCls = row.urgency === 'critical'
+                      ? 'bg-rose-600 text-white border-rose-600'
+                      : row.urgency === 'high'
+                        ? (isDarkMode ? 'bg-amber-950 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800')
+                        : (isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600');
+                    return (
+                      <div key={row.item.id} className={`repair-center-card rounded-3xl border p-4 shadow-sm ${row.isOpen ? (isDarkMode ? 'bg-rose-950/15 border-rose-900' : 'bg-rose-50/60 border-rose-200') : (isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200')}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className={`text-lg font-black truncate ${theme.textTitle}`}>{row.item.name || '-'}</div>
+                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {row.item.sn || '-'} • {row.item.category || '-'} • {row.item.location || '-'}</div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                            <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black border ${urgentCls}`}>{getRepairUrgencyLabel(row.urgency)}</span>
+                          </div>
+                        </div>
+
+                        <div className={`mt-3 p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white/75 border-slate-200'}`}>
+                          <div className={`text-xs font-black ${theme.textMuted}`}>อาการ / ปัญหาล่าสุด</div>
+                          <div className={`font-black mt-1 ${theme.textTitle}`}>{row.problem || 'ยังไม่มีรายละเอียดอาการ'}</div>
+                          <div className={`text-xs font-bold mt-2 ${theme.textMuted}`}>สถานะซ่อม: {getRepairStageLabel(row.stage)} • วันที่พบ: {row.dateText ? new Date(row.dateText).toLocaleDateString('th-TH') : '-'}</div>
+                          {(row.sentTo || row.costText || row.nextAction) && <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ส่งซ่อม: {row.sentTo || '-'} • ค่าใช้จ่าย {row.costText || '-'} • ถัดไป {row.nextAction || '-'}</div>}
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+                          <button type="button" onClick={() => { setShowRepairCenterModal(false); setShowHistory(row.item.id); }} className={`px-3 py-3 rounded-2xl border text-sm font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
+                          <button type="button" onClick={() => { setShowRepairCenterModal(false); openRepairForItem(row.item); }} className="px-3 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-black">อัปเดตซ่อม</button>
+                          {row.item.status === 'maintenance' && <button type="button" onClick={() => { setShowRepairCenterModal(false); openRepairForItem(row.item); setRepairForm(prev => ({ ...prev, statusStage: 'done', markAvailable: true, doneDate: new Date().toISOString().slice(0,10) })); }} className="px-3 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black">ปิดงาน</button>}
+                          <button type="button" onClick={() => copyItemSummary(row.item)} className={`px-3 py-3 rounded-2xl border text-sm font-black ${theme.btnSecondary}`}>คัดลอก</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="repair-center-print-area">
+              <div className="repair-report-doc">
+                <div className="repair-report-head">
+                  <div>
+                    <div className="repair-report-title">รายงานศูนย์ซ่อม / บำรุงรักษา</div>
+                    <div className="repair-report-sub">MDEC-Stock • ศูนย์มัลติมีเดียทางการศึกษา วิทยาลัยเทคโนโลยีภาคตะวันออก (อี.เทค)</div>
+                  </div>
+                  <div className="repair-report-meta">
+                    พิมพ์เมื่อ: {new Date().toLocaleString('th-TH', { hour12: false })}<br/>
+                    ตัวกรอง: {repairCenterFilter}<br/>
+                    เวอร์ชัน: {APP_VERSION}
+                  </div>
+                </div>
+                <div className="repair-report-kpi">
+                  <div><b>{repairCenterData.open.length}</b><span>รอจัดการ</span></div>
+                  <div><b>{repairCenterData.sent.length}</b><span>ส่งซ่อมอยู่</span></div>
+                  <div><b>{repairCenterData.urgent.length}</b><span>เร่งด่วน</span></div>
+                  <div><b>{repairCenterData.repeated.length}</b><span>เสียซ้ำ</span></div>
+                  <div><b>{repairCenterData.done.length}</b><span>เสร็จแล้ว</span></div>
+                </div>
+                <table className="repair-report-table">
+                  <thead><tr><th>#</th><th>อุปกรณ์</th><th>S.N.</th><th>สถานะ</th><th>อาการ/ปัญหา</th><th>ส่งซ่อม/ค่าใช้จ่าย</th><th>แนวทางถัดไป</th></tr></thead>
+                  <tbody>
+                    {repairCenterData.filteredRows.slice(0, 32).map((row, idx) => (
+                      <tr key={`repair_print_${row.item.id}`}>
+                        <td>{idx + 1}</td>
+                        <td>{row.item.name || '-'}</td>
+                        <td>{row.item.sn || '-'}</td>
+                        <td>{getRepairStageLabel(row.stage)} / {getRepairUrgencyLabel(row.urgency)}</td>
+                        <td>{row.problem || '-'}</td>
+                        <td>{row.sentTo || '-'} / {row.costText || '-'}</td>
+                        <td>{row.nextAction || row.lastRepair?.note || '-'}</td>
+                      </tr>
+                    ))}
+                    {repairCenterData.filteredRows.length === 0 && <tr><td>1</td><td colSpan="6">ไม่พบรายการซ่อมตามตัวกรอง</td></tr>}
+                  </tbody>
+                </table>
+                <div className="repair-report-sign">
+                  <div>ผู้จัดทำรายงาน</div>
+                  <div>ผู้ตรวจสอบ</div>
+                  <div>ผู้อนุมัติ/รับรอง</div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`p-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
+              <div className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>ศูนย์ซ่อมเป็นหน้ารวมข้อมูล ไม่เปลี่ยน flow ยืม/คืนเดิม การปิดงานซ่อมทำผ่านปุ่มอัปเดตซ่อมเท่านั้น</div>
+              <button type="button" onClick={() => setShowRepairCenterModal(false)} className={`px-6 py-3 rounded-2xl font-black ${theme.btnCancel}`}>ปิดศูนย์ซ่อม</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 🛠️ Modal แจ้งซ่อม / ประวัติซ่อม */}
       {showRepairModal && (() => {
         const repairItem = items.find(i => i.id === repairTargetId);
@@ -21436,7 +21876,10 @@ S.N.: ${item.sn || '-'}
                   <h3 className={`text-2xl font-black ${theme.textTitle}`}>แจ้งซ่อม / บันทึกปัญหา</h3>
                   <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{repairItem.name} • {repairItem.sn || '-'}</p>
                 </div>
-                <button onClick={() => setShowRepairModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => { setShowRepairModal(false); openRepairCenter('open'); }} className={`hidden sm:inline-flex px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดศูนย์ซ่อม</button>
+                  <button onClick={() => setShowRepairModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+                </div>
               </div>
               <div className="p-6 overflow-y-auto custom-scrollbar space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -21444,11 +21887,16 @@ S.N.: ${item.sn || '-'}
                   <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>ผู้แจ้ง</span><input className={`w-full px-4 py-3 rounded-xl border ${theme.input}`} value={repairForm.reporter} onChange={e => setRepairForm({...repairForm, reporter: e.target.value})} /></label>
                 </div>
                 <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>อาการเสีย / สิ่งที่ต้องตรวจ <span className="text-rose-500">*</span></span><textarea rows="3" className={`w-full px-4 py-3 rounded-xl border resize-none ${theme.input}`} value={repairForm.problem} onChange={e => setRepairForm({...repairForm, problem: e.target.value})} placeholder="เช่น หัวไมค์หลวม / ช่อง HDMI กระพริบ / แบตเสื่อม" /></label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>ความเร่งด่วน</span><select className={`w-full px-4 py-3 rounded-xl border ${theme.input}`} value={repairForm.urgency || 'normal'} onChange={e => setRepairForm({...repairForm, urgency: e.target.value})}><option value="low">ไม่เร่งด่วน</option><option value="normal">ปกติ</option><option value="high">เร่งด่วน</option><option value="critical">ด่วนมาก</option></select></label>
+                  <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>สถานะงานซ่อม</span><select className={`w-full px-4 py-3 rounded-xl border ${theme.input}`} value={repairForm.statusStage || 'reported'} onChange={e => setRepairForm({...repairForm, statusStage: e.target.value, markAvailable: e.target.value === 'done' ? true : repairForm.markAvailable})}><option value="reported">แจ้งปัญหา</option><option value="inspecting">รอตรวจสอบ</option><option value="repairing">ส่งซ่อม/กำลังซ่อม</option><option value="waiting">รออะไหล่/รอดำเนินการ</option><option value="done">ซ่อมเสร็จแล้ว</option><option value="retired">รอจำหน่าย/เลิกใช้งาน</option></select></label>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <input className={`px-4 py-3 rounded-xl border ${theme.input}`} placeholder="ส่งซ่อมที่ไหน" value={repairForm.sentTo} onChange={e => setRepairForm({...repairForm, sentTo: e.target.value})} />
                   <input className={`px-4 py-3 rounded-xl border ${theme.input}`} placeholder="ค่าใช้จ่าย" value={repairForm.cost} onChange={e => setRepairForm({...repairForm, cost: e.target.value})} />
                   <input type="date" className={`px-4 py-3 rounded-xl border ${theme.input}`} value={repairForm.doneDate} onChange={e => setRepairForm({...repairForm, doneDate: e.target.value})} />
                 </div>
+                <input className={`w-full px-4 py-3 rounded-xl border ${theme.input}`} placeholder="แนวทางถัดไป เช่น รออะไหล่ / ส่งศูนย์ / ตรวจซ้ำวัน..." value={repairForm.nextAction || ''} onChange={e => setRepairForm({...repairForm, nextAction: e.target.value})} />
                 <textarea rows="2" className={`w-full px-4 py-3 rounded-xl border resize-none ${theme.input}`} placeholder="หมายเหตุเพิ่มเติม" value={repairForm.note} onChange={e => setRepairForm({...repairForm, note: e.target.value})} />
                 <label className={`flex items-center gap-3 p-4 rounded-xl border ${theme.btnSecondary}`}><input type="checkbox" className="w-5 h-5 accent-emerald-500" checked={repairForm.markAvailable} onChange={e => setRepairForm({...repairForm, markAvailable: e.target.checked})} /><span className="font-bold">ซ่อมเสร็จแล้ว เปลี่ยนสถานะกลับเป็นพร้อมใช้</span></label>
                 <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
