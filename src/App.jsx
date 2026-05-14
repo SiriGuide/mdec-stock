@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.38 Daily Operation / Staff Workflow Polish';
-const APP_UPDATE_NOTE = 'Daily Operation / Staff Workflow Polish: ปรับทางลัดงานประจำวัน ปุ่มรับคืน/ติดตาม/เติมข้อมูล/ตรวจนับให้กดไวขึ้น เพิ่ม Smart Quick Actions ในแฟ้มอุปกรณ์ และปรับข้อความหลังทำรายการ โดยไม่แตะ QR Scanner/กล้อง/Firebase path/flow หลัก';
+const APP_VERSION = 'v22.53.38.1 Daily Operation / Staff Workflow Hotfix';
+const APP_UPDATE_NOTE = 'Daily Operation / Staff Workflow Hotfix: แก้ ReferenceError จาก dailyWorkflowData ที่เรียก dataQualityAudit/stockCountStats ก่อนประกาศ โดยย้าย helper ไปหลังตัวแปรที่ต้องใช้ครบแล้ว พร้อมคงฟีเจอร์ v22.53.38 เดิมทั้งหมด';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -10946,52 +10946,6 @@ S.N.: ${item.sn || '-'}
     };
   }, [todayFollowup, trackingSearch, borrowเอกสารs, todayMs]);
 
-  const dailyWorkflowData = useMemo(() => {
-    const urgentReturnIds = Array.from(new Set([...overdueItems, ...dueTodayItems].map(item => item?.id).filter(Boolean)));
-    const nextPrep = prepTodayLists.slice(0, 3);
-    const issueCount = dataQualityAudit.issueItemCount + stockCountStats.recheck.length;
-    return {
-      urgentReturnIds,
-      urgentReturnCount: urgentReturnIds.length,
-      nextPrep,
-      issueCount,
-      cards: [
-        {
-          id: 'return',
-          title: 'รับคืนด่วน',
-          value: urgentReturnIds.length,
-          desc: urgentReturnIds.length ? 'โหลดรายการวันนี้/เลยกำหนดเข้า flow รับคืน' : 'ยังไม่มีของครบกำหนดวันนี้',
-          tone: urgentReturnIds.length ? 'emerald' : 'slate',
-          action: () => openDailyReturnBatch('urgent')
-        },
-        {
-          id: 'follow',
-          title: 'ติดตามของค้าง',
-          value: overdueItems.length,
-          desc: overdueItems.length ? 'เปิดรายการเลยกำหนดและคัดลอกข้อความตามของ' : 'ไม่มีรายการเลยกำหนด',
-          tone: overdueItems.length ? 'rose' : 'emerald',
-          action: () => openTrackingCenter('overdue')
-        },
-        {
-          id: 'prep',
-          title: 'เตรียมของวันนี้',
-          value: prepTodayLists.length,
-          desc: prepTodayLists.length ? nextPrep.map(p => p.name || 'รายการเตรียมของ').join(' • ') : 'ยังไม่มี checklist วันนี้',
-          tone: prepTodayLists.length ? 'blue' : 'slate',
-          action: () => setShowPrepListsModal(true)
-        },
-        {
-          id: 'quality',
-          title: 'ตรวจข้อมูล/ตรวจซ้ำ',
-          value: issueCount,
-          desc: `${dataQualityAudit.issueItemCount} ข้อมูลควรเติม • ${stockCountStats.recheck.length} ควรตรวจซ้ำ`,
-          tone: issueCount ? 'amber' : 'emerald',
-          action: openDailyDataQuality
-        }
-      ]
-    };
-  }, [overdueItems, dueTodayItems, prepTodayLists, dataQualityAudit, stockCountStats.recheck.length]);
-
   const allHistoryCenterEntries = useMemo(() => {
     const rows = [];
     items.filter(i => i && !i.isDeleted).forEach((item) => {
@@ -11786,6 +11740,52 @@ S.N.: ${item.sn || '-'}
     };
   }, [items]);
 
+
+  const dailyWorkflowData = useMemo(() => {
+    const urgentReturnIds = Array.from(new Set([...overdueItems, ...dueTodayItems].map(item => item?.id).filter(Boolean)));
+    const nextPrep = prepTodayLists.slice(0, 3);
+    const issueCount = dataQualityAudit.issueItemCount + stockCountStats.recheck.length;
+    return {
+      urgentReturnIds,
+      urgentReturnCount: urgentReturnIds.length,
+      nextPrep,
+      issueCount,
+      cards: [
+        {
+          id: 'return',
+          title: 'รับคืนด่วน',
+          value: urgentReturnIds.length,
+          desc: urgentReturnIds.length ? 'โหลดรายการวันนี้/เลยกำหนดเข้า flow รับคืน' : 'ยังไม่มีของครบกำหนดวันนี้',
+          tone: urgentReturnIds.length ? 'emerald' : 'slate',
+          action: () => openDailyReturnBatch('urgent')
+        },
+        {
+          id: 'follow',
+          title: 'ติดตามของค้าง',
+          value: overdueItems.length,
+          desc: overdueItems.length ? 'เปิดรายการเลยกำหนดและคัดลอกข้อความตามของ' : 'ไม่มีรายการเลยกำหนด',
+          tone: overdueItems.length ? 'rose' : 'emerald',
+          action: () => openTrackingCenter('overdue')
+        },
+        {
+          id: 'prep',
+          title: 'เตรียมของวันนี้',
+          value: prepTodayLists.length,
+          desc: prepTodayLists.length ? nextPrep.map(p => p.name || 'รายการเตรียมของ').join(' • ') : 'ยังไม่มี checklist วันนี้',
+          tone: prepTodayLists.length ? 'blue' : 'slate',
+          action: () => setShowPrepListsModal(true)
+        },
+        {
+          id: 'quality',
+          title: 'ตรวจข้อมูล/ตรวจซ้ำ',
+          value: issueCount,
+          desc: `${dataQualityAudit.issueItemCount} ข้อมูลควรเติม • ${stockCountStats.recheck.length} ควรตรวจซ้ำ`,
+          tone: issueCount ? 'amber' : 'emerald',
+          action: openDailyDataQuality
+        }
+      ]
+    };
+  }, [overdueItems, dueTodayItems, prepTodayLists, dataQualityAudit, stockCountStats.recheck.length]);
 
   const yearEndHelperData = useMemo(() => {
     const activeItems = items.filter(item => item && !item.isDeleted);
