@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.37 Asset Profile / Equipment History File Polish';
-const APP_UPDATE_NOTE = 'Simple Backup / Year-End Helper Hotfix: แก้ลำดับ useMemo ของศูนย์สำรองข้อมูลที่ทำให้เกิด ReferenceError ก่อนโหลดหน้าเว็บ พร้อมคงฟีเจอร์ Backup Helper เดิมทั้งหมด';
+const APP_VERSION = 'v22.53.38 Daily Operation / Staff Workflow Polish';
+const APP_UPDATE_NOTE = 'Daily Operation / Staff Workflow Polish: ปรับทางลัดงานประจำวัน ปุ่มรับคืน/ติดตาม/เติมข้อมูล/ตรวจนับให้กดไวขึ้น เพิ่ม Smart Quick Actions ในแฟ้มอุปกรณ์ และปรับข้อความหลังทำรายการ โดยไม่แตะ QR Scanner/กล้อง/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -2387,6 +2387,15 @@ function FactoryPolishStyle({ isDarkMode }) {
         }
         .factory-stock-polish .asset-profile-modal .asset-profile-action-grid button {
           min-height: 46px;
+        }
+        .factory-stock-polish .daily-workflow-card {
+          transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+        }
+        .factory-stock-polish .daily-workflow-card:active {
+          transform: scale(.985);
+        }
+        .factory-stock-polish .operation-summary-chip {
+          min-height: 42px;
         }
         .factory-stock-polish .asset-profile-print-area {
           display: none;
@@ -9698,6 +9707,21 @@ S.N.: ${item.sn || '-'}
                   <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เลือกอุปกรณ์ด้านซ้าย แล้วตรวจเช็กก่อนยืนยันรายการ</p>
                 </div>
                 <div className="p-4 space-y-4">
+                  <div className={`rounded-2xl border p-3 ${actionTargetIds.length > 0 ? (isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800') : (isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700')}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-black opacity-70">OPERATION SUMMARY</div>
+                        <div className="font-black mt-0.5">{actionTargetIds.length > 0 ? `เลือกแล้ว ${actionTargetIds.length} รายการ` : 'ยังไม่ได้เลือกอุปกรณ์'}</div>
+                        <div className="text-xs font-bold mt-1 opacity-75 truncate">
+                          {selectedActionItems.length > 0 ? selectedActionItems.slice(0, 3).map(i => i.name || i.sn || i.id).join(' • ') : 'เลือกจากรายการด้านซ้าย หรือสแกน QR เพื่อเริ่มทำรายการ'}
+                        </div>
+                      </div>
+                      {actionTargetIds.length > 0 && (
+                        <button type="button" onClick={() => setActionChecklist(actionTargetIds)} className="shrink-0 px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">เช็กครบ</button>
+                      )}
+                    </div>
+                    {actionTargetIds.length > 3 && <div className="text-[11px] font-bold mt-2 opacity-70">และอีก {(actionTargetIds.length - 3).toLocaleString('th-TH')} รายการ</div>}
+                  </div>
                   {borrowReturnMode !== 'return' && (
                     <button type="button" onClick={() => openCameraAccessoryHelper(borrowReturnMode)} className="w-full px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black flex items-center justify-center gap-2"><Icons.Camera className="w-5 h-5" /> เพิ่มกล้องแบบมีตัวช่วย</button>
                   )}
@@ -10825,6 +10849,54 @@ S.N.: ${item.sn || '-'}
     }
   };
 
+  const copyDailyOperationSummary = async () => {
+    const text = [
+      'สรุปงานวันนี้จากระบบ MDEC Stock',
+      `- ต้องคืนวันนี้: ${dueTodayItems.length} รายการ`,
+      `- เลยกำหนดคืน: ${overdueItems.length} รายการ`,
+      `- รอคืนทั้งหมด: ${(currentBorrowedItems.length + currentEventItems.length)} รายการ`,
+      `- ออกงานอยู่: ${currentEventItems.length} รายการ`,
+      `- เตรียมของวันนี้: ${prepTodayLists.length} รายการ`,
+      `- ข้อมูลควรเติม: ${dataQualityAudit.issueItemCount} รายการ`,
+      '',
+      'ตรวจสอบรายละเอียดได้ที่ Dashboard / ศูนย์ติดตามของรอคืน'
+    ].join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      pushToast('คัดลอกสรุปงานวันนี้แล้ว', 'พร้อมส่งต่อใน LINE/แชททีมได้เลย', 'success');
+    } catch (error) {
+      window.prompt('คัดลอกสรุปงานวันนี้', text);
+    }
+  };
+
+  const openDailyReturnBatch = (mode = 'urgent') => {
+    const source = mode === 'today'
+      ? dueTodayItems
+      : mode === 'overdue'
+        ? overdueItems
+        : [...overdueItems, ...dueTodayItems];
+    const ids = Array.from(new Set(source.map(item => item?.id).filter(Boolean))).slice(0, 60);
+    if (ids.length === 0) {
+      pushToast('ยังไม่มีรายการสำหรับรับคืนด่วน', 'ลองเปิดศูนย์ติดตามเพื่อดูรายการรอคืนทั้งหมด', 'info');
+      openTrackingCenter('today');
+      return;
+    }
+    setReturnData({ staff: '', newStaff: '' });
+    setReturnTargetIds(ids);
+    setReturnChecklist([]);
+    setReturnProofFiles([]);
+    setReturnInspection({});
+    setBorrowReturnMode('return');
+    openWorkspace('borrowReturn');
+    pushToast('เตรียมรายการรับคืนด่วนแล้ว', `โหลดรายการ ${ids.length} ชิ้นเข้าสู่หน้า ยืม / คืน`, 'success');
+  };
+
+  const openDailyDataQuality = () => {
+    setShowSettings(true);
+    openSettingsTab('quality');
+    pushToast('เปิดหน้าตรวจคุณภาพข้อมูลแล้ว', 'ดูรายการที่ควรเติม S.N. / ที่เก็บ / QR / ฝ่ายดูแล', 'info');
+  };
+
   const openReturnFromTracking = (item) => {
     if (!item || !item.id) return;
     setReturnData({ staff: '', newStaff: '' });
@@ -10873,6 +10945,52 @@ S.N.: ${item.sn || '-'}
       })
     };
   }, [todayFollowup, trackingSearch, borrowเอกสารs, todayMs]);
+
+  const dailyWorkflowData = useMemo(() => {
+    const urgentReturnIds = Array.from(new Set([...overdueItems, ...dueTodayItems].map(item => item?.id).filter(Boolean)));
+    const nextPrep = prepTodayLists.slice(0, 3);
+    const issueCount = dataQualityAudit.issueItemCount + stockCountStats.recheck.length;
+    return {
+      urgentReturnIds,
+      urgentReturnCount: urgentReturnIds.length,
+      nextPrep,
+      issueCount,
+      cards: [
+        {
+          id: 'return',
+          title: 'รับคืนด่วน',
+          value: urgentReturnIds.length,
+          desc: urgentReturnIds.length ? 'โหลดรายการวันนี้/เลยกำหนดเข้า flow รับคืน' : 'ยังไม่มีของครบกำหนดวันนี้',
+          tone: urgentReturnIds.length ? 'emerald' : 'slate',
+          action: () => openDailyReturnBatch('urgent')
+        },
+        {
+          id: 'follow',
+          title: 'ติดตามของค้าง',
+          value: overdueItems.length,
+          desc: overdueItems.length ? 'เปิดรายการเลยกำหนดและคัดลอกข้อความตามของ' : 'ไม่มีรายการเลยกำหนด',
+          tone: overdueItems.length ? 'rose' : 'emerald',
+          action: () => openTrackingCenter('overdue')
+        },
+        {
+          id: 'prep',
+          title: 'เตรียมของวันนี้',
+          value: prepTodayLists.length,
+          desc: prepTodayLists.length ? nextPrep.map(p => p.name || 'รายการเตรียมของ').join(' • ') : 'ยังไม่มี checklist วันนี้',
+          tone: prepTodayLists.length ? 'blue' : 'slate',
+          action: () => setShowPrepListsModal(true)
+        },
+        {
+          id: 'quality',
+          title: 'ตรวจข้อมูล/ตรวจซ้ำ',
+          value: issueCount,
+          desc: `${dataQualityAudit.issueItemCount} ข้อมูลควรเติม • ${stockCountStats.recheck.length} ควรตรวจซ้ำ`,
+          tone: issueCount ? 'amber' : 'emerald',
+          action: openDailyDataQuality
+        }
+      ]
+    };
+  }, [overdueItems, dueTodayItems, prepTodayLists, dataQualityAudit, stockCountStats.recheck.length]);
 
   const allHistoryCenterEntries = useMemo(() => {
     const rows = [];
@@ -12294,6 +12412,7 @@ S.N.: ${item.sn || '-'}
       setSelectedItems([]); 
       setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setBorrowProofFiles([]);
+      pushToast('บันทึกยืมสำเร็จ', `สร้างเอกสาร ${docRef} • ${selectedBorrowItems.length} รายการ`, 'success');
       alert('✅ บันทึกการยืมเรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
@@ -12351,6 +12470,7 @@ S.N.: ${item.sn || '-'}
       setSelectedItems([]); 
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setEventProofFiles([]);
+      pushToast('บันทึกออกงานสำเร็จ', `สร้างเอกสาร ${docRef} • ${selectedEventItems.length} รายการ`, 'success');
       alert('✅ บันทึกการนำออกงานเรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
@@ -12475,6 +12595,7 @@ S.N.: ${item.sn || '-'}
       setReturnData({ staff: '', newStaff: '' });
       setReturnInspection({});
       setReturnProofFiles([]);
+      pushToast(returnChecklist.length < returnTargetIds.length ? 'รับคืนบางส่วนสำเร็จ' : 'รับคืนสำเร็จ', `สร้างเอกสาร ${returnDocRef} • รับคืน ${returnChecklist.length} รายการ`, returnChecklist.length < returnTargetIds.length ? 'warning' : 'success');
       alert('✅ รับคืนอุปกรณ์เรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
@@ -16282,6 +16403,43 @@ S.N.: ${item.sn || '-'}
               </button>
             );
           })}
+        </div>
+
+        <div className="px-4 sm:px-5 pb-4">
+          <div className={`rounded-3xl border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
+              <div>
+                <div className={`font-black text-lg ${theme.textTitle}`}>Staff Workflow วันนี้</div>
+                <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>ทางลัดสำหรับงานที่เจ้าหน้าที่ต้องกดบ่อย ไม่ต้องไล่หาเมนูหลายหน้า</div>
+              </div>
+              <button type="button" onClick={copyDailyOperationSummary} className={`px-4 py-2.5 rounded-2xl border font-black text-sm ${theme.btnSecondary}`}>คัดลอกสรุปงานวันนี้</button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5">
+              {dailyWorkflowData.cards.map(card => {
+                const cls = card.tone === 'rose'
+                  ? (isDarkMode ? 'bg-rose-950/25 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')
+                  : card.tone === 'amber'
+                    ? (isDarkMode ? 'bg-amber-950/25 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800')
+                    : card.tone === 'blue'
+                      ? (isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800')
+                      : card.tone === 'emerald'
+                        ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
+                        : (isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700');
+                return (
+                  <button key={card.id} type="button" onClick={card.action} className={`daily-workflow-card p-3.5 rounded-2xl border text-left shadow-sm ${cls}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="min-w-0">
+                        <span className="block font-black">{card.title}</span>
+                        <span className="block text-[11px] font-bold mt-1 opacity-75 line-clamp-2">{card.desc}</span>
+                      </span>
+                      <span className="text-2xl font-black shrink-0">{Number(card.value || 0).toLocaleString('th-TH')}</span>
+                    </div>
+                    <div className="text-xs font-black mt-3 opacity-70">กดเพื่อดำเนินการ →</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         <div className={`px-4 sm:px-5 pb-4 sm:pb-5 grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-3 ${theme.textTitle}`}>
@@ -20124,6 +20282,25 @@ S.N.: ${item.sn || '-'}
           ['system', 'ระบบ', profileCompletion]
         ];
 
+        const assetNextActions = [];
+        if (canUseOperationalTools && detailItem.status === 'available') {
+          assetNextActions.push({ id: 'borrow', label: 'ยืมชิ้นนี้', desc: 'พร้อมใช้ สามารถทำรายการยืมได้ทันที', tone: 'purple', action: (e) => { setShowHistory(null); handleOpenRowBorrow(e, detailItem); } });
+          assetNextActions.push({ id: 'event', label: 'ออกงานชิ้นนี้', desc: 'ใช้ในงานกิจกรรม/ประชุม/ถ่ายทำ', tone: 'orange', action: (e) => { setShowHistory(null); handleOpenRowEvent(e, detailItem); } });
+        }
+        if (canUseOperationalTools && (detailItem.status === 'borrowed' || detailItem.status === 'out-for-event')) {
+          assetNextActions.push({ id: 'return', label: 'รับคืนชิ้นนี้', desc: currentHolderText, tone: 'emerald', action: () => { setShowHistory(null); openReturnForItems([detailItem.id]); } });
+          assetNextActions.push({ id: 'copy', label: 'คัดลอกข้อความตามของ', desc: dueText !== '-' ? `กำหนดคืน ${dueText}` : 'ไม่มีวันกำหนดคืน', tone: 'blue', action: () => copyReturnTrackingMessage(detailItem) });
+        }
+        if (detailItem.status === 'maintenance') {
+          assetNextActions.push({ id: 'repair', label: 'ดู/เพิ่มงานซ่อม', desc: 'อุปกรณ์อยู่สถานะซ่อม/ชำรุด', tone: 'rose', action: () => openRepairForItem(detailItem) });
+        }
+        if (missingProfileFields.length > 0 && canAddEditItems) {
+          assetNextActions.push({ id: 'edit', label: 'เติมข้อมูลแฟ้ม', desc: missingProfileFields.map(([label]) => label).slice(0, 3).join(', '), tone: 'amber', action: () => { setShowHistory(null); openItemEditor(detailItem); } });
+        }
+        if (assetNextActions.length === 0) {
+          assetNextActions.push({ id: 'proof', label: 'ดูหลักฐาน', desc: 'เปิดศูนย์หลักฐานของอุปกรณ์นี้', tone: 'slate', action: () => openProofCenterFromAssetProfile(detailItem) });
+        }
+
         return (
           <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-2 sm:p-5 z-[9999]`}>
             <div className={`asset-profile-modal compact-modal-shell rounded-[1.7rem] sm:rounded-[2rem] w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
@@ -20206,6 +20383,39 @@ S.N.: ${item.sn || '-'}
                       <button type="button" onClick={() => copyItemSummary(detailItem)} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>คัดลอก</button>
                       <button type="button" onClick={printAssetProfile} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>พิมพ์แฟ้ม</button>
                       <button type="button" onClick={() => exportItemHistoryCSV(detailItem)} className={`sm:hidden px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>CSV</button>
+                    </div>
+
+                    <div className={`mt-4 p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white/85 border-slate-200'}`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                        <div>
+                          <div className={`font-black ${theme.textTitle}`}>Quick Action ที่แนะนำ</div>
+                          <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>ระบบเลือกปุ่มตามสถานะปัจจุบันของอุปกรณ์</div>
+                        </div>
+                        <span className={`px-3 py-1.5 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>{detailStatus.label}</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2">
+                        {assetNextActions.slice(0, 4).map(action => {
+                          const cls = action.tone === 'purple'
+                            ? 'bg-purple-600 hover:bg-purple-500 text-white border-purple-600'
+                            : action.tone === 'orange'
+                              ? 'bg-orange-500 hover:bg-orange-400 text-white border-orange-500'
+                              : action.tone === 'emerald'
+                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600'
+                                : action.tone === 'rose'
+                                  ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-600'
+                                  : action.tone === 'amber'
+                                    ? 'bg-amber-500 hover:bg-amber-400 text-white border-amber-500'
+                                    : action.tone === 'blue'
+                                      ? 'bg-blue-600 hover:bg-blue-500 text-white border-blue-600'
+                                      : `${theme.btnSecondary}`;
+                          return (
+                            <button key={action.id} type="button" onClick={action.action} className={`p-3 rounded-2xl border text-left font-black ${cls}`}>
+                              <span className="block">{action.label}</span>
+                              <span className="block text-[11px] font-bold mt-1 opacity-75 line-clamp-2">{action.desc}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
 
@@ -22397,10 +22607,10 @@ function TodayPanel({ title, color, items, empty, isDarkMode, theme, dateInfoOf,
               {item.internalNote && <div className="text-xs font-bold mt-3 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">โน้ต: {item.internalNote}</div>}
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
-                <button type="button" onClick={() => onReturn?.(item)} className="px-3 py-2 rounded-xl text-xs sm:text-sm font-black bg-emerald-600 text-white">รับคืน</button>
-                <button type="button" onClick={() => onDetail?.(item)} className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
-                <button type="button" onClick={() => onDocs?.(item)} className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>เอกสาร</button>
-                <button type="button" onClick={() => onCopy?.(item)} className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>คัดลอก</button>
+                <button type="button" onClick={() => onReturn?.(item)} className="px-3 py-3 rounded-xl text-xs sm:text-sm font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm">รับคืน</button>
+                <button type="button" onClick={() => onDetail?.(item)} className={`px-3 py-3 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
+                <button type="button" onClick={() => onDocs?.(item)} className={`px-3 py-3 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>เอกสาร</button>
+                <button type="button" onClick={() => onCopy?.(item)} className={`px-3 py-3 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>คัดลอกตามของ</button>
               </div>
             </div>
           );
