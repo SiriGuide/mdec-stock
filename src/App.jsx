@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.44 STOCK Real-Use Continuation Polish';
-const APP_UPDATE_NOTE = 'STOCK Real-Use Continuation Polish: ต่อยอดจาก v22.53.43 ที่ดีไซน์ลงตัวแล้วแบบไม่รื้อ flow เพิ่มความชัดของปุ่มค้นหา/ต้องจัดการ guard กันข้ามรายการผิดสถานะ และปรับ Toast ยืม/ออกงาน/รับคืนให้บอกจำนวนที่บันทึกและจำนวนที่ข้ามชัดขึ้น';
+const APP_VERSION = 'v22.53.45 Visual System / Overview Declutter Reset';
+const APP_UPDATE_NOTE = 'Visual System / Overview Declutter Reset: ปรับภาษา UI ทั้งเว็บให้เข้ากันมากขึ้น ลดความรกหน้า Overview ซ่อนก้อนที่ซ้ำ ลด gradient/สี/เงาที่แย่งสายตา ทำให้ค้นหาอุปกรณ์และงานประจำวันเป็นพระเอก โดยไม่รื้อ flow หลัก ไม่แตะ QR Scanner/กล้อง/Firebase path/ฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6244,6 +6244,225 @@ button[class*="orange"]:not(:disabled) {
   }
 }
 
+
+/* v22.53.45 Visual System / Overview Declutter Reset */
+.visual-system-v45 {
+  --vs-bg: #f6f7fb;
+  --vs-card: rgba(255,255,255,.96);
+  --vs-card-solid: #ffffff;
+  --vs-border: rgba(15,23,42,.10);
+  --vs-border-soft: rgba(15,23,42,.07);
+  --vs-text: #0f172a;
+  --vs-muted: #64748b;
+  --vs-blue: #2563eb;
+  --vs-green: #059669;
+  --vs-amber: #d97706;
+  --vs-red: #dc2626;
+  --vs-shadow: 0 18px 44px rgba(15,23,42,.055);
+  --vs-shadow-soft: 0 8px 24px rgba(15,23,42,.04);
+  background:
+    radial-gradient(circle at 16% -8%, rgba(37,99,235,.10), transparent 30%),
+    linear-gradient(180deg, #fbfcff 0%, var(--vs-bg) 100%) !important;
+}
+
+.visual-system-v45[data-polish-theme="dark"] {
+  --vs-bg: #020617;
+  --vs-card: rgba(15,23,42,.94);
+  --vs-card-solid: #0f172a;
+  --vs-border: rgba(148,163,184,.17);
+  --vs-border-soft: rgba(148,163,184,.11);
+  --vs-text: #f8fafc;
+  --vs-muted: #94a3b8;
+  --vs-blue: #60a5fa;
+  --vs-green: #34d399;
+  --vs-amber: #fbbf24;
+  --vs-red: #fb7185;
+  --vs-shadow: 0 18px 48px rgba(0,0,0,.28);
+  --vs-shadow-soft: 0 8px 26px rgba(0,0,0,.18);
+  background:
+    radial-gradient(circle at 16% -8%, rgba(59,130,246,.16), transparent 30%),
+    linear-gradient(180deg, #020617 0%, #0b1120 100%) !important;
+}
+
+/* Global visual language */
+.visual-system-v45 :is(.rounded-\[1\.5rem\], .rounded-\[1\.6rem\], .rounded-\[1\.75rem\], .rounded-\[2rem\], .rounded-3xl) {
+  border-color: var(--vs-border) !important;
+}
+.visual-system-v45 :is(.shadow-sm, .shadow-md, .shadow-xl, .shadow-2xl) {
+  box-shadow: var(--vs-shadow-soft) !important;
+}
+.visual-system-v45 :is(button, input, select, textarea) {
+  border-radius: 14px !important;
+}
+.visual-system-v45 :is(input, select, textarea):focus {
+  box-shadow: 0 0 0 4px rgba(37,99,235,.11) !important;
+  border-color: rgba(37,99,235,.45) !important;
+}
+.visual-system-v45 button {
+  touch-action: manipulation;
+}
+.visual-system-v45 button:not(:disabled) {
+  transition: transform .14s ease, box-shadow .14s ease, background .14s ease, border-color .14s ease !important;
+}
+.visual-system-v45 button:not(:disabled):active {
+  transform: scale(.985);
+}
+
+/* Sidebar clean language */
+@media (min-width: 1024px) {
+  .visual-system-v45 aside.hidden.lg\:flex {
+    background: #0b1220 !important;
+    border-right-color: rgba(255,255,255,.08) !important;
+    box-shadow: 16px 0 36px rgba(15,23,42,.16) !important;
+  }
+  .visual-system-v45 aside.hidden.lg\:flex nav button {
+    min-height: 46px !important;
+    border-radius: 14px !important;
+  }
+  .visual-system-v45 aside.hidden.lg\:flex nav button:not(.bg-gradient-to-r) {
+    color: #cbd5e1 !important;
+  }
+  .visual-system-v45 aside.hidden.lg\:flex nav button:not(.bg-gradient-to-r):hover {
+    background: rgba(255,255,255,.07) !important;
+    color: #fff !important;
+  }
+  .visual-system-v45 aside.hidden.lg\:flex .bg-gradient-to-r {
+    background: #2563eb !important;
+    box-shadow: 0 12px 28px rgba(37,99,235,.24) !important;
+  }
+}
+
+/* Overview declutter: keep command, search, stock list. Push secondary centers to menus. */
+.visual-system-v45 .home-quick-actions,
+.visual-system-v45 .report-dashboard-card {
+  display: none !important;
+}
+.visual-system-v45 .home-command-center .home-command-scroll {
+  display: none !important;
+}
+.visual-system-v45 .home-command-center {
+  background: var(--vs-card) !important;
+  border-color: var(--vs-border) !important;
+  box-shadow: var(--vs-shadow) !important;
+  border-radius: 24px !important;
+  margin-bottom: 18px !important;
+}
+.visual-system-v45 .home-command-center::before {
+  opacity: .28 !important;
+}
+.visual-system-v45 .home-command-grid {
+  grid-template-columns: minmax(0,1.15fr) minmax(300px,.85fr) !important;
+  gap: 14px !important;
+}
+.visual-system-v45 .home-command-card,
+.visual-system-v45 .home-command-center .rounded-3xl,
+.visual-system-v45 .home-command-center .rounded-2xl {
+  border-color: var(--vs-border-soft) !important;
+  box-shadow: none !important;
+}
+
+/* Master bar: quieter, cleaner, less noisy */
+.visual-system-v45 .real-use-masterbar {
+  background: var(--vs-card) !important;
+  border-color: var(--vs-border) !important;
+  box-shadow: var(--vs-shadow) !important;
+  border-radius: 24px !important;
+}
+.visual-system-v45 .real-use-masterbar::before {
+  opacity: .35 !important;
+  background:
+    radial-gradient(circle at 0 0, rgba(37,99,235,.13), transparent 28%),
+    radial-gradient(circle at 100% 0, rgba(5,150,105,.09), transparent 30%) !important;
+}
+.visual-system-v45 .real-use-masterbar h2,
+.visual-system-v45 .home-command-center h2 {
+  letter-spacing: -.045em !important;
+}
+.visual-system-v45 .master-status-pill {
+  background: transparent !important;
+  border-color: var(--vs-border-soft) !important;
+}
+.visual-system-v45 .master-action-grid button,
+.visual-system-v45 .realuse-filter-actions button {
+  box-shadow: none !important;
+  min-height: 44px !important;
+}
+
+/* Stock summary and search area as the visual center */
+.visual-system-v45 #home-stock-list-section {
+  margin-bottom: 16px !important;
+}
+.visual-system-v45 #home-stock-list-section > div,
+.visual-system-v45 #home-stock-list-section button {
+  background: var(--vs-card-solid) !important;
+  border-color: var(--vs-border-soft) !important;
+  box-shadow: var(--vs-shadow-soft) !important;
+  border-radius: 18px !important;
+}
+.visual-system-v45 .final-polish-card {
+  background: var(--vs-card) !important;
+  border-color: var(--vs-border) !important;
+  box-shadow: var(--vs-shadow) !important;
+  border-radius: 22px !important;
+}
+.visual-system-v45 .stock-realuse-hint {
+  background: transparent !important;
+}
+
+/* Tables and list readability */
+.visual-system-v45 .stock-table-compact {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  overflow: hidden !important;
+  border-color: var(--vs-border) !important;
+}
+.visual-system-v45 .stock-table-compact thead tr {
+  background: rgba(248,250,252,.94) !important;
+}
+.visual-system-v45[data-polish-theme="dark"] .stock-table-compact thead tr {
+  background: rgba(15,23,42,.96) !important;
+}
+.visual-system-v45 .stock-table-compact th {
+  color: var(--vs-muted) !important;
+  font-size: 12px !important;
+  letter-spacing: .03em !important;
+  text-transform: uppercase !important;
+}
+.visual-system-v45 .stock-table-compact tbody tr:hover {
+  background: rgba(239,246,255,.75) !important;
+}
+.visual-system-v45[data-polish-theme="dark"] .stock-table-compact tbody tr:hover {
+  background: rgba(30,41,59,.86) !important;
+}
+
+/* Modal and secondary centers should feel same system */
+.visual-system-v45 .fixed .rounded-\[2rem\],
+.visual-system-v45 .fixed .rounded-\[1\.75rem\] {
+  border-color: var(--vs-border) !important;
+  box-shadow: 0 24px 70px rgba(15,23,42,.18) !important;
+}
+.visual-system-v45[data-polish-theme="dark"] .fixed .rounded-\[2rem\],
+.visual-system-v45[data-polish-theme="dark"] .fixed .rounded-\[1\.75rem\] {
+  box-shadow: 0 24px 80px rgba(0,0,0,.50) !important;
+}
+
+/* Mobile stays stable, just soften spacing */
+@media (max-width: 1023px) {
+  .visual-system-v45 .home-command-center .home-command-scroll {
+    display: flex !important;
+  }
+  .visual-system-v45 .home-quick-actions,
+  .visual-system-v45 .report-dashboard-card {
+    display: none !important;
+  }
+}
+@media (max-width: 640px) {
+  .visual-system-v45 .real-use-masterbar,
+  .visual-system-v45 .home-command-center,
+  .visual-system-v45 .final-polish-card {
+    border-radius: 20px !important;
+  }
+}
 
 /* v22.53.44 STOCK Real-Use Continuation Polish */
 .real-use-masterbar .master-action-grid button,
@@ -16096,7 +16315,7 @@ S.N.: ${item.sn || '-'}
                 <Icons.Monitor className="w-6 h-6 text-cyan-200" />
               </div>
               <div className="min-w-0">
-                <div className="mc-top-title text-xl font-black tracking-tight text-white truncate">MDEC COMMAND CENTER</div>
+                <div className="mc-top-title text-xl font-black tracking-tight text-white truncate">TODAY COMMAND</div>
                 <div className="mc-top-sub text-xs font-black tracking-[.18em] text-cyan-300/75 uppercase truncate">LIVE INVENTORY CONTROL • {APP_VERSION}</div>
               </div>
             </div>
@@ -16253,7 +16472,7 @@ S.N.: ${item.sn || '-'}
   }
 
   return (
-    <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain} ${homeCompactMode ? 'home-comfort-compact' : ''}`}>
+    <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish visual-system-v45 min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain} ${homeCompactMode ? 'home-comfort-compact' : ''}`}>
       <FactoryPolishStyle isDarkMode={isDarkMode} />
       {/* FactoryStock Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-72 bg-slate-950 text-white flex-col border-r border-white/10">
@@ -16697,10 +16916,10 @@ S.N.: ${item.sn || '-'}
       <section className={`real-use-masterbar w-full mb-4 rounded-[1.6rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
         <div className="p-4 sm:p-5 grid grid-cols-1 2xl:grid-cols-[1fr_auto] gap-4 items-center">
           <div className="min-w-0">
-            <div className={`text-xs font-black tracking-[0.2em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>STOCK REAL-USE MASTER</div>
-            <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>หน้าแรกเดิมที่คุ้นมือ แต่เริ่มงานได้เร็วขึ้น</h2>
+            <div className={`text-xs font-black tracking-[0.2em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>STOCK CLEAN OVERVIEW</div>
+            <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>ภาพรวมสั้นลง ใช้งานจริงชัดขึ้น</h2>
             <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>
-              โฟกัสงานจริงของศูนย์: ค้นของเร็ว ยืม-คืนเร็ว ตามของง่าย และสำรองข้อมูลได้ทันที โดยไม่เพิ่มระบบใหญ่ให้รก
+              หน้า Overview จะเน้นเฉพาะงานสำคัญ: ค้นหาอุปกรณ์ ยืม-คืน รับคืนด่วน และรายการที่ต้องจัดการ
             </p>
             <div className="master-status-row grid grid-cols-2 sm:flex gap-2 mt-3">
               <span className={`master-status-pill px-3 py-2 rounded-2xl border text-xs font-black flex items-center justify-center ${isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
@@ -16722,13 +16941,9 @@ S.N.: ${item.sn || '-'}
             <button type="button" onClick={scrollToHomeStockList} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">ค้นหาอุปกรณ์</button>
             <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ยืม-คืน</button>
             <button type="button" onClick={() => openDailyReturnBatch('urgent')} className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">รับคืนด่วน</button>
-            <button type="button" onClick={() => openTrackingCenter('overdue')} className={`px-4 py-3 rounded-2xl border font-black ${overdueItems.length ? 'bg-rose-600 text-white border-rose-600' : theme.btnSecondary}`}>ของเลยกำหนด</button>
-            <button type="button" onClick={() => { setQuickProblemOnly(!quickProblemOnly); scrollToHomeStockList(); }} className={`px-4 py-3 rounded-2xl border font-black ${quickProblemOnly ? 'bg-amber-500 text-white border-amber-500' : theme.btnSecondary}`}>{quickProblemOnly ? 'ปิดต้องจัดการ' : 'ต้องจัดการ'}</button>
-            <button type="button" onClick={() => openRepairCenter('open')} className={`px-4 py-3 rounded-2xl border font-black ${stats.maintenance ? (isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700') : theme.btnSecondary}`}>ศูนย์ซ่อม</button>
-            <button type="button" onClick={() => setHomeComfortMode(!homeCompactMode)} className={`px-4 py-3 rounded-2xl border font-black ${homeCompactMode ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>
-              {homeCompactMode ? 'ปิดกระชับ' : 'เปิดกระชับ'}
-            </button>
-            {canManageระบบ && <button type="button" onClick={() => setShowBackupCenterModal(true)} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>Backup</button>}
+            <button type="button" onClick={() => { setQuickProblemOnly(!quickProblemOnly); scrollToHomeStockList(); }} className={`px-4 py-3 rounded-2xl border font-black ${quickProblemOnly ? 'bg-amber-500 text-white border-amber-500' : theme.btnSecondary}`}>{quickProblemOnly ? 'แสดงทั้งหมด' : 'ต้องจัดการ'}</button>
+            <button type="button" onClick={() => openControlCenter()} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เมนูทั้งหมด</button>
+            <button type="button" onClick={() => setHomeComfortMode(!homeCompactMode)} className={`px-4 py-3 rounded-2xl border font-black ${homeCompactMode ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>{homeCompactMode ? 'โหมดกระชับ' : 'โหมดปกติ'}</button>
           </div>
         </div>
       </section>
@@ -16739,8 +16954,8 @@ S.N.: ${item.sn || '-'}
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
             <div className="min-w-0">
               <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-blue-600'}`}>MDEC COMMAND CENTER</div>
-              <h2 className={`text-2xl sm:text-3xl font-black mt-1 tracking-tight ${theme.textTitle}`}>ภาพรวมวันนี้ของศูนย์สต๊อก</h2>
-              <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>เปิดหน้าแรกแล้วเห็นทันทีว่าควรทำอะไรต่อ เหมาะกับเจ้าหน้าที่ที่ใช้งานบนโทรศัพท์หน้างาน</p>
+              <h2 className={`text-2xl sm:text-3xl font-black mt-1 tracking-tight ${theme.textTitle}`}>วันนี้ต้องดูอะไร</h2>
+              <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>สรุปเฉพาะงานสำคัญก่อน ส่วนรายงาน/Backup/ศูนย์รองเข้าได้จากเมนูทั้งหมด</p>
             </div>
             <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
               <button type="button" onClick={() => openWorkspace('borrowReturn')} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">เริ่มทำรายการ</button>
@@ -17141,12 +17356,12 @@ S.N.: ${item.sn || '-'}
       {/* 📊 Factory Stock Metrics */}
       <div id="home-stock-list-section" className="home-classic-anchor w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-6">
         {[
-          ['ทั้งหมด', stats.all, 'blue', '📦', 'จากข้อมูลทั้งหมด'],
-          ['พร้อมใช้', stats.available, 'emerald', '✅', 'พร้อมหยิบใช้งาน'],
-          ['กำลังใช้งาน', stats.inUse, 'amber', '⚙️', 'กำลังใช้งานอยู่'],
-          ['ถูกยืม', stats.borrowed, 'purple', '📤', 'รอรับคืน'],
-          ['ออกงาน', stats.outForEvent, 'orange', '🚚', 'อยู่นอกศูนย์'],
-          ['ซ่อม/ชำรุด', stats.maintenance, 'rose', '🛠️', 'ต้องติดตาม']
+          ['ทั้งหมด', stats.all, 'blue', '•', 'จากข้อมูลทั้งหมด'],
+          ['พร้อมใช้', stats.available, 'emerald', '•', 'พร้อมหยิบใช้งาน'],
+          ['กำลังใช้งาน', stats.inUse, 'amber', '•', 'กำลังใช้งานอยู่'],
+          ['ถูกยืม', stats.borrowed, 'purple', '•', 'รอรับคืน'],
+          ['ออกงาน', stats.outForEvent, 'orange', '•', 'อยู่นอกศูนย์'],
+          ['ซ่อม/ชำรุด', stats.maintenance, 'rose', '•', 'ต้องติดตาม']
         ].map(([label, value, tone, emoji, caption]) => {
           const toneMap = {
             blue: isDarkMode ? 'bg-slate-900 border-slate-800 text-blue-300' : 'bg-white border-slate-200 text-blue-600',
@@ -17232,10 +17447,10 @@ S.N.: ${item.sn || '-'}
       <div className={`final-polish-card w-full mb-4 rounded-[1.5rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
         <div className="p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className={`font-black text-lg ${theme.textTitle}`}>ค้นหาอุปกรณ์ — จุดทำงานหลัก</div>
+            <div className={`font-black text-lg ${theme.textTitle}`}>ค้นหาอุปกรณ์</div>
             <div className={`text-sm font-bold mt-0.5 ${theme.textMuted}`}>
               พบ {filteredItems.length.toLocaleString('th-TH')} รายการจากทั้งหมด {stats.all.toLocaleString('th-TH')} รายการ
-              {quickProblemOnly ? ' • กำลังแสดงเฉพาะรายการที่ต้องจัดการ' : activeFilterCount > 0 ? ` • ใช้ตัวกรอง ${activeFilterCount} รายการ` : ' • พิมพ์ชื่อ / S.N. / รหัสสั้น เพื่อหาเร็วที่สุด'}
+              {quickProblemOnly ? ' • กำลังแสดงเฉพาะรายการที่ต้องจัดการ' : activeFilterCount > 0 ? ` • ใช้ตัวกรอง ${activeFilterCount} รายการ` : ' • พิมพ์ชื่อ / S.N. / รหัสสั้น เพื่อหาเร็ว'}
             </div>
           </div>
           <div className="realuse-filter-actions grid grid-cols-2 sm:flex gap-2 shrink-0">
