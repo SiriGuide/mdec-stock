@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.42 STOCK 10/10 Final Usability Polish Pack';
+const APP_VERSION = 'v22.53.43 STOCK Best Possible Real-Use Master Polish';
 const APP_UPDATE_NOTE = 'Repair / Maintenance Center Polish: เพิ่มศูนย์ซ่อม/บำรุงรักษา สรุปงานซ่อม ฟิลเตอร์งานค้าง/ส่งซ่อม/เสร็จแล้ว/เสียซ้ำ Export CSV และรายงาน A4 พร้อมฟอร์มแจ้งซ่อมละเอียดขึ้น โดยไม่แตะ QR Scanner/กล้อง/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -6245,6 +6245,37 @@ button[class*="orange"]:not(:disabled) {
 }
 
 
+/* v22.53.43 STOCK Best Possible Real-Use Master Polish */
+.real-use-masterbar {
+  position: relative;
+  isolation: isolate;
+}
+.real-use-masterbar .master-action-grid button {
+  min-height: 46px;
+}
+.real-use-masterbar .master-status-pill {
+  min-height: 38px;
+}
+.real-use-masterbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 0 0, rgba(59,130,246,.12), transparent 34%), radial-gradient(circle at 100% 0, rgba(16,185,129,.10), transparent 32%);
+  pointer-events: none;
+  z-index: -1;
+}
+.home-comfort-compact .real-use-masterbar {
+  margin-bottom: .75rem !important;
+}
+@media (max-width: 640px) {
+  .real-use-masterbar .master-action-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .real-use-masterbar .master-status-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 /* v22.53.42 STOCK 10/10 Final Usability Polish Pack */
 .final-polish-card,
 .final-usability-strip {
@@ -11043,7 +11074,7 @@ S.N.: ${item.sn || '-'}
     const text = getTrackingText(item);
     try {
       await navigator.clipboard.writeText(text);
-      pushToast('คัดลอกข้อความติดตามแล้ว พร้อมส่ง LINE ได้เลย', 'success');
+      pushToast('คัดลอกข้อความติดตามแล้ว', 'พร้อมส่งต่อใน LINE/แชททีมได้เลย', 'success');
     } catch (error) {
       window.prompt('คัดลอกข้อความนี้เพื่อนำไปส่งต่อ', text);
     }
@@ -12748,6 +12779,11 @@ S.N.: ${item.sn || '-'}
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('BR');
       const selectedBorrowItems = packingChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
+      if (selectedBorrowItems.length === 0) {
+        pushToast('ยังไม่มีอุปกรณ์พร้อมใช้ในรายการยืม', 'รายการที่เลือกอาจถูกยืมอยู่ ออกงานอยู่ หรืออยู่ระหว่างซ่อม กรุณาตรวจสถานะก่อนบันทึก', 'warning');
+        alert('ยังไม่มีอุปกรณ์ที่พร้อมใช้สำหรับบันทึกยืม กรุณาตรวจสถานะรายการที่เลือกก่อน');
+        return;
+      }
       const documentSnapshot = makeBorrowเอกสารSnapshot({
         type: 'borrow',
         ref: docRef,
@@ -12806,6 +12842,11 @@ S.N.: ${item.sn || '-'}
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('EV');
       const selectedEventItems = eventChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
+      if (selectedEventItems.length === 0) {
+        pushToast('ยังไม่มีอุปกรณ์พร้อมใช้ในรายการออกงาน', 'รายการที่เลือกอาจถูกยืมอยู่ ออกงานอยู่ หรืออยู่ระหว่างซ่อม กรุณาตรวจสถานะก่อนบันทึก', 'warning');
+        alert('ยังไม่มีอุปกรณ์ที่พร้อมใช้สำหรับบันทึกออกงาน กรุณาตรวจสถานะรายการที่เลือกก่อน');
+        return;
+      }
       const documentSnapshot = makeBorrowเอกสารSnapshot({
         type: 'event',
         ref: docRef,
@@ -12860,7 +12901,7 @@ S.N.: ${item.sn || '-'}
       const uploadedProofs = await uploadProofsOrConfirm(returnProofFiles, `หลักฐานรับคืน • ${finalStaff || ''}`);
       const returnDocDate = new Date().toISOString();
       const returnDocRef = makeเอกสารRef('RT');
-      const selectedReturnItems = returnChecklist.map(id => {
+      let selectedReturnItems = returnChecklist.map(id => {
         const item = items.find(i => i.id === id);
         const inspection = returnInspection[id] || { condition: 'ปกติ', note: '' };
         return item ? {
@@ -12874,10 +12915,18 @@ S.N.: ${item.sn || '-'}
           storageBoxName: item.storageBoxName || '',
           internalNote: item.internalNote || '',
           quantity: item.quantity || 1,
+          status: item.status || '',
           returnCondition: inspection.condition || 'ปกติ',
           returnNote: inspection.note || ''
         } : null;
       }).filter(Boolean);
+      const skippedReturnCount = selectedReturnItems.filter(i => i.status !== 'borrowed' && i.status !== 'out-for-event').length;
+      selectedReturnItems = selectedReturnItems.filter(i => i.status === 'borrowed' || i.status === 'out-for-event');
+      if (selectedReturnItems.length === 0) {
+        pushToast('ยังไม่มีอุปกรณ์ที่รอรับคืน', 'รายการที่เลือกอาจพร้อมใช้อยู่แล้วหรืออยู่สถานะอื่น กรุณาตรวจสถานะก่อนบันทึก', 'warning');
+        alert('ยังไม่มีอุปกรณ์ที่สามารถรับคืนได้ในรายการนี้');
+        return;
+      }
       const returnDocumentSnapshot = {
         id: returnDocRef,
         ref: returnDocRef,
@@ -12901,7 +12950,7 @@ S.N.: ${item.sn || '-'}
         source: 'MDEC-Stock'
       };
       const newHistoryEntry = { type: 'return', date: returnDocDate, documentId: returnDocRef, documentRef: returnDocRef, staffIn: finalStaff, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
-      const promises = returnChecklist.map(id => {
+      const promises = selectedReturnItems.map(({ id }) => {
         const item = items.find(i => i.id === id);
         if (!item || (item.status !== 'borrowed' && item.status !== 'out-for-event')) return Promise.resolve();
         returnedNames.push(item.name);
@@ -12957,8 +13006,8 @@ S.N.: ${item.sn || '-'}
       setReturnData({ staff: '', newStaff: '' });
       setReturnInspection({});
       setReturnProofFiles([]);
-      const remainReturnCount = Math.max(0, returnTargetIds.length - returnChecklist.length);
-      pushToast(returnChecklist.length < returnTargetIds.length ? 'รับคืนบางส่วนสำเร็จ' : 'รับคืนสำเร็จ', `สร้างเอกสาร ${returnDocRef} • รับคืน ${returnChecklist.length} รายการ${remainReturnCount ? ` • ยังเหลือ ${remainReturnCount} รายการ` : ''}`, returnChecklist.length < returnTargetIds.length ? 'warning' : 'success');
+      const remainReturnCount = Math.max(0, returnTargetIds.length - selectedReturnItems.length);
+      pushToast(selectedReturnItems.length < returnTargetIds.length ? 'รับคืนบางส่วนสำเร็จ' : 'รับคืนสำเร็จ', `สร้างเอกสาร ${returnDocRef} • รับคืน ${selectedReturnItems.length} รายการ${remainReturnCount ? ` • ยังเหลือ/ข้าม ${remainReturnCount} รายการ` : ''}${skippedReturnCount ? ` • ข้ามผิดสถานะ ${skippedReturnCount} รายการ` : ''}`, selectedReturnItems.length < returnTargetIds.length ? 'warning' : 'success');
       alert('✅ รับคืนอุปกรณ์เรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
@@ -16613,39 +16662,39 @@ S.N.: ${item.sn || '-'}
       )}
 
 
-      {/* v22.53.41 Home Classic Comfort Toolbar */}
-      <section className={`home-comfort-toolbar w-full mb-4 rounded-[1.5rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-        <div className={`p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 ${isDarkMode ? 'bg-gradient-to-br from-slate-950 to-blue-950/20' : 'bg-gradient-to-br from-blue-50 to-white'}`}>
+      {/* v22.53.43 Real-Use Master Bar: รวมโหมดกระชับ + งานด่วน + ค้นหา ไว้ในแถบเดียว */}
+      <section className={`real-use-masterbar w-full mb-4 rounded-[1.6rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+        <div className="p-4 sm:p-5 grid grid-cols-1 2xl:grid-cols-[1fr_auto] gap-4 items-center">
           <div className="min-w-0">
-            <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>HOME CLASSIC COMFORT</div>
-            <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>หน้าแรกแบบเดิม แต่คุมให้อ่านง่ายขึ้น</h2>
-            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ไม่แยกหน้าอุปกรณ์แล้ว ใช้หน้าแรกเดิมที่คุ้นมือ พร้อมโหมดกระชับและปุ่มกระโดดไปจุดที่ใช้บ่อย</p>
-          </div>
-          <div className="comfort-action-grid grid grid-cols-2 sm:flex gap-2 shrink-0">
-            <button type="button" onClick={() => setHomeComfortMode(!homeCompactMode)} className={`px-4 py-3 rounded-2xl border font-black ${homeCompactMode ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>
-              {homeCompactMode ? 'โหมดกระชับ: เปิด' : 'โหมดกระชับ: ปิด'}
-            </button>
-            <button type="button" onClick={scrollToHomeStockList} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black">ไปค้นหาอุปกรณ์</button>
-            <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ยืม-คืน</button>
-            <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>สแกน QR</button>
-          </div>
-        </div>
-      </section>
-
-      {/* v22.53.42 Final Usability Strip */}
-      <section className={`final-usability-strip w-full mb-4 rounded-[1.5rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-        <div className="p-4 grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-4 items-center">
-          <div className="min-w-0">
-            <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>10/10 DAILY FLOW</div>
-            <div className={`text-lg sm:text-xl font-black mt-1 ${theme.textTitle}`}>เริ่มงานเร็ว: ค้นหา → ทำรายการ → ติดตาม → สำรอง</div>
-            <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>
-              เน้นใช้งานจริงแทนกระดานขาว ไม่เพิ่มระบบใหญ่ แต่รวมปุ่มที่ต้องกดบ่อยให้ชัดขึ้น
+            <div className={`text-xs font-black tracking-[0.2em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>STOCK REAL-USE MASTER</div>
+            <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>หน้าแรกเดิมที่คุ้นมือ แต่เริ่มงานได้เร็วขึ้น</h2>
+            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>
+              โฟกัสงานจริงของศูนย์: ค้นของเร็ว ยืม-คืนเร็ว ตามของง่าย และสำรองข้อมูลได้ทันที โดยไม่เพิ่มระบบใหญ่ให้รก
+            </p>
+            <div className="master-status-row grid grid-cols-2 sm:flex gap-2 mt-3">
+              <span className={`master-status-pill px-3 py-2 rounded-2xl border text-xs font-black flex items-center justify-center ${isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
+                พร้อมใช้ {stats.available.toLocaleString('th-TH')}/{stats.all.toLocaleString('th-TH')}
+              </span>
+              <span className={`master-status-pill px-3 py-2 rounded-2xl border text-xs font-black flex items-center justify-center ${(currentBorrowedItems.length + currentEventItems.length) ? (isDarkMode ? 'bg-purple-950/35 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-700') : (isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600')}`}>
+                รอคืน {(currentBorrowedItems.length + currentEventItems.length).toLocaleString('th-TH')}
+              </span>
+              <span className={`master-status-pill px-3 py-2 rounded-2xl border text-xs font-black flex items-center justify-center ${overdueItems.length ? (isDarkMode ? 'bg-rose-950/45 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700') : (isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600')}`}>
+                เลยกำหนด {overdueItems.length.toLocaleString('th-TH')}
+              </span>
+              <span className={`master-status-pill px-3 py-2 rounded-2xl border text-xs font-black flex items-center justify-center ${homeCompactMode ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>
+                {homeCompactMode ? 'โหมดกระชับ' : 'โหมดธรรมดา'}
+              </span>
             </div>
           </div>
-          <div className="final-mobile-two grid grid-cols-2 sm:flex gap-2 shrink-0">
-            <button type="button" onClick={scrollToHomeStockList} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black">ค้นหาอุปกรณ์</button>
-            <button type="button" onClick={() => openDailyReturnBatch('urgent')} className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">รับคืนด่วน</button>
+
+          <div className="master-action-grid grid grid-cols-2 sm:grid-cols-3 2xl:flex gap-2 shrink-0">
+            <button type="button" onClick={scrollToHomeStockList} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">ค้นหาอุปกรณ์</button>
+            <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ยืม-คืน</button>
+            <button type="button" onClick={() => openDailyReturnBatch('urgent')} className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">รับคืนด่วน</button>
             <button type="button" onClick={() => openTrackingCenter('overdue')} className={`px-4 py-3 rounded-2xl border font-black ${overdueItems.length ? 'bg-rose-600 text-white border-rose-600' : theme.btnSecondary}`}>ของเลยกำหนด</button>
+            <button type="button" onClick={() => setHomeComfortMode(!homeCompactMode)} className={`px-4 py-3 rounded-2xl border font-black ${homeCompactMode ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>
+              {homeCompactMode ? 'ปิดกระชับ' : 'เปิดกระชับ'}
+            </button>
             {canManageระบบ && <button type="button" onClick={() => setShowBackupCenterModal(true)} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>Backup</button>}
           </div>
         </div>
@@ -17150,10 +17199,10 @@ S.N.: ${item.sn || '-'}
       <div className={`final-polish-card w-full mb-4 rounded-[1.5rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
         <div className="p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className={`font-black text-lg ${theme.textTitle}`}>ค้นหาอุปกรณ์ / รายการหน้าแรก</div>
+            <div className={`font-black text-lg ${theme.textTitle}`}>ค้นหาอุปกรณ์ — จุดทำงานหลัก</div>
             <div className={`text-sm font-bold mt-0.5 ${theme.textMuted}`}>
               พบ {filteredItems.length.toLocaleString('th-TH')} รายการจากทั้งหมด {stats.all.toLocaleString('th-TH')} รายการ
-              {activeFilterCount > 0 ? ` • ใช้ตัวกรอง ${activeFilterCount} รายการ` : ' • ยังไม่ได้กรอง'}
+              {activeFilterCount > 0 ? ` • ใช้ตัวกรอง ${activeFilterCount} รายการ` : ' • พิมพ์ชื่อ / S.N. / รหัสสั้น เพื่อหาเร็วที่สุด'}
             </div>
           </div>
           <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
