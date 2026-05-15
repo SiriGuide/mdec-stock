@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.55.0 STOCK Desktop Full Redesign Alpha';
-const APP_UPDATE_NOTE = 'STOCK Desktop Full Redesign Alpha: รีดีไซน์ desktop flow เป็น Workstation ใหม่ เปลี่ยนหน้าแรกเป็น command board + stock workspace + action rail, ลดเมนูที่ซ้ำ และจัด flow ค้นหา→เลือกของ→ทำรายการใหม่บนคอม โดยไม่แตะ Firebase path/โครงข้อมูล/QR Scanner core/กล้อง';
+const APP_VERSION = 'v22.53.44 STOCK Real-Use Continuation Polish';
+const APP_UPDATE_NOTE = 'STOCK Real-Use Continuation Polish: ต่อยอดจาก v22.53.43 ที่ดีไซน์ลงตัวแล้วแบบไม่รื้อ flow เพิ่มความชัดของปุ่มค้นหา/ต้องจัดการ guard กันข้ามรายการผิดสถานะ และปรับ Toast ยืม/ออกงาน/รับคืนให้บอกจำนวนที่บันทึกและจำนวนที่ข้ามชัดขึ้น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6245,469 +6245,34 @@ button[class*="orange"]:not(:disabled) {
 }
 
 
-
-
-/* v22.55.0 STOCK Desktop Full Redesign Alpha */
+/* v22.53.44 STOCK Real-Use Continuation Polish */
+.real-use-masterbar .master-action-grid button,
+.final-polish-card button {
+  transition: transform .14s ease, box-shadow .14s ease, filter .14s ease;
+}
+.real-use-masterbar .master-action-grid button:hover,
+.final-polish-card button:hover {
+  transform: translateY(-1px);
+}
+.stock-realuse-hint {
+  border-style: dashed !important;
+}
 @media (min-width: 1024px) {
-  .desktop-full-redesign-alpha {
-    --workstation-bg: #f5f7fb;
-    --workstation-card: rgba(255,255,255,.94);
-    --workstation-solid: #ffffff;
-    --workstation-line: rgba(15,23,42,.10);
-    --workstation-line-soft: rgba(15,23,42,.065);
-    --workstation-text: #0f172a;
-    --workstation-muted: #64748b;
-    --workstation-shadow: 0 22px 60px rgba(15,23,42,.07);
-    --workstation-soft: 0 10px 28px rgba(15,23,42,.045);
+  .factory-stock-polish .stock-table-compact thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    backdrop-filter: blur(10px);
   }
-
-  .desktop-full-redesign-alpha[data-polish-theme="dark"] {
-    --workstation-bg: #020617;
-    --workstation-card: rgba(15,23,42,.92);
-    --workstation-solid: #0f172a;
-    --workstation-line: rgba(148,163,184,.18);
-    --workstation-line-soft: rgba(148,163,184,.12);
-    --workstation-text: #f8fafc;
-    --workstation-muted: #94a3b8;
-    --workstation-shadow: 0 24px 64px rgba(0,0,0,.34);
-    --workstation-soft: 0 12px 34px rgba(0,0,0,.24);
-  }
-
-  .desktop-full-redesign-alpha .real-use-masterbar,
-  .desktop-full-redesign-alpha .home-command-center,
-  .desktop-full-redesign-alpha .home-quick-actions,
-  .desktop-full-redesign-alpha .report-dashboard-card {
-    display: none !important;
-  }
-
-  .desktop-full-redesign-alpha .desktop-workstation-alpha {
-    display: grid !important;
-    grid-template-columns: minmax(320px,.85fr) minmax(520px,1.25fr) minmax(310px,.70fr);
-    gap: 16px;
-    align-items: stretch;
-    margin-bottom: 18px;
-  }
-
-  .desktop-full-redesign-alpha .desktop-workstation-panel {
-    border: 1px solid var(--workstation-line);
-    background: var(--workstation-card);
-    box-shadow: var(--workstation-soft);
-    border-radius: 28px;
-    overflow: hidden;
-    backdrop-filter: blur(14px);
-  }
-
-  .desktop-full-redesign-alpha .desktop-workstation-panel.main-panel {
-    box-shadow: var(--workstation-shadow);
-  }
-
-  .desktop-full-redesign-alpha .desktop-workstation-panel .panel-head {
-    padding: 18px 20px 14px;
-    border-bottom: 1px solid var(--workstation-line-soft);
-  }
-
-  .desktop-full-redesign-alpha .desktop-workstation-panel .panel-body {
-    padding: 16px;
-  }
-
-  .desktop-full-redesign-alpha .desktop-workstation-title {
-    font-size: 24px;
-    line-height: 1.05;
-    font-weight: 950;
-    letter-spacing: -.045em;
-    color: var(--workstation-text);
-  }
-
-  .desktop-full-redesign-alpha .desktop-workstation-kicker {
-    font-size: 11px;
-    letter-spacing: .18em;
-    font-weight: 950;
-    text-transform: uppercase;
-    color: #2563eb;
-  }
-
-  .desktop-full-redesign-alpha[data-polish-theme="dark"] .desktop-workstation-kicker {
-    color: #60a5fa;
-  }
-
-  .desktop-full-redesign-alpha .desktop-workstation-muted {
-    color: var(--workstation-muted);
-    font-size: 13px;
-    font-weight: 800;
-  }
-
-  .desktop-full-redesign-alpha .workstation-search-box {
-    border: 1px solid var(--workstation-line);
-    background: var(--workstation-solid);
-    border-radius: 20px;
-    min-height: 58px;
-    box-shadow: 0 8px 20px rgba(15,23,42,.035);
-  }
-
-  .desktop-full-redesign-alpha[data-polish-theme="dark"] .workstation-search-box {
-    background: rgba(2,6,23,.58);
-  }
-
-  .desktop-full-redesign-alpha .workstation-search-box input {
-    font-size: 19px !important;
-    font-weight: 900 !important;
-  }
-
-  .desktop-full-redesign-alpha .workstation-action-btn {
-    border-radius: 18px;
-    min-height: 48px;
-    font-weight: 950;
-    transition: transform .14s ease, box-shadow .14s ease, background .14s ease;
-  }
-
-  .desktop-full-redesign-alpha .workstation-action-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 14px 28px rgba(15,23,42,.10);
-  }
-
-  .desktop-full-redesign-alpha .workstation-stat-card,
-  .desktop-full-redesign-alpha .workstation-queue-card,
-  .desktop-full-redesign-alpha .workstation-selected-row {
-    border: 1px solid var(--workstation-line-soft);
-    background: var(--workstation-solid);
-    border-radius: 20px;
-  }
-
-  .desktop-full-redesign-alpha[data-polish-theme="dark"] .workstation-stat-card,
-  .desktop-full-redesign-alpha[data-polish-theme="dark"] .workstation-queue-card,
-  .desktop-full-redesign-alpha[data-polish-theme="dark"] .workstation-selected-row {
-    background: rgba(2,6,23,.46);
-  }
-
-  .desktop-full-redesign-alpha .workstation-table-preview {
-    border: 1px solid var(--workstation-line-soft);
-    border-radius: 22px;
-    overflow: hidden;
-    background: var(--workstation-solid);
-  }
-
-  .desktop-full-redesign-alpha[data-polish-theme="dark"] .workstation-table-preview {
-    background: rgba(2,6,23,.40);
-  }
-
-  .desktop-full-redesign-alpha .workstation-table-preview button {
-    min-height: 54px;
-  }
-
-  .desktop-full-redesign-alpha #home-stock-list-section {
-    margin-top: 8px !important;
-  }
-
-  .desktop-full-redesign-alpha #home-stock-list-section + div {
-    border-radius: 26px !important;
-    box-shadow: var(--workstation-soft) !important;
-  }
-
-  .desktop-full-redesign-alpha #home-stock-list-section + div input {
-    font-size: 17px !important;
-  }
-
-  .desktop-full-redesign-alpha .stock-table-compact {
-    font-size: 14px !important;
-  }
-
-  .desktop-full-redesign-alpha .stock-table-compact th {
-    padding-top: 12px !important;
-    padding-bottom: 12px !important;
-  }
-
-  .desktop-full-redesign-alpha .stock-table-compact td {
-    padding-top: 11px !important;
-    padding-bottom: 11px !important;
+  .factory-stock-polish .stock-table-compact tbody tr {
+    scroll-margin-top: 96px;
   }
 }
-
-@media (max-width: 1023px) {
-  .desktop-full-redesign-alpha .desktop-workstation-alpha {
-    display: none !important;
+@media (max-width: 640px) {
+  .final-polish-card .realuse-filter-actions {
+    grid-template-columns: repeat(2,minmax(0,1fr));
   }
 }
-
-
-/* v22.54.0 Desktop Minimal Redesign Concept Pack */
-@media (min-width: 1024px) {
-  .desktop-minimal-redesign {
-    --minimal-bg: #f6f7fb;
-    --minimal-card: rgba(255,255,255,.92);
-    --minimal-card-solid: #ffffff;
-    --minimal-border: rgba(15,23,42,.10);
-    --minimal-soft-border: rgba(15,23,42,.07);
-    --minimal-text: #0f172a;
-    --minimal-muted: #64748b;
-    --minimal-blue: #2563eb;
-    --minimal-green: #059669;
-    --minimal-shadow: 0 20px 50px rgba(15,23,42,.055);
-    --minimal-shadow-soft: 0 10px 28px rgba(15,23,42,.045);
-    background:
-      radial-gradient(circle at 18% -8%, rgba(37,99,235,.10), transparent 28%),
-      linear-gradient(180deg, #fbfcff 0%, var(--minimal-bg) 100%) !important;
-  }
-
-  .desktop-minimal-redesign[data-polish-theme="dark"] {
-    --minimal-bg: #020617;
-    --minimal-card: rgba(15,23,42,.90);
-    --minimal-card-solid: #0f172a;
-    --minimal-border: rgba(148,163,184,.18);
-    --minimal-soft-border: rgba(148,163,184,.12);
-    --minimal-text: #f8fafc;
-    --minimal-muted: #94a3b8;
-    --minimal-blue: #60a5fa;
-    --minimal-green: #34d399;
-    --minimal-shadow: 0 22px 60px rgba(0,0,0,.30);
-    --minimal-shadow-soft: 0 12px 34px rgba(0,0,0,.22);
-    background:
-      radial-gradient(circle at 18% -8%, rgba(59,130,246,.14), transparent 30%),
-      linear-gradient(180deg, #020617 0%, #0b1120 100%) !important;
-  }
-
-  .desktop-minimal-redesign > main,
-  .desktop-minimal-redesign .main-content,
-  .desktop-minimal-redesign .workspace-shell {
-    max-width: 1480px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .desktop-minimal-redesign aside.hidden.lg\:flex {
-    width: 18.25rem !important;
-    background: rgba(255,255,255,.88) !important;
-    color: #0f172a !important;
-    border-right: 1px solid var(--minimal-border) !important;
-    box-shadow: 18px 0 45px rgba(15,23,42,.045) !important;
-    backdrop-filter: blur(16px);
-  }
-
-  .desktop-minimal-redesign[data-polish-theme="dark"] aside.hidden.lg\:flex {
-    background: rgba(2,6,23,.78) !important;
-    color: #f8fafc !important;
-    border-right: 1px solid rgba(148,163,184,.16) !important;
-    box-shadow: 18px 0 50px rgba(0,0,0,.28) !important;
-  }
-
-  .desktop-minimal-redesign aside.hidden.lg\:flex > div:first-child {
-    border-bottom-color: var(--minimal-soft-border) !important;
-    padding-top: 24px !important;
-    padding-bottom: 22px !important;
-  }
-
-  .desktop-minimal-redesign aside.hidden.lg\:flex h1 {
-    color: var(--minimal-text) !important;
-    letter-spacing: -.035em !important;
-  }
-
-  .desktop-minimal-redesign aside.hidden.lg\:flex p,
-  .desktop-minimal-redesign aside.hidden.lg\:flex .text-slate-400,
-  .desktop-minimal-redesign aside.hidden.lg\:flex .text-slate-300 {
-    color: var(--minimal-muted) !important;
-  }
-
-  .desktop-minimal-redesign aside.hidden.lg\:flex nav button {
-    border-radius: 16px !important;
-    min-height: 48px !important;
-  }
-
-  .desktop-minimal-redesign aside.hidden.lg\:flex nav button:not(.bg-gradient-to-r) {
-    color: var(--minimal-muted) !important;
-  }
-
-  .desktop-minimal-redesign aside.hidden.lg\:flex nav button:not(.bg-gradient-to-r):hover {
-    background: rgba(37,99,235,.08) !important;
-    color: var(--minimal-text) !important;
-  }
-
-  .desktop-minimal-redesign aside.hidden.lg\:flex .bg-gradient-to-r {
-    background: #111827 !important;
-    color: #fff !important;
-    box-shadow: 0 14px 28px rgba(15,23,42,.16) !important;
-  }
-
-  .desktop-minimal-redesign[data-polish-theme="dark"] aside.hidden.lg\:flex .bg-gradient-to-r {
-    background: #2563eb !important;
-    box-shadow: 0 14px 32px rgba(37,99,235,.26) !important;
-  }
-
-  .desktop-minimal-redesign .real-use-masterbar {
-    border: 1px solid var(--minimal-border) !important;
-    background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(248,250,252,.90)) !important;
-    box-shadow: var(--minimal-shadow) !important;
-    border-radius: 28px !important;
-    margin-bottom: 18px !important;
-  }
-
-  .desktop-minimal-redesign[data-polish-theme="dark"] .real-use-masterbar {
-    background: linear-gradient(135deg, rgba(15,23,42,.98), rgba(2,6,23,.88)) !important;
-  }
-
-  .desktop-minimal-redesign .real-use-masterbar::before {
-    background:
-      radial-gradient(circle at 5% 0%, rgba(37,99,235,.13), transparent 30%),
-      radial-gradient(circle at 90% 0%, rgba(5,150,105,.10), transparent 30%) !important;
-    opacity: .85 !important;
-  }
-
-  .desktop-minimal-redesign .real-use-masterbar h2,
-  .desktop-minimal-redesign .home-command-center h2,
-  .desktop-minimal-redesign .report-dashboard-card h2 {
-    letter-spacing: -.045em !important;
-  }
-
-  .desktop-minimal-redesign .real-use-masterbar .master-action-grid button {
-    border-radius: 16px !important;
-    box-shadow: none !important;
-  }
-
-  .desktop-minimal-redesign .home-command-center,
-  .desktop-minimal-redesign .report-dashboard-card,
-  .desktop-minimal-redesign .final-polish-card,
-  .desktop-minimal-redesign .home-quick-actions,
-  .desktop-minimal-redesign #home-stock-list-section + div,
-  .desktop-minimal-redesign #home-stock-list-section ~ div.rounded-\[1\.75rem\],
-  .desktop-minimal-redesign .rounded-\[1\.75rem\],
-  .desktop-minimal-redesign .rounded-\[2rem\] {
-    border-color: var(--minimal-border) !important;
-    box-shadow: var(--minimal-shadow-soft) !important;
-  }
-
-  .desktop-minimal-redesign .home-command-center,
-  .desktop-minimal-redesign .report-dashboard-card,
-  .desktop-minimal-redesign .home-quick-actions {
-    border-radius: 26px !important;
-    background: var(--minimal-card) !important;
-    backdrop-filter: blur(12px);
-  }
-
-  .desktop-minimal-redesign .home-command-center::before {
-    opacity: .45 !important;
-  }
-
-  .desktop-minimal-redesign .home-command-grid {
-    grid-template-columns: minmax(0, 1.25fr) minmax(360px, .75fr) !important;
-    gap: 16px !important;
-  }
-
-  .desktop-minimal-redesign .home-command-card,
-  .desktop-minimal-redesign .home-command-action,
-  .desktop-minimal-redesign .home-priority-row,
-  .desktop-minimal-redesign .report-dashboard-card .rounded-2xl,
-  .desktop-minimal-redesign #home-stock-list-section > div,
-  .desktop-minimal-redesign #home-stock-list-section button,
-  .desktop-minimal-redesign .final-polish-card,
-  .desktop-minimal-redesign .stock-table-compact,
-  .desktop-minimal-redesign .mobile-stock-card {
-    border-radius: 20px !important;
-    border-color: var(--minimal-soft-border) !important;
-  }
-
-  .desktop-minimal-redesign .home-command-action,
-  .desktop-minimal-redesign .home-priority-row,
-  .desktop-minimal-redesign #home-stock-list-section button,
-  .desktop-minimal-redesign .report-dashboard-card .rounded-2xl {
-    transition: transform .14s ease, box-shadow .14s ease, background .14s ease !important;
-  }
-
-  .desktop-minimal-redesign .home-command-action:hover,
-  .desktop-minimal-redesign .home-priority-row:hover,
-  .desktop-minimal-redesign #home-stock-list-section button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 14px 30px rgba(15,23,42,.08) !important;
-  }
-
-  .desktop-minimal-redesign #home-stock-list-section {
-    gap: 12px !important;
-    margin-bottom: 18px !important;
-  }
-
-  .desktop-minimal-redesign #home-stock-list-section button,
-  .desktop-minimal-redesign #home-stock-list-section > div {
-    background: var(--minimal-card-solid) !important;
-    box-shadow: 0 8px 18px rgba(15,23,42,.035) !important;
-  }
-
-  .desktop-minimal-redesign[data-polish-theme="dark"] #home-stock-list-section button,
-  .desktop-minimal-redesign[data-polish-theme="dark"] #home-stock-list-section > div {
-    background: rgba(15,23,42,.88) !important;
-    box-shadow: 0 8px 22px rgba(0,0,0,.18) !important;
-  }
-
-  .desktop-minimal-redesign input,
-  .desktop-minimal-redesign select,
-  .desktop-minimal-redesign textarea {
-    border-radius: 14px !important;
-  }
-
-  .desktop-minimal-redesign input:focus,
-  .desktop-minimal-redesign select:focus,
-  .desktop-minimal-redesign textarea:focus {
-    box-shadow: 0 0 0 4px rgba(37,99,235,.10) !important;
-    border-color: rgba(37,99,235,.45) !important;
-  }
-
-  .desktop-minimal-redesign .stock-table-compact {
-    border-collapse: separate !important;
-    border-spacing: 0 !important;
-    overflow: hidden !important;
-  }
-
-  .desktop-minimal-redesign .stock-table-compact thead tr {
-    background: rgba(248,250,252,.86) !important;
-  }
-
-  .desktop-minimal-redesign[data-polish-theme="dark"] .stock-table-compact thead tr {
-    background: rgba(15,23,42,.92) !important;
-  }
-
-  .desktop-minimal-redesign .stock-table-compact th {
-    font-size: 12px !important;
-    letter-spacing: .04em !important;
-    text-transform: uppercase !important;
-    color: var(--minimal-muted) !important;
-    padding-top: 14px !important;
-    padding-bottom: 14px !important;
-  }
-
-  .desktop-minimal-redesign .stock-table-compact td {
-    padding-top: 13px !important;
-    padding-bottom: 13px !important;
-  }
-
-  .desktop-minimal-redesign .stock-table-compact tbody tr {
-    background: var(--minimal-card-solid) !important;
-  }
-
-  .desktop-minimal-redesign[data-polish-theme="dark"] .stock-table-compact tbody tr {
-    background: rgba(15,23,42,.70) !important;
-  }
-
-  .desktop-minimal-redesign .stock-table-compact tbody tr:hover {
-    background: rgba(239,246,255,.85) !important;
-  }
-
-  .desktop-minimal-redesign[data-polish-theme="dark"] .stock-table-compact tbody tr:hover {
-    background: rgba(30,41,59,.90) !important;
-  }
-
-  .desktop-minimal-redesign .stock-table-compact .stock-title {
-    font-size: 15px !important;
-    letter-spacing: -.02em !important;
-  }
-
-  .desktop-minimal-redesign .factory-top-actions,
-  .desktop-minimal-redesign .bottom-mobile-nav {
-    box-shadow: var(--minimal-shadow-soft) !important;
-  }
-}
-
-@media (max-width: 1023px) {
-  .desktop-minimal-redesign {
-    /* Mobile will be redesigned in a separate pass. Keep stable mobile layout for now. */
-  }
-}
-
 
 /* v22.53.43 STOCK Best Possible Real-Use Master Polish */
 .real-use-masterbar {
@@ -13243,6 +12808,7 @@ S.N.: ${item.sn || '-'}
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('BR');
       const selectedBorrowItems = packingChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
+      const skippedBorrowCount = Math.max(0, packingChecklist.length - selectedBorrowItems.length);
       if (selectedBorrowItems.length === 0) {
         pushToast('ยังไม่มีอุปกรณ์พร้อมใช้ในรายการยืม', 'รายการที่เลือกอาจถูกยืมอยู่ ออกงานอยู่ หรืออยู่ระหว่างซ่อม กรุณาตรวจสถานะก่อนบันทึก', 'warning');
         alert('ยังไม่มีอุปกรณ์ที่พร้อมใช้สำหรับบันทึกยืม กรุณาตรวจสถานะรายการที่เลือกก่อน');
@@ -13274,7 +12840,7 @@ S.N.: ${item.sn || '-'}
       setSelectedItems([]); 
       setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setBorrowProofFiles([]);
-      pushToast('บันทึกยืมสำเร็จ', `สร้างเอกสาร ${docRef} • ${selectedBorrowItems.length} รายการ`, 'success');
+      pushToast(skippedBorrowCount ? 'บันทึกยืมสำเร็จบางส่วน' : 'บันทึกยืมสำเร็จ', `สร้างเอกสาร ${docRef} • บันทึก ${selectedBorrowItems.length} รายการ${skippedBorrowCount ? ` • ข้ามผิดสถานะ ${skippedBorrowCount} รายการ` : ''}`, skippedBorrowCount ? 'warning' : 'success');
       alert('✅ บันทึกการยืมเรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
@@ -13306,6 +12872,7 @@ S.N.: ${item.sn || '-'}
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('EV');
       const selectedEventItems = eventChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
+      const skippedEventCount = Math.max(0, eventChecklist.length - selectedEventItems.length);
       if (selectedEventItems.length === 0) {
         pushToast('ยังไม่มีอุปกรณ์พร้อมใช้ในรายการออกงาน', 'รายการที่เลือกอาจถูกยืมอยู่ ออกงานอยู่ หรืออยู่ระหว่างซ่อม กรุณาตรวจสถานะก่อนบันทึก', 'warning');
         alert('ยังไม่มีอุปกรณ์ที่พร้อมใช้สำหรับบันทึกออกงาน กรุณาตรวจสถานะรายการที่เลือกก่อน');
@@ -13337,7 +12904,7 @@ S.N.: ${item.sn || '-'}
       setSelectedItems([]); 
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setEventProofFiles([]);
-      pushToast('บันทึกออกงานสำเร็จ', `สร้างเอกสาร ${docRef} • ${selectedEventItems.length} รายการ`, 'success');
+      pushToast(skippedEventCount ? 'บันทึกออกงานสำเร็จบางส่วน' : 'บันทึกออกงานสำเร็จ', `สร้างเอกสาร ${docRef} • บันทึก ${selectedEventItems.length} รายการ${skippedEventCount ? ` • ข้ามผิดสถานะ ${skippedEventCount} รายการ` : ''}`, skippedEventCount ? 'warning' : 'success');
       alert('✅ บันทึกการนำออกงานเรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
@@ -16686,7 +16253,7 @@ S.N.: ${item.sn || '-'}
   }
 
   return (
-    <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish desktop-minimal-redesign desktop-full-redesign-alpha min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain} ${homeCompactMode ? 'home-comfort-compact' : ''}`}>
+    <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain} ${homeCompactMode ? 'home-comfort-compact' : ''}`}>
       <FactoryPolishStyle isDarkMode={isDarkMode} />
       {/* FactoryStock Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-72 bg-slate-950 text-white flex-col border-r border-white/10">
@@ -16697,7 +16264,7 @@ S.N.: ${item.sn || '-'}
             </div>
             <div className="min-w-0">
               <h1 className="text-xl font-black tracking-tight truncate">MDEC Stock</h1>
-              <p className="text-xs text-slate-400 font-bold truncate">Minimal Stock Workspace</p>
+              <p className="text-xs text-slate-400 font-bold truncate">Modern Inventory Center</p>
             </div>
           </div>
         </div>
@@ -17126,165 +16693,14 @@ S.N.: ${item.sn || '-'}
       )}
 
 
-      {/* v22.55.0 Desktop Full Redesign Alpha: Desktop Workstation Board */}
-      <section className="desktop-workstation-alpha hidden lg:grid">
-        <aside className="desktop-workstation-panel">
-          <div className="panel-head">
-            <div className="desktop-workstation-kicker">Today Command</div>
-            <div className="desktop-workstation-title mt-1">งานวันนี้</div>
-            <div className="desktop-workstation-muted mt-1">ดูงานค้างก่อน แล้วค่อยค้นของหรือทำรายการ</div>
-          </div>
-          <div className="panel-body space-y-3">
-            {[
-              { label: 'เลยกำหนดคืน', value: overdueItems.length, desc: 'ควรติดตามก่อนปิดวัน', tone: 'rose', action: () => openTrackingCenter('overdue') },
-              { label: 'ต้องคืนวันนี้', value: dueTodayItems.length, desc: 'เช็กก่อนหมดวัน', tone: 'amber', action: () => openTrackingCenter('today') },
-              { label: 'รอคืนทั้งหมด', value: currentBorrowedItems.length + currentEventItems.length, desc: 'ยืม + ออกงาน', tone: 'purple', action: () => openTrackingCenter('borrowed') },
-              { label: 'ซ่อม/ชำรุด', value: stats.maintenance, desc: 'เปิดศูนย์ซ่อม', tone: 'rose', action: () => openRepairCenter('open') },
-              { label: 'ข้อมูลควรเติม', value: dataQualityAudit.issueItemCount, desc: 'ทำให้แฟ้มครบ', tone: 'blue', action: () => { setSettingsTab('quality'); setShowSettings(true); } }
-            ].map(row => {
-              const toneClass = row.tone === 'rose'
-                ? (isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700')
-                : row.tone === 'amber'
-                  ? (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700')
-                  : row.tone === 'purple'
-                    ? (isDarkMode ? 'bg-purple-950/30 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-700')
-                    : (isDarkMode ? 'bg-blue-950/30 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700');
-              return (
-                <button key={row.label} type="button" onClick={row.action} className={`workstation-queue-card w-full p-3.5 text-left hover:-translate-y-0.5 transition-all ${toneClass}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="min-w-0">
-                      <span className="block font-black text-base truncate">{row.label}</span>
-                      <span className="block text-xs font-bold mt-1 opacity-75 truncate">{row.desc}</span>
-                    </span>
-                    <span className="text-3xl font-black leading-none shrink-0">{Number(row.value || 0).toLocaleString('th-TH')}</span>
-                  </div>
-                </button>
-              );
-            })}
-
-            <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-              <div className={`text-xs font-black ${theme.textMuted}`}>สถานะระบบวันนี้</div>
-              <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{stats.all ? Math.round((stats.available / stats.all) * 100) : 0}%</div>
-              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>พร้อมใช้ {stats.available.toLocaleString('th-TH')} จาก {stats.all.toLocaleString('th-TH')} รายการ</div>
-              <div className={`mt-3 h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
-                <div className="h-full rounded-full bg-blue-600" style={{ width: `${stats.all ? Math.round((stats.available / stats.all) * 100) : 0}%` }}></div>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        <main className="desktop-workstation-panel main-panel">
-          <div className="panel-head">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="desktop-workstation-kicker">Stock Workspace</div>
-                <div className="desktop-workstation-title mt-1">ค้นหา เลือก แล้วทำรายการ</div>
-                <div className="desktop-workstation-muted mt-1">Flow ใหม่บนคอม: ค้นหา → เลือกอุปกรณ์ → กดทำรายการจากแผงขวา</div>
-              </div>
-              <div className={`px-3 py-2 rounded-2xl text-xs font-black border ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                พบ {filteredItems.length.toLocaleString('th-TH')} รายการ
-              </div>
-            </div>
-          </div>
-          <div className="panel-body space-y-4">
-            <div className="workstation-search-box flex items-center gap-3 px-4">
-              <Icons.Search className={`w-6 h-6 shrink-0 ${theme.textMuted}`} />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-transparent outline-none w-full"
-                placeholder="พิมพ์ชื่ออุปกรณ์ / S.N. / รหัสสั้น / หมวด / ที่เก็บ..."
-              />
-              {searchTerm && <button type="button" onClick={() => setSearchTerm('')} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ล้าง</button>}
-            </div>
-
-            <div className="grid grid-cols-5 gap-2">
-              {[
-                ['ทั้งหมด', stats.all, () => clearAllFilters()],
-                ['พร้อมใช้', stats.available, () => { clearAllFilters(); setFilterStatus('available'); }],
-                ['ถูกยืม', stats.borrowed, () => { clearAllFilters(); setFilterStatus('borrowed'); }],
-                ['ออกงาน', stats.outForEvent, () => { clearAllFilters(); setFilterStatus('out-for-event'); }],
-                ['ซ่อม', stats.maintenance, () => { clearAllFilters(); setFilterStatus('maintenance'); }]
-              ].map(([label, value, action]) => (
-                <button key={label} type="button" onClick={action} className={`workstation-stat-card p-3 text-left hover:-translate-y-0.5 transition-all ${theme.textTitle}`}>
-                  <div className="text-2xl font-black leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
-                  <div className={`text-xs font-black mt-1 ${theme.textMuted}`}>{label}</div>
-                </button>
-              ))}
-            </div>
-
-            <div className="workstation-table-preview">
-              <div className={`px-4 py-3 border-b flex items-center justify-between gap-3 ${theme.divide}`}>
-                <div className={`font-black ${theme.textTitle}`}>รายการที่พบเร็ว</div>
-                <button type="button" onClick={scrollToHomeStockList} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูตารางเต็ม</button>
-              </div>
-              <div className="divide-y divide-slate-200/70 dark:divide-slate-800/70">
-                {filteredItems.slice(0, 6).map(item => {
-                  const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
-                  const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
-                  return (
-                    <button key={item.id} type="button" onClick={() => setShowHistory(item.id)} className={`w-full px-4 py-3 text-left flex items-center justify-between gap-4 hover:bg-blue-50/70 ${isDarkMode ? 'hover:bg-slate-800/70' : ''}`}>
-                      <span className="min-w-0">
-                        <span className={`block font-black truncate ${theme.textTitle}`}>{item.name || '-'}</span>
-                        <span className={`block text-xs font-bold mt-1 truncate ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • {deptInfo.label}</span>
-                      </span>
-                      <span className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
-                    </button>
-                  );
-                })}
-                {filteredItems.length === 0 && (
-                  <div className={`px-4 py-10 text-center font-bold ${theme.textMuted}`}>ไม่พบอุปกรณ์ตามคำค้น / ตัวกรอง</div>
-                )}
-              </div>
-            </div>
-          </div>
-        </main>
-
-        <aside className="desktop-workstation-panel">
-          <div className="panel-head">
-            <div className="desktop-workstation-kicker">Action Rail</div>
-            <div className="desktop-workstation-title mt-1">รายการที่เลือก</div>
-            <div className="desktop-workstation-muted mt-1">ใช้แทนการไล่หาปุ่มในตาราง</div>
-          </div>
-          <div className="panel-body space-y-3">
-            <div className={`workstation-selected-row p-4 ${theme.textTitle}`}>
-              <div className={`text-xs font-black ${theme.textMuted}`}>เลือกอยู่</div>
-              <div className="text-4xl font-black mt-1">{selectedItems.length.toLocaleString('th-TH')}</div>
-              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>รายการสำหรับทำงานแบบกลุ่ม</div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2">
-              <button type="button" onClick={() => openWorkspace('borrowReturn')} className="workstation-action-btn px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white">เปิด Flow ยืม-คืน</button>
-              <button type="button" onClick={() => openDailyReturnBatch('urgent')} className="workstation-action-btn px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white">รับคืนด่วน</button>
-              <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`workstation-action-btn px-4 py-3 border ${theme.btnSecondary}`}>สแกน QR</button>
-              <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`workstation-action-btn px-4 py-3 border ${theme.btnSecondary}`}>เอกสารย้อนหลัง</button>
-              <button type="button" onClick={() => openMonthlyReportPage()} className={`workstation-action-btn px-4 py-3 border ${theme.btnSecondary}`}>รายงาน / Export</button>
-              {canManageระบบ && <button type="button" onClick={() => setShowBackupCenterModal(true)} className={`workstation-action-btn px-4 py-3 border ${theme.btnSecondary}`}>Backup</button>}
-            </div>
-
-            <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-              <div className={`font-black ${theme.textTitle}`}>แนว Flow ใหม่</div>
-              <ol className={`list-decimal ml-4 text-xs font-bold mt-2 space-y-1 ${theme.textMuted}`}>
-                <li>ค้นหาอุปกรณ์กลางจอ</li>
-                <li>ติ๊กเลือกจากตารางด้านล่าง</li>
-                <li>กด Flow ยืม-คืน หรือรับคืนด่วน</li>
-                <li>พิมพ์เอกสารจากระบบเดิม</li>
-              </ol>
-            </div>
-          </div>
-        </aside>
-      </section>
-
-
       {/* v22.53.43 Real-Use Master Bar: รวมโหมดกระชับ + งานด่วน + ค้นหา ไว้ในแถบเดียว */}
       <section className={`real-use-masterbar w-full mb-4 rounded-[1.6rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
         <div className="p-4 sm:p-5 grid grid-cols-1 2xl:grid-cols-[1fr_auto] gap-4 items-center">
           <div className="min-w-0">
-            <div className={`text-xs font-black tracking-[0.2em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>DESKTOP MINIMAL STOCK</div>
-            <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>หน้าแรกเวอร์ชันคอม: โปร่ง เรียบ ใช้งานเร็ว</h2>
+            <div className={`text-xs font-black tracking-[0.2em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>STOCK REAL-USE MASTER</div>
+            <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>หน้าแรกเดิมที่คุ้นมือ แต่เริ่มงานได้เร็วขึ้น</h2>
             <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>
-              รีดีไซน์ Desktop-first ให้เหมาะกับจอคอมก่อน ส่วนมือถือคงโครงเดิมไว้เพื่อรอบต่อไป
+              โฟกัสงานจริงของศูนย์: ค้นของเร็ว ยืม-คืนเร็ว ตามของง่าย และสำรองข้อมูลได้ทันที โดยไม่เพิ่มระบบใหญ่ให้รก
             </p>
             <div className="master-status-row grid grid-cols-2 sm:flex gap-2 mt-3">
               <span className={`master-status-pill px-3 py-2 rounded-2xl border text-xs font-black flex items-center justify-center ${isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
@@ -17307,6 +16723,8 @@ S.N.: ${item.sn || '-'}
             <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ยืม-คืน</button>
             <button type="button" onClick={() => openDailyReturnBatch('urgent')} className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">รับคืนด่วน</button>
             <button type="button" onClick={() => openTrackingCenter('overdue')} className={`px-4 py-3 rounded-2xl border font-black ${overdueItems.length ? 'bg-rose-600 text-white border-rose-600' : theme.btnSecondary}`}>ของเลยกำหนด</button>
+            <button type="button" onClick={() => { setQuickProblemOnly(!quickProblemOnly); scrollToHomeStockList(); }} className={`px-4 py-3 rounded-2xl border font-black ${quickProblemOnly ? 'bg-amber-500 text-white border-amber-500' : theme.btnSecondary}`}>{quickProblemOnly ? 'ปิดต้องจัดการ' : 'ต้องจัดการ'}</button>
+            <button type="button" onClick={() => openRepairCenter('open')} className={`px-4 py-3 rounded-2xl border font-black ${stats.maintenance ? (isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700') : theme.btnSecondary}`}>ศูนย์ซ่อม</button>
             <button type="button" onClick={() => setHomeComfortMode(!homeCompactMode)} className={`px-4 py-3 rounded-2xl border font-black ${homeCompactMode ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>
               {homeCompactMode ? 'ปิดกระชับ' : 'เปิดกระชับ'}
             </button>
@@ -17817,13 +17235,14 @@ S.N.: ${item.sn || '-'}
             <div className={`font-black text-lg ${theme.textTitle}`}>ค้นหาอุปกรณ์ — จุดทำงานหลัก</div>
             <div className={`text-sm font-bold mt-0.5 ${theme.textMuted}`}>
               พบ {filteredItems.length.toLocaleString('th-TH')} รายการจากทั้งหมด {stats.all.toLocaleString('th-TH')} รายการ
-              {activeFilterCount > 0 ? ` • ใช้ตัวกรอง ${activeFilterCount} รายการ` : ' • พิมพ์ชื่อ / S.N. / รหัสสั้น เพื่อหาเร็วที่สุด'}
+              {quickProblemOnly ? ' • กำลังแสดงเฉพาะรายการที่ต้องจัดการ' : activeFilterCount > 0 ? ` • ใช้ตัวกรอง ${activeFilterCount} รายการ` : ' • พิมพ์ชื่อ / S.N. / รหัสสั้น เพื่อหาเร็วที่สุด'}
             </div>
           </div>
-          <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
+          <div className="realuse-filter-actions grid grid-cols-2 sm:flex gap-2 shrink-0">
             <button type="button" onClick={() => { clearAllFilters(); setFilterStatus('available'); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>พร้อมใช้</button>
             <button type="button" onClick={() => { clearAllFilters(); setFilterStatus('borrowed'); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ถูกยืม</button>
             <button type="button" onClick={() => { clearAllFilters(); setFilterStatus('out-for-event'); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ออกงาน</button>
+            <button type="button" onClick={() => setQuickProblemOnly(!quickProblemOnly)} className={`px-4 py-3 rounded-2xl border font-black ${quickProblemOnly ? 'bg-amber-500 text-white border-amber-500' : theme.btnSecondary}`}>{quickProblemOnly ? 'แสดงปกติ' : 'เฉพาะต้องจัดการ'}</button>
             {hasActiveFilters && <button type="button" onClick={clearAllFilters} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black">ล้างตัวกรอง</button>}
           </div>
         </div>
@@ -17841,6 +17260,10 @@ S.N.: ${item.sn || '-'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+          </div>
+
+          <div className={`stock-realuse-hint hidden xl:flex items-center px-3 py-2 rounded-xl border text-xs font-black ${quickProblemOnly ? (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700') : (isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500')}`}>
+            {quickProblemOnly ? 'โหมดต้องจัดการเปิดอยู่' : 'ทิป: พิมพ์ S.N. หรือรหัสสั้นจะเจอเร็วสุด'}
           </div>
 
           <div className="grid grid-cols-2 lg:flex gap-2 w-full lg:w-auto">
