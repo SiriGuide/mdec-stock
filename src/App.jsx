@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.41 Home Classic Comfort Polish';
+const APP_VERSION = 'v22.53.42 STOCK 10/10 Final Usability Polish Pack';
 const APP_UPDATE_NOTE = 'Repair / Maintenance Center Polish: เพิ่มศูนย์ซ่อม/บำรุงรักษา สรุปงานซ่อม ฟิลเตอร์งานค้าง/ส่งซ่อม/เสร็จแล้ว/เสียซ้ำ Export CSV และรายงาน A4 พร้อมฟอร์มแจ้งซ่อมละเอียดขึ้น โดยไม่แตะ QR Scanner/กล้อง/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -6245,6 +6245,42 @@ button[class*="orange"]:not(:disabled) {
 }
 
 
+/* v22.53.42 STOCK 10/10 Final Usability Polish Pack */
+.final-polish-card,
+.final-usability-strip {
+  border-radius: 24px;
+}
+.final-usability-strip button,
+.final-polish-card button {
+  min-height: 44px;
+}
+.final-polish-card:focus-within,
+.final-usability-strip:focus-within {
+  outline: 2px solid rgba(59,130,246,.18);
+  outline-offset: 2px;
+}
+.stock-table-compact tbody tr:focus-within {
+  outline: 2px solid rgba(59,130,246,.22);
+  outline-offset: -2px;
+}
+.stock-table-compact button,
+.mobile-stock-card button {
+  touch-action: manipulation;
+}
+@media (max-width: 640px) {
+  .final-usability-strip {
+    border-radius: 20px;
+  }
+  .final-usability-strip .final-mobile-two {
+    grid-template-columns: 1fr 1fr;
+  }
+  .stock-table-compact button,
+  .mobile-stock-card button {
+    min-height: 42px;
+  }
+}
+
+
 /* v22.53.41 Home Classic Comfort Polish */
 .home-comfort-toolbar {
   position: relative;
@@ -10984,10 +11020,23 @@ S.N.: ${item.sn || '-'}
 
   const getTrackingText = (item = {}) => {
     const dateInfo = getReturnTrackingDateInfo(item);
-    const subject = item.status === 'out-for-event'
-      ? `งาน: ${item.currentEvent || item.eventName || '-'}`
+    const holder = item.status === 'out-for-event'
+      ? `งาน/กิจกรรม: ${item.currentEvent || item.eventName || '-'}`
       : `ผู้ยืม: ${item.currentBorrower || item.borrower || '-'}`;
-    return `แจ้งเตือนคืนอุปกรณ์: ${item.name || '-'}${item.sn ? ` (S.N. ${item.sn})` : ''}\n${subject}\nกำหนดคืน: ${dateInfo.dueText}\nสถานะ: ${dateInfo.label}${dateInfo.daysText ? ` • ${dateInfo.daysText}` : ''}\nจากระบบ MDEC Stock`;
+    const staffText = item.staffOut ? `\nเจ้าหน้าที่ผู้ให้ยืม/นำออก: ${item.staffOut}` : '';
+    const noteText = item.currentNote ? `\nหมายเหตุ: ${item.currentNote}` : '';
+    const urgency = dateInfo.tone === 'rose' ? 'รบกวนติดตามคืนด่วนครับ' : dateInfo.tone === 'amber' ? 'ครบกำหนดคืนวันนี้ครับ' : 'รบกวนเช็กกำหนดคืนตามรายการครับ';
+    return [
+      `แจ้งติดตามอุปกรณ์ MDEC: ${item.name || '-'}`,
+      item.sn ? `S.N. ${item.sn}` : '',
+      holder,
+      `กำหนดคืน: ${dateInfo.dueText}`,
+      `สถานะ: ${dateInfo.label}${dateInfo.daysText ? ` • ${dateInfo.daysText}` : ''}`,
+      staffText.trim(),
+      noteText.trim(),
+      urgency,
+      'จากระบบ MDEC Stock'
+    ].filter(Boolean).join('\n');
   };
 
   const copyReturnTrackingMessage = async (item) => {
@@ -11003,14 +11052,16 @@ S.N.: ${item.sn || '-'}
   const copyDailyOperationSummary = async () => {
     const text = [
       'สรุปงานวันนี้จากระบบ MDEC Stock',
-      `- ต้องคืนวันนี้: ${dueTodayItems.length} รายการ`,
-      `- เลยกำหนดคืน: ${overdueItems.length} รายการ`,
-      `- รอคืนทั้งหมด: ${(currentBorrowedItems.length + currentEventItems.length)} รายการ`,
-      `- ออกงานอยู่: ${currentEventItems.length} รายการ`,
-      `- เตรียมของวันนี้: ${prepTodayLists.length} รายการ`,
-      `- ข้อมูลควรเติม: ${dataQualityAudit.issueItemCount} รายการ`,
+      `• ต้องคืนวันนี้: ${dueTodayItems.length} รายการ`,
+      `• เลยกำหนดคืน: ${overdueItems.length} รายการ`,
+      `• รอคืนทั้งหมด: ${(currentBorrowedItems.length + currentEventItems.length)} รายการ`,
+      `• ออกงานอยู่: ${currentEventItems.length} รายการ`,
+      `• เตรียมของวันนี้: ${prepTodayLists.length} รายการ`,
+      `• ซ่อม/ชำรุด: ${stats.maintenance} รายการ`,
+      `• ข้อมูลควรเติม: ${dataQualityAudit.issueItemCount} รายการ`,
       '',
-      'ตรวจสอบรายละเอียดได้ที่ Dashboard / ศูนย์ติดตามของรอคืน'
+      overdueItems.length ? 'รายการเลยกำหนดควรติดตามก่อนปิดวันครับ' : 'วันนี้ไม่มีรายการเลยกำหนดคืนครับ',
+      'ดูรายละเอียดได้ที่หน้าแรก / ศูนย์ติดตามของรอคืน'
     ].join('\n');
     try {
       await navigator.clipboard.writeText(text);
@@ -12906,7 +12957,8 @@ S.N.: ${item.sn || '-'}
       setReturnData({ staff: '', newStaff: '' });
       setReturnInspection({});
       setReturnProofFiles([]);
-      pushToast(returnChecklist.length < returnTargetIds.length ? 'รับคืนบางส่วนสำเร็จ' : 'รับคืนสำเร็จ', `สร้างเอกสาร ${returnDocRef} • รับคืน ${returnChecklist.length} รายการ`, returnChecklist.length < returnTargetIds.length ? 'warning' : 'success');
+      const remainReturnCount = Math.max(0, returnTargetIds.length - returnChecklist.length);
+      pushToast(returnChecklist.length < returnTargetIds.length ? 'รับคืนบางส่วนสำเร็จ' : 'รับคืนสำเร็จ', `สร้างเอกสาร ${returnDocRef} • รับคืน ${returnChecklist.length} รายการ${remainReturnCount ? ` • ยังเหลือ ${remainReturnCount} รายการ` : ''}`, returnChecklist.length < returnTargetIds.length ? 'warning' : 'success');
       alert('✅ รับคืนอุปกรณ์เรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
@@ -16580,6 +16632,25 @@ S.N.: ${item.sn || '-'}
         </div>
       </section>
 
+      {/* v22.53.42 Final Usability Strip */}
+      <section className={`final-usability-strip w-full mb-4 rounded-[1.5rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+        <div className="p-4 grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-4 items-center">
+          <div className="min-w-0">
+            <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>10/10 DAILY FLOW</div>
+            <div className={`text-lg sm:text-xl font-black mt-1 ${theme.textTitle}`}>เริ่มงานเร็ว: ค้นหา → ทำรายการ → ติดตาม → สำรอง</div>
+            <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>
+              เน้นใช้งานจริงแทนกระดานขาว ไม่เพิ่มระบบใหญ่ แต่รวมปุ่มที่ต้องกดบ่อยให้ชัดขึ้น
+            </div>
+          </div>
+          <div className="final-mobile-two grid grid-cols-2 sm:flex gap-2 shrink-0">
+            <button type="button" onClick={scrollToHomeStockList} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black">ค้นหาอุปกรณ์</button>
+            <button type="button" onClick={() => openDailyReturnBatch('urgent')} className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">รับคืนด่วน</button>
+            <button type="button" onClick={() => openTrackingCenter('overdue')} className={`px-4 py-3 rounded-2xl border font-black ${overdueItems.length ? 'bg-rose-600 text-white border-rose-600' : theme.btnSecondary}`}>ของเลยกำหนด</button>
+            {canManageระบบ && <button type="button" onClick={() => setShowBackupCenterModal(true)} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>Backup</button>}
+          </div>
+        </div>
+      </section>
+
       {/* v22.53.14 Home Dashboard Command Center Polish */}
       <section className={`home-command-center w-full mb-6 rounded-[2rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
         <div className={`p-4 sm:p-5 border-b ${theme.divide}`}>
@@ -17075,6 +17146,25 @@ S.N.: ${item.sn || '-'}
         )}
       </div>
 
+      {/* v22.53.42 Search / Filter Usability Strip */}
+      <div className={`final-polish-card w-full mb-4 rounded-[1.5rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+        <div className="p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className={`font-black text-lg ${theme.textTitle}`}>ค้นหาอุปกรณ์ / รายการหน้าแรก</div>
+            <div className={`text-sm font-bold mt-0.5 ${theme.textMuted}`}>
+              พบ {filteredItems.length.toLocaleString('th-TH')} รายการจากทั้งหมด {stats.all.toLocaleString('th-TH')} รายการ
+              {activeFilterCount > 0 ? ` • ใช้ตัวกรอง ${activeFilterCount} รายการ` : ' • ยังไม่ได้กรอง'}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
+            <button type="button" onClick={() => { clearAllFilters(); setFilterStatus('available'); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>พร้อมใช้</button>
+            <button type="button" onClick={() => { clearAllFilters(); setFilterStatus('borrowed'); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ถูกยืม</button>
+            <button type="button" onClick={() => { clearAllFilters(); setFilterStatus('out-for-event'); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ออกงาน</button>
+            {hasActiveFilters && <button type="button" onClick={clearAllFilters} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black">ล้างตัวกรอง</button>}
+          </div>
+        </div>
+      </div>
+
       {/* Filters & Search */}
       <div className={`w-full flex flex-col gap-4 ${panelPaddingClass} rounded-[1.5rem] shadow-sm border mb-5 transition-colors ${theme.cardBg}`}>
         <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center w-full">
@@ -17170,7 +17260,7 @@ S.N.: ${item.sn || '-'}
             <div className={`p-5 border-b flex items-start justify-between gap-4 ${theme.divide}`}>
               <div>
                 <h3 className={`text-2xl sm:text-3xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.Settings className="w-7 h-7 text-blue-500" /> ตัวกรองข้อมูล</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมตัวกรองทั้งหมดไว้ที่นี่ หน้าแรกจะได้โล่ง และมือถือกดง่าย</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมตัวกรองทั้งหมดไว้ที่นี่ ใช้เมื่อต้องค้นละเอียด ส่วนหน้าแรกยังคงใช้งานเร็ว</p>
               </div>
               <button type="button" onClick={() => setShowFilterModal(false)} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
