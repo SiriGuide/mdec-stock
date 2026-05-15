@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.40 Equipment Hub / Home Declutter Polish';
+const APP_VERSION = 'v22.53.40.1 Home Classic Rollback';
 const APP_UPDATE_NOTE = 'Repair / Maintenance Center Polish: เพิ่มศูนย์ซ่อม/บำรุงรักษา สรุปงานซ่อม ฟิลเตอร์งานค้าง/ส่งซ่อม/เสร็จแล้ว/เสียซ้ำ Export CSV และรายงาน A4 พร้อมฟอร์มแจ้งซ่อมละเอียดขึ้น โดยไม่แตะ QR Scanner/กล้อง/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -8627,12 +8627,7 @@ S.N.: ${item.sn || '-'}
     overview: {
       kicker: 'MDEC STOCK CENTER',
       title: 'ภาพรวมระบบ',
-      desc: 'Dashboard สำหรับดูงานวันนี้และทางลัด ไม่แสดงรายการอุปกรณ์ยาว ๆ แล้ว'
-    },
-    equipmentHub: {
-      kicker: 'EQUIPMENT HUB',
-      title: 'คลังอุปกรณ์ทั้งหมด',
-      desc: 'ค้นหา กรอง เปิดแฟ้ม และจัดการอุปกรณ์ทั้งหมดในหน้าเดียว'
+      desc: 'ระบบจัดการสต๊อกศูนย์มัลติมีเดียทางการศึกษา'
     },
     borrowReturn: {
       kicker: 'BORROW & RETURN',
@@ -8665,8 +8660,7 @@ S.N.: ${item.sn || '-'}
   const renderWorkspaceTabs = () => (
     <div className={`workspace-tabbar w-full mb-5 rounded-[1.5rem] border shadow-sm p-2 flex gap-2 overflow-x-auto ${theme.cardBg}`}>
       {[
-        ['overview', 'หน้าแรก', Icons.Package, 'Dashboard / งานวันนี้'],
-        ['equipmentHub', 'คลังอุปกรณ์', Icons.ViewGrid, `${filteredItems.length.toLocaleString('th-TH')} รายการตามตัวกรอง`],
+        ['overview', 'ภาพรวม', Icons.Package, 'กลับหน้ารายการทั้งหมด'],
         ['borrowReturn', 'ยืม-คืน', Icons.UserPlus, `${currentBorrowedItems.length + currentEventItems.length} รายการค้าง`],
         ['projects', 'โครงการจัดซื้อ', Icons.Database, `${projectStats.length.toLocaleString('th-TH')} โครงการ`],
         ['organize', 'กล่อง / เซ็ต', Icons.Layers, `${(settingsOptions.storageBoxes || []).length} กล่อง • ${(settingsOptions.bundles || []).length} เซ็ต`],
@@ -9662,196 +9656,6 @@ S.N.: ${item.sn || '-'}
     );
   };
 
-  const renderEquipmentHubWorkspace = () => {
-    const hubRows = filteredItems.slice(0, 220);
-    const hubQuickCards = [
-      ['ทั้งหมด', stats.all, 'blue', () => { clearAllFilters(); }],
-      ['พร้อมใช้', stats.available, 'emerald', () => { clearAllFilters(); setFilterStatus('available'); }],
-      ['ถูกยืม', stats.borrowed, 'purple', () => { clearAllFilters(); setFilterStatus('borrowed'); }],
-      ['ออกงาน', stats.outForEvent, 'orange', () => { clearAllFilters(); setFilterStatus('out-for-event'); }],
-      ['ซ่อม/ชำรุด', stats.maintenance, 'rose', () => { clearAllFilters(); setFilterStatus('maintenance'); }],
-      ['ข้อมูลควรเติม', dataQualityAudit.issueItemCount, 'amber', () => { clearAllFilters(); setQuickProblemOnly(true); }]
-    ];
-    const statusOptions = [
-      ['all', 'ทุกสถานะ'],
-      ['available', 'พร้อมใช้'],
-      ['borrowed', 'ถูกยืม'],
-      ['out-for-event', 'ออกงาน'],
-      ['maintenance', 'ซ่อม/ชำรุด']
-    ];
-    const hubCardTone = (tone) => ({
-      blue: isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800',
-      emerald: isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800',
-      purple: isDarkMode ? 'bg-purple-950/25 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-800',
-      orange: isDarkMode ? 'bg-orange-950/25 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800',
-      rose: isDarkMode ? 'bg-rose-950/25 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800',
-      amber: isDarkMode ? 'bg-amber-950/25 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'
-    }[tone] || theme.btnSecondary);
-
-    return (
-      <div className="equipment-hub-page solid-workspace space-y-5">
-        {renderWorkspaceTabs()}
-
-        <div className={`rounded-[1.8rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
-          <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-4 ${theme.divide}`}>
-            <div className="min-w-0">
-              <div className={`text-xs font-black tracking-[0.2em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>EQUIPMENT HUB</div>
-              <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>คลังอุปกรณ์ทั้งหมด</h2>
-              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หน้านี้ใช้ค้นหา กรอง เปิดแฟ้ม และจัดการอุปกรณ์ทั้งหมด แยกออกจากหน้าแรกเพื่อลดความรก</p>
-            </div>
-            <div className="flex flex-wrap gap-2 shrink-0">
-              {canAddEditItems && <button type="button" onClick={openAddItemForm} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">เพิ่มอุปกรณ์</button>}
-              {canUseOperationalTools && <button type="button" onClick={() => openSelectionScanner({ camera: true })} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black shadow-sm">สแกน QR</button>}
-              <button type="button" onClick={() => openWorkspace('overview')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับหน้าแรก</button>
-            </div>
-          </div>
-
-          <div className="p-4 sm:p-5 space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2.5">
-              {hubQuickCards.map(([label, value, tone, action]) => (
-                <button key={label} type="button" onClick={action} className={`p-4 rounded-2xl border text-left hover:-translate-y-0.5 transition-all shadow-sm ${hubCardTone(tone)}`}>
-                  <div className="text-2xl sm:text-3xl font-black leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
-                  <div className="text-xs sm:text-sm font-black mt-2">{label}</div>
-                  <div className="text-[11px] font-bold mt-1 opacity-75">กดเพื่อกรอง</div>
-                </button>
-              ))}
-            </div>
-
-            <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-              <div className={`p-4 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${theme.divide}`}>
-                <div>
-                  <div className={`font-black text-lg ${theme.textTitle}`}>ค้นหาและตัวกรอง</div>
-                  <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>พบ {filteredItems.length.toLocaleString('th-TH')} รายการ • ใช้หน้านี้แทนรายการยาวบนหน้าแรก</div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={() => setShowFilterModal(true)} className={`px-4 py-2.5 rounded-2xl border font-black ${activeFilterCount > 0 ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>ตัวกรองขั้นสูง{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}</button>
-                  {hasActiveFilters && <button type="button" onClick={clearAllFilters} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>ล้างตัวกรอง</button>}
-                </div>
-              </div>
-
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
-                <div className={`xl:col-span-2 flex items-center gap-3 px-4 py-3 rounded-2xl border ${theme.input}`}>
-                  <Icons.Search className={`w-5 h-5 shrink-0 ${theme.textMuted}`} />
-                  <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent outline-none w-full font-black" placeholder="ค้นหา ชื่อ / S.N. / รหัสสั้น / หมวด / ที่เก็บ / โครงการ" />
-                </div>
-                <select value={filterDept} onChange={(e) => setFilterDept(e.target.value)} className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
-                  <option value="all">ทุกฝ่าย</option>
-                  {DEPARTMENTS.map(dep => <option key={dep.id} value={dep.id}>{dep.label}</option>)}
-                </select>
-                <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
-                  <option value="all">ทุกหมวดหมู่</option>
-                  {(settingsOptions.categories || []).filter(Boolean).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
-                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
-                  {statusOptions.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-                </select>
-              </div>
-
-              {activeFilterChips.length > 0 && (
-                <div className="px-4 pb-4 flex flex-wrap gap-2">
-                  {activeFilterChips.map(chip => (
-                    <button key={chip.id} type="button" onClick={chip.clear} className={`px-3 py-2 rounded-full border text-xs font-black flex items-center gap-2 ${isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-200 hover:bg-blue-900' : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'}`}>
-                      {chip.label}<span className="opacity-70">×</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className={`rounded-[1.7rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div className={`p-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
-                <div className={`font-black ${theme.textTitle}`}>รายการอุปกรณ์</div>
-                <div className={`text-xs font-bold ${theme.textMuted}`}>แสดง {hubRows.length.toLocaleString('th-TH')} จาก {filteredItems.length.toLocaleString('th-TH')} รายการ</div>
-              </div>
-
-              {hubRows.length === 0 ? (
-                <div className={`min-h-[260px] flex flex-col items-center justify-center text-center p-8 ${theme.textMuted}`}>
-                  <Icons.Search className="w-12 h-12 mb-3 opacity-60" />
-                  <div className={`text-xl font-black ${theme.textTitle}`}>ไม่พบอุปกรณ์ตามเงื่อนไข</div>
-                  <p className="text-sm font-bold mt-1">ลองล้างตัวกรอง หรือค้นหาด้วย S.N. / ชื่ออุปกรณ์ / หมวดหมู่</p>
-                  <button type="button" onClick={clearAllFilters} className="mt-4 px-5 py-3 rounded-2xl bg-blue-600 text-white font-black">ล้างตัวกรอง</button>
-                </div>
-              ) : (
-                <>
-                  <div className="lg:hidden p-3 grid grid-cols-1 gap-3">
-                    {hubRows.map(item => {
-                      const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
-                      const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
-                      return (
-                        <div key={item.id} className={`p-4 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                          <button type="button" onClick={() => setShowHistory(item.id)} className="w-full text-left">
-                            <div className={`text-lg font-black ${theme.textTitle}`}>{item.name || '-'}</div>
-                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • {item.location || '-'}</div>
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
-                              <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? deptInfo.darkColor : deptInfo.color}`}>{deptInfo.label}</span>
-                              {item.project && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-sky-950/30 text-sky-300' : 'bg-sky-50 text-sky-700'}`}>{item.project}</span>}
-                            </div>
-                          </button>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
-                            <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-3 rounded-2xl border font-black text-sm ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
-                            {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowBorrow(e, item)} className="px-3 py-3 rounded-2xl bg-purple-600 text-white font-black text-sm">ยืม</button>}
-                            {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowEvent(e, item)} className="px-3 py-3 rounded-2xl bg-orange-500 text-white font-black text-sm">ออกงาน</button>}
-                            {canUseOperationalTools && (item.status === 'borrowed' || item.status === 'out-for-event') && <button type="button" onClick={() => openReturnForItems([item.id])} className="px-3 py-3 rounded-2xl bg-emerald-600 text-white font-black text-sm">รับคืน</button>}
-                            {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className={`px-3 py-3 rounded-2xl border font-black text-sm ${theme.btnSecondary}`}>แก้ไข</button>}
-                            {canUseOperationalTools && <button type="button" onClick={() => openRepairForItem(item)} className={`px-3 py-3 rounded-2xl border font-black text-sm ${isDarkMode ? 'bg-rose-950/25 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>แจ้งซ่อม</button>}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="hidden lg:block overflow-x-auto custom-scrollbar">
-                    <table className="stock-table-compact w-full text-left border-collapse min-w-[980px]">
-                      <thead>
-                        <tr className={`border-b text-sm uppercase tracking-wide ${theme.th}`}>
-                          <th className="px-4 py-4 text-left font-bold pl-6">ชื่ออุปกรณ์ / รหัส</th>
-                          <th className="px-4 py-4 text-left font-bold">หมวด</th>
-                          <th className="px-4 py-4 text-left font-bold">ฝ่าย</th>
-                          <th className="px-4 py-4 text-left font-bold">ที่เก็บ</th>
-                          <th className="px-4 py-4 text-left font-bold">สถานะ</th>
-                          <th className="px-4 py-4 text-center font-bold">จัดการ</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {hubRows.map(item => {
-                          const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
-                          const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
-                          return (
-                            <tr key={item.id} onClick={() => setShowHistory(item.id)} className={`group border-b cursor-pointer transition-colors ${theme.tr}`}>
-                              <td className="px-4 py-4 pl-6">
-                                <div className={`font-black text-base ${theme.textTitle}`}>{item.name || '-'}</div>
-                                <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || item.assetShortCode || item.localCode || 'ไม่มีรหัสสั้น'}</div>
-                              </td>
-                              <td className={`px-4 py-4 font-bold ${theme.textMuted}`}>{item.category || '-'}</td>
-                              <td className="px-4 py-4"><span className={`inline-block px-3 py-1.5 rounded-lg text-sm font-bold ${isDarkMode ? deptInfo.darkColor : deptInfo.color}`}>{deptInfo.label}</span></td>
-                              <td className={`px-4 py-4 font-bold ${theme.textMuted}`}>{item.location || '-'}</td>
-                              <td className="px-4 py-4"><span className={`inline-flex px-3 py-1.5 rounded-lg text-sm font-bold border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span></td>
-                              <td className="px-4 py-4">
-                                <div className="flex items-center justify-center gap-2">
-                                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowHistory(item.id); }} className={`w-10 h-10 rounded-xl flex items-center justify-center ${theme.btnCancel}`} title="เปิดแฟ้ม"><Icons.History className="w-5 h-5" /></button>
-                                  {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowBorrow(e, item)} className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white'}`} title="ให้ยืม"><Icons.UserPlus className="w-5 h-5" /></button>}
-                                  {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowEvent(e, item)} className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-orange-900/40 text-orange-400 hover:bg-orange-600 hover:text-white' : 'bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white'}`} title="ออกงาน"><Icons.Truck className="w-5 h-5" /></button>}
-                                  {canUseOperationalTools && (item.status === 'borrowed' || item.status === 'out-for-event') && <button type="button" onClick={(e) => { e.stopPropagation(); openReturnForItems([item.id]); }} className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle className="w-5 h-5" /></button>}
-                                  {canAddEditItems && <button type="button" onClick={(e) => { e.stopPropagation(); openItemEditor(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>}
-                                  {canUseOperationalTools && <button type="button" onClick={(e) => { e.stopPropagation(); openRepairForItem(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="แจ้งซ่อม"><Icons.Alert className="w-5 h-5" /></button>}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderBorrowReturnWorkspace = () => {
     const modeInfo = borrowReturnMode === 'event'
       ? { id: 'event', title: 'นำอุปกรณ์ออกงาน', color: 'orange', icon: Icons.Truck, status: 'out-for-event' }
@@ -10792,7 +10596,6 @@ S.N.: ${item.sn || '-'}
   };
 
   const renderActiveWorkspace = () => {
-    if (activeWorkspace === 'equipmentHub') return renderEquipmentHubWorkspace();
     if (activeWorkspace === 'borrowReturn') return renderBorrowReturnWorkspace();
     if (activeWorkspace === 'projects') return renderProjectWorkspace();
     if (activeWorkspace === 'organize') return renderOrganizeWorkspace();
@@ -16511,11 +16314,6 @@ S.N.: ${item.sn || '-'}
               <span className={`block ${theme.textTitle}`}>หลักฐานรูปภาพ</span>
               <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ดู/จัดการรูป</span>
             </button>
-            <button type="button" onClick={() => openWorkspace('equipmentHub')} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
-              <span className="mobile-field-icon bg-cyan-600 text-white mb-2"><Icons.ViewGrid className="w-5 h-5" /></span>
-              <span className={`block ${theme.textTitle}`}>คลังอุปกรณ์</span>
-              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ค้นหา/เปิดแฟ้ม</span>
-            </button>
             <button type="button" onClick={() => openMonthlyReportPage()} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
               <span className="mobile-field-icon bg-amber-600 text-white mb-2"><Icons.ClipboardList className="w-5 h-5" /></span>
               <span className={`block ${theme.textTitle}`}>รายงาน</span>
@@ -16994,11 +16792,6 @@ S.N.: ${item.sn || '-'}
         </div>
 
         <div className="p-4 sm:p-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-8 gap-2.5">
-          <button type="button" onClick={() => openWorkspace('equipmentHub')} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-cyan-950/40 border-cyan-800 text-cyan-200' : 'bg-cyan-50 border-cyan-100 text-cyan-700'}`}>
-            <div className="w-10 h-10 rounded-2xl bg-cyan-600 text-white flex items-center justify-center mb-3"><Icons.ViewGrid className="w-5 h-5" /></div>
-            <div className="font-black text-lg">คลังอุปกรณ์</div>
-            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>รายการทั้งหมด</div>
-          </button>
           {canUseOperationalTools && (
             <button type="button" onClick={() => openSelectionScanner()} className={`group relative overflow-hidden p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-900 border-slate-900 text-white'}`}>
               <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center mb-3"><Icons.QrCode className="w-5 h-5" /></div>
@@ -17131,38 +16924,608 @@ S.N.: ${item.sn || '-'}
         </div>
       </div>
 
-      {/* v22.53.40 Home Declutter: รายการอุปกรณ์ย้ายไปหน้า Equipment Hub */}
-      <div className={`w-full mb-6 rounded-[1.8rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-        <div className={`p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${isDarkMode ? 'bg-gradient-to-br from-slate-950 to-cyan-950/20' : 'bg-gradient-to-br from-cyan-50 to-white'}`}>
+      {/* 📊 Factory Stock Metrics */}
+      <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-6">
+        {[
+          ['ทั้งหมด', stats.all, 'blue', '📦', 'จากข้อมูลทั้งหมด'],
+          ['พร้อมใช้', stats.available, 'emerald', '✅', 'พร้อมหยิบใช้งาน'],
+          ['กำลังใช้งาน', stats.inUse, 'amber', '⚙️', 'กำลังใช้งานอยู่'],
+          ['ถูกยืม', stats.borrowed, 'purple', '📤', 'รอรับคืน'],
+          ['ออกงาน', stats.outForEvent, 'orange', '🚚', 'อยู่นอกศูนย์'],
+          ['ซ่อม/ชำรุด', stats.maintenance, 'rose', '🛠️', 'ต้องติดตาม']
+        ].map(([label, value, tone, emoji, caption]) => {
+          const toneMap = {
+            blue: isDarkMode ? 'bg-slate-900 border-slate-800 text-blue-300' : 'bg-white border-slate-200 text-blue-600',
+            emerald: isDarkMode ? 'bg-slate-900 border-slate-800 text-emerald-300' : 'bg-white border-slate-200 text-emerald-600',
+            amber: isDarkMode ? 'bg-slate-900 border-slate-800 text-amber-300' : 'bg-white border-slate-200 text-amber-600',
+            purple: isDarkMode ? 'bg-slate-900 border-slate-800 text-purple-300' : 'bg-white border-slate-200 text-purple-600',
+            orange: isDarkMode ? 'bg-slate-900 border-slate-800 text-orange-300' : 'bg-white border-slate-200 text-orange-600',
+            rose: isDarkMode ? 'bg-slate-900 border-slate-800 text-rose-300' : 'bg-white border-slate-200 text-rose-600'
+          };
+          return (
+            <div key={label} className={`relative overflow-hidden p-4 rounded-2xl border shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${toneMap[tone]}`}>
+              <div className="absolute -right-3 -top-3 text-6xl opacity-10 font-black">{emoji}</div>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <span className={`font-black text-xs sm:text-sm tracking-wide ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{label}</span>
+                  <div className="text-3xl sm:text-4xl font-black mt-1 leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
+                </div>
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg shadow-sm ${isDarkMode ? 'bg-white/5' : 'bg-white'}`}>{emoji}</div>
+              </div>
+              <div className={`mt-3 text-[11px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{caption}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ส่วนสรุปหมวดหมู่แบบยุบได้ */}
+      <div className={`w-full mb-6 rounded-2xl border shadow-sm overflow-hidden ${theme.cardBg}`}>
+        <div className={`px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${showCategorySummary ? `border-b ${theme.divide}` : ''}`}>
           <div className="min-w-0">
-            <div className={`text-xs font-black tracking-[0.2em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>HOME DECLUTTER</div>
-            <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>ย้ายรายการอุปกรณ์ไปหน้า “คลังอุปกรณ์” แล้ว</h2>
-            <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>
-              หน้าแรกจะเหลือเฉพาะ Dashboard / งานวันนี้ / ทางลัดสำคัญ ส่วนการค้นหา กรอง เปิดแฟ้ม ยืม ออกงาน รับคืน และจัดการอุปกรณ์ทั้งหมดให้เข้าไปที่หน้า “คลังอุปกรณ์”
-            </p>
+            <div className={`font-black text-xl ${theme.textTitle}`}>สรุปหมวดหมู่</div>
+            <div className={`text-sm font-bold ${theme.textMuted}`}>
+              {categoryStats.length.toLocaleString('th-TH')} หมวดหมู่ • พร้อมใช้ {stats.available.toLocaleString('th-TH')} / {stats.all.toLocaleString('th-TH')} ชิ้น
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2 shrink-0">
-            <button type="button" onClick={() => openWorkspace('equipmentHub')} className="px-5 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black shadow-sm">เปิดคลังอุปกรณ์</button>
-            {canAddEditItems && <button type="button" onClick={openAddItemForm} className={`px-5 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เพิ่มอุปกรณ์</button>}
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setShowEmptyCategories(!showEmptyCategories)} className={`px-4 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>
+              {showEmptyCategories ? 'ซ่อนหมวดว่าง' : 'รวมหมวดว่าง'}
+            </button>
+            <button type="button" onClick={() => setShowCategorySummary(!showCategorySummary)} className={`px-4 py-2 rounded-xl text-sm font-black border ${showCategorySummary ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>
+              {showCategorySummary ? 'ซ่อนรายละเอียดหมวดหมู่' : 'ดูรายละเอียดหมวดหมู่'}
+            </button>
           </div>
         </div>
-        <div className="p-4 sm:p-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2.5">
-          {[
-            { label: 'ทั้งหมด', value: stats.all, desc: 'รายการทั้งหมด', action: () => openWorkspace('equipmentHub') },
-            { label: 'พร้อมใช้', value: stats.available, desc: 'พร้อมหยิบใช้งาน', action: () => { clearAllFilters(); setFilterStatus('available'); openWorkspace('equipmentHub'); } },
-            { label: 'รอคืน', value: stats.borrowed + stats.outForEvent, desc: 'ยืม + ออกงาน', action: () => openTrackingCenter('borrowed') },
-            { label: 'ซ่อม/ชำรุด', value: stats.maintenance, desc: 'ติดตามในศูนย์ซ่อม', action: () => openRepairCenter('open') },
-            { label: 'โครงการ', value: projectStats.length, desc: 'แยกตามแหล่งที่มา', action: () => openWorkspace('projects') },
-            { label: 'ข้อมูลควรเติม', value: dataQualityAudit.issueItemCount, desc: 'ตรวจคุณภาพข้อมูล', action: () => { setShowSettings(true); openSettingsTab('quality'); } }
-          ].map(({ label, value, desc, action }) => (
-            <button key={label} type="button" onClick={action} className={`p-3 rounded-2xl border text-left ${theme.btnSecondary}`}>
-              <div className={`text-2xl font-black ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
-              <div className={`text-xs font-black mt-1 ${theme.textTitle}`}>{label}</div>
-              <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
+
+        {!showCategorySummary ? (
+          <div className="px-5 pb-5">
+            <div className={`w-full h-3 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
+              <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full" style={{ width: `${stats.all === 0 ? 0 : Math.round((stats.available / stats.all) * 100)}%` }}></div>
+            </div>
+            <div className={`mt-3 flex flex-wrap gap-2 text-xs font-black ${theme.textMuted}`}>
+              {categoryStats.filter(c => c.data.total > 0).slice(0, 6).map(c => (
+                <span key={c.label} className={`px-3 py-1.5 rounded-full border ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                  {c.label}: {c.data.available}/{c.data.total}
+                </span>
+              ))}
+              {categoryStats.filter(c => c.data.total > 0).length > 6 && (
+                <span className={`px-3 py-1.5 rounded-full border ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                  +{categoryStats.filter(c => c.data.total > 0).length - 6} หมวด
+                </span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {categoryStats.map(c => (
+              <div key={c.label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="flex justify-between items-start gap-3 mb-2">
+                  <span className={`font-black text-base truncate ${theme.textTitle}`} title={c.label}>{c.label}</span>
+                  <span className={`text-xs font-black px-2 py-1 rounded-lg shrink-0 ${isDarkMode ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
+                    {c.data.available}/{c.data.total}
+                  </span>
+                </div>
+                <div className={`w-full h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>
+                  <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${c.data.total === 0 ? 0 : (c.data.available / c.data.total) * 100}%` }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Filters & Search */}
+      <div className={`w-full flex flex-col gap-4 ${panelPaddingClass} rounded-[1.5rem] shadow-sm border mb-5 transition-colors ${theme.cardBg}`}>
+        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center w-full">
+          <div className="relative flex-1 w-full">
+            <div className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${theme.textMuted}`}><Icons.Search className="w-5 h-5" /></div>
+            <input
+              type="text"
+              className={`w-full pl-12 pr-4 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-bold outline-none transition-all border ${theme.input}`}
+              placeholder="ค้นหา ชื่อ / S.N. / รหัสสั้น / หมวด / ที่เก็บ / ฝ่าย / โครงการ..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 lg:flex gap-2 w-full lg:w-auto">
+            <button
+              type="button"
+              onClick={() => setShowFilterModal(true)}
+              className={`px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap flex items-center justify-center gap-2 ${activeFilterCount > 0 ? 'bg-blue-600 text-white border-blue-600 shadow-md' : theme.btnSecondary}`}
+            >
+              <Icons.Settings className="w-5 h-5" />
+              ตัวกรอง{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
             </button>
-          ))}
+            {hasActiveFilters && (
+              <button type="button" onClick={clearAllFilters} className={`px-4 ${controlPaddingClass} rounded-xl font-black border transition-colors whitespace-nowrap ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
+            )}
+            {canAddEditItems && (
+              <button
+                type="button"
+                onClick={openAddItemForm}
+                className={`col-span-2 lg:col-span-1 flex items-center justify-center gap-2 px-6 ${controlPaddingClass} font-black rounded-xl shadow-md transition-colors text-lg whitespace-nowrap ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+              >
+                <Icons.Plus className="w-5 h-5" /> เพิ่มอุปกรณ์
+              </button>
+            )}
+          </div>
+        </div>
+
+        {activeFilterChips.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {activeFilterChips.map(chip => (
+              <button
+                key={chip.id}
+                type="button"
+                onClick={chip.clear}
+                className={`px-3 py-2 rounded-full border text-xs sm:text-sm font-black flex items-center gap-2 ${isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-200 hover:bg-blue-900' : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'}`}
+                title="กดเพื่อลบตัวกรองนี้"
+              >
+                {chip.label}<span className="opacity-70">×</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`px-4 py-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${theme.divide}`}>
+            <div className={`font-black ${theme.textTitle}`}>
+              ฝ่าย / แผนก <span className={`text-xs font-bold ${theme.textMuted}`}>{filterDept === 'all' ? 'ทั้งหมด' : filterDept}</span>
+            </div>
+            <div className={`text-xs font-bold ${theme.textMuted}`}>
+              เลือก “ห้องประชุม” แล้วระบบจะแยกอุปกรณ์ตามห้องให้อัตโนมัติ
+            </div>
+          </div>
+          <div className="p-3 flex gap-2 overflow-x-auto w-full custom-scrollbar">
+            <button
+              type="button"
+              onClick={() => { setFilterDept('all'); setShowRoomView(false); }}
+              className={`flex items-center justify-center gap-2 whitespace-nowrap px-5 py-3 rounded-xl font-black transition-all border ${filterDept === 'all' ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-slate-800 border-slate-800 text-white shadow-md') : theme.btnSecondary}`}
+            >
+              ทั้งหมด <Icons.ViewGrid className="w-5 h-5" />
+            </button>
+            {DEPARTMENTS.map(d => {
+              const IconComponent = Icons[d.iconName];
+              return (
+                <button
+                  type="button"
+                  key={d.id}
+                  onClick={() => { setFilterDept(d.id); if (d.id !== 'ห้องประชุม') setShowRoomView(false); }}
+                  className={`flex items-center justify-center gap-2 whitespace-nowrap px-5 py-3 rounded-xl font-black transition-all border ${filterDept === d.id ? (isDarkMode ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-blue-600 border-blue-600 text-white shadow-md') : theme.btnSecondary}`}
+                >
+                  {d.label} {IconComponent && <IconComponent className="w-5 h-5" />}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
+
+      {/* Filter Modal */}
+      {showFilterModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`rounded-[2rem] shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[92vh] border ${theme.cardBg}`}>
+            <div className={`p-5 border-b flex items-start justify-between gap-4 ${theme.divide}`}>
+              <div>
+                <h3 className={`text-2xl sm:text-3xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.Settings className="w-7 h-7 text-blue-500" /> ตัวกรองข้อมูล</h3>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมตัวกรองทั้งหมดไว้ที่นี่ หน้าแรกจะได้โล่ง และมือถือกดง่าย</p>
+              </div>
+              <button type="button" onClick={() => setShowFilterModal(false)} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="p-5 overflow-y-auto custom-scrollbar space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-black mb-2 ${theme.textMuted}`}>สถานที่ / ห้อง</label>
+                  <select className={`w-full px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterLocation} onChange={e => setFilterLocation(e.target.value)}>
+                    <option value="all">สถานที่/ห้อง ทั้งหมด</option>
+                    {(settingsOptions.locations || []).filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-sm font-black mb-2 ${theme.textMuted}`}>หมวดหมู่</label>
+                  <select className={`w-full px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+                    <option value="all">หมวดหมู่ทั้งหมด</option>
+                    {(settingsOptions.categories || []).filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-sm font-black mb-2 ${theme.textMuted}`}>สถานะใช้งาน</label>
+                  <select className={`w-full px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                    <option value="all">สถานะทั้งหมด</option>
+                    {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-sm font-black mb-2 ${theme.textMuted}`}>โครงการ</label>
+                  <div className="flex gap-2">
+                    <select className={`flex-1 px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterProject} onChange={e => setFilterProject(e.target.value)}>
+                      <option value="all">โครงการทั้งหมด</option>
+                      {projectOptions.filter(c => c !== 'อื่นๆ').map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <button type="button" onClick={() => { setShowFilterModal(false); openWorkspace('projects'); }} className="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black whitespace-nowrap">จัดการ</button>
+                  </div>
+                </div>
+                <div>
+                  <label className={`block text-sm font-black mb-2 ${theme.textMuted}`}>สถานะพัสดุ</label>
+                  <select className={`w-full px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterAssetStatus} onChange={e => setFilterAssetStatus(e.target.value)}>
+                    <option value="all">สถานะพัสดุทั้งหมด</option>
+                    {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-sm font-black mb-2 ${theme.textMuted}`}>QR Code</label>
+                  <select className={`w-full px-4 py-3 rounded-xl text-base font-bold outline-none border ${theme.input}`} value={filterQrTagged} onChange={e => setFilterQrTagged(e.target.value)}>
+                    <option value="all">QR ทั้งหมด</option>
+                    <option value="tagged">ติด QR แล้ว</option>
+                    <option value="untagged">ยังไม่ติด QR</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className={`p-4 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`font-black mb-1 ${theme.textTitle}`}>ตัวกรองด่วน</div>
+                <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>เลือกเฉพาะตอนต้องการกรอง เพื่อให้หน้าอุปกรณ์หลักไม่รก</p>
+                <div className="flex flex-wrap gap-2">
+                  {smartQuickFilterOptions.map(option => (
+                    <button
+                      key={`modal_${option.id}`}
+                      type="button"
+                      onClick={() => setSmartQuickFilter(option.id)}
+                      className={`px-3 py-2 rounded-xl border text-sm font-black ${smartQuickFilter === option.id ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}
+                    >
+                      {option.label} <span className="opacity-70">({Number(option.count || 0).toLocaleString('th-TH')})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={`p-4 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" className="w-5 h-5 accent-rose-600" checked={!!quickProblemOnly} onChange={e => setQuickProblemOnly(e.target.checked)} />
+                  <span className={`font-black ${theme.textTitle}`}>แสดงเฉพาะของที่ต้องจัดการ</span>
+                </label>
+                <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>เช่น ของเลยกำหนดคืน อยู่ระหว่างซ่อม ยังไม่ติด QR หรือข้อมูลไม่ครบ</p>
+              </div>
+
+              {hasActiveFilters && (
+                <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+                  <div className="font-black">กำลังใช้ตัวกรอง {activeFilterCount} รายการ</div>
+                  <button type="button" onClick={clearAllFilters} className={`px-4 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างตัวกรองทั้งหมด</button>
+                </div>
+              )}
+            </div>
+
+            <div className={`p-4 border-t grid grid-cols-2 gap-3 ${theme.divide}`}>
+              <button type="button" onClick={() => setShowFilterModal(false)} className={`py-3 rounded-xl font-black ${theme.btnCancel}`}>ปิด</button>
+              <button type="button" onClick={() => setShowFilterModal(false)} className="py-3 rounded-xl font-black bg-blue-600 hover:bg-blue-500 text-white">ใช้ตัวกรอง</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🏫 Meeting Room Department Group View */}
+      {(showRoomView || filterDept === 'ห้องประชุม') && (
+        <div className={`w-full rounded-[1.75rem] shadow-xl border overflow-hidden relative transition-colors mb-8 ${theme.cardBg}`}>
+          <div className={`px-5 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
+            <div>
+              <div className={`font-black text-xl ${theme.textTitle}`}>ฝ่ายห้องประชุม: แยกตามห้อง</div>
+              <div className={`text-sm font-bold ${theme.textMuted}`}>พบ {roomGroups.length.toLocaleString('th-TH')} ห้องประชุม/สถานที่ • {roomGroups.reduce((sum, room) => sum + room.total, 0).toLocaleString('th-TH')} รายการในฝ่ายห้องประชุม</div>
+            </div>
+            <button type="button" onClick={() => { setShowRoomView(false); if (filterDept === 'ห้องประชุม') setFilterDept('all'); }} className={`px-4 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>กลับรายการทั้งหมด</button>
+          </div>
+
+          <div className="p-4 sm:p-5 space-y-4">
+            {roomGroups.length === 0 ? (
+              <div className={`rounded-2xl border p-10 text-center font-black ${theme.textMuted}`}>ไม่พบอุปกรณ์ในฝ่ายห้องประชุมตามเงื่อนไขนี้</div>
+            ) : roomGroups.map((room) => {
+              const expanded = expandedRooms[room.name] !== false;
+              return (
+                <div key={room.name} className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
+                    <button type="button" onClick={() => toggleRoomExpanded(room.name)} className="text-left min-w-0 flex-1">
+                      <div className={`font-black text-xl ${theme.textTitle}`}>{expanded ? '▾' : '▸'} {room.name}</div>
+                      <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>
+                        ทั้งหมด {room.total} • พร้อมใช้ {room.available} • ยืม {room.borrowed} • ออกงาน {room.event} • ซ่อม {room.maintenance}
+                      </div>
+                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setFilterLocation(room.name); }} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ดูเฉพาะห้องนี้</button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedItems(room.items.map(i => i.id)); setShowพิมพ์Modal(true); }} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">พิมพ์ QR ห้องนี้</button>
+                    </div>
+                  </div>
+
+                  {expanded && (
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                      {room.items.map((item) => {
+                        const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
+                        return (
+                          <div key={item.id} onClick={() => setShowHistory(item.id)} onKeyDown={(e) => { if (e.key === 'Enter') setShowHistory(item.id); }} role="button" tabIndex={0} title="เปิดแฟ้มประวัติอุปกรณ์" className={`p-4 rounded-2xl border cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500/35 ${isDarkMode ? 'bg-slate-900 border-slate-700 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-blue-50/45'}`}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className={`font-black text-lg truncate ${theme.textTitle}`}>{item.name}</div>
+                                <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'}</div>
+                                {normalizeProjectName(item.project) && <div className={`text-xs font-black mt-2 ${isDarkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>🗂️ {normalizeProjectName(item.project)}</div>}
+                              </div>
+                              <span className={`px-2 py-1 rounded-lg text-xs font-black border shrink-0 ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 mt-3">
+                              <button type="button" onClick={(e) => { e.stopPropagation(); setShowHistory(item.id); }} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>
+                              {canAddEditItems && <button type="button" onClick={(e) => { e.stopPropagation(); openItemEditor(item); }} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">แก้ไข</button>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!(showRoomView || filterDept === 'ห้องประชุม') && (
+        <>
+      {/* 📋 Table / List */}
+      <div className={`w-full rounded-[2rem] shadow-2xl border overflow-hidden relative transition-colors ${theme.cardBg}`}>
+        <div className={`px-5 py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${theme.divide}`}>
+          <div>
+            <div className={`font-black text-xl ${theme.textTitle}`}>รายการอุปกรณ์</div>
+            <div className={`text-sm font-bold ${theme.textMuted}`}>พบ {filteredItems.length.toLocaleString('th-TH')} รายการ • เลือกแล้ว {selectedItems.length.toLocaleString('th-TH')} รายการ • แตะ/คลิกรายการเพื่อเปิดแฟ้ม</div>
+          </div>
+          <div className={`text-xs font-black px-3 py-2 rounded-full border ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>{mobileCardsEnabled ? 'Clean List / Mobile Cards' : 'Premium Table View'}</div>
+        </div>
+
+        {mobileCardsEnabled && (
+          <div className={`lg:hidden ${isCompactUi ? 'p-3' : 'p-4'} space-y-3`}>
+            {filteredItems.length === 0 ? (
+              <div className={`rounded-2xl border p-8 text-center font-bold ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                <Icons.Search className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <div className="text-lg font-black">ไม่พบอุปกรณ์ที่ค้นหา</div>
+                <div className="text-sm mt-1">ลองล้างตัวกรอง หรือค้นหาด้วยชื่อ / S.N. / รหัสสั้น / หมวด / ที่เก็บ / ฝ่าย</div>
+                {hasActiveFilters && <button type="button" onClick={clearAllFilters} className="mt-3 px-4 py-2 rounded-xl bg-blue-600 text-white font-black text-sm">ล้างตัวกรองทั้งหมด</button>}
+              </div>
+            ) : filteredItems.map((item, index) => {
+              const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
+              const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
+              const isBorrowed = item.status === 'borrowed';
+              const isEvent = item.status === 'out-for-event';
+              const qty = Number(item.quantity) || 1;
+              const proofCount = getItemProofCount(item);
+              const missingLabels = getMissingDataLabels(item);
+              const isOverdue = (isBorrowed || isEvent) && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
+              const canSelectThis = item.status === 'available' || isBorrowed || isEvent;
+              return (
+                <div key={`mobile_${item.id}_${index}`} onClick={() => setShowHistory(item.id)} onKeyDown={(e) => { if (e.key === 'Enter') setShowHistory(item.id); }} role="button" tabIndex={0} title="แตะเพื่อเปิดแฟ้มประวัติอุปกรณ์" className={`stock-mobile-card rounded-3xl border shadow-sm overflow-hidden cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/35 ${isOverdue ? (isDarkMode ? 'bg-rose-950/30 border-rose-800 hover:bg-rose-950/45' : 'bg-rose-50 border-rose-200 hover:bg-rose-100') : (isDarkMode ? 'bg-slate-900 border-slate-700 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-blue-50/40')}`}>
+                  <div className={`p-4 ${isOverdue ? 'border-l-4 border-rose-500' : isEvent ? 'border-l-4 border-orange-400' : isBorrowed ? 'border-l-4 border-purple-400' : item.status === 'maintenance' ? 'border-l-4 border-rose-700' : 'border-l-4 border-blue-200'}`}>
+                    <div className="flex items-start gap-3">
+                      {canUseOperationalTools && (
+                        <div className="stock-mobile-select-col" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          className="stock-check mt-1 shrink-0"
+                          checked={selectedItems.includes(item.id)}
+                          disabled={!canSelectThis}
+                          onChange={() => setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id])}
+                        />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className={`font-black text-lg leading-tight ${theme.textTitle}`}>{item.name}</div>
+                        <div className={`mt-1 text-xs font-bold ${theme.textMuted}`}>
+                          {item.sn ? `S.N. ${item.sn}` : 'ไม่มี S.N.'} • {item.category || '-'} • {item.location || '-'}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                          <span className={`mobile-secondary-chip inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? deptInfo.darkColor : deptInfo.color}`}>{deptInfo.label}</span>
+                          {qty > 1 && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>x{qty}</span>}
+                          {item.storageBoxName && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-50 text-cyan-700'}`}>📦 {item.storageBoxName}</span>}
+                          {normalizeProjectName(item.project) && <button type="button" onClick={(e) => { e.stopPropagation(); setFilterProject(normalizeProjectName(item.project)); }} className={`mobile-secondary-chip px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-indigo-900/40 text-indigo-300' : 'bg-indigo-50 text-indigo-700'}`}>🗂️ {normalizeProjectName(item.project)}</button>}
+                          {item.assetStatus && item.assetStatus !== 'active' && <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? getAssetStatusInfo(item.assetStatus).darkColor : getAssetStatusInfo(item.assetStatus).color}`}>{getAssetStatusInfo(item.assetStatus).label}</span>}
+                          {missingLabels.length > 0 && <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>ข้อมูลไม่ครบ {missingLabels.length}</span>}
+                          {proofCount > 0 && <button type="button" onClick={(e) => { e.stopPropagation(); setProofCenterSearch(item.sn || item.name || ''); setProofCenterFilter('all'); setShowProofCenterModal(true); }} className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-pink-900/40 text-pink-300' : 'bg-pink-50 text-pink-700'}`}>📷 {proofCount}</button>}
+                          {isOverdue && <span className="px-2.5 py-1 rounded-full text-xs font-black bg-rose-600 text-white">เลยกำหนดคืน</span>}
+                        </div>
+                        {(isBorrowed || isEvent) && (
+                          <div className={`mt-3 rounded-2xl border p-3 text-sm font-bold ${isOverdue ? (isDarkMode ? 'bg-rose-900/30 border-rose-800 text-rose-300' : 'bg-rose-100 border-rose-200 text-rose-700') : isEvent ? (isDarkMode ? 'bg-orange-900/30 border-orange-800 text-orange-300' : 'bg-orange-50 border-orange-100 text-orange-700') : (isDarkMode ? 'bg-purple-900/30 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-100 text-purple-700')}`}>
+                            <div>{isEvent ? `ออกงาน: ${item.currentEvent || '-'}` : `ผู้ยืม: ${item.currentBorrower || '-'}`}</div>
+                            <div className="text-xs mt-1 opacity-80">กำหนดคืน: {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
+                      <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>รายละเอียด</button>
+                      {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowBorrow(e, item)} className="px-3 py-2.5 rounded-xl font-black text-sm bg-purple-600 text-white">ยืม</button>}
+                      {canUseOperationalTools && (isBorrowed || isEvent) && <button type="button" onClick={() => { setReturnData({ staff: '', newStaff: '' }); setReturnTargetIds([item.id]); setReturnChecklist([]); }} className="px-3 py-2.5 rounded-xl font-black text-sm bg-emerald-600 text-white">รับคืน</button>}
+                      {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowEvent(e, item)} className="px-3 py-2.5 rounded-xl font-black text-sm bg-orange-500 text-white">ออกงาน</button>}
+                      <details className={`col-span-2 rounded-xl border ${isDarkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-200 bg-slate-50'}`}>
+                        <summary className={`list-none cursor-pointer px-3 py-2.5 rounded-xl font-black text-sm text-center ${theme.textTitle}`}>จัดการเพิ่มเติม</summary>
+                        <div className="grid grid-cols-2 gap-2 p-2 pt-0">
+                          <button type="button" onClick={() => copyItemSummary(item)} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>คัดลอก</button>
+                          {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className={`px-3 py-2.5 rounded-xl font-black text-sm border ${theme.btnSecondary}`}>แก้ไข</button>}
+                          {canUseOperationalTools && <button type="button" onClick={() => openRepairForItem(item)} className={`col-span-2 px-3 py-2.5 rounded-xl font-black text-sm border ${isDarkMode ? 'bg-rose-900/30 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>แจ้งซ่อม/บันทึกปัญหา</button>}
+                        </div>
+                      </details>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="hidden lg:block overflow-x-auto custom-scrollbar">
+          <table className="stock-table-compact w-full text-left border-collapse min-w-[980px]">
+            <thead>
+              <tr className={`border-b text-sm uppercase tracking-wide transition-colors ${theme.th}`}>
+                {canUseOperationalTools && (
+                  <th className="px-4 py-4 text-center w-14">
+                    <input 
+                      type="checkbox" 
+                      className="stock-check" 
+                      onChange={(e) => {
+                        if(e.target.checked) setSelectedItems(selectableItems.map(i => i.id));
+                        else setSelectedItems([]);
+                      }}
+                      disabled={selectableItems.length === 0}
+                      checked={selectableItems.length > 0 && selectableItems.every(i => selectedItems.includes(i.id))}
+                      title="เลือกรายการที่ทำได้ทั้งหมด"
+                    />
+                  </th>
+                )}
+                <th className="px-4 py-4 text-left font-bold pl-6">ชื่ออุปกรณ์ / รหัส</th>
+                <th className="px-4 py-4 text-left font-bold">หมวดหมู่</th>
+                <th className="px-4 py-4 text-left font-bold">ฝ่ายที่รับผิดชอบ</th>
+                <th className="px-4 py-4 text-left font-bold">สถานที่ / ห้อง</th>
+                <th className="px-4 py-4 text-left font-bold">สถานะ</th>
+                <th className="px-4 py-4 text-center font-bold">ประวัติ / จัดการ</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y transition-colors ${theme.divide}`}>
+              {filteredItems.length === 0 ? (
+                <tr><td colSpan={canUseOperationalTools ? 7 : 6} className={`px-4 py-12 text-center font-bold text-xl ${theme.textMuted}`}>
+                  <div className="flex flex-col items-center gap-2">
+                    <Icons.Search className="w-10 h-10 opacity-50" />
+                    <div>ไม่พบอุปกรณ์ที่ค้นหา</div>
+                    <div className="text-sm font-bold opacity-80">ลองล้างตัวกรอง หรือค้นหาด้วยชื่อ / S.N. / รหัสสั้น / หมวด / ที่เก็บ / ฝ่าย</div>
+                    {hasActiveFilters && <button type="button" onClick={clearAllFilters} className="mt-2 px-4 py-2 rounded-xl bg-blue-600 text-white font-black text-sm">ล้างตัวกรองทั้งหมด</button>}
+                  </div>
+                </td></tr>
+              ) : filteredItems.map((item, index) => {
+                const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
+                const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
+                const isBorrowed = item.status === 'borrowed';
+                const isEvent = item.status === 'out-for-event';
+                const qty = Number(item.quantity) || 1;
+                const proofCount = getItemProofCount(item);
+                const missingLabels = getMissingDataLabels(item);
+                
+                const isOverdue = (isBorrowed || isEvent) && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
+                const rowBg = isOverdue ? (isDarkMode ? 'bg-rose-900/20 hover:bg-rose-900/40' : 'bg-rose-50 hover:bg-rose-100') : theme.trHover;
+                const rowBorder = isOverdue ? 'border-l-4 border-l-rose-500' : isEvent ? 'border-l-4 border-l-orange-400' : isBorrowed ? 'border-l-4 border-l-purple-400' : item.status === 'maintenance' ? 'border-l-4 border-l-rose-700' : '';
+                
+                return (
+                  <tr key={`${item.id}_${index}`} onClick={() => setShowHistory(item.id)} title="คลิกเพื่อเปิดแฟ้มประวัติอุปกรณ์" className={`group cursor-pointer transition-all ${rowTextSizeClass} ${rowBg} ${rowBorder} hover:shadow-[inset_4px_0_0_rgba(59,130,246,0.45)]`}>
+
+                    {canUseOperationalTools && (
+                      <td className="stock-select-cell px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        {(item.status === 'available' || isBorrowed || isEvent) ? (
+                          <input 
+                            type="checkbox" 
+                            className="stock-check"
+                            checked={selectedItems.includes(item.id)}
+                            onChange={() => {
+                              setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
+                            }}
+                          />
+                        ) : (
+                          <div className="stock-check-disabled mx-auto" title="สถานะนี้ไม่สามารถทำรายการแบบกลุ่มได้"></div>
+                        )}
+                      </td>
+                    )}
+
+                    <td className="px-4 py-4 pl-6">
+                      <div className={`stock-name-line ${theme.textTitle}`}>
+                        <span className="stock-title">{item.name}</span> 
+                        {qty > 1 && <span className={`text-base px-2 py-1 rounded-md ${isDarkMode ? 'bg-blue-900/40 text-blue-400' : 'bg-blue-100 text-blue-700'}`}>x{qty}</span>}
+                        {item.owner && (
+                           <span className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-fuchsia-900/40 text-fuchsia-400' : 'bg-fuchsia-100 text-fuchsia-700'}`}>
+                             👤 ของส่วนตัว ({item.owner})
+                           </span>
+                        )}
+                        {item.storageBoxName && (
+                          <span className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-cyan-900/40 text-cyan-400' : 'bg-cyan-100 text-cyan-700'}`}>📦 {item.storageBoxName}</span>
+                        )}
+                        {item.project && (
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setFilterProject(item.project); }} className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-indigo-900/40 text-indigo-300 hover:bg-indigo-800' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}>🗂️ {item.project}</button>
+                        )}
+                        {item.assetStatus && item.assetStatus !== 'active' && (
+                          <span className={`text-sm px-2 py-1 rounded-md shadow-sm border ${isDarkMode ? getAssetStatusInfo(item.assetStatus).darkColor : getAssetStatusInfo(item.assetStatus).color}`}>{getAssetStatusInfo(item.assetStatus).label}</span>
+                        )}
+                        {missingLabels.length > 0 && (
+                          <span className={`text-sm px-2 py-1 rounded-md shadow-sm border ${isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`} title={`ขาด: ${missingLabels.join(', ')}`}>ข้อมูลไม่ครบ {missingLabels.length}</span>
+                        )}
+                        {proofCount > 0 && (
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setProofCenterSearch(item.sn || item.name || ''); setProofCenterFilter('all'); setShowProofCenterModal(true); }} className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-pink-900/40 text-pink-300 hover:bg-pink-800' : 'bg-pink-100 text-pink-700 hover:bg-pink-200'}`}>📷 {proofCount}</button>
+                        )}
+                        {item.qrTagged ? (
+                          <span className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400' : 'bg-emerald-100 text-emerald-700'}`}>QR ติดแล้ว</span>
+                        ) : (
+                          <span className={`text-sm px-2 py-1 rounded-md shadow-sm ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>ยังไม่ติด QR</span>
+                        )}
+                        {isOverdue && <span className="bg-rose-500 text-white text-xs px-2 py-1 rounded-md font-bold shadow-sm">เลยกำหนดคืน!</span>}
+                      </div>
+                      {item.sn && <div className={`stock-meta-line mt-1 font-mono ${theme.textMuted}`}>S.N.: {item.sn}</div>}
+                      {(item.updatedBy || item.updatedAt) && <div className={`stock-meta-line mt-1 font-bold ${theme.textMuted}`}>แก้ไขล่าสุด: {item.updatedBy || '-'} {item.updatedAt ? `• ${new Date(item.updatedAt).toLocaleString('th-TH', { hour12: false })}` : ''}</div>}
+
+                      {(isBorrowed || isEvent) && (
+                        <div className={`text-base mt-2 p-2 rounded-lg border inline-block ${isOverdue ? (isDarkMode ? 'bg-rose-900/30 border-rose-800' : 'bg-rose-100 border-rose-200') : isEvent ? (isDarkMode ? 'bg-orange-900/30 border-orange-800' : 'bg-orange-50 border-orange-100') : (isDarkMode ? 'bg-purple-900/30 border-purple-800' : 'bg-purple-50 border-purple-100')}`}>
+                          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+                            {isEvent && <Icons.Truck className={`${isOverdue ? (isDarkMode ? 'text-rose-400' : 'text-rose-700') : (isDarkMode ? 'text-orange-400' : 'text-orange-700')}`} />}
+                            <span className={`font-bold ${isOverdue ? (isDarkMode ? 'text-rose-400' : 'text-rose-700') : isEvent ? (isDarkMode ? 'text-orange-400' : 'text-orange-700') : (isDarkMode ? 'text-purple-400' : 'text-purple-700')}`}>
+                              {isEvent ? `ออกงาน: ${item.currentEvent}` : `ผู้ยืม: ${item.currentBorrower}`}
+                            </span> 
+                            <span className={`${isOverdue ? (isDarkMode ? 'text-rose-600' : 'text-rose-300') : isEvent ? (isDarkMode ? 'text-orange-600' : 'text-orange-300') : (isDarkMode ? 'text-purple-600' : 'text-purple-300')}`}>|</span> 
+                            <span className={`${isOverdue ? (isDarkMode ? 'text-rose-500 font-bold' : 'text-rose-600 font-bold') : theme.textMuted}`}>
+                              คืน: {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}
+                            </span>
+                          </div>
+                          {item.currentNote && (
+                            <div className={`mt-1 text-sm italic font-medium ${isOverdue ? (isDarkMode ? 'text-rose-400/80' : 'text-rose-700/80') : isEvent ? (isDarkMode ? 'text-orange-400/80' : 'text-orange-700/80') : (isDarkMode ? 'text-purple-400/80' : 'text-purple-700/80')}`}>
+                              * หมายเหตุ: {item.currentNote}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className={`px-4 py-4 font-bold ${theme.textMuted}`}>{item.category || '-'}</td>
+                    <td className="px-4 py-4"><span className={`inline-block px-3 py-1.5 rounded-lg text-base font-bold ${isDarkMode ? deptInfo.darkColor : deptInfo.color}`}>{deptInfo.label}</span></td>
+                    <td className={`px-4 py-4 font-bold ${theme.textMuted}`}>{item.location || '-'}</td>
+                    <td className="px-4 py-4"><span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-base font-bold border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}><div className={`w-2 h-2 rounded-full currentColor`}></div>{statusInfo.label}</span></td>
+                    
+                    <td className="px-4 py-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setShowHistory(item.id); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${theme.btnCancel}`} title="ประวัติ"><Icons.History className="w-5 h-5" /></button>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); copyItemSummary(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${theme.btnCancel}`} title="คัดลอกข้อมูลอุปกรณ์"><Icons.ClipboardList className="w-5 h-5" /></button>
+                        {canUseOperationalTools && (
+                          <button type="button" onClick={(e) => { e.stopPropagation(); openRepairForItem(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="แจ้งซ่อม/บันทึกปัญหา"><Icons.Alert className="w-5 h-5" /></button>
+                        )}
+                        
+                        {canUseOperationalTools && (
+                          <>
+                            {item.status === 'available' && (
+                              <>
+                                <button type="button" onClick={(e) => handleOpenRowBorrow(e, item)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white'}`} title="ให้ยืม"><Icons.UserPlus className="w-5 h-5" /></button>
+
+                                <button type="button" onClick={(e) => handleOpenRowEvent(e, item)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-orange-900/40 text-orange-400 hover:bg-orange-600 hover:text-white' : 'bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white'}`} title="นำออกงาน"><Icons.Truck className="w-5 h-5" /></button>
+                              </>
+                            )}
+                            
+                            {(isBorrowed || isEvent) && <button type="button" onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setReturnData({ staff: '', newStaff: '' }); 
+                              setReturnTargetIds([item.id]);
+                              setReturnChecklist([]);
+                            }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle className="w-5 h-5" /></button>}
+                            
+                            {canAddEditItems && <button type="button" onClick={(e) => { e.stopPropagation(); openItemEditor(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>}
+                            {canDeleteItems && <button type="button" onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="ลบ"><Icons.Trash className="w-4 h-4" /></button>}
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+        </>
+      )}
 
         </>
       )}
