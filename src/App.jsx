@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.47 QR Scanner Page Mode Polish';
+const APP_VERSION = 'v22.53.48 QR Scanner Compact Layout Polish';
 const APP_UPDATE_NOTE = 'Repair / Maintenance Center Polish: เพิ่มศูนย์ซ่อม/บำรุงรักษา สรุปงานซ่อม ฟิลเตอร์งานค้าง/ส่งซ่อม/เสร็จแล้ว/เสียซ้ำ Export CSV และรายงาน A4 พร้อมฟอร์มแจ้งซ่อมละเอียดขึ้น โดยไม่แตะ QR Scanner/กล้อง/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -327,7 +327,7 @@ function SmartOptionInput({
           </div>
 
           {frequentOptions.length > 0 && (
-            <div className={`px-4 py-3 border-b ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+            <div className={`px-3.5 py-2.5 border-b ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
               <div className={`text-[11px] font-black mb-2 ${textMuted}`}>รายการที่ใช้บ่อย</div>
               <div className="flex flex-wrap gap-2">
                 {frequentOptions.map(option => (
@@ -6245,6 +6245,21 @@ button[class*="orange"]:not(:disabled) {
 }
 
 
+/* v22.53.48 QR Scanner Compact Layout Polish */
+.qr-scanner-compact-shell {
+  max-width: 1180px;
+  margin-inline: auto;
+}
+.qr-scanner-compact-shell #qr-reader video {
+  max-height: 42vh !important;
+}
+@media (min-width: 1024px) {
+  .qr-scanner-compact-shell .qr-side-panel {
+    position: sticky;
+    top: 12px;
+  }
+}
+
 /* v22.53.47 QR Scanner Page Mode Polish */
 .qr-scanner-page {
   min-height: calc(100vh - 180px);
@@ -8905,7 +8920,7 @@ S.N.: ${item.sn || '-'}
                 ['ยังไม่มีของ', projectStats.filter(p => (p.total || 0) === 0).length, 'text-amber-500', 'สร้างไว้รอเพิ่มอุปกรณ์'],
                 ['อุปกรณ์รวม', projectStats.reduce((s,p)=>s+(p.total||0),0), 'text-emerald-500', 'รายการที่ระบุโครงการแล้ว']
               ].map(([label, value, color, desc]) => (
-                <div key={label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div key={label} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                   <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
                   <div className={`text-3xl font-black mt-1 ${color}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
                   <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
@@ -8947,7 +8962,7 @@ S.N.: ${item.sn || '-'}
                   ['2', 'ผูกอุปกรณ์เข้ากับโครงการ', 'เลือกจากคลังเดิม หรือกดเพิ่มสินค้าใหม่โดยระบบใส่ชื่อโครงการให้อัตโนมัติ'],
                   ['3', 'ติดตามและพิมพ์รายงาน', 'ดูของที่ซื้อจากโครงการนี้ สถานะปัจจุบัน และพิมพ์สรุปแนบเอกสารได้']
                 ].map(([no, title, desc]) => (
-                  <div key={no} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-blue-100'}`}>
+                  <div key={no} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-blue-100'}`}>
                     <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black mb-3">{no}</div>
                     <div className={`font-black ${theme.textTitle}`}>{title}</div>
                     <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
@@ -9034,7 +9049,7 @@ S.N.: ${item.sn || '-'}
                           ['พร้อมใช้', selectedProject.available || 0, 'พร้อมใช้งาน'],
                           ['ปัญหา', (selectedProject.maintenance || 0) + (selectedProject.lost || 0) + (selectedProject.pending_disposal || 0), 'ซ่อม/สูญหาย/รอจำหน่าย']
                         ].map(([label, value, desc]) => (
-                          <div key={label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                          <div key={label} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                             <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
                             <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
                             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
@@ -9062,7 +9077,7 @@ S.N.: ${item.sn || '-'}
                           </div>
                         </div>
 
-                        <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                           <div className={`font-black mb-3 ${theme.textTitle}`}>สรุปเร็ว</div>
                           <div className="space-y-2 text-sm font-bold">
                             <div className="flex justify-between gap-3"><span className={theme.textMuted}>ถูกยืม/ออกงาน</span><span className={theme.textTitle}>{((selectedProject.borrowed || 0) + (selectedProject.outForEvent || 0)).toLocaleString('th-TH')}</span></div>
@@ -9078,11 +9093,11 @@ S.N.: ${item.sn || '-'}
 
                       {(topCategories.length > 0 || topLocations.length > 0) && (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                          <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                             <div className={`font-black mb-3 ${theme.textTitle}`}>หมวดหมู่ในโครงการ</div>
                             <div className="flex flex-wrap gap-2">{topCategories.map(([name, count]) => <span key={name} className={`px-3 py-2 rounded-xl text-xs font-black border ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-700'}`}>{name} • {count}</span>)}</div>
                           </div>
-                          <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                             <div className={`font-black mb-3 ${theme.textTitle}`}>สถานที่เก็บหลัก</div>
                             <div className="flex flex-wrap gap-2">{topLocations.map(([name, count]) => <span key={name} className={`px-3 py-2 rounded-xl text-xs font-black border ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-700'}`}>{name} • {count}</span>)}</div>
                           </div>
@@ -9242,7 +9257,7 @@ S.N.: ${item.sn || '-'}
                   ['🧩', 'เซ็ตใช้งาน', 'เป็นชุดที่หยิบใช้บ่อย เช่น เซ็ต Live / เซ็ตกล้องหลัก แต่ไม่ล็อกถาวร ยังเลือกแยกชิ้นหรือปรับได้ทุกครั้ง'],
                   ['🧾', 'เช็กลิสต์เตรียมงาน', 'เป็นรายการชั่วคราวสำหรับงานหนึ่งงาน เช็กของก่อนออกงาน แล้วค่อยกดยืนยันนำออกงานจริง']
                 ].map(([icon, title, desc]) => (
-                  <div key={title} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div key={title} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                     <div className="text-3xl mb-3">{icon}</div>
                     <div className={`font-black text-lg ${theme.textTitle}`}>{title}</div>
                     <div className={`text-xs sm:text-sm font-bold mt-1 leading-relaxed ${theme.textMuted}`}>{desc}</div>
@@ -9258,7 +9273,7 @@ S.N.: ${item.sn || '-'}
                 ['เช็กลิสต์เตรียมงาน', prepLists.length, 'text-amber-500', `${activePrepLists.length.toLocaleString('th-TH')} รายการยังไม่เสร็จ`],
                 ['เช็กครบแล้ว', readyPrepLists.length, 'text-emerald-500', 'พร้อมนำออกงานจากเช็กลิสต์']
               ].map(([label, value, color, desc]) => (
-                <div key={label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div key={label} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                   <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
                   <div className={`text-3xl font-black mt-1 ${color}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
                   <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
@@ -9282,7 +9297,7 @@ S.N.: ${item.sn || '-'}
                     const validIds = (box.itemIds || []).filter((id) => safeItemById(id));
                     const availableCount = validIds.filter((id) => safeItemById(id)?.status === 'available').length;
                     return (
-                      <div key={box.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                      <div key={box.id} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className={`font-black text-lg truncate ${theme.textTitle}`}>📦 {box.name}</div>
@@ -9318,7 +9333,7 @@ S.N.: ${item.sn || '-'}
                     const availableInBundle = ids.filter((id) => safeItemById(id)?.status === 'available').length;
                     const total = ids.length || 0;
                     return (
-                      <div key={bundle.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                      <div key={bundle.id} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className={`font-black text-lg truncate ${theme.textTitle}`}>🧩 {bundle.name}</div>
@@ -9353,7 +9368,7 @@ S.N.: ${item.sn || '-'}
                     const info = getPrepStatusInfo(prep);
                     const percent = info.total === 0 ? 0 : Math.min(100, Math.round((info.checked / info.total) * 100));
                     return (
-                      <div key={prep.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                      <div key={prep.id} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className={`font-black text-lg truncate ${theme.textTitle}`}>🧾 {prep.name}</div>
@@ -9387,7 +9402,7 @@ S.N.: ${item.sn || '-'}
                   ['3', 'สร้างเช็กลิสต์', 'ทำรายการเตรียมของสำหรับงานนั้น ๆ เพื่อเช็กก่อนออก'],
                   ['4', 'นำออกงานจริง', 'เมื่อเช็กครบแล้วค่อยกด “นำออกงาน” เพื่อเปลี่ยนสถานะอุปกรณ์']
                 ].map(([no, title, desc]) => (
-                  <div key={no} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-blue-100'}`}>
+                  <div key={no} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-blue-100'}`}>
                     <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black mb-3">{no}</div>
                     <div className={`font-black ${theme.textTitle}`}>{title}</div>
                     <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
@@ -9907,7 +9922,7 @@ S.N.: ${item.sn || '-'}
                 ['ออกงานอยู่', currentEventItems.length, 'text-orange-500', 'รอรับคืนจากงาน'],
                 ['เลยกำหนดคืน', overdueItems.length, 'text-rose-500', 'ควรติดตาม']
               ].map(([label, value, color, desc]) => (
-                <div key={label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div key={label} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                   <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
                   <div className={`text-3xl font-black mt-1 ${color}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
                   <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
@@ -10103,7 +10118,7 @@ S.N.: ${item.sn || '-'}
                   amber: isDarkMode ? 'bg-amber-950/25 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'
                 }[card.tone] || theme.btnSecondary;
                 return (
-                  <div key={card.label} className={`p-4 rounded-2xl border ${toneClass}`}>
+                  <div key={card.label} className={`p-3 rounded-xl border ${toneClass}`}>
                     <div className="text-2xl sm:text-3xl font-black leading-none">{Number(card.value || 0).toLocaleString('th-TH')}</div>
                     <div className="text-xs sm:text-sm font-black mt-2">{card.label}</div>
                     <div className="text-[11px] font-bold mt-1 opacity-75 truncate">{card.desc}</div>
@@ -10165,7 +10180,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className={`font-black mb-3 ${theme.textTitle}`}>สถานะตามตัวกรอง</div>
                 <div className="space-y-2">
                   {reportInteractiveData.statusRows.length === 0 ? <div className={`text-sm font-bold ${theme.textMuted}`}>ยังไม่มีข้อมูลตามตัวกรอง</div> : reportInteractiveData.statusRows.map(row => (
@@ -10176,7 +10191,7 @@ S.N.: ${item.sn || '-'}
                   ))}
                 </div>
               </div>
-              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className={`font-black mb-3 ${theme.textTitle}`}>หมวดหมู่ / โครงการเด่น</div>
                 <div className="space-y-2">
                   {[...reportInteractiveData.categoryRows.slice(0, 4), ...reportInteractiveData.projectRows.slice(0, 2)].length === 0 ? <div className={`text-sm font-bold ${theme.textMuted}`}>ยังไม่มีข้อมูลจัดกลุ่ม</div> : [...reportInteractiveData.categoryRows.slice(0, 4), ...reportInteractiveData.projectRows.slice(0, 2)].map((row, idx) => (
@@ -10187,7 +10202,7 @@ S.N.: ${item.sn || '-'}
                   ))}
                 </div>
               </div>
-              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className={`font-black mb-3 ${theme.textTitle}`}>รายการล่าสุดในเดือนนี้</div>
                 <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
                   {reportInteractiveData.recentRows.length === 0 ? <div className={`text-sm font-bold ${theme.textMuted}`}>ยังไม่มีรายการในเดือนนี้</div> : reportInteractiveData.recentRows.slice(0, 6).map(row => (
@@ -10824,7 +10839,7 @@ S.N.: ${item.sn || '-'}
                 ) : visibleList.map(item => {
                   const info = getReturnTrackingDateInfo(item);
                   return (
-                    <div key={item.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                    <div key={item.id} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                       <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className={`font-black text-lg truncate ${theme.textTitle}`}>{item.name}</div>
@@ -10873,7 +10888,7 @@ S.N.: ${item.sn || '-'}
           <div className="p-4 sm:p-5 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {recordTabs.map(([id, label, count]) => (
-                <button key={id} type="button" onClick={() => setRecordsCenterMode(id)} className={`p-4 rounded-2xl border text-left font-black ${recordsCenterMode === id ? 'bg-blue-600 text-white border-blue-600 shadow-md' : theme.btnSecondary}`}>
+                <button key={id} type="button" onClick={() => setRecordsCenterMode(id)} className={`p-3 rounded-xl border text-left font-black ${recordsCenterMode === id ? 'bg-blue-600 text-white border-blue-600 shadow-md' : theme.btnSecondary}`}>
                   <div>{label}</div>
                   <div className={`text-2xl font-black mt-1 ${recordsCenterMode === id ? 'text-white' : theme.textTitle}`}>{Number(count || 0).toLocaleString('th-TH')}</div>
                 </button>
@@ -10896,7 +10911,7 @@ S.N.: ${item.sn || '-'}
                 </div>
                 <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
                   {filteredBorrowเอกสารs.length === 0 ? <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบเอกสาร</div> : filteredBorrowเอกสารs.slice(0, 180).map(docData => (
-                    <div key={docData.id || docData.ref} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                    <div key={docData.id || docData.ref} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className={`font-black text-lg truncate ${theme.textTitle}`}>{docData.ref || docData.id || '-'} • {docData.title || docData.type || 'เอกสาร'}</div>
@@ -10929,7 +10944,7 @@ S.N.: ${item.sn || '-'}
                 </div>
                 <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
                   {filteredHistoryCenterEntries.length === 0 ? <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบประวัติ</div> : filteredHistoryCenterEntries.slice(0, 180).map(entry => (
-                    <div key={entry.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                    <div key={entry.id} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className={`font-black text-lg truncate ${theme.textTitle}`}>{entry.itemName || '-'}</div>
@@ -16856,7 +16871,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className="mobile-more-menu-body p-4 sm:p-6 overflow-y-auto custom-scrollbar max-h-[78vh] space-y-6">
-              <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                 <div>
                   <div className={`font-black text-lg ${theme.textTitle}`}>มุมมองเมนู</div>
                   <p className={`text-sm font-bold ${theme.textMuted}`}>เลือกโหมดง่ายสำหรับDaily Operations หรือโหมดเต็มสำหรับผู้ดูแลระบบ</p>
@@ -16874,7 +16889,7 @@ S.N.: ${item.sn || '-'}
                   ['โครงการ', projectStats.length, 'จัดกลุ่มอุปกรณ์'],
                   ['กล่อง/เซ็ต', (settingsOptions.storageBoxes || []).length + (settingsOptions.bundles || []).length, 'จัดเก็บและจัดชุด']
                 ].map(([label, value, desc]) => (
-                  <div key={label} className={`p-4 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div key={label} className={`p-3 rounded-xl border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                     <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
                     <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
                     <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
@@ -17439,7 +17454,7 @@ S.N.: ${item.sn || '-'}
         ) : (
           <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {categoryStats.map(c => (
-              <div key={c.label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <div key={c.label} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="flex justify-between items-start gap-3 mb-2">
                   <span className={`font-black text-base truncate ${theme.textTitle}`} title={c.label}>{c.label}</span>
                   <span className={`text-xs font-black px-2 py-1 rounded-lg shrink-0 ${isDarkMode ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
@@ -17510,7 +17525,7 @@ S.N.: ${item.sn || '-'}
         )}
 
         <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-          <div className={`px-4 py-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${theme.divide}`}>
+          <div className={`px-3.5 py-2.5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${theme.divide}`}>
             <div className={`font-black ${theme.textTitle}`}>
               ฝ่าย / แผนก <span className={`text-xs font-bold ${theme.textMuted}`}>{filterDept === 'all' ? 'ทั้งหมด' : filterDept}</span>
             </div>
@@ -17605,7 +17620,7 @@ S.N.: ${item.sn || '-'}
                 </div>
               </div>
 
-              <div className={`p-4 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-3 rounded-xl border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div className={`font-black mb-1 ${theme.textTitle}`}>ตัวกรองด่วน</div>
                 <p className={`text-xs font-bold mb-3 ${theme.textMuted}`}>เลือกเฉพาะตอนต้องการกรอง เพื่อให้หน้าอุปกรณ์หลักไม่รก</p>
                 <div className="flex flex-wrap gap-2">
@@ -17622,7 +17637,7 @@ S.N.: ${item.sn || '-'}
                 </div>
               </div>
 
-              <div className={`p-4 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-3 rounded-xl border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input type="checkbox" className="w-5 h-5 accent-rose-600" checked={!!quickProblemOnly} onChange={e => setQuickProblemOnly(e.target.checked)} />
                   <span className={`font-black ${theme.textTitle}`}>แสดงเฉพาะของที่ต้องจัดการ</span>
@@ -17631,7 +17646,7 @@ S.N.: ${item.sn || '-'}
               </div>
 
               {hasActiveFilters && (
-                <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+                <div className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
                   <div className="font-black">กำลังใช้ตัวกรอง {activeFilterCount} รายการ</div>
                   <button type="button" onClick={clearAllFilters} className={`px-4 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างตัวกรองทั้งหมด</button>
                 </div>
@@ -17682,7 +17697,7 @@ S.N.: ${item.sn || '-'}
                       {room.items.map((item) => {
                         const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
                         return (
-                          <div key={item.id} onClick={() => setShowHistory(item.id)} onKeyDown={(e) => { if (e.key === 'Enter') setShowHistory(item.id); }} role="button" tabIndex={0} title="เปิดแฟ้มประวัติอุปกรณ์" className={`p-4 rounded-2xl border cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500/35 ${isDarkMode ? 'bg-slate-900 border-slate-700 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-blue-50/45'}`}>
+                          <div key={item.id} onClick={() => setShowHistory(item.id)} onKeyDown={(e) => { if (e.key === 'Enter') setShowHistory(item.id); }} role="button" tabIndex={0} title="เปิดแฟ้มประวัติอุปกรณ์" className={`p-3 rounded-xl border cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500/35 ${isDarkMode ? 'bg-slate-900 border-slate-700 hover:bg-slate-800' : 'bg-white border-slate-200 hover:bg-blue-50/45'}`}>
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <div className={`font-black text-lg truncate ${theme.textTitle}`}>{item.name}</div>
@@ -18137,7 +18152,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className="p-6 space-y-5">
-              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                 <div className={`font-black mb-2 ${theme.textTitle}`}>รายการที่เลือก {selectedItems.length} ชิ้น</div>
                 <div className="max-h-40 overflow-y-auto custom-scrollbar space-y-1.5 pr-1">
                   {selectedItems.map((id) => {
@@ -18173,7 +18188,7 @@ S.N.: ${item.sn || '-'}
                 />
               </label>
 
-              <div className={`p-4 rounded-2xl border text-sm font-bold ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+              <div className={`p-3 rounded-xl border text-sm font-bold ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
                 หลังบันทึกแล้ว ให้ไปที่เมนู “กล่องเก็บของ” แล้วกด “พิมพ์ฉลาก” จากกล่องนั้น ฉลากจะดึงข้อมูลกล่องล่าสุดเสมอ
               </div>
             </div>
@@ -18226,7 +18241,7 @@ S.N.: ${item.sn || '-'}
                 <textarea value={prepForm.note || ''} onChange={(e) => setPrepForm({ ...prepForm, note: e.target.value })} className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border resize-none ${theme.input}`} rows={3} placeholder="เช่น เตรียมไว้ก่อนวันงาน / ต้องมีแบตสำรอง / ใช้ห้องประชุมราชพฤกษ์" />
               </label>
 
-              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                 <div className={`font-black mb-2 ${theme.textTitle}`}>อุปกรณ์ในรายการ {prepForm.itemIds.length} ชิ้น</div>
                 <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-2 pr-1">
                   {prepForm.itemIds.length === 0 ? (
@@ -18387,7 +18402,6 @@ S.N.: ${item.sn || '-'}
 
         return (
           <div className="page-workspace-shell qr-scanner-page space-y-5">
-            {renderWorkspaceTabs()}
             <style>{`
               #qr-reader {
                 width: 100% !important;
@@ -18513,45 +18527,45 @@ S.N.: ${item.sn || '-'}
             `}</style>
 
             <div className="w-full flex items-stretch justify-center">
-              <div className={`qr-scanner-page-shell w-full max-w-7xl rounded-[2rem] overflow-hidden shadow-sm border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <div className={`shrink-0 p-4 sm:p-5 border-b ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'}`}>
+              <div className={`qr-scanner-page-shell qr-scanner-compact-shell w-full rounded-[1.6rem] overflow-hidden shadow-sm border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`shrink-0 p-3 sm:p-4 border-b ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${toneClass} text-white flex items-center justify-center shadow-lg`}>
+                        <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${toneClass} text-white flex items-center justify-center shadow-lg`}>
                           <Icons.QrCode className="w-6 h-6" />
                         </div>
                         <div>
-                          <h3 className={`font-black text-xl sm:text-2xl leading-tight ${theme.textTitle}`}>{scanInfo.title}</h3>
-                          <p className={`text-xs sm:text-sm font-bold mt-0.5 ${theme.textMuted}`}>{scanInfo.desc}</p>
+                          <h3 className={`font-black text-lg sm:text-xl leading-tight ${theme.textTitle}`}>{scanInfo.title}</h3>
+                          <p className={`text-[11px] sm:text-xs font-bold mt-0.5 ${theme.textMuted}`}>{scanInfo.desc}</p>
                         </div>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => closeScannerPage()}
-                      className={`w-11 h-11 rounded-2xl flex items-center justify-center border shrink-0 ${theme.btnCancel}`}
+                      className={`w-10 h-10 rounded-2xl flex items-center justify-center border shrink-0 ${theme.btnCancel}`}
                       title="ปิดหน้าสแกน"
                     >
                       <Icons.X className="w-5 h-5" />
                     </button>
                   </div>
 
-                  <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                    <button type="button" onClick={() => setUseCamera(true)} className={`min-h-[46px] px-4 rounded-2xl font-black border transition ${useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                    <button type="button" onClick={() => setUseCamera(true)} className={`min-h-[42px] px-3.5 rounded-xl font-black border transition ${useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
                       📷 ใช้กล้อง
                     </button>
-                    <button type="button" onClick={() => setUseCamera(false)} className={`min-h-[46px] px-4 rounded-2xl font-black border transition ${!useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
+                    <button type="button" onClick={() => setUseCamera(false)} className={`min-h-[42px] px-3.5 rounded-xl font-black border transition ${!useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
                       ⌨️ พิมพ์/ยิงรหัส
                     </button>
                     {isChecklistMode && (
-                      <div className={`col-span-2 sm:ml-auto min-h-[46px] px-4 rounded-2xl border flex items-center justify-between sm:justify-center gap-3 font-black ${softToneClass}`}>
+                      <div className={`col-span-2 sm:ml-auto min-h-[42px] px-3.5 rounded-xl border flex items-center justify-between sm:justify-center gap-3 font-black ${softToneClass}`}>
                         <span>เช็กแล้ว {checked}/{total}</span>
                         <span>{percent}%</span>
                       </div>
                     )}
                     {!isChecklistMode && (
-                      <div className={`col-span-2 sm:ml-auto min-h-[46px] px-4 rounded-2xl border flex items-center justify-center gap-2 font-black ${theme.btnSecondary}`}>
+                      <div className={`col-span-2 sm:ml-auto min-h-[42px] px-3.5 rounded-xl border flex items-center justify-center gap-2 font-black ${theme.btnSecondary}`}>
                         เลือกแล้ว {selectedItems.length} รายการ
                       </div>
                     )}
@@ -18563,7 +18577,7 @@ S.N.: ${item.sn || '-'}
                         <div className={`h-full rounded-full transition-all duration-500 ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${percent}%` }}></div>
                       </div>
                       {isComplete && (
-                        <button type="button" onClick={() => closeScannerPage()} className="mt-3 w-full sm:w-auto px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-md">
+                        <button type="button" onClick={() => closeScannerPage()} className="mt-2.5 w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-md">
                           เช็กครบแล้ว กลับไปยืนยันรายการ
                         </button>
                       )}
@@ -18571,55 +18585,55 @@ S.N.: ${item.sn || '-'}
                   )}
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 sm:p-5">
-                  <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_.8fr] gap-4 sm:gap-5 items-start">
-                    <div className={`rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                      <div className={`px-4 py-3 border-b flex items-center justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50'}`}>
-                        <div className="font-black">{useCamera ? 'พื้นที่สแกน' : 'พิมพ์รหัส / เครื่องยิงบาร์โค้ด'}</div>
-                        <div className={`text-xs font-black px-3 py-1 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'กล้อง' : 'รหัส'}</div>
+                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 sm:p-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-3 sm:gap-4 items-start">
+                    <div className={`rounded-[1.4rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                      <div className={`px-3.5 py-2.5 border-b flex items-center justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50'}`}>
+                        <div className="font-black text-sm sm:text-base">{useCamera ? 'พื้นที่สแกน' : 'พิมพ์รหัส / เครื่องยิงบาร์โค้ด'}</div>
+                        <div className={`text-[11px] font-black px-2.5 py-1 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'กล้อง' : 'รหัส'}</div>
                       </div>
 
                       {useCamera ? (
-                        <div className="p-3 sm:p-4">
-                          <div className={`mb-3 p-3 rounded-2xl border text-left text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                        <div className="p-3">
+                          <div className={`mb-2.5 p-2.5 rounded-xl border text-left text-xs font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
                             ส่อง QR ให้อยู่กลางกรอบ ถือให้นิ่งเล็กน้อย ถ้าสะท้อนแสงให้เอียงสติ๊กเกอร์นิดหนึ่ง
                           </div>
                           {!isScannerLoaded ? (
-                            <div className="min-h-[320px] flex items-center justify-center">
+                            <div className="min-h-[240px] flex items-center justify-center">
                               <div className="animate-pulse text-amber-500 font-black">กำลังดาวน์โหลดระบบกล้อง...</div>
                             </div>
                           ) : (
-                            <div className={`rounded-[1.8rem] overflow-hidden border-4 ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-slate-100'}`}>
+                            <div className={`rounded-[1.2rem] overflow-hidden border-4 ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-slate-100'}`}>
                               <div id="qr-reader" className="w-full"></div>
                             </div>
                           )}
-                          <form onSubmit={handleScanSubmit} className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+                          <form onSubmit={handleScanSubmit} className="mt-2.5 grid grid-cols-[1fr_auto] gap-2">
                             <input
                               type="text"
-                              className={`px-4 py-3 rounded-2xl font-black text-center outline-none border ${theme.input}`}
+                              className={`px-3.5 py-2.5 rounded-xl font-black text-center outline-none border ${theme.input}`}
                               placeholder="สแกนไม่ติด? พิมพ์รหัส/S.N."
                               value={scanInput}
                               onChange={e => setScanInput(e.target.value)}
                             />
-                            <button type="submit" className={`px-5 py-3 rounded-2xl bg-gradient-to-br ${toneClass} text-white font-black shadow-md`}>{scanMode === 'select' ? 'เลือก' : 'เช็ก'}</button>
+                            <button type="submit" className={`px-4 py-2.5 rounded-xl bg-gradient-to-br ${toneClass} text-white font-black shadow-md`}>{scanMode === 'select' ? 'เลือก' : 'เช็ก'}</button>
                           </form>
                         </div>
                       ) : (
-                        <div className="p-4 sm:p-6">
+                        <div className="p-3.5 sm:p-4">
                           <form onSubmit={handleScanSubmit}>
                             <label className={`block text-left text-sm font-black mb-2 ${theme.textTitle}`}>รหัสอุปกรณ์ / S.N.</label>
                             <input
                               type="text"
                               ref={scanInputRef}
-                              className={`w-full px-4 py-6 rounded-3xl font-black text-center text-2xl outline-none mb-3 border-2 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 transition-all ${theme.input}`}
+                              className={`w-full px-4 py-4 rounded-2xl font-black text-center text-xl outline-none mb-3 border-2 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 transition-all ${theme.input}`}
                               placeholder="ยิงบาร์โค้ด หรือพิมพ์รหัสที่นี่"
                               value={scanInput}
                               onChange={e => setScanInput(e.target.value)}
                               autoFocus
                             />
-                            <button type="submit" className={`w-full py-4 rounded-2xl bg-gradient-to-br ${toneClass} text-white font-black shadow-lg text-lg`}>{scanMode === 'select' ? 'เลือกอุปกรณ์นี้' : 'สแกนเช็กอุปกรณ์นี้'}</button>
+                            <button type="submit" className={`w-full py-3 rounded-xl bg-gradient-to-br ${toneClass} text-white font-black shadow-lg`}>{scanMode === 'select' ? 'เลือกอุปกรณ์นี้' : 'สแกนเช็กอุปกรณ์นี้'}</button>
                           </form>
-                          <div className={`mt-4 p-4 rounded-3xl border text-left ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                          <div className={`mt-3 p-3 rounded-2xl border text-left ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
                             <div className="font-black mb-1">เหมาะกับการใช้เครื่องยิงบาร์โค้ด</div>
                             <div className="text-sm font-bold opacity-80">คลิกช่องรหัสหนึ่งครั้ง แล้วเดินยิง QR/Barcode ได้ต่อเนื่อง ระบบจะเคลียร์ช่องให้เองหลังสแกน</div>
                           </div>
@@ -18627,13 +18641,13 @@ S.N.: ${item.sn || '-'}
                       )}
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3 qr-side-panel">
                       {scanMessage.text ? (
-                        <div className={`p-4 rounded-[1.7rem] border font-black shadow-sm ${scanMessage.type === 'success' ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800') : (isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')}`}>
+                        <div className={`p-3.5 rounded-[1.3rem] border font-black shadow-sm ${scanMessage.type === 'success' ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800') : (isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')}`}>
                           {scanMessage.text}
                         </div>
                       ) : (
-                        <div className={`p-4 rounded-[1.7rem] border font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+                        <div className={`p-3.5 rounded-[1.3rem] border font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
                           พร้อมสแกน — มีเสียง/สั่นเมื่ออ่านสำเร็จหรือไม่พบรายการ
                         </div>
                       )}
@@ -18788,7 +18802,7 @@ S.N.: ${item.sn || '-'}
                   {returnTrackingData.partialDocs.length === 0 ? (
                     <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ยังไม่มีเอกสารคืนบางส่วน</div>
                   ) : returnTrackingData.partialDocs.slice(0, 120).map(doc => (
-                    <div key={doc.id || doc.ref} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div key={doc.id || doc.ref} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className={`font-black text-lg truncate ${theme.textTitle}`}>{doc.title || doc.ref || 'เอกสารคืนบางส่วน'}</div>
@@ -18910,7 +18924,7 @@ S.N.: ${item.sn || '-'}
                     </select>
                   </label>
 
-                  <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
                     <div className={`text-sm font-black ${theme.textTitle}`}>เลือกแล้ว {storageBoxForm.itemIds?.length || 0} รายการ</div>
                     <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ถ้าเลือกอุปกรณ์ที่อยู่กล่องอื่น ระบบจะย้ายมาอยู่กล่องนี้ให้อัตโนมัติ</p>
                   </div>
@@ -19317,17 +19331,17 @@ S.N.: ${item.sn || '-'}
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                    <div className={`p-4 rounded-2xl border ${theme.btnSecondary}`}>
+                    <div className={`p-3 rounded-xl border ${theme.btnSecondary}`}>
                       <div className={`text-xs font-black ${theme.textMuted}`}>บัญชีที่ใช้งาน</div>
                       <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{currentAccountLabel}</div>
                       <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สิทธิ์: {currentAccountRole}</div>
                     </div>
-                    <div className={`p-4 rounded-2xl border ${theme.btnSecondary}`}>
+                    <div className={`p-3 rounded-xl border ${theme.btnSecondary}`}>
                       <div className={`text-xs font-black ${theme.textMuted}`}>พื้นที่ฐานข้อมูลโดยประมาณ</div>
                       <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.percentText}</div>
                       <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{databaseStorageEstimate.estimatedText} / {databaseStorageEstimate.limitText}</div>
                     </div>
-                    <div className={`p-4 rounded-2xl border ${theme.btnSecondary}`}>
+                    <div className={`p-3 rounded-xl border ${theme.btnSecondary}`}>
                       <div className={`text-xs font-black ${theme.textMuted}`}>รูปหลักฐาน</div>
                       <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.proofImageCount.toLocaleString('th-TH')} รูป</div>
                       <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ประมาณ {databaseStorageEstimate.proofStorageText}</div>
@@ -19387,7 +19401,7 @@ S.N.: ${item.sn || '-'}
 
                   <div className="space-y-3">
                     {getEffectiveAccounts().map((acc) => (
-                      <div key={acc.id} className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <div key={acc.id} className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2 mb-1">
                             <span className={`font-black text-lg truncate ${theme.textTitle}`}>{acc.name || acc.username}</span>
@@ -19473,7 +19487,7 @@ S.N.: ${item.sn || '-'}
                         ['ใบออกงาน', 'ฟอร์ม A4 สำหรับนำอุปกรณ์ออกใช้นอกศูนย์'],
                         ['ใบรับคืน', 'ฟอร์ม A4 สำหรับตรวจรับและบันทึกสภาพคืน']
                       ].map(([title, desc]) => (
-                        <div key={title} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                        <div key={title} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                           <div className={`font-black ${theme.textTitle}`}>{title}</div>
                           <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
                         </div>
@@ -19535,7 +19549,7 @@ S.N.: ${item.sn || '-'}
                       ['เร่งแก้ก่อน', dataQualityAudit.highPriorityCount, 'หัวข้อสำคัญ'],
                       ['คะแนน', `${dataQualityAudit.qualityScore}%`, dataQualityAudit.scoreLabel]
                     ].map(([label,value,sub]) => (
-                      <div key={label} className={`p-4 rounded-2xl border ${theme.btnSecondary}`}>
+                      <div key={label} className={`p-3 rounded-xl border ${theme.btnSecondary}`}>
                         <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
                         <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{typeof value === 'number' ? Number(value || 0).toLocaleString('th-TH') : value}</div>
                         <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>{sub}</div>
@@ -19707,14 +19721,14 @@ S.N.: ${item.sn || '-'}
                     );
                   })()}
 
-                  <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                  <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
                     <div className="font-black mb-1">ลำดับแนะนำสำหรับเก็บข้อมูล</div>
                     <div className="text-sm font-bold opacity-90">เริ่มจาก S.N. → ที่เก็บ → หมวดหมู่ → QR/รหัสสั้น → ฝ่ายดูแล → metadata เฉพาะกล้อง/เลนส์/แบต/เมม จะช่วยให้ค้นหา รายงาน เอกสารพิมพ์ และตัวช่วยเลือกอุปกรณ์แม่นขึ้นมาก</div>
                   </div>
                 </div>
               ) : settingsTab === 'database' ? (
                 <div className="p-6 space-y-6">
-                  <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+                  <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
                     <div className="font-black text-base mb-1">คำแนะนำก่อนจัดการฐานข้อมูล</div>
                     <div className="text-sm font-bold">แนะนำให้ใช้ “ศูนย์สำรองข้อมูล” เพื่อดาวน์ดาวน์โหลด JSON สำหรับกู้คืน, CSV สำหรับเปิดใน Google Sheets และ HTML สำหรับดูรูปหลักฐาน ก่อนล้างประวัติทุกครั้ง</div>
                   </div>
@@ -19974,16 +19988,16 @@ S.N.: ${item.sn || '-'}
                     <button type="button" onClick={exportSheetsCSVPack} className="py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center justify-center gap-2">
                       <Icons.Download className="w-5 h-5"/> CSV สำหรับ Sheets
                     </button>
-                    <button type="button" onClick={exportYearEndSummaryCSV} className={`py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
+                    <button type="button" onClick={exportYearEndSummaryCSV} className={`py-2.5 rounded-xl border font-black flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
                       <Icons.ClipboardList className="w-5 h-5"/> สรุปก่อนปิดปี CSV
                     </button>
-                    <button type="button" onClick={() => exportStockCountCSV('missing')} className={`py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => exportStockCountCSV('missing')} className={`py-2.5 rounded-xl border font-black flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
                       <Icons.CheckCircle className="w-5 h-5"/> รายการยังไม่พบ CSV
                     </button>
-                    <button type="button" onClick={exportProofGalleryHTML} className={`py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
+                    <button type="button" onClick={exportProofGalleryHTML} className={`py-2.5 rounded-xl border font-black flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
                       <Icons.Camera className="w-5 h-5"/> HTML รูปหลักฐาน
                     </button>
-                    <button type="button" onClick={exportHistoryCSV} className={`py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
+                    <button type="button" onClick={exportHistoryCSV} className={`py-2.5 rounded-xl border font-black flex items-center justify-center gap-2 ${theme.btnSecondary}`}>
                       <Icons.History className="w-5 h-5"/> ประวัติยืม-คืน CSV
                     </button>
                   </div>
@@ -20133,7 +20147,7 @@ S.N.: ${item.sn || '-'}
                     <div className={`text-center py-10 font-bold ${theme.textMuted}`}>ยังไม่มีเซ็ต<br/>เริ่มสร้างที่แผงด้านขวาเลย!</div>
                   )}
                   {(settingsOptions.bundles || []).map((b) => (
-                    <div key={b.id} className={`p-4 rounded-2xl border flex flex-col group transition-all cursor-pointer ${bundleForm.id === b.id ? (isDarkMode ? 'bg-fuchsia-900/30 border-fuchsia-500' : 'bg-fuchsia-50 border-fuchsia-400 shadow-md') : (isDarkMode ? 'bg-slate-800/50 border-slate-700 hover:border-slate-500' : 'bg-white border-slate-200 hover:border-slate-300 shadow-sm')}`} onClick={() => { setBundleForm({ id: b.id, name: b.name, itemIds: b.itemIds || [] }); setBundleSearchTerm(''); }}>
+                    <div key={b.id} className={`p-3 rounded-xl border flex flex-col group transition-all cursor-pointer ${bundleForm.id === b.id ? (isDarkMode ? 'bg-fuchsia-900/30 border-fuchsia-500' : 'bg-fuchsia-50 border-fuchsia-400 shadow-md') : (isDarkMode ? 'bg-slate-800/50 border-slate-700 hover:border-slate-500' : 'bg-white border-slate-200 hover:border-slate-300 shadow-sm')}`} onClick={() => { setBundleForm({ id: b.id, name: b.name, itemIds: b.itemIds || [] }); setBundleSearchTerm(''); }}>
                       <div className="flex justify-between items-start mb-2">
                         <span className={`font-black text-lg ${bundleForm.id === b.id ? (isDarkMode ? 'text-fuchsia-400' : 'text-fuchsia-600') : theme.textTitle}`}>{b.name}</span>
                       </div>
@@ -20336,7 +20350,7 @@ S.N.: ${item.sn || '-'}
                 </div>
               </div>
               <div className="p-5 space-y-4">
-                {dangerConfirm.message && <div className={`p-4 rounded-2xl border text-sm font-bold leading-relaxed ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>{dangerConfirm.message}</div>}
+                {dangerConfirm.message && <div className={`p-3 rounded-xl border text-sm font-bold leading-relaxed ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>{dangerConfirm.message}</div>}
                 {(dangerConfirm.checklist || []).length > 0 && (
                   <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
                     <div className={`px-4 py-3 font-black border-b ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>เช็กก่อนกดยืนยัน</div>
@@ -20413,7 +20427,7 @@ S.N.: ${item.sn || '-'}
                 )}
 
                 <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
-                  <div className={`px-4 py-3 border-b font-black ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>รายการที่จะบันทึก</div>
+                  <div className={`px-3.5 py-2.5 border-b font-black ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>รายการที่จะบันทึก</div>
                   <div className="operation-item-preview custom-scrollbar p-2 space-y-2">
                     {(operationConfirm.items || []).map(item => (
                       <div key={item.id} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
@@ -21609,15 +21623,15 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className={`px-5 sm:px-6 py-4 border-b grid grid-cols-2 md:grid-cols-4 gap-3 ${theme.divide}`}>
-              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div className={`text-xs font-black ${theme.textMuted}`}>ในถังขยะ</div>
                 <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{deletedItems.length.toLocaleString('th-TH')}</div>
               </div>
-              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div className={`text-xs font-black ${theme.textMuted}`}>กู้คืนได้</div>
                 <div className="text-3xl font-black mt-1 text-emerald-500">{deletedItems.length.toLocaleString('th-TH')}</div>
               </div>
-              <div className={`p-4 rounded-2xl border col-span-2 ${isDarkMode ? 'bg-amber-950/20 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+              <div className={`p-3 rounded-xl border col-span-2 ${isDarkMode ? 'bg-amber-950/20 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
                 <div className="font-black">คำเตือน</div>
                 <div className="text-xs sm:text-sm font-bold mt-1 opacity-85">ปุ่ม “ลบถาวร” ต้องยืนยันด้วยคำว่า DELETE และไม่สามารถกู้คืนจากในเว็บได้</div>
               </div>
@@ -21830,11 +21844,11 @@ S.N.: ${item.sn || '-'}
                       </div>
 
                       {!hasSpecificType ? (
-                        <div className={`p-4 rounded-2xl border text-sm font-bold ${isDarkMode ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-white/80 border-sky-100 text-slate-600'}`}>
+                        <div className={`p-3 rounded-xl border text-sm font-bold ${isDarkMode ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-white/80 border-sky-100 text-slate-600'}`}>
                           ถ้าเป็นอุปกรณ์ทั่วไป สามารถข้ามส่วนนี้ได้เลย แต่ถ้าเป็นกล้อง เลนส์ แบต หรือเมม แนะนำให้เลือกประเภทเพื่อให้ระบบแนะนำตอนยืม/ออกงานได้ดีขึ้น
                         </div>
                       ) : (
-                        <div className="space-y-4">
+                        <div className="space-y-3 qr-side-panel">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className={fieldCardClass}>
                               <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>รหัสสั้นบนตัวของ</label>
@@ -22140,7 +22154,7 @@ S.N.: ${item.sn || '-'}
             <h3 className={`text-2xl font-black ${theme.textTitle}`}>ย้ายไปหน้า “ตรวจนับสต๊อก” แล้ว</h3>
             <p className={`text-sm font-bold mt-2 ${theme.textMuted}`}>แพ็ก v22.53.35 เปลี่ยนจาก popup เดิมเป็นหน้าเต็ม เพื่อให้เดินตรวจของบนมือถือได้สะดวกขึ้น</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-5">
-              <button type="button" onClick={() => setShowStockCountModal(false)} className={`py-3 rounded-2xl border font-black ${theme.btnCancel}`}>ปิด</button>
+              <button type="button" onClick={() => setShowStockCountModal(false)} className={`py-2.5 rounded-xl border font-black ${theme.btnCancel}`}>ปิด</button>
               <button type="button" onClick={() => { setShowStockCountModal(false); openWorkspace('stockCount'); }} className="py-3 rounded-2xl bg-emerald-600 text-white font-black">เปิดหน้าเต็ม</button>
             </div>
           </div>
@@ -22402,7 +22416,7 @@ S.N.: ${item.sn || '-'}
                   ['2', 'จัดอุปกรณ์', 'กดปุ่มจัดอุปกรณ์ แล้วติ๊กเลือกของที่เกี่ยวข้อง'],
                   ['3', 'ใช้งานต่อ', 'กดดูของที่อยู่ในโครงการจัดซื้อนี้ หรือพิมพ์รายงานได้ทันที']
                 ].map(([no, title, desc]) => (
-                  <div key={no} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div key={no} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
                     <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black mb-3">{no}</div>
                     <div className={`font-black ${theme.textTitle}`}>{title}</div>
                     <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
@@ -22430,31 +22444,31 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                   <div className={`text-xs font-bold ${theme.textMuted}`}>โครงการทั้งหมด</div>
                   <div className="text-3xl font-black text-indigo-500">{projectStats.length.toLocaleString('th-TH')}</div>
                 </div>
-                <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                   <div className={`text-xs font-bold ${theme.textMuted}`}>อุปกรณ์ที่ผูกไว้</div>
                   <div className="text-3xl font-black text-blue-500">{projectStats.reduce((s,p)=>s+(p.total||0),0).toLocaleString('th-TH')}</div>
                 </div>
-                <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                   <div className={`text-xs font-bold ${theme.textMuted}`}>จำหน่ายแล้ว</div>
                   <div className="text-3xl font-black text-slate-500">{projectStats.reduce((s,p)=>s+(p.disposed||0),0).toLocaleString('th-TH')}</div>
                 </div>
-                <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                   <div className={`text-xs font-bold ${theme.textMuted}`}>สูญหาย/รอจำหน่าย</div>
                   <div className="text-3xl font-black text-rose-500">{projectStats.reduce((s,p)=>s+(p.lost||0)+(p.pending_disposal||0),0).toLocaleString('th-TH')}</div>
                 </div>
               </div>
 
-              <div className={`p-4 rounded-2xl border grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-3 rounded-xl border grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                 <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาชื่อโครงการ / ชื่ออุปกรณ์ / S.N. / ห้องเก็บ" value={projectManagerSearch} onChange={e => setProjectManagerSearch(e.target.value)} />
                 <button type="button" onClick={() => setProjectManagerSearch('')} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างค้นหา</button>
               </div>
 
               {filterProject !== 'all' && (
-                <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800 text-indigo-200' : 'bg-indigo-50 border-indigo-200 text-indigo-700'}`}>
+                <div className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800 text-indigo-200' : 'bg-indigo-50 border-indigo-200 text-indigo-700'}`}>
                   <div className="font-black">กำลังกรองโครงการ: {filterProject}</div>
                   <button type="button" onClick={() => setFilterProject('all')} className={`px-3 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>ยกเลิกกรองโครงการ</button>
                 </div>
@@ -22570,7 +22584,7 @@ S.N.: ${item.sn || '-'}
                     const checked = projectAssignSelectedIds.includes(item.id);
                     const already = normalizeProjectName(item.project) === normalizeProjectName(projectAssignTarget);
                     return (
-                      <button key={item.id} type="button" onClick={() => toggleProjectAssignItem(item.id)} className={`p-4 rounded-2xl border text-left transition-all ${checked ? (isDarkMode ? 'bg-indigo-950/50 border-indigo-600 text-indigo-200' : 'bg-indigo-50 border-indigo-300 text-indigo-800') : theme.btnSecondary}`}>
+                      <button key={item.id} type="button" onClick={() => toggleProjectAssignItem(item.id)} className={`p-3 rounded-xl border text-left transition-all ${checked ? (isDarkMode ? 'bg-indigo-950/50 border-indigo-600 text-indigo-200' : 'bg-indigo-50 border-indigo-300 text-indigo-800') : theme.btnSecondary}`}>
                         <div className="flex items-start gap-3">
                           <input type="checkbox" readOnly checked={checked} className="w-5 h-5 mt-1 accent-indigo-600" />
                           <div className="min-w-0 flex-1">
@@ -22825,7 +22839,7 @@ S.N.: ${item.sn || '-'}
                           )}
                         </div>
 
-                        <div className="p-4 space-y-3">
+                        <div className="p-3.5 space-y-2.5">
                           <div>
                             <div className={`font-black text-lg leading-tight line-clamp-2 ${theme.textTitle}`}>{group.itemRefs.length > 1 ? `เกี่ยวข้องกับ ${group.itemRefs.length} อุปกรณ์` : (entry.itemName || '-')}</div>
                             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{group.itemRefs.map(ref => ref.itemName).slice(0, 2).join(' • ')}{group.itemRefs.length > 2 ? ` +${group.itemRefs.length - 2}` : ''}</div>
@@ -22919,7 +22933,7 @@ S.N.: ${item.sn || '-'}
                   {proofEditReplaceFiles.length > 0 && <div className="mt-2 text-xs font-black text-emerald-500">เลือกรูปใหม่แล้ว: {proofEditReplaceFiles[0]?.name || 'รูปใหม่'}</div>}
                 </div>
               </div>
-              <div className={`p-4 rounded-2xl border text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+              <div className={`p-3 rounded-xl border text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
                 รูปนี้เชื่อมโยงกับ {Number(proofEditTarget.itemRefs?.length || proofEditTarget.entries?.length || 1).toLocaleString('th-TH')} อุปกรณ์/รายการ การแก้ไขจะอัปเดตข้อมูลรูปนี้ในทุกจุดที่เกี่ยวข้อง
               </div>
             </div>
@@ -23009,7 +23023,7 @@ S.N.: ${item.sn || '-'}
                     ['ผู้ดูแล', 'จัดการอุปกรณ์ ผู้ใช้ และงานหลักได้เกือบทั้งหมด'],
                     ['เจ้าหน้าที่', 'เพิ่ม/แก้ไขอุปกรณ์ ยืม คืน ออกงาน และจัดการหลักฐานได้']
                   ].map(([role, desc]) => (
-                    <div key={role} className={`p-4 rounded-2xl border ${theme.btnSecondary}`}>
+                    <div key={role} className={`p-3 rounded-xl border ${theme.btnSecondary}`}>
                       <div className={`font-black ${theme.textTitle}`}>{role}</div>
                       <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
                     </div>
@@ -23050,7 +23064,7 @@ S.N.: ${item.sn || '-'}
                   ['ยังไม่ติด QR', items.filter(i => !i.qrTagged && !i.isDeleted).length],
                   ['กล่องเก็บของ', databaseStorageEstimate.boxCount],
                   ['รายการเตรียมของ', databaseStorageEstimate.prepCount]
-                ].map(([label,value]) => <div key={label} className={`p-4 rounded-2xl border ${theme.btnSecondary}`}><div className={`text-xs font-bold ${theme.textMuted}`}>{label}</div><div className={`text-2xl font-black ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div></div>)}
+                ].map(([label,value]) => <div key={label} className={`p-3 rounded-xl border ${theme.btnSecondary}`}><div className={`text-xs font-bold ${theme.textMuted}`}>{label}</div><div className={`text-2xl font-black ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div></div>)}
               </div>
               <div className={`p-5 rounded-2xl border ${dataQualityAudit.scoreTone === 'emerald' ? (isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : dataQualityAudit.scoreTone === 'amber' ? (isDarkMode ? 'bg-amber-950/20 border-amber-800' : 'bg-amber-50 border-amber-200') : (isDarkMode ? 'bg-rose-950/20 border-rose-800' : 'bg-rose-50 border-rose-200')}`}>
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
@@ -23070,7 +23084,7 @@ S.N.: ${item.sn || '-'}
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {dataQualityAudit.priorityCards.map(card => (
-                      <div key={card.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950/50 border-slate-800' : 'bg-white/90 border-white'}`}>
+                      <div key={card.id} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-950/50 border-slate-800' : 'bg-white/90 border-white'}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className={`font-black ${theme.textTitle}`}>{card.title}</div>
@@ -23167,15 +23181,15 @@ S.N.: ${item.sn || '-'}
 
             {borrowเอกสารs.length > 0 ? (
               <div className={`borrow-docs-mobile-tight px-4 sm:px-6 py-3 sm:py-4 border-b grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
-                <button type="button" onClick={openHistoryCenterFromBorrowDocs} className={`p-4 rounded-2xl border text-left font-black transition-all ${theme.btnSecondary}`}>
+                <button type="button" onClick={openHistoryCenterFromBorrowDocs} className={`p-3 rounded-xl border text-left font-black transition-all ${theme.btnSecondary}`}>
                   <div className={theme.textTitle}>ค้นประวัติส่วนกลาง</div>
                   <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ใช้เมื่อต้องหาจากทุกอุปกรณ์หรือจำชื่อชิ้นงานไม่ได้</div>
                 </button>
-                <button type="button" onClick={openProofCenterFromBorrowDocs} className={`p-4 rounded-2xl border text-left font-black transition-all ${theme.btnSecondary}`}>
+                <button type="button" onClick={openProofCenterFromBorrowDocs} className={`p-3 rounded-xl border text-left font-black transition-all ${theme.btnSecondary}`}>
                   <div className={theme.textTitle}>ศูนย์หลักฐานรูปภาพ</div>
                   <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ดู/แก้ไข/แทนที่รูปหลักฐานจากส่วนกลาง</div>
                 </button>
-                <div className={`p-4 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                <div className={`p-3 rounded-xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
                   <div className="font-black">คำแนะนำ</div>
                   <div className="text-xs mt-1">ถ้าต้องเพิ่มหลักฐานย้อนหลังและจำไม่ได้ว่าอยู่รายการไหน ให้เริ่มจาก “ประวัติส่วนกลาง”</div>
                 </div>
@@ -23454,7 +23468,7 @@ function TodayPanel({ title, color, items, empty, isDarkMode, theme, dateInfoOf,
           const subject = item.status === 'out-for-event' ? (item.currentEvent || item.eventName || '-') : (item.currentBorrower || item.borrower || '-');
           const statusText = item.status === 'out-for-event' ? 'ออกงาน' : 'ยืมทั่วไป';
           return (
-            <div key={item.id} className={`p-4 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
+            <div key={item.id} className={`p-3 rounded-xl border shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="font-black text-base sm:text-lg leading-tight truncate">{item.name}</div>
