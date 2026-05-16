@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.55.4 STOCK Next Real Use Polish';
-const APP_UPDATE_NOTE = 'STOCK Next Real Use Polish: เก็บหน้า STOCK Next ให้พร้อมใช้งานจริงมากขึ้น ลดคำทดลอง จัดหน้าแรก/ทำรายการ/คลัง/เอกสาร/เพิ่มเติม ให้ชัดขึ้นแบบมินิมอล มีสีช่วยแยกงาน และยังใช้ฐานข้อมูลเดิมพร้อม Classic สำรอง';
+const APP_VERSION = 'v22.56.0 STOCK Next Mainline Cutover';
+const APP_UPDATE_NOTE = 'STOCK Next Mainline Cutover: เปลี่ยนให้ STOCK Next เป็นเว็บหลักเต็มตัว ซ่อน Classic ออกจากหน้าใช้งานปกติ เหลือเป็นโหมดกู้คืนในเมนูดูแลระบบเท่านั้น ใช้ฐานข้อมูลเดิม ไม่ต้องกรอกข้อมูลใหม่ และคง flow เดิมเป็น engine เบื้องหลังสำหรับงานที่ยังต้องใช้ความเสถียร';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6440,9 +6440,9 @@ function MainApp() {
   const [stockUiMode, setStockUiMode] = useState(() => {
     try {
       const savedMode = localStorage.getItem('mdec_stock_ui_mode');
-      const appliedNextDefault = localStorage.getItem('mdec_stock_next_default_v22553') === 'true';
+      const appliedNextDefault = localStorage.getItem('mdec_stock_next_mainline_v22560') === 'true';
       if (!appliedNextDefault) {
-        localStorage.setItem('mdec_stock_next_default_v22553', 'true');
+        localStorage.setItem('mdec_stock_next_mainline_v22560', 'true');
         localStorage.setItem('mdec_stock_ui_mode', 'next');
         return 'next';
       }
@@ -17034,12 +17034,11 @@ S.N.: ${item.sn || '-'}
         <SectionHeader
           kicker="STOCK NEXT"
           title="วันนี้ต้องทำอะไร"
-          desc={`หน้าใหม่หลักแบบมินิมอล ใช้ฐานข้อมูลเดิม • ${cleanStatus}`}
+          desc={`เว็บหลักใหม่แบบมินิมอล ใช้ฐานข้อมูลเดิม • ${cleanStatus}`}
           action={
             <div className="flex flex-wrap gap-2">
               <MinimalButton primary tone="warning" onClick={() => setNextPage('work')}>ทำรายการ</MinimalButton>
               <MinimalButton primary tone="success" onClick={() => setNextPage('inventory')}>ค้นหาอุปกรณ์</MinimalButton>
-              <MinimalButton onClick={() => switchStockUiMode('classic')}>Classic สำรอง</MinimalButton>
             </div>
           }
         />
@@ -17127,7 +17126,7 @@ S.N.: ${item.sn || '-'}
           kicker="WORKFLOW"
           title="เลือกงานที่ต้องทำ"
           desc="แยกงานหลักให้ชัด เหลือแค่ ยืม / ออกงาน / รับคืน แล้วส่งต่อไป flow เดิมที่เสถียร"
-          action={<MinimalButton onClick={() => openClassicAction('borrowReturn')}>เปิด flow เต็ม</MinimalButton>}
+          action={<MinimalButton onClick={() => openClassicAction('borrowReturn')}>เปิดหน้าทำรายการเต็ม</MinimalButton>}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -17157,7 +17156,7 @@ S.N.: ${item.sn || '-'}
           action={
             <div className="flex flex-wrap gap-2">
               {canAddEditItems && <MinimalButton primary tone="primary" onClick={openAddItemForm}>เพิ่มอุปกรณ์</MinimalButton>}
-              <MinimalButton primary tone="success" onClick={() => openClassicAction('inventory')}>คลัง Classic</MinimalButton>
+              <MinimalButton primary tone="success" onClick={() => openClassicAction('inventory')}>คลังเต็ม</MinimalButton>
             </div>
           }
         />
@@ -17248,9 +17247,9 @@ S.N.: ${item.sn || '-'}
         {
           title: 'ดูแลระบบ',
           items: [
-            { icon: Icons.ViewGrid, title: 'เครื่องมือทั้งหมด', desc: 'เปิดเมนู Classic เต็ม', tone: 'neutral', action: () => openClassicAction('tools') },
+            { icon: Icons.ViewGrid, title: 'เครื่องมือทั้งหมด', desc: 'เปิดเครื่องมือเต็ม', tone: 'neutral', action: () => openClassicAction('tools') },
             { icon: Icons.Settings, title: 'ตั้งค่า', desc: 'ระบบ / บัญชี / หมวดหมู่', tone: 'neutral', action: () => openClassicAction(null, () => { setSettingsTab('overview'); setShowSettings(true); }) },
-            { icon: Icons.Package, title: 'Classic สำรอง', desc: 'กลับเว็บเดิมเต็มรูปแบบ', tone: 'primary', action: () => switchStockUiMode('classic') }
+            { icon: Icons.Package, title: 'โหมดกู้คืน Classic', desc: 'ใช้เฉพาะกรณีต้องกลับระบบเดิม', tone: 'neutral', action: () => switchStockUiMode('classic') }
           ]
         }
       ];
@@ -17307,8 +17306,8 @@ S.N.: ${item.sn || '-'}
               );
             })}
           </nav>
-          <div className="p-3 border-t border-slate-500/10 space-y-2">
-            <button type="button" onClick={() => switchStockUiMode('classic')} className={`w-full px-4 py-3 rounded-2xl border font-black ${nextTheme.button}`}>Classic สำรอง</button>
+          <div className="p-3 border-t border-slate-500/10">
+            <div className={`px-4 py-3 rounded-2xl border text-xs font-bold ${nextTheme.panelSoft} ${nextTheme.muted}`}>Mainline Mode</div>
           </div>
         </aside>
 
@@ -17322,7 +17321,7 @@ S.N.: ${item.sn || '-'}
                   </div>
                   <div>
                     <div className={`font-black ${nextTheme.text}`}>STOCK Next</div>
-                    <div className={`text-xs font-bold ${nextTheme.muted}`}>หน้าใหม่หลัก / ใช้ฐานข้อมูลเดิม</div>
+                    <div className={`text-xs font-bold ${nextTheme.muted}`}>เว็บหลักใหม่ / ใช้ฐานข้อมูลเดิม</div>
                   </div>
                 </div>
                 <div className="flex gap-2 overflow-x-auto custom-scrollbar">
@@ -17331,7 +17330,6 @@ S.N.: ${item.sn || '-'}
                       {nav.label}
                     </button>
                   ))}
-                  <button type="button" onClick={() => switchStockUiMode('classic')} className={`px-3 py-2 rounded-xl border text-sm font-black whitespace-nowrap ${nextTheme.button}`}>Classic สำรอง</button>
                 </div>
               </div>
             </div>
@@ -17473,7 +17471,7 @@ S.N.: ${item.sn || '-'}
           </div>
 
           <button type="button" onClick={() => switchStockUiMode('next')} className="factory-primary-btn" title="เปิด STOCK Next หน้าใหม่หลัก">
-            <Icons.ViewGrid className="w-5 h-5" /><span>STOCK Next</span>
+            <Icons.ViewGrid className="w-5 h-5" /><span>กลับ STOCK Next</span>
           </button>
 
           <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className="factory-icon-btn" title={isDarkMode ? "เปลี่ยนเป็นโหมดสว่าง" : "เปลี่ยนเป็นโหมดกลางคืน"}>
