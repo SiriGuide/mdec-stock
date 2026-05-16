@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.54.0 UI Beauty / Factory Premium Polish';
-const APP_UPDATE_NOTE = 'Repair / Maintenance Center Polish: เพิ่มศูนย์ซ่อม/บำรุงรักษา สรุปงานซ่อม ฟิลเตอร์งานค้าง/ส่งซ่อม/เสร็จแล้ว/เสียซ้ำ Export CSV และรายงาน A4 พร้อมฟอร์มแจ้งซ่อมละเอียดขึ้น โดยไม่แตะ QR Scanner/กล้อง/Firebase path/flow หลัก';
+const APP_VERSION = 'v22.55.0 STOCK Next Alpha / Dual UI';
+const APP_UPDATE_NOTE = 'STOCK Next Alpha / Dual UI: เพิ่มโหมดหน้าตาใหม่ STOCK Next แบบแยกจาก Classic ใช้ฐานข้อมูลเดิมทั้งหมด ไม่ต้องกรอกข้อมูลใหม่ มีปุ่มสลับ Classic/Next และเริ่มวาง workflow ใหม่เป็น Dashboard, Operations, Inventory, Records, Maintenance, Reports, Admin โดยยังคงฟังก์ชันเดิมไว้ใน Classic/Workspace เดิม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6388,218 +6388,6 @@ button[class*="orange"]:not(:disabled) {
 }
 
 
-
-/* v22.54.0 UI Beauty / Factory Premium Polish */
-.factory-stock-polish {
-  --premium-blue: #2563eb;
-  --premium-blue-2: #38bdf8;
-  --premium-ink: #0f172a;
-  --premium-radius: 24px;
-  --premium-radius-lg: 32px;
-  --premium-shadow: 0 22px 70px rgba(15, 23, 42, .13);
-  --premium-shadow-soft: 0 12px 34px rgba(15, 23, 42, .08);
-  --premium-border: rgba(148, 163, 184, .24);
-  letter-spacing: -.012em;
-}
-.factory-stock-polish[data-polish-theme="dark"] {
-  --premium-shadow: 0 24px 80px rgba(0, 0, 0, .42);
-  --premium-shadow-soft: 0 14px 42px rgba(0, 0, 0, .32);
-  --premium-border: rgba(148, 163, 184, .16);
-}
-.factory-stock-polish::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(circle at 16% 8%, rgba(37,99,235,.16), transparent 32%),
-    radial-gradient(circle at 82% 2%, rgba(14,165,233,.12), transparent 28%),
-    radial-gradient(circle at 72% 88%, rgba(99,102,241,.10), transparent 32%);
-}
-.factory-stock-polish > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* Premium desktop sidebar */
-.factory-stock-polish aside.hidden.lg\:flex {
-  background:
-    radial-gradient(circle at 22% 5%, rgba(59,130,246,.32), transparent 34%),
-    linear-gradient(180deg, #07111f 0%, #0f172a 52%, #050816 100%) !important;
-  box-shadow: 18px 0 70px rgba(2,6,23,.28);
-  border-right: 1px solid rgba(148,163,184,.14) !important;
-}
-.factory-stock-polish aside nav button {
-  border: 1px solid transparent;
-}
-.factory-stock-polish aside nav button:hover {
-  background: rgba(255,255,255,.085) !important;
-  border-color: rgba(255,255,255,.10);
-  transform: translateX(2px);
-}
-.factory-stock-polish aside nav button[class*="bg-gradient"] {
-  box-shadow: 0 18px 38px rgba(37,99,235,.26), inset 0 1px 0 rgba(255,255,255,.18) !important;
-}
-
-/* Premium top bar */
-.factory-stock-polish .factory-topbar {
-  margin: 4px 0 18px;
-  padding: 18px 20px;
-  border: 1px solid var(--premium-border);
-  border-radius: 30px;
-  background: rgba(255,255,255,.82);
-  box-shadow: var(--premium-shadow-soft);
-  backdrop-filter: blur(18px);
-}
-.factory-stock-polish[data-polish-theme="dark"] .factory-topbar {
-  background: rgba(15,23,42,.72);
-  border-color: rgba(148,163,184,.16);
-}
-.factory-stock-polish .factory-page-title h1 {
-  letter-spacing: -.045em;
-  font-size: clamp(30px, 3.2vw, 46px);
-}
-.factory-stock-polish .factory-page-title p {
-  max-width: 780px;
-}
-.factory-stock-polish .factory-chip,
-.factory-stock-polish .factory-icon-btn,
-.factory-stock-polish .factory-primary-btn,
-.factory-stock-polish .factory-ghost-btn {
-  border-radius: 18px !important;
-}
-.factory-stock-polish .factory-primary-btn {
-  background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%) !important;
-  border: 0 !important;
-  color: #fff !important;
-  box-shadow: 0 14px 34px rgba(37,99,235,.28) !important;
-}
-.factory-stock-polish .factory-ghost-btn,
-.factory-stock-polish .factory-icon-btn {
-  background: rgba(255,255,255,.72) !important;
-  border-color: rgba(148,163,184,.28) !important;
-}
-.factory-stock-polish[data-polish-theme="dark"] .factory-ghost-btn,
-.factory-stock-polish[data-polish-theme="dark"] .factory-icon-btn {
-  background: rgba(15,23,42,.64) !important;
-  border-color: rgba(148,163,184,.18) !important;
-}
-
-/* Premium cards / sections */
-.factory-stock-polish :is(.overview-essential-hero, .equipment-inventory-page section, .page-workspace-shell > div, .records-workspace > div, .tracking-workspace > div, .tools-workspace > div) {
-  border-radius: 34px !important;
-  box-shadow: var(--premium-shadow) !important;
-  border-color: var(--premium-border) !important;
-}
-.factory-stock-polish .overview-essential-hero {
-  overflow: hidden;
-}
-.factory-stock-polish .overview-essential-hero > div:first-child,
-.factory-stock-polish .equipment-inventory-page section > div:first-child {
-  background:
-    linear-gradient(135deg, rgba(37,99,235,.10), rgba(14,165,233,.06)),
-    linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,.24));
-}
-.factory-stock-polish[data-polish-theme="dark"] .overview-essential-hero > div:first-child,
-.factory-stock-polish[data-polish-theme="dark"] .equipment-inventory-page section > div:first-child {
-  background:
-    radial-gradient(circle at 8% 8%, rgba(37,99,235,.22), transparent 40%),
-    linear-gradient(135deg, rgba(15,23,42,.86), rgba(2,6,23,.72));
-}
-.factory-stock-polish .overview-mini-stat,
-.factory-stock-polish .overview-essential-action,
-.factory-stock-polish .page-workspace-card {
-  border-radius: 26px !important;
-  box-shadow: var(--premium-shadow-soft);
-}
-.factory-stock-polish .overview-mini-stat:hover,
-.factory-stock-polish .overview-essential-action:hover,
-.factory-stock-polish .page-workspace-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--premium-shadow);
-}
-
-/* Inventory page premium */
-.factory-stock-polish .equipment-inventory-page {
-  animation: premiumFadeIn .22s ease-out;
-}
-.factory-stock-polish .inventory-filter-bar {
-  border-radius: 28px !important;
-  box-shadow: var(--premium-shadow-soft);
-}
-.factory-stock-polish .inventory-filter-bar input,
-.factory-stock-polish .inventory-filter-bar select {
-  min-height: 48px;
-}
-.factory-stock-polish .stock-table-compact {
-  border-spacing: 0;
-}
-.factory-stock-polish .stock-table-compact thead tr {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  backdrop-filter: blur(14px);
-}
-.factory-stock-polish .stock-table-compact tbody tr {
-  border-color: rgba(148,163,184,.14) !important;
-}
-.factory-stock-polish .stock-table-compact tbody tr:hover {
-  box-shadow: inset 4px 0 0 #2563eb;
-}
-.factory-stock-polish .inventory-table-row td:first-child {
-  border-top-left-radius: 18px;
-  border-bottom-left-radius: 18px;
-}
-.factory-stock-polish .inventory-table-row td:last-child {
-  border-top-right-radius: 18px;
-  border-bottom-right-radius: 18px;
-}
-
-/* Buttons / inputs */
-.factory-stock-polish button {
-  -webkit-tap-highlight-color: transparent;
-}
-.factory-stock-polish button:hover {
-  filter: saturate(1.04);
-}
-.factory-stock-polish input,
-.factory-stock-polish select,
-.factory-stock-polish textarea {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
-}
-.factory-stock-polish :is(input, select, textarea):focus {
-  box-shadow: 0 0 0 4px rgba(37,99,235,.14) !important;
-  border-color: rgba(37,99,235,.58) !important;
-}
-
-/* Modal and toast polish */
-.factory-stock-polish [class*="rounded-3xl"][class*="shadow-2xl"] {
-  box-shadow: 0 28px 90px rgba(2,6,23,.32) !important;
-}
-.factory-stock-polish .fixed.top-4.right-4 > div {
-  border-radius: 22px !important;
-  box-shadow: 0 18px 48px rgba(15,23,42,.18) !important;
-}
-
-/* Mobile keeps breathable */
-@media (max-width: 1023px) {
-  .factory-stock-polish .factory-topbar {
-    border-radius: 22px;
-    padding: 14px;
-  }
-  .factory-stock-polish .factory-page-title h1 {
-    font-size: 28px;
-  }
-  .factory-stock-polish :is(.overview-essential-hero, .equipment-inventory-page section) {
-    border-radius: 24px !important;
-  }
-}
-@keyframes premiumFadeIn {
-  from { opacity: .72; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 `}</style>
   );
 }
@@ -6649,6 +6437,10 @@ function MainApp() {
     try { return localStorage.getItem('mdec_home_compact') === 'true'; } catch(e) { return false; }
   });
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [stockUiMode, setStockUiMode] = useState(() => {
+    try { return localStorage.getItem('mdec_stock_ui_mode') || 'classic'; } catch(e) { return 'classic'; }
+  });
+  const [nextPage, setNextPage] = useState('dashboard');
 
   const [user, setUser] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
@@ -6830,6 +6622,18 @@ function MainApp() {
   const scrollToHomeStockList = () => {
     openWorkspace('inventory');
   };
+
+  const switchStockUiMode = (mode = 'classic') => {
+    setStockUiMode(mode);
+    try { localStorage.setItem('mdec_stock_ui_mode', mode); } catch(e) {}
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+  };
+
+  const openClassicWorkspaceFromNext = (workspace = 'overview') => {
+    switchStockUiMode('classic');
+    window.setTimeout(() => openWorkspace(workspace), 0);
+  };
+
 
   const openControlCenter = () => {
     setShowMoreMenu(false);
@@ -10489,7 +10293,7 @@ S.N.: ${item.sn || '-'}
                   <div className="report-doc-note">
                     <div className="report-doc-note-title">สรุปภาพรวมประจำเดือน</div>
                     <p className="report-doc-note-text">
-                      รายงานนี้รวบรวมข้อมูลจากประวัติการทำรายการในระบบ MDEC Stock Pro เฉพาะเดือนที่เลือก
+                      รายงานนี้รวบรวมข้อมูลจากประวัติการทำรายการในระบบ MDEC Stock เฉพาะเดือนที่เลือก
                       เพื่อช่วยตรวจสอบความเคลื่อนไหวของอุปกรณ์ เอกสารย้อนหลัง หลักฐานรูปภาพ และรายการที่ต้องติดตามต่อ
                     </p>
                   </div>
@@ -17103,6 +16907,361 @@ S.N.: ${item.sn || '-'}
     );
   }
 
+
+  const renderStockNext = () => {
+    const nextNav = [
+      { id: 'dashboard', label: 'หน้าแรก', icon: Icons.Package, desc: 'งานวันนี้' },
+      { id: 'operations', label: 'งานประจำ', icon: Icons.UserPlus, desc: 'ยืม คืน ออกงาน' },
+      { id: 'inventory', label: 'คลังอุปกรณ์', icon: Icons.Database, desc: 'ค้นหา/จัดการ' },
+      { id: 'records', label: 'เอกสาร', icon: Icons.ClipboardList, desc: 'เอกสาร/ประวัติ' },
+      { id: 'maintenance', label: 'ซ่อมบำรุง', icon: Icons.Settings, desc: 'ซ่อม/ชำรุด' },
+      { id: 'reports', label: 'รายงาน', icon: Icons.Monitor, desc: 'สรุป/พิมพ์' },
+      { id: 'admin', label: 'จัดการระบบ', icon: Icons.ViewGrid, desc: 'ตั้งค่า/Backup' }
+    ];
+
+    const nextPrimaryCards = [
+      { title: 'สร้างรายการยืม', desc: 'เลือกผู้ยืม แล้วเพิ่มอุปกรณ์เข้ารายการ', icon: Icons.UserPlus, color: 'from-purple-600 to-blue-600', action: () => { setBorrowReturnMode('borrow'); openClassicWorkspaceFromNext('borrowReturn'); } },
+      { title: 'นำอุปกรณ์ออกงาน', desc: 'จัดรายการอุปกรณ์สำหรับกิจกรรม/งานนอกศูนย์', icon: Icons.Truck, color: 'from-orange-500 to-rose-600', action: () => { setBorrowReturnMode('event'); openClassicWorkspaceFromNext('borrowReturn'); } },
+      { title: 'รับคืนอุปกรณ์', desc: 'เช็กของกลับศูนย์ แนบหลักฐาน และปิดรายการ', icon: Icons.CheckCircle, color: 'from-emerald-500 to-teal-600', action: () => { setBorrowReturnMode('return'); openClassicWorkspaceFromNext('borrowReturn'); } },
+      { title: 'สแกน QR', desc: 'เลือกอุปกรณ์หรือเช็กของด้วยกล้อง/เครื่องยิง', icon: Icons.QrCode, color: 'from-slate-800 to-slate-950', action: () => { switchStockUiMode('classic'); window.setTimeout(() => openSelectionScanner({ camera: true }), 0); } }
+    ];
+
+    const nextStats = [
+      ['อุปกรณ์ทั้งหมด', stats.all, 'รายการ'],
+      ['พร้อมใช้', stats.available, 'หยิบใช้ได้'],
+      ['รอคืน', stats.borrowed + stats.outForEvent, 'อยู่นอกศูนย์'],
+      ['ซ่อม/ชำรุด', stats.maintenance, 'ต้องติดตาม'],
+      ['เอกสาร', borrowเอกสารs.length, 'ย้อนหลัง'],
+      ['คุณภาพข้อมูล', `${dataQualityAudit.qualityScore || 0}%`, 'ความครบถ้วน']
+    ];
+
+    const recentInventory = filteredItems.slice(0, 8);
+    const urgentItems = [...overdueItems, ...dueTodayItems].slice(0, 6);
+
+    const nextTheme = isDarkMode
+      ? {
+          shell: 'bg-slate-950 text-slate-100',
+          surface: 'bg-slate-900/80 border-slate-800',
+          surface2: 'bg-slate-950/80 border-slate-800',
+          muted: 'text-slate-400',
+          title: 'text-white',
+          button: 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-100'
+        }
+      : {
+          shell: 'bg-slate-100 text-slate-900',
+          surface: 'bg-white border-slate-200',
+          surface2: 'bg-slate-50 border-slate-200',
+          muted: 'text-slate-500',
+          title: 'text-slate-950',
+          button: 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800'
+        };
+
+    const renderNextDashboard = () => (
+      <div className="space-y-5">
+        <section className={`rounded-[2rem] border overflow-hidden shadow-sm ${nextTheme.surface}`}>
+          <div className="relative p-6 lg:p-8 overflow-hidden">
+            <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,.22),transparent_36%),radial-gradient(circle_at_80%_10%,rgba(14,165,233,.16),transparent_28%)]"></div>
+            <div className="relative grid grid-cols-1 xl:grid-cols-[1.1fr_.9fr] gap-6 items-start">
+              <div>
+                <div className={`text-xs font-black tracking-[0.24em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>STOCK NEXT ALPHA</div>
+                <h1 className={`text-3xl lg:text-5xl font-black mt-2 leading-tight tracking-tight ${nextTheme.title}`}>ระบบสต๊อกแบบใหม่<br className="hidden lg:block" />คิดจากงานจริงของศูนย์</h1>
+                <p className={`mt-3 text-sm lg:text-base font-bold max-w-3xl ${nextTheme.muted}`}>
+                  โหมดนี้เป็นหน้าตาใหม่ที่ใช้ฐานข้อมูลเดิมทั้งหมด ไม่ต้องกรอกข้อมูลใหม่ ถ้ายังไม่ถูกใจสามารถกลับ Classic ได้ทันที
+                </p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <button type="button" onClick={() => setNextPage('operations')} className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">เริ่มทำงานประจำ</button>
+                  <button type="button" onClick={() => setNextPage('inventory')} className={`px-5 py-3 rounded-2xl border font-black ${nextTheme.button}`}>เปิดคลังอุปกรณ์</button>
+                  <button type="button" onClick={() => switchStockUiMode('classic')} className={`px-5 py-3 rounded-2xl border font-black ${nextTheme.button}`}>กลับ Classic</button>
+                </div>
+              </div>
+
+              <div className={`rounded-[1.6rem] border p-4 ${nextTheme.surface2}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className={`text-xs font-black ${nextTheme.muted}`}>วันนี้ต้องดู</div>
+                    <div className={`text-2xl font-black ${nextTheme.title}`}>งานเร่งด่วน</div>
+                  </div>
+                  <div className={`px-3 py-1.5 rounded-full border text-xs font-black ${overdueItems.length ? 'bg-rose-500/10 border-rose-500/25 text-rose-500' : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-500'}`}>
+                    {overdueItems.length ? 'มีรายการค้าง' : 'ปกติ'}
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mt-4">
+                  {[
+                    ['ต้องคืนวันนี้', dueTodayItems.length, 'amber'],
+                    ['เลยกำหนด', overdueItems.length, 'rose'],
+                    ['ออกงานอยู่', currentEventItems.length, 'orange']
+                  ].map(([label, value, tone]) => (
+                    <button key={label} type="button" onClick={() => { switchStockUiMode('classic'); window.setTimeout(() => openTrackingCenter(tone === 'rose' ? 'overdue' : tone === 'orange' ? 'event' : 'today'), 0); }} className={`rounded-2xl border p-3 text-left ${tone === 'rose' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : tone === 'orange' ? 'bg-orange-500/10 border-orange-500/20 text-orange-500' : 'bg-amber-500/10 border-amber-500/20 text-amber-500'}`}>
+                      <div className="text-2xl font-black">{Number(value || 0).toLocaleString('th-TH')}</div>
+                      <div className="text-[11px] font-black mt-1">{label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+          {nextStats.map(([label, value, desc]) => (
+            <div key={label} className={`rounded-3xl border p-4 shadow-sm ${nextTheme.surface}`}>
+              <div className={`text-xs font-black ${nextTheme.muted}`}>{label}</div>
+              <div className={`text-3xl font-black mt-2 ${nextTheme.title}`}>{typeof value === 'number' ? value.toLocaleString('th-TH') : value}</div>
+              <div className={`text-[11px] font-bold mt-1 ${nextTheme.muted}`}>{desc}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {nextPrimaryCards.map(card => {
+              const Icon = card.icon;
+              return (
+                <button key={card.title} type="button" onClick={card.action} className={`rounded-[1.8rem] border p-5 text-left shadow-sm hover:-translate-y-1 hover:shadow-xl transition-all ${nextTheme.surface}`}>
+                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${card.color} text-white flex items-center justify-center shadow-sm`}>
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  <div className={`font-black text-xl mt-4 ${nextTheme.title}`}>{card.title}</div>
+                  <div className={`text-sm font-bold mt-1 ${nextTheme.muted}`}>{card.desc}</div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className={`rounded-[1.8rem] border p-4 shadow-sm ${nextTheme.surface}`}>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <div className={`text-xs font-black ${nextTheme.muted}`}>QUEUE</div>
+                <div className={`font-black text-xl ${nextTheme.title}`}>รายการที่ควรตาม</div>
+              </div>
+              <button type="button" onClick={() => { switchStockUiMode('classic'); window.setTimeout(() => openTrackingCenter('today'), 0); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${nextTheme.button}`}>ดูทั้งหมด</button>
+            </div>
+            <div className="space-y-2">
+              {urgentItems.length === 0 ? (
+                <div className={`rounded-2xl border p-5 text-center font-black ${nextTheme.surface2} ${nextTheme.muted}`}>ไม่มีรายการเร่งด่วนตอนนี้</div>
+              ) : urgentItems.map(item => (
+                <button key={item.id} type="button" onClick={() => { switchStockUiMode('classic'); window.setTimeout(() => setShowHistory(item.id), 0); }} className={`w-full rounded-2xl border p-3 text-left ${nextTheme.button}`}>
+                  <div className={`font-black truncate ${nextTheme.title}`}>{item.name}</div>
+                  <div className={`text-xs font-bold mt-1 ${nextTheme.muted}`}>S.N. {item.sn || '-'} • {item.currentBorrower || item.currentEvent || '-'}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+
+    const renderNextOperations = () => (
+      <div className="space-y-5">
+        <section className={`rounded-[2rem] border p-5 lg:p-6 shadow-sm ${nextTheme.surface}`}>
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            <div>
+              <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>OPERATIONS</div>
+              <h2 className={`text-3xl font-black mt-1 ${nextTheme.title}`}>งานประจำ</h2>
+              <p className={`text-sm font-bold mt-1 ${nextTheme.muted}`}>เปลี่ยนแนวคิดจาก “หาเมนู” เป็น “เลือกงานที่กำลังจะทำ”</p>
+            </div>
+            <button type="button" onClick={() => openClassicWorkspaceFromNext('borrowReturn')} className={`px-5 py-3 rounded-2xl border font-black ${nextTheme.button}`}>เปิดหน้า Classic Borrow/Return</button>
+          </div>
+        </section>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            ['ยืมอุปกรณ์', 'เลือกคนยืม → เลือกอุปกรณ์ → เช็กของ → ยืนยัน', 'borrow', Icons.UserPlus, 'from-purple-600 to-blue-600'],
+            ['นำออกงาน', 'ใส่ชื่องาน → เลือกอุปกรณ์ → เช็กของ → พิมพ์ใบออกงาน', 'event', Icons.Truck, 'from-orange-500 to-rose-600'],
+            ['รับคืน', 'ค้นรายการ/สแกน → เช็กของกลับ → แนบหลักฐาน → ปิดรายการ', 'return', Icons.CheckCircle, 'from-emerald-500 to-teal-600']
+          ].map(([title, desc, mode, Icon, color]) => (
+            <button key={mode} type="button" onClick={() => { setBorrowReturnMode(mode); openClassicWorkspaceFromNext('borrowReturn'); }} className={`rounded-[2rem] border p-6 text-left min-h-[220px] shadow-sm hover:-translate-y-1 hover:shadow-xl transition-all ${nextTheme.surface}`}>
+              <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${color} text-white flex items-center justify-center shadow-sm`}><Icon className="w-7 h-7" /></div>
+              <div className={`text-2xl font-black mt-5 ${nextTheme.title}`}>{title}</div>
+              <div className={`text-sm font-bold mt-2 ${nextTheme.muted}`}>{desc}</div>
+            </button>
+          ))}
+        </div>
+
+        <div className={`rounded-[2rem] border p-5 shadow-sm ${nextTheme.surface}`}>
+          <div className={`font-black text-xl ${nextTheme.title}`}>ทางลัดหน้างาน</div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+            <button type="button" onClick={() => { switchStockUiMode('classic'); window.setTimeout(() => openSelectionScanner({ camera: true }), 0); }} className={`p-4 rounded-2xl border text-left font-black ${nextTheme.button}`}>สแกน QR</button>
+            <button type="button" onClick={() => { switchStockUiMode('classic'); window.setTimeout(() => openTrackingCenter('today'), 0); }} className={`p-4 rounded-2xl border text-left font-black ${nextTheme.button}`}>ติดตามคืน</button>
+            <button type="button" onClick={() => openClassicWorkspaceFromNext('records')} className={`p-4 rounded-2xl border text-left font-black ${nextTheme.button}`}>เอกสารย้อนหลัง</button>
+            <button type="button" onClick={() => openClassicWorkspaceFromNext('inventory')} className={`p-4 rounded-2xl border text-left font-black ${nextTheme.button}`}>คลังอุปกรณ์</button>
+          </div>
+        </div>
+      </div>
+    );
+
+    const renderNextInventory = () => (
+      <div className="space-y-5">
+        <section className={`rounded-[2rem] border overflow-hidden shadow-sm ${nextTheme.surface}`}>
+          <div className={`p-5 lg:p-6 border-b ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+              <div>
+                <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>INVENTORY</div>
+                <h2 className={`text-3xl font-black mt-1 ${nextTheme.title}`}>คลังอุปกรณ์</h2>
+                <p className={`text-sm font-bold mt-1 ${nextTheme.muted}`}>มุมมองใหม่สำหรับอ่านข้อมูลเดิม ค้นหาและเปิดแฟ้มได้ทันที</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {canAddEditItems && <button type="button" onClick={openAddItemForm} className="px-4 py-3 rounded-2xl bg-blue-600 text-white font-black">เพิ่มอุปกรณ์</button>}
+                <button type="button" onClick={() => openClassicWorkspaceFromNext('inventory')} className={`px-4 py-3 rounded-2xl border font-black ${nextTheme.button}`}>เปิดคลัง Classic</button>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3">
+              <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border ${nextTheme.surface2}`}>
+                <Icons.Search className={`w-5 h-5 ${nextTheme.muted}`} />
+                <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="bg-transparent outline-none w-full font-black" placeholder="ค้นหาอุปกรณ์ / S.N. / หมวด / ที่เก็บ / โครงการ" />
+              </div>
+              <div className="grid grid-cols-2 sm:flex gap-2">
+                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className={`px-4 py-3 rounded-2xl border font-black ${nextTheme.surface2}`}>
+                  <option value="all">ทุกสถานะ</option>
+                  {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                </select>
+                <button type="button" onClick={clearAllFilters} className={`px-4 py-3 rounded-2xl border font-black ${nextTheme.button}`}>ล้าง</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3">
+            {recentInventory.length === 0 ? (
+              <div className={`xl:col-span-4 p-8 rounded-3xl border text-center font-black ${nextTheme.surface2} ${nextTheme.muted}`}>ไม่พบอุปกรณ์ตามเงื่อนไข</div>
+            ) : recentInventory.map(item => {
+              const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
+              return (
+                <button key={item.id} type="button" onClick={() => { switchStockUiMode('classic'); window.setTimeout(() => setShowHistory(item.id), 0); }} className={`rounded-3xl border p-4 text-left shadow-sm hover:-translate-y-1 hover:shadow-lg transition-all ${nextTheme.surface2}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className={`font-black text-lg truncate ${nextTheme.title}`}>{item.name}</div>
+                      <div className={`text-xs font-bold mt-1 truncate ${nextTheme.muted}`}>S.N. {item.sn || '-'} • {item.category || '-'}</div>
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-lg text-[11px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                  </div>
+                  <div className={`text-xs font-bold mt-3 ${nextTheme.muted}`}>{item.location || '-'} • {projectDisplayName(item.project)}</div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+    );
+
+    const renderNextSimplePage = (title, desc, actions = []) => (
+      <section className={`rounded-[2rem] border p-6 shadow-sm ${nextTheme.surface}`}>
+        <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>STOCK NEXT</div>
+        <h2 className={`text-3xl font-black mt-1 ${nextTheme.title}`}>{title}</h2>
+        <p className={`text-sm font-bold mt-2 max-w-3xl ${nextTheme.muted}`}>{desc}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-6">
+          {actions.map(action => (
+            <button key={action.label} type="button" onClick={action.onClick} className={`p-5 rounded-3xl border text-left font-black hover:-translate-y-1 transition-all ${nextTheme.button}`}>
+              <div>{action.label}</div>
+              <div className={`text-xs font-bold mt-1 ${nextTheme.muted}`}>{action.desc}</div>
+            </button>
+          ))}
+        </div>
+      </section>
+    );
+
+    const currentNextContent =
+      nextPage === 'operations' ? renderNextOperations() :
+      nextPage === 'inventory' ? renderNextInventory() :
+      nextPage === 'records' ? renderNextSimplePage('เอกสาร / ประวัติ / หลักฐาน', 'โหมด Next วางแนวคิดให้เอกสาร ประวัติ และรูปหลักฐานอยู่ในงานค้นย้อนหลังแบบเดียวกัน ส่วนฟังก์ชันจริงยังใช้ฐานเดิม', [
+        { label: 'เอกสารย้อนหลัง', desc: 'ค้นหาและพิมพ์ซ้ำ', onClick: () => openClassicWorkspaceFromNext('records') },
+        { label: 'ประวัติส่วนกลาง', desc: 'ดู timeline การใช้งาน', onClick: () => { setRecordsCenterMode('history'); openClassicWorkspaceFromNext('records'); } },
+        { label: 'หลักฐานรูปภาพ', desc: 'ดูรูปยืม/คืน/ซ่อม', onClick: () => { setRecordsCenterMode('proofs'); openClassicWorkspaceFromNext('records'); } }
+      ]) :
+      nextPage === 'maintenance' ? renderNextSimplePage('ซ่อมบำรุง', 'รวมงานแจ้งซ่อม ติดตามสถานะ และประวัติซ่อมไว้เป็น workflow เฉพาะ', [
+        { label: 'เปิดศูนย์ซ่อม', desc: 'ดูงานซ่อมทั้งหมด', onClick: () => { switchStockUiMode('classic'); window.setTimeout(() => openRepairCenter('open'), 0); } },
+        { label: 'ของชำรุด', desc: 'กรองอุปกรณ์ซ่อม', onClick: () => { clearAllFilters(); setFilterStatus('maintenance'); setNextPage('inventory'); } },
+        { label: 'รายงานซ่อม', desc: 'พิมพ์/Export', onClick: () => { switchStockUiMode('classic'); window.setTimeout(() => openRepairCenter('open'), 0); } }
+      ]) :
+      nextPage === 'reports' ? renderNextSimplePage('รายงาน', 'รวมรายงาน การพิมพ์ และ Export ไว้เป็นหน้าใช้งานเชิงสรุป', [
+        { label: 'เปิดรายงาน', desc: 'Dashboard รายงานเดิม', onClick: () => openClassicWorkspaceFromNext('reports') },
+        { label: 'ตรวจนับสต๊อก', desc: 'Physical audit', onClick: () => openClassicWorkspaceFromNext('stockCount') },
+        { label: 'Backup / ปิดปี', desc: 'สำรองข้อมูล', onClick: () => { switchStockUiMode('classic'); window.setTimeout(() => setShowBackupCenterModal(true), 0); } }
+      ]) :
+      nextPage === 'admin' ? renderNextSimplePage('จัดการระบบ', 'ตั้งค่า บัญชีผู้ใช้ หมวดหมู่ โครงการ และเครื่องมือดูแลระบบ', [
+        { label: 'ตั้งค่า', desc: 'เปิด Settings เดิม', onClick: () => { switchStockUiMode('classic'); window.setTimeout(() => { setSettingsTab('overview'); setShowSettings(true); }, 0); } },
+        { label: 'เครื่องมือทั้งหมด', desc: 'เปิด Tools workspace', onClick: () => openClassicWorkspaceFromNext('tools') },
+        { label: 'กลับ Classic', desc: 'ใช้เว็บเดิมเต็มรูปแบบ', onClick: () => switchStockUiMode('classic') }
+      ]) :
+      renderNextDashboard();
+
+    return (
+      <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`min-h-screen ${nextTheme.shell}`}>
+        <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_10%_5%,rgba(37,99,235,.16),transparent_30%),radial-gradient(circle_at_85%_10%,rgba(14,165,233,.13),transparent_30%)]"></div>
+
+        <aside className={`fixed left-0 top-0 bottom-0 z-30 hidden xl:flex w-72 flex-col border-r ${isDarkMode ? 'bg-slate-950/92 border-slate-800' : 'bg-white/92 border-slate-200'} backdrop-blur-xl`}>
+          <div className="p-5 border-b border-slate-500/10">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center shadow-lg">
+                <Icons.Package className="w-7 h-7" />
+              </div>
+              <div>
+                <div className={`font-black text-xl ${nextTheme.title}`}>STOCK Next</div>
+                <div className={`text-xs font-bold ${nextTheme.muted}`}>ใช้ฐานข้อมูลเดิม</div>
+              </div>
+            </div>
+          </div>
+
+          <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
+            {nextNav.map(nav => {
+              const Icon = nav.icon;
+              const active = nextPage === nav.id;
+              return (
+                <button key={nav.id} type="button" onClick={() => setNextPage(nav.id)} className={`w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition-all ${active ? 'bg-blue-600 border-blue-600 text-white shadow-lg font-black' : `${nextTheme.button} font-bold`}`}>
+                  <Icon className="w-5 h-5 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="truncate">{nav.label}</div>
+                    <div className={`text-[11px] ${active ? 'text-blue-100' : nextTheme.muted}`}>{nav.desc}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="p-4 border-t border-slate-500/10 space-y-2">
+            <button type="button" onClick={() => switchStockUiMode('classic')} className={`w-full p-3 rounded-2xl border font-black ${nextTheme.button}`}>กลับ STOCK Classic</button>
+            <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className={`w-full p-3 rounded-2xl border font-black ${nextTheme.button}`}>{isDarkMode ? 'โหมดสว่าง' : 'โหมดมืด'}</button>
+          </div>
+        </aside>
+
+        <main className="relative z-10 xl:pl-72">
+          <div className="max-w-[1500px] mx-auto p-3 sm:p-5 lg:p-6 pb-28">
+            <div className={`xl:hidden mb-4 rounded-3xl border p-3 ${nextTheme.surface}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className={`font-black text-lg ${nextTheme.title}`}>STOCK Next</div>
+                  <div className={`text-xs font-bold ${nextTheme.muted}`}>Alpha / ใช้ข้อมูลเดิม</div>
+                </div>
+                <button type="button" onClick={() => switchStockUiMode('classic')} className={`px-3 py-2 rounded-xl border font-black text-sm ${nextTheme.button}`}>Classic</button>
+              </div>
+              <div className="mt-3 flex gap-2 overflow-x-auto custom-scrollbar">
+                {nextNav.map(nav => (
+                  <button key={nav.id} type="button" onClick={() => setNextPage(nav.id)} className={`px-3 py-2 rounded-xl border text-sm font-black whitespace-nowrap ${nextPage === nav.id ? 'bg-blue-600 border-blue-600 text-white' : nextTheme.button}`}>{nav.label}</button>
+                ))}
+              </div>
+            </div>
+
+            <div className={`mb-5 rounded-3xl border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${nextTheme.surface}`}>
+              <div>
+                <div className={`text-xs font-black tracking-[0.2em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>DUAL UI MODE</div>
+                <div className={`font-black text-2xl ${nextTheme.title}`}>{nextNav.find(n => n.id === nextPage)?.label || 'หน้าแรก'}</div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className={`px-3 py-2 rounded-xl border text-xs font-black ${nextTheme.button}`}>{APP_VERSION}</span>
+                <button type="button" onClick={() => switchStockUiMode('classic')} className={`px-4 py-2.5 rounded-xl border font-black ${nextTheme.button}`}>Classic Mode</button>
+              </div>
+            </div>
+
+            {currentNextContent}
+          </div>
+        </main>
+      </div>
+    );
+  };
+
+
+  if (stockUiMode === 'next') return renderStockNext();
+
   return (
     <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish desktop-overview-clean min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain} ${homeCompactMode ? 'home-comfort-compact' : ''}`}>
       <FactoryPolishStyle isDarkMode={isDarkMode} />
@@ -17115,7 +17274,7 @@ S.N.: ${item.sn || '-'}
             </div>
             <div className="min-w-0">
               <h1 className="text-xl font-black tracking-tight truncate">MDEC Stock</h1>
-              <p className="text-xs text-slate-400 font-bold truncate">Premium Equipment Center</p>
+              <p className="text-xs text-slate-400 font-bold truncate">Modern Inventory Center</p>
             </div>
           </div>
         </div>
@@ -17228,6 +17387,10 @@ S.N.: ${item.sn || '-'}
           <div className="factory-chip">
             <Icons.CheckCircle className="w-4 h-4" /> {firebaseError ? 'ตรวจสอบระบบ' : 'ออนไลน์'}
           </div>
+
+          <button type="button" onClick={() => switchStockUiMode('next')} className="factory-primary-btn" title="ทดลอง STOCK Next หน้าตาใหม่">
+            <Icons.ViewGrid className="w-5 h-5" /><span>STOCK Next</span>
+          </button>
 
           <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className="factory-icon-btn" title={isDarkMode ? "เปลี่ยนเป็นโหมดสว่าง" : "เปลี่ยนเป็นโหมดกลางคืน"}>
             {isDarkMode ? <Icons.Sun className="w-5 h-5" /> : <Icons.Moon className="w-5 h-5" />}
