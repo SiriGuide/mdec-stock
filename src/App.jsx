@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.55.1 STOCK Next Minimal Polish';
-const APP_UPDATE_NOTE = 'STOCK Next Minimal Polish: ปรับโหมด STOCK Next ให้เป็น Minimal Operation System ปุ่มน้อยลง หน้าโล่งขึ้น เหลือเฉพาะงานหลัก ค้นหาเร็ว งานด่วน และเมนูรองแบบซ่อน โดยยังใช้ฐานข้อมูลเดิมและสลับกลับ Classic ได้ทันที';
+const APP_VERSION = 'v22.55.3 STOCK Next Default / Classic Backup';
+const APP_UPDATE_NOTE = 'STOCK Next Default / Classic Backup: เปลี่ยนให้ STOCK Next เป็นหน้าเริ่มต้นเต็มตัวของเว็บ ใช้ฐานข้อมูลเดิมทั้งหมด ไม่ต้องกรอกข้อมูลใหม่ และยังเก็บ Classic เป็นโหมดสำรองสำหรับงานที่ต้องกลับไปใช้ flow เดิมได้ทันที';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6438,9 +6438,20 @@ function MainApp() {
   });
   const [currentTime, setCurrentTime] = useState(new Date());
   const [stockUiMode, setStockUiMode] = useState(() => {
-    try { return localStorage.getItem('mdec_stock_ui_mode') || 'classic'; } catch(e) { return 'classic'; }
+    try {
+      const savedMode = localStorage.getItem('mdec_stock_ui_mode');
+      const appliedNextDefault = localStorage.getItem('mdec_stock_next_default_v22553') === 'true';
+      if (!appliedNextDefault) {
+        localStorage.setItem('mdec_stock_next_default_v22553', 'true');
+        localStorage.setItem('mdec_stock_ui_mode', 'next');
+        return 'next';
+      }
+      return savedMode || 'next';
+    } catch(e) {
+      return 'next';
+    }
   });
-  const [nextPage, setNextPage] = useState('dashboard');
+  const [nextPage, setNextPage] = useState('home');
 
   const [user, setUser] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
@@ -16929,12 +16940,39 @@ S.N.: ${item.sn || '-'}
           input: 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
         };
 
+    const nextColor = {
+      primary: 'bg-blue-600 text-white border-blue-600 hover:bg-blue-500',
+      success: 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-500',
+      warning: 'bg-orange-500 text-white border-orange-500 hover:bg-orange-400',
+      danger: 'bg-rose-600 text-white border-rose-600 hover:bg-rose-500',
+      document: 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-500',
+      neutral: isDarkMode ? 'bg-slate-800 text-white border-slate-700 hover:bg-slate-700' : 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'
+    };
+
+    const nextSoftTone = (tone = 'primary') => ({
+      primary: isDarkMode ? 'bg-blue-950/32 border-blue-800/70 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-800',
+      success: isDarkMode ? 'bg-emerald-950/32 border-emerald-800/70 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800',
+      warning: isDarkMode ? 'bg-orange-950/32 border-orange-800/70 text-orange-300' : 'bg-orange-50 border-orange-200 text-orange-800',
+      danger: isDarkMode ? 'bg-rose-950/32 border-rose-800/70 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-800',
+      document: isDarkMode ? 'bg-indigo-950/32 border-indigo-800/70 text-indigo-300' : 'bg-indigo-50 border-indigo-200 text-indigo-800',
+      neutral: isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
+    }[tone] || nextTheme.panelSoft);
+
+    const nextSolidTone = (tone = 'primary') => ({
+      primary: 'bg-blue-600 text-white',
+      success: 'bg-emerald-600 text-white',
+      warning: 'bg-orange-500 text-white',
+      danger: 'bg-rose-600 text-white',
+      document: 'bg-indigo-600 text-white',
+      neutral: isDarkMode ? 'bg-white text-slate-950' : 'bg-slate-950 text-white'
+    }[tone] || 'bg-blue-600 text-white');
+
     const nextNav = [
-      { id: 'home', label: 'หน้าแรก', icon: Icons.Package },
-      { id: 'work', label: 'ทำรายการ', icon: Icons.UserPlus },
-      { id: 'inventory', label: 'คลัง', icon: Icons.Database },
-      { id: 'records', label: 'เอกสาร', icon: Icons.ClipboardList },
-      { id: 'more', label: 'เพิ่มเติม', icon: Icons.ViewGrid }
+      { id: 'home', label: 'หน้าแรก', icon: Icons.Package, tone: 'primary' },
+      { id: 'work', label: 'ทำรายการ', icon: Icons.UserPlus, tone: 'warning' },
+      { id: 'inventory', label: 'คลัง', icon: Icons.Database, tone: 'success' },
+      { id: 'records', label: 'เอกสาร', icon: Icons.ClipboardList, tone: 'document' },
+      { id: 'more', label: 'เพิ่มเติม', icon: Icons.ViewGrid, tone: 'neutral' }
     ];
 
     const openClassicAction = (workspace, callback) => {
@@ -16949,27 +16987,27 @@ S.N.: ${item.sn || '-'}
     const urgentItems = [...overdueItems, ...dueTodayItems].slice(0, 5);
     const hasUrgent = overdueItems.length + dueTodayItems.length > 0;
 
-    const MinimalButton = ({ children, onClick, primary = false, className = '' }) => (
+    const MinimalButton = ({ children, onClick, primary = false, tone = 'neutral', className = '' }) => (
       <button
         type="button"
         onClick={onClick}
-        className={`${primary ? 'bg-slate-950 hover:bg-slate-800 text-white border-slate-950 shadow-sm' : nextTheme.button} ${className} px-4 py-3 rounded-2xl border font-black transition-all hover:-translate-y-0.5`}
+        className={`${primary ? nextColor[tone] : nextTheme.button} ${className} px-4 py-3 rounded-2xl border font-black transition-all hover:-translate-y-0.5`}
       >
         {children}
       </button>
     );
 
-    const MainAction = ({ icon: Icon, title, desc, onClick }) => (
+    const MainAction = ({ icon: Icon, title, desc, onClick, tone = 'neutral' }) => (
       <button
         type="button"
         onClick={onClick}
-        className={`group rounded-[1.6rem] border p-5 text-left ${nextTheme.panel} transition-all hover:-translate-y-1 hover:shadow-lg`}
+        className={`group rounded-[1.6rem] border p-5 text-left ${nextSoftTone(tone)} transition-all hover:-translate-y-1 hover:shadow-lg`}
       >
-        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-4 ${isDarkMode ? 'bg-white text-slate-950' : 'bg-slate-950 text-white'}`}>
+        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-4 ${nextSolidTone(tone)}`}>
           <Icon className="w-5 h-5" />
         </div>
-        <div className={`text-lg font-black ${nextTheme.text}`}>{title}</div>
-        <div className={`text-sm font-bold mt-1 ${nextTheme.muted}`}>{desc}</div>
+        <div className="text-lg font-black">{title}</div>
+        <div className="text-sm font-bold mt-1 opacity-75">{desc}</div>
       </button>
     );
 
@@ -16980,34 +17018,34 @@ S.N.: ${item.sn || '-'}
             <div className="min-w-0">
               <div className={`text-xs font-black tracking-[0.22em] uppercase ${nextTheme.muted}`}>STOCK NEXT</div>
               <h1 className={`text-3xl sm:text-5xl font-black tracking-tight mt-2 ${nextTheme.text}`}>วันนี้ต้องทำอะไร</h1>
-              <p className={`text-sm sm:text-base font-bold mt-2 max-w-2xl ${nextTheme.muted}`}>หน้าใหม่แบบมินิมอล ใช้งานจากข้อมูลเดิม ไม่ต้องกรอกใหม่</p>
+              <p className={`text-sm sm:text-base font-bold mt-2 max-w-2xl ${nextTheme.muted}`}>หน้าใหม่หลักแบบมินิมอล ใช้งานจากข้อมูลเดิม ไม่ต้องกรอกใหม่ และยังมี Classic สำรอง</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <MinimalButton primary onClick={() => setNextPage('work')}>ทำรายการ</MinimalButton>
-              <MinimalButton onClick={() => setNextPage('inventory')}>ค้นหาอุปกรณ์</MinimalButton>
+              <MinimalButton primary tone="warning" onClick={() => setNextPage('work')}>ทำรายการ</MinimalButton>
+              <MinimalButton primary tone="success" onClick={() => setNextPage('inventory')}>ค้นหาอุปกรณ์</MinimalButton>
               <MinimalButton onClick={() => switchStockUiMode('classic')}>Classic</MinimalButton>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2 mt-6">
             {[
-              ['ต้องคืนวันนี้', dueTodayItems.length, () => openClassicAction(null, () => openTrackingCenter('today'))],
-              ['เลยกำหนด', overdueItems.length, () => openClassicAction(null, () => openTrackingCenter('overdue'))],
-              ['รอคืนทั้งหมด', currentBorrowedItems.length + currentEventItems.length, () => openClassicAction(null, () => openTrackingCenter('all'))]
-            ].map(([label, value, action]) => (
-              <button key={label} type="button" onClick={action} className={`rounded-2xl border p-4 text-left ${nextTheme.panelSoft}`}>
-                <div className={`text-3xl font-black ${Number(value) > 0 ? 'text-blue-500' : nextTheme.text}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
-                <div className={`text-xs font-black mt-1 ${nextTheme.muted}`}>{label}</div>
+              ['ต้องคืนวันนี้', dueTodayItems.length, 'warning', () => openClassicAction(null, () => openTrackingCenter('today'))],
+              ['เลยกำหนด', overdueItems.length, 'danger', () => openClassicAction(null, () => openTrackingCenter('overdue'))],
+              ['รอคืนทั้งหมด', currentBorrowedItems.length + currentEventItems.length, 'primary', () => openClassicAction(null, () => openTrackingCenter('all'))]
+            ].map(([label, value, tone, action]) => (
+              <button key={label} type="button" onClick={action} className={`rounded-2xl border p-4 text-left ${nextSoftTone(tone)}`}>
+                <div className="text-3xl font-black">{Number(value || 0).toLocaleString('th-TH')}</div>
+                <div className="text-xs font-black mt-1 opacity-75">{label}</div>
               </button>
             ))}
           </div>
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          <MainAction icon={Icons.UserPlus} title="ยืม / ออกงาน" desc="เริ่มรายการใหม่" onClick={() => setNextPage('work')} />
-          <MainAction icon={Icons.CheckCircle} title="รับคืน" desc="เช็กของกลับศูนย์" onClick={() => { setBorrowReturnMode('return'); openClassicAction('borrowReturn'); }} />
-          <MainAction icon={Icons.Database} title="คลังอุปกรณ์" desc="ค้นหา เปิดแฟ้ม แก้ไข" onClick={() => setNextPage('inventory')} />
-          <MainAction icon={Icons.QrCode} title="สแกน QR" desc="เลือกของด้วยกล้อง" onClick={() => openClassicAction(null, () => openSelectionScanner({ camera: true }))} />
+          <MainAction icon={Icons.UserPlus} title="ยืม / ออกงาน" desc="เริ่มรายการใหม่" tone="warning" onClick={() => setNextPage('work')} />
+          <MainAction icon={Icons.CheckCircle} title="รับคืน" desc="เช็กของกลับศูนย์" tone="success" onClick={() => { setBorrowReturnMode('return'); openClassicAction('borrowReturn'); }} />
+          <MainAction icon={Icons.Database} title="คลังอุปกรณ์" desc="ค้นหา เปิดแฟ้ม แก้ไข" tone="primary" onClick={() => setNextPage('inventory')} />
+          <MainAction icon={Icons.QrCode} title="สแกน QR" desc="เลือกของด้วยกล้อง" tone="neutral" onClick={() => openClassicAction(null, () => openSelectionScanner({ camera: true }))} />
         </section>
 
         <section className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
@@ -17073,18 +17111,18 @@ S.N.: ${item.sn || '-'}
         </section>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <MainAction icon={Icons.UserPlus} title="ยืมอุปกรณ์" desc="เลือกคนยืมและอุปกรณ์" onClick={() => { setBorrowReturnMode('borrow'); openClassicAction('borrowReturn'); }} />
-          <MainAction icon={Icons.Truck} title="ออกงาน" desc="จัดอุปกรณ์สำหรับกิจกรรม" onClick={() => { setBorrowReturnMode('event'); openClassicAction('borrowReturn'); }} />
-          <MainAction icon={Icons.CheckCircle} title="รับคืน" desc="เช็กของกลับศูนย์" onClick={() => { setBorrowReturnMode('return'); openClassicAction('borrowReturn'); }} />
+          <MainAction icon={Icons.UserPlus} title="ยืมอุปกรณ์" desc="เลือกคนยืมและอุปกรณ์" tone="primary" onClick={() => { setBorrowReturnMode('borrow'); openClassicAction('borrowReturn'); }} />
+          <MainAction icon={Icons.Truck} title="ออกงาน" desc="จัดอุปกรณ์สำหรับกิจกรรม" tone="warning" onClick={() => { setBorrowReturnMode('event'); openClassicAction('borrowReturn'); }} />
+          <MainAction icon={Icons.CheckCircle} title="รับคืน" desc="เช็กของกลับศูนย์" tone="success" onClick={() => { setBorrowReturnMode('return'); openClassicAction('borrowReturn'); }} />
         </div>
 
         <div className={`rounded-[2rem] border p-4 sm:p-5 ${nextTheme.panel}`}>
           <div className={`font-black text-xl ${nextTheme.text}`}>ทางลัด</div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-4">
-            <MinimalButton onClick={() => openClassicAction(null, () => openSelectionScanner({ camera: true }))}>สแกน QR</MinimalButton>
-            <MinimalButton onClick={() => openClassicAction(null, () => openTrackingCenter('today'))}>ติดตามคืน</MinimalButton>
-            <MinimalButton onClick={() => { setRecordsCenterMode('docs'); openClassicAction('records'); }}>เอกสาร</MinimalButton>
-            <MinimalButton onClick={() => setNextPage('inventory')}>คลัง</MinimalButton>
+            <MinimalButton primary tone="neutral" onClick={() => openClassicAction(null, () => openSelectionScanner({ camera: true }))}>สแกน QR</MinimalButton>
+            <MinimalButton primary tone="warning" onClick={() => openClassicAction(null, () => openTrackingCenter('today'))}>ติดตามคืน</MinimalButton>
+            <MinimalButton primary tone="document" onClick={() => { setRecordsCenterMode('docs'); openClassicAction('records'); }}>เอกสาร</MinimalButton>
+            <MinimalButton primary tone="success" onClick={() => setNextPage('inventory')}>คลัง</MinimalButton>
           </div>
         </div>
       </div>
@@ -17100,8 +17138,8 @@ S.N.: ${item.sn || '-'}
               <p className={`text-sm font-bold mt-2 ${nextTheme.muted}`}>มุมมองสั้น สะอาด กดเปิดแฟ้มได้ทันที</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {canAddEditItems && <MinimalButton primary onClick={openAddItemForm}>เพิ่มอุปกรณ์</MinimalButton>}
-              <MinimalButton onClick={() => openClassicAction('inventory')}>คลัง Classic</MinimalButton>
+              {canAddEditItems && <MinimalButton primary tone="primary" onClick={openAddItemForm}>เพิ่มอุปกรณ์</MinimalButton>}
+              <MinimalButton primary tone="success" onClick={() => openClassicAction('inventory')}>คลัง Classic</MinimalButton>
             </div>
           </div>
           <div className="mt-5 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3">
@@ -17149,9 +17187,9 @@ S.N.: ${item.sn || '-'}
           <p className={`text-sm font-bold mt-2 ${nextTheme.muted}`}>รวมไว้แบบเรียบ ๆ ไม่ต้องโชว์ทุกอย่างพร้อมกัน</p>
         </section>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <MainAction icon={Icons.ClipboardList} title="เอกสารย้อนหลัง" desc={`${borrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร`} onClick={() => { setRecordsCenterMode('docs'); openClassicAction('records'); }} />
-          <MainAction icon={Icons.History} title="ประวัติส่วนกลาง" desc="ค้น timeline การใช้งาน" onClick={() => { setRecordsCenterMode('history'); openClassicAction('records'); }} />
-          <MainAction icon={Icons.Camera} title="หลักฐานรูปภาพ" desc="ดูรูปยืม คืน ซ่อม" onClick={() => { setRecordsCenterMode('proofs'); openClassicAction('records'); }} />
+          <MainAction icon={Icons.ClipboardList} title="เอกสารย้อนหลัง" desc={`${borrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร`} tone="document" onClick={() => { setRecordsCenterMode('docs'); openClassicAction('records'); }} />
+          <MainAction icon={Icons.History} title="ประวัติส่วนกลาง" desc="ค้น timeline การใช้งาน" tone="primary" onClick={() => { setRecordsCenterMode('history'); openClassicAction('records'); }} />
+          <MainAction icon={Icons.Camera} title="หลักฐานรูปภาพ" desc="ดูรูปยืม คืน ซ่อม" tone="document" onClick={() => { setRecordsCenterMode('proofs'); openClassicAction('records'); }} />
         </div>
       </div>
     );
@@ -17164,14 +17202,14 @@ S.N.: ${item.sn || '-'}
           <p className={`text-sm font-bold mt-2 ${nextTheme.muted}`}>ซ่อนฟังก์ชันรองไว้ตรงนี้ เพื่อให้หน้าแรกไม่รก</p>
         </section>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          <MainAction icon={Icons.Settings} title="ซ่อมบำรุง" desc="แจ้งซ่อม / ติดตามซ่อม" onClick={() => openClassicAction(null, () => openRepairCenter('open'))} />
-          <MainAction icon={Icons.Monitor} title="รายงาน" desc="สรุป / พิมพ์ / CSV" onClick={() => openClassicAction('reports')} />
-          <MainAction icon={Icons.CheckCircle} title="ตรวจนับ" desc="Physical Audit" onClick={() => openClassicAction('stockCount')} />
-          <MainAction icon={Icons.Database} title="Backup / ปิดปี" desc="สำรองข้อมูล" onClick={() => openClassicAction(null, () => setShowBackupCenterModal(true))} />
-          <MainAction icon={Icons.Folder} title="โครงการจัดซื้อ" desc="จัดกลุ่มอุปกรณ์ตามโครงการ" onClick={() => openClassicAction('projects')} />
-          <MainAction icon={Icons.Layers} title="กล่อง / เซ็ต" desc="เตรียมของและจัดเก็บ" onClick={() => openClassicAction('organize')} />
-          <MainAction icon={Icons.ViewGrid} title="เครื่องมือทั้งหมด" desc="เปิดเมนู Classic เต็ม" onClick={() => openClassicAction('tools')} />
-          <MainAction icon={Icons.Settings} title="ตั้งค่า" desc="ระบบ / บัญชี / หมวดหมู่" onClick={() => openClassicAction(null, () => { setSettingsTab('overview'); setShowSettings(true); })} />
+          <MainAction icon={Icons.Settings} title="ซ่อมบำรุง" desc="แจ้งซ่อม / ติดตามซ่อม" tone="danger" onClick={() => openClassicAction(null, () => openRepairCenter('open'))} />
+          <MainAction icon={Icons.Monitor} title="รายงาน" desc="สรุป / พิมพ์ / CSV" tone="document" onClick={() => openClassicAction('reports')} />
+          <MainAction icon={Icons.CheckCircle} title="ตรวจนับ" desc="Physical Audit" tone="success" onClick={() => openClassicAction('stockCount')} />
+          <MainAction icon={Icons.Database} title="Backup / ปิดปี" desc="สำรองข้อมูล" tone="neutral" onClick={() => openClassicAction(null, () => setShowBackupCenterModal(true))} />
+          <MainAction icon={Icons.Folder} title="โครงการจัดซื้อ" desc="จัดกลุ่มอุปกรณ์ตามโครงการ" tone="primary" onClick={() => openClassicAction('projects')} />
+          <MainAction icon={Icons.Layers} title="กล่อง / เซ็ต" desc="เตรียมของและจัดเก็บ" tone="warning" onClick={() => openClassicAction('organize')} />
+          <MainAction icon={Icons.ViewGrid} title="เครื่องมือทั้งหมด" desc="เปิดเมนู Classic เต็ม" tone="neutral" onClick={() => openClassicAction('tools')} />
+          <MainAction icon={Icons.Settings} title="ตั้งค่า" desc="ระบบ / บัญชี / หมวดหมู่" tone="neutral" onClick={() => openClassicAction(null, () => { setSettingsTab('overview'); setShowSettings(true); })} />
         </div>
       </div>
     );
@@ -17193,14 +17231,14 @@ S.N.: ${item.sn || '-'}
         <aside className={`hidden xl:flex fixed left-0 top-0 bottom-0 z-30 w-64 flex-col border-r ${isDarkMode ? 'bg-slate-950/92 border-slate-800' : 'bg-white/92 border-slate-200'} backdrop-blur-xl`}>
           <div className="p-5 border-b border-slate-500/10">
             <div className={`font-black text-xl ${nextTheme.text}`}>STOCK Next</div>
-            <div className={`text-xs font-bold mt-1 ${nextTheme.muted}`}>Minimal Alpha</div>
+            <div className={`text-xs font-bold mt-1 ${nextTheme.muted}`}>Default Mode</div>
           </div>
           <nav className="flex-1 p-3 space-y-1.5">
             {nextNav.map(nav => {
               const Icon = nav.icon;
               const active = nextPage === nav.id || (nextPage === 'dashboard' && nav.id === 'home');
               return (
-                <button key={nav.id} type="button" onClick={() => setNextPage(nav.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left font-black transition-all ${active ? 'bg-slate-950 text-white shadow-sm' : `${nextTheme.button} border-transparent`}`}>
+                <button key={nav.id} type="button" onClick={() => setNextPage(nav.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left font-black transition-all ${active ? nextColor[nav.tone] + ' shadow-sm' : `${nextTheme.button} border-transparent`}`}>
                   <Icon className="w-5 h-5" />
                   <span>{nav.label}</span>
                 </button>
@@ -17208,7 +17246,7 @@ S.N.: ${item.sn || '-'}
             })}
           </nav>
           <div className="p-3 border-t border-slate-500/10 space-y-2">
-            <button type="button" onClick={() => switchStockUiMode('classic')} className={`w-full px-4 py-3 rounded-2xl border font-black ${nextTheme.button}`}>กลับ Classic</button>
+            <button type="button" onClick={() => switchStockUiMode('classic')} className={`w-full px-4 py-3 rounded-2xl border font-black ${nextTheme.button}`}>Classic สำรอง</button>
           </div>
         </aside>
 
@@ -17217,21 +17255,21 @@ S.N.: ${item.sn || '-'}
             <div className={`mb-4 rounded-[1.6rem] border p-3 sm:p-4 ${nextTheme.panel}`}>
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-white text-slate-950' : 'bg-slate-950 text-white'}`}>
+                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-gradient-to-br from-blue-600 to-cyan-500 text-white">
                     <Icons.Package className="w-5 h-5" />
                   </div>
                   <div>
                     <div className={`font-black ${nextTheme.text}`}>STOCK Next</div>
-                    <div className={`text-xs font-bold ${nextTheme.muted}`}>Minimal / ใช้ฐานข้อมูลเดิม</div>
+                    <div className={`text-xs font-bold ${nextTheme.muted}`}>หน้าใหม่หลัก / ใช้ฐานข้อมูลเดิม</div>
                   </div>
                 </div>
                 <div className="flex gap-2 overflow-x-auto custom-scrollbar">
                   {nextNav.map(nav => (
-                    <button key={nav.id} type="button" onClick={() => setNextPage(nav.id)} className={`px-3 py-2 rounded-xl border text-sm font-black whitespace-nowrap ${nextPage === nav.id || (nextPage === 'dashboard' && nav.id === 'home') ? 'bg-slate-950 text-white border-slate-950' : nextTheme.button}`}>
+                    <button key={nav.id} type="button" onClick={() => setNextPage(nav.id)} className={`px-3 py-2 rounded-xl border text-sm font-black whitespace-nowrap ${nextPage === nav.id || (nextPage === 'dashboard' && nav.id === 'home') ? nextColor[nav.tone] : nextTheme.button}`}>
                       {nav.label}
                     </button>
                   ))}
-                  <button type="button" onClick={() => switchStockUiMode('classic')} className={`px-3 py-2 rounded-xl border text-sm font-black whitespace-nowrap ${nextTheme.button}`}>Classic</button>
+                  <button type="button" onClick={() => switchStockUiMode('classic')} className={`px-3 py-2 rounded-xl border text-sm font-black whitespace-nowrap ${nextTheme.button}`}>Classic สำรอง</button>
                 </div>
               </div>
             </div>
@@ -17372,7 +17410,7 @@ S.N.: ${item.sn || '-'}
             <Icons.CheckCircle className="w-4 h-4" /> {firebaseError ? 'ตรวจสอบระบบ' : 'ออนไลน์'}
           </div>
 
-          <button type="button" onClick={() => switchStockUiMode('next')} className="factory-primary-btn" title="ทดลอง STOCK Next หน้าตาใหม่">
+          <button type="button" onClick={() => switchStockUiMode('next')} className="factory-primary-btn" title="เปิด STOCK Next หน้าใหม่หลัก">
             <Icons.ViewGrid className="w-5 h-5" /><span>STOCK Next</span>
           </button>
 
