@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.50 Equipment Inventory Page / Factory Style Polish';
+const APP_VERSION = 'v22.54.0 UI Beauty / Factory Premium Polish';
 const APP_UPDATE_NOTE = 'Repair / Maintenance Center Polish: เพิ่มศูนย์ซ่อม/บำรุงรักษา สรุปงานซ่อม ฟิลเตอร์งานค้าง/ส่งซ่อม/เสร็จแล้ว/เสียซ้ำ Export CSV และรายงาน A4 พร้อมฟอร์มแจ้งซ่อมละเอียดขึ้น โดยไม่แตะ QR Scanner/กล้อง/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -6388,6 +6388,218 @@ button[class*="orange"]:not(:disabled) {
 }
 
 
+
+/* v22.54.0 UI Beauty / Factory Premium Polish */
+.factory-stock-polish {
+  --premium-blue: #2563eb;
+  --premium-blue-2: #38bdf8;
+  --premium-ink: #0f172a;
+  --premium-radius: 24px;
+  --premium-radius-lg: 32px;
+  --premium-shadow: 0 22px 70px rgba(15, 23, 42, .13);
+  --premium-shadow-soft: 0 12px 34px rgba(15, 23, 42, .08);
+  --premium-border: rgba(148, 163, 184, .24);
+  letter-spacing: -.012em;
+}
+.factory-stock-polish[data-polish-theme="dark"] {
+  --premium-shadow: 0 24px 80px rgba(0, 0, 0, .42);
+  --premium-shadow-soft: 0 14px 42px rgba(0, 0, 0, .32);
+  --premium-border: rgba(148, 163, 184, .16);
+}
+.factory-stock-polish::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 16% 8%, rgba(37,99,235,.16), transparent 32%),
+    radial-gradient(circle at 82% 2%, rgba(14,165,233,.12), transparent 28%),
+    radial-gradient(circle at 72% 88%, rgba(99,102,241,.10), transparent 32%);
+}
+.factory-stock-polish > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Premium desktop sidebar */
+.factory-stock-polish aside.hidden.lg\:flex {
+  background:
+    radial-gradient(circle at 22% 5%, rgba(59,130,246,.32), transparent 34%),
+    linear-gradient(180deg, #07111f 0%, #0f172a 52%, #050816 100%) !important;
+  box-shadow: 18px 0 70px rgba(2,6,23,.28);
+  border-right: 1px solid rgba(148,163,184,.14) !important;
+}
+.factory-stock-polish aside nav button {
+  border: 1px solid transparent;
+}
+.factory-stock-polish aside nav button:hover {
+  background: rgba(255,255,255,.085) !important;
+  border-color: rgba(255,255,255,.10);
+  transform: translateX(2px);
+}
+.factory-stock-polish aside nav button[class*="bg-gradient"] {
+  box-shadow: 0 18px 38px rgba(37,99,235,.26), inset 0 1px 0 rgba(255,255,255,.18) !important;
+}
+
+/* Premium top bar */
+.factory-stock-polish .factory-topbar {
+  margin: 4px 0 18px;
+  padding: 18px 20px;
+  border: 1px solid var(--premium-border);
+  border-radius: 30px;
+  background: rgba(255,255,255,.82);
+  box-shadow: var(--premium-shadow-soft);
+  backdrop-filter: blur(18px);
+}
+.factory-stock-polish[data-polish-theme="dark"] .factory-topbar {
+  background: rgba(15,23,42,.72);
+  border-color: rgba(148,163,184,.16);
+}
+.factory-stock-polish .factory-page-title h1 {
+  letter-spacing: -.045em;
+  font-size: clamp(30px, 3.2vw, 46px);
+}
+.factory-stock-polish .factory-page-title p {
+  max-width: 780px;
+}
+.factory-stock-polish .factory-chip,
+.factory-stock-polish .factory-icon-btn,
+.factory-stock-polish .factory-primary-btn,
+.factory-stock-polish .factory-ghost-btn {
+  border-radius: 18px !important;
+}
+.factory-stock-polish .factory-primary-btn {
+  background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%) !important;
+  border: 0 !important;
+  color: #fff !important;
+  box-shadow: 0 14px 34px rgba(37,99,235,.28) !important;
+}
+.factory-stock-polish .factory-ghost-btn,
+.factory-stock-polish .factory-icon-btn {
+  background: rgba(255,255,255,.72) !important;
+  border-color: rgba(148,163,184,.28) !important;
+}
+.factory-stock-polish[data-polish-theme="dark"] .factory-ghost-btn,
+.factory-stock-polish[data-polish-theme="dark"] .factory-icon-btn {
+  background: rgba(15,23,42,.64) !important;
+  border-color: rgba(148,163,184,.18) !important;
+}
+
+/* Premium cards / sections */
+.factory-stock-polish :is(.overview-essential-hero, .equipment-inventory-page section, .page-workspace-shell > div, .records-workspace > div, .tracking-workspace > div, .tools-workspace > div) {
+  border-radius: 34px !important;
+  box-shadow: var(--premium-shadow) !important;
+  border-color: var(--premium-border) !important;
+}
+.factory-stock-polish .overview-essential-hero {
+  overflow: hidden;
+}
+.factory-stock-polish .overview-essential-hero > div:first-child,
+.factory-stock-polish .equipment-inventory-page section > div:first-child {
+  background:
+    linear-gradient(135deg, rgba(37,99,235,.10), rgba(14,165,233,.06)),
+    linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,.24));
+}
+.factory-stock-polish[data-polish-theme="dark"] .overview-essential-hero > div:first-child,
+.factory-stock-polish[data-polish-theme="dark"] .equipment-inventory-page section > div:first-child {
+  background:
+    radial-gradient(circle at 8% 8%, rgba(37,99,235,.22), transparent 40%),
+    linear-gradient(135deg, rgba(15,23,42,.86), rgba(2,6,23,.72));
+}
+.factory-stock-polish .overview-mini-stat,
+.factory-stock-polish .overview-essential-action,
+.factory-stock-polish .page-workspace-card {
+  border-radius: 26px !important;
+  box-shadow: var(--premium-shadow-soft);
+}
+.factory-stock-polish .overview-mini-stat:hover,
+.factory-stock-polish .overview-essential-action:hover,
+.factory-stock-polish .page-workspace-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--premium-shadow);
+}
+
+/* Inventory page premium */
+.factory-stock-polish .equipment-inventory-page {
+  animation: premiumFadeIn .22s ease-out;
+}
+.factory-stock-polish .inventory-filter-bar {
+  border-radius: 28px !important;
+  box-shadow: var(--premium-shadow-soft);
+}
+.factory-stock-polish .inventory-filter-bar input,
+.factory-stock-polish .inventory-filter-bar select {
+  min-height: 48px;
+}
+.factory-stock-polish .stock-table-compact {
+  border-spacing: 0;
+}
+.factory-stock-polish .stock-table-compact thead tr {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  backdrop-filter: blur(14px);
+}
+.factory-stock-polish .stock-table-compact tbody tr {
+  border-color: rgba(148,163,184,.14) !important;
+}
+.factory-stock-polish .stock-table-compact tbody tr:hover {
+  box-shadow: inset 4px 0 0 #2563eb;
+}
+.factory-stock-polish .inventory-table-row td:first-child {
+  border-top-left-radius: 18px;
+  border-bottom-left-radius: 18px;
+}
+.factory-stock-polish .inventory-table-row td:last-child {
+  border-top-right-radius: 18px;
+  border-bottom-right-radius: 18px;
+}
+
+/* Buttons / inputs */
+.factory-stock-polish button {
+  -webkit-tap-highlight-color: transparent;
+}
+.factory-stock-polish button:hover {
+  filter: saturate(1.04);
+}
+.factory-stock-polish input,
+.factory-stock-polish select,
+.factory-stock-polish textarea {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+.factory-stock-polish :is(input, select, textarea):focus {
+  box-shadow: 0 0 0 4px rgba(37,99,235,.14) !important;
+  border-color: rgba(37,99,235,.58) !important;
+}
+
+/* Modal and toast polish */
+.factory-stock-polish [class*="rounded-3xl"][class*="shadow-2xl"] {
+  box-shadow: 0 28px 90px rgba(2,6,23,.32) !important;
+}
+.factory-stock-polish .fixed.top-4.right-4 > div {
+  border-radius: 22px !important;
+  box-shadow: 0 18px 48px rgba(15,23,42,.18) !important;
+}
+
+/* Mobile keeps breathable */
+@media (max-width: 1023px) {
+  .factory-stock-polish .factory-topbar {
+    border-radius: 22px;
+    padding: 14px;
+  }
+  .factory-stock-polish .factory-page-title h1 {
+    font-size: 28px;
+  }
+  .factory-stock-polish :is(.overview-essential-hero, .equipment-inventory-page section) {
+    border-radius: 24px !important;
+  }
+}
+@keyframes premiumFadeIn {
+  from { opacity: .72; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 `}</style>
   );
 }
@@ -10277,7 +10489,7 @@ S.N.: ${item.sn || '-'}
                   <div className="report-doc-note">
                     <div className="report-doc-note-title">สรุปภาพรวมประจำเดือน</div>
                     <p className="report-doc-note-text">
-                      รายงานนี้รวบรวมข้อมูลจากประวัติการทำรายการในระบบ MDEC Stock เฉพาะเดือนที่เลือก
+                      รายงานนี้รวบรวมข้อมูลจากประวัติการทำรายการในระบบ MDEC Stock Pro เฉพาะเดือนที่เลือก
                       เพื่อช่วยตรวจสอบความเคลื่อนไหวของอุปกรณ์ เอกสารย้อนหลัง หลักฐานรูปภาพ และรายการที่ต้องติดตามต่อ
                     </p>
                   </div>
@@ -16903,7 +17115,7 @@ S.N.: ${item.sn || '-'}
             </div>
             <div className="min-w-0">
               <h1 className="text-xl font-black tracking-tight truncate">MDEC Stock</h1>
-              <p className="text-xs text-slate-400 font-bold truncate">Modern Inventory Center</p>
+              <p className="text-xs text-slate-400 font-bold truncate">Premium Equipment Center</p>
             </div>
           </div>
         </div>
