@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.56.1 STOCK Next Native Inventory / Item Profile';
-const APP_UPDATE_NOTE = 'STOCK Next Native Inventory / Item Profile: เริ่มย้ายเข้าเว็บใหม่แบบเต็มตัวด้วยคลังอุปกรณ์และแฟ้มอุปกรณ์แบบ Next Native เปิดแฟ้ม ดูภาพรวม ประวัติ เอกสาร หลักฐาน และข้อมูลระบบจากฐานข้อมูลเดิมได้ใน Next โดยไม่ต้องสลับกลับ Classic สำหรับการดูข้อมูลหลัก';
+const APP_VERSION = 'v22.56.2 STOCK Next Native Operations';
+const APP_UPDATE_NOTE = 'STOCK Next Native Operations: ย้ายหน้า “ทำรายการ” เข้ามาเป็น Next Native สำหรับยืม/ออกงาน/รับคืน เลือกอุปกรณ์ กรอกข้อมูล เช็กของ แนบหลักฐาน และบันทึกผ่าน engine เดิมได้ใน Next โดยไม่ต้องเปิดหน้า Classic สำหรับงานหลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -17102,7 +17102,7 @@ S.N.: ${item.sn || '-'}
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-4">
               <MainAction icon={Icons.UserPlus} title="ยืม / ออกงาน" desc="เริ่มรายการใหม่" tone="warning" onClick={() => setNextPage('work')} />
-              <MainAction icon={Icons.CheckCircle} title="รับคืน" desc="เช็กของกลับศูนย์" tone="success" count={returnQueueCount} onClick={() => { setBorrowReturnMode('return'); openClassicAction('borrowReturn'); }} />
+              <MainAction icon={Icons.CheckCircle} title="รับคืน" desc="เช็กของกลับศูนย์" tone="success" count={returnQueueCount} onClick={() => { setBorrowReturnMode('return'); setNextPage('work'); }} />
               <MainAction icon={Icons.Database} title="คลังอุปกรณ์" desc="ค้นหา เปิดแฟ้ม แก้ไข" tone="primary" onClick={() => setNextPage('inventory')} />
               <MainAction icon={Icons.QrCode} title="สแกน QR" desc="เลือกของด้วยกล้อง" tone="neutral" onClick={() => openClassicAction(null, () => openSelectionScanner({ camera: true }))} />
             </div>
@@ -17162,32 +17162,262 @@ S.N.: ${item.sn || '-'}
       </div>
     );
 
-    const renderMinimalWork = () => (
-      <div className="space-y-5">
-        <SectionHeader
-          kicker="WORKFLOW"
-          title="เลือกงานที่ต้องทำ"
-          desc="แยกงานหลักให้ชัด เหลือแค่ ยืม / ออกงาน / รับคืน แล้วส่งต่อไป flow เดิมที่เสถียร"
-          action={<MinimalButton onClick={() => openClassicAction('borrowReturn')}>เปิดหน้าทำรายการเต็ม</MinimalButton>}
-        />
+    const renderMinimalWork = () => {
+      const modeInfo = borrowReturnMode === 'event'
+        ? { id: 'event', title: 'นำอุปกรณ์ออกงาน', desc: 'ใส่ชื่องาน เลือกอุปกรณ์ เช็กของ แล้วบันทึกใบออกงาน', tone: 'warning', icon: Icons.Truck }
+        : borrowReturnMode === 'return'
+          ? { id: 'return', title: 'รับคืนอุปกรณ์', desc: 'เลือกของที่รอคืน เช็กของกลับ แนบหลักฐาน แล้วบันทึกรับคืน', tone: 'success', icon: Icons.CheckCircle }
+          : { id: 'borrow', title: 'ยืมอุปกรณ์', desc: 'เลือกผู้ยืม เลือกอุปกรณ์ เช็กของ แล้วบันทึกใบยืม', tone: 'primary', icon: Icons.UserPlus };
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <MainAction icon={Icons.UserPlus} title="ยืมอุปกรณ์" desc="เลือกคนยืม → เลือกของ → ยืนยัน" tone="primary" onClick={() => { setBorrowReturnMode('borrow'); openClassicAction('borrowReturn'); }} />
-          <MainAction icon={Icons.Truck} title="ออกงาน" desc="ใส่ชื่องาน → เลือกของ → พิมพ์ใบออกงาน" tone="warning" onClick={() => { setBorrowReturnMode('event'); openClassicAction('borrowReturn'); }} />
-          <MainAction icon={Icons.CheckCircle} title="รับคืน" desc="ค้นรายการ/สแกน → เช็กของกลับ" tone="success" count={returnQueueCount} onClick={() => { setBorrowReturnMode('return'); openClassicAction('borrowReturn'); }} />
+      const q = String(borrowReturnSearch || '').trim().toLowerCase();
+      const nextOperationItems = items
+        .filter(item => item && !item.isDeleted)
+        .filter(item => borrowReturnMode === 'return' ? (item.status === 'borrowed' || item.status === 'out-for-event') : item.status === 'available')
+        .filter(item => {
+          if (!q) return true;
+          return String(item.name || '').toLowerCase().includes(q) ||
+                 String(item.sn || '').toLowerCase().includes(q) ||
+                 String(item.category || '').toLowerCase().includes(q) ||
+                 String(item.location || '').toLowerCase().includes(q) ||
+                 String(item.currentBorrower || '').toLowerCase().includes(q) ||
+                 String(item.currentEvent || '').toLowerCase().includes(q);
+        })
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true }))
+        .slice(0, 80);
+
+      const actionTargetIds = borrowReturnMode === 'event' ? eventTargetIds : borrowReturnMode === 'return' ? returnTargetIds : borrowTargetIds;
+      const actionChecklist = borrowReturnMode === 'event' ? eventChecklist : borrowReturnMode === 'return' ? returnChecklist : packingChecklist;
+      const selectedActionItems = actionTargetIds.map(id => items.find(item => item.id === id)).filter(Boolean);
+
+      const setActionTargets = (ids) => {
+        const unique = Array.from(new Set(ids || []));
+        if (borrowReturnMode === 'event') {
+          setEventTargetIds(unique);
+          setEventChecklist(unique);
+        } else if (borrowReturnMode === 'return') {
+          setReturnTargetIds(unique);
+          setReturnChecklist(unique);
+        } else {
+          setBorrowTargetIds(unique);
+          setPackingChecklist(unique);
+        }
+      };
+
+      const setActionChecklist = (ids) => {
+        const unique = Array.from(new Set(ids || []));
+        if (borrowReturnMode === 'event') setEventChecklist(unique);
+        else if (borrowReturnMode === 'return') setReturnChecklist(unique);
+        else setPackingChecklist(unique);
+      };
+
+      const clearNextOperationSelection = () => {
+        if (borrowReturnMode === 'event') {
+          setEventTargetIds([]);
+          setEventChecklist([]);
+          setEventProofFiles([]);
+        } else if (borrowReturnMode === 'return') {
+          setReturnTargetIds([]);
+          setReturnChecklist([]);
+          setReturnProofFiles([]);
+          setReturnInspection({});
+        } else {
+          setBorrowTargetIds([]);
+          setPackingChecklist([]);
+          setBorrowProofFiles([]);
+        }
+      };
+
+      const toggleOperationItem = (id) => {
+        if (actionTargetIds.includes(id)) {
+          setActionTargets(actionTargetIds.filter(x => x !== id));
+          setActionChecklist(actionChecklist.filter(x => x !== id));
+        } else {
+          setActionTargets([...actionTargetIds, id]);
+          setActionChecklist([...actionChecklist, id]);
+        }
+      };
+
+      const switchNextOperationMode = (mode) => {
+        clearNextOperationSelection();
+        setBorrowReturnMode(mode);
+      };
+
+      const submitNextOperation = async () => {
+        if (borrowReturnMode === 'borrow') {
+          if (!borrowData.staff || !borrowData.borrower || packingChecklist.length === 0) return pushToast('กรอกข้อมูลยืมให้ครบก่อนบันทึก', 'warning');
+          if (!window.confirm(`ยืนยันบันทึกการยืม ${packingChecklist.length.toLocaleString('th-TH')} รายการ?`)) return;
+          return handleBorrow();
+        }
+        if (borrowReturnMode === 'event') {
+          if (!eventData.staff || !eventData.eventName || eventChecklist.length === 0) return pushToast('กรอกข้อมูลงานให้ออกครบก่อนบันทึก', 'warning');
+          if (!window.confirm(`ยืนยันบันทึกนำออกงาน ${eventChecklist.length.toLocaleString('th-TH')} รายการ?`)) return;
+          return handleEventOut();
+        }
+        if (!returnData.staff || returnChecklist.length === 0) return pushToast('เลือกผู้รับคืนและเช็กอุปกรณ์ก่อนบันทึก', 'warning');
+        if (!window.confirm(`ยืนยันรับคืน ${returnChecklist.length.toLocaleString('th-TH')} รายการ?`)) return;
+        return handleReturn();
+      };
+
+      const OperationIcon = modeInfo.icon;
+      const canSubmit = borrowReturnMode === 'borrow'
+        ? Boolean(borrowData.staff && borrowData.borrower && packingChecklist.length > 0)
+        : borrowReturnMode === 'event'
+          ? Boolean(eventData.staff && eventData.eventName && eventChecklist.length > 0)
+          : Boolean(returnData.staff && returnChecklist.length > 0);
+
+      return (
+        <div className="space-y-5">
+          <SectionHeader
+            kicker="NEXT NATIVE OPERATIONS"
+            title="ทำรายการ"
+            desc="ทำรายการยืม / ออกงาน / รับคืน ใน STOCK Next โดยใช้ฐานข้อมูลเดิมและ engine เดิมเบื้องหลัง"
+            action={<MinimalButton onClick={() => openClassicAction('borrowReturn')}>โหมดกู้คืน</MinimalButton>}
+          />
+
+          <section className={`rounded-[2rem] border p-3 sm:p-4 ${nextTheme.panel}`}>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                ['borrow', 'ยืม', Icons.UserPlus, 'primary'],
+                ['event', 'ออกงาน', Icons.Truck, 'warning'],
+                ['return', 'รับคืน', Icons.CheckCircle, 'success']
+              ].map(([id, label, Icon, tone]) => (
+                <button key={id} type="button" onClick={() => switchNextOperationMode(id)} className={`rounded-2xl border p-3 text-left font-black transition-all ${borrowReturnMode === id ? nextColor[tone] : nextSoftTone(tone)}`}>
+                  <Icon className="w-5 h-5 mb-2" />
+                  <div>{label}</div>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_420px] gap-4 items-start">
+            <div className={`rounded-[2rem] border overflow-hidden ${nextTheme.panel}`}>
+              <div className={`p-4 border-b ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  <div>
+                    <div className={`font-black text-xl ${nextTheme.text}`}>{borrowReturnMode === 'return' ? 'เลือกอุปกรณ์รอคืน' : 'เลือกอุปกรณ์พร้อมใช้'}</div>
+                    <div className={`text-xs font-bold mt-1 ${nextTheme.muted}`}>พบ {nextOperationItems.length.toLocaleString('th-TH')} รายการ • เลือกแล้ว {actionTargetIds.length.toLocaleString('th-TH')} รายการ</div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <MinimalButton onClick={() => setActionTargets(nextOperationItems.map(item => item.id))}>เลือกที่เห็น</MinimalButton>
+                    <MinimalButton onClick={clearNextOperationSelection}>ล้าง</MinimalButton>
+                  </div>
+                </div>
+                <div className={`mt-3 flex items-center gap-3 px-4 py-3 rounded-2xl border ${nextTheme.input}`}>
+                  <Icons.Search className={`w-5 h-5 ${nextTheme.muted}`} />
+                  <input value={borrowReturnSearch} onChange={e => setBorrowReturnSearch(e.target.value)} className="bg-transparent outline-none w-full font-black" placeholder="ค้นหาชื่อ / S.N. / หมวด / ที่เก็บ / ผู้ยืม / งาน" />
+                </div>
+              </div>
+
+              <div className="p-3 max-h-[620px] overflow-y-auto custom-scrollbar space-y-2">
+                {nextOperationItems.length === 0 ? (
+                  <div className={`rounded-2xl border p-8 text-center font-black ${nextTheme.panelSoft} ${nextTheme.muted}`}>ไม่พบรายการในโหมดนี้</div>
+                ) : nextOperationItems.map(item => {
+                  const selected = actionTargetIds.includes(item.id);
+                  const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
+                  const late = (item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
+                  return (
+                    <button key={item.id} type="button" onClick={() => toggleOperationItem(item.id)} className={`w-full rounded-2xl border p-3 text-left transition-all ${selected ? nextSoftTone(modeInfo.tone) : nextTheme.button}`}>
+                      <div className="flex items-start gap-3">
+                        <span className={`mt-1 w-6 h-6 rounded-lg border flex items-center justify-center shrink-0 ${selected ? nextSolidTone(modeInfo.tone) : isDarkMode ? 'border-slate-600 bg-slate-950' : 'border-slate-300 bg-white'}`}>{selected ? '✓' : ''}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className={`font-black truncate ${selected ? '' : nextTheme.text}`}>{item.name || '-'}</div>
+                          <div className={`text-xs font-bold mt-1 ${selected ? 'opacity-75' : nextTheme.muted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • {item.location || '-'}</div>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                            {item.currentBorrower && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-purple-900/40 text-purple-300' : 'bg-purple-50 text-purple-700'}`}>ผู้ยืม: {item.currentBorrower}</span>}
+                            {item.currentEvent && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-orange-900/40 text-orange-300' : 'bg-orange-50 text-orange-700'}`}>งาน: {item.currentEvent}</span>}
+                            {late && <span className="px-2.5 py-1 rounded-full text-xs font-black bg-rose-600 text-white">เลยกำหนดคืน</span>}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className={`rounded-[2rem] border overflow-hidden sticky top-4 ${nextTheme.panel}`}>
+              <div className={`p-4 border-b ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${nextSolidTone(modeInfo.tone)}`}>
+                    <OperationIcon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className={`font-black text-xl ${nextTheme.text}`}>{modeInfo.title}</div>
+                    <div className={`text-xs font-bold mt-0.5 ${nextTheme.muted}`}>{modeInfo.desc}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 space-y-4">
+                <div className={`rounded-2xl border p-3 ${actionTargetIds.length > 0 ? nextSoftTone(modeInfo.tone) : nextTheme.panelSoft}`}>
+                  <div className="text-[11px] font-black opacity-70">สรุปรายการ</div>
+                  <div className="font-black mt-0.5">{actionTargetIds.length > 0 ? `เลือกแล้ว ${actionTargetIds.length.toLocaleString('th-TH')} รายการ` : 'ยังไม่ได้เลือกอุปกรณ์'}</div>
+                  <div className="text-xs font-bold mt-1 opacity-75 truncate">{selectedActionItems.length > 0 ? selectedActionItems.slice(0, 3).map(i => i.name || i.sn || i.id).join(' • ') : 'เลือกจากรายการด้านซ้าย'}</div>
+                  {actionTargetIds.length > 0 && <button type="button" onClick={() => setActionChecklist(actionTargetIds)} className={`mt-3 px-3 py-2 rounded-xl text-xs font-black ${nextColor.success}`}>เช็กครบทั้งหมด</button>}
+                </div>
+
+                {borrowReturnMode === 'borrow' && (
+                  <>
+                    <label className="block"><span className={`block text-sm font-black mb-1 ${nextTheme.text}`}>ผู้ให้ยืม *</span><select className={`w-full px-4 py-3 rounded-xl border font-bold ${nextTheme.input}`} value={borrowData.staff || ''} onChange={e => setBorrowData({...borrowData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : borrowData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
+                    {borrowData.staff === 'อื่นๆ' && <input className={`w-full px-4 py-3 rounded-xl border font-bold ${nextTheme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={borrowData.newStaff || ''} onChange={e => setBorrowData({...borrowData, newStaff: e.target.value})} />}
+                    <label className="block"><span className={`block text-sm font-black mb-1 ${nextTheme.text}`}>ชื่อผู้ยืม *</span><input className={`w-full px-4 py-3 rounded-xl border font-bold ${nextTheme.input}`} placeholder="ชื่อ-สกุล / แผนก" value={borrowData.borrower || ''} onChange={e => setBorrowData({...borrowData, borrower: e.target.value})} /></label>
+                    <label className="block"><span className={`block text-sm font-black mb-1 ${nextTheme.text}`}>กำหนดคืน</span><input type="date" className={`w-full px-4 py-3 rounded-xl border font-bold ${nextTheme.input}`} value={borrowData.returnDate || ''} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} /></label>
+                    <textarea className={`w-full px-4 py-3 rounded-xl border font-bold resize-none ${nextTheme.input}`} rows={2} placeholder="หมายเหตุ" value={borrowData.note || ''} onChange={e => setBorrowData({...borrowData, note: e.target.value})} />
+                    {renderProofUploader('หลักฐานการยืม', borrowProofFiles, setBorrowProofFiles, 'purple')}
+                  </>
+                )}
+
+                {borrowReturnMode === 'event' && (
+                  <>
+                    <label className="block"><span className={`block text-sm font-black mb-1 ${nextTheme.text}`}>ผู้นำออก / ผู้รับผิดชอบ *</span><select className={`w-full px-4 py-3 rounded-xl border font-bold ${nextTheme.input}`} value={eventData.staff || ''} onChange={e => setEventData({...eventData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : eventData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
+                    {eventData.staff === 'อื่นๆ' && <input className={`w-full px-4 py-3 rounded-xl border font-bold ${nextTheme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={eventData.newStaff || ''} onChange={e => setEventData({...eventData, newStaff: e.target.value})} />}
+                    <label className="block"><span className={`block text-sm font-black mb-1 ${nextTheme.text}`}>ชื่องาน / สถานที่ *</span><input className={`w-full px-4 py-3 rounded-xl border font-bold ${nextTheme.input}`} placeholder="เช่น งานประชุม / ถ่ายภาพกิจกรรม" value={eventData.eventName || ''} onChange={e => setEventData({...eventData, eventName: e.target.value})} /></label>
+                    <label className="block"><span className={`block text-sm font-black mb-1 ${nextTheme.text}`}>กำหนดคืน</span><input type="date" className={`w-full px-4 py-3 rounded-xl border font-bold ${nextTheme.input}`} value={eventData.returnDate || ''} onChange={e => setEventData({...eventData, returnDate: e.target.value})} /></label>
+                    <textarea className={`w-full px-4 py-3 rounded-xl border font-bold resize-none ${nextTheme.input}`} rows={2} placeholder="หมายเหตุ" value={eventData.note || ''} onChange={e => setEventData({...eventData, note: e.target.value})} />
+                    {renderProofUploader('หลักฐานนำออกงาน', eventProofFiles, setEventProofFiles, 'orange')}
+                  </>
+                )}
+
+                {borrowReturnMode === 'return' && (
+                  <>
+                    <label className="block"><span className={`block text-sm font-black mb-1 ${nextTheme.text}`}>ผู้รับคืน *</span><select className={`w-full px-4 py-3 rounded-xl border font-bold ${nextTheme.input}`} value={returnData.staff || ''} onChange={e => setReturnData({...returnData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : returnData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
+                    {returnData.staff === 'อื่นๆ' && <input className={`w-full px-4 py-3 rounded-xl border font-bold ${nextTheme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={returnData.newStaff || ''} onChange={e => setReturnData({...returnData, newStaff: e.target.value})} />}
+                    {renderProofUploader('หลักฐานการรับคืน', returnProofFiles, setReturnProofFiles, 'emerald')}
+                  </>
+                )}
+
+                <div className={`rounded-2xl border p-3 ${nextTheme.panelSoft}`}>
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className={`font-black ${nextTheme.text}`}>เช็กลิสต์ ({actionChecklist.length}/{actionTargetIds.length})</div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setActionChecklist(actionTargetIds)} className={`px-3 py-2 rounded-xl text-xs font-black border ${nextTheme.button}`}>เช็กครบ</button>
+                      <button type="button" onClick={() => setActionChecklist([])} className={`px-3 py-2 rounded-xl text-xs font-black border ${nextTheme.button}`}>ล้างเช็ก</button>
+                    </div>
+                  </div>
+                  <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar pr-1">
+                    {selectedActionItems.length === 0 ? <div className={`p-4 text-center text-sm font-bold ${nextTheme.muted}`}>ยังไม่ได้เลือกอุปกรณ์</div> : selectedActionItems.map(item => {
+                      const checked = actionChecklist.includes(item.id);
+                      return (
+                        <label key={item.id} className={`flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer ${checked ? nextSoftTone('success') : nextTheme.panel}`}>
+                          <input type="checkbox" className="stock-check mt-0.5" checked={checked} onChange={e => setActionChecklist(e.target.checked ? [...actionChecklist, item.id] : actionChecklist.filter(id => id !== item.id))} />
+                          <span className={`min-w-0 flex-1 text-sm font-black ${nextTheme.text}`}>{item.name}<span className={`block text-xs font-bold ${nextTheme.muted}`}>S.N. {item.sn || '-'} • {item.location || '-'}</span></span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button type="button" onClick={clearNextOperationSelection} className={`py-4 rounded-xl font-black border ${nextTheme.button}`}>ยกเลิก</button>
+                  <button type="button" onClick={submitNextOperation} disabled={!canSubmit} className={`py-4 rounded-xl font-black border ${nextColor[modeInfo.tone]} disabled:bg-slate-400 disabled:border-slate-400 disabled:text-white disabled:cursor-not-allowed`}>บันทึก</button>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
-
-        <section className={`rounded-[2rem] border p-4 sm:p-5 ${nextTheme.panel}`}>
-          <div className={`font-black text-xl ${nextTheme.text}`}>ทางลัดหน้างาน</div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-4">
-            <MinimalButton primary tone="neutral" onClick={() => openClassicAction(null, () => openSelectionScanner({ camera: true }))}>สแกน QR</MinimalButton>
-            <MinimalButton primary tone="warning" onClick={() => openClassicAction(null, () => openTrackingCenter('today'))}>ติดตามคืน</MinimalButton>
-            <MinimalButton primary tone="document" onClick={() => { setRecordsCenterMode('docs'); openClassicAction('records'); }}>เอกสาร</MinimalButton>
-            <MinimalButton primary tone="success" onClick={() => setNextPage('inventory')}>คลัง</MinimalButton>
-          </div>
-        </section>
-      </div>
-    );
+      );
+    };
 
     const renderMinimalInventory = () => (
       <div className="space-y-5">
@@ -17336,9 +17566,9 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div className="grid grid-cols-2 gap-2 mt-5">
-                {available && canUseOperationalTools && <MinimalButton primary tone="primary" onClick={() => { setBorrowReturnMode('borrow'); openClassicAction('borrowReturn'); }}>ยืม</MinimalButton>}
-                {available && canUseOperationalTools && <MinimalButton primary tone="warning" onClick={() => { setBorrowReturnMode('event'); openClassicAction('borrowReturn'); }}>ออกงาน</MinimalButton>}
-                {returnable && canUseOperationalTools && <MinimalButton primary tone="success" onClick={() => { setBorrowReturnMode('return'); openClassicAction('borrowReturn'); }}>รับคืน</MinimalButton>}
+                {available && canUseOperationalTools && <MinimalButton primary tone="primary" onClick={() => { setBorrowReturnMode('borrow'); setBorrowTargetIds([item.id]); setPackingChecklist([item.id]); setNextPage('work'); }}>ยืม</MinimalButton>}
+                {available && canUseOperationalTools && <MinimalButton primary tone="warning" onClick={() => { setBorrowReturnMode('event'); setEventTargetIds([item.id]); setEventChecklist([item.id]); setNextPage('work'); }}>ออกงาน</MinimalButton>}
+                {returnable && canUseOperationalTools && <MinimalButton primary tone="success" onClick={() => { setBorrowReturnMode('return'); setReturnTargetIds([item.id]); setReturnChecklist([item.id]); setNextPage('work'); }}>รับคืน</MinimalButton>}
                 {canUseOperationalTools && <MinimalButton primary tone="danger" onClick={() => openClassicAction(null, () => openRepairForItem(item))}>แจ้งซ่อม</MinimalButton>}
               </div>
             </div>
