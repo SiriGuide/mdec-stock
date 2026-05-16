@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.2 Classic Only';
-const APP_UPDATE_NOTE = 'Classic Only: กลับมาใช้เว็บ Classic เป็นหลักแบบเดิมทั้งหมด เอาระบบหน้าตาใหม่และระบบสลับ UI ออก ไม่เหลือปุ่มหรือโหมดทดลอง ใช้ฐานข้อมูลเดิมทั้งหมด';
+const APP_VERSION = 'v22.57.1.3 Classic Dashboard Wording Cleanup';
+const APP_UPDATE_NOTE = 'Classic Dashboard Wording Cleanup: ปรับถ้อยคำหน้า Dashboard ให้ไม่ซ้ำกัน โดยคง “วันนี้ต้องทำอะไร” สำหรับงานประจำวัน และเปลี่ยน “งานที่ควรเคลียร์” เป็น “งานที่ควรเคลียร์” เพื่อแยกความหมายงานค้าง/ปัญหาที่ต้องตรวจให้ชัดขึ้น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -17573,7 +17573,7 @@ S.N.: ${item.sn || '-'}
           <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
             <div className="min-w-0">
               <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>MDEC STOCK OVERVIEW</div>
-              <h2 className={`text-2xl sm:text-3xl font-black mt-1 tracking-tight ${theme.textTitle}`}>วันนี้ต้องจัดการอะไร</h2>
+              <h2 className={`text-2xl sm:text-3xl font-black mt-1 tracking-tight ${theme.textTitle}`}>งานที่ควรเคลียร์</h2>
               <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>
                 หน้าแรกเหลือเฉพาะงานที่ต้องใช้บ่อย ส่วนฟังก์ชันรองให้ไปที่ “เครื่องมือ”, “ติดตามคืน” หรือ “เอกสาร/ประวัติ”
               </p>
@@ -18413,7 +18413,7 @@ S.N.: ${item.sn || '-'}
       })()}
 
 
-      {/* 🧭 Modal ติดตามของรอคืน / งานที่ต้องจัดการวันนี้ */}
+      {/* 🧭 Modal ติดตามของรอคืน / งานที่ควรเคลียร์ */}
       {showTrackingCenterModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-2.5 sm:p-3 z-[9990] mdec-history-proof-safe`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-7xl h-[92vh] sm:max-h-[92vh] flex flex-col overflow-hidden border ${theme.cardBg}`}>
