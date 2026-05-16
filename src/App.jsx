@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.42 Top Search First Polish';
+const APP_VERSION = 'v22.53.42.1 Top Search Rollback / Home Classic';
 const APP_UPDATE_NOTE = 'Repair / Maintenance Center Polish: เพิ่มศูนย์ซ่อม/บำรุงรักษา สรุปงานซ่อม ฟิลเตอร์งานค้าง/ส่งซ่อม/เสร็จแล้ว/เสียซ้ำ Export CSV และรายงาน A4 พร้อมฟอร์มแจ้งซ่อมละเอียดขึ้น โดยไม่แตะ QR Scanner/กล้อง/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -6244,20 +6244,6 @@ button[class*="orange"]:not(:disabled) {
   }
 }
 
-
-/* v22.53.42 Top Search First Polish */
-.top-stock-search-card {
-  scroll-margin-top: 88px;
-}
-.top-stock-search-card input {
-  min-height: 48px;
-}
-@media (max-width: 640px) {
-  .top-stock-search-card input {
-    min-height: 54px;
-    font-size: 16px;
-  }
-}
 
 /* v22.53.41 Home Classic Comfort Polish */
 .home-comfort-toolbar {
@@ -16575,59 +16561,21 @@ S.N.: ${item.sn || '-'}
       )}
 
 
-      {/* v22.53.42 Top Search First / Home Classic Comfort Toolbar */}
-      <section id="top-stock-search" className={`top-stock-search-card home-comfort-toolbar w-full mb-4 rounded-[1.5rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-        <div className={`p-4 sm:p-5 ${isDarkMode ? 'bg-gradient-to-br from-slate-950 to-blue-950/20' : 'bg-gradient-to-br from-blue-50 to-white'}`}>
-          <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4 mb-4">
-            <div className="min-w-0">
-              <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>SEARCH FIRST</div>
-              <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>ค้นหาอุปกรณ์ก่อนเลย</h2>
-              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เปิดหน้าแรกมาแล้วค้นชื่อ / S.N. / รหัสสั้น / หมวด / ที่เก็บ ได้ทันที ไม่ต้องเลื่อนลงไปหาตารางก่อน</p>
-            </div>
-            <div className="comfort-action-grid grid grid-cols-2 sm:flex gap-2 shrink-0">
-              <button type="button" onClick={() => setHomeComfortMode(!homeCompactMode)} className={`px-4 py-3 rounded-2xl border font-black ${homeCompactMode ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>
-                {homeCompactMode ? 'โหมดกระชับ: เปิด' : 'โหมดกระชับ: ปิด'}
-              </button>
-              <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ยืม-คืน</button>
-              <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>สแกน QR</button>
-            </div>
+      {/* v22.53.41 Home Classic Comfort Toolbar */}
+      <section className={`home-comfort-toolbar w-full mb-4 rounded-[1.5rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+        <div className={`p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 ${isDarkMode ? 'bg-gradient-to-br from-slate-950 to-blue-950/20' : 'bg-gradient-to-br from-blue-50 to-white'}`}>
+          <div className="min-w-0">
+            <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>HOME CLASSIC COMFORT</div>
+            <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>หน้าแรกแบบเดิม แต่คุมให้อ่านง่ายขึ้น</h2>
+            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ไม่แยกหน้าอุปกรณ์แล้ว ใช้หน้าแรกเดิมที่คุ้นมือ พร้อมโหมดกระชับและปุ่มกระโดดไปจุดที่ใช้บ่อย</p>
           </div>
-
-          <div className={`rounded-[1.35rem] border p-3 sm:p-4 ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-white/90 border-slate-200'}`}>
-            <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-3">
-              <label className={`flex items-center gap-3 px-4 py-2 rounded-2xl border ${theme.input}`}>
-                <Icons.Search className={`w-5 h-5 shrink-0 ${theme.textMuted}`} />
-                <input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') scrollToHomeStockList(); }}
-                  className="bg-transparent outline-none w-full font-black text-base sm:text-lg"
-                  placeholder="ค้นหาอุปกรณ์ เช่น Sony, HDMI, S.N., รหัสสั้น, ห้อง, หมวด"
-                />
-              </label>
-              <div className="grid grid-cols-3 sm:flex gap-2">
-                <button type="button" onClick={scrollToHomeStockList} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black">ค้นหา</button>
-                <button type="button" onClick={() => setShowFilterModal(true)} className={`px-4 py-3 rounded-2xl border font-black ${activeFilterCount > 0 ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>ตัวกรอง{activeFilterCount > 0 ? ` ${activeFilterCount}` : ''}</button>
-                <button type="button" onClick={clearAllFilters} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ล้าง</button>
-              </div>
-            </div>
-
-            <div className="mt-3 flex flex-col lg:flex-row lg:items-center justify-between gap-2">
-              <div className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>
-                ผลลัพธ์ตอนนี้ <span className={`font-black ${theme.textTitle}`}>{filteredItems.length.toLocaleString('th-TH')}</span> รายการ
-                {searchTerm ? <span> • ค้นหา “{searchTerm}”</span> : <span> • พิมพ์คำค้นแล้วกด Enter หรือปุ่มค้นหา</span>}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  ['พร้อมใช้', () => { clearAllFilters(); setFilterStatus('available'); window.setTimeout(scrollToHomeStockList, 50); }],
-                  ['รอคืน', () => { clearAllFilters(); setFilterStatus('borrowed'); window.setTimeout(scrollToHomeStockList, 50); }],
-                  ['ออกงาน', () => { clearAllFilters(); setFilterStatus('out-for-event'); window.setTimeout(scrollToHomeStockList, 50); }],
-                  ['ซ่อม', () => { clearAllFilters(); setFilterStatus('maintenance'); window.setTimeout(scrollToHomeStockList, 50); }]
-                ].map(([label, action]) => (
-                  <button key={label} type="button" onClick={action} className={`px-3 py-1.5 rounded-full border text-xs font-black ${theme.btnSecondary}`}>{label}</button>
-                ))}
-              </div>
-            </div>
+          <div className="comfort-action-grid grid grid-cols-2 sm:flex gap-2 shrink-0">
+            <button type="button" onClick={() => setHomeComfortMode(!homeCompactMode)} className={`px-4 py-3 rounded-2xl border font-black ${homeCompactMode ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>
+              {homeCompactMode ? 'โหมดกระชับ: เปิด' : 'โหมดกระชับ: ปิด'}
+            </button>
+            <button type="button" onClick={scrollToHomeStockList} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black">ไปค้นหาอุปกรณ์</button>
+            <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ยืม-คืน</button>
+            <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>สแกน QR</button>
           </div>
         </div>
       </section>
@@ -16643,7 +16591,7 @@ S.N.: ${item.sn || '-'}
             </div>
             <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
               <button type="button" onClick={() => openWorkspace('borrowReturn')} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">เริ่มทำรายการ</button>
-              <button type="button" onClick={scrollToHomeStockList} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ลงไปรายการอุปกรณ์</button>
+              <button type="button" onClick={scrollToHomeStockList} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ค้นหาอุปกรณ์</button>
               <button type="button" onClick={() => openControlCenter()} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เมนูทั้งหมด</button>
             </div>
           </div>
