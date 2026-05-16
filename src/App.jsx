@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.44 Desktop Shortcut Consolidation Polish';
+const APP_VERSION = 'v22.53.45 Desktop Overview Simplify / Page Mode Polish';
 const APP_UPDATE_NOTE = 'Repair / Maintenance Center Polish: เพิ่มศูนย์ซ่อม/บำรุงรักษา สรุปงานซ่อม ฟิลเตอร์งานค้าง/ส่งซ่อม/เสร็จแล้ว/เสียซ้ำ Export CSV และรายงาน A4 พร้อมฟอร์มแจ้งซ่อมละเอียดขึ้น โดยไม่แตะ QR Scanner/กล้อง/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -6245,6 +6245,30 @@ button[class*="orange"]:not(:disabled) {
 }
 
 
+/* v22.53.45 Desktop Overview Simplify / Page Mode Polish */
+.desktop-overview-clean .home-command-center,
+.desktop-overview-clean .report-dashboard-card {
+  display: none !important;
+}
+.page-workspace-shell {
+  min-height: calc(100vh - 180px);
+}
+.page-workspace-card {
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+.page-workspace-card:hover {
+  transform: translateY(-2px);
+}
+.page-mode-list {
+  max-height: calc(100vh - 420px);
+}
+@media (max-width: 1023px) {
+  .desktop-overview-clean .home-command-center,
+  .desktop-overview-clean .report-dashboard-card {
+    display: block !important;
+  }
+}
+
 /* v22.53.44 Desktop Shortcut Consolidation Polish */
 .shortcut-consolidated-card {
   min-height: 100%;
@@ -6394,6 +6418,7 @@ function MainApp() {
   const [showBorrowDocsModal, setShowBorrowDocsModal] = useState(false);
   const [borrowDocSearch, setBorrowDocSearch] = useState('');
   const [borrowDocFilter, setBorrowDocFilter] = useState('all');
+  const [recordsCenterMode, setRecordsCenterMode] = useState('docs');
   const [showPersonalItemsModal, setShowPersonalItemsModal] = useState(false);
   const [showProjectsModal, setShowProjectsModal] = useState(false);
   const [quickProjectName, setQuickProjectName] = useState('');
@@ -6517,14 +6542,16 @@ function MainApp() {
   };
 
   const openControlCenter = () => {
-    setActiveWorkspace('overview');
-    setShowMoreMenu(true);
+    setShowMoreMenu(false);
+    setActiveWorkspace('tools');
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
   const openTrackingCenter = (tab = 'today') => {
     setTrackingTab(tab);
     setTrackingSearch('');
-    setShowTrackingCenterModal(true);
+    setShowTrackingCenterModal(false);
+    setActiveWorkspace('tracking');
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
   // v22.52.8 Modal Chain Return Fix
@@ -6560,31 +6587,40 @@ function MainApp() {
     setShowMoreMenu(false);
     setShowCommandCenter(false);
     setModalReturnStack([]);
+    setRecordsCenterMode('docs');
     if (reset) {
       setBorrowDocSearch('');
       setBorrowDocFilter('all');
     }
-    setShowBorrowDocsModal(true);
+    setShowBorrowDocsModal(false);
+    setActiveWorkspace('records');
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
   const openMainProofCenter = ({ reset = true } = {}) => {
     setShowMoreMenu(false);
     setShowCommandCenter(false);
+    setRecordsCenterMode('proofs');
     if (reset) {
       setProofCenterFilter('all');
       setProofCenterSearch('');
     }
-    setShowProofCenterModal(true);
+    setShowProofCenterModal(false);
+    setActiveWorkspace('records');
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
   const openMainHistoryCenter = ({ reset = true } = {}) => {
     setShowMoreMenu(false);
     setShowCommandCenter(false);
+    setRecordsCenterMode('history');
     if (reset) {
       setHistoryCenterFilter('all');
       setHistoryCenterSearch('');
     }
-    setShowHistoryCenterModal(true);
+    setShowHistoryCenterModal(false);
+    setActiveWorkspace('records');
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
   const openItemHistoryFromHistoryCenter = (itemId) => {
@@ -8695,6 +8731,21 @@ S.N.: ${item.sn || '-'}
       title: 'ยืม-คืนอุปกรณ์',
       desc: 'หน้าทำงานหลักสำหรับให้ยืม นำออกงาน รับคืน และตรวจรายการค้าง'
     },
+    tracking: {
+      kicker: 'RETURN TRACKING',
+      title: 'ติดตามของรอคืน',
+      desc: 'หน้าเต็มสำหรับดูของต้องคืนวันนี้ เลยกำหนด ออกงานอยู่ และคัดลอกข้อความตามของ'
+    },
+    records: {
+      kicker: 'RECORDS CENTER',
+      title: 'เอกสาร / ประวัติ / หลักฐาน',
+      desc: 'รวมงานค้นเอกสารย้อนหลัง ประวัติส่วนกลาง และหลักฐานรูปภาพไว้เป็นหน้าเดียว'
+    },
+    tools: {
+      kicker: 'TOOLS CENTER',
+      title: 'เครื่องมือทั้งหมด',
+      desc: 'รวมฟังก์ชันรองที่ไม่จำเป็นต้องอยู่บนหน้าแรก เพื่อให้ Overview สะอาดขึ้น'
+    },
     projects: {
       kicker: 'PURCHASE PROJECTS',
       title: 'โครงการจัดซื้อ',
@@ -8721,8 +8772,11 @@ S.N.: ${item.sn || '-'}
   const renderWorkspaceTabs = () => (
     <div className={`workspace-tabbar w-full mb-5 rounded-[1.5rem] border shadow-sm p-2 flex gap-2 overflow-x-auto ${theme.cardBg}`}>
       {[
-        ['overview', 'ภาพรวม', Icons.Package, 'กลับหน้ารายการทั้งหมด'],
+        ['overview', 'ภาพรวม', Icons.Package, 'หน้าแรกแบบกระชับ'],
         ['borrowReturn', 'ยืม-คืน', Icons.UserPlus, `${currentBorrowedItems.length + currentEventItems.length} รายการค้าง`],
+        ['tracking', 'ติดตามคืน', Icons.History, `${(dueTodayItems.length + overdueItems.length).toLocaleString('th-TH')} รายการเร่งด่วน`],
+        ['records', 'เอกสาร/ประวัติ', Icons.ClipboardList, `${borrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร`],
+        ['tools', 'เครื่องมือ', Icons.ViewGrid, 'เมนูรองทั้งหมด'],
         ['projects', 'โครงการจัดซื้อ', Icons.Database, `${projectStats.length.toLocaleString('th-TH')} โครงการ`],
         ['organize', 'กล่อง / เซ็ต', Icons.Layers, `${(settingsOptions.storageBoxes || []).length} กล่อง • ${(settingsOptions.bundles || []).length} เซ็ต`],
         ['stockCount', 'ตรวจนับ', Icons.CheckCircle, `${stockCountStats.found.length.toLocaleString('th-TH')}/${stockCountStats.auditTarget.length.toLocaleString('th-TH')} พบแล้ว`],
@@ -10656,8 +10710,311 @@ S.N.: ${item.sn || '-'}
     );
   };
 
+  const renderTrackingWorkspace = () => {
+    const activeList = returnTrackingData.active || [];
+    const visibleList = trackingTab === 'today'
+      ? returnTrackingData.dueToday
+      : trackingTab === 'overdue' || trackingTab === 'issues'
+        ? returnTrackingData.overdue
+        : trackingTab === 'event'
+          ? returnTrackingData.event
+          : trackingTab === 'borrowed'
+            ? returnTrackingData.borrowed
+            : activeList;
+    return (
+      <div className="page-workspace-shell tracking-workspace space-y-5">
+        {renderWorkspaceTabs()}
+        <div className={`rounded-[1.8rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
+          <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-4 ${theme.divide}`}>
+            <div>
+              <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>RETURN TRACKING PAGE</div>
+              <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>ติดตามของรอคืน</h2>
+              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ย้ายจาก popup มาเป็นหน้าเต็ม เพื่อดูงานค้างและรับคืนได้ชัดขึ้นบนคอม</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => openWorkspace('borrowReturn')} className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">เปิดหน้ายืม-คืน</button>
+              <button type="button" onClick={() => openWorkspace('overview')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับภาพรวม</button>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-5 space-y-4">
+            <div className="grid grid-cols-2 xl:grid-cols-5 gap-2.5">
+              {[
+                ['today', 'ต้องคืนวันนี้', returnTrackingData.dueToday.length, 'amber'],
+                ['overdue', 'เลยกำหนด', returnTrackingData.overdue.length, 'rose'],
+                ['borrowed', 'ยืมอยู่', returnTrackingData.borrowed.length, 'purple'],
+                ['event', 'ออกงานอยู่', returnTrackingData.event.length, 'orange'],
+                ['all', 'รอคืนทั้งหมด', activeList.length, 'blue']
+              ].map(([id, label, value, tone]) => {
+                const cls = tone === 'rose'
+                  ? (isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-800')
+                  : tone === 'amber'
+                    ? (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800')
+                    : tone === 'purple'
+                      ? (isDarkMode ? 'bg-purple-950/30 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-800')
+                      : tone === 'orange'
+                        ? (isDarkMode ? 'bg-orange-950/30 border-orange-800 text-orange-300' : 'bg-orange-50 border-orange-200 text-orange-800')
+                        : (isDarkMode ? 'bg-blue-950/30 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-800');
+                return (
+                  <button key={id} type="button" onClick={() => setTrackingTab(id)} className={`page-workspace-card p-4 rounded-2xl border text-left ${trackingTab === id ? 'ring-2 ring-blue-500/30' : ''} ${cls}`}>
+                    <div className="text-3xl font-black leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
+                    <div className="text-xs sm:text-sm font-black mt-2">{label}</div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`p-4 border-b grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 ${theme.divide}`}>
+                <div className="relative">
+                  <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.textMuted}`} />
+                  <input className={`w-full pl-12 pr-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาชื่ออุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน" value={trackingSearch} onChange={e => setTrackingSearch(e.target.value)} />
+                </div>
+                <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{visibleList.length.toLocaleString('th-TH')} รายการ</div>
+              </div>
+              <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
+                {visibleList.length === 0 ? (
+                  <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่มีรายการในหมวดนี้</div>
+                ) : visibleList.map(item => {
+                  const info = getReturnTrackingDateInfo(item);
+                  return (
+                    <div key={item.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className={`font-black text-lg truncate ${theme.textTitle}`}>{item.name}</div>
+                          <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.status === 'out-for-event' ? (item.currentEvent || item.eventName || '-') : (item.currentBorrower || item.borrower || '-')}</div>
+                          <div className={`text-xs font-black mt-2 inline-flex px-3 py-1.5 rounded-xl border ${info.tone === 'rose' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : info.tone === 'amber' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>{info.label} • {info.dueText}</div>
+                        </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 shrink-0">
+                          <button type="button" onClick={() => openReturnForItems([item.id])} className="px-3 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-sm">รับคืน</button>
+                          <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
+                          <button type="button" onClick={() => copyReturnTrackingMessage(item)} className={`px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>คัดลอก</button>
+                          <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>เอกสาร</button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderRecordsWorkspace = () => {
+    const recordTabs = [
+      ['docs', 'เอกสารย้อนหลัง', borrowเอกสารs.length],
+      ['history', 'ประวัติส่วนกลาง', filteredHistoryCenterEntries.length],
+      ['proofs', 'หลักฐานรูปภาพ', filteredProofGroups.length]
+    ];
+    return (
+      <div className="page-workspace-shell records-workspace space-y-5">
+        {renderWorkspaceTabs()}
+        <div className={`rounded-[1.8rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
+          <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-4 ${theme.divide}`}>
+            <div>
+              <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'}`}>RECORDS PAGE</div>
+              <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>เอกสาร / ประวัติ / หลักฐาน</h2>
+              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ย้ายงานค้นย้อนหลังจาก popup หลายอันมาอยู่หน้าเดียว ลดการเด้งหน้าต่างซ้อนกัน</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => openWorkspace('overview')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับภาพรวม</button>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-5 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              {recordTabs.map(([id, label, count]) => (
+                <button key={id} type="button" onClick={() => setRecordsCenterMode(id)} className={`p-4 rounded-2xl border text-left font-black ${recordsCenterMode === id ? 'bg-blue-600 text-white border-blue-600 shadow-md' : theme.btnSecondary}`}>
+                  <div>{label}</div>
+                  <div className={`text-2xl font-black mt-1 ${recordsCenterMode === id ? 'text-white' : theme.textTitle}`}>{Number(count || 0).toLocaleString('th-TH')}</div>
+                </button>
+              ))}
+            </div>
+
+            {recordsCenterMode === 'docs' && (
+              <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className={`p-4 border-b grid grid-cols-1 lg:grid-cols-[1fr_220px_auto] gap-3 ${theme.divide}`}>
+                  <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาเลขที่เอกสาร / ผู้ยืม / ชื่องาน / อุปกรณ์" value={borrowDocSearch} onChange={e => setBorrowDocSearch(e.target.value)} />
+                  <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={borrowDocFilter} onChange={e => setBorrowDocFilter(e.target.value)}>
+                    <option value="all">เอกสารทั้งหมด</option>
+                    <option value="borrow">ใบยืม</option>
+                    <option value="event">ใบออกงาน</option>
+                    <option value="return">ใบรับคืน</option>
+                    <option value="active">รอคืน</option>
+                    <option value="closed">คืนครบแล้ว</option>
+                  </select>
+                  <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{filteredBorrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร</div>
+                </div>
+                <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
+                  {filteredBorrowเอกสารs.length === 0 ? <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบเอกสาร</div> : filteredBorrowเอกสารs.slice(0, 180).map(docData => (
+                    <div key={docData.id || docData.ref} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className={`font-black text-lg truncate ${theme.textTitle}`}>{docData.ref || docData.id || '-'} • {docData.title || docData.type || 'เอกสาร'}</div>
+                          <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{docData.borrower || docData.subject || docData.eventName || '-'} • {docData.date ? new Date(docData.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
+                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>รายการ {(docData.items?.length || docData.itemIds?.length || 0).toLocaleString('th-TH')} ชิ้น • {docData.statusLabel || docData.status || '-'}</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 shrink-0">
+                          <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-black">พิมพ์/Preview</button>
+                          <button type="button" onClick={() => { setHistoryCenterSearch(docData.ref || docData.borrower || ''); setRecordsCenterMode('history'); }} className={`px-3 py-2.5 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {recordsCenterMode === 'history' && (
+              <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className={`p-4 border-b grid grid-cols-1 lg:grid-cols-[1fr_220px_auto] gap-3 ${theme.divide}`}>
+                  <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / หมายเหตุ" value={historyCenterSearch} onChange={e => setHistoryCenterSearch(e.target.value)} />
+                  <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={historyCenterFilter} onChange={e => setHistoryCenterFilter(e.target.value)}>
+                    <option value="all">ทุกประเภท</option>
+                    <option value="borrow">ยืม</option>
+                    <option value="event">ออกงาน</option>
+                    <option value="return">รับคืน</option>
+                    <option value="repair">ซ่อม/ชำรุด</option>
+                  </select>
+                  <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{filteredHistoryCenterEntries.length.toLocaleString('th-TH')} รายการ</div>
+                </div>
+                <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
+                  {filteredHistoryCenterEntries.length === 0 ? <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบประวัติ</div> : filteredHistoryCenterEntries.slice(0, 180).map(entry => (
+                    <div key={entry.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className={`font-black text-lg truncate ${theme.textTitle}`}>{entry.itemName || '-'}</div>
+                          <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{entry.typeLabel || entry.historyType || '-'} • {entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-'} • หลักฐาน {entry.proofCount || 0} รูป</div>
+                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง: {entry.subject || '-'} • โดย {entry.staff || '-'}</div>
+                        </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 shrink-0">
+                          <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-3 py-2.5 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
+                          <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2.5 rounded-xl bg-pink-600 text-white text-sm font-black">เพิ่มรูป</button>
+                          {entry.proofCount > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.sn || entry.itemName || ''); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className="px-3 py-2.5 rounded-xl bg-slate-800 text-white text-sm font-black">ดูรูป</button>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {recordsCenterMode === 'proofs' && (
+              <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className={`p-4 border-b grid grid-cols-1 xl:grid-cols-[1fr_220px_auto] gap-3 ${theme.divide}`}>
+                  <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / หมายเหตุ" value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} />
+                  <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={proofCenterFilter} onChange={e => setProofCenterFilter(e.target.value)}>
+                    <option value="all">หลักฐานทั้งหมด</option>
+                    <option value="borrow">การยืม</option>
+                    <option value="event">ออกงาน</option>
+                    <option value="return">รับคืน</option>
+                    <option value="repair">ซ่อม / ชำรุด</option>
+                    <option value="noNote">ยังไม่มีหมายเหตุ</option>
+                  </select>
+                  <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{filteredProofGroups.length.toLocaleString('th-TH')} กลุ่มรูป</div>
+                </div>
+                <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar">
+                  {filteredProofGroups.length === 0 ? <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบหลักฐานรูปภาพ</div> : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                      {filteredProofGroups.slice(0, 120).map(group => {
+                        const proof = group.proof || {};
+                        const previewSrc = proof.url || proof.thumbUrl || proof.dataUrl || '';
+                        const entry = group.representative || {};
+                        return (
+                          <div key={group.groupId} className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                            <button type="button" onClick={() => openProofImage(proof)} className={`block w-full h-44 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-100'}`}>
+                              {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-contain" loading="lazy" /> : <div className={`h-full flex items-center justify-center font-black ${theme.textMuted}`}>ไม่มีภาพตัวอย่าง</div>}
+                            </button>
+                            <div className="p-3">
+                              <div className={`font-black truncate ${theme.textTitle}`}>{group.itemRefs?.length > 1 ? `เกี่ยวข้องกับ ${group.itemRefs.length} อุปกรณ์` : (entry.itemName || '-')}</div>
+                              <div className={`text-xs font-bold mt-1 truncate ${theme.textMuted}`}>{group.itemRefs?.map(ref => ref.itemName).slice(0,2).join(' • ') || '-'}</div>
+                              <div className="grid grid-cols-2 gap-2 mt-3">
+                                {group.itemRefs?.[0]?.itemId && <button type="button" onClick={() => setShowHistory(group.itemRefs[0].itemId)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
+                                <button type="button" onClick={() => openProofImage(proof)} className="px-3 py-2 rounded-xl bg-pink-600 text-white text-xs font-black">เปิดรูป</button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderToolsWorkspace = () => (
+    <div className="page-workspace-shell tools-workspace space-y-5">
+      {renderWorkspaceTabs()}
+      <div className={`rounded-[1.8rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
+        <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-4 ${theme.divide}`}>
+          <div>
+            <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>TOOLS PAGE</div>
+            <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>เครื่องมือทั้งหมด</h2>
+            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ย้ายเมนูรองออกจากหน้า Overview ให้หน้าแรกเหลือเฉพาะงานที่ใช้บ่อย</p>
+          </div>
+          <button type="button" onClick={() => openWorkspace('overview')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับภาพรวม</button>
+        </div>
+        <div className="p-4 sm:p-5 space-y-6">
+          {[
+            {
+              title: 'งานประจำวัน',
+              items: [
+                ['ยืม / ออกงาน / รับคืน', 'ทำรายการหลัก', Icons.UserPlus, () => openWorkspace('borrowReturn')],
+                ['ติดตามของรอคืน', 'ดูรายการค้างและคัดลอกตามของ', Icons.History, () => openTrackingCenter('today')],
+                ['สแกน QR', 'เลือกอุปกรณ์เร็ว', Icons.QrCode, () => openSelectionScanner({ camera: true })],
+                ['เอกสารย้อนหลัง', 'ค้นหา/พิมพ์ซ้ำ', Icons.พิมพ์er, () => openBorrowDocsArchive({ reset: false })]
+              ]
+            },
+            {
+              title: 'จัดการสต็อก',
+              items: [
+                ['โครงการจัดซื้อ', 'แหล่งที่มา/งบประมาณ', Icons.Database, () => openWorkspace('projects')],
+                ['กล่อง / เซ็ต / เตรียมของ', 'จัดเก็บและ checklist', Icons.Layers, () => openWorkspace('organize')],
+                ['ศูนย์ซ่อม', 'งานซ่อม/บำรุงรักษา', Icons.Settings, () => openRepairCenter('open')],
+                ['ตรวจนับสต๊อกจริง', 'Physical audit', Icons.CheckCircle, () => openWorkspace('stockCount')]
+              ]
+            },
+            {
+              title: 'ระบบและรายงาน',
+              items: [
+                ['รายงาน', 'สรุป/CSV/พิมพ์', Icons.ClipboardList, () => openMonthlyReportPage()],
+                ['ตรวจสุขภาพระบบ', 'ฐานข้อมูลและพื้นที่', Icons.Alert, () => setShowระบบHealthModal(true)],
+                ['Backup / ปิดปี', 'สำรองข้อมูล', Icons.Database, () => setShowBackupCenterModal(true)],
+                ['ตั้งค่าระบบ', 'หมวด/บัญชี/เอกสาร', Icons.Settings, () => { setSettingsTab('overview'); setShowSettings(true); }]
+              ]
+            }
+          ].map(group => (
+            <div key={group.title}>
+              <h3 className={`font-black text-lg mb-3 ${theme.textTitle}`}>{group.title}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                {group.items.map(([label, desc, Icon, action]) => (
+                  <button key={label} type="button" onClick={action} className={`page-workspace-card p-4 rounded-2xl border text-left ${theme.btnSecondary}`}>
+                    <Icon className="w-6 h-6 mb-3" />
+                    <div className="font-black">{label}</div>
+                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   const renderActiveWorkspace = () => {
     if (activeWorkspace === 'borrowReturn') return renderBorrowReturnWorkspace();
+    if (activeWorkspace === 'tracking') return renderTrackingWorkspace();
+    if (activeWorkspace === 'records') return renderRecordsWorkspace();
+    if (activeWorkspace === 'tools') return renderToolsWorkspace();
     if (activeWorkspace === 'projects') return renderProjectWorkspace();
     if (activeWorkspace === 'organize') return renderOrganizeWorkspace();
     if (activeWorkspace === 'stockCount') return renderStockCountWorkspace();
@@ -16172,7 +16529,7 @@ S.N.: ${item.sn || '-'}
   }
 
   return (
-    <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain} ${homeCompactMode ? 'home-comfort-compact' : ''}`}>
+    <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish desktop-overview-clean min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain} ${homeCompactMode ? 'home-comfort-compact' : ''}`}>
       <FactoryPolishStyle isDarkMode={isDarkMode} />
       {/* FactoryStock Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-72 bg-slate-950 text-white flex-col border-r border-white/10">
@@ -16591,8 +16948,8 @@ S.N.: ${item.sn || '-'}
         <div className={`p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 ${isDarkMode ? 'bg-gradient-to-br from-slate-950 to-blue-950/20' : 'bg-gradient-to-br from-blue-50 to-white'}`}>
           <div className="min-w-0">
             <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>HOME CLASSIC COMFORT</div>
-            <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>หน้าแรกแบบเดิม แต่คุมให้อ่านง่ายขึ้น</h2>
-            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ไม่แยกหน้าอุปกรณ์แล้ว ใช้หน้าแรกเดิมที่คุ้นมือ พร้อมโหมดกระชับและปุ่มกระโดดไปจุดที่ใช้บ่อย</p>
+            <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>ภาพรวมแบบกระชับ ใช้บ่อยอยู่หน้าแรก</h2>
+            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หน้า Overview จะเหลือเฉพาะงานที่ใช้บ่อย ส่วนเอกสาร/ประวัติ/หลักฐาน/เครื่องมือรองย้ายไปเป็นหน้าเฉพาะ</p>
           </div>
           <div className="comfort-action-grid grid grid-cols-2 sm:flex gap-2 shrink-0">
             <button type="button" onClick={() => setHomeComfortMode(!homeCompactMode)} className={`px-4 py-3 rounded-2xl border font-black ${homeCompactMode ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>
@@ -16866,7 +17223,7 @@ S.N.: ${item.sn || '-'}
             <div>
               <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>STOCK OPERATIONS</div>
               <h2 className={`text-xl sm:text-2xl font-black mt-1 tracking-tight ${theme.textTitle}`}>ศูนย์ปฏิบัติงานสต็อก</h2>
-              <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>รวมปุ่มที่ทำหน้าที่คล้ายกันให้เป็นหมวดเดียว ลดปุ่มซ้ำบนหน้าแรก แต่ยังเข้าถึงงานเดิมได้ครบ</p>
+              <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>เหลือเฉพาะงานหลักที่ใช้บ่อย ส่วนเครื่องมือรองย้ายไปหน้าเครื่องมือทั้งหมด</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <div className={`text-xs font-black px-3 py-2 rounded-full border ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
@@ -16913,17 +17270,12 @@ S.N.: ${item.sn || '-'}
             </div>
           </div>
 
-          <div className={`shortcut-consolidated-card p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`}>
+          <button type="button" onClick={openControlCenter} className={`shortcut-consolidated-card page-workspace-card p-4 rounded-3xl border text-left ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`}>
             <div className="w-11 h-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center mb-3"><Icons.ViewGrid className="w-5 h-5" /></div>
-            <div className="font-black text-lg">เครื่องมือเสริม</div>
-            <div className="text-xs font-bold mt-1 opacity-75">เก็บปุ่มรองไว้รวมกัน เพื่อลดความแน่นของทางลัดประจำวัน</div>
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              {canUseOperationalTools && <button type="button" onClick={() => openSelectionScanner()} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-slate-900 text-white font-black text-sm">สแกน QR</button>}
-              {canAddEditItems && <button type="button" onClick={openAddItemForm} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-blue-600 text-white font-black text-sm">เพิ่มของ</button>}
-              <button type="button" onClick={() => openRepairCenter('open')} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-rose-600 text-white font-black text-sm">ซ่อม</button>
-              <button type="button" onClick={() => openMonthlyReportPage()} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-amber-600 text-white font-black text-sm">รายงาน</button>
-            </div>
-          </div>
+            <div className="font-black text-lg">เครื่องมือทั้งหมด</div>
+            <div className="text-xs font-bold mt-1 opacity-75">ซ่อม ตรวจนับ รายงาน Backup ตั้งค่า และเมนูรองทั้งหมดอยู่ในหน้านี้แทน popup</div>
+            <div className={`mt-4 px-3 py-2.5 rounded-xl border text-center font-black text-sm ${theme.btnSecondary}`}>เปิดหน้าเครื่องมือ →</div>
+          </button>
         </div>
 
         <div className={`px-4 sm:px-5 pb-4 sm:pb-5 grid grid-cols-2 lg:grid-cols-4 gap-2.5`}>
