@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.46 Desktop Overview Essential Redesign';
+const APP_VERSION = 'v22.53.47 QR Scanner Page Mode Polish';
 const APP_UPDATE_NOTE = 'Repair / Maintenance Center Polish: เพิ่มศูนย์ซ่อม/บำรุงรักษา สรุปงานซ่อม ฟิลเตอร์งานค้าง/ส่งซ่อม/เสร็จแล้ว/เสียซ้ำ Export CSV และรายงาน A4 พร้อมฟอร์มแจ้งซ่อมละเอียดขึ้น โดยไม่แตะ QR Scanner/กล้อง/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -6245,6 +6245,25 @@ button[class*="orange"]:not(:disabled) {
 }
 
 
+/* v22.53.47 QR Scanner Page Mode Polish */
+.qr-scanner-page {
+  min-height: calc(100vh - 180px);
+}
+.qr-scanner-page-shell {
+  min-height: calc(100vh - 250px);
+}
+.qr-scanner-page #qr-reader video {
+  max-height: 62vh !important;
+}
+@media (max-width: 1023px) {
+  .qr-scanner-page {
+    min-height: auto;
+  }
+  .qr-scanner-page-shell {
+    min-height: auto;
+  }
+}
+
 /* v22.53.46 Desktop Overview Essential Redesign */
 .overview-essential-hero {
   isolation: isolate;
@@ -8752,6 +8771,11 @@ S.N.: ${item.sn || '-'}
       kicker: 'BORROW & RETURN',
       title: 'ยืม-คืนอุปกรณ์',
       desc: 'หน้าทำงานหลักสำหรับให้ยืม นำออกงาน รับคืน และตรวจรายการค้าง'
+    },
+    scanner: {
+      kicker: 'QR SCANNER',
+      title: 'สแกน QR',
+      desc: 'หน้าสแกน QR แบบเต็มหน้า ไม่ใช่ popup'
     },
     tracking: {
       kicker: 'RETURN TRACKING',
@@ -12570,9 +12594,12 @@ S.N.: ${item.sn || '-'}
 
   const openStockCountScanner = () => {
     if (!requireOperationalAccess('สแกนตรวจนับสต๊อก')) return;
+    setShowMoreMenu(false);
     setScanMode('stockCount');
     setUseCamera(true);
     setShowScanModal(true);
+    setActiveWorkspace('scanner');
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
   const getStockCountAuditStatus = (item) => {
@@ -13424,16 +13451,35 @@ S.N.: ${item.sn || '-'}
 
   const openSelectionScanner = ({ camera = false } = {}) => {
     if (!requireOperationalAccess('สแกนและเลือกอุปกรณ์')) return;
+    setShowMoreMenu(false);
     setScanMode('select');
     setUseCamera(camera);
     setShowScanModal(true);
+    setActiveWorkspace('scanner');
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
   const openChecklistScanner = (mode) => {
     if (!requireOperationalAccess('สแกนเช็กอุปกรณ์')) return;
+    setShowMoreMenu(false);
     setScanMode(mode);
     setUseCamera(true);
     setShowScanModal(true);
+    setActiveWorkspace('scanner');
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+  };
+
+  const closeScannerPage = (targetWorkspace = null) => {
+    const fallbackWorkspace = targetWorkspace || (scanMode === 'stockCount'
+      ? 'stockCount'
+      : ['borrowChecklist', 'eventChecklist', 'returnChecklist'].includes(scanMode)
+        ? 'borrowReturn'
+        : 'overview');
+    setShowScanModal(false);
+    setUseCamera(false);
+    setScanMessage({ text: '', type: '' });
+    setActiveWorkspace(fallbackWorkspace);
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
   const getScanModeInfo = () => {
@@ -14645,6 +14691,7 @@ S.N.: ${item.sn || '-'}
     setReturnProofFiles([]);
     setOperationConfirm(null);
     setShowScanModal(false);
+    if (activeWorkspace === 'scanner') setActiveWorkspace('overview');
   };
 
   const handleLogout = () => {
@@ -18307,7 +18354,7 @@ S.N.: ${item.sn || '-'}
       {renderCameraAccessoryHelperModal()}
 
       {/* 📷 หน้าสแกน QR Code แบบใหม่: ใช้งานหน้างาน / มือถือ / เครื่องยิงบาร์โค้ด */}
-      {showScanModal && (() => {
+      {showScanModal && activeWorkspace === 'scanner' && (() => {
         const scanInfo = getScanModeInfo();
         const isChecklistMode = scanMode !== 'select' && scanMode !== 'stockCount';
         const targetIds = scanMode === 'borrowChecklist' ? borrowTargetIds : scanMode === 'eventChecklist' ? eventTargetIds : scanMode === 'returnChecklist' ? returnTargetIds : scanMode === 'stockCount' ? stockCountStats.auditTarget.map(i => i.id) : [];
@@ -18339,7 +18386,8 @@ S.N.: ${item.sn || '-'}
                 : (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800');
 
         return (
-          <div className={`fixed inset-0 ${theme.modalOverlay} z-[9999] overflow-hidden`}> 
+          <div className="page-workspace-shell qr-scanner-page space-y-5">
+            {renderWorkspaceTabs()}
             <style>{`
               #qr-reader {
                 width: 100% !important;
@@ -18464,8 +18512,8 @@ S.N.: ${item.sn || '-'}
 
             `}</style>
 
-            <div className="h-full w-full flex items-stretch justify-center sm:p-4">
-              <div className={`w-full max-w-6xl h-full sm:h-[94vh] sm:rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+            <div className="w-full flex items-stretch justify-center">
+              <div className={`qr-scanner-page-shell w-full max-w-7xl rounded-[2rem] overflow-hidden shadow-sm border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div className={`shrink-0 p-4 sm:p-5 border-b ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -18481,7 +18529,7 @@ S.N.: ${item.sn || '-'}
                     </div>
                     <button
                       type="button"
-                      onClick={() => { setShowScanModal(false); setUseCamera(false); }}
+                      onClick={() => closeScannerPage()}
                       className={`w-11 h-11 rounded-2xl flex items-center justify-center border shrink-0 ${theme.btnCancel}`}
                       title="ปิดหน้าสแกน"
                     >
@@ -18515,7 +18563,7 @@ S.N.: ${item.sn || '-'}
                         <div className={`h-full rounded-full transition-all duration-500 ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${percent}%` }}></div>
                       </div>
                       {isComplete && (
-                        <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); }} className="mt-3 w-full sm:w-auto px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-md">
+                        <button type="button" onClick={() => closeScannerPage()} className="mt-3 w-full sm:w-auto px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-md">
                           เช็กครบแล้ว กลับไปยืนยันรายการ
                         </button>
                       )}
@@ -18603,8 +18651,8 @@ S.N.: ${item.sn || '-'}
                           </div>
                           {scanMode === 'select' && (
                             <div className="grid grid-cols-2 gap-2 mt-4">
-                              <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); setShowHistory(recentItem.id); }} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>ดูรายละเอียด</button>
-                              {canAddEditItems && <button type="button" onClick={() => { setShowScanModal(false); setUseCamera(false); openItemEditor(recentItem); }} className="px-3 py-3 rounded-2xl font-black text-sm bg-blue-600 text-white">แก้ไขข้อมูล</button>}
+                              <button type="button" onClick={() => { closeScannerPage('overview'); setShowHistory(recentItem.id); }} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>ดูรายละเอียด</button>
+                              {canAddEditItems && <button type="button" onClick={() => { closeScannerPage('overview'); openItemEditor(recentItem); }} className="px-3 py-3 rounded-2xl font-black text-sm bg-blue-600 text-white">แก้ไขข้อมูล</button>}
                             </div>
                           )}
                         </div>
