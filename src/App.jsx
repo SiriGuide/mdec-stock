@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.42.1 Top Search Rollback / Home Classic';
+const APP_VERSION = 'v22.53.43 Mobile Essential / Permission Guard Polish';
 const APP_UPDATE_NOTE = 'Repair / Maintenance Center Polish: เพิ่มศูนย์ซ่อม/บำรุงรักษา สรุปงานซ่อม ฟิลเตอร์งานค้าง/ส่งซ่อม/เสร็จแล้ว/เสียซ้ำ Export CSV และรายงาน A4 พร้อมฟอร์มแจ้งซ่อมละเอียดขึ้น โดยไม่แตะ QR Scanner/กล้อง/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -7669,6 +7669,13 @@ function MainApp() {
   const canUseOperationalTools = isAdmin && ['owner', 'admin', 'staff'].includes(currentAccountRole);
   const canAddEditItems = canUseOperationalTools;
   const canDeleteItems = isAdmin && (currentAccountRole === 'owner' || currentAccountRole === 'admin');
+  const requireOperationalAccess = (actionLabel = 'ทำรายการ') => {
+    if (canUseOperationalTools) return true;
+    pushToast(`ต้องเข้าสู่ระบบเจ้าหน้าที่ก่อน${actionLabel ? ` เพื่อ${actionLabel}` : ''}`, 'warning');
+    setShowLogin(true);
+    return false;
+  };
+
   const currentFullAccount = getEffectiveAccounts().find(acc => acc.id === currentOperator?.id || String(acc.username || '').toLowerCase() === String(currentOperator?.username || '').toLowerCase()) || currentOperator;
   const activeProofSettings = { ...DEFAULT_PROOF_SETTINGS, ...(settingsOptions.proofSettings || {}) };
   const proofRequirementLabel = (value) => value === 'required' ? 'บังคับ' : value === 'recommended' ? 'แนะนำ' : 'ไม่บังคับ';
@@ -12170,6 +12177,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const openStockCountScanner = () => {
+    if (!requireOperationalAccess('สแกนตรวจนับสต๊อก')) return;
     setScanMode('stockCount');
     setUseCamera(true);
     setShowScanModal(true);
@@ -12655,6 +12663,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const requestOperationConfirm = (type = 'borrow') => {
+    if (!requireOperationalAccess(type === 'return' ? 'รับคืนอุปกรณ์' : type === 'event' ? 'นำอุปกรณ์ออกงาน' : 'ยืมอุปกรณ์')) return;
     if (type === 'borrow') {
       if (!borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return alert('❌ กรุณากรอกผู้ยืม เลือกเจ้าหน้าที่ และติ๊ก/สแกนเช็กอุปกรณ์อย่างน้อย 1 ชิ้น');
     } else if (type === 'event') {
@@ -12667,6 +12676,10 @@ S.N.: ${item.sn || '-'}
 
   const executeOperationConfirm = async () => {
     const type = operationConfirm?.type || 'borrow';
+    if (!requireOperationalAccess(type === 'return' ? 'รับคืนอุปกรณ์' : type === 'event' ? 'นำอุปกรณ์ออกงาน' : 'ยืมอุปกรณ์')) {
+      setOperationConfirm(null);
+      return;
+    }
     setOperationConfirm(null);
     if (type === 'event') return handleEventOut();
     if (type === 'return') return handleReturn();
@@ -12674,7 +12687,8 @@ S.N.: ${item.sn || '-'}
   };
 
   const handleBorrow = async () => {
-    if (!user || !borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return;
+    if (!requireOperationalAccess('บันทึกการยืม')) return;
+    if (!borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return;
     
     if (!checkPersonalItemsWarning(packingChecklist)) return; 
 
@@ -12732,7 +12746,8 @@ S.N.: ${item.sn || '-'}
   };
 
   const handleEventOut = async () => {
-    if (!user || !eventData.eventName || !eventData.staff || eventChecklist.length === 0) return;
+    if (!requireOperationalAccess('บันทึกการออกงาน')) return;
+    if (!eventData.eventName || !eventData.staff || eventChecklist.length === 0) return;
 
     if (!checkPersonalItemsWarning(eventChecklist)) return;
 
@@ -12790,7 +12805,8 @@ S.N.: ${item.sn || '-'}
   };
 
   const handleReturn = async () => {
-    if (!user || !returnData.staff || returnChecklist.length === 0) return;
+    if (!requireOperationalAccess('บันทึกรับคืน')) return;
+    if (!returnData.staff || returnChecklist.length === 0) return;
     let finalStaff = returnData.staff;
     try {
       if (returnData.staff === 'อื่นๆ' && (returnData.newStaff || '').trim()) {
@@ -13015,12 +13031,14 @@ S.N.: ${item.sn || '-'}
   };
 
   const openSelectionScanner = ({ camera = false } = {}) => {
+    if (!requireOperationalAccess('สแกนและเลือกอุปกรณ์')) return;
     setScanMode('select');
     setUseCamera(camera);
     setShowScanModal(true);
   };
 
   const openChecklistScanner = (mode) => {
+    if (!requireOperationalAccess('สแกนเช็กอุปกรณ์')) return;
     setScanMode(mode);
     setUseCamera(true);
     setShowScanModal(true);
@@ -13035,6 +13053,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const handleOpenBatchBorrow = () => {
+    if (!requireOperationalAccess('เปิดรายการยืม')) return;
     try {
       const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
       if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมให้ยืมในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้")');
@@ -13046,6 +13065,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const handleOpenBatchEvent = () => {
+    if (!requireOperationalAccess('เปิดรายการออกงาน')) return;
     try {
       const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
       if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมออกงานในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้")');
@@ -13057,6 +13077,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const handleOpenBatchReturn = () => {
+    if (!requireOperationalAccess('เปิดรายการรับคืน')) return;
     try {
       const validIds = selectedItems.filter(id => {
         const st = items.find(i => i.id === id)?.status;
@@ -13073,6 +13094,7 @@ S.N.: ${item.sn || '-'}
 
 
   const openReturnForItems = (ids = []) => {
+    if (!requireOperationalAccess('รับคืนอุปกรณ์')) return;
     const validIds = Array.from(new Set((ids || []).filter(id => {
       const st = items.find(i => i.id === id)?.status;
       return st === 'borrowed' || st === 'out-for-event';
@@ -14217,12 +14239,28 @@ S.N.: ${item.sn || '-'}
     }
   };
 
+  const resetOperationalDrafts = () => {
+    setSelectedItems([]);
+    setBorrowTargetIds([]);
+    setPackingChecklist([]);
+    setBorrowProofFiles([]);
+    setEventTargetIds([]);
+    setEventChecklist([]);
+    setEventProofFiles([]);
+    setReturnTargetIds([]);
+    setReturnChecklist([]);
+    setReturnInspection({});
+    setReturnProofFiles([]);
+    setOperationConfirm(null);
+    setShowScanModal(false);
+  };
+
   const handleLogout = () => {
     const logoutName = currentOperator?.name || 'Admin';
     logAction('ออกจากระบบ', logoutName, 'ออกจากระบบจัดการ');
     setIsAdmin(false);
     setCurrentOperator(null);
-    setSelectedItems([]);
+    resetOperationalDrafts();
     try {
       localStorage.removeItem('mdec_admin');
       localStorage.removeItem('mdec_operator');
@@ -14234,7 +14272,7 @@ S.N.: ${item.sn || '-'}
     logAction('ล็อกหน้าจอ', lockName, 'ล็อกหน้าจอเพื่อกันคนอื่นใช้งานต่อ');
     setIsAdmin(false);
     setCurrentOperator(null);
-    setSelectedItems([]);
+    resetOperationalDrafts();
     setPin('');
     setShowLogin(true);
     try {
@@ -16317,58 +16355,40 @@ S.N.: ${item.sn || '-'}
       {isLoggedIn && activeWorkspace === 'overview' && (
         <div className={`mobile-field-launcher lg:hidden w-full mb-5 rounded-[1.5rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
           <div className={`p-4 border-b ${theme.divide}`}>
-            <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>MOBILE FIELD MODE</div>
-            <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>ทางลัดสำหรับใช้งานในโทรศัพท์</div>
-            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมปุ่มที่ใช้บ่อยตอนออกหน้างาน กดง่าย ไม่ต้องเลื่อนหาเมนูลึก</p>
+            <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>MOBILE ESSENTIAL MODE</div>
+            <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>มือถือ: ปุ่มจำเป็นเท่านั้น</div>
+            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เน้นงานหน้างานจริง: ยืม / ออกงาน / รับคืน / สแกน / ค้นหา / เอกสาร</p>
           </div>
           <div className="p-3 grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+            <button type="button" onClick={() => { if (!requireOperationalAccess('ยืมอุปกรณ์')) return; setBorrowReturnMode('borrow'); openWorkspace('borrowReturn'); }} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
               <span className="mobile-field-icon bg-purple-600 text-white mb-2"><Icons.UserPlus className="w-5 h-5" /></span>
-              <span className={`block ${theme.textTitle}`}>ยืม / คืน</span>
-              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ทำรายการหลัก</span>
+              <span className={`block ${theme.textTitle}`}>ยืม</span>
+              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ปล่อยยืมอุปกรณ์</span>
             </button>
-            {canUseOperationalTools ? (
-              <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`p-3 rounded-2xl border text-left font-black ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-900 border-slate-900 text-white'}`}>
-                <span className="mobile-field-icon bg-white/15 text-white mb-2"><Icons.QrCode className="w-5 h-5" /></span>
-                <span className="block">สแกน QR</span>
-                <span className="block text-[11px] font-bold mt-0.5 text-white/70">เลือกของเร็ว</span>
-              </button>
-            ) : (
-              <button type="button" onClick={() => setShowFilterModal(true)} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
-                <span className="mobile-field-icon bg-slate-600 text-white mb-2"><Icons.Settings className="w-5 h-5" /></span>
-                <span className={`block ${theme.textTitle}`}>ตัวกรอง</span>
-                <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ค้นหาของ</span>
-              </button>
-            )}
-            <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
-              <span className="mobile-field-icon bg-blue-600 text-white mb-2"><Icons.พิมพ์er className="w-5 h-5" /></span>
-              <span className={`block ${theme.textTitle}`}>เอกสารย้อนหลัง</span>
-              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{borrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร</span>
+            <button type="button" onClick={() => { if (!requireOperationalAccess('นำอุปกรณ์ออกงาน')) return; setBorrowReturnMode('event'); openWorkspace('borrowReturn'); }} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+              <span className="mobile-field-icon bg-orange-500 text-white mb-2"><Icons.Truck className="w-5 h-5" /></span>
+              <span className={`block ${theme.textTitle}`}>ออกงาน</span>
+              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>นำของออกกิจกรรม</span>
             </button>
-            <button type="button" onClick={() => openTrackingCenter('today')} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
-              <span className="mobile-field-icon bg-emerald-600 text-white mb-2"><Icons.History className="w-5 h-5" /></span>
-              <span className={`block ${theme.textTitle}`}>ติดตามคืน</span>
+            <button type="button" onClick={() => { if (!requireOperationalAccess('รับคืนอุปกรณ์')) return; setBorrowReturnMode('return'); openWorkspace('borrowReturn'); }} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+              <span className="mobile-field-icon bg-emerald-600 text-white mb-2"><Icons.CheckCircle className="w-5 h-5" /></span>
+              <span className={`block ${theme.textTitle}`}>รับคืน</span>
               <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{(currentBorrowedItems.length + currentEventItems.length).toLocaleString('th-TH')} รายการค้าง</span>
             </button>
-            <button type="button" onClick={() => openMainProofCenter({ reset: true })} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
-              <span className="mobile-field-icon bg-pink-600 text-white mb-2"><Icons.Camera className="w-5 h-5" /></span>
-              <span className={`block ${theme.textTitle}`}>หลักฐานรูปภาพ</span>
-              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ดู/จัดการรูป</span>
+            <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`p-3 rounded-2xl border text-left font-black ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-900 border-slate-900 text-white'}`}>
+              <span className="mobile-field-icon bg-white/15 text-white mb-2"><Icons.QrCode className="w-5 h-5" /></span>
+              <span className="block">สแกน QR</span>
+              <span className="block text-[11px] font-bold mt-0.5 text-white/70">เลือกของเร็ว</span>
             </button>
-            <button type="button" onClick={() => openMonthlyReportPage()} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
-              <span className="mobile-field-icon bg-amber-600 text-white mb-2"><Icons.ClipboardList className="w-5 h-5" /></span>
-              <span className={`block ${theme.textTitle}`}>รายงาน</span>
-              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>สรุป/พิมพ์/CSV</span>
+            <button type="button" onClick={scrollToHomeStockList} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+              <span className="mobile-field-icon bg-blue-600 text-white mb-2"><Icons.Search className="w-5 h-5" /></span>
+              <span className={`block ${theme.textTitle}`}>ค้นหา</span>
+              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ไปตารางอุปกรณ์</span>
             </button>
-            <button type="button" onClick={() => openWorkspace('stockCount')} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
-              <span className="mobile-field-icon bg-emerald-600 text-white mb-2"><Icons.CheckCircle className="w-5 h-5" /></span>
-              <span className={`block ${theme.textTitle}`}>ตรวจนับ</span>
-              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{stockCountStats.percent}% พบแล้ว</span>
-            </button>
-            <button type="button" onClick={openControlCenter} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
-              <span className="mobile-field-icon bg-indigo-600 text-white mb-2"><Icons.ViewGrid className="w-5 h-5" /></span>
-              <span className={`block ${theme.textTitle}`}>เมนูทั้งหมด</span>
-              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ตั้งค่า/รายงาน</span>
+            <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+              <span className="mobile-field-icon bg-indigo-600 text-white mb-2"><Icons.พิมพ์er className="w-5 h-5" /></span>
+              <span className={`block ${theme.textTitle}`}>เอกสาร</span>
+              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ค้นหา/พิมพ์ซ้ำ</span>
             </button>
           </div>
         </div>
@@ -22949,7 +22969,7 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
-      {/* v22.53.31 Mobile Bottom Navigation */}
+      {/* v22.53.43 Mobile Essential Bottom Navigation */}
       <div className={`mobile-bottom-nav lg:hidden fixed bottom-0 inset-x-0 z-40 border-t shadow-[0_-16px_40px_rgba(15,23,42,0.14)] ${isDarkMode ? 'bg-slate-950/95 border-slate-800' : 'bg-white/95 border-slate-200'}`}>
         <div className="mobile-bottom-nav-grid">
           <button
@@ -22965,35 +22985,34 @@ S.N.: ${item.sn || '-'}
 
           <button
             type="button"
-            onClick={() => { setShowMoreMenu(false); openWorkspace('borrowReturn'); }}
-            className={`mobile-bottom-nav-btn ${activeWorkspace === 'borrowReturn' ? 'is-active' : theme.textMuted}`}
-            title="ยืม / รับคืน"
+            onClick={() => { if (!requireOperationalAccess('ยืม/ออกงาน')) return; setShowMoreMenu(false); setBorrowReturnMode('borrow'); openWorkspace('borrowReturn'); }}
+            className={`mobile-bottom-nav-btn ${activeWorkspace === 'borrowReturn' && borrowReturnMode !== 'return' ? 'is-active' : theme.textMuted}`}
+            title="ยืม / ออกงาน"
           >
             <Icons.UserPlus className="w-5 h-5" />
-            <span>ยืมคืน</span>
+            <span>ยืม/ออก</span>
           </button>
 
-          {canUseOperationalTools ? (
-            <button
-              type="button"
-              onClick={() => openSelectionScanner({ camera: true })}
-              className="mobile-bottom-nav-btn mobile-bottom-nav-scan bg-slate-900 text-white"
-              title="สแกน QR"
-            >
-              <Icons.QrCode className="w-6 h-6" />
-              <span>สแกน</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowFilterModal(true)}
-              className={`mobile-bottom-nav-btn mobile-bottom-nav-scan ${theme.textMuted}`}
-              title="ตัวกรอง"
-            >
-              <Icons.Settings className="w-6 h-6" />
-              <span>กรอง</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => openSelectionScanner({ camera: true })}
+            className="mobile-bottom-nav-btn mobile-bottom-nav-scan bg-slate-900 text-white"
+            title="สแกน QR"
+          >
+            <Icons.QrCode className="w-6 h-6" />
+            <span>สแกน</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { if (!requireOperationalAccess('รับคืน')) return; setShowMoreMenu(false); setBorrowReturnMode('return'); openWorkspace('borrowReturn'); }}
+            className={`mobile-bottom-nav-btn ${activeWorkspace === 'borrowReturn' && borrowReturnMode === 'return' ? 'is-active' : theme.textMuted}`}
+            title="รับคืน"
+          >
+            <Icons.CheckCircle className="w-5 h-5" />
+            <span>คืน</span>
+            {(currentBorrowedItems.length + currentEventItems.length) > 0 && <span className="mobile-bottom-badge">{(currentBorrowedItems.length + currentEventItems.length) > 99 ? '99+' : (currentBorrowedItems.length + currentEventItems.length)}</span>}
+          </button>
 
           <button
             type="button"
@@ -23004,16 +23023,6 @@ S.N.: ${item.sn || '-'}
             <Icons.พิมพ์er className="w-5 h-5" />
             <span>เอกสาร</span>
             {borrowเอกสารs.length > 0 && <span className="mobile-bottom-badge">{borrowเอกสารs.length > 99 ? '99+' : borrowเอกสารs.length}</span>}
-          </button>
-
-          <button
-            type="button"
-            onClick={openControlCenter}
-            className={`mobile-bottom-nav-btn ${showMoreMenu || showSettings ? 'is-active' : theme.textMuted}`}
-            title="เมนูเพิ่มเติม"
-          >
-            <Icons.ViewGrid className="w-5 h-5" />
-            <span>เมนู</span>
           </button>
         </div>
       </div>
