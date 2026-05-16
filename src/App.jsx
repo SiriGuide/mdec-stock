@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.4 Classic Borrow / Return / Event UX Polish';
-const APP_UPDATE_NOTE = 'Classic Borrow / Return / Event UX Polish: ปรับหน้ายืม/ออกงาน/รับคืนให้ใช้งานง่ายขึ้น เป็นมิตรขึ้น และสวยขึ้นแบบเฉพาะหน้า โดยแยก 3 โหมดด้วยสี ทำลำดับขั้นตอนชัดขึ้น ปรับรายการเลือกอุปกรณ์และแผงสรุปให้เข้าใจง่าย พร้อมบอกข้อมูลที่ยังขาดก่อนยืนยัน โดยใช้ logic บันทึกเดิมที่เสถียร';
+const APP_VERSION = 'v22.57.1.5 Classic Scanner Return Flow Fix';
+const APP_UPDATE_NOTE = 'Classic Scanner Return Flow Fix: แก้พฤติกรรมปิดหน้า QR Scanner จากหน้ายืม/ออกงาน/รับคืนแล้วเด้งกลับภาพรวมระบบ ให้จำหน้าต้นทางที่เปิดสแกนไว้ และเมื่อกดกากบาทปิดจะกลับมาหน้าเดิมเพื่อเลือกอุปกรณ์ต่อได้ ไม่กระทบกล้องหรือระบบสแกนหลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6807,6 +6807,7 @@ function MainApp() {
   const [boxLabelTitle, setBoxLabelTitle] = useState('กล่องอุปกรณ์ MDEC');
   const [boxLabelNote, setBoxLabelNote] = useState('');
   const [showScanModal, setShowScanModal] = useState(false);
+  const [scannerReturnWorkspace, setScannerReturnWorkspace] = useState('overview');
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
   const [scanMode, setScanMode] = useState('select'); // select | borrowChecklist | eventChecklist | returnChecklist
@@ -10020,7 +10021,7 @@ S.N.: ${item.sn || '-'}
                 <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>เลือกโหมดงาน เลือกอุปกรณ์ กรอกข้อมูล เช็กของ และยืนยันในหน้าเดียวแบบเป็นขั้นตอน</p>
               </div>
               <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
-                <button type="button" onClick={() => openSelectionScanner({ camera: true })} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center justify-center gap-2"><Icons.QrCode className="w-5 h-5" /> สแกน QR</button>
+                <button type="button" onClick={() => openSelectionScanner({ camera: true, returnWorkspace: 'borrowReturn' })} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center justify-center gap-2"><Icons.QrCode className="w-5 h-5" /> สแกน QR</button>
                 <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เอกสารย้อนหลัง</button>
                 {borrowReturnMode !== 'return' && <button type="button" onClick={() => openCameraAccessoryHelper(borrowReturnMode)} className="col-span-2 sm:col-span-1 px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black flex items-center justify-center gap-2"><Icons.Camera className="w-5 h-5" /> ตัวช่วยกล้อง</button>}
               </div>
@@ -13020,6 +13021,7 @@ S.N.: ${item.sn || '-'}
   const openStockCountScanner = () => {
     if (!requireOperationalAccess('สแกนตรวจนับสต๊อก')) return;
     setShowMoreMenu(false);
+    setScannerReturnWorkspace('stockCount');
     setScanMode('stockCount');
     setUseCamera(true);
     setShowScanModal(true);
@@ -13874,9 +13876,11 @@ S.N.: ${item.sn || '-'}
     setShowForm(true);
   };
 
-  const openSelectionScanner = ({ camera = false } = {}) => {
+  const openSelectionScanner = ({ camera = false, returnWorkspace = null } = {}) => {
     if (!requireOperationalAccess('สแกนและเลือกอุปกรณ์')) return;
+    const sourceWorkspace = returnWorkspace || (activeWorkspace && activeWorkspace !== 'scanner' ? activeWorkspace : 'overview');
     setShowMoreMenu(false);
+    setScannerReturnWorkspace(sourceWorkspace);
     setScanMode('select');
     setUseCamera(camera);
     setShowScanModal(true);
@@ -13887,6 +13891,7 @@ S.N.: ${item.sn || '-'}
   const openChecklistScanner = (mode) => {
     if (!requireOperationalAccess('สแกนเช็กอุปกรณ์')) return;
     setShowMoreMenu(false);
+    setScannerReturnWorkspace('borrowReturn');
     setScanMode(mode);
     setUseCamera(true);
     setShowScanModal(true);
@@ -13895,7 +13900,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const closeScannerPage = (targetWorkspace = null) => {
-    const fallbackWorkspace = targetWorkspace || (scanMode === 'stockCount'
+    const fallbackWorkspace = targetWorkspace || scannerReturnWorkspace || (scanMode === 'stockCount'
       ? 'stockCount'
       : ['borrowChecklist', 'eventChecklist', 'returnChecklist'].includes(scanMode)
         ? 'borrowReturn'
