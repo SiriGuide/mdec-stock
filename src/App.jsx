@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.6 Mobile Remote App Mode';
-const APP_UPDATE_NOTE = 'Mobile Remote App Mode: เพิ่มโหมดมือถือแบบรีโมต/แอปย่อม ๆ แยกจากเว็บบนคอม เปิดในโทรศัพท์แล้วบังคับให้ล็อกอินก่อน จากนั้นแสดงปุ่มใหญ่สำหรับ ยืม รับคืน ออกงาน สแกน QR และงานด่วน โดยเว็บบนคอมยังเป็น Classic เดิม';
+const APP_VERSION = 'v22.57.1.6.1 Mobile Remote Scope Hotfix';
+const APP_UPDATE_NOTE = 'Mobile Remote Scope Hotfix: แก้ ReferenceError renderMobileRemoteMode is not defined จากแพ็ก Mobile Remote โดยย้ายฟังก์ชันรีโมตมือถือออกจาก useEffect ให้เว็บบนคอมเปิดได้ปกติ และยังคงโหมดมือถือแบบรีโมตไว้';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6839,163 +6839,6 @@ function MainApp() {
   }, []);
 
   useEffect(() => {
-    const renderMobileRemoteMode = () => {
-    const mobileCanOperate = canUseOperationalTools;
-    const remoteActions = [
-      {
-        id: 'borrow',
-        label: 'ยืม',
-        desc: 'เลือกของพร้อมใช้',
-        icon: Icons.UserPlus,
-        tone: isDarkMode ? 'bg-blue-950/45 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800',
-        action: () => {
-          if (!requireOperationalAccess('ยืมอุปกรณ์')) return;
-          setBorrowReturnMode('borrow');
-          setMobileRemoteOpen(false);
-          openWorkspace('borrowReturn');
-        }
-      },
-      {
-        id: 'return',
-        label: 'คืน',
-        desc: `${(currentBorrowedItems.length + currentEventItems.length).toLocaleString('th-TH')} รอคืน`,
-        icon: Icons.CheckCircle,
-        tone: isDarkMode ? 'bg-emerald-950/45 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800',
-        action: () => {
-          if (!requireOperationalAccess('รับคืนอุปกรณ์')) return;
-          setBorrowReturnMode('return');
-          setMobileRemoteOpen(false);
-          openWorkspace('borrowReturn');
-        }
-      },
-      {
-        id: 'event',
-        label: 'ออกงาน',
-        desc: 'จัดของออกนอกศูนย์',
-        icon: Icons.Truck,
-        tone: isDarkMode ? 'bg-orange-950/45 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800',
-        action: () => {
-          if (!requireOperationalAccess('นำอุปกรณ์ออกงาน')) return;
-          setBorrowReturnMode('event');
-          setMobileRemoteOpen(false);
-          openWorkspace('borrowReturn');
-        }
-      },
-      {
-        id: 'scan',
-        label: 'สแกน QR',
-        desc: 'ใช้กล้องเหมือนรีโมต',
-        icon: Icons.QrCode,
-        tone: isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-slate-950 border-slate-950 text-white',
-        action: () => {
-          if (!requireOperationalAccess('สแกน QR')) return;
-          setMobileRemoteOpen(false);
-          openSelectionScanner({ camera: true, returnWorkspace: 'mobileRemote' });
-        }
-      }
-    ];
-
-    const remotePanel = isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-950';
-    const remoteSoft = isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700';
-    const remoteMuted = isDarkMode ? 'text-slate-400' : 'text-slate-500';
-
-    return (
-      <div className={`lg:hidden fixed inset-0 z-[6500] overflow-y-auto ${isDarkMode ? 'bg-slate-950 text-white' : 'bg-[#f6f8fb] text-slate-950'}`}>
-        <div className="min-h-screen p-4 pb-10 flex flex-col">
-          <div className={`rounded-[2rem] border p-4 shadow-sm ${remotePanel}`}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className={`text-xs font-black tracking-[0.22em] uppercase ${remoteMuted}`}>MDEC STOCK REMOTE</div>
-                <h1 className="text-3xl font-black mt-1 tracking-tight">รีโมตหน้างาน</h1>
-                <p className={`text-sm font-bold mt-1 ${remoteMuted}`}>โหมดมือถือสำหรับยืม คืน ออกงาน และสแกน QR</p>
-              </div>
-              <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className={`w-11 h-11 rounded-2xl border flex items-center justify-center ${remoteSoft}`}>
-                {isDarkMode ? <Icons.Sun className="w-5 h-5" /> : <Icons.Moon className="w-5 h-5" />}
-              </button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 mt-4">
-              {[
-                ['พร้อมใช้', stats.available, 'text-emerald-500'],
-                ['รอคืน', currentBorrowedItems.length + currentEventItems.length, 'text-blue-500'],
-                ['เลยกำหนด', overdueItems.length, 'text-rose-500']
-              ].map(([label, value, color]) => (
-                <div key={label} className={`rounded-2xl border p-3 ${remoteSoft}`}>
-                  <div className={`text-2xl font-black ${color}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
-                  <div className={`text-[11px] font-black mt-1 ${remoteMuted}`}>{label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {!mobileCanOperate ? (
-            <div className={`mt-4 rounded-[2rem] border p-5 shadow-sm ${remotePanel}`}>
-              <div className="text-2xl font-black">เข้าสู่ระบบก่อนใช้งาน</div>
-              <p className={`text-sm font-bold mt-1 ${remoteMuted}`}>มือถือจะเข้าโหมดรีโมตได้หลังล็อกอินเจ้าหน้าที่</p>
-              <div className="space-y-3 mt-5">
-                <label className="block">
-                  <span className={`block text-sm font-black mb-1 ${remoteMuted}`}>Username</span>
-                  <input type="text" className={`w-full px-4 py-4 rounded-2xl border font-black text-lg outline-none ${theme.input}`} placeholder="admin" value={loginUsername} onChange={e => setLoginUsername(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
-                </label>
-                <label className="block">
-                  <span className={`block text-sm font-black mb-1 ${remoteMuted}`}>PIN / รหัสผ่าน</span>
-                  <input type="password" className={`w-full px-4 py-4 rounded-2xl border font-black text-center text-3xl tracking-widest outline-none ${theme.input}`} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
-                </label>
-                <button type="button" onClick={handleLogin} className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-lg shadow-sm">เข้าสู่ระบบ</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                {remoteActions.map(action => {
-                  const Icon = action.icon;
-                  return (
-                    <button key={action.id} type="button" onClick={action.action} className={`min-h-[132px] rounded-[1.7rem] border p-4 text-left shadow-sm active:scale-[0.98] transition-all ${action.tone}`}>
-                      <div className="w-12 h-12 rounded-2xl bg-current/10 border border-current/15 flex items-center justify-center mb-4">
-                        <Icon className="w-6 h-6" />
-                      </div>
-                      <div className="text-2xl font-black">{action.label}</div>
-                      <div className="text-xs font-bold mt-1 opacity-75">{action.desc}</div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className={`mt-4 rounded-[2rem] border p-4 ${remotePanel}`}>
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="font-black text-lg">งานด่วน</div>
-                    <div className={`text-xs font-bold ${remoteMuted}`}>เปิดดูหรือรับคืนได้ทันที</div>
-                  </div>
-                  <button type="button" onClick={() => { setMobileRemoteOpen(false); openTrackingCenter('today'); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูทั้งหมด</button>
-                </div>
-                <div className="space-y-2 mt-3">
-                  {[...overdueItems, ...dueTodayItems].slice(0, 4).length === 0 ? (
-                    <div className={`rounded-2xl border p-4 text-center font-black ${remoteSoft}`}>ไม่มีงานด่วนตอนนี้</div>
-                  ) : [...overdueItems, ...dueTodayItems].slice(0, 4).map(item => (
-                    <button key={item.id} type="button" onClick={() => { setMobileRemoteOpen(false); setShowHistory(item.id); }} className={`w-full rounded-2xl border p-3 text-left ${remoteSoft}`}>
-                      <div className="font-black truncate">{item.name || '-'}</div>
-                      <div className={`text-xs font-bold mt-1 truncate ${remoteMuted}`}>{item.currentBorrower || item.currentEvent || '-'} • คืน {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <button type="button" onClick={() => { setMobileRemoteOpen(false); openBorrowDocsArchive({ reset: false }); }} className={`py-4 rounded-2xl border font-black ${remoteSoft}`}>เอกสาร</button>
-                <button type="button" onClick={() => { setMobileRemoteOpen(false); openWorkspace('inventory'); }} className={`py-4 rounded-2xl border font-black ${remoteSoft}`}>คลัง</button>
-                <button type="button" onClick={() => { setMobileRemoteOpen(false); setSettingsTab('overview'); setShowSettings(true); }} className={`py-4 rounded-2xl border font-black ${remoteSoft}`}>ตั้งค่า</button>
-                <button type="button" onClick={handleLogout} className="py-4 rounded-2xl border border-rose-300 bg-rose-50 text-rose-700 font-black">ออกจากระบบ</button>
-              </div>
-
-              <button type="button" onClick={() => setMobileRemoteOpen(false)} className={`mt-4 w-full py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เข้าเว็บเต็มบนมือถือ</button>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   if (showCommandCenter) {
       const timer = setInterval(() => setCurrentTime(new Date()), 1000);
       return () => clearInterval(timer);
@@ -16911,6 +16754,165 @@ S.N.: ${item.sn || '-'}
       </div>
     );
   }
+
+    const renderMobileRemoteMode = () => {
+    const mobileCanOperate = canUseOperationalTools;
+    const remoteActions = [
+      {
+        id: 'borrow',
+        label: 'ยืม',
+        desc: 'เลือกของพร้อมใช้',
+        icon: Icons.UserPlus,
+        tone: isDarkMode ? 'bg-blue-950/45 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800',
+        action: () => {
+          if (!requireOperationalAccess('ยืมอุปกรณ์')) return;
+          setBorrowReturnMode('borrow');
+          setMobileRemoteOpen(false);
+          openWorkspace('borrowReturn');
+        }
+      },
+      {
+        id: 'return',
+        label: 'คืน',
+        desc: `${(currentBorrowedItems.length + currentEventItems.length).toLocaleString('th-TH')} รอคืน`,
+        icon: Icons.CheckCircle,
+        tone: isDarkMode ? 'bg-emerald-950/45 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800',
+        action: () => {
+          if (!requireOperationalAccess('รับคืนอุปกรณ์')) return;
+          setBorrowReturnMode('return');
+          setMobileRemoteOpen(false);
+          openWorkspace('borrowReturn');
+        }
+      },
+      {
+        id: 'event',
+        label: 'ออกงาน',
+        desc: 'จัดของออกนอกศูนย์',
+        icon: Icons.Truck,
+        tone: isDarkMode ? 'bg-orange-950/45 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800',
+        action: () => {
+          if (!requireOperationalAccess('นำอุปกรณ์ออกงาน')) return;
+          setBorrowReturnMode('event');
+          setMobileRemoteOpen(false);
+          openWorkspace('borrowReturn');
+        }
+      },
+      {
+        id: 'scan',
+        label: 'สแกน QR',
+        desc: 'ใช้กล้องเหมือนรีโมต',
+        icon: Icons.QrCode,
+        tone: isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-slate-950 border-slate-950 text-white',
+        action: () => {
+          if (!requireOperationalAccess('สแกน QR')) return;
+          setMobileRemoteOpen(false);
+          openSelectionScanner({ camera: true, returnWorkspace: 'mobileRemote' });
+        }
+      }
+    ];
+
+    const remotePanel = isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-950';
+    const remoteSoft = isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700';
+    const remoteMuted = isDarkMode ? 'text-slate-400' : 'text-slate-500';
+
+    return (
+      <div className={`lg:hidden fixed inset-0 z-[6500] overflow-y-auto ${isDarkMode ? 'bg-slate-950 text-white' : 'bg-[#f6f8fb] text-slate-950'}`}>
+        <div className="min-h-screen p-4 pb-10 flex flex-col">
+          <div className={`rounded-[2rem] border p-4 shadow-sm ${remotePanel}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className={`text-xs font-black tracking-[0.22em] uppercase ${remoteMuted}`}>MDEC STOCK REMOTE</div>
+                <h1 className="text-3xl font-black mt-1 tracking-tight">รีโมตหน้างาน</h1>
+                <p className={`text-sm font-bold mt-1 ${remoteMuted}`}>โหมดมือถือสำหรับยืม คืน ออกงาน และสแกน QR</p>
+              </div>
+              <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className={`w-11 h-11 rounded-2xl border flex items-center justify-center ${remoteSoft}`}>
+                {isDarkMode ? <Icons.Sun className="w-5 h-5" /> : <Icons.Moon className="w-5 h-5" />}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              {[
+                ['พร้อมใช้', stats.available, 'text-emerald-500'],
+                ['รอคืน', currentBorrowedItems.length + currentEventItems.length, 'text-blue-500'],
+                ['เลยกำหนด', overdueItems.length, 'text-rose-500']
+              ].map(([label, value, color]) => (
+                <div key={label} className={`rounded-2xl border p-3 ${remoteSoft}`}>
+                  <div className={`text-2xl font-black ${color}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                  <div className={`text-[11px] font-black mt-1 ${remoteMuted}`}>{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {!mobileCanOperate ? (
+            <div className={`mt-4 rounded-[2rem] border p-5 shadow-sm ${remotePanel}`}>
+              <div className="text-2xl font-black">เข้าสู่ระบบก่อนใช้งาน</div>
+              <p className={`text-sm font-bold mt-1 ${remoteMuted}`}>มือถือจะเข้าโหมดรีโมตได้หลังล็อกอินเจ้าหน้าที่</p>
+              <div className="space-y-3 mt-5">
+                <label className="block">
+                  <span className={`block text-sm font-black mb-1 ${remoteMuted}`}>Username</span>
+                  <input type="text" className={`w-full px-4 py-4 rounded-2xl border font-black text-lg outline-none ${theme.input}`} placeholder="admin" value={loginUsername} onChange={e => setLoginUsername(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
+                </label>
+                <label className="block">
+                  <span className={`block text-sm font-black mb-1 ${remoteMuted}`}>PIN / รหัสผ่าน</span>
+                  <input type="password" className={`w-full px-4 py-4 rounded-2xl border font-black text-center text-3xl tracking-widest outline-none ${theme.input}`} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
+                </label>
+                <button type="button" onClick={handleLogin} className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-lg shadow-sm">เข้าสู่ระบบ</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                {remoteActions.map(action => {
+                  const Icon = action.icon;
+                  return (
+                    <button key={action.id} type="button" onClick={action.action} className={`min-h-[132px] rounded-[1.7rem] border p-4 text-left shadow-sm active:scale-[0.98] transition-all ${action.tone}`}>
+                      <div className="w-12 h-12 rounded-2xl bg-current/10 border border-current/15 flex items-center justify-center mb-4">
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <div className="text-2xl font-black">{action.label}</div>
+                      <div className="text-xs font-bold mt-1 opacity-75">{action.desc}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className={`mt-4 rounded-[2rem] border p-4 ${remotePanel}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="font-black text-lg">งานด่วน</div>
+                    <div className={`text-xs font-bold ${remoteMuted}`}>เปิดดูหรือรับคืนได้ทันที</div>
+                  </div>
+                  <button type="button" onClick={() => { setMobileRemoteOpen(false); openTrackingCenter('today'); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูทั้งหมด</button>
+                </div>
+                <div className="space-y-2 mt-3">
+                  {[...overdueItems, ...dueTodayItems].slice(0, 4).length === 0 ? (
+                    <div className={`rounded-2xl border p-4 text-center font-black ${remoteSoft}`}>ไม่มีงานด่วนตอนนี้</div>
+                  ) : [...overdueItems, ...dueTodayItems].slice(0, 4).map(item => (
+                    <button key={item.id} type="button" onClick={() => { setMobileRemoteOpen(false); setShowHistory(item.id); }} className={`w-full rounded-2xl border p-3 text-left ${remoteSoft}`}>
+                      <div className="font-black truncate">{item.name || '-'}</div>
+                      <div className={`text-xs font-bold mt-1 truncate ${remoteMuted}`}>{item.currentBorrower || item.currentEvent || '-'} • คืน {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <button type="button" onClick={() => { setMobileRemoteOpen(false); openBorrowDocsArchive({ reset: false }); }} className={`py-4 rounded-2xl border font-black ${remoteSoft}`}>เอกสาร</button>
+                <button type="button" onClick={() => { setMobileRemoteOpen(false); openWorkspace('inventory'); }} className={`py-4 rounded-2xl border font-black ${remoteSoft}`}>คลัง</button>
+                <button type="button" onClick={() => { setMobileRemoteOpen(false); setSettingsTab('overview'); setShowSettings(true); }} className={`py-4 rounded-2xl border font-black ${remoteSoft}`}>ตั้งค่า</button>
+                <button type="button" onClick={handleLogout} className="py-4 rounded-2xl border border-rose-300 bg-rose-50 text-rose-700 font-black">ออกจากระบบ</button>
+              </div>
+
+              <button type="button" onClick={() => setMobileRemoteOpen(false)} className={`mt-4 w-full py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เข้าเว็บเต็มบนมือถือ</button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+
 
   if (showCommandCenter) {
     const healthPercentage = stats.all > 0 ? Math.round((stats.available / stats.all) * 100) : 0;
