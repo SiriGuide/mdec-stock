@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.56.0 STOCK Next Mainline Cutover';
-const APP_UPDATE_NOTE = 'STOCK Next Mainline Cutover: เปลี่ยนให้ STOCK Next เป็นเว็บหลักเต็มตัว ซ่อน Classic ออกจากหน้าใช้งานปกติ เหลือเป็นโหมดกู้คืนในเมนูดูแลระบบเท่านั้น ใช้ฐานข้อมูลเดิม ไม่ต้องกรอกข้อมูลใหม่ และคง flow เดิมเป็น engine เบื้องหลังสำหรับงานที่ยังต้องใช้ความเสถียร';
+const APP_VERSION = 'v22.56.1 STOCK Next Native Inventory / Item Profile';
+const APP_UPDATE_NOTE = 'STOCK Next Native Inventory / Item Profile: เริ่มย้ายเข้าเว็บใหม่แบบเต็มตัวด้วยคลังอุปกรณ์และแฟ้มอุปกรณ์แบบ Next Native เปิดแฟ้ม ดูภาพรวม ประวัติ เอกสาร หลักฐาน และข้อมูลระบบจากฐานข้อมูลเดิมได้ใน Next โดยไม่ต้องสลับกลับ Classic สำหรับการดูข้อมูลหลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6452,6 +6452,8 @@ function MainApp() {
     }
   });
   const [nextPage, setNextPage] = useState('home');
+  const [nextItemProfileId, setNextItemProfileId] = useState(null);
+  const [nextItemProfileTab, setNextItemProfileTab] = useState('overview');
 
   const [user, setUser] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
@@ -16983,7 +16985,47 @@ S.N.: ${item.sn || '-'}
       }, 0);
     };
 
-    const minimalSearchItems = filteredItems.slice(0, 8);
+    const openNextItemProfile = (itemId, tab = 'overview') => {
+      if (!itemId) return;
+      setNextItemProfileId(itemId);
+      setNextItemProfileTab(tab || 'overview');
+      setNextPage('itemProfile');
+      window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+    };
+
+    const exportNextInventoryCSV = () => {
+      const headers = ['ชื่ออุปกรณ์','S.N.','รหัสสั้น','หมวดหมู่','ฝ่าย','ที่เก็บ','สถานะ','จำนวน','โครงการ','QR','หมายเหตุ'];
+      const rows = filteredItems.map(item => {
+        const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || {};
+        const statusInfo = STATUSES.find(s => s.id === item.status) || {};
+        return [
+          item.name || '',
+          item.sn || '',
+          item.shortCode || item.assetShortCode || item.localCode || '',
+          item.category || '',
+          deptInfo.label || item.department || '',
+          item.location || '',
+          statusInfo.label || item.status || '',
+          item.quantity || 1,
+          projectDisplayName(item.project),
+          item.qrTagged ? 'ติด QR แล้ว' : 'ยังไม่ติด QR',
+          item.internalNote || item.note || ''
+        ];
+      });
+      const csv = [headers, ...rows].map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mdec-stock-next-inventory-${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      pushToast('Export CSV สำเร็จ', `ส่งออก ${filteredItems.length.toLocaleString('th-TH')} รายการ`, 'success');
+    };
+
+    const minimalSearchItems = filteredItems.slice(0, nextPage === 'inventory' ? 24 : 8);
     const urgentItems = [...overdueItems, ...dueTodayItems].slice(0, 5);
     const hasUrgent = overdueItems.length + dueTodayItems.length > 0;
     const returnQueueCount = currentBorrowedItems.length + currentEventItems.length;
@@ -17080,7 +17122,7 @@ S.N.: ${item.sn || '-'}
               ) : urgentItems.map(item => {
                 const isLate = overdueItems.some(x => x.id === item.id);
                 return (
-                  <button key={item.id} type="button" onClick={() => openClassicAction(null, () => setShowHistory(item.id))} className={`w-full rounded-2xl border p-3 text-left ${nextSoftTone(isLate ? 'danger' : 'warning')}`}>
+                  <button key={item.id} type="button" onClick={() => openNextItemProfile(item.id)} className={`w-full rounded-2xl border p-3 text-left ${nextSoftTone(isLate ? 'danger' : 'warning')}`}>
                     <div className="font-black truncate">{item.name || '-'}</div>
                     <div className="text-xs font-bold mt-0.5 truncate opacity-75">{item.currentBorrower || item.currentEvent || '-'} • คืน {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</div>
                   </button>
@@ -17108,7 +17150,7 @@ S.N.: ${item.sn || '-'}
             ) : minimalSearchItems.slice(0,4).map(item => {
               const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
               return (
-                <button key={item.id} type="button" onClick={() => openClassicAction(null, () => setShowHistory(item.id))} className={`rounded-2xl border p-3 text-left ${nextTheme.button}`}>
+                <button key={item.id} type="button" onClick={() => openNextItemProfile(item.id)} className={`rounded-2xl border p-3 text-left ${nextTheme.button}`}>
                   <div className={`font-black truncate ${nextTheme.text}`}>{item.name || '-'}</div>
                   <div className={`text-xs font-bold mt-0.5 truncate ${nextTheme.muted}`}>S.N. {item.sn || '-'} • {item.location || '-'}</div>
                   <span className={`inline-block mt-2 px-2.5 py-1 rounded-lg text-[11px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
@@ -17156,7 +17198,8 @@ S.N.: ${item.sn || '-'}
           action={
             <div className="flex flex-wrap gap-2">
               {canAddEditItems && <MinimalButton primary tone="primary" onClick={openAddItemForm}>เพิ่มอุปกรณ์</MinimalButton>}
-              <MinimalButton primary tone="success" onClick={() => openClassicAction('inventory')}>คลังเต็ม</MinimalButton>
+              <MinimalButton primary tone="success" onClick={exportNextInventoryCSV}>Export CSV</MinimalButton>
+              <MinimalButton onClick={() => openClassicAction('inventory')}>เครื่องมือเดิม</MinimalButton>
             </div>
           }
         />
@@ -17195,7 +17238,7 @@ S.N.: ${item.sn || '-'}
             const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
             const statusTone = item.status === 'available' ? 'success' : item.status === 'out-for-event' ? 'warning' : item.status === 'maintenance' ? 'danger' : 'primary';
             return (
-              <button key={item.id} type="button" onClick={() => openClassicAction(null, () => setShowHistory(item.id))} className={`rounded-[1.6rem] border p-4 text-left ${nextSoftTone(statusTone)} hover:-translate-y-1 transition-all`}>
+              <button key={item.id} type="button" onClick={() => openNextItemProfile(item.id)} className={`rounded-[1.6rem] border p-4 text-left ${nextSoftTone(statusTone)} hover:-translate-y-1 transition-all`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="font-black text-lg truncate">{item.name || '-'}</div>
@@ -17210,6 +17253,211 @@ S.N.: ${item.sn || '-'}
         </section>
       </div>
     );
+
+    const renderNextItemProfile = () => {
+      const item = items.find(x => x.id === nextItemProfileId);
+      if (!item) {
+        return (
+          <div className="space-y-5">
+            <SectionHeader
+              kicker="ITEM PROFILE"
+              title="ไม่พบอุปกรณ์"
+              desc="รายการนี้อาจถูกลบหรือยังไม่ได้โหลดข้อมูล"
+              action={<MinimalButton onClick={() => setNextPage('inventory')}>กลับคลัง</MinimalButton>}
+            />
+          </div>
+        );
+      }
+
+      const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0] || {};
+      const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0] || {};
+      const assetInfo = getAssetStatusInfo(item.assetStatus);
+      const missingLabels = getMissingDataLabels(item);
+      const proofCount = getItemProofCount(item);
+      const itemHistory = Array.isArray(item.history) ? [...item.history].reverse() : [];
+      const itemDocs = (borrowเอกสารs || []).filter(doc => {
+        const ids = [
+          ...(Array.isArray(doc.itemIds) ? doc.itemIds : []),
+          ...(Array.isArray(doc.items) ? doc.items.map(x => x?.id || x?.itemId).filter(Boolean) : [])
+        ];
+        const names = Array.isArray(doc.items) ? doc.items.map(x => String(x?.name || '').toLowerCase()) : [];
+        const queryName = String(item.name || '').toLowerCase();
+        return ids.includes(item.id) || (queryName && names.some(name => name.includes(queryName)));
+      });
+      const itemProofGroups = (filteredProofGroups || []).filter(group => (group.itemRefs || []).some(ref => ref.itemId === item.id));
+      const returnable = item.status === 'borrowed' || item.status === 'out-for-event';
+      const available = item.status === 'available';
+      const statusTone = item.status === 'available' ? 'success' : item.status === 'out-for-event' ? 'warning' : item.status === 'maintenance' ? 'danger' : 'primary';
+
+      const tabs = [
+        ['overview', 'ภาพรวม'],
+        ['history', `ประวัติ ${itemHistory.length}`],
+        ['docs', `เอกสาร ${itemDocs.length}`],
+        ['proofs', `หลักฐาน ${proofCount}`],
+        ['system', 'ข้อมูลระบบ']
+      ];
+
+      const fieldRows = [
+        ['S.N.', item.sn || '-'],
+        ['รหัสสั้น', item.shortCode || item.assetShortCode || item.localCode || '-'],
+        ['หมวดหมู่', item.category || '-'],
+        ['ฝ่าย', deptInfo.label || item.department || '-'],
+        ['ที่เก็บ', item.location || '-'],
+        ['โครงการ', projectDisplayName(item.project)],
+        ['จำนวน', item.quantity || 1],
+        ['QR', item.qrTagged ? 'ติด QR แล้ว' : 'ยังไม่ติด QR']
+      ];
+
+      return (
+        <div className="space-y-5">
+          <SectionHeader
+            kicker="NEXT NATIVE ITEM PROFILE"
+            title={item.name || 'แฟ้มอุปกรณ์'}
+            desc={`แฟ้มอุปกรณ์แบบเว็บใหม่ อ่านข้อมูลจากฐานเดิมโดยตรง • ${item.sn || 'ไม่มี S.N.'}`}
+            action={
+              <div className="flex flex-wrap gap-2">
+                <MinimalButton onClick={() => setNextPage('inventory')}>กลับคลัง</MinimalButton>
+                <MinimalButton primary tone="neutral" onClick={() => copyItemSummary(item)}>คัดลอก</MinimalButton>
+                {canAddEditItems && <MinimalButton primary tone="primary" onClick={() => openClassicAction(null, () => openItemEditor(item))}>แก้ไข</MinimalButton>}
+              </div>
+            }
+          />
+
+          <section className="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-4">
+            <div className={`rounded-[2rem] border p-5 ${nextSoftTone(statusTone)}`}>
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${nextSolidTone(statusTone)}`}>
+                <Icons.Package className="w-7 h-7" />
+              </div>
+              <div className="font-black text-2xl mt-4">{item.name || '-'}</div>
+              <div className="text-sm font-bold mt-1 opacity-75">S.N. {item.sn || '-'} • {item.category || '-'}</div>
+              <div className="flex flex-wrap gap-2 mt-4">
+                <span className={`px-3 py-1.5 rounded-xl text-xs font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                <span className={`px-3 py-1.5 rounded-xl text-xs font-black border ${isDarkMode ? assetInfo.darkColor : assetInfo.color}`}>{assetInfo.label}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mt-5">
+                {available && canUseOperationalTools && <MinimalButton primary tone="primary" onClick={() => { setBorrowReturnMode('borrow'); openClassicAction('borrowReturn'); }}>ยืม</MinimalButton>}
+                {available && canUseOperationalTools && <MinimalButton primary tone="warning" onClick={() => { setBorrowReturnMode('event'); openClassicAction('borrowReturn'); }}>ออกงาน</MinimalButton>}
+                {returnable && canUseOperationalTools && <MinimalButton primary tone="success" onClick={() => { setBorrowReturnMode('return'); openClassicAction('borrowReturn'); }}>รับคืน</MinimalButton>}
+                {canUseOperationalTools && <MinimalButton primary tone="danger" onClick={() => openClassicAction(null, () => openRepairForItem(item))}>แจ้งซ่อม</MinimalButton>}
+              </div>
+            </div>
+
+            <div className={`rounded-[2rem] border overflow-hidden ${nextTheme.panel}`}>
+              <div className={`p-3 sm:p-4 border-b ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+                <div className="flex gap-2 overflow-x-auto custom-scrollbar">
+                  {tabs.map(([id, label]) => (
+                    <button key={id} type="button" onClick={() => setNextItemProfileTab(id)} className={`px-3 py-2 rounded-xl border text-sm font-black whitespace-nowrap ${nextItemProfileTab === id ? nextColor[statusTone] : nextTheme.button}`}>{label}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 sm:p-5">
+                {nextItemProfileTab === 'overview' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                      {[
+                        ['ประวัติ', itemHistory.length],
+                        ['เอกสาร', itemDocs.length],
+                        ['หลักฐาน', proofCount],
+                        ['ข้อมูลควรเติม', missingLabels.length]
+                      ].map(([label, value]) => (
+                        <div key={label} className={`rounded-2xl border p-4 ${nextTheme.panelSoft}`}>
+                          <div className={`text-2xl font-black ${nextTheme.text}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                          <div className={`text-xs font-black mt-1 ${nextTheme.muted}`}>{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {fieldRows.map(([label, value]) => (
+                        <div key={label} className={`rounded-2xl border p-3 ${nextTheme.panelSoft}`}>
+                          <div className={`text-xs font-black ${nextTheme.muted}`}>{label}</div>
+                          <div className={`font-black mt-1 ${nextTheme.text}`}>{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {missingLabels.length > 0 && (
+                      <div className={`rounded-2xl border p-4 ${nextSoftTone('warning')}`}>
+                        <div className="font-black">ข้อมูลที่ควรเติม</div>
+                        <div className="text-sm font-bold mt-1 opacity-75">{missingLabels.join(' • ')}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {nextItemProfileTab === 'history' && (
+                  <div className="space-y-2">
+                    {itemHistory.length === 0 ? <div className={`rounded-2xl border p-8 text-center font-black ${nextTheme.panelSoft} ${nextTheme.muted}`}>ยังไม่มีประวัติ</div> : itemHistory.slice(0, 80).map((h, idx) => (
+                      <div key={idx} className={`rounded-2xl border p-4 ${nextTheme.panelSoft}`}>
+                        <div className={`font-black ${nextTheme.text}`}>{h.action || h.type || h.status || 'บันทึกประวัติ'}</div>
+                        <div className={`text-xs font-bold mt-1 ${nextTheme.muted}`}>{h.date ? new Date(h.date).toLocaleString('th-TH', { hour12: false }) : '-'} • {h.staff || h.by || h.operator || '-'}</div>
+                        {(h.note || h.subject || h.borrower || h.eventName) && <div className={`text-sm font-bold mt-2 ${nextTheme.muted}`}>{h.note || h.subject || h.borrower || h.eventName}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {nextItemProfileTab === 'docs' && (
+                  <div className="space-y-2">
+                    {itemDocs.length === 0 ? <div className={`rounded-2xl border p-8 text-center font-black ${nextTheme.panelSoft} ${nextTheme.muted}`}>ยังไม่มีเอกสารเกี่ยวข้อง</div> : itemDocs.slice(0, 80).map(doc => (
+                      <div key={doc.id || doc.ref} className={`rounded-2xl border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${nextTheme.panelSoft}`}>
+                        <div>
+                          <div className={`font-black ${nextTheme.text}`}>{doc.ref || doc.id || '-'} • {doc.title || doc.type || 'เอกสาร'}</div>
+                          <div className={`text-xs font-bold mt-1 ${nextTheme.muted}`}>{doc.borrower || doc.eventName || doc.subject || '-'} • {doc.date ? new Date(doc.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
+                        </div>
+                        <MinimalButton primary tone="document" onClick={() => openClassicAction(null, () => openBorrowเอกสารพิมพ์(doc))}>พิมพ์/Preview</MinimalButton>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {nextItemProfileTab === 'proofs' && (
+                  <div className="space-y-3">
+                    {itemProofGroups.length === 0 ? <div className={`rounded-2xl border p-8 text-center font-black ${nextTheme.panelSoft} ${nextTheme.muted}`}>ยังไม่มีหลักฐานรูปภาพ</div> : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                        {itemProofGroups.slice(0, 60).map(group => {
+                          const proof = group.proof || {};
+                          const previewSrc = proof.url || proof.thumbUrl || proof.dataUrl || '';
+                          return (
+                            <div key={group.groupId} className={`rounded-2xl border overflow-hidden ${nextTheme.panelSoft}`}>
+                              <button type="button" onClick={() => openProofImage(proof)} className={`w-full h-40 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-100'}`}>
+                                {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-contain" loading="lazy" /> : <div className={`h-full flex items-center justify-center font-black ${nextTheme.muted}`}>ไม่มีภาพตัวอย่าง</div>}
+                              </button>
+                              <div className="p-3">
+                                <div className={`font-black truncate ${nextTheme.text}`}>{group.contextLabel || group.typeLabel || 'หลักฐานรูปภาพ'}</div>
+                                <div className={`text-xs font-bold mt-1 ${nextTheme.muted}`}>{group.date ? new Date(group.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {nextItemProfileTab === 'system' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {[
+                      ['Item ID', item.id],
+                      ['Created', item.createdAt || item.created || '-'],
+                      ['Updated', item.updatedAt || item.updated || '-'],
+                      ['สถานะฐานข้อมูล', item.deleted ? 'อยู่ในถังขยะ/ถูกลบ' : 'ใช้งานอยู่'],
+                      ['ประเภทอุปกรณ์', item.equipmentType || '-'],
+                      ['หมายเหตุ', item.internalNote || item.note || '-']
+                    ].map(([label, value]) => (
+                      <div key={label} className={`rounded-2xl border p-3 ${nextTheme.panelSoft}`}>
+                        <div className={`text-xs font-black ${nextTheme.muted}`}>{label}</div>
+                        <div className={`font-black mt-1 break-words ${nextTheme.text}`}>{String(value || '-')}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
+      );
+    };
 
     const renderMinimalRecords = () => (
       <div className="space-y-5">
@@ -17247,7 +17495,7 @@ S.N.: ${item.sn || '-'}
         {
           title: 'ดูแลระบบ',
           items: [
-            { icon: Icons.ViewGrid, title: 'เครื่องมือทั้งหมด', desc: 'เปิดเครื่องมือเต็ม', tone: 'neutral', action: () => openClassicAction('tools') },
+            { icon: Icons.ViewGrid, title: 'เครื่องมือทั้งหมด', desc: 'เปิดเครื่องมือเดิม', tone: 'neutral', action: () => openClassicAction('tools') },
             { icon: Icons.Settings, title: 'ตั้งค่า', desc: 'ระบบ / บัญชี / หมวดหมู่', tone: 'neutral', action: () => openClassicAction(null, () => { setSettingsTab('overview'); setShowSettings(true); }) },
             { icon: Icons.Package, title: 'โหมดกู้คืน Classic', desc: 'ใช้เฉพาะกรณีต้องกลับระบบเดิม', tone: 'neutral', action: () => switchStockUiMode('classic') }
           ]
@@ -17279,11 +17527,13 @@ S.N.: ${item.sn || '-'}
       ? renderMinimalWork()
       : nextPage === 'inventory'
         ? renderMinimalInventory()
-        : nextPage === 'records'
-          ? renderMinimalRecords()
-          : nextPage === 'more'
-            ? renderMinimalMore()
-            : renderMinimalHome();
+        : nextPage === 'itemProfile'
+          ? renderNextItemProfile()
+          : nextPage === 'records'
+            ? renderMinimalRecords()
+            : nextPage === 'more'
+              ? renderMinimalMore()
+              : renderMinimalHome();
 
     return (
       <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`min-h-screen ${nextTheme.shell}`}>
