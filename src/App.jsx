@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.56.2 STOCK Next Native Operations';
-const APP_UPDATE_NOTE = 'STOCK Next Native Operations: ย้ายหน้า “ทำรายการ” เข้ามาเป็น Next Native สำหรับยืม/ออกงาน/รับคืน เลือกอุปกรณ์ กรอกข้อมูล เช็กของ แนบหลักฐาน และบันทึกผ่าน engine เดิมได้ใน Next โดยไม่ต้องเปิดหน้า Classic สำหรับงานหลัก';
+const APP_VERSION = 'v22.57.0 STOCK Next Full Native Completion Pack';
+const APP_UPDATE_NOTE = 'STOCK Next Full Native Completion Pack: ย้ายภาพรวมการใช้งานทั้งหมดมาอยู่ใน STOCK Next เป็นหลัก ทั้งทำรายการ คลัง แฟ้มอุปกรณ์ เอกสาร หลักฐาน ซ่อม รายงาน และดูแลระบบ ลดการพาไป Classic ให้เหลือเป็นโหมดกู้คืนฉุกเฉิน โดยใช้ฐานข้อมูลเดิมทั้งหมด';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -16974,7 +16974,9 @@ S.N.: ${item.sn || '-'}
       { id: 'work', label: 'ทำรายการ', icon: Icons.UserPlus, tone: 'warning' },
       { id: 'inventory', label: 'คลัง', icon: Icons.Database, tone: 'success' },
       { id: 'records', label: 'เอกสาร', icon: Icons.ClipboardList, tone: 'document' },
-      { id: 'more', label: 'เพิ่มเติม', icon: Icons.ViewGrid, tone: 'neutral' }
+      { id: 'maintenance', label: 'ซ่อม', icon: Icons.Settings, tone: 'danger' },
+      { id: 'reports', label: 'รายงาน', icon: Icons.Monitor, tone: 'document' },
+      { id: 'admin', label: 'ระบบ', icon: Icons.ViewGrid, tone: 'neutral' }
     ];
 
     const openClassicAction = (workspace, callback) => {
@@ -17023,6 +17025,29 @@ S.N.: ${item.sn || '-'}
       a.remove();
       URL.revokeObjectURL(url);
       pushToast('Export CSV สำเร็จ', `ส่งออก ${filteredItems.length.toLocaleString('th-TH')} รายการ`, 'success');
+    };
+
+    const exportNextDocumentsCSV = () => {
+      const headers = ['เลขที่เอกสาร','ประเภท','ชื่อ/เรื่อง','วันที่','จำนวนรายการ','สถานะ'];
+      const rows = (borrowเอกสารs || []).map(doc => [
+        doc.ref || doc.id || '',
+        doc.type || '',
+        doc.borrower || doc.eventName || doc.subject || doc.title || '',
+        doc.date ? new Date(doc.date).toLocaleString('th-TH', { hour12: false }) : '',
+        doc.items?.length || doc.itemIds?.length || 0,
+        doc.statusLabel || doc.status || ''
+      ]);
+      const csv = [headers, ...rows].map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mdec-stock-next-documents-${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      pushToast('Export เอกสารสำเร็จ', `ส่งออก ${(borrowเอกสารs || []).length.toLocaleString('th-TH')} เอกสาร`, 'success');
     };
 
     const minimalSearchItems = filteredItems.slice(0, nextPage === 'inventory' ? 24 : 8);
@@ -17689,66 +17714,244 @@ S.N.: ${item.sn || '-'}
       );
     };
 
-    const renderMinimalRecords = () => (
-      <div className="space-y-5">
-        <SectionHeader
-          kicker="RECORDS"
-          title="เอกสารและประวัติ"
-          desc="รวมงานย้อนหลังไว้ให้เลือกแบบชัด ๆ ไม่โชว์ทุกอย่างพร้อมกัน"
-        />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <MainAction icon={Icons.ClipboardList} title="เอกสารย้อนหลัง" desc={`${borrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร`} tone="document" onClick={() => { setRecordsCenterMode('docs'); openClassicAction('records'); }} />
-          <MainAction icon={Icons.History} title="ประวัติส่วนกลาง" desc={`${filteredHistoryCenterEntries.length.toLocaleString('th-TH')} รายการ`} tone="primary" onClick={() => { setRecordsCenterMode('history'); openClassicAction('records'); }} />
-          <MainAction icon={Icons.Camera} title="หลักฐานรูปภาพ" desc={`${filteredProofGroups.length.toLocaleString('th-TH')} กลุ่มรูป`} tone="document" onClick={() => { setRecordsCenterMode('proofs'); openClassicAction('records'); }} />
-        </div>
-      </div>
-    );
-
-    const renderMinimalMore = () => {
-      const groups = [
-        {
-          title: 'ระบบงาน',
-          items: [
-            { icon: Icons.Settings, title: 'ซ่อมบำรุง', desc: 'แจ้งซ่อม / ติดตามซ่อม', tone: 'danger', action: () => openClassicAction(null, () => openRepairCenter('open')) },
-            { icon: Icons.CheckCircle, title: 'ตรวจนับ', desc: 'Physical Audit', tone: 'success', action: () => openClassicAction('stockCount') },
-            { icon: Icons.Monitor, title: 'รายงาน', desc: 'สรุป / พิมพ์ / CSV', tone: 'document', action: () => openClassicAction('reports') }
-          ]
-        },
-        {
-          title: 'จัดการข้อมูล',
-          items: [
-            { icon: Icons.Folder, title: 'โครงการจัดซื้อ', desc: 'จัดกลุ่มตามโครงการ', tone: 'primary', action: () => openClassicAction('projects') },
-            { icon: Icons.Layers, title: 'กล่อง / เซ็ต', desc: 'เตรียมของและจัดเก็บ', tone: 'warning', action: () => openClassicAction('organize') },
-            { icon: Icons.Database, title: 'Backup / ปิดปี', desc: 'สำรองข้อมูล', tone: 'neutral', action: () => openClassicAction(null, () => setShowBackupCenterModal(true)) }
-          ]
-        },
-        {
-          title: 'ดูแลระบบ',
-          items: [
-            { icon: Icons.ViewGrid, title: 'เครื่องมือทั้งหมด', desc: 'เปิดเครื่องมือเดิม', tone: 'neutral', action: () => openClassicAction('tools') },
-            { icon: Icons.Settings, title: 'ตั้งค่า', desc: 'ระบบ / บัญชี / หมวดหมู่', tone: 'neutral', action: () => openClassicAction(null, () => { setSettingsTab('overview'); setShowSettings(true); }) },
-            { icon: Icons.Package, title: 'โหมดกู้คืน Classic', desc: 'ใช้เฉพาะกรณีต้องกลับระบบเดิม', tone: 'neutral', action: () => switchStockUiMode('classic') }
-          ]
-        }
-      ];
+    const renderMinimalRecords = () => {
+      const recordView = recordsCenterMode;
+      const recentDocs = filteredBorrowเอกสารs.slice(0, 120);
+      const recentHistory = filteredHistoryCenterEntries.slice(0, 120);
+      const recentProofs = filteredProofGroups.slice(0, 80);
 
       return (
         <div className="space-y-5">
           <SectionHeader
-            kicker="MORE"
-            title="เพิ่มเติม"
-            desc="ฟังก์ชันรองถูกเก็บไว้เป็นหมวด เพื่อให้หน้าแรกไม่รก"
+            kicker="NEXT NATIVE RECORDS"
+            title="เอกสาร / ประวัติ / หลักฐาน"
+            desc="หน้าเอกสารแบบ Next Native ค้น ดู พิมพ์ Export และเปิดแฟ้มได้จากเว็บใหม่"
+            action={
+              <div className="flex flex-wrap gap-2">
+                <MinimalButton primary tone="document" onClick={exportNextDocumentsCSV}>Export เอกสาร</MinimalButton>
+                <MinimalButton onClick={() => openClassicAction('records')}>โหมดกู้คืน</MinimalButton>
+              </div>
+            }
           />
-          {groups.map(group => (
-            <section key={group.title} className={`rounded-[2rem] border p-4 sm:p-5 ${nextTheme.panel}`}>
-              <div className={`font-black text-xl mb-3 ${nextTheme.text}`}>{group.title}</div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {group.items.map(item => (
-                  <MainAction key={item.title} icon={item.icon} title={item.title} desc={item.desc} tone={item.tone} onClick={item.action} />
+
+          <section className={`rounded-[2rem] border p-3 sm:p-4 ${nextTheme.panel}`}>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                ['docs', 'เอกสาร', borrowเอกสารs.length, 'document'],
+                ['history', 'ประวัติ', filteredHistoryCenterEntries.length, 'primary'],
+                ['proofs', 'หลักฐาน', filteredProofGroups.length, 'document']
+              ].map(([id, label, count, tone]) => (
+                <button key={id} type="button" onClick={() => setRecordsCenterMode(id)} className={`rounded-2xl border p-3 text-left font-black ${recordView === id ? nextColor[tone] : nextSoftTone(tone)}`}>
+                  <div className="text-2xl font-black">{Number(count || 0).toLocaleString('th-TH')}</div>
+                  <div className="text-xs font-black mt-1 opacity-80">{label}</div>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {recordView === 'docs' && (
+            <section className={`rounded-[2rem] border overflow-hidden ${nextTheme.panel}`}>
+              <div className={`p-4 border-b grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+                <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border ${nextTheme.input}`}>
+                  <Icons.Search className={`w-5 h-5 ${nextTheme.muted}`} />
+                  <input value={borrowDocSearch} onChange={e => setBorrowDocSearch(e.target.value)} className="bg-transparent outline-none w-full font-black" placeholder="ค้นหาเอกสาร / ผู้ยืม / ชื่องาน / อุปกรณ์" />
+                </div>
+                <select value={borrowDocFilter} onChange={e => setBorrowDocFilter(e.target.value)} className={`px-4 py-3 rounded-2xl border font-black ${nextTheme.input}`}>
+                  <option value="all">เอกสารทั้งหมด</option>
+                  <option value="borrow">ใบยืม</option>
+                  <option value="event">ใบออกงาน</option>
+                  <option value="return">ใบรับคืน</option>
+                  <option value="active">รอคืน</option>
+                  <option value="closed">คืนครบแล้ว</option>
+                </select>
+              </div>
+              <div className="p-3 space-y-2 max-h-[680px] overflow-y-auto custom-scrollbar">
+                {recentDocs.length === 0 ? <div className={`rounded-2xl border p-8 text-center font-black ${nextTheme.panelSoft} ${nextTheme.muted}`}>ไม่พบเอกสาร</div> : recentDocs.map(doc => (
+                  <div key={doc.id || doc.ref} className={`rounded-2xl border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${nextTheme.panelSoft}`}>
+                    <div className="min-w-0">
+                      <div className={`font-black truncate ${nextTheme.text}`}>{doc.ref || doc.id || '-'} • {doc.title || doc.type || 'เอกสาร'}</div>
+                      <div className={`text-xs font-bold mt-1 ${nextTheme.muted}`}>{doc.borrower || doc.eventName || doc.subject || '-'} • {doc.date ? new Date(doc.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <MinimalButton primary tone="document" onClick={() => openBorrowเอกสารพิมพ์(doc)}>พิมพ์</MinimalButton>
+                      <MinimalButton onClick={() => { setHistoryCenterSearch(doc.ref || doc.borrower || doc.eventName || ''); setRecordsCenterMode('history'); }}>ดูประวัติ</MinimalButton>
+                    </div>
+                  </div>
                 ))}
               </div>
             </section>
-          ))}
+          )}
+
+          {recordView === 'history' && (
+            <section className={`rounded-[2rem] border overflow-hidden ${nextTheme.panel}`}>
+              <div className={`p-4 border-b grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+                <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border ${nextTheme.input}`}>
+                  <Icons.Search className={`w-5 h-5 ${nextTheme.muted}`} />
+                  <input value={historyCenterSearch} onChange={e => setHistoryCenterSearch(e.target.value)} className="bg-transparent outline-none w-full font-black" placeholder="ค้นหาประวัติ / S.N. / ผู้ยืม / งาน" />
+                </div>
+                <select value={historyCenterFilter} onChange={e => setHistoryCenterFilter(e.target.value)} className={`px-4 py-3 rounded-2xl border font-black ${nextTheme.input}`}>
+                  <option value="all">ทุกประเภท</option>
+                  <option value="borrow">ยืม</option>
+                  <option value="event">ออกงาน</option>
+                  <option value="return">รับคืน</option>
+                  <option value="repair">ซ่อม/ชำรุด</option>
+                </select>
+              </div>
+              <div className="p-3 space-y-2 max-h-[680px] overflow-y-auto custom-scrollbar">
+                {recentHistory.length === 0 ? <div className={`rounded-2xl border p-8 text-center font-black ${nextTheme.panelSoft} ${nextTheme.muted}`}>ไม่พบประวัติ</div> : recentHistory.map(entry => (
+                  <div key={entry.id} className={`rounded-2xl border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${nextTheme.panelSoft}`}>
+                    <div className="min-w-0">
+                      <div className={`font-black truncate ${nextTheme.text}`}>{entry.itemName || '-'}</div>
+                      <div className={`text-xs font-bold mt-1 ${nextTheme.muted}`}>{entry.typeLabel || entry.historyType || '-'} • {entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
+                      <div className={`text-xs font-bold mt-1 ${nextTheme.muted}`}>{entry.subject || '-'} • {entry.staff || '-'}</div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {entry.itemId && <MinimalButton primary tone="primary" onClick={() => openNextItemProfile(entry.itemId, 'history')}>เปิดแฟ้ม</MinimalButton>}
+                      <MinimalButton onClick={() => openProofAttachFromHistoryCenter(entry)}>เพิ่มรูป</MinimalButton>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {recordView === 'proofs' && (
+            <section className={`rounded-[2rem] border overflow-hidden ${nextTheme.panel}`}>
+              <div className={`p-4 border-b grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+                <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border ${nextTheme.input}`}>
+                  <Icons.Search className={`w-5 h-5 ${nextTheme.muted}`} />
+                  <input value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} className="bg-transparent outline-none w-full font-black" placeholder="ค้นหาหลักฐาน / อุปกรณ์ / S.N. / หมายเหตุ" />
+                </div>
+                <select value={proofCenterFilter} onChange={e => setProofCenterFilter(e.target.value)} className={`px-4 py-3 rounded-2xl border font-black ${nextTheme.input}`}>
+                  <option value="all">หลักฐานทั้งหมด</option>
+                  <option value="borrow">การยืม</option>
+                  <option value="event">ออกงาน</option>
+                  <option value="return">รับคืน</option>
+                  <option value="repair">ซ่อม / ชำรุด</option>
+                  <option value="noNote">ยังไม่มีหมายเหตุ</option>
+                </select>
+              </div>
+              <div className="p-3 max-h-[720px] overflow-y-auto custom-scrollbar">
+                {recentProofs.length === 0 ? <div className={`rounded-2xl border p-8 text-center font-black ${nextTheme.panelSoft} ${nextTheme.muted}`}>ไม่พบหลักฐาน</div> : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                    {recentProofs.map(group => {
+                      const proof = group.proof || {};
+                      const previewSrc = proof.url || proof.thumbUrl || proof.dataUrl || '';
+                      return (
+                        <div key={group.groupId} className={`rounded-2xl border overflow-hidden ${nextTheme.panelSoft}`}>
+                          <button type="button" onClick={() => openProofImage(proof)} className={`w-full h-44 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-100'}`}>
+                            {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-contain" loading="lazy" /> : <div className={`h-full flex items-center justify-center font-black ${nextTheme.muted}`}>ไม่มีภาพตัวอย่าง</div>}
+                          </button>
+                          <div className="p-3">
+                            <div className={`font-black truncate ${nextTheme.text}`}>{group.itemRefs?.map(ref => ref.itemName).slice(0,2).join(' • ') || 'หลักฐาน'}</div>
+                            <div className={`text-xs font-bold mt-1 ${nextTheme.muted}`}>{group.date ? new Date(group.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
+                            {group.itemRefs?.[0]?.itemId && <button type="button" onClick={() => openNextItemProfile(group.itemRefs[0].itemId, 'proofs')} className={`mt-3 px-3 py-2 rounded-xl border text-xs font-black ${nextTheme.button}`}>เปิดแฟ้ม</button>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+        </div>
+      );
+    };
+
+    const renderNextMaintenance = () => {
+      const repairItems = items.filter(item => item && !item.isDeleted && (item.status === 'maintenance' || item.assetStatus === 'repair' || item.assetStatus === 'damaged')).slice(0, 120);
+      const repairHistory = filteredHistoryCenterEntries.filter(entry => String(entry.historyType || entry.type || '').includes('repair') || String(entry.typeLabel || '').includes('ซ่อม')).slice(0, 80);
+
+      return (
+        <div className="space-y-5">
+          <SectionHeader
+            kicker="NEXT NATIVE MAINTENANCE"
+            title="ซ่อมบำรุง"
+            desc={`ติดตามอุปกรณ์ซ่อมและประวัติซ่อมจากข้อมูลเดิม • ${repairItems.length.toLocaleString('th-TH')} รายการ`}
+            action={<MinimalButton onClick={() => openClassicAction(null, () => openRepairCenter('open'))}>โหมดกู้คืนซ่อม</MinimalButton>}
+          />
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <MainAction icon={Icons.Alert} title="อุปกรณ์ซ่อมอยู่" desc={`${repairItems.length.toLocaleString('th-TH')} รายการ`} tone="danger" onClick={() => { setFilterStatus('maintenance'); setNextPage('inventory'); }} />
+            <MainAction icon={Icons.History} title="ประวัติซ่อม" desc={`${repairHistory.length.toLocaleString('th-TH')} รายการล่าสุด`} tone="warning" onClick={() => { setHistoryCenterFilter('repair'); setRecordsCenterMode('history'); setNextPage('records'); }} />
+            <MainAction icon={Icons.Settings} title="เปิดศูนย์ซ่อมเดิม" desc="สำหรับงานละเอียดหรือแก้ไขเฉพาะทาง" tone="neutral" onClick={() => openClassicAction(null, () => openRepairCenter('open'))} />
+          </section>
+          <section className={`rounded-[2rem] border overflow-hidden ${nextTheme.panel}`}>
+            <div className={`p-4 border-b ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+              <div className={`font-black text-xl ${nextTheme.text}`}>รายการซ่อม/ชำรุด</div>
+            </div>
+            <div className="p-3 space-y-2 max-h-[620px] overflow-y-auto custom-scrollbar">
+              {repairItems.length === 0 ? <div className={`rounded-2xl border p-8 text-center font-black ${nextSoftTone('success')}`}>ยังไม่มีอุปกรณ์ซ่อมอยู่</div> : repairItems.map(item => (
+                <button key={item.id} type="button" onClick={() => openNextItemProfile(item.id, 'overview')} className={`w-full rounded-2xl border p-4 text-left ${nextSoftTone('danger')}`}>
+                  <div className="font-black truncate">{item.name || '-'}</div>
+                  <div className="text-xs font-bold mt-1 opacity-75">S.N. {item.sn || '-'} • {item.location || '-'} • {item.category || '-'}</div>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      );
+    };
+
+    const renderNextReports = () => {
+      const reportCards = [
+        ['อุปกรณ์ทั้งหมด', stats.all, 'primary'],
+        ['พร้อมใช้', stats.available, 'success'],
+        ['รอคืน', currentBorrowedItems.length + currentEventItems.length, 'warning'],
+        ['เลยกำหนด', overdueItems.length, 'danger'],
+        ['เอกสาร', borrowเอกสารs.length, 'document'],
+        ['หลักฐาน', filteredProofGroups.length, 'document']
+      ];
+      return (
+        <div className="space-y-5">
+          <SectionHeader
+            kicker="NEXT NATIVE REPORTS"
+            title="รายงาน"
+            desc="หน้าสรุปแบบ Next สำหรับดูภาพรวมและ Export ข้อมูลหลัก"
+            action={
+              <div className="flex flex-wrap gap-2">
+                <MinimalButton primary tone="success" onClick={exportNextInventoryCSV}>Export คลัง</MinimalButton>
+                <MinimalButton primary tone="document" onClick={exportNextDocumentsCSV}>Export เอกสาร</MinimalButton>
+                <MinimalButton onClick={() => openClassicAction('reports')}>รายงานละเอียด</MinimalButton>
+              </div>
+            }
+          />
+          <section className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+            {reportCards.map(([label, value, tone]) => (
+              <div key={label} className={`rounded-2xl border p-4 ${nextSoftTone(tone)}`}>
+                <div className="text-3xl font-black">{Number(value || 0).toLocaleString('th-TH')}</div>
+                <div className="text-xs font-black mt-1 opacity-75">{label}</div>
+              </div>
+            ))}
+          </section>
+          <section className={`rounded-[2rem] border p-4 sm:p-5 ${nextTheme.panel}`}>
+            <div className={`font-black text-xl ${nextTheme.text}`}>รายงานที่ใช้บ่อย</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+              <MainAction icon={Icons.Database} title="คลังอุปกรณ์" desc="Export CSV จากตัวกรองปัจจุบัน" tone="success" onClick={exportNextInventoryCSV} />
+              <MainAction icon={Icons.ClipboardList} title="เอกสารย้อนหลัง" desc="Export เอกสารทั้งหมด" tone="document" onClick={exportNextDocumentsCSV} />
+              <MainAction icon={Icons.CheckCircle} title="ตรวจนับสต๊อก" desc="เปิดหน้า Physical Audit" tone="primary" onClick={() => openClassicAction('stockCount')} />
+            </div>
+          </section>
+        </div>
+      );
+    };
+
+    const renderNextAdmin = () => {
+      return (
+        <div className="space-y-5">
+          <SectionHeader
+            kicker="NEXT SYSTEM"
+            title="ดูแลระบบ"
+            desc="รวมงานดูแลระบบไว้ใน Next และเก็บโหมดกู้คืนไว้เฉพาะที่จำเป็น"
+          />
+          <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            <MainAction icon={Icons.Settings} title="ตั้งค่า" desc="หมวด ที่เก็บ บัญชี เอกสาร" tone="neutral" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} />
+            <MainAction icon={Icons.Database} title="Backup / ปิดปี" desc="สำรองข้อมูลและเตรียมปิดปี" tone="neutral" onClick={() => setShowBackupCenterModal(true)} />
+            <MainAction icon={Icons.Folder} title="โครงการจัดซื้อ" desc="จัดกลุ่มอุปกรณ์ตามโครงการ" tone="primary" onClick={() => openClassicAction('projects')} />
+            <MainAction icon={Icons.Layers} title="กล่อง / เซ็ต" desc="เตรียมของและจัดเก็บ" tone="warning" onClick={() => openClassicAction('organize')} />
+            <MainAction icon={Icons.ViewGrid} title="เครื่องมือเดิม" desc="ใช้เฉพาะกรณีฟังก์ชัน Next ยังไม่ครอบคลุม" tone="neutral" onClick={() => openClassicAction('tools')} />
+            <MainAction icon={Icons.Package} title="โหมดกู้คืน Classic" desc="ใช้เฉพาะกรณีต้องกลับระบบเดิม" tone="neutral" onClick={() => switchStockUiMode('classic')} />
+          </section>
         </div>
       );
     };
@@ -17761,9 +17964,13 @@ S.N.: ${item.sn || '-'}
           ? renderNextItemProfile()
           : nextPage === 'records'
             ? renderMinimalRecords()
-            : nextPage === 'more'
-              ? renderMinimalMore()
-              : renderMinimalHome();
+            : nextPage === 'maintenance'
+              ? renderNextMaintenance()
+              : nextPage === 'reports'
+                ? renderNextReports()
+                : nextPage === 'admin'
+                  ? renderNextAdmin()
+                  : renderMinimalHome();
 
     return (
       <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`min-h-screen ${nextTheme.shell}`}>
