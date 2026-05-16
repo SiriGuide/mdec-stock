@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.43 Mobile Essential / Permission Guard Polish';
+const APP_VERSION = 'v22.53.44 Desktop Shortcut Consolidation Polish';
 const APP_UPDATE_NOTE = 'Repair / Maintenance Center Polish: เพิ่มศูนย์ซ่อม/บำรุงรักษา สรุปงานซ่อม ฟิลเตอร์งานค้าง/ส่งซ่อม/เสร็จแล้ว/เสียซ้ำ Export CSV และรายงาน A4 พร้อมฟอร์มแจ้งซ่อมละเอียดขึ้น โดยไม่แตะ QR Scanner/กล้อง/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -6244,6 +6244,19 @@ button[class*="orange"]:not(:disabled) {
   }
 }
 
+
+/* v22.53.44 Desktop Shortcut Consolidation Polish */
+.shortcut-consolidated-card {
+  min-height: 100%;
+}
+.shortcut-consolidated-card .shortcut-mini-btn {
+  min-height: 44px;
+}
+@media (min-width: 1024px) {
+  .shortcut-consolidated-card {
+    min-height: 222px;
+  }
+}
 
 /* v22.53.41 Home Classic Comfort Polish */
 .home-comfort-toolbar {
@@ -16445,30 +16458,22 @@ S.N.: ${item.sn || '-'}
 
               <div>
                 <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.History className="w-5 h-5 text-sky-500" /> Daily Operations</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <button type="button" onClick={() => { setShowMoreMenu(false); openWorkspace('borrowReturn'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.UserPlus className="w-5 h-5" /> ยืม / ออกงาน / รับคืน</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวม flow ทำรายการหลักไว้ที่เดียว</p>
+                  </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); openTrackingCenter('today'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                    <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ติดตามการคืนงาน</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ติดตามยืม/คืน/ออกงาน</p>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ติดตามของรอคืน</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>วันนี้ / เลยกำหนด / ตามผู้ยืม</p>
+                  </button>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); openSelectionScanner({ camera: true }); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> สแกน QR</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกอุปกรณ์ / เช็กของเร็ว</p>
                   </button>
                   <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.พิมพ์er className="w-5 h-5" /> เอกสารย้อนหลัง</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ใบยืม ใบออกงาน ค้นหาและพิมพ์ซ้ำ</p>
-                  </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); openSelectionScanner({ camera: true }); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                    <div className="font-black text-lg flex items-center gap-2"><Icons.QrCode className="w-5 h-5" /> โหมดสแกนเร็ว</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สแกนเพื่อเลือกอุปกรณ์</p>
-                  </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setProofCenterFilter('all'); setProofCenterSearch(''); setShowProofCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                    <div className="font-black text-lg flex items-center gap-2"><Icons.Camera className="w-5 h-5" /> หลักฐานรูปภาพ</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูและจัดการรูปหลักฐาน</p>
-                  </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setHistoryCenterFilter('all'); setHistoryCenterSearch(''); setShowHistoryCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                    <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> ประวัติส่วนกลาง</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นหายืม/คืน/ออกงานทุกอุปกรณ์ และเพิ่มหลักฐานย้อนหลัง</p>
-                  </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setBorrowReturnMode('return'); openWorkspace('borrowReturn'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                    <div className="font-black text-lg flex items-center gap-2"><Icons.CheckCircle className="w-5 h-5" /> รับคืนเร็ว</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เปิดหน้า flow รับคืนจากมือถือ</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นหาและพิมพ์ซ้ำ</p>
                   </button>
                 </div>
               </div>
@@ -16840,18 +16845,20 @@ S.N.: ${item.sn || '-'}
           </div>
 
           <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-            <div className="font-black mb-3">ทางลัดประจำวัน</div>
-            <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => openTrackingCenter('today')} className={`p-3 rounded-xl border text-left font-black ${theme.btnSecondary}`}>ติดตามคืน<span className={`block text-[11px] mt-1 font-bold ${theme.textMuted}`}>วันนี้/เลยกำหนด</span></button>
-              <button type="button" onClick={() => { setBorrowReturnMode('return'); openWorkspace('borrowReturn'); }} className={`p-3 rounded-xl border text-left font-black ${theme.btnSecondary}`}>รับคืน<span className={`block text-[11px] mt-1 font-bold ${theme.textMuted}`}>ทำรายการเร็ว</span></button>
-              <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`p-3 rounded-xl border text-left font-black ${theme.btnSecondary}`}>เอกสาร<span className={`block text-[11px] mt-1 font-bold ${theme.textMuted}`}>พิมพ์ซ้ำ/ค้นหา</span></button>
-              <button type="button" onClick={() => openMainProofCenter({ reset: true })} className={`p-3 rounded-xl border text-left font-black ${theme.btnSecondary}`}>หลักฐาน<span className={`block text-[11px] mt-1 font-bold ${theme.textMuted}`}>ดูรูปทั้งหมด</span></button>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="font-black">ทางลัดประจำวัน</div>
+              <span className={`px-2.5 py-1 rounded-lg text-[11px] font-black border ${isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>รวมปุ่มซ้ำแล้ว</span>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`p-3 rounded-xl border text-left font-black ${theme.btnSecondary}`}>ยืม / ออกงาน / รับคืน<span className={`block text-[11px] mt-1 font-bold ${theme.textMuted}`}>ทำรายการหลักในหน้าเดียว</span></button>
+              <button type="button" onClick={() => openTrackingCenter('today')} className={`p-3 rounded-xl border text-left font-black ${theme.btnSecondary}`}>ติดตามของรอคืน<span className={`block text-[11px] mt-1 font-bold ${theme.textMuted}`}>วันนี้ / เลยกำหนด / คัดลอกตามของ</span></button>
+              <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`p-3 rounded-xl border text-left font-black ${theme.btnSecondary}`}>เอกสารย้อนหลัง<span className={`block text-[11px] mt-1 font-bold ${theme.textMuted}`}>ค้นหาและพิมพ์ซ้ำ</span></button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ⚡ Daily Quick Actions */}
+      {/* v22.53.44 Desktop Shortcut Consolidation */}
       <div className={`home-quick-actions w-full mb-5 rounded-[1.5rem] border shadow-sm overflow-hidden relative ${theme.cardBg}`}>
         <div className={`relative p-4 sm:p-5 border-b overflow-hidden ${theme.divide}`}>
           <div className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50/40'}`}></div>
@@ -16859,71 +16866,71 @@ S.N.: ${item.sn || '-'}
             <div>
               <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>STOCK OPERATIONS</div>
               <h2 className={`text-xl sm:text-2xl font-black mt-1 tracking-tight ${theme.textTitle}`}>ศูนย์ปฏิบัติงานสต็อก</h2>
-              <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>สแกน ค้นหา ยืม-คืน และติดตามงานจากจุดเดียว เหมาะกับใช้งานจริงในศูนย์</p>
+              <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>รวมปุ่มที่ทำหน้าที่คล้ายกันให้เป็นหมวดเดียว ลดปุ่มซ้ำบนหน้าแรก แต่ยังเข้าถึงงานเดิมได้ครบ</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <div className={`text-xs font-black px-3 py-2 rounded-full border ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
                 {APP_VERSION}
               </div>
-              <div className={`text-xs font-black px-3 py-2 rounded-full border ${isDarkMode ? 'bg-emerald-950/50 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
-                พร้อมใช้ {stats.available.toLocaleString('th-TH')}/{stats.all.toLocaleString('th-TH')}
-              </div>
+              <button type="button" onClick={openControlCenter} className={`text-xs font-black px-3 py-2 rounded-full border ${theme.btnSecondary}`}>
+                เมนูทั้งหมด
+              </button>
             </div>
           </div>
         </div>
 
-        <div className="p-4 sm:p-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-8 gap-2.5">
-          {canUseOperationalTools && (
-            <button type="button" onClick={() => openSelectionScanner()} className={`group relative overflow-hidden p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-900 border-slate-900 text-white'}`}>
-              <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center mb-3"><Icons.QrCode className="w-5 h-5" /></div>
-              <div className="font-black text-lg">สแกน QR</div>
-              <div className="text-xs font-bold text-white/80 mt-1">ค้นหา/ทำรายการเร็ว</div>
-            </button>
-          )}
-          {canAddEditItems && (
-            <button type="button" onClick={openAddItemForm} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
-              <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-3"><Icons.Plus className="w-5 h-5" /></div>
-              <div className="font-black text-lg">เพิ่มอุปกรณ์</div>
-              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ของใหม่เข้าระบบ</div>
-            </button>
-          )}
-          <button type="button" onClick={() => openTrackingCenter('today')} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
-            <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mb-3"><Icons.CheckCircle className="w-5 h-5" /></div>
-            <div className="font-black text-lg">ติดตามการคืนงาน</div>
-            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>วันนี้ / ต้องจัดการ</div>
-          </button>
-          <button type="button" onClick={() => setShowQuickReturnModal(true)} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-purple-950/40 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-100 text-purple-700'}`}>
-            <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center mb-3"><Icons.Users className="w-5 h-5" /></div>
+        <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3">
+          <div className={`shortcut-consolidated-card p-4 rounded-3xl border ${isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-100 text-blue-800'}`}>
+            <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-3"><Icons.UserPlus className="w-5 h-5" /></div>
+            <div className="font-black text-lg">ทำรายการอุปกรณ์</div>
+            <div className="text-xs font-bold mt-1 opacity-75">รวม ยืม / ออกงาน / รับคืน ไว้ที่เดียว ไม่ต้องมีปุ่มซ้ำหลายจุด</div>
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              <button type="button" onClick={() => { setBorrowReturnMode('borrow'); openWorkspace('borrowReturn'); }} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-purple-600 text-white font-black text-sm">ยืม</button>
+              <button type="button" onClick={() => { setBorrowReturnMode('event'); openWorkspace('borrowReturn'); }} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-orange-500 text-white font-black text-sm">ออกงาน</button>
+              <button type="button" onClick={() => { setBorrowReturnMode('return'); openWorkspace('borrowReturn'); }} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-sm">รับคืน</button>
+            </div>
+          </div>
+
+          <div className={`shortcut-consolidated-card p-4 rounded-3xl border ${isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-100 text-emerald-800'}`}>
+            <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mb-3"><Icons.History className="w-5 h-5" /></div>
             <div className="font-black text-lg">ติดตามของรอคืน</div>
-            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ดูตามผู้ยืม/งาน</div>
-          </button>
-          <button type="button" onClick={() => openRepairCenter('open')} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
-            <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center mb-3"><Icons.Settings className="w-5 h-5" /></div>
-            <div className="font-black text-lg">ศูนย์ซ่อม</div>
-            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>รอซ่อม/ส่งซ่อม</div>
-          </button>
-          <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-blue-950/40 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-100 text-blue-700'}`}>
-            <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-3"><Icons.พิมพ์er className="w-5 h-5" /></div>
-            <div className="font-black text-lg">เอกสารย้อนหลัง</div>
-            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ใบยืม/ใบออกงาน</div>
-          </button>
-          <button type="button" onClick={() => openMainProofCenter({ reset: true })} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-pink-950/40 border-pink-800 text-pink-200' : 'bg-pink-50 border-pink-100 text-pink-700'}`}>
-            <div className="w-10 h-10 rounded-2xl bg-pink-600 text-white flex items-center justify-center mb-3"><Icons.Camera className="w-5 h-5" /></div>
-            <div className="font-black text-lg">หลักฐานรูปภาพ</div>
-            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>รวมรูปทุกอุปกรณ์</div>
-          </button>
-          <button type="button" onClick={() => openMainHistoryCenter({ reset: true })} className={`group p-4 rounded-2xl text-left border shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all ${isDarkMode ? 'bg-sky-950/40 border-sky-800 text-sky-200' : 'bg-sky-50 border-sky-100 text-sky-700'}`}>
-            <div className="w-10 h-10 rounded-2xl bg-sky-600 text-white flex items-center justify-center mb-3"><Icons.ClipboardList className="w-5 h-5" /></div>
-            <div className="font-black text-lg">ประวัติส่วนกลาง</div>
-            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ค้นทุกยืม/คืน/ออกงาน</div>
-          </button>
+            <div className="text-xs font-bold mt-1 opacity-75">รวม “ติดตามการคืนงาน” กับ “ติดตามของรอคืน” ไว้หมวดเดียว</div>
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              <button type="button" onClick={() => openTrackingCenter('today')} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-sm">วันนี้</button>
+              <button type="button" onClick={() => openTrackingCenter('issues')} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-rose-600 text-white font-black text-sm">เลยกำหนด</button>
+              <button type="button" onClick={() => setShowQuickReturnModal(true)} className={`shortcut-mini-btn col-span-2 px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ดูตามผู้ยืม / งาน</button>
+            </div>
+          </div>
+
+          <div className={`shortcut-consolidated-card p-4 rounded-3xl border ${isDarkMode ? 'bg-indigo-950/25 border-indigo-800 text-indigo-200' : 'bg-indigo-50 border-indigo-100 text-indigo-800'}`}>
+            <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mb-3"><Icons.ClipboardList className="w-5 h-5" /></div>
+            <div className="font-black text-lg">เอกสาร / ประวัติ / หลักฐาน</div>
+            <div className="text-xs font-bold mt-1 opacity-75">รวมปุ่มที่ใช้ย้อนดูข้อมูล ไม่แยกกระจายหลายจุดบนหน้าแรก</div>
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-blue-600 text-white font-black text-sm">เอกสาร</button>
+              <button type="button" onClick={() => openMainHistoryCenter({ reset: true })} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-sky-600 text-white font-black text-sm">ประวัติ</button>
+              <button type="button" onClick={() => openMainProofCenter({ reset: true })} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-pink-600 text-white font-black text-sm">รูป</button>
+            </div>
+          </div>
+
+          <div className={`shortcut-consolidated-card p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`}>
+            <div className="w-11 h-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center mb-3"><Icons.ViewGrid className="w-5 h-5" /></div>
+            <div className="font-black text-lg">เครื่องมือเสริม</div>
+            <div className="text-xs font-bold mt-1 opacity-75">เก็บปุ่มรองไว้รวมกัน เพื่อลดความแน่นของทางลัดประจำวัน</div>
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              {canUseOperationalTools && <button type="button" onClick={() => openSelectionScanner()} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-slate-900 text-white font-black text-sm">สแกน QR</button>}
+              {canAddEditItems && <button type="button" onClick={openAddItemForm} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-blue-600 text-white font-black text-sm">เพิ่มของ</button>}
+              <button type="button" onClick={() => openRepairCenter('open')} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-rose-600 text-white font-black text-sm">ซ่อม</button>
+              <button type="button" onClick={() => openMonthlyReportPage()} className="shortcut-mini-btn px-3 py-2.5 rounded-xl bg-amber-600 text-white font-black text-sm">รายงาน</button>
+            </div>
+          </div>
         </div>
 
         <div className={`px-4 sm:px-5 pb-4 sm:pb-5 grid grid-cols-2 lg:grid-cols-4 gap-2.5`}>
           {[
             ['ต้องคืนวันนี้', dueTodayItems.length, 'emerald', () => openTrackingCenter('today')],
             ['เลยกำหนดคืน', overdueItems.length, 'rose', () => openTrackingCenter('issues')],
-            ['รายการเตรียมของวันนี้', prepTodayLists.length, 'blue', () => setShowPrepListsModal(true)],
+            ['เตรียมของวันนี้', prepTodayLists.length, 'blue', () => setShowPrepListsModal(true)],
             ['ของที่ต้องจัดการ', dailyIssueItems.length, 'amber', () => { setQuickProblemOnly(true); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }]
           ].map(([label, value, tone, action]) => {
             const cls = {
@@ -16952,7 +16959,7 @@ S.N.: ${item.sn || '-'}
           </div>
           <div className="report-action-grid grid grid-cols-2 sm:flex gap-2 shrink-0">
             <button type="button" onClick={() => openMonthlyReportPage()} className="px-4 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black shadow-sm">รายงานเดือนนี้</button>
-            <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เอกสารย้อนหลัง</button>
+            <button type="button" onClick={() => openMainHistoryCenter({ reset: true })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ประวัติส่วนกลาง</button>
             <button type="button" onClick={() => { setShowMoreMenu(false); setShowระบบHealthModal(true); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ตรวจสุขภาพ</button>
           </div>
         </div>
