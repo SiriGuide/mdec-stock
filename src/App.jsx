@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.53.45 Visual System / Overview Declutter Reset';
-const APP_UPDATE_NOTE = 'Visual System / Overview Declutter Reset: ปรับภาษา UI ทั้งเว็บให้เข้ากันมากขึ้น ลดความรกหน้า Overview ซ่อนก้อนที่ซ้ำ ลด gradient/สี/เงาที่แย่งสายตา ทำให้ค้นหาอุปกรณ์และงานประจำวันเป็นพระเอก โดยไม่รื้อ flow หลัก ไม่แตะ QR Scanner/กล้อง/Firebase path/ฐานข้อมูล';
+const APP_VERSION = 'v22.53.42 Top Search First Polish';
+const APP_UPDATE_NOTE = 'Repair / Maintenance Center Polish: เพิ่มศูนย์ซ่อม/บำรุงรักษา สรุปงานซ่อม ฟิลเตอร์งานค้าง/ส่งซ่อม/เสร็จแล้ว/เสียซ้ำ Export CSV และรายงาน A4 พร้อมฟอร์มแจ้งซ่อมละเอียดขึ้น โดยไม่แตะ QR Scanner/กล้อง/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6245,320 +6245,19 @@ button[class*="orange"]:not(:disabled) {
 }
 
 
-/* v22.53.45 Visual System / Overview Declutter Reset */
-.visual-system-v45 {
-  --vs-bg: #f6f7fb;
-  --vs-card: rgba(255,255,255,.96);
-  --vs-card-solid: #ffffff;
-  --vs-border: rgba(15,23,42,.10);
-  --vs-border-soft: rgba(15,23,42,.07);
-  --vs-text: #0f172a;
-  --vs-muted: #64748b;
-  --vs-blue: #2563eb;
-  --vs-green: #059669;
-  --vs-amber: #d97706;
-  --vs-red: #dc2626;
-  --vs-shadow: 0 18px 44px rgba(15,23,42,.055);
-  --vs-shadow-soft: 0 8px 24px rgba(15,23,42,.04);
-  background:
-    radial-gradient(circle at 16% -8%, rgba(37,99,235,.10), transparent 30%),
-    linear-gradient(180deg, #fbfcff 0%, var(--vs-bg) 100%) !important;
+/* v22.53.42 Top Search First Polish */
+.top-stock-search-card {
+  scroll-margin-top: 88px;
 }
-
-.visual-system-v45[data-polish-theme="dark"] {
-  --vs-bg: #020617;
-  --vs-card: rgba(15,23,42,.94);
-  --vs-card-solid: #0f172a;
-  --vs-border: rgba(148,163,184,.17);
-  --vs-border-soft: rgba(148,163,184,.11);
-  --vs-text: #f8fafc;
-  --vs-muted: #94a3b8;
-  --vs-blue: #60a5fa;
-  --vs-green: #34d399;
-  --vs-amber: #fbbf24;
-  --vs-red: #fb7185;
-  --vs-shadow: 0 18px 48px rgba(0,0,0,.28);
-  --vs-shadow-soft: 0 8px 26px rgba(0,0,0,.18);
-  background:
-    radial-gradient(circle at 16% -8%, rgba(59,130,246,.16), transparent 30%),
-    linear-gradient(180deg, #020617 0%, #0b1120 100%) !important;
-}
-
-/* Global visual language */
-.visual-system-v45 :is(.rounded-\[1\.5rem\], .rounded-\[1\.6rem\], .rounded-\[1\.75rem\], .rounded-\[2rem\], .rounded-3xl) {
-  border-color: var(--vs-border) !important;
-}
-.visual-system-v45 :is(.shadow-sm, .shadow-md, .shadow-xl, .shadow-2xl) {
-  box-shadow: var(--vs-shadow-soft) !important;
-}
-.visual-system-v45 :is(button, input, select, textarea) {
-  border-radius: 14px !important;
-}
-.visual-system-v45 :is(input, select, textarea):focus {
-  box-shadow: 0 0 0 4px rgba(37,99,235,.11) !important;
-  border-color: rgba(37,99,235,.45) !important;
-}
-.visual-system-v45 button {
-  touch-action: manipulation;
-}
-.visual-system-v45 button:not(:disabled) {
-  transition: transform .14s ease, box-shadow .14s ease, background .14s ease, border-color .14s ease !important;
-}
-.visual-system-v45 button:not(:disabled):active {
-  transform: scale(.985);
-}
-
-/* Sidebar clean language */
-@media (min-width: 1024px) {
-  .visual-system-v45 aside.hidden.lg\:flex {
-    background: #0b1220 !important;
-    border-right-color: rgba(255,255,255,.08) !important;
-    box-shadow: 16px 0 36px rgba(15,23,42,.16) !important;
-  }
-  .visual-system-v45 aside.hidden.lg\:flex nav button {
-    min-height: 46px !important;
-    border-radius: 14px !important;
-  }
-  .visual-system-v45 aside.hidden.lg\:flex nav button:not(.bg-gradient-to-r) {
-    color: #cbd5e1 !important;
-  }
-  .visual-system-v45 aside.hidden.lg\:flex nav button:not(.bg-gradient-to-r):hover {
-    background: rgba(255,255,255,.07) !important;
-    color: #fff !important;
-  }
-  .visual-system-v45 aside.hidden.lg\:flex .bg-gradient-to-r {
-    background: #2563eb !important;
-    box-shadow: 0 12px 28px rgba(37,99,235,.24) !important;
-  }
-}
-
-/* Overview declutter: keep command, search, stock list. Push secondary centers to menus. */
-.visual-system-v45 .home-quick-actions,
-.visual-system-v45 .report-dashboard-card {
-  display: none !important;
-}
-.visual-system-v45 .home-command-center .home-command-scroll {
-  display: none !important;
-}
-.visual-system-v45 .home-command-center {
-  background: var(--vs-card) !important;
-  border-color: var(--vs-border) !important;
-  box-shadow: var(--vs-shadow) !important;
-  border-radius: 24px !important;
-  margin-bottom: 18px !important;
-}
-.visual-system-v45 .home-command-center::before {
-  opacity: .28 !important;
-}
-.visual-system-v45 .home-command-grid {
-  grid-template-columns: minmax(0,1.15fr) minmax(300px,.85fr) !important;
-  gap: 14px !important;
-}
-.visual-system-v45 .home-command-card,
-.visual-system-v45 .home-command-center .rounded-3xl,
-.visual-system-v45 .home-command-center .rounded-2xl {
-  border-color: var(--vs-border-soft) !important;
-  box-shadow: none !important;
-}
-
-/* Master bar: quieter, cleaner, less noisy */
-.visual-system-v45 .real-use-masterbar {
-  background: var(--vs-card) !important;
-  border-color: var(--vs-border) !important;
-  box-shadow: var(--vs-shadow) !important;
-  border-radius: 24px !important;
-}
-.visual-system-v45 .real-use-masterbar::before {
-  opacity: .35 !important;
-  background:
-    radial-gradient(circle at 0 0, rgba(37,99,235,.13), transparent 28%),
-    radial-gradient(circle at 100% 0, rgba(5,150,105,.09), transparent 30%) !important;
-}
-.visual-system-v45 .real-use-masterbar h2,
-.visual-system-v45 .home-command-center h2 {
-  letter-spacing: -.045em !important;
-}
-.visual-system-v45 .master-status-pill {
-  background: transparent !important;
-  border-color: var(--vs-border-soft) !important;
-}
-.visual-system-v45 .master-action-grid button,
-.visual-system-v45 .realuse-filter-actions button {
-  box-shadow: none !important;
-  min-height: 44px !important;
-}
-
-/* Stock summary and search area as the visual center */
-.visual-system-v45 #home-stock-list-section {
-  margin-bottom: 16px !important;
-}
-.visual-system-v45 #home-stock-list-section > div,
-.visual-system-v45 #home-stock-list-section button {
-  background: var(--vs-card-solid) !important;
-  border-color: var(--vs-border-soft) !important;
-  box-shadow: var(--vs-shadow-soft) !important;
-  border-radius: 18px !important;
-}
-.visual-system-v45 .final-polish-card {
-  background: var(--vs-card) !important;
-  border-color: var(--vs-border) !important;
-  box-shadow: var(--vs-shadow) !important;
-  border-radius: 22px !important;
-}
-.visual-system-v45 .stock-realuse-hint {
-  background: transparent !important;
-}
-
-/* Tables and list readability */
-.visual-system-v45 .stock-table-compact {
-  border-collapse: separate !important;
-  border-spacing: 0 !important;
-  overflow: hidden !important;
-  border-color: var(--vs-border) !important;
-}
-.visual-system-v45 .stock-table-compact thead tr {
-  background: rgba(248,250,252,.94) !important;
-}
-.visual-system-v45[data-polish-theme="dark"] .stock-table-compact thead tr {
-  background: rgba(15,23,42,.96) !important;
-}
-.visual-system-v45 .stock-table-compact th {
-  color: var(--vs-muted) !important;
-  font-size: 12px !important;
-  letter-spacing: .03em !important;
-  text-transform: uppercase !important;
-}
-.visual-system-v45 .stock-table-compact tbody tr:hover {
-  background: rgba(239,246,255,.75) !important;
-}
-.visual-system-v45[data-polish-theme="dark"] .stock-table-compact tbody tr:hover {
-  background: rgba(30,41,59,.86) !important;
-}
-
-/* Modal and secondary centers should feel same system */
-.visual-system-v45 .fixed .rounded-\[2rem\],
-.visual-system-v45 .fixed .rounded-\[1\.75rem\] {
-  border-color: var(--vs-border) !important;
-  box-shadow: 0 24px 70px rgba(15,23,42,.18) !important;
-}
-.visual-system-v45[data-polish-theme="dark"] .fixed .rounded-\[2rem\],
-.visual-system-v45[data-polish-theme="dark"] .fixed .rounded-\[1\.75rem\] {
-  box-shadow: 0 24px 80px rgba(0,0,0,.50) !important;
-}
-
-/* Mobile stays stable, just soften spacing */
-@media (max-width: 1023px) {
-  .visual-system-v45 .home-command-center .home-command-scroll {
-    display: flex !important;
-  }
-  .visual-system-v45 .home-quick-actions,
-  .visual-system-v45 .report-dashboard-card {
-    display: none !important;
-  }
+.top-stock-search-card input {
+  min-height: 48px;
 }
 @media (max-width: 640px) {
-  .visual-system-v45 .real-use-masterbar,
-  .visual-system-v45 .home-command-center,
-  .visual-system-v45 .final-polish-card {
-    border-radius: 20px !important;
+  .top-stock-search-card input {
+    min-height: 54px;
+    font-size: 16px;
   }
 }
-
-/* v22.53.44 STOCK Real-Use Continuation Polish */
-.real-use-masterbar .master-action-grid button,
-.final-polish-card button {
-  transition: transform .14s ease, box-shadow .14s ease, filter .14s ease;
-}
-.real-use-masterbar .master-action-grid button:hover,
-.final-polish-card button:hover {
-  transform: translateY(-1px);
-}
-.stock-realuse-hint {
-  border-style: dashed !important;
-}
-@media (min-width: 1024px) {
-  .factory-stock-polish .stock-table-compact thead th {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    backdrop-filter: blur(10px);
-  }
-  .factory-stock-polish .stock-table-compact tbody tr {
-    scroll-margin-top: 96px;
-  }
-}
-@media (max-width: 640px) {
-  .final-polish-card .realuse-filter-actions {
-    grid-template-columns: repeat(2,minmax(0,1fr));
-  }
-}
-
-/* v22.53.43 STOCK Best Possible Real-Use Master Polish */
-.real-use-masterbar {
-  position: relative;
-  isolation: isolate;
-}
-.real-use-masterbar .master-action-grid button {
-  min-height: 46px;
-}
-.real-use-masterbar .master-status-pill {
-  min-height: 38px;
-}
-.real-use-masterbar::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 0 0, rgba(59,130,246,.12), transparent 34%), radial-gradient(circle at 100% 0, rgba(16,185,129,.10), transparent 32%);
-  pointer-events: none;
-  z-index: -1;
-}
-.home-comfort-compact .real-use-masterbar {
-  margin-bottom: .75rem !important;
-}
-@media (max-width: 640px) {
-  .real-use-masterbar .master-action-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  .real-use-masterbar .master-status-row {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-/* v22.53.42 STOCK 10/10 Final Usability Polish Pack */
-.final-polish-card,
-.final-usability-strip {
-  border-radius: 24px;
-}
-.final-usability-strip button,
-.final-polish-card button {
-  min-height: 44px;
-}
-.final-polish-card:focus-within,
-.final-usability-strip:focus-within {
-  outline: 2px solid rgba(59,130,246,.18);
-  outline-offset: 2px;
-}
-.stock-table-compact tbody tr:focus-within {
-  outline: 2px solid rgba(59,130,246,.22);
-  outline-offset: -2px;
-}
-.stock-table-compact button,
-.mobile-stock-card button {
-  touch-action: manipulation;
-}
-@media (max-width: 640px) {
-  .final-usability-strip {
-    border-radius: 20px;
-  }
-  .final-usability-strip .final-mobile-two {
-    grid-template-columns: 1fr 1fr;
-  }
-  .stock-table-compact button,
-  .mobile-stock-card button {
-    min-height: 42px;
-  }
-}
-
 
 /* v22.53.41 Home Classic Comfort Polish */
 .home-comfort-toolbar {
@@ -11299,30 +10998,17 @@ S.N.: ${item.sn || '-'}
 
   const getTrackingText = (item = {}) => {
     const dateInfo = getReturnTrackingDateInfo(item);
-    const holder = item.status === 'out-for-event'
-      ? `งาน/กิจกรรม: ${item.currentEvent || item.eventName || '-'}`
+    const subject = item.status === 'out-for-event'
+      ? `งาน: ${item.currentEvent || item.eventName || '-'}`
       : `ผู้ยืม: ${item.currentBorrower || item.borrower || '-'}`;
-    const staffText = item.staffOut ? `\nเจ้าหน้าที่ผู้ให้ยืม/นำออก: ${item.staffOut}` : '';
-    const noteText = item.currentNote ? `\nหมายเหตุ: ${item.currentNote}` : '';
-    const urgency = dateInfo.tone === 'rose' ? 'รบกวนติดตามคืนด่วนครับ' : dateInfo.tone === 'amber' ? 'ครบกำหนดคืนวันนี้ครับ' : 'รบกวนเช็กกำหนดคืนตามรายการครับ';
-    return [
-      `แจ้งติดตามอุปกรณ์ MDEC: ${item.name || '-'}`,
-      item.sn ? `S.N. ${item.sn}` : '',
-      holder,
-      `กำหนดคืน: ${dateInfo.dueText}`,
-      `สถานะ: ${dateInfo.label}${dateInfo.daysText ? ` • ${dateInfo.daysText}` : ''}`,
-      staffText.trim(),
-      noteText.trim(),
-      urgency,
-      'จากระบบ MDEC Stock'
-    ].filter(Boolean).join('\n');
+    return `แจ้งเตือนคืนอุปกรณ์: ${item.name || '-'}${item.sn ? ` (S.N. ${item.sn})` : ''}\n${subject}\nกำหนดคืน: ${dateInfo.dueText}\nสถานะ: ${dateInfo.label}${dateInfo.daysText ? ` • ${dateInfo.daysText}` : ''}\nจากระบบ MDEC Stock`;
   };
 
   const copyReturnTrackingMessage = async (item) => {
     const text = getTrackingText(item);
     try {
       await navigator.clipboard.writeText(text);
-      pushToast('คัดลอกข้อความติดตามแล้ว', 'พร้อมส่งต่อใน LINE/แชททีมได้เลย', 'success');
+      pushToast('คัดลอกข้อความติดตามแล้ว พร้อมส่ง LINE ได้เลย', 'success');
     } catch (error) {
       window.prompt('คัดลอกข้อความนี้เพื่อนำไปส่งต่อ', text);
     }
@@ -11331,16 +11017,14 @@ S.N.: ${item.sn || '-'}
   const copyDailyOperationSummary = async () => {
     const text = [
       'สรุปงานวันนี้จากระบบ MDEC Stock',
-      `• ต้องคืนวันนี้: ${dueTodayItems.length} รายการ`,
-      `• เลยกำหนดคืน: ${overdueItems.length} รายการ`,
-      `• รอคืนทั้งหมด: ${(currentBorrowedItems.length + currentEventItems.length)} รายการ`,
-      `• ออกงานอยู่: ${currentEventItems.length} รายการ`,
-      `• เตรียมของวันนี้: ${prepTodayLists.length} รายการ`,
-      `• ซ่อม/ชำรุด: ${stats.maintenance} รายการ`,
-      `• ข้อมูลควรเติม: ${dataQualityAudit.issueItemCount} รายการ`,
+      `- ต้องคืนวันนี้: ${dueTodayItems.length} รายการ`,
+      `- เลยกำหนดคืน: ${overdueItems.length} รายการ`,
+      `- รอคืนทั้งหมด: ${(currentBorrowedItems.length + currentEventItems.length)} รายการ`,
+      `- ออกงานอยู่: ${currentEventItems.length} รายการ`,
+      `- เตรียมของวันนี้: ${prepTodayLists.length} รายการ`,
+      `- ข้อมูลควรเติม: ${dataQualityAudit.issueItemCount} รายการ`,
       '',
-      overdueItems.length ? 'รายการเลยกำหนดควรติดตามก่อนปิดวันครับ' : 'วันนี้ไม่มีรายการเลยกำหนดคืนครับ',
-      'ดูรายละเอียดได้ที่หน้าแรก / ศูนย์ติดตามของรอคืน'
+      'ตรวจสอบรายละเอียดได้ที่ Dashboard / ศูนย์ติดตามของรอคืน'
     ].join('\n');
     try {
       await navigator.clipboard.writeText(text);
@@ -13027,12 +12711,6 @@ S.N.: ${item.sn || '-'}
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('BR');
       const selectedBorrowItems = packingChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
-      const skippedBorrowCount = Math.max(0, packingChecklist.length - selectedBorrowItems.length);
-      if (selectedBorrowItems.length === 0) {
-        pushToast('ยังไม่มีอุปกรณ์พร้อมใช้ในรายการยืม', 'รายการที่เลือกอาจถูกยืมอยู่ ออกงานอยู่ หรืออยู่ระหว่างซ่อม กรุณาตรวจสถานะก่อนบันทึก', 'warning');
-        alert('ยังไม่มีอุปกรณ์ที่พร้อมใช้สำหรับบันทึกยืม กรุณาตรวจสถานะรายการที่เลือกก่อน');
-        return;
-      }
       const documentSnapshot = makeBorrowเอกสารSnapshot({
         type: 'borrow',
         ref: docRef,
@@ -13059,7 +12737,7 @@ S.N.: ${item.sn || '-'}
       setSelectedItems([]); 
       setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setBorrowProofFiles([]);
-      pushToast(skippedBorrowCount ? 'บันทึกยืมสำเร็จบางส่วน' : 'บันทึกยืมสำเร็จ', `สร้างเอกสาร ${docRef} • บันทึก ${selectedBorrowItems.length} รายการ${skippedBorrowCount ? ` • ข้ามผิดสถานะ ${skippedBorrowCount} รายการ` : ''}`, skippedBorrowCount ? 'warning' : 'success');
+      pushToast('บันทึกยืมสำเร็จ', `สร้างเอกสาร ${docRef} • ${selectedBorrowItems.length} รายการ`, 'success');
       alert('✅ บันทึกการยืมเรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
@@ -13091,12 +12769,6 @@ S.N.: ${item.sn || '-'}
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('EV');
       const selectedEventItems = eventChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
-      const skippedEventCount = Math.max(0, eventChecklist.length - selectedEventItems.length);
-      if (selectedEventItems.length === 0) {
-        pushToast('ยังไม่มีอุปกรณ์พร้อมใช้ในรายการออกงาน', 'รายการที่เลือกอาจถูกยืมอยู่ ออกงานอยู่ หรืออยู่ระหว่างซ่อม กรุณาตรวจสถานะก่อนบันทึก', 'warning');
-        alert('ยังไม่มีอุปกรณ์ที่พร้อมใช้สำหรับบันทึกออกงาน กรุณาตรวจสถานะรายการที่เลือกก่อน');
-        return;
-      }
       const documentSnapshot = makeBorrowเอกสารSnapshot({
         type: 'event',
         ref: docRef,
@@ -13123,7 +12795,7 @@ S.N.: ${item.sn || '-'}
       setSelectedItems([]); 
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setEventProofFiles([]);
-      pushToast(skippedEventCount ? 'บันทึกออกงานสำเร็จบางส่วน' : 'บันทึกออกงานสำเร็จ', `สร้างเอกสาร ${docRef} • บันทึก ${selectedEventItems.length} รายการ${skippedEventCount ? ` • ข้ามผิดสถานะ ${skippedEventCount} รายการ` : ''}`, skippedEventCount ? 'warning' : 'success');
+      pushToast('บันทึกออกงานสำเร็จ', `สร้างเอกสาร ${docRef} • ${selectedEventItems.length} รายการ`, 'success');
       alert('✅ บันทึกการนำออกงานเรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
@@ -13151,7 +12823,7 @@ S.N.: ${item.sn || '-'}
       const uploadedProofs = await uploadProofsOrConfirm(returnProofFiles, `หลักฐานรับคืน • ${finalStaff || ''}`);
       const returnDocDate = new Date().toISOString();
       const returnDocRef = makeเอกสารRef('RT');
-      let selectedReturnItems = returnChecklist.map(id => {
+      const selectedReturnItems = returnChecklist.map(id => {
         const item = items.find(i => i.id === id);
         const inspection = returnInspection[id] || { condition: 'ปกติ', note: '' };
         return item ? {
@@ -13165,18 +12837,10 @@ S.N.: ${item.sn || '-'}
           storageBoxName: item.storageBoxName || '',
           internalNote: item.internalNote || '',
           quantity: item.quantity || 1,
-          status: item.status || '',
           returnCondition: inspection.condition || 'ปกติ',
           returnNote: inspection.note || ''
         } : null;
       }).filter(Boolean);
-      const skippedReturnCount = selectedReturnItems.filter(i => i.status !== 'borrowed' && i.status !== 'out-for-event').length;
-      selectedReturnItems = selectedReturnItems.filter(i => i.status === 'borrowed' || i.status === 'out-for-event');
-      if (selectedReturnItems.length === 0) {
-        pushToast('ยังไม่มีอุปกรณ์ที่รอรับคืน', 'รายการที่เลือกอาจพร้อมใช้อยู่แล้วหรืออยู่สถานะอื่น กรุณาตรวจสถานะก่อนบันทึก', 'warning');
-        alert('ยังไม่มีอุปกรณ์ที่สามารถรับคืนได้ในรายการนี้');
-        return;
-      }
       const returnDocumentSnapshot = {
         id: returnDocRef,
         ref: returnDocRef,
@@ -13200,7 +12864,7 @@ S.N.: ${item.sn || '-'}
         source: 'MDEC-Stock'
       };
       const newHistoryEntry = { type: 'return', date: returnDocDate, documentId: returnDocRef, documentRef: returnDocRef, staffIn: finalStaff, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
-      const promises = selectedReturnItems.map(({ id }) => {
+      const promises = returnChecklist.map(id => {
         const item = items.find(i => i.id === id);
         if (!item || (item.status !== 'borrowed' && item.status !== 'out-for-event')) return Promise.resolve();
         returnedNames.push(item.name);
@@ -13256,8 +12920,7 @@ S.N.: ${item.sn || '-'}
       setReturnData({ staff: '', newStaff: '' });
       setReturnInspection({});
       setReturnProofFiles([]);
-      const remainReturnCount = Math.max(0, returnTargetIds.length - selectedReturnItems.length);
-      pushToast(selectedReturnItems.length < returnTargetIds.length ? 'รับคืนบางส่วนสำเร็จ' : 'รับคืนสำเร็จ', `สร้างเอกสาร ${returnDocRef} • รับคืน ${selectedReturnItems.length} รายการ${remainReturnCount ? ` • ยังเหลือ/ข้าม ${remainReturnCount} รายการ` : ''}${skippedReturnCount ? ` • ข้ามผิดสถานะ ${skippedReturnCount} รายการ` : ''}`, selectedReturnItems.length < returnTargetIds.length ? 'warning' : 'success');
+      pushToast(returnChecklist.length < returnTargetIds.length ? 'รับคืนบางส่วนสำเร็จ' : 'รับคืนสำเร็จ', `สร้างเอกสาร ${returnDocRef} • รับคืน ${returnChecklist.length} รายการ`, returnChecklist.length < returnTargetIds.length ? 'warning' : 'success');
       alert('✅ รับคืนอุปกรณ์เรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
@@ -16315,7 +15978,7 @@ S.N.: ${item.sn || '-'}
                 <Icons.Monitor className="w-6 h-6 text-cyan-200" />
               </div>
               <div className="min-w-0">
-                <div className="mc-top-title text-xl font-black tracking-tight text-white truncate">TODAY COMMAND</div>
+                <div className="mc-top-title text-xl font-black tracking-tight text-white truncate">MDEC COMMAND CENTER</div>
                 <div className="mc-top-sub text-xs font-black tracking-[.18em] text-cyan-300/75 uppercase truncate">LIVE INVENTORY CONTROL • {APP_VERSION}</div>
               </div>
             </div>
@@ -16472,7 +16135,7 @@ S.N.: ${item.sn || '-'}
   }
 
   return (
-    <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish visual-system-v45 min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain} ${homeCompactMode ? 'home-comfort-compact' : ''}`}>
+    <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain} ${homeCompactMode ? 'home-comfort-compact' : ''}`}>
       <FactoryPolishStyle isDarkMode={isDarkMode} />
       {/* FactoryStock Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-72 bg-slate-950 text-white flex-col border-r border-white/10">
@@ -16912,38 +16575,59 @@ S.N.: ${item.sn || '-'}
       )}
 
 
-      {/* v22.53.43 Real-Use Master Bar: รวมโหมดกระชับ + งานด่วน + ค้นหา ไว้ในแถบเดียว */}
-      <section className={`real-use-masterbar w-full mb-4 rounded-[1.6rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-        <div className="p-4 sm:p-5 grid grid-cols-1 2xl:grid-cols-[1fr_auto] gap-4 items-center">
-          <div className="min-w-0">
-            <div className={`text-xs font-black tracking-[0.2em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>STOCK CLEAN OVERVIEW</div>
-            <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>ภาพรวมสั้นลง ใช้งานจริงชัดขึ้น</h2>
-            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>
-              หน้า Overview จะเน้นเฉพาะงานสำคัญ: ค้นหาอุปกรณ์ ยืม-คืน รับคืนด่วน และรายการที่ต้องจัดการ
-            </p>
-            <div className="master-status-row grid grid-cols-2 sm:flex gap-2 mt-3">
-              <span className={`master-status-pill px-3 py-2 rounded-2xl border text-xs font-black flex items-center justify-center ${isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
-                พร้อมใช้ {stats.available.toLocaleString('th-TH')}/{stats.all.toLocaleString('th-TH')}
-              </span>
-              <span className={`master-status-pill px-3 py-2 rounded-2xl border text-xs font-black flex items-center justify-center ${(currentBorrowedItems.length + currentEventItems.length) ? (isDarkMode ? 'bg-purple-950/35 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-700') : (isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600')}`}>
-                รอคืน {(currentBorrowedItems.length + currentEventItems.length).toLocaleString('th-TH')}
-              </span>
-              <span className={`master-status-pill px-3 py-2 rounded-2xl border text-xs font-black flex items-center justify-center ${overdueItems.length ? (isDarkMode ? 'bg-rose-950/45 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700') : (isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600')}`}>
-                เลยกำหนด {overdueItems.length.toLocaleString('th-TH')}
-              </span>
-              <span className={`master-status-pill px-3 py-2 rounded-2xl border text-xs font-black flex items-center justify-center ${homeCompactMode ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>
-                {homeCompactMode ? 'โหมดกระชับ' : 'โหมดธรรมดา'}
-              </span>
+      {/* v22.53.42 Top Search First / Home Classic Comfort Toolbar */}
+      <section id="top-stock-search" className={`top-stock-search-card home-comfort-toolbar w-full mb-4 rounded-[1.5rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+        <div className={`p-4 sm:p-5 ${isDarkMode ? 'bg-gradient-to-br from-slate-950 to-blue-950/20' : 'bg-gradient-to-br from-blue-50 to-white'}`}>
+          <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4 mb-4">
+            <div className="min-w-0">
+              <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>SEARCH FIRST</div>
+              <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>ค้นหาอุปกรณ์ก่อนเลย</h2>
+              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เปิดหน้าแรกมาแล้วค้นชื่อ / S.N. / รหัสสั้น / หมวด / ที่เก็บ ได้ทันที ไม่ต้องเลื่อนลงไปหาตารางก่อน</p>
+            </div>
+            <div className="comfort-action-grid grid grid-cols-2 sm:flex gap-2 shrink-0">
+              <button type="button" onClick={() => setHomeComfortMode(!homeCompactMode)} className={`px-4 py-3 rounded-2xl border font-black ${homeCompactMode ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>
+                {homeCompactMode ? 'โหมดกระชับ: เปิด' : 'โหมดกระชับ: ปิด'}
+              </button>
+              <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ยืม-คืน</button>
+              <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>สแกน QR</button>
             </div>
           </div>
 
-          <div className="master-action-grid grid grid-cols-2 sm:grid-cols-3 2xl:flex gap-2 shrink-0">
-            <button type="button" onClick={scrollToHomeStockList} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">ค้นหาอุปกรณ์</button>
-            <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ยืม-คืน</button>
-            <button type="button" onClick={() => openDailyReturnBatch('urgent')} className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">รับคืนด่วน</button>
-            <button type="button" onClick={() => { setQuickProblemOnly(!quickProblemOnly); scrollToHomeStockList(); }} className={`px-4 py-3 rounded-2xl border font-black ${quickProblemOnly ? 'bg-amber-500 text-white border-amber-500' : theme.btnSecondary}`}>{quickProblemOnly ? 'แสดงทั้งหมด' : 'ต้องจัดการ'}</button>
-            <button type="button" onClick={() => openControlCenter()} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เมนูทั้งหมด</button>
-            <button type="button" onClick={() => setHomeComfortMode(!homeCompactMode)} className={`px-4 py-3 rounded-2xl border font-black ${homeCompactMode ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>{homeCompactMode ? 'โหมดกระชับ' : 'โหมดปกติ'}</button>
+          <div className={`rounded-[1.35rem] border p-3 sm:p-4 ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-white/90 border-slate-200'}`}>
+            <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-3">
+              <label className={`flex items-center gap-3 px-4 py-2 rounded-2xl border ${theme.input}`}>
+                <Icons.Search className={`w-5 h-5 shrink-0 ${theme.textMuted}`} />
+                <input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') scrollToHomeStockList(); }}
+                  className="bg-transparent outline-none w-full font-black text-base sm:text-lg"
+                  placeholder="ค้นหาอุปกรณ์ เช่น Sony, HDMI, S.N., รหัสสั้น, ห้อง, หมวด"
+                />
+              </label>
+              <div className="grid grid-cols-3 sm:flex gap-2">
+                <button type="button" onClick={scrollToHomeStockList} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black">ค้นหา</button>
+                <button type="button" onClick={() => setShowFilterModal(true)} className={`px-4 py-3 rounded-2xl border font-black ${activeFilterCount > 0 ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>ตัวกรอง{activeFilterCount > 0 ? ` ${activeFilterCount}` : ''}</button>
+                <button type="button" onClick={clearAllFilters} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ล้าง</button>
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+              <div className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>
+                ผลลัพธ์ตอนนี้ <span className={`font-black ${theme.textTitle}`}>{filteredItems.length.toLocaleString('th-TH')}</span> รายการ
+                {searchTerm ? <span> • ค้นหา “{searchTerm}”</span> : <span> • พิมพ์คำค้นแล้วกด Enter หรือปุ่มค้นหา</span>}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  ['พร้อมใช้', () => { clearAllFilters(); setFilterStatus('available'); window.setTimeout(scrollToHomeStockList, 50); }],
+                  ['รอคืน', () => { clearAllFilters(); setFilterStatus('borrowed'); window.setTimeout(scrollToHomeStockList, 50); }],
+                  ['ออกงาน', () => { clearAllFilters(); setFilterStatus('out-for-event'); window.setTimeout(scrollToHomeStockList, 50); }],
+                  ['ซ่อม', () => { clearAllFilters(); setFilterStatus('maintenance'); window.setTimeout(scrollToHomeStockList, 50); }]
+                ].map(([label, action]) => (
+                  <button key={label} type="button" onClick={action} className={`px-3 py-1.5 rounded-full border text-xs font-black ${theme.btnSecondary}`}>{label}</button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -16954,12 +16638,12 @@ S.N.: ${item.sn || '-'}
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
             <div className="min-w-0">
               <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-blue-600'}`}>MDEC COMMAND CENTER</div>
-              <h2 className={`text-2xl sm:text-3xl font-black mt-1 tracking-tight ${theme.textTitle}`}>วันนี้ต้องดูอะไร</h2>
-              <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>สรุปเฉพาะงานสำคัญก่อน ส่วนรายงาน/Backup/ศูนย์รองเข้าได้จากเมนูทั้งหมด</p>
+              <h2 className={`text-2xl sm:text-3xl font-black mt-1 tracking-tight ${theme.textTitle}`}>ภาพรวมวันนี้ของศูนย์สต๊อก</h2>
+              <p className={`text-sm sm:text-base font-bold mt-1 ${theme.textMuted}`}>เปิดหน้าแรกแล้วเห็นทันทีว่าควรทำอะไรต่อ เหมาะกับเจ้าหน้าที่ที่ใช้งานบนโทรศัพท์หน้างาน</p>
             </div>
             <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
               <button type="button" onClick={() => openWorkspace('borrowReturn')} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">เริ่มทำรายการ</button>
-              <button type="button" onClick={scrollToHomeStockList} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ค้นหาอุปกรณ์</button>
+              <button type="button" onClick={scrollToHomeStockList} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ลงไปรายการอุปกรณ์</button>
               <button type="button" onClick={() => openControlCenter()} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เมนูทั้งหมด</button>
             </div>
           </div>
@@ -17356,12 +17040,12 @@ S.N.: ${item.sn || '-'}
       {/* 📊 Factory Stock Metrics */}
       <div id="home-stock-list-section" className="home-classic-anchor w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-6">
         {[
-          ['ทั้งหมด', stats.all, 'blue', '•', 'จากข้อมูลทั้งหมด'],
-          ['พร้อมใช้', stats.available, 'emerald', '•', 'พร้อมหยิบใช้งาน'],
-          ['กำลังใช้งาน', stats.inUse, 'amber', '•', 'กำลังใช้งานอยู่'],
-          ['ถูกยืม', stats.borrowed, 'purple', '•', 'รอรับคืน'],
-          ['ออกงาน', stats.outForEvent, 'orange', '•', 'อยู่นอกศูนย์'],
-          ['ซ่อม/ชำรุด', stats.maintenance, 'rose', '•', 'ต้องติดตาม']
+          ['ทั้งหมด', stats.all, 'blue', '📦', 'จากข้อมูลทั้งหมด'],
+          ['พร้อมใช้', stats.available, 'emerald', '✅', 'พร้อมหยิบใช้งาน'],
+          ['กำลังใช้งาน', stats.inUse, 'amber', '⚙️', 'กำลังใช้งานอยู่'],
+          ['ถูกยืม', stats.borrowed, 'purple', '📤', 'รอรับคืน'],
+          ['ออกงาน', stats.outForEvent, 'orange', '🚚', 'อยู่นอกศูนย์'],
+          ['ซ่อม/ชำรุด', stats.maintenance, 'rose', '🛠️', 'ต้องติดตาม']
         ].map(([label, value, tone, emoji, caption]) => {
           const toneMap = {
             blue: isDarkMode ? 'bg-slate-900 border-slate-800 text-blue-300' : 'bg-white border-slate-200 text-blue-600',
@@ -17443,26 +17127,6 @@ S.N.: ${item.sn || '-'}
         )}
       </div>
 
-      {/* v22.53.42 Search / Filter Usability Strip */}
-      <div className={`final-polish-card w-full mb-4 rounded-[1.5rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-        <div className="p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className={`font-black text-lg ${theme.textTitle}`}>ค้นหาอุปกรณ์</div>
-            <div className={`text-sm font-bold mt-0.5 ${theme.textMuted}`}>
-              พบ {filteredItems.length.toLocaleString('th-TH')} รายการจากทั้งหมด {stats.all.toLocaleString('th-TH')} รายการ
-              {quickProblemOnly ? ' • กำลังแสดงเฉพาะรายการที่ต้องจัดการ' : activeFilterCount > 0 ? ` • ใช้ตัวกรอง ${activeFilterCount} รายการ` : ' • พิมพ์ชื่อ / S.N. / รหัสสั้น เพื่อหาเร็ว'}
-            </div>
-          </div>
-          <div className="realuse-filter-actions grid grid-cols-2 sm:flex gap-2 shrink-0">
-            <button type="button" onClick={() => { clearAllFilters(); setFilterStatus('available'); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>พร้อมใช้</button>
-            <button type="button" onClick={() => { clearAllFilters(); setFilterStatus('borrowed'); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ถูกยืม</button>
-            <button type="button" onClick={() => { clearAllFilters(); setFilterStatus('out-for-event'); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ออกงาน</button>
-            <button type="button" onClick={() => setQuickProblemOnly(!quickProblemOnly)} className={`px-4 py-3 rounded-2xl border font-black ${quickProblemOnly ? 'bg-amber-500 text-white border-amber-500' : theme.btnSecondary}`}>{quickProblemOnly ? 'แสดงปกติ' : 'เฉพาะต้องจัดการ'}</button>
-            {hasActiveFilters && <button type="button" onClick={clearAllFilters} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black">ล้างตัวกรอง</button>}
-          </div>
-        </div>
-      </div>
-
       {/* Filters & Search */}
       <div className={`w-full flex flex-col gap-4 ${panelPaddingClass} rounded-[1.5rem] shadow-sm border mb-5 transition-colors ${theme.cardBg}`}>
         <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center w-full">
@@ -17475,10 +17139,6 @@ S.N.: ${item.sn || '-'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </div>
-
-          <div className={`stock-realuse-hint hidden xl:flex items-center px-3 py-2 rounded-xl border text-xs font-black ${quickProblemOnly ? (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700') : (isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500')}`}>
-            {quickProblemOnly ? 'โหมดต้องจัดการเปิดอยู่' : 'ทิป: พิมพ์ S.N. หรือรหัสสั้นจะเจอเร็วสุด'}
           </div>
 
           <div className="grid grid-cols-2 lg:flex gap-2 w-full lg:w-auto">
@@ -17562,7 +17222,7 @@ S.N.: ${item.sn || '-'}
             <div className={`p-5 border-b flex items-start justify-between gap-4 ${theme.divide}`}>
               <div>
                 <h3 className={`text-2xl sm:text-3xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.Settings className="w-7 h-7 text-blue-500" /> ตัวกรองข้อมูล</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมตัวกรองทั้งหมดไว้ที่นี่ ใช้เมื่อต้องค้นละเอียด ส่วนหน้าแรกยังคงใช้งานเร็ว</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมตัวกรองทั้งหมดไว้ที่นี่ หน้าแรกจะได้โล่ง และมือถือกดง่าย</p>
               </div>
               <button type="button" onClick={() => setShowFilterModal(false)} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
