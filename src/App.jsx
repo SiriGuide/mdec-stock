@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.8.8 QR Print Hook Order Hotfix';
-const APP_UPDATE_NOTE = 'QR Print Hook Order Hotfix: แก้ React error #300 ตอนกดพิมพ์ QR โดยย้าย hook ของ Mobile Scanner ให้อยู่ก่อนหน้า print preview/early return ทั้งหมด ทำให้หน้าพิมพ์ QR เปิดได้ปกติและยังคงโหมดมือถือไว้';
+const APP_VERSION = 'v22.57.1.8.9 Mobile Remote Camera Stay Open Fix';
+const APP_UPDATE_NOTE = 'Mobile Remote Camera Stay Open Fix: แก้โหมดมือถือสแกนหลายรายการให้ค้างอยู่หน้า scanner หลังอนุญาตกล้องและหลังสแกนสำเร็จ โดยเปลี่ยน Mobile Remote Scanner ไปใช้ Html5Qrcode แบบ standalone ที่ควบคุมเองแทน Html5QrcodeScanner สำเร็จรูป ไม่เด้งกลับหน้า form จนกดกลับเอง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6288,6 +6288,7 @@ button[class*="orange"]:not(:disabled) {
 .qr-reader-mobile-remote {
   background: #020617;
 }
+.qr-reader-mobile-remote > div { width: 100% !important; }
 .qr-reader-mobile-remote video {
   max-height: 42vh !important;
   border-radius: 18px !important;
@@ -6828,6 +6829,7 @@ function MainApp() {
   const [mobileRemoteScanInput, setMobileRemoteScanInput] = useState('');
   const [mobileRemoteScanMessage, setMobileRemoteScanMessage] = useState({ text: '', type: '' });
   const mobileRemoteQrRef = useRef(null);
+  const mobileRemoteScannerRef = useRef(null);
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
   const [scanMode, setScanMode] = useState('select'); // select | borrowChecklist | eventChecklist | returnChecklist
@@ -15315,6 +15317,13 @@ S.N.: ${item.sn || '-'}
 
 
   const closeMobileRemoteScanner = () => {
+    const scanner = mobileRemoteScannerRef.current;
+    mobileRemoteScannerRef.current = null;
+    if (scanner) {
+      try {
+        scanner.stop?.().catch(() => {}).then(() => scanner.clear?.()).catch(() => {});
+      } catch(e) {}
+    }
     setMobileRemoteScannerOpen(false);
     setMobileRemoteScanInput('');
     setMobileRemoteScanMessage({ text: '', type: '' });
@@ -15395,34 +15404,57 @@ S.N.: ${item.sn || '-'}
   };
 
   useEffect(() => {
-    let scanner = null;
+    let cancelled = false;
+    const readerId = 'mobile-remote-qr-reader';
+
     if (mobileRemoteScannerOpen && mobileRemoteUseCamera && isScannerLoaded) {
-      const readerId = 'mobile-remote-qr-reader';
+      const readerEl = document.getElementById(readerId);
+      if (!readerEl || !window.Html5Qrcode) return;
+
       try {
-        scanner = new window.Html5QrcodeScanner(
-          readerId,
-          {
-            fps: 12,
-            rememberLastUsedCamera: true,
-            aspectRatio: 1.0,
-            disableFlip: false,
-            videoConstraints: { facingMode: { ideal: 'environment' } }
+        readerEl.innerHTML = '';
+        const scanner = new window.Html5Qrcode(readerId, false);
+        mobileRemoteScannerRef.current = scanner;
+
+        const config = {
+          fps: 12,
+          aspectRatio: 1.0,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const minEdge = Math.min(viewfinderWidth || 260, viewfinderHeight || 260);
+            const size = Math.max(180, Math.floor(minEdge * 0.72));
+            return { width: size, height: size };
+          }
+        };
+
+        scanner.start(
+          { facingMode: { ideal: 'environment' } },
+          config,
+          (decodedText) => {
+            if (!cancelled) processMobileRemoteScan(decodedText);
           },
-          false
-        );
-        scanner.render(
-          (decodedText) => processMobileRemoteScan(decodedText),
           () => {}
-        );
+        ).catch((e) => {
+          console.error('Mobile remote camera start error', e);
+          if (!cancelled) {
+            setMobileRemoteScanMessage({ text: '❌ เปิดกล้องสแกนไม่ได้ ลองใช้ช่องกรอกรหัสแทน', type: 'error' });
+            setMobileRemoteUseCamera(false);
+          }
+        });
       } catch(e) {
         console.error('Mobile remote scanner init error', e);
         setMobileRemoteScanMessage({ text: '❌ เปิดกล้องสแกนไม่ได้ ลองใช้ช่องกรอกรหัสแทน', type: 'error' });
         setMobileRemoteUseCamera(false);
       }
     }
+
     return () => {
+      cancelled = true;
+      const scanner = mobileRemoteScannerRef.current;
+      mobileRemoteScannerRef.current = null;
       if (scanner) {
-        scanner.clear().catch(() => {});
+        try {
+          scanner.stop?.().catch(() => {}).then(() => scanner.clear?.()).catch(() => {});
+        } catch(e) {}
       }
     };
   }, [mobileRemoteScannerOpen, mobileRemoteUseCamera, isScannerLoaded, mobileRemoteAction, borrowTargetIds, eventTargetIds, returnTargetIds]);
@@ -17054,7 +17086,7 @@ S.N.: ${item.sn || '-'}
               </button>
             </div>
             <div className={`mt-3 rounded-2xl border p-3 text-xs font-bold ${remoteSoft}`}>
-              สแกนต่อได้เรื่อย ๆ จนครบ ไม่ต้องปิดกล้องทีละชิ้น
+              สแกนต่อได้เรื่อย ๆ จนครบ หน้านี้จะไม่ปิดเองจนกว่าจะกดกลับ
             </div>
           </div>
 
