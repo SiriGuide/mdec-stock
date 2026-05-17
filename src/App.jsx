@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.4.4 QR Scanner In-Page Sidebar Fixed Hotfix';
-const APP_UPDATE_NOTE = 'QR Scanner In-Page Sidebar Fixed Hotfix: แก้ต้นเหตุหน้าสแกน QR หลุดลงล่างจาก CSS ชั้น Elegant ที่ไป override position: fixed ของ sidebar/องค์ประกอบ fixed ทำให้ aside กลับเข้า flow หน้าเว็บ รอบนี้คืน sidebar ให้ fixed จริงและให้ scanner เป็นหน้าในเว็บตามปกติ ไม่แตะ scanner core, camera permission, Firebase path หรือ flow ยืม/คืน/ออกงาน';
+const APP_VERSION = 'v22.57.4.5 Overview Contrast & Hierarchy Polish';
+const APP_UPDATE_NOTE = 'Overview Contrast & Hierarchy Polish: เก็บงานหน้า Overview/Dashboard ให้ดูเป็นระบบขึ้น ปรับ contrast การ์ดสรุปโดยเฉพาะรอคืนทั้งหมดให้เด่นขึ้น จัดน้ำหนัก Staff Workflow/รายการเร่งด่วน/ทางลัดประจำวัน และลดความแน่นของปุ่มด้านบน โดยไม่แตะ QR Scanner core, camera permission, Firebase path หรือ flow ยืม/คืน/ออกงาน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -17786,6 +17786,135 @@ S.N.: ${item.sn || '-'}
 .factory-stock-polish aside nav button:hover {
   transform: translateX(2px);
 }
+
+/* v22.57.4.5 Overview Contrast & Hierarchy Polish - dashboard contrast only, no QR/camera/database/flow changes */
+.factory-stock-polish .overview-daily-command {
+  border-color: rgba(148,163,184,.24) !important;
+  box-shadow: 0 22px 60px rgba(15,23,42,.10), inset 0 1px 0 rgba(255,255,255,.34) !important;
+}
+.factory-stock-polish[data-polish-theme="dark"] .overview-daily-command {
+  border-color: rgba(148,163,184,.18) !important;
+  box-shadow: 0 26px 70px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.05) !important;
+}
+.factory-stock-polish .overview-kpi-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 106px;
+  box-shadow: 0 12px 30px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.34) !important;
+}
+.factory-stock-polish .overview-kpi-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: .92;
+  background: linear-gradient(135deg, rgba(255,255,255,.14), transparent 38%, rgba(255,255,255,.04));
+}
+.factory-stock-polish .overview-kpi-card::after {
+  content: "";
+  position: absolute;
+  right: -24px;
+  top: -34px;
+  width: 86px;
+  height: 86px;
+  border-radius: 999px;
+  z-index: -1;
+  opacity: .42;
+  background: currentColor;
+  filter: blur(8px);
+}
+.factory-stock-polish .overview-kpi-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 20px 46px rgba(37,99,235,.16), inset 0 1px 0 rgba(255,255,255,.38) !important;
+}
+.factory-stock-polish .overview-kpi-value {
+  letter-spacing: -.045em;
+  text-shadow: 0 1px 12px rgba(0,0,0,.10);
+}
+.factory-stock-polish .overview-kpi-label {
+  letter-spacing: -.015em;
+}
+.factory-stock-polish .overview-kpi-desc {
+  opacity: .86 !important;
+}
+.factory-stock-polish .overview-kpi-blue {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 62%, #1e3a8a 100%) !important;
+  border-color: rgba(147,197,253,.52) !important;
+  color: #ffffff !important;
+  box-shadow: 0 18px 42px rgba(37,99,235,.30), inset 0 1px 0 rgba(255,255,255,.26) !important;
+}
+.factory-stock-polish .overview-kpi-blue .overview-kpi-desc,
+.factory-stock-polish .overview-kpi-blue .overview-kpi-label {
+  color: #dbeafe !important;
+}
+.factory-stock-polish .overview-kpi-amber {
+  background: linear-gradient(135deg, rgba(245,158,11,.22), rgba(120,53,15,.12)) !important;
+  border-color: rgba(245,158,11,.38) !important;
+}
+.factory-stock-polish .overview-kpi-rose {
+  background: linear-gradient(135deg, rgba(244,63,94,.22), rgba(136,19,55,.12)) !important;
+  border-color: rgba(244,63,94,.40) !important;
+}
+.factory-stock-polish .overview-kpi-orange {
+  background: linear-gradient(135deg, rgba(249,115,22,.22), rgba(124,45,18,.12)) !important;
+  border-color: rgba(249,115,22,.38) !important;
+}
+.factory-stock-polish .overview-kpi-purple {
+  background: linear-gradient(135deg, rgba(147,51,234,.22), rgba(88,28,135,.12)) !important;
+  border-color: rgba(168,85,247,.38) !important;
+}
+.factory-stock-polish .overview-kpi-slate {
+  background: linear-gradient(135deg, rgba(30,41,59,.92), rgba(2,6,23,.78)) !important;
+  border-color: rgba(148,163,184,.32) !important;
+  color: #f8fafc !important;
+}
+.factory-stock-polish .overview-kpi-slate .overview-kpi-desc,
+.factory-stock-polish .overview-kpi-slate .overview-kpi-label {
+  color: #cbd5e1 !important;
+}
+.factory-stock-polish[data-polish-theme="light"] .overview-kpi-slate {
+  background: linear-gradient(135deg, #0f172a, #1e293b) !important;
+}
+.factory-stock-polish .daily-workflow-card,
+.factory-stock-polish .home-priority-row {
+  position: relative;
+  overflow: hidden;
+  transition: transform .2s var(--mdec-ease), border-color .2s var(--mdec-ease), box-shadow .2s var(--mdec-ease) !important;
+}
+.factory-stock-polish .daily-workflow-card:hover,
+.factory-stock-polish .home-priority-row:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 18px 42px rgba(15,23,42,.13) !important;
+  border-color: rgba(59,130,246,.34) !important;
+}
+.factory-stock-polish .overview-daily-command .rounded-3xl,
+.factory-stock-polish .overview-essential-hero [class*="rounded-"] {
+  border-color: rgba(148,163,184,.20) !important;
+}
+.factory-stock-polish .factory-top-actions {
+  padding: 6px;
+  border-radius: 22px;
+  background: rgba(15,23,42,.04);
+  border: 1px solid rgba(148,163,184,.18);
+}
+.factory-stock-polish[data-polish-theme="dark"] .factory-top-actions {
+  background: rgba(15,23,42,.40);
+  border-color: rgba(148,163,184,.14);
+}
+.factory-stock-polish .factory-top-actions button {
+  min-height: 38px !important;
+  border-radius: 14px !important;
+}
+@media (max-width: 1280px) {
+  .factory-stock-polish .factory-top-actions {
+    max-width: 100%;
+    overflow-x: auto;
+    justify-content: flex-start;
+    scrollbar-width: thin;
+  }
+}
+
 @media (min-width: 1280px) {
   .factory-stock-polish .overview-essential-action { min-height: 132px !important; }
   .factory-stock-polish .overview-mini-stat { min-height: 86px !important; }
@@ -18303,7 +18432,7 @@ S.N.: ${item.sn || '-'}
       </section>
 
       {/* v22.53.30 Dashboard Daily Command Center */}
-      <div className={`w-full mb-5 rounded-[1.8rem] border shadow-sm overflow-hidden relative ${theme.cardBg}`}>
+      <div className={`overview-daily-command w-full mb-5 rounded-[1.8rem] border shadow-sm overflow-hidden relative ${theme.cardBg}`}>
         <div className={`relative p-4 sm:p-5 border-b overflow-hidden ${theme.divide}`}>
           <div className={`absolute inset-0 pointer-events-none ${isDarkMode ? 'bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950/30' : 'bg-gradient-to-br from-blue-50 via-white to-slate-50'}`}></div>
           <div className="relative flex flex-col xl:flex-row xl:items-start justify-between gap-4">
@@ -18338,10 +18467,10 @@ S.N.: ${item.sn || '-'}
               slate: isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
             }[tone];
             return (
-              <button key={label} type="button" onClick={action} className={`p-3.5 rounded-2xl border text-left hover:-translate-y-0.5 transition-all shadow-sm ${cls}`}>
-                <div className="text-2xl sm:text-3xl font-black leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
-                <div className="text-xs sm:text-sm font-black mt-2">{label}</div>
-                <div className="text-[11px] font-bold mt-1 opacity-75 truncate">{desc}</div>
+              <button key={label} type="button" onClick={action} className={`overview-kpi-card overview-kpi-${tone} p-3.5 rounded-2xl border text-left hover:-translate-y-0.5 transition-all shadow-sm ${cls}`}>
+                <div className="overview-kpi-value text-2xl sm:text-3xl font-black leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
+                <div className="overview-kpi-label text-xs sm:text-sm font-black mt-2">{label}</div>
+                <div className="overview-kpi-desc text-[11px] font-bold mt-1 opacity-75 truncate">{desc}</div>
               </button>
             );
           })}
@@ -18473,10 +18602,10 @@ S.N.: ${item.sn || '-'}
                       ? (isDarkMode ? 'bg-purple-950/30 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-800')
                       : (isDarkMode ? 'bg-blue-950/30 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-800');
                 return (
-                  <button key={label} type="button" onClick={action} className={`overview-mini-stat p-4 rounded-2xl border text-left hover:-translate-y-0.5 transition-all shadow-sm ${cls}`}>
-                    <div className="text-3xl font-black leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
-                    <div className="text-xs sm:text-sm font-black mt-2">{label}</div>
-                    <div className="text-[11px] font-bold mt-1 opacity-75">{desc}</div>
+                  <button key={label} type="button" onClick={action} className={`overview-mini-stat overview-kpi-card overview-kpi-${tone} p-4 rounded-2xl border text-left hover:-translate-y-0.5 transition-all shadow-sm ${cls}`}>
+                    <div className="overview-kpi-value text-3xl font-black leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
+                    <div className="overview-kpi-label text-xs sm:text-sm font-black mt-2">{label}</div>
+                    <div className="overview-kpi-desc text-[11px] font-bold mt-1 opacity-75">{desc}</div>
                   </button>
                 );
               })}
