@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.4.3 QR Scanner Workspace Mount Hotfix';
-const APP_UPDATE_NOTE = 'QR Scanner Workspace Mount Hotfix: แก้เมนูสแกน QR ที่เปิดแล้วหน้าว่าง/ตัวสแกนไปอยู่ท้ายหน้า โดยให้เมนู scanner เปิด state สแกนจริงทันทีและปิด state สแกนเมื่อเปลี่ยนหน้าอื่น คงเป็นหน้าในเว็บ ไม่ใช่ overlay และไม่แตะ scanner core, camera permission, flow ยืม/คืน/ออกงาน หรือ Firebase path';
+const APP_VERSION = 'v22.57.4.4 QR Scanner In-Page Sidebar Fixed Hotfix';
+const APP_UPDATE_NOTE = 'QR Scanner In-Page Sidebar Fixed Hotfix: แก้ต้นเหตุหน้าสแกน QR หลุดลงล่างจาก CSS ชั้น Elegant ที่ไป override position: fixed ของ sidebar/องค์ประกอบ fixed ทำให้ aside กลับเข้า flow หน้าเว็บ รอบนี้คืน sidebar ให้ fixed จริงและให้ scanner เป็นหน้าในเว็บตามปกติ ไม่แตะ scanner core, camera permission, Firebase path หรือ flow ยืม/คืน/ออกงาน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6608,7 +6608,7 @@ function MainApp() {
     setShowStorageBoxesModal(false);
     setShowBundleManager(false);
 
-    // v22.57.4.3 QR Scanner Workspace Mount Hotfix
+    // v22.57.4.4 QR Scanner In-Page Sidebar Fixed Hotfix
     // เมนู sidebar/topbar เรียก openWorkspace('scanner') โดยตรงได้
     // จึงต้องเปิด state หน้าสแกนพร้อมกัน ไม่งั้น activeWorkspace เป็น scanner แต่ showScanModal ยัง false แล้วหน้าจะว่าง/ตัวสแกนหลุดไปท้ายหน้า
     if (workspace === 'scanner') {
@@ -17141,7 +17141,7 @@ S.N.: ${item.sn || '-'}
             <Icons.UserPlus className="w-5 h-5" /> ยืม-คืนอุปกรณ์
           </button>
           {canUseOperationalTools && (
-            <button type="button" onClick={() => openSelectionScanner({ camera: true })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+            <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'scanner' ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
               <Icons.QrCode className="w-5 h-5" /> สแกน QR
             </button>
           )}
@@ -17390,7 +17390,7 @@ S.N.: ${item.sn || '-'}
         return (
           <div className="page-workspace-shell qr-scanner-page space-y-5">
             <style>{`
-              /* v22.57.4.3 QR Scanner Workspace Mount Hotfix
+              /* v22.57.4.4 QR Scanner In-Page Sidebar Fixed Hotfix
                  ทำให้หน้าสแกนเป็น workspace ปกติของเว็บ ไม่ใช่ overlay และไม่หลุดไปท้ายหน้า
                  Scope: layout/state only. ไม่แตะ Html5QrcodeScanner, camera permission, flow หรือ Firebase path */
               .factory-stock-polish .qr-scanner-page {
@@ -17593,9 +17593,22 @@ S.N.: ${item.sn || '-'}
     radial-gradient(circle at 86% 12%, rgba(14,165,233,.13), transparent 32%),
     linear-gradient(180deg, rgba(15,23,42,.18), transparent 42%);
 }
-.factory-stock-polish > * {
+/* v22.57.4.4 QR Scanner In-Page Sidebar Fixed Hotfix
+   อย่า override position ของ fixed elements เช่น sidebar/toast/mobile nav
+   เพราะจะทำให้ sidebar กลับเข้า normal flow และดันหน้าสแกน QR ลงไปข้างล่าง */
+.factory-stock-polish > *:not(aside):not(.fixed) {
   position: relative;
   z-index: 1;
+}
+.factory-stock-polish > aside {
+  position: fixed !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  z-index: 30 !important;
+}
+.factory-stock-polish > .fixed {
+  position: fixed !important;
 }
 .factory-stock-polish .factory-topbar {
   padding-top: 18px !important;
