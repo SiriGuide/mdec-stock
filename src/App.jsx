@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.8.9 Mobile Remote Camera Stay Open Fix';
-const APP_UPDATE_NOTE = 'Mobile Remote Camera Stay Open Fix: แก้โหมดมือถือสแกนหลายรายการให้ค้างอยู่หน้า scanner หลังอนุญาตกล้องและหลังสแกนสำเร็จ โดยเปลี่ยน Mobile Remote Scanner ไปใช้ Html5Qrcode แบบ standalone ที่ควบคุมเองแทน Html5QrcodeScanner สำเร็จรูป ไม่เด้งกลับหน้า form จนกดกลับเอง';
+const APP_VERSION = 'v22.57.1.9.0 Mobile Remote Camera Permission Button Fix';
+const APP_UPDATE_NOTE = 'Mobile Remote Camera Permission Button Fix: แก้โหมดสแกนมือถือที่ไม่ขึ้นปุ่มอนุญาตกล้อง โดยให้ Mobile Remote Scanner กลับมาใช้ Html5QrcodeScanner UI เฉพาะใน overlay มือถือ เพื่อให้มีปุ่มขออนุญาตกล้องชัดเจน แต่ยังไม่ใช้ activeWorkspace/showScanModal ของเว็บเต็มและไม่เด้งเข้า form เดิม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6288,6 +6288,16 @@ button[class*="orange"]:not(:disabled) {
 .qr-reader-mobile-remote {
   background: #020617;
 }
+.qr-reader-mobile-remote #mobile-remote-qr-reader__dashboard_section_csr button,
+.qr-reader-mobile-remote button {
+  min-height: 44px !important;
+  border-radius: 14px !important;
+  font-weight: 900 !important;
+}
+.qr-reader-mobile-remote #mobile-remote-qr-reader__scan_region video {
+  border-radius: 18px !important;
+}
+
 .qr-reader-mobile-remote > div { width: 100% !important; }
 .qr-reader-mobile-remote video {
   max-height: 42vh !important;
@@ -15321,7 +15331,7 @@ S.N.: ${item.sn || '-'}
     mobileRemoteScannerRef.current = null;
     if (scanner) {
       try {
-        scanner.stop?.().catch(() => {}).then(() => scanner.clear?.()).catch(() => {});
+        scanner.clear?.().catch(() => {});
       } catch(e) {}
     }
     setMobileRemoteScannerOpen(false);
@@ -15404,56 +15414,49 @@ S.N.: ${item.sn || '-'}
   };
 
   useEffect(() => {
-    let cancelled = false;
+    let scanner = null;
     const readerId = 'mobile-remote-qr-reader';
 
     if (mobileRemoteScannerOpen && mobileRemoteUseCamera && isScannerLoaded) {
       const readerEl = document.getElementById(readerId);
-      if (!readerEl || !window.Html5Qrcode) return;
+      if (!readerEl || !window.Html5QrcodeScanner) return;
 
       try {
         readerEl.innerHTML = '';
-        const scanner = new window.Html5Qrcode(readerId, false);
-        mobileRemoteScannerRef.current = scanner;
-
-        const config = {
-          fps: 12,
-          aspectRatio: 1.0,
-          qrbox: (viewfinderWidth, viewfinderHeight) => {
-            const minEdge = Math.min(viewfinderWidth || 260, viewfinderHeight || 260);
-            const size = Math.max(180, Math.floor(minEdge * 0.72));
-            return { width: size, height: size };
-          }
-        };
-
-        scanner.start(
-          { facingMode: { ideal: 'environment' } },
-          config,
-          (decodedText) => {
-            if (!cancelled) processMobileRemoteScan(decodedText);
+        scanner = new window.Html5QrcodeScanner(
+          readerId,
+          {
+            fps: 12,
+            rememberLastUsedCamera: true,
+            aspectRatio: 1.0,
+            disableFlip: false,
+            videoConstraints: { facingMode: { ideal: 'environment' } },
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const minEdge = Math.min(viewfinderWidth || 260, viewfinderHeight || 260);
+              const size = Math.max(180, Math.floor(minEdge * 0.72));
+              return { width: size, height: size };
+            }
           },
+          false
+        );
+        mobileRemoteScannerRef.current = scanner;
+        scanner.render(
+          (decodedText) => processMobileRemoteScan(decodedText),
           () => {}
-        ).catch((e) => {
-          console.error('Mobile remote camera start error', e);
-          if (!cancelled) {
-            setMobileRemoteScanMessage({ text: '❌ เปิดกล้องสแกนไม่ได้ ลองใช้ช่องกรอกรหัสแทน', type: 'error' });
-            setMobileRemoteUseCamera(false);
-          }
-        });
+        );
       } catch(e) {
         console.error('Mobile remote scanner init error', e);
-        setMobileRemoteScanMessage({ text: '❌ เปิดกล้องสแกนไม่ได้ ลองใช้ช่องกรอกรหัสแทน', type: 'error' });
+        setMobileRemoteScanMessage({ text: '❌ เปิดหน้าสแกนไม่ได้ ลองกด “เปิดกล้องสแกน” อีกครั้ง หรือใช้ช่องกรอกรหัสแทน', type: 'error' });
         setMobileRemoteUseCamera(false);
       }
     }
 
     return () => {
-      cancelled = true;
-      const scanner = mobileRemoteScannerRef.current;
+      const current = mobileRemoteScannerRef.current || scanner;
       mobileRemoteScannerRef.current = null;
-      if (scanner) {
+      if (current) {
         try {
-          scanner.stop?.().catch(() => {}).then(() => scanner.clear?.()).catch(() => {});
+          current.clear?.().catch(() => {});
         } catch(e) {}
       }
     };
@@ -17086,7 +17089,7 @@ S.N.: ${item.sn || '-'}
               </button>
             </div>
             <div className={`mt-3 rounded-2xl border p-3 text-xs font-bold ${remoteSoft}`}>
-              สแกนต่อได้เรื่อย ๆ จนครบ หน้านี้จะไม่ปิดเองจนกว่าจะกดกลับ
+              หากยังไม่เห็นกล้อง ให้กดปุ่มอนุญาต/Request Camera ในกรอบสแกน
             </div>
           </div>
 
@@ -17139,7 +17142,7 @@ S.N.: ${item.sn || '-'}
               เล็ง QR ให้อยู่กลางกรอบ เมื่อสแกนสำเร็จ รายการจะถูกเพิ่มเข้าโหมดมือถืออัตโนมัติ แล้วกด “เสร็จแล้วกลับไปทำรายการ”
             </div>
             <button type="button" onClick={() => setMobileRemoteUseCamera(!mobileRemoteUseCamera)} className={`mt-3 w-full py-3 rounded-2xl border font-black ${remoteSoft}`}>
-              {mobileRemoteUseCamera ? 'ใช้ช่องกรอกรหัสแทน' : 'เปิดกล้องสแกน'}
+              {mobileRemoteUseCamera ? 'ใช้ช่องกรอกรหัสแทน' : 'เปิดกรอบขออนุญาตกล้องอีกครั้ง'}
             </button>
           </div>
         </div>
