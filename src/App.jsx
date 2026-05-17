@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.8.1 Mobile Remote Icon Hotfix';
-const APP_UPDATE_NOTE = 'Mobile Remote Icon Hotfix: แก้ React error #130 จากหน้า Mobile Remote โดยเปลี่ยนไอคอนล็อกอินมือถือให้ใช้ไอคอนที่มีอยู่จริง ทำให้เว็บบนคอมและมือถือกลับมาเปิดได้ปกติ โดยไม่แตะ logic ยืม/คืน/ออกงานหรือฐานข้อมูล';
+const APP_VERSION = 'v22.57.1.8.2 Mobile Remote Scanner Native Hotfix';
+const APP_UPDATE_NOTE = 'Mobile Remote Scanner Native Hotfix: แก้ปุ่มสแกนในโหมดมือถือ ยืม/คืน/ออกงาน ไม่ให้เด้งเข้า scanner หน้าเว็บเต็มที่รก เพิ่มหน้า Scanner แบบมือถือโดยเฉพาะ และให้สแกนแล้วเลือกอุปกรณ์เข้ารายการมือถือโดยตรง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6282,6 +6282,19 @@ button[class*="orange"]:not(:disabled) {
     position: sticky;
     top: 10px;
   }
+}
+
+/* v22.57.1.8.2 Mobile Remote Scanner Native Hotfix */
+.qr-reader-mobile-remote {
+  background: #020617;
+}
+.qr-reader-mobile-remote video {
+  max-height: 42vh !important;
+  border-radius: 18px !important;
+}
+.qr-reader-mobile-remote #qr-reader__scan_region,
+.qr-reader-mobile-remote #qr-reader__dashboard {
+  border-radius: 18px !important;
 }
 
 /* v22.53.47 QR Scanner Page Mode Polish */
@@ -14035,10 +14048,47 @@ S.N.: ${item.sn || '-'}
       } else if (scanMode === 'returnChecklist') {
         markChecklist(returnTargetIds, returnChecklist, setReturnChecklist, 'รับคืน');
       } else {
-        setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-        setScanMessage({ text: `✅ สแกนสำเร็จ: "${foundItem.name}" เพิ่มเข้ารายการแล้ว`, type: 'success' });
-        try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
-        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
+        const isMobileOperationScan = scannerReturnWorkspace === 'mobileRemote' && ['borrow', 'event', 'return'].includes(mobileRemoteAction);
+        if (isMobileOperationScan) {
+          const isReturnMode = mobileRemoteAction === 'return';
+          const canUseForMode = isReturnMode
+            ? (foundItem.status === 'borrowed' || foundItem.status === 'out-for-event')
+            : foundItem.status === 'available';
+
+          if (!canUseForMode) {
+            setScanMessage({
+              text: isReturnMode
+                ? `⚠️ "${foundItem.name}" ยังไม่ใช่รายการที่รอคืน`
+                : `⚠️ "${foundItem.name}" ไม่ได้อยู่ในสถานะพร้อมใช้`,
+              type: 'error'
+            });
+            try { if (navigator?.vibrate) navigator.vibrate([70, 45, 70]); } catch(e){}
+            try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
+            setScanInput('');
+            setTimeout(() => setScanMessage({ text: '', type: '' }), 3400);
+            return;
+          }
+
+          if (mobileRemoteAction === 'event') {
+            setEventTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+            setEventChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+          } else if (mobileRemoteAction === 'return') {
+            setReturnTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+            setReturnChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+          } else {
+            setBorrowTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+            setPackingChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+          }
+
+          setScanMessage({ text: `✅ สแกนสำเร็จ: "${foundItem.name}" เพิ่มเข้า${mobileRemoteAction === 'event' ? 'รายการออกงาน' : mobileRemoteAction === 'return' ? 'รายการรับคืน' : 'รายการยืม'}แล้ว`, type: 'success' });
+          try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
+          try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
+        } else {
+          setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+          setScanMessage({ text: `✅ สแกนสำเร็จ: "${foundItem.name}" เพิ่มเข้ารายการแล้ว`, type: 'success' });
+          try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
+          try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
+        }
       }
     } else {
       setScanMessage({ text: `❌ ไม่พบรหัสนี้: "${val}" ในระบบ`, type: 'error' });
@@ -16756,7 +16806,98 @@ S.N.: ${item.sn || '-'}
     );
   }
 
-    const renderMobileRemoteMode = () => {
+    const renderMobileRemoteScanner = () => {
+    const isOperationScan = ['borrow', 'event', 'return'].includes(mobileRemoteAction);
+    const title = isOperationScan
+      ? mobileRemoteAction === 'event'
+        ? 'สแกนของออกงาน'
+        : mobileRemoteAction === 'return'
+          ? 'สแกนรับคืน'
+          : 'สแกนของยืม'
+      : 'สแกน QR';
+    const hint = isOperationScan
+      ? 'สแกนแล้วระบบจะเพิ่มอุปกรณ์เข้ารีโมตมือถือทันที'
+      : 'สแกนเพื่อเลือกอุปกรณ์';
+    const remotePanel = isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-950';
+    const remoteSoft = isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700';
+    const remoteMuted = isDarkMode ? 'text-slate-400' : 'text-slate-500';
+    const selectedCount = mobileRemoteAction === 'event'
+      ? eventTargetIds.length
+      : mobileRemoteAction === 'return'
+        ? returnTargetIds.length
+        : mobileRemoteAction === 'borrow'
+          ? borrowTargetIds.length
+          : selectedItems.length;
+
+    return (
+      <div className={`lg:hidden fixed inset-0 z-[6700] overflow-y-auto ${isDarkMode ? 'bg-[#070b12] text-white' : 'bg-[#f5f7fb] text-slate-950'}`}>
+        <div className="min-h-screen p-4 pb-8">
+          <div className={`rounded-[2rem] border p-4 shadow-sm ${remotePanel}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className={`text-xs font-black tracking-[0.22em] uppercase ${remoteMuted}`}>MOBILE SCANNER</div>
+                <h1 className="text-3xl font-black mt-1 tracking-tight">{title}</h1>
+                <p className={`text-sm font-bold mt-1 ${remoteMuted}`}>{hint}</p>
+              </div>
+              <button type="button" onClick={() => closeScannerPage('mobileRemote')} className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${remoteSoft}`} title="ปิดสแกน">
+                <Icons.X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              <div className={`rounded-2xl border p-3 ${remoteSoft}`}>
+                <div className={`text-[11px] font-black ${remoteMuted}`}>เลือกแล้ว</div>
+                <div className="text-2xl font-black mt-1">{selectedCount.toLocaleString('th-TH')}</div>
+              </div>
+              <button type="button" onClick={() => closeScannerPage('mobileRemote')} className="rounded-2xl bg-blue-600 text-white font-black">
+                กลับไปทำรายการ
+              </button>
+            </div>
+          </div>
+
+          <div className={`mt-4 rounded-[2rem] border overflow-hidden shadow-sm ${remotePanel}`}>
+            <div className="p-3">
+              {useCamera ? (
+                <div id="qr-reader" className="qr-reader-mobile-remote rounded-[1.4rem] overflow-hidden"></div>
+              ) : (
+                <form onSubmit={handleScanSubmit} className="space-y-3">
+                  <input
+                    ref={scanInputRef}
+                    value={scanInput}
+                    onChange={e => setScanInput(e.target.value)}
+                    className={`w-full px-4 py-4 rounded-2xl border font-black text-lg outline-none ${theme.input}`}
+                    placeholder="ยิงบาร์โค้ด / พิมพ์รหัส QR"
+                  />
+                  <button type="submit" className="w-full py-4 rounded-2xl bg-slate-950 text-white font-black">เพิ่มเข้ารายการ</button>
+                </form>
+              )}
+            </div>
+          </div>
+
+          {scanMessage.text && (
+            <div className={`mt-4 rounded-[2rem] border p-4 font-black ${
+              scanMessage.type === 'success'
+                ? (isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
+                : (isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')
+            }`}>
+              {scanMessage.text}
+            </div>
+          )}
+
+          <div className={`mt-4 rounded-[2rem] border p-4 ${remotePanel}`}>
+            <div className="font-black text-lg">วิธีใช้</div>
+            <div className={`text-sm font-bold mt-1 ${remoteMuted}`}>
+              เล็ง QR ให้อยู่กลางกรอบ เมื่อสแกนสำเร็จ รายการจะถูกเพิ่มเข้าโหมดมือถืออัตโนมัติ แล้วกด “กลับไปทำรายการ”
+            </div>
+            <button type="button" onClick={() => setUseCamera(!useCamera)} className={`mt-3 w-full py-3 rounded-2xl border font-black ${remoteSoft}`}>
+              {useCamera ? 'ใช้ช่องกรอกรหัสแทน' : 'เปิดกล้องสแกน'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderMobileRemoteMode = () => {
     const mobileCanOperate = canUseOperationalTools;
     const outsideCount = currentBorrowedItems.length + currentEventItems.length;
     const urgentList = [...overdueItems, ...dueTodayItems].slice(0, 5);
@@ -16961,7 +17102,7 @@ S.N.: ${item.sn || '-'}
                   <div className="font-black text-lg">เลือกอุปกรณ์</div>
                   <div className={`text-xs font-bold ${remoteMuted}`}>พบ {mobileItems.length.toLocaleString('th-TH')} • เลือก {actionTargetIds.length.toLocaleString('th-TH')}</div>
                 </div>
-                <button type="button" onClick={() => openSelectionScanner({ camera: true, returnWorkspace: 'mobileRemote' })} className="px-3 py-2 rounded-xl bg-slate-950 text-white text-xs font-black">สแกน</button>
+                <button type="button" onClick={() => { setScannerReturnWorkspace('mobileRemote'); openSelectionScanner({ camera: true, returnWorkspace: 'mobileRemote' }); }} className="px-3 py-2 rounded-xl bg-slate-950 text-white text-xs font-black">สแกน</button>
               </div>
               <div className={`mt-3 flex items-center gap-3 px-4 py-3 rounded-2xl border ${theme.input}`}>
                 <Icons.Search className={`w-5 h-5 ${remoteMuted}`} />
@@ -18664,8 +18805,10 @@ S.N.: ${item.sn || '-'}
 
       {renderCameraAccessoryHelperModal()}
 
+      {showScanModal && activeWorkspace === 'scanner' && scannerReturnWorkspace === 'mobileRemote' && renderMobileRemoteScanner()}
+
       {/* 📷 หน้าสแกน QR Code แบบใหม่: ใช้งานหน้างาน / มือถือ / เครื่องยิงบาร์โค้ด */}
-      {showScanModal && activeWorkspace === 'scanner' && (() => {
+      {showScanModal && activeWorkspace === 'scanner' && scannerReturnWorkspace !== 'mobileRemote' && (() => {
         const scanInfo = getScanModeInfo();
         const isChecklistMode = scanMode !== 'select' && scanMode !== 'stockCount';
         const targetIds = scanMode === 'borrowChecklist' ? borrowTargetIds : scanMode === 'eventChecklist' ? eventTargetIds : scanMode === 'returnChecklist' ? returnTargetIds : scanMode === 'stockCount' ? stockCountStats.auditTarget.map(i => i.id) : [];
