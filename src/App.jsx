@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.3 Elegant Classic Desktop Polish';
-const APP_UPDATE_NOTE = 'Elegant Classic Desktop Polish: เก็บงานความสวยแบบมินิมอลบนฐาน Classic ที่เสถียร ปรับความเนี๊ยบของหน้าแรก การ์ด ปุ่ม ตาราง modal และพื้นที่ทำงานให้ดูแพงขึ้น โดยไม่แตะ QR Scanner core / กล้อง / Firebase path / flow ยืมคืนหลัก';
+const APP_VERSION = 'v22.57.4 QR Scanner Stability Hotfix';
+const APP_UPDATE_NOTE = 'QR Scanner Stability Hotfix: แก้เสถียรภาพหน้าสแกน QR แบบจำกัดจุด ป้องกัน scanner ซ้อน/ค้างตอนเปิดปิดหน้า เพิ่มสถานะโหลดสคริปต์ผิดพลาด และเก็บกวาดกล้องก่อนสร้างใหม่ โดยไม่เปลี่ยน flow ยืม/คืน/ออกงานและไม่เปลี่ยน Firebase path';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6816,7 +6816,10 @@ function MainApp() {
   const scanCooldownRef = useRef(false);
 
   const [useCamera, setUseCamera] = useState(false);
-  const [isScannerLoaded, setIsScannerLoaded] = useState(false);
+  const [isScannerLoaded, setIsScannerLoaded] = useState(() => Boolean(window.Html5QrcodeScanner));
+  const [scannerLoadError, setScannerLoadError] = useState('');
+  const qrScannerRef = useRef(null);
+  const qrScannerRunningRef = useRef(false);
   const itemsRefForScan = useRef(items);
   const fileInputRef = useRef(null);
   const restoreInputRef = useRef(null);
@@ -6826,15 +6829,49 @@ function MainApp() {
   }, [items]);
 
   useEffect(() => {
-    if (!window.Html5QrcodeScanner) {
-      const script = document.createElement("script");
-      script.src = "https://unpkg.com/html5-qrcode";
-      script.async = true;
-      script.onload = () => setIsScannerLoaded(true);
-      document.body.appendChild(script);
-    } else {
+    if (window.Html5QrcodeScanner) {
       setIsScannerLoaded(true);
+      setScannerLoadError('');
+      return;
     }
+
+    const existingScript = document.querySelector('script[data-mdec-html5-qrcode="true"]');
+    const markLoaded = () => {
+      if (window.Html5QrcodeScanner) {
+        setIsScannerLoaded(true);
+        setScannerLoadError('');
+      } else {
+        setIsScannerLoaded(false);
+        setScannerLoadError('โหลดระบบสแกน QR ไม่สำเร็จ ให้ลองรีเฟรชหน้า หรือใช้โหมดพิมพ์/ยิงรหัสชั่วคราว');
+      }
+    };
+    const markError = () => {
+      setIsScannerLoaded(false);
+      setScannerLoadError('โหลดระบบสแกน QR ไม่สำเร็จ ให้ลองรีเฟรชหน้า หรือใช้โหมดพิมพ์/ยิงรหัสชั่วคราว');
+    };
+
+    if (existingScript) {
+      existingScript.addEventListener('load', markLoaded);
+      existingScript.addEventListener('error', markError);
+      return () => {
+        existingScript.removeEventListener('load', markLoaded);
+        existingScript.removeEventListener('error', markError);
+      };
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/html5-qrcode";
+    script.async = true;
+    script.defer = true;
+    script.dataset.mdecHtml5Qrcode = "true";
+    script.onload = markLoaded;
+    script.onerror = markError;
+    document.body.appendChild(script);
+
+    return () => {
+      script.onload = null;
+      script.onerror = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -14049,42 +14086,73 @@ S.N.: ${item.sn || '-'}
     handleProcessScan(scanInput);
   };
 
+  const cleanupQrScanner = async () => {
+    const scanner = qrScannerRef.current;
+    qrScannerRef.current = null;
+    qrScannerRunningRef.current = false;
+    if (!scanner) return;
+    try {
+      await scanner.clear();
+    } catch (err) {
+      // html5-qrcode บางจังหวะจะ throw ถ้ากล้องยังไม่เริ่มจริง ให้เงียบไว้เพื่อไม่ให้หน้าแตก
+      console.warn('QR scanner cleanup skipped:', err);
+    }
+  };
+
   useEffect(() => {
-    let scanner = null;
-    if (showScanModal && useCamera && isScannerLoaded) {
-      scanner = new window.Html5QrcodeScanner(
+    let cancelled = false;
+
+    const startQrScanner = async () => {
+      if (!showScanModal || !useCamera || !isScannerLoaded || !window.Html5QrcodeScanner) return;
+      const reader = document.getElementById('qr-reader');
+      if (!reader || qrScannerRunningRef.current) return;
+
+      await cleanupQrScanner();
+      if (cancelled) return;
+
+      reader.innerHTML = '';
+      const scanner = new window.Html5QrcodeScanner(
         "qr-reader",
         {
-          fps: 12,
+          fps: 10,
           rememberLastUsedCamera: true,
           aspectRatio: 1.0,
           disableFlip: false,
           videoConstraints: { facingMode: "environment" },
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const minEdge = Math.min(viewfinderWidth || 320, viewfinderHeight || 320);
-            const size = Math.max(220, Math.min(360, Math.floor(minEdge * 0.72)));
+            const size = Math.max(200, Math.min(330, Math.floor(minEdge * 0.70)));
             return { width: size, height: size };
           }
         },
         false
       );
+
+      qrScannerRef.current = scanner;
+      qrScannerRunningRef.current = true;
+
       scanner.render(
         (decodedText) => {
           handleProcessScan(decodedText);
-          if (scanner) {
-            try { scanner.pause(true); } catch(e) {}
-            setTimeout(() => {
+          try { scanner.pause(true); } catch(e) {}
+          window.setTimeout(() => {
+            if (!cancelled && qrScannerRef.current === scanner) {
               try { scanner.resume(); } catch(e) {}
-            }, 2000);
-          }
+            }
+          }, 1800);
         },
-        (err) => { /* ซ่อน error ตอนที่กล้องกำลังหาโฟกัส */ }
+        () => { /* ซ่อน error ตอนกล้องกำลังหาโฟกัส */ }
       );
-    }
+    };
+
+    startQrScanner().catch((err) => {
+      console.error('QR scanner start error:', err);
+      setScanMessage({ text: '⚠️ เปิดกล้องสแกนไม่ได้ ให้ลองปิด/เปิดหน้าสแกนใหม่ หรือใช้โหมดพิมพ์/ยิงรหัส', type: 'error' });
+    });
+
     return () => {
-      if (scanner) {
-        scanner.clear().catch(console.error);
-      }
+      cancelled = true;
+      cleanupQrScanner();
     };
   }, [showScanModal, useCamera, isScannerLoaded]);
 
@@ -18663,7 +18731,13 @@ S.N.: ${item.sn || '-'}
                           <div className={`mb-2 p-2 rounded-lg border text-left text-[11px] font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
                             จัด QR ให้อยู่กลางกรอบและถือให้นิ่ง
                           </div>
-                          {!isScannerLoaded ? (
+                          {scannerLoadError ? (
+                            <div className={`min-h-[190px] flex flex-col items-center justify-center gap-3 text-center rounded-2xl border ${isDarkMode ? 'bg-rose-950/25 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
+                              <div className="font-black">เปิดระบบกล้องไม่ได้</div>
+                              <div className="text-sm font-bold max-w-sm px-4">{scannerLoadError}</div>
+                              <button type="button" onClick={() => setUseCamera(false)} className={`px-4 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>ใช้โหมดพิมพ์/ยิงรหัสแทน</button>
+                            </div>
+                          ) : !isScannerLoaded ? (
                             <div className="min-h-[190px] flex items-center justify-center">
                               <div className="animate-pulse text-amber-500 font-black">กำลังดาวน์โหลดระบบกล้อง...</div>
                             </div>
