@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.8.2 Mobile Remote Scanner Native Hotfix';
-const APP_UPDATE_NOTE = 'Mobile Remote Scanner Native Hotfix: แก้ปุ่มสแกนในโหมดมือถือ ยืม/คืน/ออกงาน ไม่ให้เด้งเข้า scanner หน้าเว็บเต็มที่รก เพิ่มหน้า Scanner แบบมือถือโดยเฉพาะ และให้สแกนแล้วเลือกอุปกรณ์เข้ารายการมือถือโดยตรง';
+const APP_VERSION = 'v22.57.1.8.3 Mobile Remote Multi Scan Polish';
+const APP_UPDATE_NOTE = 'Mobile Remote Multi Scan Polish: ปรับโหมดมือถือให้สแกนเลือกหลายอุปกรณ์ต่อเนื่องจากหน้า ยืม/คืน/ออกงาน ได้ชัดขึ้น เพิ่มข้อความ สแกนหลายรายการ จำนวนที่เลือก รายการล่าสุด และการป้องกันสแกนซ้ำ โดยยังไม่เด้งเข้าเว็บเต็ม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -13937,7 +13937,7 @@ S.N.: ${item.sn || '-'}
     if (scanMode === 'eventChecklist') return { title: 'สแกนเช็กของขึ้นงาน', desc: 'สแกน QR ของอุปกรณ์ในรายการออกงาน เพื่อเช็กแทนการติ๊กเอง', tone: 'orange' };
     if (scanMode === 'returnChecklist') return { title: 'สแกนเช็กตอนรับคืน', desc: 'สแกน QR ของอุปกรณ์ที่นำมาคืน เพื่อเช็กแทนการติ๊กเอง', tone: 'emerald' };
     if (scanMode === 'stockCount') return { title: 'สแกนตรวจนับสต๊อก', desc: 'ใช้กล้องชุดเดิมเพื่อ mark พบแล้วในรอบตรวจนับ โดยไม่เปลี่ยนสถานะอุปกรณ์จริง', tone: 'blue' };
-    return { title: 'สแกน QR', desc: 'สแกนเพื่อเลือกอุปกรณ์หลายรายการ หรือดูสแกนล่าสุดแบบรวดเร็ว', tone: 'amber' };
+    return { title: 'สแกน QR', desc: 'สแกนเพื่อเลือกอุปกรณ์หลายรายการหลายรายการ หรือดูสแกนล่าสุดแบบรวดเร็ว', tone: 'amber' };
   };
 
   const handleOpenBatchBorrow = () => {
@@ -14069,6 +14069,13 @@ S.N.: ${item.sn || '-'}
             return;
           }
 
+          const currentMobileIds = mobileRemoteAction === 'event'
+            ? eventTargetIds
+            : mobileRemoteAction === 'return'
+              ? returnTargetIds
+              : borrowTargetIds;
+          const alreadySelected = currentMobileIds.includes(foundItem.id);
+
           if (mobileRemoteAction === 'event') {
             setEventTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
             setEventChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
@@ -14080,7 +14087,13 @@ S.N.: ${item.sn || '-'}
             setPackingChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
           }
 
-          setScanMessage({ text: `✅ สแกนสำเร็จ: "${foundItem.name}" เพิ่มเข้า${mobileRemoteAction === 'event' ? 'รายการออกงาน' : mobileRemoteAction === 'return' ? 'รายการรับคืน' : 'รายการยืม'}แล้ว`, type: 'success' });
+          const nextMobileCount = alreadySelected ? currentMobileIds.length : currentMobileIds.length + 1;
+          setScanMessage({
+            text: alreadySelected
+              ? `ℹ️ "${foundItem.name}" อยู่ในรายการแล้ว (${nextMobileCount} รายการ)`
+              : `✅ เพิ่ม "${foundItem.name}" แล้ว • รวม ${nextMobileCount} รายการ`,
+            type: 'success'
+          });
           try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
           try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
         } else {
@@ -16816,8 +16829,8 @@ S.N.: ${item.sn || '-'}
           : 'สแกนของยืม'
       : 'สแกน QR';
     const hint = isOperationScan
-      ? 'สแกนแล้วระบบจะเพิ่มอุปกรณ์เข้ารีโมตมือถือทันที'
-      : 'สแกนเพื่อเลือกอุปกรณ์';
+      ? 'สแกนได้หลายชิ้นต่อเนื่อง ระบบจะเพิ่มเข้ารีโมตมือถือทันที'
+      : 'สแกนเพื่อเลือกอุปกรณ์หลายรายการ';
     const remotePanel = isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-950';
     const remoteSoft = isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700';
     const remoteMuted = isDarkMode ? 'text-slate-400' : 'text-slate-500';
@@ -16835,7 +16848,7 @@ S.N.: ${item.sn || '-'}
           <div className={`rounded-[2rem] border p-4 shadow-sm ${remotePanel}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className={`text-xs font-black tracking-[0.22em] uppercase ${remoteMuted}`}>MOBILE SCANNER</div>
+                <div className={`text-xs font-black tracking-[0.22em] uppercase ${remoteMuted}`}>MULTI SCAN</div>
                 <h1 className="text-3xl font-black mt-1 tracking-tight">{title}</h1>
                 <p className={`text-sm font-bold mt-1 ${remoteMuted}`}>{hint}</p>
               </div>
@@ -16849,8 +16862,11 @@ S.N.: ${item.sn || '-'}
                 <div className="text-2xl font-black mt-1">{selectedCount.toLocaleString('th-TH')}</div>
               </div>
               <button type="button" onClick={() => closeScannerPage('mobileRemote')} className="rounded-2xl bg-blue-600 text-white font-black">
-                กลับไปทำรายการ
+                เสร็จแล้วกลับไปทำรายการ
               </button>
+            </div>
+            <div className={`mt-3 rounded-2xl border p-3 text-xs font-bold ${remoteSoft}`}>
+              สแกนต่อได้เรื่อย ๆ จนครบ ไม่ต้องปิดกล้องทีละชิ้น
             </div>
           </div>
 
@@ -16883,10 +16899,25 @@ S.N.: ${item.sn || '-'}
             </div>
           )}
 
+          {selectedCount > 0 && (
+            <div className={`mt-4 rounded-[2rem] border p-4 ${remotePanel}`}>
+              <div className="font-black text-lg">รายการที่สแกนแล้ว</div>
+              <div className={`text-xs font-bold mt-1 ${remoteMuted}`}>กลับไปทำรายการแล้วรายการเหล่านี้จะยังอยู่</div>
+              <div className="space-y-2 mt-3 max-h-44 overflow-y-auto custom-scrollbar">
+                {(mobileRemoteAction === 'event' ? eventTargetIds : mobileRemoteAction === 'return' ? returnTargetIds : borrowTargetIds).map(id => items.find(item => item.id === id)).filter(Boolean).slice(-8).reverse().map(item => (
+                  <div key={item.id} className={`rounded-2xl border p-3 ${remoteSoft}`}>
+                    <div className="font-black truncate">{item.name || '-'}</div>
+                    <div className={`text-xs font-bold mt-1 ${remoteMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className={`mt-4 rounded-[2rem] border p-4 ${remotePanel}`}>
             <div className="font-black text-lg">วิธีใช้</div>
             <div className={`text-sm font-bold mt-1 ${remoteMuted}`}>
-              เล็ง QR ให้อยู่กลางกรอบ เมื่อสแกนสำเร็จ รายการจะถูกเพิ่มเข้าโหมดมือถืออัตโนมัติ แล้วกด “กลับไปทำรายการ”
+              เล็ง QR ให้อยู่กลางกรอบ เมื่อสแกนสำเร็จ รายการจะถูกเพิ่มเข้าโหมดมือถืออัตโนมัติ แล้วกด “เสร็จแล้วกลับไปทำรายการ”
             </div>
             <button type="button" onClick={() => setUseCamera(!useCamera)} className={`mt-3 w-full py-3 rounded-2xl border font-black ${remoteSoft}`}>
               {useCamera ? 'ใช้ช่องกรอกรหัสแทน' : 'เปิดกล้องสแกน'}
@@ -17102,11 +17133,11 @@ S.N.: ${item.sn || '-'}
                   <div className="font-black text-lg">เลือกอุปกรณ์</div>
                   <div className={`text-xs font-bold ${remoteMuted}`}>พบ {mobileItems.length.toLocaleString('th-TH')} • เลือก {actionTargetIds.length.toLocaleString('th-TH')}</div>
                 </div>
-                <button type="button" onClick={() => { setScannerReturnWorkspace('mobileRemote'); openSelectionScanner({ camera: true, returnWorkspace: 'mobileRemote' }); }} className="px-3 py-2 rounded-xl bg-slate-950 text-white text-xs font-black">สแกน</button>
+                <button type="button" onClick={() => { setScannerReturnWorkspace('mobileRemote'); openSelectionScanner({ camera: true, returnWorkspace: 'mobileRemote' }); }} className="px-3 py-2 rounded-xl bg-slate-950 text-white text-xs font-black">สแกนหลายรายการ</button>
               </div>
               <div className={`mt-3 flex items-center gap-3 px-4 py-3 rounded-2xl border ${theme.input}`}>
                 <Icons.Search className={`w-5 h-5 ${remoteMuted}`} />
-                <input className="bg-transparent outline-none w-full font-black" placeholder="ค้นหาชื่อ / S.N. / ผู้ยืม / งาน" value={borrowReturnSearch} onChange={e => setBorrowReturnSearch(e.target.value)} />
+                <input className="bg-transparent outline-none w-full font-black" placeholder="ค้นหาเอง หรือกดสแกนหลายรายการ" value={borrowReturnSearch} onChange={e => setBorrowReturnSearch(e.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-2 mt-3">
                 <button type="button" onClick={() => setActionTargets(mobileItems.map(item => item.id))} className={`py-3 rounded-2xl border font-black ${remoteSoft}`}>เลือกที่เห็น</button>
