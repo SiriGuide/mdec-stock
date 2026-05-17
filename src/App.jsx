@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.9.1 Mobile Remote Stable Scan Selection';
-const APP_UPDATE_NOTE = 'Mobile Remote Stable Scan Selection: ปรับปุ่มสแกนในมือถือให้ใช้หน้า Scanner เดิมที่เสถียรสำหรับขอสิทธิ์กล้อง แต่ตั้งโหมด mobileRemoteSelect เพื่อสแกนแล้วเพิ่มเข้าเฉพาะรายการมือถือ ยืม/คืน/ออกงาน ได้หลายชิ้นหรือชิ้นเดียว ไม่เด้งเข้า form บันทึกเอง';
+const APP_VERSION = 'v22.57.3 Elegant Classic Desktop Polish';
+const APP_UPDATE_NOTE = 'Elegant Classic Desktop Polish: เก็บงานความสวยแบบมินิมอลบนฐาน Classic ที่เสถียร ปรับความเนี๊ยบของหน้าแรก การ์ด ปุ่ม ตาราง modal และพื้นที่ทำงานให้ดูแพงขึ้น โดยไม่แตะ QR Scanner core / กล้อง / Firebase path / flow ยืมคืนหลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6284,30 +6284,6 @@ button[class*="orange"]:not(:disabled) {
   }
 }
 
-/* v22.57.1.8.2 Mobile Remote Scanner Native Hotfix */
-.qr-reader-mobile-remote {
-  background: #020617;
-}
-.qr-reader-mobile-remote #mobile-remote-qr-reader__dashboard_section_csr button,
-.qr-reader-mobile-remote button {
-  min-height: 44px !important;
-  border-radius: 14px !important;
-  font-weight: 900 !important;
-}
-.qr-reader-mobile-remote #mobile-remote-qr-reader__scan_region video {
-  border-radius: 18px !important;
-}
-
-.qr-reader-mobile-remote > div { width: 100% !important; }
-.qr-reader-mobile-remote video {
-  max-height: 42vh !important;
-  border-radius: 18px !important;
-}
-.qr-reader-mobile-remote #qr-reader__scan_region,
-.qr-reader-mobile-remote #qr-reader__dashboard {
-  border-radius: 18px !important;
-}
-
 /* v22.53.47 QR Scanner Page Mode Polish */
 .qr-scanner-page {
   min-height: calc(100vh - 180px);
@@ -6832,14 +6808,6 @@ function MainApp() {
   const [boxLabelNote, setBoxLabelNote] = useState('');
   const [showScanModal, setShowScanModal] = useState(false);
   const [scannerReturnWorkspace, setScannerReturnWorkspace] = useState('overview');
-  const [mobileRemoteOpen, setMobileRemoteOpen] = useState(true);
-  const [mobileRemoteAction, setMobileRemoteAction] = useState('home');
-  const [mobileRemoteScannerOpen, setMobileRemoteScannerOpen] = useState(false);
-  const [mobileRemoteUseCamera, setMobileRemoteUseCamera] = useState(true);
-  const [mobileRemoteScanInput, setMobileRemoteScanInput] = useState('');
-  const [mobileRemoteScanMessage, setMobileRemoteScanMessage] = useState({ text: '', type: '' });
-  const mobileRemoteQrRef = useRef(null);
-  const mobileRemoteScannerRef = useRef(null);
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
   const [scanMode, setScanMode] = useState('select'); // select | borrowChecklist | eventChecklist | returnChecklist
@@ -6870,7 +6838,7 @@ function MainApp() {
   }, []);
 
   useEffect(() => {
-  if (showCommandCenter) {
+    if (showCommandCenter) {
       const timer = setInterval(() => setCurrentTime(new Date()), 1000);
       return () => clearInterval(timer);
     }
@@ -9877,7 +9845,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className={`rounded-3xl border p-4 ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-              <div className="font-black">สรุปก่อนเพิ่มเข้ารีโมต</div>
+              <div className="font-black">สรุปก่อนเพิ่มเข้ารายการ</div>
               <div className="text-sm font-bold mt-1">จะเพิ่ม {selectedCount} รายการเข้าโหมด{contextLabel} • ฟีเจอร์นี้เป็นตัวช่วยเลือกตอนทำรายการเท่านั้น ไม่สร้างเซ็ตถาวรและไม่ผูกกล้องกับเลนส์ถาวร</div>
               {selectedCamera && cameraHelperForm.batteryIds.length === 0 && <div className="text-xs font-black mt-2 text-amber-600">⚠️ ยังไม่ได้เลือกแบตเตอรี่</div>}
               {selectedCamera && cameraHelperForm.memoryIds.length === 0 && <div className="text-xs font-black mt-1 text-amber-600">⚠️ ยังไม่ได้เลือกเมมโมรี่การ์ด</div>}
@@ -13932,21 +13900,6 @@ S.N.: ${item.sn || '-'}
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
-  const openMobileRemoteOperationScanner = () => {
-    if (!requireOperationalAccess('สแกนเลือกอุปกรณ์')) return;
-    setShowMoreMenu(false);
-    setMobileRemoteOpen(true);
-    setMobileRemoteScannerOpen(false);
-    setScannerReturnWorkspace('mobileRemote');
-    setScanMode('mobileRemoteSelect');
-    setUseCamera(true);
-    setScanInput('');
-    setScanMessage({ text: '', type: '' });
-    setShowScanModal(true);
-    setActiveWorkspace('scanner');
-    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
-  };
-
   const closeScannerPage = (targetWorkspace = null) => {
     const fallbackWorkspace = targetWorkspace || scannerReturnWorkspace || (scanMode === 'stockCount'
       ? 'stockCount'
@@ -13956,15 +13909,7 @@ S.N.: ${item.sn || '-'}
     setShowScanModal(false);
     setUseCamera(false);
     setScanMessage({ text: '', type: '' });
-    if (fallbackWorkspace === 'mobileRemote') {
-      setMobileRemoteScannerOpen(false);
-      setActiveWorkspace('overview');
-      setMobileRemoteOpen(true);
-    } else {
-      setMobileRemoteScannerOpen(false);
-      setActiveWorkspace(fallbackWorkspace);
-      setScannerReturnWorkspace(fallbackWorkspace || 'overview');
-    }
+    setActiveWorkspace(fallbackWorkspace);
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
@@ -13973,8 +13918,7 @@ S.N.: ${item.sn || '-'}
     if (scanMode === 'eventChecklist') return { title: 'สแกนเช็กของขึ้นงาน', desc: 'สแกน QR ของอุปกรณ์ในรายการออกงาน เพื่อเช็กแทนการติ๊กเอง', tone: 'orange' };
     if (scanMode === 'returnChecklist') return { title: 'สแกนเช็กตอนรับคืน', desc: 'สแกน QR ของอุปกรณ์ที่นำมาคืน เพื่อเช็กแทนการติ๊กเอง', tone: 'emerald' };
     if (scanMode === 'stockCount') return { title: 'สแกนตรวจนับสต๊อก', desc: 'ใช้กล้องชุดเดิมเพื่อ mark พบแล้วในรอบตรวจนับ โดยไม่เปลี่ยนสถานะอุปกรณ์จริง', tone: 'blue' };
-    if (scanMode === 'mobileRemoteSelect') return { title: 'สแกนเลือกของเข้ารายการมือถือ', desc: 'สแกนได้หลายชิ้นหรือชิ้นเดียว ระบบจะเพิ่มเข้าโหมด ยืม / คืน / ออกงาน ที่เลือกไว้เท่านั้น', tone: 'amber' };
-    return { title: 'สแกน QR', desc: 'สแกนเพื่อเลือกอุปกรณ์หลายรายการหลายรายการ หรือดูสแกนล่าสุดแบบรวดเร็ว', tone: 'amber' };
+    return { title: 'สแกน QR', desc: 'สแกนเพื่อเลือกอุปกรณ์หลายรายการ หรือดูสแกนล่าสุดแบบรวดเร็ว', tone: 'amber' };
   };
 
   const handleOpenBatchBorrow = () => {
@@ -14073,58 +14017,6 @@ S.N.: ${item.sn || '-'}
         try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
       };
 
-      if (scanMode === 'mobileRemoteSelect' && ['borrow', 'event', 'return'].includes(mobileRemoteAction)) {
-        const isReturnMode = mobileRemoteAction === 'return';
-        const canUseForMode = isReturnMode
-          ? (foundItem.status === 'borrowed' || foundItem.status === 'out-for-event')
-          : foundItem.status === 'available';
-
-        if (!canUseForMode) {
-          setScanMessage({
-            text: isReturnMode
-              ? `⚠️ "${foundItem.name}" ยังไม่ใช่รายการที่รอคืน`
-              : `⚠️ "${foundItem.name}" ไม่ได้อยู่ในสถานะพร้อมใช้`,
-            type: 'error'
-          });
-          try { if (navigator?.vibrate) navigator.vibrate([70, 45, 70]); } catch(e){}
-          try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
-          setScanInput('');
-          setTimeout(() => setScanMessage({ text: '', type: '' }), 3400);
-          return;
-        }
-
-        const currentMobileIds = mobileRemoteAction === 'event'
-          ? eventTargetIds
-          : mobileRemoteAction === 'return'
-            ? returnTargetIds
-            : borrowTargetIds;
-        const alreadySelected = currentMobileIds.includes(foundItem.id);
-
-        if (mobileRemoteAction === 'event') {
-          setEventTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-          setEventChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-        } else if (mobileRemoteAction === 'return') {
-          setReturnTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-          setReturnChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-        } else {
-          setBorrowTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-          setPackingChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-        }
-
-        const nextMobileCount = alreadySelected ? currentMobileIds.length : currentMobileIds.length + 1;
-        setScanMessage({
-          text: alreadySelected
-            ? `ℹ️ "${foundItem.name}" อยู่ในรายการแล้ว (${nextMobileCount} รายการ)`
-            : `✅ เพิ่ม "${foundItem.name}" แล้ว • รวม ${nextMobileCount} รายการ`,
-          type: 'success'
-        });
-        try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
-        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
-        setScanInput('');
-        setTimeout(() => setScanMessage({ text: '', type: '' }), 3400);
-        return;
-      }
-
       if (scanMode === 'stockCount') {
         markStockCountFound(foundItem, 'camera');
         setScanMessage({ text: `✅ ตรวจนับพบแล้ว: "${foundItem.name}"`, type: 'success' });
@@ -14137,60 +14029,10 @@ S.N.: ${item.sn || '-'}
       } else if (scanMode === 'returnChecklist') {
         markChecklist(returnTargetIds, returnChecklist, setReturnChecklist, 'รับคืน');
       } else {
-        const isMobileOperationScan = (scannerReturnWorkspace === 'mobileRemote' || scanMode === 'mobileRemoteSelect') && ['borrow', 'event', 'return'].includes(mobileRemoteAction);
-        if (isMobileOperationScan) {
-          const isReturnMode = mobileRemoteAction === 'return';
-          const canUseForMode = isReturnMode
-            ? (foundItem.status === 'borrowed' || foundItem.status === 'out-for-event')
-            : foundItem.status === 'available';
-
-          if (!canUseForMode) {
-            setScanMessage({
-              text: isReturnMode
-                ? `⚠️ "${foundItem.name}" ยังไม่ใช่รายการที่รอคืน`
-                : `⚠️ "${foundItem.name}" ไม่ได้อยู่ในสถานะพร้อมใช้`,
-              type: 'error'
-            });
-            try { if (navigator?.vibrate) navigator.vibrate([70, 45, 70]); } catch(e){}
-            try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
-            setScanInput('');
-            setTimeout(() => setScanMessage({ text: '', type: '' }), 3400);
-            return;
-          }
-
-          const currentMobileIds = mobileRemoteAction === 'event'
-            ? eventTargetIds
-            : mobileRemoteAction === 'return'
-              ? returnTargetIds
-              : borrowTargetIds;
-          const alreadySelected = currentMobileIds.includes(foundItem.id);
-
-          if (mobileRemoteAction === 'event') {
-            setEventTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-            setEventChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-          } else if (mobileRemoteAction === 'return') {
-            setReturnTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-            setReturnChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-          } else {
-            setBorrowTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-            setPackingChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-          }
-
-          const nextMobileCount = alreadySelected ? currentMobileIds.length : currentMobileIds.length + 1;
-          setScanMessage({
-            text: alreadySelected
-              ? `ℹ️ "${foundItem.name}" อยู่ในรายการแล้ว (${nextMobileCount} รายการ)`
-              : `✅ เพิ่ม "${foundItem.name}" แล้ว • รวม ${nextMobileCount} รายการ`,
-            type: 'success'
-          });
-          try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
-          try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
-        } else {
-          setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-          setScanMessage({ text: `✅ สแกนสำเร็จ: "${foundItem.name}" เพิ่มเข้ารายการแล้ว`, type: 'success' });
-          try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
-          try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
-        }
+        setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+        setScanMessage({ text: `✅ สแกนสำเร็จ: "${foundItem.name}" เพิ่มเข้ารายการแล้ว`, type: 'success' });
+        try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
+        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
       }
     } else {
       setScanMessage({ text: `❌ ไม่พบรหัสนี้: "${val}" ในระบบ`, type: 'error' });
@@ -14244,7 +14086,7 @@ S.N.: ${item.sn || '-'}
         scanner.clear().catch(console.error);
       }
     };
-  }, [showScanModal, useCamera, isScannerLoaded, scanMode, scannerReturnWorkspace, mobileRemoteAction]);
+  }, [showScanModal, useCamera, isScannerLoaded]);
 
   // 💡 กลับมาแล้ว: ระบบนำเข้าไฟล์ CSV
   const handleImportCSV = (e) => {
@@ -15280,7 +15122,6 @@ S.N.: ${item.sn || '-'}
     setReturnProofFiles([]);
     setOperationConfirm(null);
     setShowScanModal(false);
-    setMobileRemoteScannerOpen(false);
     if (activeWorkspace === 'scanner') setActiveWorkspace('overview');
   };
 
@@ -15328,143 +15169,6 @@ S.N.: ${item.sn || '-'}
       events.forEach(evt => window.removeEventListener(evt, resetTimer));
     };
   }, [isLoggedIn, currentOperator?.id]);
-
-
-  const closeMobileRemoteScanner = () => {
-    const scanner = mobileRemoteScannerRef.current;
-    mobileRemoteScannerRef.current = null;
-    if (scanner) {
-      try {
-        scanner.clear?.().catch(() => {});
-      } catch(e) {}
-    }
-    setMobileRemoteScannerOpen(false);
-    setMobileRemoteScanInput('');
-    setMobileRemoteScanMessage({ text: '', type: '' });
-  };
-
-  const processMobileRemoteScan = (scannedVal) => {
-    const val = String(scannedVal || '').trim();
-    if (!val) return;
-    if (scanCooldownRef.current) return;
-    scanCooldownRef.current = true;
-    window.setTimeout(() => { scanCooldownRef.current = false; }, 950);
-
-    const foundItem = (itemsRefForScan.current || []).find(i => i.id === val || (i.sn && String(i.sn).toLowerCase() === val.toLowerCase()));
-    if (!foundItem) {
-      setMobileRemoteScanMessage({ text: `❌ ไม่พบรหัสนี้: "${val}"`, type: 'error' });
-      try { if (navigator?.vibrate) navigator.vibrate([60, 40, 60]); } catch(e){}
-      try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
-      setMobileRemoteScanInput('');
-      setTimeout(() => setMobileRemoteScanMessage({ text: '', type: '' }), 3400);
-      return;
-    }
-
-    if (!['borrow', 'event', 'return'].includes(mobileRemoteAction)) {
-      setMobileRemoteScanMessage({ text: '⚠️ กรุณาเลือกโหมด ยืม / คืน / ออกงาน ก่อนสแกน', type: 'error' });
-      setMobileRemoteScanInput('');
-      return;
-    }
-
-    const isReturnMode = mobileRemoteAction === 'return';
-    const canUseForMode = isReturnMode
-      ? (foundItem.status === 'borrowed' || foundItem.status === 'out-for-event')
-      : foundItem.status === 'available';
-
-    if (!canUseForMode) {
-      setMobileRemoteScanMessage({
-        text: isReturnMode
-          ? `⚠️ "${foundItem.name}" ยังไม่ใช่รายการที่รอคืน`
-          : `⚠️ "${foundItem.name}" ไม่ได้อยู่ในสถานะพร้อมใช้`,
-        type: 'error'
-      });
-      try { if (navigator?.vibrate) navigator.vibrate([70, 45, 70]); } catch(e){}
-      try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
-      setMobileRemoteScanInput('');
-      setTimeout(() => setMobileRemoteScanMessage({ text: '', type: '' }), 3400);
-      return;
-    }
-
-    const currentIds = mobileRemoteAction === 'event'
-      ? eventTargetIds
-      : mobileRemoteAction === 'return'
-        ? returnTargetIds
-        : borrowTargetIds;
-    const alreadySelected = currentIds.includes(foundItem.id);
-
-    if (mobileRemoteAction === 'event') {
-      setEventTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-      setEventChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-    } else if (mobileRemoteAction === 'return') {
-      setReturnTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-      setReturnChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-    } else {
-      setBorrowTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-      setPackingChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-    }
-
-    const nextCount = alreadySelected ? currentIds.length : currentIds.length + 1;
-    setLastScannedItemId(foundItem.id);
-    setMobileRemoteScanMessage({
-      text: alreadySelected
-        ? `ℹ️ "${foundItem.name}" อยู่ในรายการแล้ว (${nextCount} รายการ)`
-        : `✅ เพิ่ม "${foundItem.name}" แล้ว • รวม ${nextCount} รายการ`,
-      type: 'success'
-    });
-    try { if (navigator?.vibrate) navigator.vibrate(alreadySelected ? 40 : 90); } catch(e){}
-    try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
-    setMobileRemoteScanInput('');
-    setTimeout(() => setMobileRemoteScanMessage({ text: '', type: '' }), 3400);
-  };
-
-  useEffect(() => {
-    let scanner = null;
-    const readerId = 'mobile-remote-qr-reader';
-
-    if (mobileRemoteScannerOpen && mobileRemoteUseCamera && isScannerLoaded) {
-      const readerEl = document.getElementById(readerId);
-      if (!readerEl || !window.Html5QrcodeScanner) return;
-
-      try {
-        readerEl.innerHTML = '';
-        scanner = new window.Html5QrcodeScanner(
-          readerId,
-          {
-            fps: 12,
-            rememberLastUsedCamera: true,
-            aspectRatio: 1.0,
-            disableFlip: false,
-            videoConstraints: { facingMode: { ideal: 'environment' } },
-            qrbox: (viewfinderWidth, viewfinderHeight) => {
-              const minEdge = Math.min(viewfinderWidth || 260, viewfinderHeight || 260);
-              const size = Math.max(180, Math.floor(minEdge * 0.72));
-              return { width: size, height: size };
-            }
-          },
-          false
-        );
-        mobileRemoteScannerRef.current = scanner;
-        scanner.render(
-          (decodedText) => processMobileRemoteScan(decodedText),
-          () => {}
-        );
-      } catch(e) {
-        console.error('Mobile remote scanner init error', e);
-        setMobileRemoteScanMessage({ text: '❌ เปิดหน้าสแกนไม่ได้ ลองกด “เปิดกล้องสแกน” อีกครั้ง หรือใช้ช่องกรอกรหัสแทน', type: 'error' });
-        setMobileRemoteUseCamera(false);
-      }
-    }
-
-    return () => {
-      const current = mobileRemoteScannerRef.current || scanner;
-      mobileRemoteScannerRef.current = null;
-      if (current) {
-        try {
-          current.clear?.().catch(() => {});
-        } catch(e) {}
-      }
-    };
-  }, [mobileRemoteScannerOpen, mobileRemoteUseCamera, isScannerLoaded, mobileRemoteAction, borrowTargetIds, eventTargetIds, returnTargetIds]);
 
 
   const markSelectedQrTagged = async () => {
@@ -17046,569 +16750,6 @@ S.N.: ${item.sn || '-'}
     );
   }
 
-    const renderMobileRemoteScanner = () => {
-    const isOperationScan = ['borrow', 'event', 'return'].includes(mobileRemoteAction);
-    const title = isOperationScan
-      ? mobileRemoteAction === 'event'
-        ? 'สแกนของออกงาน'
-        : mobileRemoteAction === 'return'
-          ? 'สแกนรับคืน'
-          : 'สแกนของยืม'
-      : 'สแกน QR';
-    const hint = isOperationScan
-      ? 'สแกนได้หลายชิ้นต่อเนื่อง ระบบจะเพิ่มเข้ารีโมตมือถือทันที'
-      : 'สแกนเพื่อเลือกอุปกรณ์หลายรายการ';
-    const remotePanel = isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-950';
-    const remoteSoft = isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700';
-    const remoteMuted = isDarkMode ? 'text-slate-400' : 'text-slate-500';
-    const selectedCount = mobileRemoteAction === 'event'
-      ? eventTargetIds.length
-      : mobileRemoteAction === 'return'
-        ? returnTargetIds.length
-        : mobileRemoteAction === 'borrow'
-          ? borrowTargetIds.length
-          : selectedItems.length;
-
-    return (
-      <div className={`lg:hidden fixed inset-0 z-[6700] overflow-y-auto ${isDarkMode ? 'bg-[#070b12] text-white' : 'bg-[#f5f7fb] text-slate-950'}`}>
-        <div className="min-h-screen p-4 pb-8">
-          <div className={`rounded-[2rem] border p-4 shadow-sm ${remotePanel}`}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className={`text-xs font-black tracking-[0.22em] uppercase ${remoteMuted}`}>MULTI SCAN</div>
-                <h1 className="text-3xl font-black mt-1 tracking-tight">{title}</h1>
-                <p className={`text-sm font-bold mt-1 ${remoteMuted}`}>{hint}</p>
-              </div>
-              <button type="button" onClick={closeMobileRemoteScanner} className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${remoteSoft}`} title="ปิดสแกน">
-                <Icons.X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              <div className={`rounded-2xl border p-3 ${remoteSoft}`}>
-                <div className={`text-[11px] font-black ${remoteMuted}`}>เลือกแล้ว</div>
-                <div className="text-2xl font-black mt-1">{selectedCount.toLocaleString('th-TH')}</div>
-              </div>
-              <button type="button" onClick={closeMobileRemoteScanner} className="rounded-2xl bg-blue-600 text-white font-black">
-                เสร็จแล้วกลับไปทำรายการ
-              </button>
-            </div>
-            <div className={`mt-3 rounded-2xl border p-3 text-xs font-bold ${remoteSoft}`}>
-              หากยังไม่เห็นกล้อง ให้กดปุ่มอนุญาต/Request Camera ในกรอบสแกน
-            </div>
-          </div>
-
-          <div className={`mt-4 rounded-[2rem] border overflow-hidden shadow-sm ${remotePanel}`}>
-            <div className="p-3">
-              {mobileRemoteUseCamera ? (
-                <div id="mobile-remote-qr-reader" ref={mobileRemoteQrRef} className="qr-reader-mobile-remote rounded-[1.4rem] overflow-hidden"></div>
-              ) : (
-                <form onSubmit={(e) => { e.preventDefault(); processMobileRemoteScan(mobileRemoteScanInput); }} className="space-y-3">
-                  <input
-                    value={mobileRemoteScanInput}
-                    onChange={e => setMobileRemoteScanInput(e.target.value)}
-                    className={`w-full px-4 py-4 rounded-2xl border font-black text-lg outline-none ${theme.input}`}
-                    placeholder="ยิงบาร์โค้ด / พิมพ์รหัส QR"
-                  />
-                  <button type="submit" className="w-full py-4 rounded-2xl bg-slate-950 text-white font-black">เพิ่มเข้ารายการ</button>
-                </form>
-              )}
-            </div>
-          </div>
-
-          {mobileRemoteScanMessage.text && (
-            <div className={`mt-4 rounded-[2rem] border p-4 font-black ${
-              mobileRemoteScanMessage.type === 'success'
-                ? (isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
-                : (isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')
-            }`}>
-              {mobileRemoteScanMessage.text}
-            </div>
-          )}
-
-          {selectedCount > 0 && (
-            <div className={`mt-4 rounded-[2rem] border p-4 ${remotePanel}`}>
-              <div className="font-black text-lg">รายการที่สแกนแล้ว</div>
-              <div className={`text-xs font-bold mt-1 ${remoteMuted}`}>กลับไปทำรายการแล้วรายการเหล่านี้จะยังอยู่</div>
-              <div className="space-y-2 mt-3 max-h-44 overflow-y-auto custom-scrollbar">
-                {(mobileRemoteAction === 'event' ? eventTargetIds : mobileRemoteAction === 'return' ? returnTargetIds : borrowTargetIds).map(id => items.find(item => item.id === id)).filter(Boolean).slice(-8).reverse().map(item => (
-                  <div key={item.id} className={`rounded-2xl border p-3 ${remoteSoft}`}>
-                    <div className="font-black truncate">{item.name || '-'}</div>
-                    <div className={`text-xs font-bold mt-1 ${remoteMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className={`mt-4 rounded-[2rem] border p-4 ${remotePanel}`}>
-            <div className="font-black text-lg">วิธีใช้</div>
-            <div className={`text-sm font-bold mt-1 ${remoteMuted}`}>
-              เล็ง QR ให้อยู่กลางกรอบ เมื่อสแกนสำเร็จ รายการจะถูกเพิ่มเข้าโหมดมือถืออัตโนมัติ แล้วกด “เสร็จแล้วกลับไปทำรายการ”
-            </div>
-            <button type="button" onClick={() => setMobileRemoteUseCamera(!mobileRemoteUseCamera)} className={`mt-3 w-full py-3 rounded-2xl border font-black ${remoteSoft}`}>
-              {mobileRemoteUseCamera ? 'ใช้ช่องกรอกรหัสแทน' : 'เปิดกรอบขออนุญาตกล้องอีกครั้ง'}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderMobileRemoteMode = () => {
-    const mobileCanOperate = canUseOperationalTools;
-    const outsideCount = currentBorrowedItems.length + currentEventItems.length;
-    const urgentList = [...overdueItems, ...dueTodayItems].slice(0, 5);
-    const remotePanel = isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-950';
-    const remoteSoft = isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700';
-    const remoteMuted = isDarkMode ? 'text-slate-400' : 'text-slate-500';
-    const remotePageBg = isDarkMode ? 'bg-[#070b12] text-white' : 'bg-[#f5f7fb] text-slate-950';
-
-    const openMobileAction = (mode) => {
-      if (mode === 'scan') {
-        if (!requireOperationalAccess('สแกน QR')) return;
-        setMobileRemoteOpen(false);
-        openMobileRemoteOperationScanner();
-        return;
-      }
-      const label = mode === 'return' ? 'รับคืนอุปกรณ์' : mode === 'event' ? 'นำอุปกรณ์ออกงาน' : 'ยืมอุปกรณ์';
-      if (!requireOperationalAccess(label)) return;
-      setBorrowReturnMode(mode);
-      setBorrowReturnSearch('');
-      setMobileRemoteAction(mode);
-      setMobileRemoteOpen(true);
-      window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
-    };
-
-    const RemoteHeader = ({ compact = false, title = 'รีโมตหน้างาน', subtitle = 'ยืม คืน ออกงาน และสแกน QR แบบมือถือ' } = {}) => (
-      <div className={`rounded-[2rem] border p-4 shadow-sm ${remotePanel}`}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className={`text-xs font-black tracking-[0.22em] uppercase ${remoteMuted}`}>MDEC STOCK</div>
-            <h1 className={`${compact ? 'text-2xl' : 'text-3xl'} font-black mt-1 tracking-tight`}>{title}</h1>
-            <p className={`text-sm font-bold mt-1 ${remoteMuted}`}>{subtitle}</p>
-          </div>
-          <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${remoteSoft}`}>
-            {isDarkMode ? <Icons.Sun className="w-5 h-5" /> : <Icons.Moon className="w-5 h-5" />}
-          </button>
-        </div>
-        {mobileCanOperate && !compact && (
-          <div className={`mt-4 rounded-2xl border p-3 flex items-center justify-between gap-3 ${remoteSoft}`}>
-            <div className="min-w-0">
-              <div className="text-xs font-black opacity-60">เข้าสู่ระบบแล้ว</div>
-              <div className="font-black truncate">{currentOperator?.name || currentOperator?.username || 'เจ้าหน้าที่'}</div>
-            </div>
-            <button type="button" onClick={handleLogout} className="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-black shrink-0">ออก</button>
-          </div>
-        )}
-      </div>
-    );
-
-    const ActionCard = ({ mode, title, desc, count, Icon, tone }) => {
-      const palette = {
-        borrow: isDarkMode ? 'bg-blue-950/45 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800',
-        event: isDarkMode ? 'bg-orange-950/45 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800',
-        return: isDarkMode ? 'bg-emerald-950/45 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800',
-        scan: isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-950 border-slate-950 text-white'
-      };
-      const iconBg = {
-        borrow: 'bg-blue-600 text-white',
-        event: 'bg-orange-500 text-white',
-        return: 'bg-emerald-600 text-white',
-        scan: 'bg-white/12 text-white border border-white/15'
-      };
-      return (
-        <button type="button" onClick={() => openMobileAction(mode)} className={`min-h-[148px] rounded-[1.8rem] border p-4 text-left shadow-sm active:scale-[0.98] transition-all ${palette[tone]}`}>
-          <div className="flex items-start justify-between gap-3">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${iconBg[tone]}`}>
-              <Icon className="w-6 h-6" />
-            </div>
-            {count !== null && count !== undefined && <div className="text-2xl font-black tabular-nums">{Number(count || 0).toLocaleString('th-TH')}</div>}
-          </div>
-          <div className="text-2xl font-black mt-4 leading-tight">{title}</div>
-          <div className="text-xs font-bold mt-1 opacity-75">{desc}</div>
-        </button>
-      );
-    };
-
-    const renderMobileOperation = () => {
-      const mode = mobileRemoteAction === 'event' || mobileRemoteAction === 'return' ? mobileRemoteAction : 'borrow';
-      const modeInfo = mode === 'event'
-        ? { title: 'ออกงาน', fullTitle: 'นำอุปกรณ์ออกงาน', desc: 'เลือกของพร้อมใช้แล้วบันทึกออกงาน', icon: Icons.Truck, color: 'orange', btn: 'bg-orange-500 hover:bg-orange-400', soft: isDarkMode ? 'bg-orange-950/35 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800' }
-        : mode === 'return'
-          ? { title: 'คืน', fullTitle: 'รับคืนอุปกรณ์', desc: 'เลือกของที่รอคืนแล้วบันทึกรับคืน', icon: Icons.CheckCircle, color: 'emerald', btn: 'bg-emerald-600 hover:bg-emerald-500', soft: isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800' }
-          : { title: 'ยืม', fullTitle: 'ยืมอุปกรณ์', desc: 'เลือกของพร้อมใช้แล้วบันทึกการยืม', icon: Icons.UserPlus, color: 'blue', btn: 'bg-blue-600 hover:bg-blue-500', soft: isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800' };
-
-      const q = String(borrowReturnSearch || '').trim().toLowerCase();
-      const mobileItems = items
-        .filter(item => item && !item.isDeleted)
-        .filter(item => mode === 'return' ? (item.status === 'borrowed' || item.status === 'out-for-event') : item.status === 'available')
-        .filter(item => {
-          if (!q) return true;
-          return String(item.name || '').toLowerCase().includes(q) ||
-                 String(item.sn || '').toLowerCase().includes(q) ||
-                 String(item.category || '').toLowerCase().includes(q) ||
-                 String(item.location || '').toLowerCase().includes(q) ||
-                 String(item.currentBorrower || '').toLowerCase().includes(q) ||
-                 String(item.currentEvent || '').toLowerCase().includes(q);
-        })
-        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true }))
-        .slice(0, 80);
-
-      const actionTargetIds = mode === 'event' ? eventTargetIds : mode === 'return' ? returnTargetIds : borrowTargetIds;
-      const actionChecklist = mode === 'event' ? eventChecklist : mode === 'return' ? returnChecklist : packingChecklist;
-      const selectedActionItems = actionTargetIds.map(id => items.find(item => item.id === id)).filter(Boolean);
-
-      const setActionTargets = (ids) => {
-        const unique = Array.from(new Set(ids || []));
-        if (mode === 'event') {
-          setEventTargetIds(unique);
-          setEventChecklist(unique);
-        } else if (mode === 'return') {
-          setReturnTargetIds(unique);
-          setReturnChecklist(unique);
-        } else {
-          setBorrowTargetIds(unique);
-          setPackingChecklist(unique);
-        }
-      };
-
-      const setActionChecklist = (ids) => {
-        const unique = Array.from(new Set(ids || []));
-        if (mode === 'event') setEventChecklist(unique);
-        else if (mode === 'return') setReturnChecklist(unique);
-        else setPackingChecklist(unique);
-      };
-
-      const clearMobileOperation = () => {
-        if (mode === 'event') {
-          setEventTargetIds([]);
-          setEventChecklist([]);
-          setEventProofFiles([]);
-        } else if (mode === 'return') {
-          setReturnTargetIds([]);
-          setReturnChecklist([]);
-          setReturnProofFiles([]);
-          setReturnInspection({});
-        } else {
-          setBorrowTargetIds([]);
-          setPackingChecklist([]);
-          setBorrowProofFiles([]);
-        }
-      };
-
-      const toggleItem = (id) => {
-        if (actionTargetIds.includes(id)) {
-          setActionTargets(actionTargetIds.filter(x => x !== id));
-          setActionChecklist(actionChecklist.filter(x => x !== id));
-        } else {
-          setActionTargets([...actionTargetIds, id]);
-          setActionChecklist([...actionChecklist, id]);
-        }
-      };
-
-      const missingSteps = [];
-      if (mode === 'borrow') {
-        if (!borrowData.staff) missingSteps.push('ผู้ให้ยืม');
-        if (!borrowData.borrower) missingSteps.push('ชื่อผู้ยืม');
-        if (packingChecklist.length === 0) missingSteps.push('อุปกรณ์');
-      } else if (mode === 'event') {
-        if (!eventData.staff) missingSteps.push('ผู้รับผิดชอบ');
-        if (!eventData.eventName) missingSteps.push('ชื่องาน');
-        if (eventChecklist.length === 0) missingSteps.push('อุปกรณ์');
-      } else {
-        if (!returnData.staff) missingSteps.push('ผู้รับคืน');
-        if (returnChecklist.length === 0) missingSteps.push('อุปกรณ์');
-      }
-
-      const ready = missingSteps.length === 0;
-      const Icon = modeInfo.icon;
-
-      return (
-        <div className={`lg:hidden fixed inset-0 z-[6500] overflow-y-auto ${remotePageBg}`}>
-          <div className="min-h-screen p-4 pb-32">
-            <div className={`rounded-[2rem] border p-4 shadow-sm ${remotePanel}`}>
-              <div className="flex items-start justify-between gap-3">
-                <button type="button" onClick={() => setMobileRemoteAction('home')} className={`w-11 h-11 rounded-2xl border flex items-center justify-center ${remoteSoft}`}>‹</button>
-                <div className="min-w-0 flex-1">
-                  <div className={`text-xs font-black tracking-[0.18em] uppercase ${remoteMuted}`}>MOBILE OPERATION</div>
-                  <h1 className="text-3xl font-black mt-1">{modeInfo.fullTitle}</h1>
-                  <p className={`text-sm font-bold mt-1 ${remoteMuted}`}>{modeInfo.desc}</p>
-                </div>
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${modeInfo.btn} text-white`}>
-                  <Icon className="w-6 h-6" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 mt-4">
-                {[
-                  ['borrow', 'ยืม', Icons.UserPlus],
-                  ['return', 'คืน', Icons.CheckCircle],
-                  ['event', 'ออกงาน', Icons.Truck]
-                ].map(([id, label, TabIcon]) => (
-                  <button key={id} type="button" onClick={() => { setBorrowReturnMode(id); setMobileRemoteAction(id); }} className={`rounded-2xl border p-3 text-center font-black ${mode === id ? modeInfo.soft : remoteSoft}`}>
-                    <TabIcon className="w-5 h-5 mx-auto mb-1" />
-                    <div className="text-sm">{label}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <section className={`mt-4 rounded-[2rem] border p-4 ${remotePanel}`}>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="font-black text-lg">เลือกอุปกรณ์</div>
-                  <div className={`text-xs font-bold ${remoteMuted}`}>พบ {mobileItems.length.toLocaleString('th-TH')} • เลือก {actionTargetIds.length.toLocaleString('th-TH')}</div>
-                </div>
-                <button type="button" onClick={openMobileRemoteOperationScanner} className="px-3 py-2 rounded-xl bg-slate-950 text-white text-xs font-black">สแกนหลายรายการ</button>
-              </div>
-              <div className={`mt-3 flex items-center gap-3 px-4 py-3 rounded-2xl border ${theme.input}`}>
-                <Icons.Search className={`w-5 h-5 ${remoteMuted}`} />
-                <input className="bg-transparent outline-none w-full font-black" placeholder="ค้นหาเอง หรือกดสแกนหลายรายการ" value={borrowReturnSearch} onChange={e => setBorrowReturnSearch(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                <button type="button" onClick={() => setActionTargets(mobileItems.map(item => item.id))} className={`py-3 rounded-2xl border font-black ${remoteSoft}`}>เลือกที่เห็น</button>
-                <button type="button" onClick={clearMobileOperation} className={`py-3 rounded-2xl border font-black ${remoteSoft}`}>ล้าง</button>
-              </div>
-
-              <div className="space-y-2 mt-3 max-h-[330px] overflow-y-auto custom-scrollbar">
-                {mobileItems.length === 0 ? (
-                  <div className={`rounded-2xl border p-4 text-center font-black ${remoteSoft}`}>ไม่พบรายการ</div>
-                ) : mobileItems.map(item => {
-                  const selected = actionTargetIds.includes(item.id);
-                  const late = (item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
-                  return (
-                    <button key={item.id} type="button" onClick={() => toggleItem(item.id)} className={`w-full rounded-2xl border p-3 text-left ${selected ? modeInfo.soft : remoteSoft}`}>
-                      <div className="flex items-start gap-3">
-                        <span className={`mt-1 w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black ${selected ? `${modeInfo.btn} text-white border-transparent` : isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-300'}`}>{selected ? '✓' : ''}</span>
-                        <div className="min-w-0 flex-1">
-                          <div className="font-black truncate">{item.name || '-'}</div>
-                          <div className={`text-xs font-bold mt-1 truncate ${remoteMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'}</div>
-                          {(item.currentBorrower || item.currentEvent || late) && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {item.currentBorrower && <span className="px-2 py-1 rounded-lg bg-blue-500/10 text-blue-500 text-[10px] font-black">ผู้ยืม: {item.currentBorrower}</span>}
-                              {item.currentEvent && <span className="px-2 py-1 rounded-lg bg-orange-500/10 text-orange-500 text-[10px] font-black">งาน: {item.currentEvent}</span>}
-                              {late && <span className="px-2 py-1 rounded-lg bg-rose-600 text-white text-[10px] font-black">เลยกำหนด</span>}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className={`mt-4 rounded-[2rem] border p-4 ${remotePanel}`}>
-              <div className="font-black text-lg">ข้อมูลรายการ</div>
-              <div className={`text-xs font-bold mt-1 ${remoteMuted}`}>กรอกเฉพาะที่จำเป็นสำหรับงานนี้</div>
-
-              <div className="space-y-3 mt-4">
-                {mode === 'borrow' && (
-                  <>
-                    <label className="block"><span className={`block text-sm font-black mb-1 ${remoteMuted}`}>ผู้ให้ยืม *</span><select className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} value={borrowData.staff || ''} onChange={e => setBorrowData({...borrowData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : borrowData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
-                    {borrowData.staff === 'อื่นๆ' && <input className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={borrowData.newStaff || ''} onChange={e => setBorrowData({...borrowData, newStaff: e.target.value})} />}
-                    <label className="block"><span className={`block text-sm font-black mb-1 ${remoteMuted}`}>ชื่อผู้ยืม *</span><input className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} placeholder="ชื่อ-สกุล / แผนก" value={borrowData.borrower || ''} onChange={e => setBorrowData({...borrowData, borrower: e.target.value})} /></label>
-                    <label className="block"><span className={`block text-sm font-black mb-1 ${remoteMuted}`}>กำหนดคืน</span><input type="date" className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} value={borrowData.returnDate || ''} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} /></label>
-                    {renderProofUploader('หลักฐานการยืม', borrowProofFiles, setBorrowProofFiles, 'purple')}
-                  </>
-                )}
-
-                {mode === 'event' && (
-                  <>
-                    <label className="block"><span className={`block text-sm font-black mb-1 ${remoteMuted}`}>ผู้รับผิดชอบ *</span><select className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} value={eventData.staff || ''} onChange={e => setEventData({...eventData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : eventData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
-                    {eventData.staff === 'อื่นๆ' && <input className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={eventData.newStaff || ''} onChange={e => setEventData({...eventData, newStaff: e.target.value})} />}
-                    <label className="block"><span className={`block text-sm font-black mb-1 ${remoteMuted}`}>ชื่องาน / สถานที่ *</span><input className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} placeholder="เช่น งานประชุม / ถ่ายภาพกิจกรรม" value={eventData.eventName || ''} onChange={e => setEventData({...eventData, eventName: e.target.value})} /></label>
-                    <label className="block"><span className={`block text-sm font-black mb-1 ${remoteMuted}`}>กำหนดคืน</span><input type="date" className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} value={eventData.returnDate || ''} onChange={e => setEventData({...eventData, returnDate: e.target.value})} /></label>
-                    {renderProofUploader('หลักฐานนำออกงาน', eventProofFiles, setEventProofFiles, 'orange')}
-                  </>
-                )}
-
-                {mode === 'return' && (
-                  <>
-                    <label className="block"><span className={`block text-sm font-black mb-1 ${remoteMuted}`}>ผู้รับคืน *</span><select className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} value={returnData.staff || ''} onChange={e => setReturnData({...returnData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : returnData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
-                    {returnData.staff === 'อื่นๆ' && <input className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={returnData.newStaff || ''} onChange={e => setReturnData({...returnData, newStaff: e.target.value})} />}
-                    {renderProofUploader('หลักฐานการรับคืน', returnProofFiles, setReturnProofFiles, 'emerald')}
-                  </>
-                )}
-              </div>
-            </section>
-
-            <section className={`mt-4 rounded-[2rem] border p-4 ${remotePanel}`}>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="font-black text-lg">เช็กของ</div>
-                  <div className={`text-xs font-bold ${remoteMuted}`}>เช็กแล้ว {actionChecklist.length}/{actionTargetIds.length}</div>
-                </div>
-                <button type="button" onClick={() => setActionChecklist(actionTargetIds)} className="px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">เช็กครบ</button>
-              </div>
-              <div className="space-y-2 mt-3 max-h-52 overflow-y-auto custom-scrollbar">
-                {selectedActionItems.length === 0 ? (
-                  <div className={`rounded-2xl border p-4 text-center font-black ${remoteSoft}`}>ยังไม่ได้เลือกอุปกรณ์</div>
-                ) : selectedActionItems.map(item => {
-                  const checked = actionChecklist.includes(item.id);
-                  return (
-                    <label key={item.id} className={`flex items-start gap-3 p-3 rounded-2xl border ${checked ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : remoteSoft}`}>
-                      <input type="checkbox" className="stock-check mt-1" checked={checked} onChange={e => setActionChecklist(e.target.checked ? [...actionChecklist, item.id] : actionChecklist.filter(id => id !== item.id))} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-black truncate">{item.name}</span>
-                        <span className={`block text-xs font-bold ${remoteMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'}</span>
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </section>
-          </div>
-
-          <div className={`fixed bottom-0 inset-x-0 z-[6600] px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] border-t ${isDarkMode ? 'bg-slate-950/92 border-slate-800' : 'bg-white/92 border-slate-200'} backdrop-blur-xl`}>
-            {missingSteps.length > 0 && (
-              <div className={`mb-2 px-3 py-2 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
-                ยังขาด: {missingSteps.join(' / ')}
-              </div>
-            )}
-            <div className="grid grid-cols-[92px_1fr] gap-2">
-              <button type="button" onClick={() => setMobileRemoteAction('home')} className={`py-4 rounded-2xl border font-black ${remoteSoft}`}>กลับ</button>
-              <button type="button" disabled={missingSteps.length > 0} onClick={() => requestOperationConfirm(mode === 'event' ? 'event' : mode === 'return' ? 'return' : 'borrow')} className={`py-4 rounded-2xl text-white font-black ${modeInfo.btn} disabled:bg-slate-400 disabled:cursor-not-allowed`}>
-                {mode === 'event' ? 'บันทึกออกงาน' : mode === 'return' ? 'บันทึกรับคืน' : 'บันทึกการยืม'}
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-    if (!mobileCanOperate) {
-      return (
-        <div className={`lg:hidden fixed inset-0 z-[6500] overflow-y-auto ${remotePageBg}`}>
-          <div className="min-h-screen p-4 pb-8 flex flex-col justify-center">
-            <RemoteHeader />
-            <div className={`mt-4 rounded-[2rem] border p-5 shadow-sm ${remotePanel}`}>
-              <div className="w-14 h-14 rounded-3xl bg-blue-600 text-white flex items-center justify-center mb-4">
-                <Icons.UserPlus className="w-7 h-7" />
-              </div>
-              <div className="text-2xl font-black">ล็อกอินก่อนใช้งาน</div>
-              <p className={`text-sm font-bold mt-1 ${remoteMuted}`}>มือถือถูกออกแบบให้ใช้เป็นรีโมตหน้างาน จึงต้องล็อกอินก่อนทุกครั้ง</p>
-
-              <div className="space-y-3 mt-5">
-                <label className="block">
-                  <span className={`block text-sm font-black mb-1 ${remoteMuted}`}>Username</span>
-                  <input type="text" autoFocus className={`w-full px-4 py-4 rounded-2xl border font-black text-lg outline-none ${theme.input}`} placeholder="admin" value={loginUsername} onChange={e => setLoginUsername(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
-                </label>
-                <label className="block">
-                  <span className={`block text-sm font-black mb-1 ${remoteMuted}`}>PIN / รหัสผ่าน</span>
-                  <input type="password" inputMode="numeric" className={`w-full px-4 py-4 rounded-2xl border font-black text-center text-3xl tracking-widest outline-none ${theme.input}`} value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }} />
-                </label>
-                <button type="button" onClick={handleLogin} className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-lg shadow-sm">เข้าสู่ระบบรีโมต</button>
-              </div>
-            </div>
-
-            <button type="button" onClick={() => setMobileRemoteOpen(false)} className={`mt-4 w-full py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เข้าเว็บเต็มบนมือถือ</button>
-          </div>
-        </div>
-      );
-    }
-
-    if (mobileRemoteAction !== 'home') return renderMobileOperation();
-
-    return (
-      <div className={`lg:hidden fixed inset-0 z-[6500] overflow-y-auto ${remotePageBg}`}>
-        <div className="min-h-screen p-4 pb-28">
-          <RemoteHeader />
-
-          <div className="grid grid-cols-3 gap-2 mt-4">
-            {[
-              ['พร้อมใช้', stats.available, 'text-emerald-500'],
-              ['รอคืน', outsideCount, 'text-blue-500'],
-              ['เลยกำหนด', overdueItems.length, 'text-rose-500']
-            ].map(([label, value, color]) => (
-              <div key={label} className={`rounded-2xl border p-3 ${remotePanel}`}>
-                <div className={`text-2xl font-black tabular-nums ${color}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
-                <div className={`text-[11px] font-black mt-1 ${remoteMuted}`}>{label}</div>
-              </div>
-            ))}
-          </div>
-
-          <section className="grid grid-cols-2 gap-3 mt-4">
-            <ActionCard mode="borrow" title="ยืม" desc="ทำในรีโมตนี้เลย" count={stats.available} Icon={Icons.UserPlus} tone="borrow" />
-            <ActionCard mode="return" title="คืน" desc="ทำในรีโมตนี้เลย" count={outsideCount} Icon={Icons.CheckCircle} tone="return" />
-            <ActionCard mode="event" title="ออกงาน" desc="ทำในรีโมตนี้เลย" count={currentEventItems.length} Icon={Icons.Truck} tone="event" />
-            <ActionCard mode="scan" title="สแกน" desc="เลือกของด้วย QR" count={null} Icon={Icons.QrCode} tone="scan" />
-          </section>
-
-          <button type="button" onClick={() => openMobileAction('scan')} className="mt-4 w-full rounded-[1.8rem] bg-slate-950 text-white p-4 shadow-lg shadow-slate-950/20 active:scale-[0.99] transition-all flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-white/12 border border-white/15 flex items-center justify-center">
-                <Icons.QrCode className="w-7 h-7" />
-              </div>
-              <div className="text-left">
-                <div className="font-black text-xl">เปิดกล้องสแกน QR</div>
-                <div className="text-xs font-bold text-white/60">ใช้เหมือนรีโมตเลือกของหน้างาน</div>
-              </div>
-            </div>
-            <span className="text-2xl font-black">›</span>
-          </button>
-
-          <section className={`mt-4 rounded-[2rem] border p-4 ${remotePanel}`}>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="font-black text-lg">งานด่วน</div>
-                <div className={`text-xs font-bold ${remoteMuted}`}>ของที่ควรตามวันนี้</div>
-              </div>
-              <button type="button" onClick={() => { setMobileRemoteOpen(false); openTrackingCenter('today'); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูทั้งหมด</button>
-            </div>
-
-            <div className="space-y-2 mt-3">
-              {urgentList.length === 0 ? (
-                <div className={`rounded-2xl border p-4 text-center font-black ${remoteSoft}`}>ไม่มีงานด่วนตอนนี้</div>
-              ) : urgentList.map(item => {
-                const isLate = overdueItems.some(x => x.id === item.id);
-                return (
-                  <button key={item.id} type="button" onClick={() => { setMobileRemoteOpen(false); setShowHistory(item.id); }} className={`w-full rounded-2xl border p-3 text-left ${isLate ? (isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800') : remoteSoft}`}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="font-black truncate">{item.name || '-'}</div>
-                        <div className={`text-xs font-bold mt-1 truncate ${isLate ? 'opacity-70' : remoteMuted}`}>{item.currentBorrower || item.currentEvent || '-'} • คืน {item.expectedReturn ? new Date(item.expectedReturn).toLocaleDateString('th-TH') : '-'}</div>
-                      </div>
-                      <span className={`shrink-0 text-[10px] font-black px-2 py-1 rounded-lg ${isLate ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white'}`}>{isLate ? 'เลยกำหนด' : 'วันนี้'}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className={`mt-4 rounded-[2rem] border p-4 ${remotePanel}`}>
-            <div className="font-black text-lg">เครื่องมือรอง</div>
-            <div className="grid grid-cols-4 gap-2 mt-3">
-              {[
-                ['เอกสาร', Icons.พิมพ์er, () => { setMobileRemoteOpen(false); openBorrowDocsArchive({ reset: false }); }],
-                ['คลัง', Icons.Database, () => { setMobileRemoteOpen(false); openWorkspace('inventory'); }],
-                ['ติดตาม', Icons.History, () => { setMobileRemoteOpen(false); openTrackingCenter('today'); }],
-                ['เว็บเต็ม', Icons.ViewGrid, () => setMobileRemoteOpen(false)]
-              ].map(([label, Icon, action]) => (
-                <button key={label} type="button" onClick={action} className={`rounded-2xl border p-3 flex flex-col items-center justify-center gap-2 min-h-[82px] ${remoteSoft}`}>
-                  <Icon className="w-5 h-5" />
-                  <span className="text-[11px] font-black">{label}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <div className={`fixed bottom-0 inset-x-0 z-[6600] px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] border-t ${isDarkMode ? 'bg-slate-950/92 border-slate-800' : 'bg-white/92 border-slate-200'} backdrop-blur-xl`}>
-          <div className="grid grid-cols-4 gap-2">
-            <button type="button" onClick={() => openMobileAction('borrow')} className="py-3 rounded-2xl bg-blue-600 text-white font-black text-sm">ยืม</button>
-            <button type="button" onClick={() => openMobileAction('return')} className="py-3 rounded-2xl bg-emerald-600 text-white font-black text-sm">คืน</button>
-            <button type="button" onClick={() => openMobileAction('event')} className="py-3 rounded-2xl bg-orange-500 text-white font-black text-sm">ออกงาน</button>
-            <button type="button" onClick={() => openMobileAction('scan')} className="py-3 rounded-2xl bg-slate-950 text-white font-black text-sm">สแกน</button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-
-
   if (showCommandCenter) {
     const healthPercentage = stats.all > 0 ? Math.round((stats.available / stats.all) * 100) : 0;
     const outsideItems = [
@@ -17890,7 +17031,6 @@ S.N.: ${item.sn || '-'}
   return (
     <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish desktop-overview-clean min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain} ${homeCompactMode ? 'home-comfort-compact' : ''}`}>
       <FactoryPolishStyle isDarkMode={isDarkMode} />
-      {mobileRemoteOpen && !mobileRemoteScannerOpen && !showScanModal && renderMobileRemoteMode()}
       {/* FactoryStock Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-72 bg-slate-950 text-white flex-col border-r border-white/10">
         <div className="p-6 border-b border-white/10">
@@ -18681,7 +17821,7 @@ S.N.: ${item.sn || '-'}
       )}
 
       {/* 🛒 Bulk Selection Action Bar */}
-      {canUseOperationalTools && selectedItems.length > 0 && !mobileRemoteOpen && scannerReturnWorkspace !== 'mobileRemote' && (() => {
+      {canUseOperationalTools && selectedItems.length > 0 && (() => {
         const selectedActiveItems = selectedItems.map(id => items.find(item => item.id === id)).filter(Boolean);
         const availableCount = selectedActiveItems.filter(item => item.status === 'available').length;
         const returnableCount = selectedActiveItems.filter(item => item.status === 'borrowed' || item.status === 'out-for-event').length;
@@ -18720,16 +17860,6 @@ S.N.: ${item.sn || '-'}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 flex-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowพิมพ์Modal(true)}
-                    className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black shadow-md flex items-center justify-center gap-2 text-sm transition-colors"
-                    title="พิมพ์ QR / ฉลาก สำหรับรายการที่เลือก"
-                  >
-                    <Icons.QrCode className="w-5 h-5" />
-                    <span>พิมพ์ QR</span>
-                  </button>
-
                   {singleSelectedItem && (
                     <button
                       type="button"
@@ -19072,10 +18202,8 @@ S.N.: ${item.sn || '-'}
 
       {renderCameraAccessoryHelperModal()}
 
-      {mobileRemoteScannerOpen && false && renderMobileRemoteScanner()}
-
       {/* 📷 หน้าสแกน QR Code แบบใหม่: ใช้งานหน้างาน / มือถือ / เครื่องยิงบาร์โค้ด */}
-      {showScanModal && activeWorkspace === 'scanner' && !mobileRemoteScannerOpen && (() => {
+      {showScanModal && activeWorkspace === 'scanner' && (() => {
         const scanInfo = getScanModeInfo();
         const isChecklistMode = scanMode !== 'select' && scanMode !== 'stockCount';
         const targetIds = scanMode === 'borrowChecklist' ? borrowTargetIds : scanMode === 'eventChecklist' ? eventTargetIds : scanMode === 'returnChecklist' ? returnTargetIds : scanMode === 'stockCount' ? stockCountStats.auditTarget.map(i => i.id) : [];
@@ -19230,7 +18358,238 @@ S.N.: ${item.sn || '-'}
         }
       }
 
-            `}</style>
+            
+
+/* v22.57.3 Elegant Classic Desktop Polish - minimal premium visual layer, no QR/camera/database/flow changes */
+.factory-stock-polish {
+  --mdec-ease: cubic-bezier(.2,.8,.2,1);
+  --mdec-blue: #2563eb;
+  --mdec-ink: #0f172a;
+  --mdec-card-line: rgba(148,163,184,.24);
+}
+.factory-stock-polish[data-polish-theme="dark"] {
+  --mdec-ink: #f8fafc;
+  --mdec-card-line: rgba(148,163,184,.18);
+}
+.factory-stock-polish::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(37,99,235,.13), transparent 32%),
+    radial-gradient(circle at 86% 12%, rgba(14,165,233,.10), transparent 30%),
+    linear-gradient(180deg, rgba(255,255,255,.35), transparent 36%);
+}
+.factory-stock-polish[data-polish-theme="dark"]::before {
+  background:
+    radial-gradient(circle at 18% 10%, rgba(37,99,235,.20), transparent 34%),
+    radial-gradient(circle at 86% 12%, rgba(14,165,233,.13), transparent 32%),
+    linear-gradient(180deg, rgba(15,23,42,.18), transparent 42%);
+}
+.factory-stock-polish > * {
+  position: relative;
+  z-index: 1;
+}
+.factory-stock-polish .factory-topbar {
+  padding-top: 18px !important;
+  padding-bottom: 12px !important;
+}
+.factory-stock-polish .factory-kicker {
+  border: 1px solid rgba(37,99,235,.16);
+  background: rgba(37,99,235,.08);
+  padding: 7px 11px;
+  border-radius: 999px;
+  width: fit-content;
+  letter-spacing: .08em;
+}
+.factory-stock-polish .factory-page-title h1 {
+  font-weight: 950 !important;
+  letter-spacing: -.055em;
+}
+.factory-stock-polish .factory-page-title p {
+  max-width: 780px;
+  line-height: 1.6;
+}
+.factory-stock-polish .factory-primary-btn,
+.factory-stock-polish button[class*="bg-blue-600"],
+.factory-stock-polish button[class*="from-blue"] {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8 58%, #1e40af) !important;
+  box-shadow: 0 14px 30px rgba(37,99,235,.22), inset 0 1px 0 rgba(255,255,255,.18) !important;
+  border-color: rgba(147,197,253,.34) !important;
+}
+.factory-stock-polish .factory-primary-btn:hover,
+.factory-stock-polish button[class*="bg-blue-600"]:hover,
+.factory-stock-polish button[class*="from-blue"]:hover {
+  filter: saturate(1.06) brightness(1.03);
+  transform: translateY(-1px);
+}
+.factory-stock-polish .factory-ghost-btn,
+.factory-stock-polish .factory-icon-btn,
+.factory-stock-polish .solid-panel,
+.factory-stock-polish .solid-workspace > div,
+.factory-stock-polish .home-command-card,
+.factory-stock-polish .report-dashboard-card,
+.factory-stock-polish .shortcut-consolidated-card,
+.factory-stock-polish .workspace-action-card,
+.factory-stock-polish .operation-workspace-card,
+.factory-stock-polish .purchase-project-card,
+.factory-stock-polish .stock-mobile-card,
+.factory-stock-polish .clean-mobile-card,
+.factory-stock-polish .overview-essential-hero,
+.factory-stock-polish .overview-essential-action,
+.factory-stock-polish .overview-mini-stat {
+  border-color: var(--mdec-card-line) !important;
+  box-shadow: 0 16px 42px rgba(15,23,42,.075), inset 0 1px 0 rgba(255,255,255,.42) !important;
+}
+.factory-stock-polish[data-polish-theme="dark"] .factory-ghost-btn,
+.factory-stock-polish[data-polish-theme="dark"] .factory-icon-btn,
+.factory-stock-polish[data-polish-theme="dark"] .solid-panel,
+.factory-stock-polish[data-polish-theme="dark"] .solid-workspace > div,
+.factory-stock-polish[data-polish-theme="dark"] .home-command-card,
+.factory-stock-polish[data-polish-theme="dark"] .report-dashboard-card,
+.factory-stock-polish[data-polish-theme="dark"] .shortcut-consolidated-card,
+.factory-stock-polish[data-polish-theme="dark"] .workspace-action-card,
+.factory-stock-polish[data-polish-theme="dark"] .operation-workspace-card,
+.factory-stock-polish[data-polish-theme="dark"] .purchase-project-card,
+.factory-stock-polish[data-polish-theme="dark"] .stock-mobile-card,
+.factory-stock-polish[data-polish-theme="dark"] .clean-mobile-card,
+.factory-stock-polish[data-polish-theme="dark"] .overview-essential-hero,
+.factory-stock-polish[data-polish-theme="dark"] .overview-essential-action,
+.factory-stock-polish[data-polish-theme="dark"] .overview-mini-stat {
+  box-shadow: 0 18px 46px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.04) !important;
+}
+.factory-stock-polish .home-command-center,
+.factory-stock-polish .overview-essential-grid {
+  gap: 16px !important;
+}
+.factory-stock-polish .home-command-card,
+.factory-stock-polish .overview-essential-hero,
+.factory-stock-polish .shortcut-consolidated-card {
+  position: relative;
+  overflow: hidden;
+}
+.factory-stock-polish .home-command-card::after,
+.factory-stock-polish .overview-essential-hero::after,
+.factory-stock-polish .shortcut-consolidated-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255,255,255,.18), transparent 38%, rgba(37,99,235,.06));
+  opacity: .75;
+}
+.factory-stock-polish[data-polish-theme="dark"] .home-command-card::after,
+.factory-stock-polish[data-polish-theme="dark"] .overview-essential-hero::after,
+.factory-stock-polish[data-polish-theme="dark"] .shortcut-consolidated-card::after {
+  background: linear-gradient(135deg, rgba(255,255,255,.04), transparent 36%, rgba(59,130,246,.09));
+}
+.factory-stock-polish .home-command-card > *,
+.factory-stock-polish .overview-essential-hero > *,
+.factory-stock-polish .shortcut-consolidated-card > * {
+  position: relative;
+  z-index: 1;
+}
+.factory-stock-polish .home-command-action,
+.factory-stock-polish .overview-essential-action,
+.factory-stock-polish .shortcut-mini-btn,
+.factory-stock-polish .workspace-action-card {
+  transition: transform .2s var(--mdec-ease), box-shadow .2s var(--mdec-ease), border-color .2s var(--mdec-ease), background .2s var(--mdec-ease);
+}
+.factory-stock-polish .home-command-action:hover,
+.factory-stock-polish .overview-essential-action:hover,
+.factory-stock-polish .shortcut-mini-btn:hover,
+.factory-stock-polish .workspace-action-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(37,99,235,.34) !important;
+  box-shadow: 0 18px 44px rgba(37,99,235,.13) !important;
+}
+.factory-stock-polish .workspace-tabbar {
+  background: rgba(148,163,184,.10);
+  border: 1px solid var(--mdec-card-line);
+  border-radius: 20px;
+  padding: 6px;
+}
+.factory-stock-polish .workspace-tabbar button {
+  border-radius: 15px !important;
+  min-height: 40px;
+}
+.factory-stock-polish .stock-table-compact {
+  overflow: hidden;
+  border-radius: 22px;
+}
+.factory-stock-polish .stock-table-compact thead th {
+  background: rgba(37,99,235,.065) !important;
+  color: var(--mdec-ink) !important;
+  border-bottom: 1px solid rgba(37,99,235,.13) !important;
+}
+.factory-stock-polish[data-polish-theme="dark"] .stock-table-compact thead th {
+  background: rgba(59,130,246,.13) !important;
+}
+.factory-stock-polish .stock-table-compact tbody tr:hover td {
+  background: rgba(37,99,235,.045) !important;
+}
+.factory-stock-polish[data-polish-theme="dark"] .stock-table-compact tbody tr:hover td {
+  background: rgba(59,130,246,.10) !important;
+}
+.factory-stock-polish .stock-name-line .stock-title {
+  letter-spacing: -.025em;
+}
+.factory-stock-polish :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):not(.stock-check) {
+  border-color: rgba(148,163,184,.38) !important;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.factory-stock-polish :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):not(.stock-check):focus {
+  border-color: rgba(37,99,235,.62) !important;
+  box-shadow: 0 0 0 4px rgba(37,99,235,.12) !important;
+}
+.factory-stock-polish .operational-modal-shell,
+.factory-stock-polish .compact-modal-shell {
+  box-shadow: 0 28px 86px rgba(15,23,42,.22), inset 0 1px 0 rgba(255,255,255,.36) !important;
+}
+.factory-stock-polish[data-polish-theme="dark"] .operational-modal-shell,
+.factory-stock-polish[data-polish-theme="dark"] .compact-modal-shell {
+  box-shadow: 0 30px 92px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.05) !important;
+}
+.factory-stock-polish .operational-modal-shell h3,
+.factory-stock-polish .compact-modal-shell h3 {
+  letter-spacing: -.035em;
+}
+.factory-stock-polish .factory-chip {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.42);
+}
+.factory-stock-polish aside {
+  border-right: 1px solid rgba(148,163,184,.16);
+}
+.factory-stock-polish aside nav button {
+  transition: background .18s ease, transform .18s ease, color .18s ease;
+}
+.factory-stock-polish aside nav button:hover {
+  transform: translateX(2px);
+}
+@media (min-width: 1280px) {
+  .factory-stock-polish .overview-essential-action { min-height: 132px !important; }
+  .factory-stock-polish .overview-mini-stat { min-height: 86px !important; }
+  .factory-stock-polish .shortcut-consolidated-card { min-height: 214px !important; }
+}
+@media (max-width: 1023px) {
+  .factory-stock-polish::before { opacity: .7; }
+  .factory-stock-polish .factory-topbar { padding-top: 10px !important; }
+  .factory-stock-polish .factory-page-title h1 { letter-spacing: -.04em; }
+}
+@media print {
+  .factory-stock-polish::before { display: none !important; }
+  .factory-stock-polish .factory-primary-btn,
+  .factory-stock-polish .factory-ghost-btn,
+  .factory-stock-polish .factory-icon-btn,
+  .factory-stock-polish .solid-panel,
+  .factory-stock-polish .solid-workspace > div,
+  .factory-stock-polish .home-command-card,
+  .factory-stock-polish .report-dashboard-card,
+  .factory-stock-polish .shortcut-consolidated-card { box-shadow: none !important; }
+}
+`}</style>
 
             <div className="w-full flex items-stretch justify-center">
               <div className={`qr-scanner-page-shell qr-scanner-compact-shell w-full rounded-[1.3rem] overflow-hidden shadow-sm border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
@@ -19299,7 +18658,7 @@ S.N.: ${item.sn || '-'}
                         <div className={`text-[10px] font-black px-2 py-0.5 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'กล้อง' : 'รหัส'}</div>
                       </div>
 
-                      {mobileRemoteUseCamera ? (
+                      {useCamera ? (
                         <div className="p-3">
                           <div className={`mb-2 p-2 rounded-lg border text-left text-[11px] font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
                             จัด QR ให้อยู่กลางกรอบและถือให้นิ่ง
@@ -19313,7 +18672,7 @@ S.N.: ${item.sn || '-'}
                               <div id="qr-reader" className="w-full"></div>
                             </div>
                           )}
-                          <form onSubmit={(e) => { e.preventDefault(); processMobileRemoteScan(mobileRemoteScanInput); }} className="mt-2 grid grid-cols-[1fr_auto] gap-1.5">
+                          <form onSubmit={handleScanSubmit} className="mt-2 grid grid-cols-[1fr_auto] gap-1.5">
                             <input
                               type="text"
                               className={`px-3 py-2 rounded-lg font-black text-center outline-none border ${theme.input}`}
@@ -19326,7 +18685,7 @@ S.N.: ${item.sn || '-'}
                         </div>
                       ) : (
                         <div className="p-3">
-                          <form onSubmit={(e) => { e.preventDefault(); processMobileRemoteScan(mobileRemoteScanInput); }}>
+                          <form onSubmit={handleScanSubmit}>
                             <label className={`block text-left text-sm font-black mb-2 ${theme.textTitle}`}>รหัสอุปกรณ์ / S.N.</label>
                             <input
                               type="text"
@@ -19349,8 +18708,8 @@ S.N.: ${item.sn || '-'}
 
                     <div className="space-y-2.5 qr-side-panel">
                       {scanMessage.text ? (
-                        <div className={`p-3 rounded-[1rem] border font-black shadow-sm ${mobileRemoteScanMessage.type === 'success' ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800') : (isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')}`}>
-                          {mobileRemoteScanMessage.text}
+                        <div className={`p-3 rounded-[1rem] border font-black shadow-sm ${scanMessage.type === 'success' ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800') : (isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')}`}>
+                          {scanMessage.text}
                         </div>
                       ) : (
                         <div className={`p-3 rounded-[1rem] border font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
@@ -24055,12 +23414,12 @@ S.N.: ${item.sn || '-'}
         <div className="mobile-bottom-nav-grid">
           <button
             type="button"
-            onClick={() => { setShowMoreMenu(false); setMobileRemoteOpen(true); }}
-            className={`mobile-bottom-nav-btn ${mobileRemoteOpen && !showBorrowDocsModal && !showMoreMenu ? 'is-active' : theme.textMuted}`}
-            title="เปิดรีโมต"
+            onClick={() => { setShowMoreMenu(false); openWorkspace('overview'); }}
+            className={`mobile-bottom-nav-btn ${activeWorkspace === 'overview' && !showBorrowDocsModal && !showMoreMenu ? 'is-active' : theme.textMuted}`}
+            title="กลับหน้าแรก"
           >
             <Icons.Package className="w-5 h-5" />
-            <span>รีโมต</span>
+            <span>หน้าแรก</span>
             {(dueTodayItems.length + overdueItems.length) > 0 && <span className="mobile-bottom-dot" title="มีงานที่ควรดูวันนี้"></span>}
           </button>
 
