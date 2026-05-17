@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.8.6 Mobile Remote Standalone Scanner Fix';
-const APP_UPDATE_NOTE = 'Mobile Remote Standalone Scanner Fix: แก้โหมดสแกนมือถือใหม่ให้แยกจาก scanner/web state ของเว็บเต็มอย่างเด็ดขาด ไม่ใช้ showScanModal/activeWorkspace scanner ของเว็บเต็ม เพิ่ม state และ handler สแกนมือถือแยกเอง เพื่อไม่ให้เด้งเข้าหน้าบันทึกหรือ error หลังสแกน';
+const APP_VERSION = 'v22.57.1.8.7 Inventory QR Print Button Visible Fix';
+const APP_UPDATE_NOTE = 'Inventory QR Print Button Visible Fix: เพิ่มปุ่ม พิมพ์ QR / ฉลาก ให้เห็นชัดในหน้า คลังอุปกรณ์ เมื่อมีการเลือกอุปกรณ์ ไม่ต้องซ่อนอยู่ในเมนูเพิ่มเติมหรือแถบด้านล่าง เพื่อให้ผู้ใช้พิมพ์ QR ได้ทันทีจากหน้า Desktop';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11046,6 +11046,7 @@ S.N.: ${item.sn || '-'}
                       <button type="button" onClick={handleOpenBatchBorrow} className="px-3.5 py-2.5 rounded-xl bg-purple-600 text-white font-black text-sm">ยืมที่เลือก</button>
                       <button type="button" onClick={handleOpenBatchEvent} className="px-3.5 py-2.5 rounded-xl bg-orange-500 text-white font-black text-sm">ออกงานที่เลือก</button>
                       <button type="button" onClick={handleOpenBatchReturn} className="px-3.5 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-sm">รับคืนที่เลือก</button>
+                      <button type="button" onClick={() => setShowพิมพ์Modal(true)} className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm flex items-center gap-2"><Icons.QrCode className="w-4 h-4" /> พิมพ์ QR / ฉลาก</button>
                       <button type="button" onClick={() => setSelectedItems([])} className={`px-3.5 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ล้างเลือก</button>
                     </>
                   )}
@@ -18679,6 +18680,16 @@ S.N.: ${item.sn || '-'}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 flex-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowพิมพ์Modal(true)}
+                    className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black shadow-md flex items-center justify-center gap-2 text-sm transition-colors"
+                    title="พิมพ์ QR / ฉลาก สำหรับรายการที่เลือก"
+                  >
+                    <Icons.QrCode className="w-5 h-5" />
+                    <span>พิมพ์ QR</span>
+                  </button>
+
                   {singleSelectedItem && (
                     <button
                       type="button"
