@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.4.2 QR Scanner In-App Page Layout Fix';
-const APP_UPDATE_NOTE = 'QR Scanner In-App Page Layout Fix: ปรับหน้าสแกน QR ให้เป็นหน้าใช้งานภายในเว็บ ไม่ใช่ full-screen overlay/เด้งแยกออกจาก layout เดิม คง sidebar/topbar ของเว็บไว้ ลดขนาดกล้องให้อยู่ในกรอบงาน และยังไม่แตะ scanner core, camera permission, flow ยืม/คืน/ออกงาน หรือ Firebase path';
+const APP_VERSION = 'v22.57.4.3 QR Scanner Workspace Mount Hotfix';
+const APP_UPDATE_NOTE = 'QR Scanner Workspace Mount Hotfix: แก้เมนูสแกน QR ที่เปิดแล้วหน้าว่าง/ตัวสแกนไปอยู่ท้ายหน้า โดยให้เมนู scanner เปิด state สแกนจริงทันทีและปิด state สแกนเมื่อเปลี่ยนหน้าอื่น คงเป็นหน้าในเว็บ ไม่ใช่ overlay และไม่แตะ scanner core, camera permission, flow ยืม/คืน/ออกงาน หรือ Firebase path';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6603,11 +6603,28 @@ function MainApp() {
   const [projectMetaForm, setProjectMetaForm] = useState({ name: '', fiscalYear: '', budget: '', owner: '', startDate: '', endDate: '', objective: '', note: '', status: 'active' });
   const isFullMode = uiMode === 'full';
   const openWorkspace = (workspace = 'overview') => {
-    setActiveWorkspace(workspace);
     setShowMoreMenu(false);
     setShowProjectsModal(false);
     setShowStorageBoxesModal(false);
     setShowBundleManager(false);
+
+    // v22.57.4.3 QR Scanner Workspace Mount Hotfix
+    // เมนู sidebar/topbar เรียก openWorkspace('scanner') โดยตรงได้
+    // จึงต้องเปิด state หน้าสแกนพร้อมกัน ไม่งั้น activeWorkspace เป็น scanner แต่ showScanModal ยัง false แล้วหน้าจะว่าง/ตัวสแกนหลุดไปท้ายหน้า
+    if (workspace === 'scanner') {
+      setScannerReturnWorkspace('overview');
+      setScanMode('select');
+      setUseCamera(true);
+      setScanInput('');
+      setScanMessage({ text: '', type: '' });
+      setShowScanModal(true);
+      setActiveWorkspace('scanner');
+    } else {
+      setShowScanModal(false);
+      setUseCamera(false);
+      setActiveWorkspace(workspace);
+    }
+
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
   const setHomeComfortMode = (value) => {
@@ -17373,9 +17390,9 @@ S.N.: ${item.sn || '-'}
         return (
           <div className="page-workspace-shell qr-scanner-page space-y-5">
             <style>{`
-              /* v22.57.4.2 QR Scanner In-App Page Layout Fix
-                 ทำให้หน้าสแกนเป็นหน้าภายในเว็บจริง ๆ ไม่ใช่ full-screen overlay
-                 Scope: layout only. ไม่แตะ Html5QrcodeScanner, camera permission, flow หรือ Firebase path */
+              /* v22.57.4.3 QR Scanner Workspace Mount Hotfix
+                 ทำให้หน้าสแกนเป็น workspace ปกติของเว็บ ไม่ใช่ overlay และไม่หลุดไปท้ายหน้า
+                 Scope: layout/state only. ไม่แตะ Html5QrcodeScanner, camera permission, flow หรือ Firebase path */
               .factory-stock-polish .qr-scanner-page {
                 position: relative !important;
                 z-index: 2 !important;
@@ -17385,6 +17402,11 @@ S.N.: ${item.sn || '-'}
                 padding: 0 !important;
                 overflow: visible !important;
                 background: transparent !important;
+                align-self: stretch !important;
+                order: 0 !important;
+              }
+              .factory-stock-polish .qr-scanner-page + .page-workspace-shell {
+                display: none !important;
               }
               .factory-stock-polish .qr-scanner-page > .w-full {
                 width: 100% !important;
