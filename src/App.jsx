@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.4.8 Neutral KPI Readability Fix';
-const APP_UPDATE_NOTE = 'Neutral KPI Readability Fix: เปลี่ยนการ์ด/ปุ่มสรุปโทน blue เช่น รอคืนทั้งหมด ให้เป็นพื้นขาวอมเทา ตัวหนังสือเข้ม และใช้เส้น accent แทนสีพื้นทึบทั้งเว็บ เพื่อให้อ่านง่ายและไม่จม โดยไม่แตะ QR Scanner core, camera permission, Firebase path หรือ flow ยืม/คืน/ออกงาน';
+const APP_VERSION = 'v22.57.4.9 Equipment Inventory Desktop Usability Polish';
+const APP_UPDATE_NOTE = 'Equipment Inventory Desktop Usability Polish: เก็บหน้า คลังอุปกรณ์ บนคอมให้ใช้งานง่ายขึ้น เพิ่ม hierarchy ของตาราง, sticky header, action buttons แบบมีชื่อ, selected toolbar ที่เห็นชัด และแถวรายการที่อ่านง่ายขึ้น โดยไม่แตะ QR Scanner core, camera permission, Firebase path หรือ flow ยืม/คืน/ออกงาน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6388,6 +6388,99 @@ button[class*="orange"]:not(:disabled) {
 }
 
 
+/* v22.57.4.9 Equipment Inventory Desktop Usability Polish */
+.equipment-desktop-polish .inventory-header-actions button {
+  min-height: 44px;
+}
+.equipment-desktop-polish .inventory-filter-bar {
+  position: relative;
+  isolation: isolate;
+}
+.equipment-desktop-polish .inventory-search-box {
+  min-height: 52px;
+}
+.equipment-desktop-polish .inventory-search-box input {
+  min-height: 28px !important;
+}
+.equipment-desktop-polish .inventory-selected-toolbar {
+  box-shadow: 0 16px 34px rgba(37,99,235,.10);
+}
+.equipment-desktop-polish .inventory-table-wrap {
+  max-height: min(68vh, 760px);
+  overscroll-behavior: contain;
+}
+.equipment-desktop-polish .inventory-desktop-table {
+  table-layout: auto;
+}
+.equipment-desktop-polish .inventory-desktop-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  backdrop-filter: none !important;
+}
+.equipment-desktop-polish .inventory-desktop-table tbody td {
+  vertical-align: middle;
+}
+.equipment-desktop-polish .inventory-table-row {
+  scroll-margin-top: 110px;
+}
+.equipment-desktop-polish .inventory-table-row:hover .inventory-row-icon {
+  transform: translateY(-1px) scale(1.03);
+}
+.equipment-desktop-polish .inventory-row-icon {
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.equipment-desktop-polish .inventory-row-selected {
+  box-shadow: inset 4px 0 0 #2563eb;
+}
+.equipment-desktop-polish .inventory-open-cue {
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity .18s ease, transform .18s ease;
+}
+.equipment-desktop-polish .inventory-table-row:hover .inventory-open-cue {
+  opacity: 1;
+  transform: translateY(0);
+}
+.equipment-desktop-polish .inventory-row-actions {
+  min-width: 330px;
+}
+.equipment-desktop-polish .inventory-action-btn {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+  border: 1px solid rgba(148,163,184,.18);
+}
+.equipment-desktop-polish .inventory-action-icon-only {
+  width: 34px;
+  padding: 0;
+}
+.equipment-desktop-polish .inventory-action-btn:hover {
+  transform: translateY(-1px);
+}
+@media (max-width: 1280px) {
+  .equipment-desktop-polish .inventory-action-btn span {
+    display: none;
+  }
+  .equipment-desktop-polish .inventory-action-btn {
+    width: 34px;
+    padding: 0;
+  }
+  .equipment-desktop-polish .inventory-row-actions {
+    min-width: 240px;
+  }
+}
+@media (min-width: 1024px) {
+  .equipment-desktop-polish .inventory-filter-bar {
+    position: sticky;
+    top: 10px;
+    z-index: 12;
+  }
+}
+
+
 `}</style>
   );
 }
@@ -9205,7 +9298,7 @@ S.N.: ${item.sn || '-'}
                             <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เริ่มจาก “เลือกจากคลัง” เพื่อผูกของที่มีอยู่แล้ว หรือ “เพิ่มสินค้าใหม่” เพื่อบันทึกของที่จัดซื้อเข้าโครงการนี้</div>
                           </div>
                         ) : (
-                          <div className="overflow-x-auto custom-scrollbar">
+                          <div className="inventory-table-wrap overflow-x-auto custom-scrollbar">
                             <table className="w-full text-left min-w-[760px]">
                               <thead className={theme.th}>
                                 <tr>
@@ -11098,7 +11191,7 @@ S.N.: ${item.sn || '-'}
     };
 
     return (
-      <div className="equipment-inventory-page space-y-5">
+      <div className="equipment-inventory-page equipment-desktop-polish space-y-5">
         {renderWorkspaceTabs()}
 
         <section className={`rounded-[1.8rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
@@ -11106,9 +11199,9 @@ S.N.: ${item.sn || '-'}
             <div className="min-w-0">
               <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>FACTORY STYLE INVENTORY</div>
               <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>คลังอุปกรณ์</h2>
-              <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>ค้นหา เพิ่ม แก้ไข ยืม ออกงาน รับคืน และจัดการอุปกรณ์ทั้งหมดในหน้าเดียว คล้ายหน้าคลังสินค้าของเว็บโรงงาน แต่ปรับให้เหมาะกับงานศูนย์ MDEC</p>
+              <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>ค้นหา เปิดแฟ้ม เลือกหลายรายการ ยืม ออกงาน รับคืน และจัดการข้อมูลอุปกรณ์จากหน้าเดียว เน้นใช้งานบนคอมให้เร็วและอ่านง่ายขึ้น</p>
             </div>
-            <div className="flex flex-wrap gap-2 shrink-0">
+            <div className="inventory-header-actions flex flex-wrap gap-2 shrink-0">
               {canAddEditItems && <button type="button" onClick={openAddItemForm} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm"><Icons.Plus className="w-5 h-5 inline-block mr-1" /> เพิ่มอุปกรณ์</button>}
               <button type="button" onClick={exportInventoryCSV} className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">Export CSV</button>
               <button type="button" onClick={openMonthlyReportPage} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>พิมพ์/รายงาน</button>
@@ -11144,11 +11237,12 @@ S.N.: ${item.sn || '-'}
                     </>
                   )}
                   {hasActiveFilters && <button type="button" onClick={clearAllFilters} className={`px-3.5 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ล้างตัวกรอง</button>}
+                  {selectedItems.length === 0 && !hasActiveFilters && <span className={`px-3.5 py-2.5 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>ติ๊กเลือกเพื่อทำรายการแบบกลุ่ม</span>}
                 </div>
               </div>
 
               <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
-                <div className={`xl:col-span-2 flex items-center gap-3 px-4 py-3 rounded-2xl border ${theme.input}`}>
+                <div className={`inventory-search-box xl:col-span-2 flex items-center gap-3 px-4 py-3 rounded-2xl border ${theme.input}`}>
                   <Icons.Search className={`w-5 h-5 shrink-0 ${theme.textMuted}`} />
                   <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent outline-none w-full font-black" placeholder="ค้นหา ชื่อ / S.N. / รหัสสั้น / หมวด / ที่เก็บ / โครงการ" />
                 </div>
@@ -11197,6 +11291,22 @@ S.N.: ${item.sn || '-'}
               </div>
             </div>
 
+            {selectedItems.length > 0 && canUseOperationalTools && (
+              <div className={`inventory-selected-toolbar rounded-[1.35rem] border p-3 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-950'}`}>
+                <div>
+                  <div className="text-sm font-black">เลือกแล้ว {selectedItems.length.toLocaleString('th-TH')} รายการ</div>
+                  <div className="text-xs font-bold opacity-75">ใช้ปุ่มด้านขวาเพื่อทำรายการแบบกลุ่ม หรือกดล้างเลือกเมื่อจบงาน</div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={handleOpenBatchBorrow} className="px-3.5 py-2.5 rounded-xl bg-purple-600 text-white font-black text-sm">ยืมที่เลือก</button>
+                  <button type="button" onClick={handleOpenBatchEvent} className="px-3.5 py-2.5 rounded-xl bg-orange-500 text-white font-black text-sm">ออกงานที่เลือก</button>
+                  <button type="button" onClick={handleOpenBatchReturn} className="px-3.5 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-sm">รับคืนที่เลือก</button>
+                  <button type="button" onClick={() => setShowพิมพ์Modal(true)} className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm flex items-center gap-2"><Icons.QrCode className="w-4 h-4" /> พิมพ์ QR</button>
+                  <button type="button" onClick={() => setSelectedItems([])} className={`px-3.5 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ล้างเลือก</button>
+                </div>
+              </div>
+            )}
+
             <div className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
               <div className={`p-4 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${theme.divide}`}>
                 <div>
@@ -11213,9 +11323,9 @@ S.N.: ${item.sn || '-'}
                 </div>
               ) : (
                 <div className="overflow-x-auto custom-scrollbar">
-                  <table className="stock-table-compact w-full text-left border-collapse min-w-[1180px]">
+                  <table className="stock-table-compact inventory-desktop-table w-full text-left border-collapse min-w-[1280px]">
                     <thead>
-                      <tr className={`border-b text-sm uppercase tracking-wide ${theme.th}`}>
+                      <tr className={`inventory-table-head border-b text-sm uppercase tracking-wide ${theme.th}`}>
                         <th className="px-4 py-4 w-12 text-center font-bold">
                           <input
                             type="checkbox"
@@ -11229,7 +11339,7 @@ S.N.: ${item.sn || '-'}
                         <th className="px-4 py-4 text-left font-bold">ที่เก็บ / โครงการ</th>
                         <th className="px-4 py-4 text-left font-bold">สถานะ</th>
                         <th className="px-4 py-4 text-left font-bold">QR / ข้อมูล</th>
-                        <th className="px-4 py-4 text-center font-bold">จัดการ</th>
+                        <th className="px-4 py-4 text-center font-bold">คำสั่ง</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -11242,13 +11352,21 @@ S.N.: ${item.sn || '-'}
                         const selected = selectedItems.includes(item.id);
                         const returnable = item.status === 'borrowed' || item.status === 'out-for-event';
                         return (
-                          <tr key={item.id} onClick={() => setShowHistory(item.id)} className={`inventory-table-row group border-b cursor-pointer transition-colors ${selected ? (isDarkMode ? 'bg-blue-950/25' : 'bg-blue-50/65') : theme.tr}`}>
+                          <tr key={item.id} onClick={() => setShowHistory(item.id)} className={`inventory-table-row group border-b cursor-pointer transition-colors ${selected ? (isDarkMode ? 'inventory-row-selected bg-blue-950/25' : 'inventory-row-selected bg-blue-50/65') : theme.tr}`}>
                             <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                               <input type="checkbox" checked={selected} onChange={() => setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id])} className="w-5 h-5 accent-blue-600" />
                             </td>
-                            <td className="px-4 py-4">
-                              <div className={`font-black text-base ${theme.textTitle}`}>{item.name || '-'}</div>
-                              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || item.assetShortCode || item.localCode || 'ไม่มีรหัสสั้น'}</div>
+                            <td className="inventory-row-name-cell px-4 py-4">
+                              <div className="flex items-start gap-3 min-w-0">
+                                <div className={`inventory-row-icon mt-0.5 w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-slate-900 text-blue-300 border border-slate-700' : 'bg-blue-50 text-blue-700 border border-blue-100'}`}>
+                                  <Icons.Package className="w-5 h-5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className={`font-black text-base leading-snug truncate ${theme.textTitle}`}>{item.name || '-'}</div>
+                                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || item.assetShortCode || item.localCode || 'ไม่มีรหัสสั้น'}</div>
+                                  <div className={`inventory-open-cue text-[11px] font-black mt-1 ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>กดแถวเพื่อเปิดแฟ้มอุปกรณ์</div>
+                                </div>
+                              </div>
                             </td>
                             <td className="px-4 py-4">
                               <div className={`font-bold ${theme.textMuted}`}>{item.category || '-'}</div>
@@ -11270,14 +11388,14 @@ S.N.: ${item.sn || '-'}
                               </div>
                             </td>
                             <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-center gap-2">
-                                <button type="button" onClick={() => setShowHistory(item.id)} className={`w-9 h-9 rounded-xl flex items-center justify-center ${theme.btnCancel}`} title="เปิดแฟ้ม"><Icons.History className="w-5 h-5" /></button>
-                                <button type="button" onClick={() => copyItemSummary(item)} className={`w-9 h-9 rounded-xl flex items-center justify-center ${theme.btnCancel}`} title="คัดลอก"><Icons.ClipboardList className="w-5 h-5" /></button>
-                                {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowBorrow(e, item)} className={`w-9 h-9 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white'}`} title="ยืม"><Icons.UserPlus className="w-5 h-5" /></button>}
-                                {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowEvent(e, item)} className={`w-9 h-9 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-orange-900/40 text-orange-400 hover:bg-orange-600 hover:text-white' : 'bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white'}`} title="ออกงาน"><Icons.Truck className="w-5 h-5" /></button>}
-                                {canUseOperationalTools && returnable && <button type="button" onClick={() => openReturnForItems([item.id])} className={`w-9 h-9 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle className="w-5 h-5" /></button>}
-                                {canUseOperationalTools && <button type="button" onClick={() => openRepairForItem(item)} className={`w-9 h-9 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="แจ้งซ่อม"><Icons.Alert className="w-5 h-5" /></button>}
-                                {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className={`w-9 h-9 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>}
+                              <div className="inventory-row-actions flex items-center justify-center gap-1.5">
+                                <button type="button" onClick={() => setShowHistory(item.id)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${theme.btnCancel}`} title="เปิดแฟ้ม"><Icons.History className="w-4 h-4" /><span>แฟ้ม</span></button>
+                                <button type="button" onClick={() => copyItemSummary(item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${theme.btnCancel}`} title="คัดลอก"><Icons.ClipboardList className="w-4 h-4" /><span>คัดลอก</span></button>
+                                {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowBorrow(e, item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white'}`} title="ยืม"><Icons.UserPlus className="w-4 h-4" /><span>ยืม</span></button>}
+                                {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowEvent(e, item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${isDarkMode ? 'bg-orange-900/40 text-orange-400 hover:bg-orange-600 hover:text-white' : 'bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white'}`} title="ออกงาน"><Icons.Truck className="w-4 h-4" /><span>ออกงาน</span></button>}
+                                {canUseOperationalTools && returnable && <button type="button" onClick={() => openReturnForItems([item.id])} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle className="w-4 h-4" /><span>รับคืน</span></button>}
+                                {canUseOperationalTools && <button type="button" onClick={() => openRepairForItem(item)} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="แจ้งซ่อม"><Icons.Alert className="w-4 h-4" /></button>}
+                                {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>}
                               </div>
                             </td>
                           </tr>
