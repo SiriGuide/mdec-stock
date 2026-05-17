@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.9.0 Mobile Remote Camera Permission Button Fix';
-const APP_UPDATE_NOTE = 'Mobile Remote Camera Permission Button Fix: แก้โหมดสแกนมือถือที่ไม่ขึ้นปุ่มอนุญาตกล้อง โดยให้ Mobile Remote Scanner กลับมาใช้ Html5QrcodeScanner UI เฉพาะใน overlay มือถือ เพื่อให้มีปุ่มขออนุญาตกล้องชัดเจน แต่ยังไม่ใช้ activeWorkspace/showScanModal ของเว็บเต็มและไม่เด้งเข้า form เดิม';
+const APP_VERSION = 'v22.57.1.9.1 Mobile Remote Stable Scan Selection';
+const APP_UPDATE_NOTE = 'Mobile Remote Stable Scan Selection: ปรับปุ่มสแกนในมือถือให้ใช้หน้า Scanner เดิมที่เสถียรสำหรับขอสิทธิ์กล้อง แต่ตั้งโหมด mobileRemoteSelect เพื่อสแกนแล้วเพิ่มเข้าเฉพาะรายการมือถือ ยืม/คืน/ออกงาน ได้หลายชิ้นหรือชิ้นเดียว ไม่เด้งเข้า form บันทึกเอง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -13933,15 +13933,17 @@ S.N.: ${item.sn || '-'}
   };
 
   const openMobileRemoteOperationScanner = () => {
-    if (!requireOperationalAccess('สแกนหลายอุปกรณ์')) return;
+    if (!requireOperationalAccess('สแกนเลือกอุปกรณ์')) return;
     setShowMoreMenu(false);
     setMobileRemoteOpen(true);
-    setMobileRemoteScannerOpen(true);
-    setMobileRemoteUseCamera(true);
-    setMobileRemoteScanInput('');
-    setMobileRemoteScanMessage({ text: '', type: '' });
-    // สำคัญ: Mobile Remote Scanner ไม่ใช้ showScanModal / activeWorkspace='scanner'
-    // เพื่อไม่ให้เด้งเข้า flow scanner และ action bar ของเว็บเต็ม
+    setMobileRemoteScannerOpen(false);
+    setScannerReturnWorkspace('mobileRemote');
+    setScanMode('mobileRemoteSelect');
+    setUseCamera(true);
+    setScanInput('');
+    setScanMessage({ text: '', type: '' });
+    setShowScanModal(true);
+    setActiveWorkspace('scanner');
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
@@ -13961,6 +13963,7 @@ S.N.: ${item.sn || '-'}
     } else {
       setMobileRemoteScannerOpen(false);
       setActiveWorkspace(fallbackWorkspace);
+      setScannerReturnWorkspace(fallbackWorkspace || 'overview');
     }
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
@@ -13970,6 +13973,7 @@ S.N.: ${item.sn || '-'}
     if (scanMode === 'eventChecklist') return { title: 'สแกนเช็กของขึ้นงาน', desc: 'สแกน QR ของอุปกรณ์ในรายการออกงาน เพื่อเช็กแทนการติ๊กเอง', tone: 'orange' };
     if (scanMode === 'returnChecklist') return { title: 'สแกนเช็กตอนรับคืน', desc: 'สแกน QR ของอุปกรณ์ที่นำมาคืน เพื่อเช็กแทนการติ๊กเอง', tone: 'emerald' };
     if (scanMode === 'stockCount') return { title: 'สแกนตรวจนับสต๊อก', desc: 'ใช้กล้องชุดเดิมเพื่อ mark พบแล้วในรอบตรวจนับ โดยไม่เปลี่ยนสถานะอุปกรณ์จริง', tone: 'blue' };
+    if (scanMode === 'mobileRemoteSelect') return { title: 'สแกนเลือกของเข้ารายการมือถือ', desc: 'สแกนได้หลายชิ้นหรือชิ้นเดียว ระบบจะเพิ่มเข้าโหมด ยืม / คืน / ออกงาน ที่เลือกไว้เท่านั้น', tone: 'amber' };
     return { title: 'สแกน QR', desc: 'สแกนเพื่อเลือกอุปกรณ์หลายรายการหลายรายการ หรือดูสแกนล่าสุดแบบรวดเร็ว', tone: 'amber' };
   };
 
@@ -17886,7 +17890,7 @@ S.N.: ${item.sn || '-'}
   return (
     <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish desktop-overview-clean min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain} ${homeCompactMode ? 'home-comfort-compact' : ''}`}>
       <FactoryPolishStyle isDarkMode={isDarkMode} />
-      {mobileRemoteOpen && !mobileRemoteScannerOpen && renderMobileRemoteMode()}
+      {mobileRemoteOpen && !mobileRemoteScannerOpen && !showScanModal && renderMobileRemoteMode()}
       {/* FactoryStock Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-72 bg-slate-950 text-white flex-col border-r border-white/10">
         <div className="p-6 border-b border-white/10">
@@ -19068,10 +19072,10 @@ S.N.: ${item.sn || '-'}
 
       {renderCameraAccessoryHelperModal()}
 
-      {mobileRemoteScannerOpen && renderMobileRemoteScanner()}
+      {mobileRemoteScannerOpen && false && renderMobileRemoteScanner()}
 
       {/* 📷 หน้าสแกน QR Code แบบใหม่: ใช้งานหน้างาน / มือถือ / เครื่องยิงบาร์โค้ด */}
-      {showScanModal && activeWorkspace === 'scanner' && scannerReturnWorkspace !== 'mobileRemote' && !mobileRemoteScannerOpen && (() => {
+      {showScanModal && activeWorkspace === 'scanner' && !mobileRemoteScannerOpen && (() => {
         const scanInfo = getScanModeInfo();
         const isChecklistMode = scanMode !== 'select' && scanMode !== 'stockCount';
         const targetIds = scanMode === 'borrowChecklist' ? borrowTargetIds : scanMode === 'eventChecklist' ? eventTargetIds : scanMode === 'returnChecklist' ? returnTargetIds : scanMode === 'stockCount' ? stockCountStats.auditTarget.map(i => i.id) : [];
