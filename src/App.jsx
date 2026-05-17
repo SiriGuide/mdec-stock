@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.4.1 QR Scanner Viewport Layout Hotfix';
-const APP_UPDATE_NOTE = 'QR Scanner Viewport Layout Hotfix: แก้ปัญหาหน้าสแกน QR หลุดลงล่าง/โดน scroll เดิมดัน/มี sidebar ค้างทับ โดยล็อกหน้าสแกนเป็น full viewport overlay เฉพาะตอนสแกน และลดความสูงกล้องให้เห็นปุ่มครบ โดยไม่แตะ scanner core, camera permission, flow ยืม/คืน/ออกงาน หรือ Firebase path';
+const APP_VERSION = 'v22.57.4.2 QR Scanner In-App Page Layout Fix';
+const APP_UPDATE_NOTE = 'QR Scanner In-App Page Layout Fix: ปรับหน้าสแกน QR ให้เป็นหน้าใช้งานภายในเว็บ ไม่ใช่ full-screen overlay/เด้งแยกออกจาก layout เดิม คง sidebar/topbar ของเว็บไว้ ลดขนาดกล้องให้อยู่ในกรอบงาน และยังไม่แตะ scanner core, camera permission, flow ยืม/คืน/ออกงาน หรือ Firebase path';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -17338,6 +17338,637 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
+      {/* 📷 หน้าสแกน QR Code แบบใหม่: ใช้งานหน้างาน / มือถือ / เครื่องยิงบาร์โค้ด */}
+      {showScanModal && activeWorkspace === 'scanner' && (() => {
+        const scanInfo = getScanModeInfo();
+        const isChecklistMode = scanMode !== 'select' && scanMode !== 'stockCount';
+        const targetIds = scanMode === 'borrowChecklist' ? borrowTargetIds : scanMode === 'eventChecklist' ? eventTargetIds : scanMode === 'returnChecklist' ? returnTargetIds : scanMode === 'stockCount' ? stockCountStats.auditTarget.map(i => i.id) : [];
+        const checkedIds = scanMode === 'borrowChecklist' ? packingChecklist : scanMode === 'eventChecklist' ? eventChecklist : scanMode === 'returnChecklist' ? returnChecklist : scanMode === 'stockCount' ? stockCountFoundIds : [];
+        const total = targetIds.length || 0;
+        const checked = checkedIds.length || 0;
+        const percent = total === 0 ? 0 : Math.min(100, Math.round((checked / total) * 100));
+        const isComplete = total > 0 && checked >= total;
+        const pendingIds = isChecklistMode ? targetIds.filter(id => !checkedIds.includes(id)).slice(0, 4) : [];
+        const recentItem = lastScannedItemId ? items.find(i => i.id === lastScannedItemId) : null;
+        const recentStatus = recentItem ? (STATUSES.find(s => s.id === recentItem.status) || STATUSES[0]) : null;
+        const toneClass = scanMode === 'borrowChecklist'
+          ? 'from-purple-600 to-violet-700'
+          : scanMode === 'eventChecklist'
+            ? 'from-orange-500 to-red-600'
+            : scanMode === 'returnChecklist'
+              ? 'from-emerald-500 to-teal-600'
+              : scanMode === 'stockCount'
+                ? 'from-blue-600 to-cyan-600'
+                : 'from-amber-500 to-orange-600';
+        const softToneClass = scanMode === 'borrowChecklist'
+          ? (isDarkMode ? 'bg-purple-950/30 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-800')
+          : scanMode === 'eventChecklist'
+            ? (isDarkMode ? 'bg-orange-950/30 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800')
+            : scanMode === 'returnChecklist'
+              ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
+              : scanMode === 'stockCount'
+                ? (isDarkMode ? 'bg-blue-950/30 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800')
+                : (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800');
+
+        return (
+          <div className="page-workspace-shell qr-scanner-page space-y-5">
+            <style>{`
+              /* v22.57.4.2 QR Scanner In-App Page Layout Fix
+                 ทำให้หน้าสแกนเป็นหน้าภายในเว็บจริง ๆ ไม่ใช่ full-screen overlay
+                 Scope: layout only. ไม่แตะ Html5QrcodeScanner, camera permission, flow หรือ Firebase path */
+              .factory-stock-polish .qr-scanner-page {
+                position: relative !important;
+                z-index: 2 !important;
+                width: 100% !important;
+                max-width: 1180px !important;
+                margin: 0 auto 24px !important;
+                padding: 0 !important;
+                overflow: visible !important;
+                background: transparent !important;
+              }
+              .factory-stock-polish .qr-scanner-page > .w-full {
+                width: 100% !important;
+                margin: 0 auto !important;
+                justify-content: stretch !important;
+              }
+              .factory-stock-polish .qr-scanner-page-shell {
+                max-height: none !important;
+                min-height: 0 !important;
+                overflow: hidden !important;
+                border-radius: 28px !important;
+              }
+              .factory-stock-polish .qr-scanner-page-shell > .flex-1 {
+                overflow: visible !important;
+              }
+              .factory-stock-polish .qr-scanner-page #qr-reader video {
+                min-height: clamp(220px, 34vh, 360px) !important;
+                max-height: 360px !important;
+              }
+              @media (max-width: 1023px) {
+                .factory-stock-polish .qr-scanner-page {
+                  max-width: 100% !important;
+                  margin-bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important;
+                }
+                .factory-stock-polish .qr-scanner-page-shell {
+                  border-radius: 22px !important;
+                }
+              }
+              @media (max-width: 640px) {
+                .factory-stock-polish .qr-scanner-page #qr-reader video {
+                  min-height: clamp(210px, 36vh, 320px) !important;
+                  max-height: 320px !important;
+                }
+              }
+
+              #qr-reader {
+                width: 100% !important;
+                border: 0 !important;
+                background: transparent !important;
+                color: inherit !important;
+                overflow: hidden !important;
+              }
+              #qr-reader video {
+                border-radius: 24px !important;
+                object-fit: cover !important;
+                background: #020617 !important;
+                min-height: min(58vh, 460px) !important;
+              }
+              #qr-reader__scan_region {
+                background: transparent !important;
+                border: 0 !important;
+              }
+              #qr-reader__dashboard,
+              #qr-reader__dashboard_section,
+              #qr-reader__dashboard_section_csr,
+              #qr-reader__camera_selection {
+                border: 0 !important;
+                background: transparent !important;
+                color: inherit !important;
+                font-family: inherit !important;
+              }
+              #qr-reader button {
+                background: #f59e0b !important;
+                color: white !important;
+                border: 0 !important;
+                padding: 10px 16px !important;
+                border-radius: 14px !important;
+                font-weight: 900 !important;
+                margin: 6px !important;
+              }
+              #qr-reader select {
+                min-height: 42px !important;
+                border-radius: 14px !important;
+                padding: 0 12px !important;
+                font-weight: 800 !important;
+                max-width: 100% !important;
+              }
+              #qr-reader__status_span {
+                display: inline-flex !important;
+                margin-top: 8px !important;
+                border-radius: 999px !important;
+                padding: 6px 12px !important;
+                font-weight: 900 !important;
+                font-size: 12px !important;
+              }
+              #qr-reader img { image-rendering: auto !important; }
+              #qr-reader a { color: inherit !important; font-weight: 900 !important; }
+              #qr-reader__dashboard_section_csr span,
+              #qr-reader__dashboard_section_swaplink {
+                font-weight: 800 !important;
+                border-radius: 999px !important;
+              }
+              @media (max-width: 767px) {
+                #qr-reader video { min-height: 48vh !important; border-radius: 22px !important; }
+                #qr-reader__dashboard_section { padding: 6px 0 !important; }
+              }
+
+      /* v22.51.3 Build Error Hotfix
+         Safe polish only: no QR scanner / camera / permission / Firebase path changes. */
+      /* v22.51.2 Final QA & Stability Pass
+         Safe polish only: no QR scanner / camera / permission / Firebase path changes. */
+      .factory-stock-polish :is(button, [role="button"], a, input, select, textarea) {
+        -webkit-font-smoothing: antialiased;
+        text-rendering: geometricPrecision;
+      }
+      .factory-stock-polish button:disabled,
+      .factory-stock-polish [aria-disabled="true"] {
+        cursor: not-allowed !important;
+        filter: saturate(.86);
+      }
+      .factory-stock-polish :is(button, a[role="button"], input, select, textarea):focus-visible {
+        outline: none !important;
+        box-shadow: 0 0 0 4px rgba(37,99,235,.14) !important;
+      }
+      .factory-stock-polish .custom-scrollbar {
+        scrollbar-gutter: stable;
+      }
+      .factory-stock-polish img,
+      .factory-stock-polish video,
+      .factory-stock-polish canvas {
+        max-width: 100%;
+      }
+
+      @media (max-width: 767px) {
+        .factory-stock-polish {
+          touch-action: manipulation;
+        }
+        .factory-stock-polish :is(button, a[role="button"]) {
+          touch-action: manipulation;
+        }
+        .factory-stock-polish :is(.modal-panel, .solid-modal, .compact-modal, .operation-modal, .settings-modal, .backup-modal, .proof-modal) {
+          max-width: calc(100vw - 16px) !important;
+          max-height: calc(100dvh - 16px) !important;
+        }
+        .factory-stock-polish :is(.modal-panel, .solid-modal, .compact-modal, .operation-modal) :is(.modal-body, .form-body, .operation-body) {
+          overscroll-behavior: contain;
+        }
+        .factory-stock-polish :is(table, .print-table, .report-table) {
+          font-size: 12px !important;
+        }
+        .factory-stock-polish .bottom-mobile-nav {
+          padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+        }
+      }
+
+      @media print {
+        .factory-stock-polish {
+          background: #fff !important;
+        }
+        .factory-stock-polish .no-print,
+        .factory-stock-polish .bottom-mobile-nav,
+        .factory-stock-polish .factory-top-actions {
+          display: none !important;
+        }
+      }
+
+            
+
+/* v22.57.3 Elegant Classic Desktop Polish - minimal premium visual layer, no QR/camera/database/flow changes */
+.factory-stock-polish {
+  --mdec-ease: cubic-bezier(.2,.8,.2,1);
+  --mdec-blue: #2563eb;
+  --mdec-ink: #0f172a;
+  --mdec-card-line: rgba(148,163,184,.24);
+}
+.factory-stock-polish[data-polish-theme="dark"] {
+  --mdec-ink: #f8fafc;
+  --mdec-card-line: rgba(148,163,184,.18);
+}
+.factory-stock-polish::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(37,99,235,.13), transparent 32%),
+    radial-gradient(circle at 86% 12%, rgba(14,165,233,.10), transparent 30%),
+    linear-gradient(180deg, rgba(255,255,255,.35), transparent 36%);
+}
+.factory-stock-polish[data-polish-theme="dark"]::before {
+  background:
+    radial-gradient(circle at 18% 10%, rgba(37,99,235,.20), transparent 34%),
+    radial-gradient(circle at 86% 12%, rgba(14,165,233,.13), transparent 32%),
+    linear-gradient(180deg, rgba(15,23,42,.18), transparent 42%);
+}
+.factory-stock-polish > * {
+  position: relative;
+  z-index: 1;
+}
+.factory-stock-polish .factory-topbar {
+  padding-top: 18px !important;
+  padding-bottom: 12px !important;
+}
+.factory-stock-polish .factory-kicker {
+  border: 1px solid rgba(37,99,235,.16);
+  background: rgba(37,99,235,.08);
+  padding: 7px 11px;
+  border-radius: 999px;
+  width: fit-content;
+  letter-spacing: .08em;
+}
+.factory-stock-polish .factory-page-title h1 {
+  font-weight: 950 !important;
+  letter-spacing: -.055em;
+}
+.factory-stock-polish .factory-page-title p {
+  max-width: 780px;
+  line-height: 1.6;
+}
+.factory-stock-polish .factory-primary-btn,
+.factory-stock-polish button[class*="bg-blue-600"],
+.factory-stock-polish button[class*="from-blue"] {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8 58%, #1e40af) !important;
+  box-shadow: 0 14px 30px rgba(37,99,235,.22), inset 0 1px 0 rgba(255,255,255,.18) !important;
+  border-color: rgba(147,197,253,.34) !important;
+}
+.factory-stock-polish .factory-primary-btn:hover,
+.factory-stock-polish button[class*="bg-blue-600"]:hover,
+.factory-stock-polish button[class*="from-blue"]:hover {
+  filter: saturate(1.06) brightness(1.03);
+  transform: translateY(-1px);
+}
+.factory-stock-polish .factory-ghost-btn,
+.factory-stock-polish .factory-icon-btn,
+.factory-stock-polish .solid-panel,
+.factory-stock-polish .solid-workspace > div,
+.factory-stock-polish .home-command-card,
+.factory-stock-polish .report-dashboard-card,
+.factory-stock-polish .shortcut-consolidated-card,
+.factory-stock-polish .workspace-action-card,
+.factory-stock-polish .operation-workspace-card,
+.factory-stock-polish .purchase-project-card,
+.factory-stock-polish .stock-mobile-card,
+.factory-stock-polish .clean-mobile-card,
+.factory-stock-polish .overview-essential-hero,
+.factory-stock-polish .overview-essential-action,
+.factory-stock-polish .overview-mini-stat {
+  border-color: var(--mdec-card-line) !important;
+  box-shadow: 0 16px 42px rgba(15,23,42,.075), inset 0 1px 0 rgba(255,255,255,.42) !important;
+}
+.factory-stock-polish[data-polish-theme="dark"] .factory-ghost-btn,
+.factory-stock-polish[data-polish-theme="dark"] .factory-icon-btn,
+.factory-stock-polish[data-polish-theme="dark"] .solid-panel,
+.factory-stock-polish[data-polish-theme="dark"] .solid-workspace > div,
+.factory-stock-polish[data-polish-theme="dark"] .home-command-card,
+.factory-stock-polish[data-polish-theme="dark"] .report-dashboard-card,
+.factory-stock-polish[data-polish-theme="dark"] .shortcut-consolidated-card,
+.factory-stock-polish[data-polish-theme="dark"] .workspace-action-card,
+.factory-stock-polish[data-polish-theme="dark"] .operation-workspace-card,
+.factory-stock-polish[data-polish-theme="dark"] .purchase-project-card,
+.factory-stock-polish[data-polish-theme="dark"] .stock-mobile-card,
+.factory-stock-polish[data-polish-theme="dark"] .clean-mobile-card,
+.factory-stock-polish[data-polish-theme="dark"] .overview-essential-hero,
+.factory-stock-polish[data-polish-theme="dark"] .overview-essential-action,
+.factory-stock-polish[data-polish-theme="dark"] .overview-mini-stat {
+  box-shadow: 0 18px 46px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.04) !important;
+}
+.factory-stock-polish .home-command-center,
+.factory-stock-polish .overview-essential-grid {
+  gap: 16px !important;
+}
+.factory-stock-polish .home-command-card,
+.factory-stock-polish .overview-essential-hero,
+.factory-stock-polish .shortcut-consolidated-card {
+  position: relative;
+  overflow: hidden;
+}
+.factory-stock-polish .home-command-card::after,
+.factory-stock-polish .overview-essential-hero::after,
+.factory-stock-polish .shortcut-consolidated-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255,255,255,.18), transparent 38%, rgba(37,99,235,.06));
+  opacity: .75;
+}
+.factory-stock-polish[data-polish-theme="dark"] .home-command-card::after,
+.factory-stock-polish[data-polish-theme="dark"] .overview-essential-hero::after,
+.factory-stock-polish[data-polish-theme="dark"] .shortcut-consolidated-card::after {
+  background: linear-gradient(135deg, rgba(255,255,255,.04), transparent 36%, rgba(59,130,246,.09));
+}
+.factory-stock-polish .home-command-card > *,
+.factory-stock-polish .overview-essential-hero > *,
+.factory-stock-polish .shortcut-consolidated-card > * {
+  position: relative;
+  z-index: 1;
+}
+.factory-stock-polish .home-command-action,
+.factory-stock-polish .overview-essential-action,
+.factory-stock-polish .shortcut-mini-btn,
+.factory-stock-polish .workspace-action-card {
+  transition: transform .2s var(--mdec-ease), box-shadow .2s var(--mdec-ease), border-color .2s var(--mdec-ease), background .2s var(--mdec-ease);
+}
+.factory-stock-polish .home-command-action:hover,
+.factory-stock-polish .overview-essential-action:hover,
+.factory-stock-polish .shortcut-mini-btn:hover,
+.factory-stock-polish .workspace-action-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(37,99,235,.34) !important;
+  box-shadow: 0 18px 44px rgba(37,99,235,.13) !important;
+}
+.factory-stock-polish .workspace-tabbar {
+  background: rgba(148,163,184,.10);
+  border: 1px solid var(--mdec-card-line);
+  border-radius: 20px;
+  padding: 6px;
+}
+.factory-stock-polish .workspace-tabbar button {
+  border-radius: 15px !important;
+  min-height: 40px;
+}
+.factory-stock-polish .stock-table-compact {
+  overflow: hidden;
+  border-radius: 22px;
+}
+.factory-stock-polish .stock-table-compact thead th {
+  background: rgba(37,99,235,.065) !important;
+  color: var(--mdec-ink) !important;
+  border-bottom: 1px solid rgba(37,99,235,.13) !important;
+}
+.factory-stock-polish[data-polish-theme="dark"] .stock-table-compact thead th {
+  background: rgba(59,130,246,.13) !important;
+}
+.factory-stock-polish .stock-table-compact tbody tr:hover td {
+  background: rgba(37,99,235,.045) !important;
+}
+.factory-stock-polish[data-polish-theme="dark"] .stock-table-compact tbody tr:hover td {
+  background: rgba(59,130,246,.10) !important;
+}
+.factory-stock-polish .stock-name-line .stock-title {
+  letter-spacing: -.025em;
+}
+.factory-stock-polish :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):not(.stock-check) {
+  border-color: rgba(148,163,184,.38) !important;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.factory-stock-polish :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):not(.stock-check):focus {
+  border-color: rgba(37,99,235,.62) !important;
+  box-shadow: 0 0 0 4px rgba(37,99,235,.12) !important;
+}
+.factory-stock-polish .operational-modal-shell,
+.factory-stock-polish .compact-modal-shell {
+  box-shadow: 0 28px 86px rgba(15,23,42,.22), inset 0 1px 0 rgba(255,255,255,.36) !important;
+}
+.factory-stock-polish[data-polish-theme="dark"] .operational-modal-shell,
+.factory-stock-polish[data-polish-theme="dark"] .compact-modal-shell {
+  box-shadow: 0 30px 92px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.05) !important;
+}
+.factory-stock-polish .operational-modal-shell h3,
+.factory-stock-polish .compact-modal-shell h3 {
+  letter-spacing: -.035em;
+}
+.factory-stock-polish .factory-chip {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.42);
+}
+.factory-stock-polish aside {
+  border-right: 1px solid rgba(148,163,184,.16);
+}
+.factory-stock-polish aside nav button {
+  transition: background .18s ease, transform .18s ease, color .18s ease;
+}
+.factory-stock-polish aside nav button:hover {
+  transform: translateX(2px);
+}
+@media (min-width: 1280px) {
+  .factory-stock-polish .overview-essential-action { min-height: 132px !important; }
+  .factory-stock-polish .overview-mini-stat { min-height: 86px !important; }
+  .factory-stock-polish .shortcut-consolidated-card { min-height: 214px !important; }
+}
+@media (max-width: 1023px) {
+  .factory-stock-polish::before { opacity: .7; }
+  .factory-stock-polish .factory-topbar { padding-top: 10px !important; }
+  .factory-stock-polish .factory-page-title h1 { letter-spacing: -.04em; }
+}
+@media print {
+  .factory-stock-polish::before { display: none !important; }
+  .factory-stock-polish .factory-primary-btn,
+  .factory-stock-polish .factory-ghost-btn,
+  .factory-stock-polish .factory-icon-btn,
+  .factory-stock-polish .solid-panel,
+  .factory-stock-polish .solid-workspace > div,
+  .factory-stock-polish .home-command-card,
+  .factory-stock-polish .report-dashboard-card,
+  .factory-stock-polish .shortcut-consolidated-card { box-shadow: none !important; }
+}
+`}</style>
+
+            <div className="w-full flex items-stretch justify-center">
+              <div className={`qr-scanner-page-shell qr-scanner-compact-shell w-full rounded-[1.3rem] overflow-hidden shadow-sm border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`shrink-0 p-2.5 sm:p-3 border-b ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className={`w-9 h-9 rounded-2xl bg-gradient-to-br ${toneClass} text-white flex items-center justify-center shadow-lg`}>
+                          <Icons.QrCode className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h3 className={`font-black text-base sm:text-lg leading-tight ${theme.textTitle}`}>{scanInfo.title}</h3>
+                          <p className={`text-[10px] sm:text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{scanInfo.desc}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => closeScannerPage()}
+                      className={`w-9 h-9 rounded-2xl flex items-center justify-center border shrink-0 ${theme.btnCancel}`}
+                      title="ปิดหน้าสแกน"
+                    >
+                      <Icons.X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="mt-2.5 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap">
+                    <button type="button" onClick={() => setUseCamera(true)} className={`min-h-[38px] px-3 rounded-lg font-black border transition ${useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
+                      📷 ใช้กล้อง
+                    </button>
+                    <button type="button" onClick={() => setUseCamera(false)} className={`min-h-[38px] px-3 rounded-lg font-black border transition ${!useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
+                      ⌨️ พิมพ์/ยิงรหัส
+                    </button>
+                    {isChecklistMode && (
+                      <div className={`col-span-2 sm:ml-auto min-h-[38px] px-3 rounded-lg border flex items-center justify-between sm:justify-center gap-3 font-black ${softToneClass}`}>
+                        <span>เช็กแล้ว {checked}/{total}</span>
+                        <span>{percent}%</span>
+                      </div>
+                    )}
+                    {!isChecklistMode && (
+                      <div className={`col-span-2 sm:ml-auto min-h-[38px] px-3 rounded-lg border flex items-center justify-center gap-2 font-black ${theme.btnSecondary}`}>
+                        เลือกแล้ว {selectedItems.length} รายการ
+                      </div>
+                    )}
+                  </div>
+
+                  {isChecklistMode && (
+                    <div className="mt-3">
+                      <div className="w-full h-2.5 rounded-full bg-slate-300/60 dark:bg-slate-800 overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-500 ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${percent}%` }}></div>
+                      </div>
+                      {isComplete && (
+                        <button type="button" onClick={() => closeScannerPage()} className="mt-2 w-full sm:w-auto px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-md">
+                          เช็กครบแล้ว กลับไปยืนยันรายการ
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-2.5 sm:p-3">
+                  <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,.95fr)_300px] gap-2.5 sm:gap-3 items-start">
+                    <div className={`rounded-[1.15rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                      <div className={`px-3 py-2 border-b flex items-center justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50'}`}>
+                        <div className="font-black text-sm">{useCamera ? 'พื้นที่สแกน' : 'พิมพ์รหัส / เครื่องยิงบาร์โค้ด'}</div>
+                        <div className={`text-[10px] font-black px-2 py-0.5 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'กล้อง' : 'รหัส'}</div>
+                      </div>
+
+                      {useCamera ? (
+                        <div className="p-3">
+                          <div className={`mb-2 p-2 rounded-lg border text-left text-[11px] font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                            จัด QR ให้อยู่กลางกรอบและถือให้นิ่ง
+                          </div>
+                          {scannerLoadError ? (
+                            <div className={`min-h-[190px] flex flex-col items-center justify-center gap-3 text-center rounded-2xl border ${isDarkMode ? 'bg-rose-950/25 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
+                              <div className="font-black">เปิดระบบกล้องไม่ได้</div>
+                              <div className="text-sm font-bold max-w-sm px-4">{scannerLoadError}</div>
+                              <button type="button" onClick={() => setUseCamera(false)} className={`px-4 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>ใช้โหมดพิมพ์/ยิงรหัสแทน</button>
+                            </div>
+                          ) : !isScannerLoaded ? (
+                            <div className="min-h-[190px] flex items-center justify-center">
+                              <div className="animate-pulse text-amber-500 font-black">กำลังดาวน์โหลดระบบกล้อง...</div>
+                            </div>
+                          ) : (
+                            <div className={`rounded-[1rem] overflow-hidden border-4 ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-slate-100'}`}>
+                              <div id="qr-reader" className="w-full"></div>
+                            </div>
+                          )}
+                          <form onSubmit={handleScanSubmit} className="mt-2 grid grid-cols-[1fr_auto] gap-1.5">
+                            <input
+                              type="text"
+                              className={`px-3 py-2 rounded-lg font-black text-center outline-none border ${theme.input}`}
+                              placeholder="สแกนไม่ติด? พิมพ์รหัส/S.N."
+                              value={scanInput}
+                              onChange={e => setScanInput(e.target.value)}
+                            />
+                            <button type="submit" className={`px-3.5 py-2 rounded-lg bg-gradient-to-br ${toneClass} text-white font-black shadow-md`}>{scanMode === 'select' ? 'เลือก' : 'เช็ก'}</button>
+                          </form>
+                        </div>
+                      ) : (
+                        <div className="p-3">
+                          <form onSubmit={handleScanSubmit}>
+                            <label className={`block text-left text-sm font-black mb-2 ${theme.textTitle}`}>รหัสอุปกรณ์ / S.N.</label>
+                            <input
+                              type="text"
+                              ref={scanInputRef}
+                              className={`w-full px-3.5 py-3 rounded-xl font-black text-center text-lg outline-none mb-3 border-2 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 transition-all ${theme.input}`}
+                              placeholder="ยิงบาร์โค้ด หรือพิมพ์รหัสที่นี่"
+                              value={scanInput}
+                              onChange={e => setScanInput(e.target.value)}
+                              autoFocus
+                            />
+                            <button type="submit" className={`w-full py-2.5 rounded-lg bg-gradient-to-br ${toneClass} text-white font-black shadow-lg`}>{scanMode === 'select' ? 'เลือกอุปกรณ์นี้' : 'สแกนเช็กอุปกรณ์นี้'}</button>
+                          </form>
+                          <div className={`mt-2.5 p-2.5 rounded-xl border text-left ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                            <div className="font-black mb-1">เหมาะกับการใช้เครื่องยิงบาร์โค้ด</div>
+                            <div className="text-sm font-bold opacity-80">คลิกช่องรหัสแล้วเดินยิงต่อเนื่องได้</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2.5 qr-side-panel">
+                      {scanMessage.text ? (
+                        <div className={`p-3 rounded-[1rem] border font-black shadow-sm ${scanMessage.type === 'success' ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800') : (isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')}`}>
+                          {scanMessage.text}
+                        </div>
+                      ) : (
+                        <div className={`p-3 rounded-[1rem] border font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+                          พร้อมสแกน — แจ้งเตือนเมื่ออ่านสำเร็จ/ไม่พบ
+                        </div>
+                      )}
+
+                      {recentItem ? (
+                        <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                          <div className={`text-xs font-black mb-2 ${theme.textMuted}`}>สแกนล่าสุด</div>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className={`font-black text-xl leading-tight ${theme.textTitle}`}>{recentItem.name}</div>
+                              <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {recentItem.sn || '-'} • {recentItem.category || '-'}</div>
+                              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{recentItem.location || 'ไม่ระบุที่เก็บ'}</div>
+                            </div>
+                            {recentStatus && <span className={`px-3 py-1.5 rounded-xl text-xs font-black border shrink-0 ${isDarkMode ? recentStatus.darkColor : recentStatus.color}`}>{recentStatus.label}</span>}
+                          </div>
+                          {scanMode === 'select' && (
+                            <div className="grid grid-cols-2 gap-2 mt-4">
+                              <button type="button" onClick={() => { closeScannerPage('overview'); setShowHistory(recentItem.id); }} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>ดูรายละเอียด</button>
+                              {canAddEditItems && <button type="button" onClick={() => { closeScannerPage('overview'); openItemEditor(recentItem); }} className="px-3 py-3 rounded-2xl font-black text-sm bg-blue-600 text-white">แก้ไขข้อมูล</button>}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                          <div className={`text-xs font-black mb-2 ${theme.textMuted}`}>สแกนล่าสุด</div>
+                          <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีรายการล่าสุดในรอบนี้</div>
+                        </div>
+                      )}
+
+                      {isChecklistMode && (
+                        <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className={`font-black ${theme.textTitle}`}>ยังรอสแกน</div>
+                            <div className={`text-xs font-black ${theme.textMuted}`}>{Math.max(0, total - checked)} ชิ้น</div>
+                          </div>
+                          <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar pr-1">
+                            {pendingIds.length === 0 ? (
+                              <div className="p-3 rounded-2xl bg-emerald-500 text-white font-black text-center">ครบแล้ว</div>
+                            ) : pendingIds.map(id => {
+                              const item = items.find(i => i.id === id);
+                              if (!item) return null;
+                              return (
+                                <div key={id} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                                  <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
+                                  <div className={`text-xs font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'}</div>
+                                </div>
+                              );
+                            })}
+                            {total - checked > pendingIds.length && <div className={`text-center text-xs font-bold ${theme.textMuted}`}>และอีก {total - checked - pendingIds.length} รายการ</div>}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className={`grid grid-cols-3 gap-2 text-xs font-black ${theme.textMuted}`}>
+                        <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>{isChecklistMode ? 'เช็กของ' : 'เลือกของ'}</div>
+                        <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>กันสแกนซ้ำ</div>
+                        <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>สั่น/เสียง</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {activeWorkspace !== 'overview' && renderActiveWorkspace()}
 
       {activeWorkspace === 'overview' && (
@@ -18270,640 +18901,7 @@ S.N.: ${item.sn || '-'}
 
       {renderCameraAccessoryHelperModal()}
 
-      {/* 📷 หน้าสแกน QR Code แบบใหม่: ใช้งานหน้างาน / มือถือ / เครื่องยิงบาร์โค้ด */}
-      {showScanModal && activeWorkspace === 'scanner' && (() => {
-        const scanInfo = getScanModeInfo();
-        const isChecklistMode = scanMode !== 'select' && scanMode !== 'stockCount';
-        const targetIds = scanMode === 'borrowChecklist' ? borrowTargetIds : scanMode === 'eventChecklist' ? eventTargetIds : scanMode === 'returnChecklist' ? returnTargetIds : scanMode === 'stockCount' ? stockCountStats.auditTarget.map(i => i.id) : [];
-        const checkedIds = scanMode === 'borrowChecklist' ? packingChecklist : scanMode === 'eventChecklist' ? eventChecklist : scanMode === 'returnChecklist' ? returnChecklist : scanMode === 'stockCount' ? stockCountFoundIds : [];
-        const total = targetIds.length || 0;
-        const checked = checkedIds.length || 0;
-        const percent = total === 0 ? 0 : Math.min(100, Math.round((checked / total) * 100));
-        const isComplete = total > 0 && checked >= total;
-        const pendingIds = isChecklistMode ? targetIds.filter(id => !checkedIds.includes(id)).slice(0, 4) : [];
-        const recentItem = lastScannedItemId ? items.find(i => i.id === lastScannedItemId) : null;
-        const recentStatus = recentItem ? (STATUSES.find(s => s.id === recentItem.status) || STATUSES[0]) : null;
-        const toneClass = scanMode === 'borrowChecklist'
-          ? 'from-purple-600 to-violet-700'
-          : scanMode === 'eventChecklist'
-            ? 'from-orange-500 to-red-600'
-            : scanMode === 'returnChecklist'
-              ? 'from-emerald-500 to-teal-600'
-              : scanMode === 'stockCount'
-                ? 'from-blue-600 to-cyan-600'
-                : 'from-amber-500 to-orange-600';
-        const softToneClass = scanMode === 'borrowChecklist'
-          ? (isDarkMode ? 'bg-purple-950/30 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-800')
-          : scanMode === 'eventChecklist'
-            ? (isDarkMode ? 'bg-orange-950/30 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800')
-            : scanMode === 'returnChecklist'
-              ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
-              : scanMode === 'stockCount'
-                ? (isDarkMode ? 'bg-blue-950/30 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800')
-                : (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800');
 
-        return (
-          <div className="page-workspace-shell qr-scanner-page space-y-5">
-            <style>{`
-              /* v22.57.4.1 QR Scanner Viewport Layout Hotfix
-                 แก้เคสหน้าสแกนถูก scroll เดิมดันลงล่าง / sidebar ค้างทับ / กล้องหลุดจอ
-                 Scope: layout only. ไม่แตะ Html5QrcodeScanner, camera permission, flow หรือ Firebase path */
-              .factory-stock-polish .qr-scanner-page {
-                position: fixed !important;
-                inset: 0 !important;
-                z-index: 2147483000 !important;
-                width: 100vw !important;
-                height: 100dvh !important;
-                max-width: none !important;
-                margin: 0 !important;
-                padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
-                overflow-y: auto !important;
-                overscroll-behavior: contain !important;
-                background:
-                  radial-gradient(circle at top left, rgba(37,99,235,.24), transparent 34%),
-                  radial-gradient(circle at bottom right, rgba(245,158,11,.18), transparent 34%),
-                  #020617 !important;
-              }
-              .factory-stock-polish .qr-scanner-page > .w-full {
-                width: min(1120px, 100%) !important;
-                margin: 0 auto !important;
-              }
-              .factory-stock-polish .qr-scanner-page-shell {
-                max-height: calc(100dvh - 28px - env(safe-area-inset-bottom, 0px)) !important;
-                overflow: hidden !important;
-              }
-              .factory-stock-polish .qr-scanner-page-shell > .flex-1 {
-                overflow-y: auto !important;
-              }
-              .factory-stock-polish .qr-scanner-page #qr-reader video {
-                min-height: clamp(220px, 42vh, 360px) !important;
-                max-height: 42vh !important;
-              }
-              body:has(.qr-scanner-page) {
-                overflow: hidden !important;
-              }
-              @media (max-width: 640px) {
-                .factory-stock-polish .qr-scanner-page {
-                  padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px)) !important;
-                }
-                .factory-stock-polish .qr-scanner-page-shell {
-                  max-height: calc(100dvh - 20px - env(safe-area-inset-bottom, 0px)) !important;
-                  border-radius: 18px !important;
-                }
-                .factory-stock-polish .qr-scanner-page #qr-reader video {
-                  min-height: clamp(210px, 40vh, 330px) !important;
-                  max-height: 40vh !important;
-                }
-              }
-
-              #qr-reader {
-                width: 100% !important;
-                border: 0 !important;
-                background: transparent !important;
-                color: inherit !important;
-                overflow: hidden !important;
-              }
-              #qr-reader video {
-                border-radius: 24px !important;
-                object-fit: cover !important;
-                background: #020617 !important;
-                min-height: min(58vh, 460px) !important;
-              }
-              #qr-reader__scan_region {
-                background: transparent !important;
-                border: 0 !important;
-              }
-              #qr-reader__dashboard,
-              #qr-reader__dashboard_section,
-              #qr-reader__dashboard_section_csr,
-              #qr-reader__camera_selection {
-                border: 0 !important;
-                background: transparent !important;
-                color: inherit !important;
-                font-family: inherit !important;
-              }
-              #qr-reader button {
-                background: #f59e0b !important;
-                color: white !important;
-                border: 0 !important;
-                padding: 10px 16px !important;
-                border-radius: 14px !important;
-                font-weight: 900 !important;
-                margin: 6px !important;
-              }
-              #qr-reader select {
-                min-height: 42px !important;
-                border-radius: 14px !important;
-                padding: 0 12px !important;
-                font-weight: 800 !important;
-                max-width: 100% !important;
-              }
-              #qr-reader__status_span {
-                display: inline-flex !important;
-                margin-top: 8px !important;
-                border-radius: 999px !important;
-                padding: 6px 12px !important;
-                font-weight: 900 !important;
-                font-size: 12px !important;
-              }
-              #qr-reader img { image-rendering: auto !important; }
-              #qr-reader a { color: inherit !important; font-weight: 900 !important; }
-              #qr-reader__dashboard_section_csr span,
-              #qr-reader__dashboard_section_swaplink {
-                font-weight: 800 !important;
-                border-radius: 999px !important;
-              }
-              @media (max-width: 767px) {
-                #qr-reader video { min-height: 48vh !important; border-radius: 22px !important; }
-                #qr-reader__dashboard_section { padding: 6px 0 !important; }
-              }
-
-      /* v22.51.3 Build Error Hotfix
-         Safe polish only: no QR scanner / camera / permission / Firebase path changes. */
-      /* v22.51.2 Final QA & Stability Pass
-         Safe polish only: no QR scanner / camera / permission / Firebase path changes. */
-      .factory-stock-polish :is(button, [role="button"], a, input, select, textarea) {
-        -webkit-font-smoothing: antialiased;
-        text-rendering: geometricPrecision;
-      }
-      .factory-stock-polish button:disabled,
-      .factory-stock-polish [aria-disabled="true"] {
-        cursor: not-allowed !important;
-        filter: saturate(.86);
-      }
-      .factory-stock-polish :is(button, a[role="button"], input, select, textarea):focus-visible {
-        outline: none !important;
-        box-shadow: 0 0 0 4px rgba(37,99,235,.14) !important;
-      }
-      .factory-stock-polish .custom-scrollbar {
-        scrollbar-gutter: stable;
-      }
-      .factory-stock-polish img,
-      .factory-stock-polish video,
-      .factory-stock-polish canvas {
-        max-width: 100%;
-      }
-
-      @media (max-width: 767px) {
-        .factory-stock-polish {
-          touch-action: manipulation;
-        }
-        .factory-stock-polish :is(button, a[role="button"]) {
-          touch-action: manipulation;
-        }
-        .factory-stock-polish :is(.modal-panel, .solid-modal, .compact-modal, .operation-modal, .settings-modal, .backup-modal, .proof-modal) {
-          max-width: calc(100vw - 16px) !important;
-          max-height: calc(100dvh - 16px) !important;
-        }
-        .factory-stock-polish :is(.modal-panel, .solid-modal, .compact-modal, .operation-modal) :is(.modal-body, .form-body, .operation-body) {
-          overscroll-behavior: contain;
-        }
-        .factory-stock-polish :is(table, .print-table, .report-table) {
-          font-size: 12px !important;
-        }
-        .factory-stock-polish .bottom-mobile-nav {
-          padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
-        }
-      }
-
-      @media print {
-        .factory-stock-polish {
-          background: #fff !important;
-        }
-        .factory-stock-polish .no-print,
-        .factory-stock-polish .bottom-mobile-nav,
-        .factory-stock-polish .factory-top-actions {
-          display: none !important;
-        }
-      }
-
-            
-
-/* v22.57.3 Elegant Classic Desktop Polish - minimal premium visual layer, no QR/camera/database/flow changes */
-.factory-stock-polish {
-  --mdec-ease: cubic-bezier(.2,.8,.2,1);
-  --mdec-blue: #2563eb;
-  --mdec-ink: #0f172a;
-  --mdec-card-line: rgba(148,163,184,.24);
-}
-.factory-stock-polish[data-polish-theme="dark"] {
-  --mdec-ink: #f8fafc;
-  --mdec-card-line: rgba(148,163,184,.18);
-}
-.factory-stock-polish::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(circle at 18% 10%, rgba(37,99,235,.13), transparent 32%),
-    radial-gradient(circle at 86% 12%, rgba(14,165,233,.10), transparent 30%),
-    linear-gradient(180deg, rgba(255,255,255,.35), transparent 36%);
-}
-.factory-stock-polish[data-polish-theme="dark"]::before {
-  background:
-    radial-gradient(circle at 18% 10%, rgba(37,99,235,.20), transparent 34%),
-    radial-gradient(circle at 86% 12%, rgba(14,165,233,.13), transparent 32%),
-    linear-gradient(180deg, rgba(15,23,42,.18), transparent 42%);
-}
-.factory-stock-polish > * {
-  position: relative;
-  z-index: 1;
-}
-.factory-stock-polish .factory-topbar {
-  padding-top: 18px !important;
-  padding-bottom: 12px !important;
-}
-.factory-stock-polish .factory-kicker {
-  border: 1px solid rgba(37,99,235,.16);
-  background: rgba(37,99,235,.08);
-  padding: 7px 11px;
-  border-radius: 999px;
-  width: fit-content;
-  letter-spacing: .08em;
-}
-.factory-stock-polish .factory-page-title h1 {
-  font-weight: 950 !important;
-  letter-spacing: -.055em;
-}
-.factory-stock-polish .factory-page-title p {
-  max-width: 780px;
-  line-height: 1.6;
-}
-.factory-stock-polish .factory-primary-btn,
-.factory-stock-polish button[class*="bg-blue-600"],
-.factory-stock-polish button[class*="from-blue"] {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8 58%, #1e40af) !important;
-  box-shadow: 0 14px 30px rgba(37,99,235,.22), inset 0 1px 0 rgba(255,255,255,.18) !important;
-  border-color: rgba(147,197,253,.34) !important;
-}
-.factory-stock-polish .factory-primary-btn:hover,
-.factory-stock-polish button[class*="bg-blue-600"]:hover,
-.factory-stock-polish button[class*="from-blue"]:hover {
-  filter: saturate(1.06) brightness(1.03);
-  transform: translateY(-1px);
-}
-.factory-stock-polish .factory-ghost-btn,
-.factory-stock-polish .factory-icon-btn,
-.factory-stock-polish .solid-panel,
-.factory-stock-polish .solid-workspace > div,
-.factory-stock-polish .home-command-card,
-.factory-stock-polish .report-dashboard-card,
-.factory-stock-polish .shortcut-consolidated-card,
-.factory-stock-polish .workspace-action-card,
-.factory-stock-polish .operation-workspace-card,
-.factory-stock-polish .purchase-project-card,
-.factory-stock-polish .stock-mobile-card,
-.factory-stock-polish .clean-mobile-card,
-.factory-stock-polish .overview-essential-hero,
-.factory-stock-polish .overview-essential-action,
-.factory-stock-polish .overview-mini-stat {
-  border-color: var(--mdec-card-line) !important;
-  box-shadow: 0 16px 42px rgba(15,23,42,.075), inset 0 1px 0 rgba(255,255,255,.42) !important;
-}
-.factory-stock-polish[data-polish-theme="dark"] .factory-ghost-btn,
-.factory-stock-polish[data-polish-theme="dark"] .factory-icon-btn,
-.factory-stock-polish[data-polish-theme="dark"] .solid-panel,
-.factory-stock-polish[data-polish-theme="dark"] .solid-workspace > div,
-.factory-stock-polish[data-polish-theme="dark"] .home-command-card,
-.factory-stock-polish[data-polish-theme="dark"] .report-dashboard-card,
-.factory-stock-polish[data-polish-theme="dark"] .shortcut-consolidated-card,
-.factory-stock-polish[data-polish-theme="dark"] .workspace-action-card,
-.factory-stock-polish[data-polish-theme="dark"] .operation-workspace-card,
-.factory-stock-polish[data-polish-theme="dark"] .purchase-project-card,
-.factory-stock-polish[data-polish-theme="dark"] .stock-mobile-card,
-.factory-stock-polish[data-polish-theme="dark"] .clean-mobile-card,
-.factory-stock-polish[data-polish-theme="dark"] .overview-essential-hero,
-.factory-stock-polish[data-polish-theme="dark"] .overview-essential-action,
-.factory-stock-polish[data-polish-theme="dark"] .overview-mini-stat {
-  box-shadow: 0 18px 46px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.04) !important;
-}
-.factory-stock-polish .home-command-center,
-.factory-stock-polish .overview-essential-grid {
-  gap: 16px !important;
-}
-.factory-stock-polish .home-command-card,
-.factory-stock-polish .overview-essential-hero,
-.factory-stock-polish .shortcut-consolidated-card {
-  position: relative;
-  overflow: hidden;
-}
-.factory-stock-polish .home-command-card::after,
-.factory-stock-polish .overview-essential-hero::after,
-.factory-stock-polish .shortcut-consolidated-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(135deg, rgba(255,255,255,.18), transparent 38%, rgba(37,99,235,.06));
-  opacity: .75;
-}
-.factory-stock-polish[data-polish-theme="dark"] .home-command-card::after,
-.factory-stock-polish[data-polish-theme="dark"] .overview-essential-hero::after,
-.factory-stock-polish[data-polish-theme="dark"] .shortcut-consolidated-card::after {
-  background: linear-gradient(135deg, rgba(255,255,255,.04), transparent 36%, rgba(59,130,246,.09));
-}
-.factory-stock-polish .home-command-card > *,
-.factory-stock-polish .overview-essential-hero > *,
-.factory-stock-polish .shortcut-consolidated-card > * {
-  position: relative;
-  z-index: 1;
-}
-.factory-stock-polish .home-command-action,
-.factory-stock-polish .overview-essential-action,
-.factory-stock-polish .shortcut-mini-btn,
-.factory-stock-polish .workspace-action-card {
-  transition: transform .2s var(--mdec-ease), box-shadow .2s var(--mdec-ease), border-color .2s var(--mdec-ease), background .2s var(--mdec-ease);
-}
-.factory-stock-polish .home-command-action:hover,
-.factory-stock-polish .overview-essential-action:hover,
-.factory-stock-polish .shortcut-mini-btn:hover,
-.factory-stock-polish .workspace-action-card:hover {
-  transform: translateY(-2px) !important;
-  border-color: rgba(37,99,235,.34) !important;
-  box-shadow: 0 18px 44px rgba(37,99,235,.13) !important;
-}
-.factory-stock-polish .workspace-tabbar {
-  background: rgba(148,163,184,.10);
-  border: 1px solid var(--mdec-card-line);
-  border-radius: 20px;
-  padding: 6px;
-}
-.factory-stock-polish .workspace-tabbar button {
-  border-radius: 15px !important;
-  min-height: 40px;
-}
-.factory-stock-polish .stock-table-compact {
-  overflow: hidden;
-  border-radius: 22px;
-}
-.factory-stock-polish .stock-table-compact thead th {
-  background: rgba(37,99,235,.065) !important;
-  color: var(--mdec-ink) !important;
-  border-bottom: 1px solid rgba(37,99,235,.13) !important;
-}
-.factory-stock-polish[data-polish-theme="dark"] .stock-table-compact thead th {
-  background: rgba(59,130,246,.13) !important;
-}
-.factory-stock-polish .stock-table-compact tbody tr:hover td {
-  background: rgba(37,99,235,.045) !important;
-}
-.factory-stock-polish[data-polish-theme="dark"] .stock-table-compact tbody tr:hover td {
-  background: rgba(59,130,246,.10) !important;
-}
-.factory-stock-polish .stock-name-line .stock-title {
-  letter-spacing: -.025em;
-}
-.factory-stock-polish :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):not(.stock-check) {
-  border-color: rgba(148,163,184,.38) !important;
-  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
-}
-.factory-stock-polish :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):not(.stock-check):focus {
-  border-color: rgba(37,99,235,.62) !important;
-  box-shadow: 0 0 0 4px rgba(37,99,235,.12) !important;
-}
-.factory-stock-polish .operational-modal-shell,
-.factory-stock-polish .compact-modal-shell {
-  box-shadow: 0 28px 86px rgba(15,23,42,.22), inset 0 1px 0 rgba(255,255,255,.36) !important;
-}
-.factory-stock-polish[data-polish-theme="dark"] .operational-modal-shell,
-.factory-stock-polish[data-polish-theme="dark"] .compact-modal-shell {
-  box-shadow: 0 30px 92px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.05) !important;
-}
-.factory-stock-polish .operational-modal-shell h3,
-.factory-stock-polish .compact-modal-shell h3 {
-  letter-spacing: -.035em;
-}
-.factory-stock-polish .factory-chip {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.42);
-}
-.factory-stock-polish aside {
-  border-right: 1px solid rgba(148,163,184,.16);
-}
-.factory-stock-polish aside nav button {
-  transition: background .18s ease, transform .18s ease, color .18s ease;
-}
-.factory-stock-polish aside nav button:hover {
-  transform: translateX(2px);
-}
-@media (min-width: 1280px) {
-  .factory-stock-polish .overview-essential-action { min-height: 132px !important; }
-  .factory-stock-polish .overview-mini-stat { min-height: 86px !important; }
-  .factory-stock-polish .shortcut-consolidated-card { min-height: 214px !important; }
-}
-@media (max-width: 1023px) {
-  .factory-stock-polish::before { opacity: .7; }
-  .factory-stock-polish .factory-topbar { padding-top: 10px !important; }
-  .factory-stock-polish .factory-page-title h1 { letter-spacing: -.04em; }
-}
-@media print {
-  .factory-stock-polish::before { display: none !important; }
-  .factory-stock-polish .factory-primary-btn,
-  .factory-stock-polish .factory-ghost-btn,
-  .factory-stock-polish .factory-icon-btn,
-  .factory-stock-polish .solid-panel,
-  .factory-stock-polish .solid-workspace > div,
-  .factory-stock-polish .home-command-card,
-  .factory-stock-polish .report-dashboard-card,
-  .factory-stock-polish .shortcut-consolidated-card { box-shadow: none !important; }
-}
-`}</style>
-
-            <div className="w-full flex items-stretch justify-center">
-              <div className={`qr-scanner-page-shell qr-scanner-compact-shell w-full rounded-[1.3rem] overflow-hidden shadow-sm border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                <div className={`shrink-0 p-2.5 sm:p-3 border-b ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <div className={`w-9 h-9 rounded-2xl bg-gradient-to-br ${toneClass} text-white flex items-center justify-center shadow-lg`}>
-                          <Icons.QrCode className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <h3 className={`font-black text-base sm:text-lg leading-tight ${theme.textTitle}`}>{scanInfo.title}</h3>
-                          <p className={`text-[10px] sm:text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{scanInfo.desc}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => closeScannerPage()}
-                      className={`w-9 h-9 rounded-2xl flex items-center justify-center border shrink-0 ${theme.btnCancel}`}
-                      title="ปิดหน้าสแกน"
-                    >
-                      <Icons.X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="mt-2.5 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap">
-                    <button type="button" onClick={() => setUseCamera(true)} className={`min-h-[38px] px-3 rounded-lg font-black border transition ${useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
-                      📷 ใช้กล้อง
-                    </button>
-                    <button type="button" onClick={() => setUseCamera(false)} className={`min-h-[38px] px-3 rounded-lg font-black border transition ${!useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
-                      ⌨️ พิมพ์/ยิงรหัส
-                    </button>
-                    {isChecklistMode && (
-                      <div className={`col-span-2 sm:ml-auto min-h-[38px] px-3 rounded-lg border flex items-center justify-between sm:justify-center gap-3 font-black ${softToneClass}`}>
-                        <span>เช็กแล้ว {checked}/{total}</span>
-                        <span>{percent}%</span>
-                      </div>
-                    )}
-                    {!isChecklistMode && (
-                      <div className={`col-span-2 sm:ml-auto min-h-[38px] px-3 rounded-lg border flex items-center justify-center gap-2 font-black ${theme.btnSecondary}`}>
-                        เลือกแล้ว {selectedItems.length} รายการ
-                      </div>
-                    )}
-                  </div>
-
-                  {isChecklistMode && (
-                    <div className="mt-3">
-                      <div className="w-full h-2.5 rounded-full bg-slate-300/60 dark:bg-slate-800 overflow-hidden">
-                        <div className={`h-full rounded-full transition-all duration-500 ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${percent}%` }}></div>
-                      </div>
-                      {isComplete && (
-                        <button type="button" onClick={() => closeScannerPage()} className="mt-2 w-full sm:w-auto px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-md">
-                          เช็กครบแล้ว กลับไปยืนยันรายการ
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-2.5 sm:p-3">
-                  <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,.95fr)_300px] gap-2.5 sm:gap-3 items-start">
-                    <div className={`rounded-[1.15rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                      <div className={`px-3 py-2 border-b flex items-center justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50'}`}>
-                        <div className="font-black text-sm">{useCamera ? 'พื้นที่สแกน' : 'พิมพ์รหัส / เครื่องยิงบาร์โค้ด'}</div>
-                        <div className={`text-[10px] font-black px-2 py-0.5 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'กล้อง' : 'รหัส'}</div>
-                      </div>
-
-                      {useCamera ? (
-                        <div className="p-3">
-                          <div className={`mb-2 p-2 rounded-lg border text-left text-[11px] font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-                            จัด QR ให้อยู่กลางกรอบและถือให้นิ่ง
-                          </div>
-                          {scannerLoadError ? (
-                            <div className={`min-h-[190px] flex flex-col items-center justify-center gap-3 text-center rounded-2xl border ${isDarkMode ? 'bg-rose-950/25 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
-                              <div className="font-black">เปิดระบบกล้องไม่ได้</div>
-                              <div className="text-sm font-bold max-w-sm px-4">{scannerLoadError}</div>
-                              <button type="button" onClick={() => setUseCamera(false)} className={`px-4 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>ใช้โหมดพิมพ์/ยิงรหัสแทน</button>
-                            </div>
-                          ) : !isScannerLoaded ? (
-                            <div className="min-h-[190px] flex items-center justify-center">
-                              <div className="animate-pulse text-amber-500 font-black">กำลังดาวน์โหลดระบบกล้อง...</div>
-                            </div>
-                          ) : (
-                            <div className={`rounded-[1rem] overflow-hidden border-4 ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-slate-100'}`}>
-                              <div id="qr-reader" className="w-full"></div>
-                            </div>
-                          )}
-                          <form onSubmit={handleScanSubmit} className="mt-2 grid grid-cols-[1fr_auto] gap-1.5">
-                            <input
-                              type="text"
-                              className={`px-3 py-2 rounded-lg font-black text-center outline-none border ${theme.input}`}
-                              placeholder="สแกนไม่ติด? พิมพ์รหัส/S.N."
-                              value={scanInput}
-                              onChange={e => setScanInput(e.target.value)}
-                            />
-                            <button type="submit" className={`px-3.5 py-2 rounded-lg bg-gradient-to-br ${toneClass} text-white font-black shadow-md`}>{scanMode === 'select' ? 'เลือก' : 'เช็ก'}</button>
-                          </form>
-                        </div>
-                      ) : (
-                        <div className="p-3">
-                          <form onSubmit={handleScanSubmit}>
-                            <label className={`block text-left text-sm font-black mb-2 ${theme.textTitle}`}>รหัสอุปกรณ์ / S.N.</label>
-                            <input
-                              type="text"
-                              ref={scanInputRef}
-                              className={`w-full px-3.5 py-3 rounded-xl font-black text-center text-lg outline-none mb-3 border-2 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 transition-all ${theme.input}`}
-                              placeholder="ยิงบาร์โค้ด หรือพิมพ์รหัสที่นี่"
-                              value={scanInput}
-                              onChange={e => setScanInput(e.target.value)}
-                              autoFocus
-                            />
-                            <button type="submit" className={`w-full py-2.5 rounded-lg bg-gradient-to-br ${toneClass} text-white font-black shadow-lg`}>{scanMode === 'select' ? 'เลือกอุปกรณ์นี้' : 'สแกนเช็กอุปกรณ์นี้'}</button>
-                          </form>
-                          <div className={`mt-2.5 p-2.5 rounded-xl border text-left ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
-                            <div className="font-black mb-1">เหมาะกับการใช้เครื่องยิงบาร์โค้ด</div>
-                            <div className="text-sm font-bold opacity-80">คลิกช่องรหัสแล้วเดินยิงต่อเนื่องได้</div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-2.5 qr-side-panel">
-                      {scanMessage.text ? (
-                        <div className={`p-3 rounded-[1rem] border font-black shadow-sm ${scanMessage.type === 'success' ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800') : (isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')}`}>
-                          {scanMessage.text}
-                        </div>
-                      ) : (
-                        <div className={`p-3 rounded-[1rem] border font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
-                          พร้อมสแกน — แจ้งเตือนเมื่ออ่านสำเร็จ/ไม่พบ
-                        </div>
-                      )}
-
-                      {recentItem ? (
-                        <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                          <div className={`text-xs font-black mb-2 ${theme.textMuted}`}>สแกนล่าสุด</div>
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className={`font-black text-xl leading-tight ${theme.textTitle}`}>{recentItem.name}</div>
-                              <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {recentItem.sn || '-'} • {recentItem.category || '-'}</div>
-                              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{recentItem.location || 'ไม่ระบุที่เก็บ'}</div>
-                            </div>
-                            {recentStatus && <span className={`px-3 py-1.5 rounded-xl text-xs font-black border shrink-0 ${isDarkMode ? recentStatus.darkColor : recentStatus.color}`}>{recentStatus.label}</span>}
-                          </div>
-                          {scanMode === 'select' && (
-                            <div className="grid grid-cols-2 gap-2 mt-4">
-                              <button type="button" onClick={() => { closeScannerPage('overview'); setShowHistory(recentItem.id); }} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>ดูรายละเอียด</button>
-                              {canAddEditItems && <button type="button" onClick={() => { closeScannerPage('overview'); openItemEditor(recentItem); }} className="px-3 py-3 rounded-2xl font-black text-sm bg-blue-600 text-white">แก้ไขข้อมูล</button>}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                          <div className={`text-xs font-black mb-2 ${theme.textMuted}`}>สแกนล่าสุด</div>
-                          <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีรายการล่าสุดในรอบนี้</div>
-                        </div>
-                      )}
-
-                      {isChecklistMode && (
-                        <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                          <div className="flex items-center justify-between mb-3">
-                            <div className={`font-black ${theme.textTitle}`}>ยังรอสแกน</div>
-                            <div className={`text-xs font-black ${theme.textMuted}`}>{Math.max(0, total - checked)} ชิ้น</div>
-                          </div>
-                          <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar pr-1">
-                            {pendingIds.length === 0 ? (
-                              <div className="p-3 rounded-2xl bg-emerald-500 text-white font-black text-center">ครบแล้ว</div>
-                            ) : pendingIds.map(id => {
-                              const item = items.find(i => i.id === id);
-                              if (!item) return null;
-                              return (
-                                <div key={id} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                                  <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
-                                  <div className={`text-xs font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'}</div>
-                                </div>
-                              );
-                            })}
-                            {total - checked > pendingIds.length && <div className={`text-center text-xs font-bold ${theme.textMuted}`}>และอีก {total - checked - pendingIds.length} รายการ</div>}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className={`grid grid-cols-3 gap-2 text-xs font-black ${theme.textMuted}`}>
-                        <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>{isChecklistMode ? 'เช็กของ' : 'เลือกของ'}</div>
-                        <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>กันสแกนซ้ำ</div>
-                        <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>สั่น/เสียง</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
 
 
       {/* 🧭 Modal ติดตามของรอคืน / งานที่ควรเคลียร์ */}
