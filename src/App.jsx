@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.8 Mobile Remote Native Operation Flow';
-const APP_UPDATE_NOTE = 'Mobile Remote Native Operation Flow: แก้มือถือให้กดยืม/คืน/ออกงานแล้วทำรายการในหน้ารีโมตมือถือโดยตรง ไม่เด้งเข้าเว็บเต็มที่รก เพิ่มหน้าทำรายการมือถือแบบสั้น เลือกของ ค้นหา กรอกข้อมูล เช็กของ แนบหลักฐาน และบันทึกผ่าน engine เดิม';
+const APP_VERSION = 'v22.57.1.8.1 Mobile Remote Icon Hotfix';
+const APP_UPDATE_NOTE = 'Mobile Remote Icon Hotfix: แก้ React error #130 จากหน้า Mobile Remote โดยเปลี่ยนไอคอนล็อกอินมือถือให้ใช้ไอคอนที่มีอยู่จริง ทำให้เว็บบนคอมและมือถือกลับมาเปิดได้ปกติ โดยไม่แตะ logic ยืม/คืน/ออกงานหรือฐานข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -17086,7 +17086,7 @@ S.N.: ${item.sn || '-'}
             <RemoteHeader />
             <div className={`mt-4 rounded-[2rem] border p-5 shadow-sm ${remotePanel}`}>
               <div className="w-14 h-14 rounded-3xl bg-blue-600 text-white flex items-center justify-center mb-4">
-                <Icons.User className="w-7 h-7" />
+                <Icons.UserPlus className="w-7 h-7" />
               </div>
               <div className="text-2xl font-black">ล็อกอินก่อนใช้งาน</div>
               <p className={`text-sm font-bold mt-1 ${remoteMuted}`}>มือถือถูกออกแบบให้ใช้เป็นรีโมตหน้างาน จึงต้องล็อกอินก่อนทุกครั้ง</p>
