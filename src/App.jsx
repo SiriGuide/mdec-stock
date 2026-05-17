@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.4.6 Soft Light Surface / Readability Polish';
-const APP_UPDATE_NOTE = 'Soft Light Surface / Readability Polish: ปรับแนวอ่านทั้งเว็บให้ใช้พื้นผิวสีอ่อน ตัวหนังสือสีเข้ม โดยเฉพาะการ์ดรอคืนทั้งหมดและการ์ดสรุปหน้า Overview ให้ไม่จมกับพื้นหลังเดิม พร้อมคง sidebar/dark shell ไว้และไม่แตะ QR Scanner core, camera permission, Firebase path หรือ flow ยืม/คืน/ออกงาน';
+const APP_VERSION = 'v22.57.4.7 Soft Light KPI Tone Fix';
+const APP_UPDATE_NOTE = 'Soft Light KPI Tone Fix: แก้การ์ดสรุปหน้า Overview ให้ใช้พื้นหลังสีอ่อนและตัวหนังสือสีเข้มจริงทั้งโหมด light/dark โดยเฉพาะรอคืนทั้งหมดที่เคยยังเป็นน้ำเงินเข้มจนข้อความจม พร้อมเก็บสีพื้นผิวทั้งเว็บให้อ่านง่ายขึ้นโดยไม่แตะ QR Scanner core, camera permission, Firebase path หรือ flow ยืม/คืน/ออกงาน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -18096,6 +18096,146 @@ S.N.: ${item.sn || '-'}
 .factory-stock-polish[data-polish-theme="dark"] .factory-primary-btn,
 .factory-stock-polish[data-polish-theme="dark"] .factory-primary-btn * {
   color: #ffffff !important;
+}
+
+
+
+/* v22.57.4.7 Soft Light KPI Tone Fix - force pastel KPI cards in both light/dark modes, no QR/camera/database/flow changes */
+.factory-stock-polish {
+  --mdec-readable-text: #0f172a;
+  --mdec-readable-muted: #475569;
+  --mdec-readable-border: #cbd5e1;
+}
+.factory-stock-polish .overview-kpi-card,
+.factory-stock-polish .overview-mini-stat,
+.factory-stock-polish :is(button,div)[class*="overview-kpi-"] {
+  color: var(--mdec-readable-text) !important;
+  text-shadow: none !important;
+  box-shadow: 0 12px 28px rgba(15,23,42,.075), inset 0 1px 0 rgba(255,255,255,.92) !important;
+}
+.factory-stock-polish .overview-kpi-card::before,
+.factory-stock-polish .overview-mini-stat::before {
+  opacity: .24 !important;
+  background: linear-gradient(135deg, rgba(255,255,255,.78), transparent 48%, rgba(37,99,235,.045)) !important;
+}
+.factory-stock-polish .overview-kpi-card::after,
+.factory-stock-polish .overview-mini-stat::after {
+  opacity: .10 !important;
+  filter: blur(14px) !important;
+}
+.factory-stock-polish .overview-kpi-value,
+.factory-stock-polish .overview-kpi-label,
+.factory-stock-polish .overview-kpi-card :is(strong,h1,h2,h3,h4,span,div):not(.overview-kpi-desc),
+.factory-stock-polish .overview-mini-stat :is(strong,h1,h2,h3,h4,span,div):not(.overview-kpi-desc) {
+  color: inherit !important;
+  text-shadow: none !important;
+}
+.factory-stock-polish .overview-kpi-desc,
+.factory-stock-polish .overview-kpi-card :is(p,small),
+.factory-stock-polish .overview-mini-stat :is(p,small) {
+  color: var(--mdec-readable-muted) !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+/* บังคับทุกโหมดให้เป็นพื้นอ่อน ตัวอักษรเข้ม: แก้รอคืนทั้งหมดที่ยังน้ำเงินทึบ */
+.factory-stock-polish .overview-kpi-blue,
+.factory-stock-polish[data-polish-theme="dark"] .overview-kpi-blue,
+.factory-stock-polish[data-polish-theme="light"] .overview-kpi-blue {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border-color: #93c5fd !important;
+  color: #1e3a8a !important;
+  box-shadow: 0 14px 32px rgba(37,99,235,.13), inset 0 1px 0 rgba(255,255,255,.96) !important;
+}
+.factory-stock-polish .overview-kpi-blue .overview-kpi-value,
+.factory-stock-polish .overview-kpi-blue .overview-kpi-label,
+.factory-stock-polish .overview-kpi-blue :is(strong,h1,h2,h3,h4,span,div):not(.overview-kpi-desc) {
+  color: #1e3a8a !important;
+}
+.factory-stock-polish .overview-kpi-blue .overview-kpi-desc,
+.factory-stock-polish .overview-kpi-blue :is(p,small) {
+  color: #1d4ed8 !important;
+}
+.factory-stock-polish .overview-kpi-amber,
+.factory-stock-polish[data-polish-theme="dark"] .overview-kpi-amber,
+.factory-stock-polish[data-polish-theme="light"] .overview-kpi-amber {
+  background: linear-gradient(135deg, #fffbea 0%, #fef3c7 100%) !important;
+  border-color: #facc15 !important;
+  color: #713f12 !important;
+}
+.factory-stock-polish .overview-kpi-amber .overview-kpi-value,
+.factory-stock-polish .overview-kpi-amber .overview-kpi-label,
+.factory-stock-polish .overview-kpi-amber :is(strong,h1,h2,h3,h4,span,div):not(.overview-kpi-desc) { color: #713f12 !important; }
+.factory-stock-polish .overview-kpi-amber .overview-kpi-desc,
+.factory-stock-polish .overview-kpi-amber :is(p,small) { color: #92400e !important; }
+.factory-stock-polish .overview-kpi-rose,
+.factory-stock-polish[data-polish-theme="dark"] .overview-kpi-rose,
+.factory-stock-polish[data-polish-theme="light"] .overview-kpi-rose {
+  background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%) !important;
+  border-color: #fda4af !important;
+  color: #881337 !important;
+}
+.factory-stock-polish .overview-kpi-rose .overview-kpi-value,
+.factory-stock-polish .overview-kpi-rose .overview-kpi-label,
+.factory-stock-polish .overview-kpi-rose :is(strong,h1,h2,h3,h4,span,div):not(.overview-kpi-desc) { color: #881337 !important; }
+.factory-stock-polish .overview-kpi-rose .overview-kpi-desc,
+.factory-stock-polish .overview-kpi-rose :is(p,small) { color: #9f1239 !important; }
+.factory-stock-polish .overview-kpi-orange,
+.factory-stock-polish[data-polish-theme="dark"] .overview-kpi-orange,
+.factory-stock-polish[data-polish-theme="light"] .overview-kpi-orange {
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%) !important;
+  border-color: #fdba74 !important;
+  color: #7c2d12 !important;
+}
+.factory-stock-polish .overview-kpi-orange .overview-kpi-value,
+.factory-stock-polish .overview-kpi-orange .overview-kpi-label,
+.factory-stock-polish .overview-kpi-orange :is(strong,h1,h2,h3,h4,span,div):not(.overview-kpi-desc) { color: #7c2d12 !important; }
+.factory-stock-polish .overview-kpi-orange .overview-kpi-desc,
+.factory-stock-polish .overview-kpi-orange :is(p,small) { color: #9a3412 !important; }
+.factory-stock-polish .overview-kpi-purple,
+.factory-stock-polish[data-polish-theme="dark"] .overview-kpi-purple,
+.factory-stock-polish[data-polish-theme="light"] .overview-kpi-purple {
+  background: linear-gradient(135deg, #faf5ff 0%, #ede9fe 100%) !important;
+  border-color: #c4b5fd !important;
+  color: #4c1d95 !important;
+}
+.factory-stock-polish .overview-kpi-purple .overview-kpi-value,
+.factory-stock-polish .overview-kpi-purple .overview-kpi-label,
+.factory-stock-polish .overview-kpi-purple :is(strong,h1,h2,h3,h4,span,div):not(.overview-kpi-desc) { color: #4c1d95 !important; }
+.factory-stock-polish .overview-kpi-purple .overview-kpi-desc,
+.factory-stock-polish .overview-kpi-purple :is(p,small) { color: #6d28d9 !important; }
+.factory-stock-polish .overview-kpi-slate,
+.factory-stock-polish[data-polish-theme="dark"] .overview-kpi-slate,
+.factory-stock-polish[data-polish-theme="light"] .overview-kpi-slate {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+.factory-stock-polish .overview-kpi-slate .overview-kpi-value,
+.factory-stock-polish .overview-kpi-slate .overview-kpi-label,
+.factory-stock-polish .overview-kpi-slate :is(strong,h1,h2,h3,h4,span,div):not(.overview-kpi-desc) { color: #0f172a !important; }
+.factory-stock-polish .overview-kpi-slate .overview-kpi-desc,
+.factory-stock-polish .overview-kpi-slate :is(p,small) { color: #475569 !important; }
+/* ลดความขาวโพลนของพื้นที่หลักนิดหนึ่ง แต่ยังคงพื้นผิวอ่านง่าย */
+.factory-stock-polish[data-polish-theme="light"],
+.factory-stock-polish[data-polish-theme="dark"] {
+  background:
+    radial-gradient(circle at top right, rgba(59,130,246,.11), transparent 34%),
+    linear-gradient(180deg, #f7fbff 0%, #eef4fb 100%) !important;
+}
+.factory-stock-polish .overview-daily-command,
+.factory-stock-polish .overview-essential-hero,
+.factory-stock-polish .solid-workspace,
+.factory-stock-polish .solid-panel,
+.factory-stock-polish .home-command-card,
+.factory-stock-polish .report-dashboard-card,
+.factory-stock-polish .shortcut-consolidated-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+.factory-stock-polish .overview-daily-command :is(h1,h2,h3,h4,strong,label,span,div,p,small):not(button *):not(aside *),
+.factory-stock-polish .overview-essential-hero :is(h1,h2,h3,h4,strong,label,span,div,p,small):not(button *):not(aside *) {
+  text-shadow: none !important;
 }
 
 @media print {
