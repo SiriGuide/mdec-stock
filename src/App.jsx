@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.4 QR Scanner Stability Hotfix';
-const APP_UPDATE_NOTE = 'QR Scanner Stability Hotfix: แก้เสถียรภาพหน้าสแกน QR แบบจำกัดจุด ป้องกัน scanner ซ้อน/ค้างตอนเปิดปิดหน้า เพิ่มสถานะโหลดสคริปต์ผิดพลาด และเก็บกวาดกล้องก่อนสร้างใหม่ โดยไม่เปลี่ยน flow ยืม/คืน/ออกงานและไม่เปลี่ยน Firebase path';
+const APP_VERSION = 'v22.57.4.1 QR Scanner Viewport Layout Hotfix';
+const APP_UPDATE_NOTE = 'QR Scanner Viewport Layout Hotfix: แก้ปัญหาหน้าสแกน QR หลุดลงล่าง/โดน scroll เดิมดัน/มี sidebar ค้างทับ โดยล็อกหน้าสแกนเป็น full viewport overlay เฉพาะตอนสแกน และลดความสูงกล้องให้เห็นปุ่มครบ โดยไม่แตะ scanner core, camera permission, flow ยืม/คืน/ออกงาน หรือ Firebase path';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -18305,6 +18305,57 @@ S.N.: ${item.sn || '-'}
         return (
           <div className="page-workspace-shell qr-scanner-page space-y-5">
             <style>{`
+              /* v22.57.4.1 QR Scanner Viewport Layout Hotfix
+                 แก้เคสหน้าสแกนถูก scroll เดิมดันลงล่าง / sidebar ค้างทับ / กล้องหลุดจอ
+                 Scope: layout only. ไม่แตะ Html5QrcodeScanner, camera permission, flow หรือ Firebase path */
+              .factory-stock-polish .qr-scanner-page {
+                position: fixed !important;
+                inset: 0 !important;
+                z-index: 2147483000 !important;
+                width: 100vw !important;
+                height: 100dvh !important;
+                max-width: none !important;
+                margin: 0 !important;
+                padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+                overflow-y: auto !important;
+                overscroll-behavior: contain !important;
+                background:
+                  radial-gradient(circle at top left, rgba(37,99,235,.24), transparent 34%),
+                  radial-gradient(circle at bottom right, rgba(245,158,11,.18), transparent 34%),
+                  #020617 !important;
+              }
+              .factory-stock-polish .qr-scanner-page > .w-full {
+                width: min(1120px, 100%) !important;
+                margin: 0 auto !important;
+              }
+              .factory-stock-polish .qr-scanner-page-shell {
+                max-height: calc(100dvh - 28px - env(safe-area-inset-bottom, 0px)) !important;
+                overflow: hidden !important;
+              }
+              .factory-stock-polish .qr-scanner-page-shell > .flex-1 {
+                overflow-y: auto !important;
+              }
+              .factory-stock-polish .qr-scanner-page #qr-reader video {
+                min-height: clamp(220px, 42vh, 360px) !important;
+                max-height: 42vh !important;
+              }
+              body:has(.qr-scanner-page) {
+                overflow: hidden !important;
+              }
+              @media (max-width: 640px) {
+                .factory-stock-polish .qr-scanner-page {
+                  padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+                }
+                .factory-stock-polish .qr-scanner-page-shell {
+                  max-height: calc(100dvh - 20px - env(safe-area-inset-bottom, 0px)) !important;
+                  border-radius: 18px !important;
+                }
+                .factory-stock-polish .qr-scanner-page #qr-reader video {
+                  min-height: clamp(210px, 40vh, 330px) !important;
+                  max-height: 40vh !important;
+                }
+              }
+
               #qr-reader {
                 width: 100% !important;
                 border: 0 !important;
