@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.8.7 Inventory QR Print Button Visible Fix';
-const APP_UPDATE_NOTE = 'Inventory QR Print Button Visible Fix: เพิ่มปุ่ม พิมพ์ QR / ฉลาก ให้เห็นชัดในหน้า คลังอุปกรณ์ เมื่อมีการเลือกอุปกรณ์ ไม่ต้องซ่อนอยู่ในเมนูเพิ่มเติมหรือแถบด้านล่าง เพื่อให้ผู้ใช้พิมพ์ QR ได้ทันทีจากหน้า Desktop';
+const APP_VERSION = 'v22.57.1.8.8 QR Print Hook Order Hotfix';
+const APP_UPDATE_NOTE = 'QR Print Hook Order Hotfix: แก้ React error #300 ตอนกดพิมพ์ QR โดยย้าย hook ของ Mobile Scanner ให้อยู่ก่อนหน้า print preview/early return ทั้งหมด ทำให้หน้าพิมพ์ QR เปิดได้ปกติและยังคงโหมดมือถือไว้';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -15314,6 +15314,120 @@ S.N.: ${item.sn || '-'}
   }, [isLoggedIn, currentOperator?.id]);
 
 
+  const closeMobileRemoteScanner = () => {
+    setMobileRemoteScannerOpen(false);
+    setMobileRemoteScanInput('');
+    setMobileRemoteScanMessage({ text: '', type: '' });
+  };
+
+  const processMobileRemoteScan = (scannedVal) => {
+    const val = String(scannedVal || '').trim();
+    if (!val) return;
+    if (scanCooldownRef.current) return;
+    scanCooldownRef.current = true;
+    window.setTimeout(() => { scanCooldownRef.current = false; }, 950);
+
+    const foundItem = (itemsRefForScan.current || []).find(i => i.id === val || (i.sn && String(i.sn).toLowerCase() === val.toLowerCase()));
+    if (!foundItem) {
+      setMobileRemoteScanMessage({ text: `❌ ไม่พบรหัสนี้: "${val}"`, type: 'error' });
+      try { if (navigator?.vibrate) navigator.vibrate([60, 40, 60]); } catch(e){}
+      try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
+      setMobileRemoteScanInput('');
+      setTimeout(() => setMobileRemoteScanMessage({ text: '', type: '' }), 3400);
+      return;
+    }
+
+    if (!['borrow', 'event', 'return'].includes(mobileRemoteAction)) {
+      setMobileRemoteScanMessage({ text: '⚠️ กรุณาเลือกโหมด ยืม / คืน / ออกงาน ก่อนสแกน', type: 'error' });
+      setMobileRemoteScanInput('');
+      return;
+    }
+
+    const isReturnMode = mobileRemoteAction === 'return';
+    const canUseForMode = isReturnMode
+      ? (foundItem.status === 'borrowed' || foundItem.status === 'out-for-event')
+      : foundItem.status === 'available';
+
+    if (!canUseForMode) {
+      setMobileRemoteScanMessage({
+        text: isReturnMode
+          ? `⚠️ "${foundItem.name}" ยังไม่ใช่รายการที่รอคืน`
+          : `⚠️ "${foundItem.name}" ไม่ได้อยู่ในสถานะพร้อมใช้`,
+        type: 'error'
+      });
+      try { if (navigator?.vibrate) navigator.vibrate([70, 45, 70]); } catch(e){}
+      try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
+      setMobileRemoteScanInput('');
+      setTimeout(() => setMobileRemoteScanMessage({ text: '', type: '' }), 3400);
+      return;
+    }
+
+    const currentIds = mobileRemoteAction === 'event'
+      ? eventTargetIds
+      : mobileRemoteAction === 'return'
+        ? returnTargetIds
+        : borrowTargetIds;
+    const alreadySelected = currentIds.includes(foundItem.id);
+
+    if (mobileRemoteAction === 'event') {
+      setEventTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+      setEventChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+    } else if (mobileRemoteAction === 'return') {
+      setReturnTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+      setReturnChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+    } else {
+      setBorrowTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+      setPackingChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+    }
+
+    const nextCount = alreadySelected ? currentIds.length : currentIds.length + 1;
+    setLastScannedItemId(foundItem.id);
+    setMobileRemoteScanMessage({
+      text: alreadySelected
+        ? `ℹ️ "${foundItem.name}" อยู่ในรายการแล้ว (${nextCount} รายการ)`
+        : `✅ เพิ่ม "${foundItem.name}" แล้ว • รวม ${nextCount} รายการ`,
+      type: 'success'
+    });
+    try { if (navigator?.vibrate) navigator.vibrate(alreadySelected ? 40 : 90); } catch(e){}
+    try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
+    setMobileRemoteScanInput('');
+    setTimeout(() => setMobileRemoteScanMessage({ text: '', type: '' }), 3400);
+  };
+
+  useEffect(() => {
+    let scanner = null;
+    if (mobileRemoteScannerOpen && mobileRemoteUseCamera && isScannerLoaded) {
+      const readerId = 'mobile-remote-qr-reader';
+      try {
+        scanner = new window.Html5QrcodeScanner(
+          readerId,
+          {
+            fps: 12,
+            rememberLastUsedCamera: true,
+            aspectRatio: 1.0,
+            disableFlip: false,
+            videoConstraints: { facingMode: { ideal: 'environment' } }
+          },
+          false
+        );
+        scanner.render(
+          (decodedText) => processMobileRemoteScan(decodedText),
+          () => {}
+        );
+      } catch(e) {
+        console.error('Mobile remote scanner init error', e);
+        setMobileRemoteScanMessage({ text: '❌ เปิดกล้องสแกนไม่ได้ ลองใช้ช่องกรอกรหัสแทน', type: 'error' });
+        setMobileRemoteUseCamera(false);
+      }
+    }
+    return () => {
+      if (scanner) {
+        scanner.clear().catch(() => {});
+      }
+    };
+  }, [mobileRemoteScannerOpen, mobileRemoteUseCamera, isScannerLoaded, mobileRemoteAction, borrowTargetIds, eventTargetIds, returnTargetIds]);
+
+
   const markSelectedQrTagged = async () => {
     if (!user || selectedItems.length === 0) return;
     const ok = confirm('บันทึกว่าอุปกรณ์ที่เลือก ' + selectedItems.length + ' รายการ ติด QR แล้วหรือไม่?');
@@ -16893,120 +17007,7 @@ S.N.: ${item.sn || '-'}
     );
   }
 
-    const closeMobileRemoteScanner = () => {
-    setMobileRemoteScannerOpen(false);
-    setMobileRemoteScanInput('');
-    setMobileRemoteScanMessage({ text: '', type: '' });
-  };
-
-  const processMobileRemoteScan = (scannedVal) => {
-    const val = String(scannedVal || '').trim();
-    if (!val) return;
-    if (scanCooldownRef.current) return;
-    scanCooldownRef.current = true;
-    window.setTimeout(() => { scanCooldownRef.current = false; }, 950);
-
-    const foundItem = (itemsRefForScan.current || []).find(i => i.id === val || (i.sn && String(i.sn).toLowerCase() === val.toLowerCase()));
-    if (!foundItem) {
-      setMobileRemoteScanMessage({ text: `❌ ไม่พบรหัสนี้: "${val}"`, type: 'error' });
-      try { if (navigator?.vibrate) navigator.vibrate([60, 40, 60]); } catch(e){}
-      try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
-      setMobileRemoteScanInput('');
-      setTimeout(() => setMobileRemoteScanMessage({ text: '', type: '' }), 3400);
-      return;
-    }
-
-    if (!['borrow', 'event', 'return'].includes(mobileRemoteAction)) {
-      setMobileRemoteScanMessage({ text: '⚠️ กรุณาเลือกโหมด ยืม / คืน / ออกงาน ก่อนสแกน', type: 'error' });
-      setMobileRemoteScanInput('');
-      return;
-    }
-
-    const isReturnMode = mobileRemoteAction === 'return';
-    const canUseForMode = isReturnMode
-      ? (foundItem.status === 'borrowed' || foundItem.status === 'out-for-event')
-      : foundItem.status === 'available';
-
-    if (!canUseForMode) {
-      setMobileRemoteScanMessage({
-        text: isReturnMode
-          ? `⚠️ "${foundItem.name}" ยังไม่ใช่รายการที่รอคืน`
-          : `⚠️ "${foundItem.name}" ไม่ได้อยู่ในสถานะพร้อมใช้`,
-        type: 'error'
-      });
-      try { if (navigator?.vibrate) navigator.vibrate([70, 45, 70]); } catch(e){}
-      try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
-      setMobileRemoteScanInput('');
-      setTimeout(() => setMobileRemoteScanMessage({ text: '', type: '' }), 3400);
-      return;
-    }
-
-    const currentIds = mobileRemoteAction === 'event'
-      ? eventTargetIds
-      : mobileRemoteAction === 'return'
-        ? returnTargetIds
-        : borrowTargetIds;
-    const alreadySelected = currentIds.includes(foundItem.id);
-
-    if (mobileRemoteAction === 'event') {
-      setEventTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-      setEventChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-    } else if (mobileRemoteAction === 'return') {
-      setReturnTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-      setReturnChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-    } else {
-      setBorrowTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-      setPackingChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
-    }
-
-    const nextCount = alreadySelected ? currentIds.length : currentIds.length + 1;
-    setLastScannedItemId(foundItem.id);
-    setMobileRemoteScanMessage({
-      text: alreadySelected
-        ? `ℹ️ "${foundItem.name}" อยู่ในรายการแล้ว (${nextCount} รายการ)`
-        : `✅ เพิ่ม "${foundItem.name}" แล้ว • รวม ${nextCount} รายการ`,
-      type: 'success'
-    });
-    try { if (navigator?.vibrate) navigator.vibrate(alreadySelected ? 40 : 90); } catch(e){}
-    try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
-    setMobileRemoteScanInput('');
-    setTimeout(() => setMobileRemoteScanMessage({ text: '', type: '' }), 3400);
-  };
-
-  useEffect(() => {
-    let scanner = null;
-    if (mobileRemoteScannerOpen && mobileRemoteUseCamera && isScannerLoaded) {
-      const readerId = 'mobile-remote-qr-reader';
-      try {
-        scanner = new window.Html5QrcodeScanner(
-          readerId,
-          {
-            fps: 12,
-            rememberLastUsedCamera: true,
-            aspectRatio: 1.0,
-            disableFlip: false,
-            videoConstraints: { facingMode: { ideal: 'environment' } }
-          },
-          false
-        );
-        scanner.render(
-          (decodedText) => processMobileRemoteScan(decodedText),
-          () => {}
-        );
-      } catch(e) {
-        console.error('Mobile remote scanner init error', e);
-        setMobileRemoteScanMessage({ text: '❌ เปิดกล้องสแกนไม่ได้ ลองใช้ช่องกรอกรหัสแทน', type: 'error' });
-        setMobileRemoteUseCamera(false);
-      }
-    }
-    return () => {
-      if (scanner) {
-        scanner.clear().catch(() => {});
-      }
-    };
-  }, [mobileRemoteScannerOpen, mobileRemoteUseCamera, isScannerLoaded, mobileRemoteAction, borrowTargetIds, eventTargetIds, returnTargetIds]);
-
-  const renderMobileRemoteScanner = () => {
+    const renderMobileRemoteScanner = () => {
     const isOperationScan = ['borrow', 'event', 'return'].includes(mobileRemoteAction);
     const title = isOperationScan
       ? mobileRemoteAction === 'event'
