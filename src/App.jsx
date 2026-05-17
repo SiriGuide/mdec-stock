@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.8.4 Mobile Remote Scan Only Selection Fix';
-const APP_UPDATE_NOTE = 'Mobile Remote Scan Only Selection Fix: แก้โหมดสแกนมือถือให้สแกนแล้วเพิ่มอุปกรณ์เข้ารีโมตมือถือเท่านั้น ไม่ไปเพิ่ม selectedItems ของเว็บเต็ม ไม่เด้งขึ้นแถบให้กดยืมหรือกรอกรายละเอียดทันที เหมาะกับการสแกนหลายชิ้นให้ครบก่อนแล้วค่อยบันทึก';
+const APP_VERSION = 'v22.57.1.8.5 Mobile Remote Scanner Isolation Fix';
+const APP_UPDATE_NOTE = 'Mobile Remote Scanner Isolation Fix: แยก Mobile Scanner ออกจากหน้า scanner ของเว็บเต็มแบบเด็ดขาด แก้ปัญหาสแกนติดแล้วเด้งเข้า form บันทึกการยืมทันที ให้สแกนหลายชิ้นอยู่ใน overlay มือถือจนกดกลับเอง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6823,6 +6823,7 @@ function MainApp() {
   const [scannerReturnWorkspace, setScannerReturnWorkspace] = useState('overview');
   const [mobileRemoteOpen, setMobileRemoteOpen] = useState(true);
   const [mobileRemoteAction, setMobileRemoteAction] = useState('home');
+  const [mobileRemoteScannerOpen, setMobileRemoteScannerOpen] = useState(false);
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
   const [scanMode, setScanMode] = useState('select'); // select | borrowChecklist | eventChecklist | returnChecklist
@@ -13920,8 +13921,11 @@ S.N.: ${item.sn || '-'}
     setScannerReturnWorkspace('mobileRemote');
     setScanMode('mobileRemoteSelect');
     setUseCamera(true);
+    setMobileRemoteOpen(true);
+    setMobileRemoteScannerOpen(true);
     setShowScanModal(true);
-    setActiveWorkspace('scanner');
+    // สำคัญ: อย่า setActiveWorkspace('scanner') ในโหมดมือถือ
+    // เพราะจะไปเรียกหน้า scanner ของเว็บเต็มและทำให้ flow เด้งไป form เดิม
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
@@ -13935,9 +13939,11 @@ S.N.: ${item.sn || '-'}
     setUseCamera(false);
     setScanMessage({ text: '', type: '' });
     if (fallbackWorkspace === 'mobileRemote') {
+      setMobileRemoteScannerOpen(false);
       setActiveWorkspace('overview');
       setMobileRemoteOpen(true);
     } else {
+      setMobileRemoteScannerOpen(false);
       setActiveWorkspace(fallbackWorkspace);
     }
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
@@ -14046,6 +14052,58 @@ S.N.: ${item.sn || '-'}
         try { if (navigator?.vibrate) navigator.vibrate(isComplete ? [90, 40, 120] : 90); } catch(e){}
         try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
       };
+
+      if (scanMode === 'mobileRemoteSelect' && ['borrow', 'event', 'return'].includes(mobileRemoteAction)) {
+        const isReturnMode = mobileRemoteAction === 'return';
+        const canUseForMode = isReturnMode
+          ? (foundItem.status === 'borrowed' || foundItem.status === 'out-for-event')
+          : foundItem.status === 'available';
+
+        if (!canUseForMode) {
+          setScanMessage({
+            text: isReturnMode
+              ? `⚠️ "${foundItem.name}" ยังไม่ใช่รายการที่รอคืน`
+              : `⚠️ "${foundItem.name}" ไม่ได้อยู่ในสถานะพร้อมใช้`,
+            type: 'error'
+          });
+          try { if (navigator?.vibrate) navigator.vibrate([70, 45, 70]); } catch(e){}
+          try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
+          setScanInput('');
+          setTimeout(() => setScanMessage({ text: '', type: '' }), 3400);
+          return;
+        }
+
+        const currentMobileIds = mobileRemoteAction === 'event'
+          ? eventTargetIds
+          : mobileRemoteAction === 'return'
+            ? returnTargetIds
+            : borrowTargetIds;
+        const alreadySelected = currentMobileIds.includes(foundItem.id);
+
+        if (mobileRemoteAction === 'event') {
+          setEventTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+          setEventChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+        } else if (mobileRemoteAction === 'return') {
+          setReturnTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+          setReturnChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+        } else {
+          setBorrowTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+          setPackingChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+        }
+
+        const nextMobileCount = alreadySelected ? currentMobileIds.length : currentMobileIds.length + 1;
+        setScanMessage({
+          text: alreadySelected
+            ? `ℹ️ "${foundItem.name}" อยู่ในรายการแล้ว (${nextMobileCount} รายการ)`
+            : `✅ เพิ่ม "${foundItem.name}" แล้ว • รวม ${nextMobileCount} รายการ`,
+          type: 'success'
+        });
+        try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
+        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
+        setScanInput('');
+        setTimeout(() => setScanMessage({ text: '', type: '' }), 3400);
+        return;
+      }
 
       if (scanMode === 'stockCount') {
         markStockCountFound(foundItem, 'camera');
@@ -14166,7 +14224,7 @@ S.N.: ${item.sn || '-'}
         scanner.clear().catch(console.error);
       }
     };
-  }, [showScanModal, useCamera, isScannerLoaded]);
+  }, [showScanModal, useCamera, isScannerLoaded, scanMode, scannerReturnWorkspace, mobileRemoteAction]);
 
   // 💡 กลับมาแล้ว: ระบบนำเข้าไฟล์ CSV
   const handleImportCSV = (e) => {
@@ -15202,6 +15260,7 @@ S.N.: ${item.sn || '-'}
     setReturnProofFiles([]);
     setOperationConfirm(null);
     setShowScanModal(false);
+    setMobileRemoteScannerOpen(false);
     if (activeWorkspace === 'scanner') setActiveWorkspace('overview');
   };
 
@@ -17675,7 +17734,7 @@ S.N.: ${item.sn || '-'}
   return (
     <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish desktop-overview-clean min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain} ${homeCompactMode ? 'home-comfort-compact' : ''}`}>
       <FactoryPolishStyle isDarkMode={isDarkMode} />
-      {mobileRemoteOpen && activeWorkspace !== 'scanner' && !showScanModal && renderMobileRemoteMode()}
+      {mobileRemoteOpen && !mobileRemoteScannerOpen && !showScanModal && renderMobileRemoteMode()}
       {/* FactoryStock Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-72 bg-slate-950 text-white flex-col border-r border-white/10">
         <div className="p-6 border-b border-white/10">
@@ -18847,10 +18906,10 @@ S.N.: ${item.sn || '-'}
 
       {renderCameraAccessoryHelperModal()}
 
-      {showScanModal && activeWorkspace === 'scanner' && scannerReturnWorkspace === 'mobileRemote' && renderMobileRemoteScanner()}
+      {showScanModal && scannerReturnWorkspace === 'mobileRemote' && mobileRemoteScannerOpen && renderMobileRemoteScanner()}
 
       {/* 📷 หน้าสแกน QR Code แบบใหม่: ใช้งานหน้างาน / มือถือ / เครื่องยิงบาร์โค้ด */}
-      {showScanModal && activeWorkspace === 'scanner' && scannerReturnWorkspace !== 'mobileRemote' && (() => {
+      {showScanModal && activeWorkspace === 'scanner' && scannerReturnWorkspace !== 'mobileRemote' && !mobileRemoteScannerOpen && (() => {
         const scanInfo = getScanModeInfo();
         const isChecklistMode = scanMode !== 'select' && scanMode !== 'stockCount';
         const targetIds = scanMode === 'borrowChecklist' ? borrowTargetIds : scanMode === 'eventChecklist' ? eventTargetIds : scanMode === 'returnChecklist' ? returnTargetIds : scanMode === 'stockCount' ? stockCountStats.auditTarget.map(i => i.id) : [];
