@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.4.7 Soft Light KPI Tone Fix';
-const APP_UPDATE_NOTE = 'Soft Light KPI Tone Fix: แก้การ์ดสรุปหน้า Overview ให้ใช้พื้นหลังสีอ่อนและตัวหนังสือสีเข้มจริงทั้งโหมด light/dark โดยเฉพาะรอคืนทั้งหมดที่เคยยังเป็นน้ำเงินเข้มจนข้อความจม พร้อมเก็บสีพื้นผิวทั้งเว็บให้อ่านง่ายขึ้นโดยไม่แตะ QR Scanner core, camera permission, Firebase path หรือ flow ยืม/คืน/ออกงาน';
+const APP_VERSION = 'v22.57.4.8 Neutral KPI Readability Fix';
+const APP_UPDATE_NOTE = 'Neutral KPI Readability Fix: เปลี่ยนการ์ด/ปุ่มสรุปโทน blue เช่น รอคืนทั้งหมด ให้เป็นพื้นขาวอมเทา ตัวหนังสือเข้ม และใช้เส้น accent แทนสีพื้นทึบทั้งเว็บ เพื่อให้อ่านง่ายและไม่จม โดยไม่แตะ QR Scanner core, camera permission, Firebase path หรือ flow ยืม/คืน/ออกงาน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -10751,7 +10751,66 @@ S.N.: ${item.sn || '-'}
             }
           }
           @page { size: A4; margin: 7mm; }
-        `}</style>
+  
+
+/* v22.57.4.8 Neutral KPI Readability Fix
+   เปลี่ยนโทน "รอคืนทั้งหมด" / KPI blue จากพื้นน้ำเงินทึบ เป็นพื้นอ่อนตัวหนังสือเข้ม
+   ใช้เส้น accent บาง ๆ แทนการย้อมทั้งการ์ด เพื่อให้เข้ากับทั้งเว็บและอ่านง่ายกว่า */
+.factory-stock-polish .overview-kpi-blue,
+.factory-stock-polish[data-polish-theme="dark"] .overview-kpi-blue,
+.factory-stock-polish[data-polish-theme="light"] .overview-kpi-blue,
+.factory-stock-polish .overview-mini-stat.overview-kpi-blue,
+.factory-stock-polish button.overview-kpi-blue {
+  position: relative !important;
+  overflow: hidden !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%) !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 12px 28px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.95) !important;
+}
+.factory-stock-polish .overview-kpi-blue::before,
+.factory-stock-polish .overview-mini-stat.overview-kpi-blue::before,
+.factory-stock-polish button.overview-kpi-blue::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 auto 0 0 !important;
+  width: 5px !important;
+  border-radius: 999px !important;
+  background: #2563eb !important;
+  opacity: .95 !important;
+  pointer-events: none !important;
+}
+.factory-stock-polish .overview-kpi-blue::after,
+.factory-stock-polish .overview-mini-stat.overview-kpi-blue::after,
+.factory-stock-polish button.overview-kpi-blue::after {
+  content: none !important;
+  display: none !important;
+}
+.factory-stock-polish .overview-kpi-blue .overview-kpi-value,
+.factory-stock-polish .overview-kpi-blue .overview-kpi-label,
+.factory-stock-polish .overview-kpi-blue :is(strong,h1,h2,h3,h4,span,div):not(.overview-kpi-desc),
+.factory-stock-polish .overview-mini-stat.overview-kpi-blue :is(strong,h1,h2,h3,h4,span,div):not(.overview-kpi-desc),
+.factory-stock-polish button.overview-kpi-blue :is(strong,h1,h2,h3,h4,span,div):not(.overview-kpi-desc) {
+  color: #0f172a !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+.factory-stock-polish .overview-kpi-blue .overview-kpi-desc,
+.factory-stock-polish .overview-kpi-blue :is(p,small),
+.factory-stock-polish .overview-mini-stat.overview-kpi-blue :is(p,small),
+.factory-stock-polish button.overview-kpi-blue :is(p,small) {
+  color: #475569 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+.factory-stock-polish .overview-kpi-blue:hover,
+.factory-stock-polish .overview-mini-stat.overview-kpi-blue:hover,
+.factory-stock-polish button.overview-kpi-blue:hover {
+  border-color: #94a3b8 !important;
+  background: linear-gradient(135deg, #ffffff 0%, #eaf1fb 100%) !important;
+  box-shadow: 0 16px 36px rgba(15,23,42,.11), inset 0 1px 0 rgba(255,255,255,.95) !important;
+}
+      `}</style>
 
         {renderWorkspaceTabs()}
 
