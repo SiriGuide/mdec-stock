@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.7 Mobile Remote UI 2.0 Polish';
-const APP_UPDATE_NOTE = 'Mobile Remote UI 2.0 Polish: ปรับหน้าโทรศัพท์ให้เป็นรีโมตแบบแอปจริงมากขึ้น ไม่ใช่แค่ปุ่มเพิ่ม มีหน้า Login เฉพาะมือถือ หน้า Home รีโมต ปุ่มงานหลักแบบการ์ดใหญ่ ปุ่มสแกน QR เด่น งานด่วน และเครื่องมือรองแบบไม่รก โดยเว็บบนคอมยังเป็น Classic เดิม';
+const APP_VERSION = 'v22.57.1.8 Mobile Remote Native Operation Flow';
+const APP_UPDATE_NOTE = 'Mobile Remote Native Operation Flow: แก้มือถือให้กดยืม/คืน/ออกงานแล้วทำรายการในหน้ารีโมตมือถือโดยตรง ไม่เด้งเข้าเว็บเต็มที่รก เพิ่มหน้าทำรายการมือถือแบบสั้น เลือกของ ค้นหา กรอกข้อมูล เช็กของ แนบหลักฐาน และบันทึกผ่าน engine เดิม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6809,6 +6809,7 @@ function MainApp() {
   const [showScanModal, setShowScanModal] = useState(false);
   const [scannerReturnWorkspace, setScannerReturnWorkspace] = useState('overview');
   const [mobileRemoteOpen, setMobileRemoteOpen] = useState(true);
+  const [mobileRemoteAction, setMobileRemoteAction] = useState('home');
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
   const [scanMode, setScanMode] = useState('select'); // select | borrowChecklist | eventChecklist | returnChecklist
@@ -16774,11 +16775,37 @@ S.N.: ${item.sn || '-'}
       const label = mode === 'return' ? 'รับคืนอุปกรณ์' : mode === 'event' ? 'นำอุปกรณ์ออกงาน' : 'ยืมอุปกรณ์';
       if (!requireOperationalAccess(label)) return;
       setBorrowReturnMode(mode);
-      setMobileRemoteOpen(false);
-      openWorkspace('borrowReturn');
+      setBorrowReturnSearch('');
+      setMobileRemoteAction(mode);
+      setMobileRemoteOpen(true);
+      window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
     };
 
-    const ActionCard = ({ mode, title, desc, count, Icon, tone, wide = false }) => {
+    const RemoteHeader = ({ compact = false, title = 'รีโมตหน้างาน', subtitle = 'ยืม คืน ออกงาน และสแกน QR แบบมือถือ' } = {}) => (
+      <div className={`rounded-[2rem] border p-4 shadow-sm ${remotePanel}`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className={`text-xs font-black tracking-[0.22em] uppercase ${remoteMuted}`}>MDEC STOCK</div>
+            <h1 className={`${compact ? 'text-2xl' : 'text-3xl'} font-black mt-1 tracking-tight`}>{title}</h1>
+            <p className={`text-sm font-bold mt-1 ${remoteMuted}`}>{subtitle}</p>
+          </div>
+          <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${remoteSoft}`}>
+            {isDarkMode ? <Icons.Sun className="w-5 h-5" /> : <Icons.Moon className="w-5 h-5" />}
+          </button>
+        </div>
+        {mobileCanOperate && !compact && (
+          <div className={`mt-4 rounded-2xl border p-3 flex items-center justify-between gap-3 ${remoteSoft}`}>
+            <div className="min-w-0">
+              <div className="text-xs font-black opacity-60">เข้าสู่ระบบแล้ว</div>
+              <div className="font-black truncate">{currentOperator?.name || currentOperator?.username || 'เจ้าหน้าที่'}</div>
+            </div>
+            <button type="button" onClick={handleLogout} className="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-black shrink-0">ออก</button>
+          </div>
+        )}
+      </div>
+    );
+
+    const ActionCard = ({ mode, title, desc, count, Icon, tone }) => {
       const palette = {
         borrow: isDarkMode ? 'bg-blue-950/45 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800',
         event: isDarkMode ? 'bg-orange-950/45 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800',
@@ -16792,14 +16819,12 @@ S.N.: ${item.sn || '-'}
         scan: 'bg-white/12 text-white border border-white/15'
       };
       return (
-        <button type="button" onClick={() => openMobileAction(mode)} className={`${wide ? 'col-span-2 min-h-[116px]' : 'min-h-[148px]'} rounded-[1.8rem] border p-4 text-left shadow-sm active:scale-[0.98] transition-all ${palette[tone]}`}>
+        <button type="button" onClick={() => openMobileAction(mode)} className={`min-h-[148px] rounded-[1.8rem] border p-4 text-left shadow-sm active:scale-[0.98] transition-all ${palette[tone]}`}>
           <div className="flex items-start justify-between gap-3">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${iconBg[tone]}`}>
               <Icon className="w-6 h-6" />
             </div>
-            {count !== null && count !== undefined && (
-              <div className="text-2xl font-black tabular-nums">{Number(count || 0).toLocaleString('th-TH')}</div>
-            )}
+            {count !== null && count !== undefined && <div className="text-2xl font-black tabular-nums">{Number(count || 0).toLocaleString('th-TH')}</div>}
           </div>
           <div className="text-2xl font-black mt-4 leading-tight">{title}</div>
           <div className="text-xs font-bold mt-1 opacity-75">{desc}</div>
@@ -16807,29 +16832,252 @@ S.N.: ${item.sn || '-'}
       );
     };
 
-    const RemoteHeader = () => (
-      <div className={`rounded-[2rem] border p-4 shadow-sm ${remotePanel}`}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className={`text-xs font-black tracking-[0.22em] uppercase ${remoteMuted}`}>MDEC STOCK</div>
-            <h1 className="text-3xl font-black mt-1 tracking-tight">รีโมตหน้างาน</h1>
-            <p className={`text-sm font-bold mt-1 ${remoteMuted}`}>ยืม คืน ออกงาน และสแกน QR แบบมือถือ</p>
-          </div>
-          <button type="button" onClick={() => setIsDarkMode(!isDarkMode)} className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${remoteSoft}`}>
-            {isDarkMode ? <Icons.Sun className="w-5 h-5" /> : <Icons.Moon className="w-5 h-5" />}
-          </button>
-        </div>
-        {mobileCanOperate && (
-          <div className={`mt-4 rounded-2xl border p-3 flex items-center justify-between gap-3 ${remoteSoft}`}>
-            <div className="min-w-0">
-              <div className="text-xs font-black opacity-60">เข้าสู่ระบบแล้ว</div>
-              <div className="font-black truncate">{currentOperator?.name || currentOperator?.username || 'เจ้าหน้าที่'}</div>
+    const renderMobileOperation = () => {
+      const mode = mobileRemoteAction === 'event' || mobileRemoteAction === 'return' ? mobileRemoteAction : 'borrow';
+      const modeInfo = mode === 'event'
+        ? { title: 'ออกงาน', fullTitle: 'นำอุปกรณ์ออกงาน', desc: 'เลือกของพร้อมใช้แล้วบันทึกออกงาน', icon: Icons.Truck, color: 'orange', btn: 'bg-orange-500 hover:bg-orange-400', soft: isDarkMode ? 'bg-orange-950/35 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800' }
+        : mode === 'return'
+          ? { title: 'คืน', fullTitle: 'รับคืนอุปกรณ์', desc: 'เลือกของที่รอคืนแล้วบันทึกรับคืน', icon: Icons.CheckCircle, color: 'emerald', btn: 'bg-emerald-600 hover:bg-emerald-500', soft: isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800' }
+          : { title: 'ยืม', fullTitle: 'ยืมอุปกรณ์', desc: 'เลือกของพร้อมใช้แล้วบันทึกการยืม', icon: Icons.UserPlus, color: 'blue', btn: 'bg-blue-600 hover:bg-blue-500', soft: isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800' };
+
+      const q = String(borrowReturnSearch || '').trim().toLowerCase();
+      const mobileItems = items
+        .filter(item => item && !item.isDeleted)
+        .filter(item => mode === 'return' ? (item.status === 'borrowed' || item.status === 'out-for-event') : item.status === 'available')
+        .filter(item => {
+          if (!q) return true;
+          return String(item.name || '').toLowerCase().includes(q) ||
+                 String(item.sn || '').toLowerCase().includes(q) ||
+                 String(item.category || '').toLowerCase().includes(q) ||
+                 String(item.location || '').toLowerCase().includes(q) ||
+                 String(item.currentBorrower || '').toLowerCase().includes(q) ||
+                 String(item.currentEvent || '').toLowerCase().includes(q);
+        })
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true }))
+        .slice(0, 80);
+
+      const actionTargetIds = mode === 'event' ? eventTargetIds : mode === 'return' ? returnTargetIds : borrowTargetIds;
+      const actionChecklist = mode === 'event' ? eventChecklist : mode === 'return' ? returnChecklist : packingChecklist;
+      const selectedActionItems = actionTargetIds.map(id => items.find(item => item.id === id)).filter(Boolean);
+
+      const setActionTargets = (ids) => {
+        const unique = Array.from(new Set(ids || []));
+        if (mode === 'event') {
+          setEventTargetIds(unique);
+          setEventChecklist(unique);
+        } else if (mode === 'return') {
+          setReturnTargetIds(unique);
+          setReturnChecklist(unique);
+        } else {
+          setBorrowTargetIds(unique);
+          setPackingChecklist(unique);
+        }
+      };
+
+      const setActionChecklist = (ids) => {
+        const unique = Array.from(new Set(ids || []));
+        if (mode === 'event') setEventChecklist(unique);
+        else if (mode === 'return') setReturnChecklist(unique);
+        else setPackingChecklist(unique);
+      };
+
+      const clearMobileOperation = () => {
+        if (mode === 'event') {
+          setEventTargetIds([]);
+          setEventChecklist([]);
+          setEventProofFiles([]);
+        } else if (mode === 'return') {
+          setReturnTargetIds([]);
+          setReturnChecklist([]);
+          setReturnProofFiles([]);
+          setReturnInspection({});
+        } else {
+          setBorrowTargetIds([]);
+          setPackingChecklist([]);
+          setBorrowProofFiles([]);
+        }
+      };
+
+      const toggleItem = (id) => {
+        if (actionTargetIds.includes(id)) {
+          setActionTargets(actionTargetIds.filter(x => x !== id));
+          setActionChecklist(actionChecklist.filter(x => x !== id));
+        } else {
+          setActionTargets([...actionTargetIds, id]);
+          setActionChecklist([...actionChecklist, id]);
+        }
+      };
+
+      const missingSteps = [];
+      if (mode === 'borrow') {
+        if (!borrowData.staff) missingSteps.push('ผู้ให้ยืม');
+        if (!borrowData.borrower) missingSteps.push('ชื่อผู้ยืม');
+        if (packingChecklist.length === 0) missingSteps.push('อุปกรณ์');
+      } else if (mode === 'event') {
+        if (!eventData.staff) missingSteps.push('ผู้รับผิดชอบ');
+        if (!eventData.eventName) missingSteps.push('ชื่องาน');
+        if (eventChecklist.length === 0) missingSteps.push('อุปกรณ์');
+      } else {
+        if (!returnData.staff) missingSteps.push('ผู้รับคืน');
+        if (returnChecklist.length === 0) missingSteps.push('อุปกรณ์');
+      }
+
+      const ready = missingSteps.length === 0;
+      const Icon = modeInfo.icon;
+
+      return (
+        <div className={`lg:hidden fixed inset-0 z-[6500] overflow-y-auto ${remotePageBg}`}>
+          <div className="min-h-screen p-4 pb-32">
+            <div className={`rounded-[2rem] border p-4 shadow-sm ${remotePanel}`}>
+              <div className="flex items-start justify-between gap-3">
+                <button type="button" onClick={() => setMobileRemoteAction('home')} className={`w-11 h-11 rounded-2xl border flex items-center justify-center ${remoteSoft}`}>‹</button>
+                <div className="min-w-0 flex-1">
+                  <div className={`text-xs font-black tracking-[0.18em] uppercase ${remoteMuted}`}>MOBILE OPERATION</div>
+                  <h1 className="text-3xl font-black mt-1">{modeInfo.fullTitle}</h1>
+                  <p className={`text-sm font-bold mt-1 ${remoteMuted}`}>{modeInfo.desc}</p>
+                </div>
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${modeInfo.btn} text-white`}>
+                  <Icon className="w-6 h-6" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 mt-4">
+                {[
+                  ['borrow', 'ยืม', Icons.UserPlus],
+                  ['return', 'คืน', Icons.CheckCircle],
+                  ['event', 'ออกงาน', Icons.Truck]
+                ].map(([id, label, TabIcon]) => (
+                  <button key={id} type="button" onClick={() => { setBorrowReturnMode(id); setMobileRemoteAction(id); }} className={`rounded-2xl border p-3 text-center font-black ${mode === id ? modeInfo.soft : remoteSoft}`}>
+                    <TabIcon className="w-5 h-5 mx-auto mb-1" />
+                    <div className="text-sm">{label}</div>
+                  </button>
+                ))}
+              </div>
             </div>
-            <button type="button" onClick={handleLogout} className="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-black shrink-0">ออก</button>
+
+            <section className={`mt-4 rounded-[2rem] border p-4 ${remotePanel}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="font-black text-lg">เลือกอุปกรณ์</div>
+                  <div className={`text-xs font-bold ${remoteMuted}`}>พบ {mobileItems.length.toLocaleString('th-TH')} • เลือก {actionTargetIds.length.toLocaleString('th-TH')}</div>
+                </div>
+                <button type="button" onClick={() => openSelectionScanner({ camera: true, returnWorkspace: 'mobileRemote' })} className="px-3 py-2 rounded-xl bg-slate-950 text-white text-xs font-black">สแกน</button>
+              </div>
+              <div className={`mt-3 flex items-center gap-3 px-4 py-3 rounded-2xl border ${theme.input}`}>
+                <Icons.Search className={`w-5 h-5 ${remoteMuted}`} />
+                <input className="bg-transparent outline-none w-full font-black" placeholder="ค้นหาชื่อ / S.N. / ผู้ยืม / งาน" value={borrowReturnSearch} onChange={e => setBorrowReturnSearch(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                <button type="button" onClick={() => setActionTargets(mobileItems.map(item => item.id))} className={`py-3 rounded-2xl border font-black ${remoteSoft}`}>เลือกที่เห็น</button>
+                <button type="button" onClick={clearMobileOperation} className={`py-3 rounded-2xl border font-black ${remoteSoft}`}>ล้าง</button>
+              </div>
+
+              <div className="space-y-2 mt-3 max-h-[330px] overflow-y-auto custom-scrollbar">
+                {mobileItems.length === 0 ? (
+                  <div className={`rounded-2xl border p-4 text-center font-black ${remoteSoft}`}>ไม่พบรายการ</div>
+                ) : mobileItems.map(item => {
+                  const selected = actionTargetIds.includes(item.id);
+                  const late = (item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
+                  return (
+                    <button key={item.id} type="button" onClick={() => toggleItem(item.id)} className={`w-full rounded-2xl border p-3 text-left ${selected ? modeInfo.soft : remoteSoft}`}>
+                      <div className="flex items-start gap-3">
+                        <span className={`mt-1 w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black ${selected ? `${modeInfo.btn} text-white border-transparent` : isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-300'}`}>{selected ? '✓' : ''}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-black truncate">{item.name || '-'}</div>
+                          <div className={`text-xs font-bold mt-1 truncate ${remoteMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'}</div>
+                          {(item.currentBorrower || item.currentEvent || late) && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {item.currentBorrower && <span className="px-2 py-1 rounded-lg bg-blue-500/10 text-blue-500 text-[10px] font-black">ผู้ยืม: {item.currentBorrower}</span>}
+                              {item.currentEvent && <span className="px-2 py-1 rounded-lg bg-orange-500/10 text-orange-500 text-[10px] font-black">งาน: {item.currentEvent}</span>}
+                              {late && <span className="px-2 py-1 rounded-lg bg-rose-600 text-white text-[10px] font-black">เลยกำหนด</span>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className={`mt-4 rounded-[2rem] border p-4 ${remotePanel}`}>
+              <div className="font-black text-lg">ข้อมูลรายการ</div>
+              <div className={`text-xs font-bold mt-1 ${remoteMuted}`}>กรอกเฉพาะที่จำเป็นสำหรับงานนี้</div>
+
+              <div className="space-y-3 mt-4">
+                {mode === 'borrow' && (
+                  <>
+                    <label className="block"><span className={`block text-sm font-black mb-1 ${remoteMuted}`}>ผู้ให้ยืม *</span><select className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} value={borrowData.staff || ''} onChange={e => setBorrowData({...borrowData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : borrowData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
+                    {borrowData.staff === 'อื่นๆ' && <input className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={borrowData.newStaff || ''} onChange={e => setBorrowData({...borrowData, newStaff: e.target.value})} />}
+                    <label className="block"><span className={`block text-sm font-black mb-1 ${remoteMuted}`}>ชื่อผู้ยืม *</span><input className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} placeholder="ชื่อ-สกุล / แผนก" value={borrowData.borrower || ''} onChange={e => setBorrowData({...borrowData, borrower: e.target.value})} /></label>
+                    <label className="block"><span className={`block text-sm font-black mb-1 ${remoteMuted}`}>กำหนดคืน</span><input type="date" className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} value={borrowData.returnDate || ''} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} /></label>
+                    {renderProofUploader('หลักฐานการยืม', borrowProofFiles, setBorrowProofFiles, 'purple')}
+                  </>
+                )}
+
+                {mode === 'event' && (
+                  <>
+                    <label className="block"><span className={`block text-sm font-black mb-1 ${remoteMuted}`}>ผู้รับผิดชอบ *</span><select className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} value={eventData.staff || ''} onChange={e => setEventData({...eventData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : eventData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
+                    {eventData.staff === 'อื่นๆ' && <input className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={eventData.newStaff || ''} onChange={e => setEventData({...eventData, newStaff: e.target.value})} />}
+                    <label className="block"><span className={`block text-sm font-black mb-1 ${remoteMuted}`}>ชื่องาน / สถานที่ *</span><input className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} placeholder="เช่น งานประชุม / ถ่ายภาพกิจกรรม" value={eventData.eventName || ''} onChange={e => setEventData({...eventData, eventName: e.target.value})} /></label>
+                    <label className="block"><span className={`block text-sm font-black mb-1 ${remoteMuted}`}>กำหนดคืน</span><input type="date" className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} value={eventData.returnDate || ''} onChange={e => setEventData({...eventData, returnDate: e.target.value})} /></label>
+                    {renderProofUploader('หลักฐานนำออกงาน', eventProofFiles, setEventProofFiles, 'orange')}
+                  </>
+                )}
+
+                {mode === 'return' && (
+                  <>
+                    <label className="block"><span className={`block text-sm font-black mb-1 ${remoteMuted}`}>ผู้รับคืน *</span><select className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} value={returnData.staff || ''} onChange={e => setReturnData({...returnData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : returnData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
+                    {returnData.staff === 'อื่นๆ' && <input className={`w-full px-4 py-3 rounded-2xl border font-bold ${theme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={returnData.newStaff || ''} onChange={e => setReturnData({...returnData, newStaff: e.target.value})} />}
+                    {renderProofUploader('หลักฐานการรับคืน', returnProofFiles, setReturnProofFiles, 'emerald')}
+                  </>
+                )}
+              </div>
+            </section>
+
+            <section className={`mt-4 rounded-[2rem] border p-4 ${remotePanel}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="font-black text-lg">เช็กของ</div>
+                  <div className={`text-xs font-bold ${remoteMuted}`}>เช็กแล้ว {actionChecklist.length}/{actionTargetIds.length}</div>
+                </div>
+                <button type="button" onClick={() => setActionChecklist(actionTargetIds)} className="px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">เช็กครบ</button>
+              </div>
+              <div className="space-y-2 mt-3 max-h-52 overflow-y-auto custom-scrollbar">
+                {selectedActionItems.length === 0 ? (
+                  <div className={`rounded-2xl border p-4 text-center font-black ${remoteSoft}`}>ยังไม่ได้เลือกอุปกรณ์</div>
+                ) : selectedActionItems.map(item => {
+                  const checked = actionChecklist.includes(item.id);
+                  return (
+                    <label key={item.id} className={`flex items-start gap-3 p-3 rounded-2xl border ${checked ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : remoteSoft}`}>
+                      <input type="checkbox" className="stock-check mt-1" checked={checked} onChange={e => setActionChecklist(e.target.checked ? [...actionChecklist, item.id] : actionChecklist.filter(id => id !== item.id))} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-black truncate">{item.name}</span>
+                        <span className={`block text-xs font-bold ${remoteMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </section>
           </div>
-        )}
-      </div>
-    );
+
+          <div className={`fixed bottom-0 inset-x-0 z-[6600] px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] border-t ${isDarkMode ? 'bg-slate-950/92 border-slate-800' : 'bg-white/92 border-slate-200'} backdrop-blur-xl`}>
+            {missingSteps.length > 0 && (
+              <div className={`mb-2 px-3 py-2 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                ยังขาด: {missingSteps.join(' / ')}
+              </div>
+            )}
+            <div className="grid grid-cols-[92px_1fr] gap-2">
+              <button type="button" onClick={() => setMobileRemoteAction('home')} className={`py-4 rounded-2xl border font-black ${remoteSoft}`}>กลับ</button>
+              <button type="button" disabled={missingSteps.length > 0} onClick={() => requestOperationConfirm(mode === 'event' ? 'event' : mode === 'return' ? 'return' : 'borrow')} className={`py-4 rounded-2xl text-white font-black ${modeInfo.btn} disabled:bg-slate-400 disabled:cursor-not-allowed`}>
+                {mode === 'event' ? 'บันทึกออกงาน' : mode === 'return' ? 'บันทึกรับคืน' : 'บันทึกการยืม'}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
 
     if (!mobileCanOperate) {
       return (
@@ -16862,6 +17110,8 @@ S.N.: ${item.sn || '-'}
       );
     }
 
+    if (mobileRemoteAction !== 'home') return renderMobileOperation();
+
     return (
       <div className={`lg:hidden fixed inset-0 z-[6500] overflow-y-auto ${remotePageBg}`}>
         <div className="min-h-screen p-4 pb-28">
@@ -16881,9 +17131,9 @@ S.N.: ${item.sn || '-'}
           </div>
 
           <section className="grid grid-cols-2 gap-3 mt-4">
-            <ActionCard mode="borrow" title="ยืม" desc="เลือกของพร้อมใช้" count={stats.available} Icon={Icons.UserPlus} tone="borrow" />
-            <ActionCard mode="return" title="คืน" desc="รับของกลับศูนย์" count={outsideCount} Icon={Icons.CheckCircle} tone="return" />
-            <ActionCard mode="event" title="ออกงาน" desc="จัดของไปใช้งาน" count={currentEventItems.length} Icon={Icons.Truck} tone="event" />
+            <ActionCard mode="borrow" title="ยืม" desc="ทำในรีโมตนี้เลย" count={stats.available} Icon={Icons.UserPlus} tone="borrow" />
+            <ActionCard mode="return" title="คืน" desc="ทำในรีโมตนี้เลย" count={outsideCount} Icon={Icons.CheckCircle} tone="return" />
+            <ActionCard mode="event" title="ออกงาน" desc="ทำในรีโมตนี้เลย" count={currentEventItems.length} Icon={Icons.Truck} tone="event" />
             <ActionCard mode="scan" title="สแกน" desc="เลือกของด้วย QR" count={null} Icon={Icons.QrCode} tone="scan" />
           </section>
 
