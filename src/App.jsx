@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.8.3 Mobile Remote Multi Scan Polish';
-const APP_UPDATE_NOTE = 'Mobile Remote Multi Scan Polish: ปรับโหมดมือถือให้สแกนเลือกหลายอุปกรณ์ต่อเนื่องจากหน้า ยืม/คืน/ออกงาน ได้ชัดขึ้น เพิ่มข้อความ สแกนหลายรายการ จำนวนที่เลือก รายการล่าสุด และการป้องกันสแกนซ้ำ โดยยังไม่เด้งเข้าเว็บเต็ม';
+const APP_VERSION = 'v22.57.1.8.4 Mobile Remote Scan Only Selection Fix';
+const APP_UPDATE_NOTE = 'Mobile Remote Scan Only Selection Fix: แก้โหมดสแกนมือถือให้สแกนแล้วเพิ่มอุปกรณ์เข้ารีโมตมือถือเท่านั้น ไม่ไปเพิ่ม selectedItems ของเว็บเต็ม ไม่เด้งขึ้นแถบให้กดยืมหรือกรอกรายละเอียดทันที เหมาะกับการสแกนหลายชิ้นให้ครบก่อนแล้วค่อยบันทึก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -9860,7 +9860,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className={`rounded-3xl border p-4 ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-              <div className="font-black">สรุปก่อนเพิ่มเข้ารายการ</div>
+              <div className="font-black">สรุปก่อนเพิ่มเข้ารีโมต</div>
               <div className="text-sm font-bold mt-1">จะเพิ่ม {selectedCount} รายการเข้าโหมด{contextLabel} • ฟีเจอร์นี้เป็นตัวช่วยเลือกตอนทำรายการเท่านั้น ไม่สร้างเซ็ตถาวรและไม่ผูกกล้องกับเลนส์ถาวร</div>
               {selectedCamera && cameraHelperForm.batteryIds.length === 0 && <div className="text-xs font-black mt-2 text-amber-600">⚠️ ยังไม่ได้เลือกแบตเตอรี่</div>}
               {selectedCamera && cameraHelperForm.memoryIds.length === 0 && <div className="text-xs font-black mt-1 text-amber-600">⚠️ ยังไม่ได้เลือกเมมโมรี่การ์ด</div>}
@@ -13914,6 +13914,17 @@ S.N.: ${item.sn || '-'}
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
+  const openMobileRemoteOperationScanner = () => {
+    if (!requireOperationalAccess('สแกนหลายอุปกรณ์')) return;
+    setShowMoreMenu(false);
+    setScannerReturnWorkspace('mobileRemote');
+    setScanMode('mobileRemoteSelect');
+    setUseCamera(true);
+    setShowScanModal(true);
+    setActiveWorkspace('scanner');
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+  };
+
   const closeScannerPage = (targetWorkspace = null) => {
     const fallbackWorkspace = targetWorkspace || scannerReturnWorkspace || (scanMode === 'stockCount'
       ? 'stockCount'
@@ -14048,7 +14059,7 @@ S.N.: ${item.sn || '-'}
       } else if (scanMode === 'returnChecklist') {
         markChecklist(returnTargetIds, returnChecklist, setReturnChecklist, 'รับคืน');
       } else {
-        const isMobileOperationScan = scannerReturnWorkspace === 'mobileRemote' && ['borrow', 'event', 'return'].includes(mobileRemoteAction);
+        const isMobileOperationScan = (scannerReturnWorkspace === 'mobileRemote' || scanMode === 'mobileRemoteSelect') && ['borrow', 'event', 'return'].includes(mobileRemoteAction);
         if (isMobileOperationScan) {
           const isReturnMode = mobileRemoteAction === 'return';
           const canUseForMode = isReturnMode
@@ -16941,7 +16952,7 @@ S.N.: ${item.sn || '-'}
       if (mode === 'scan') {
         if (!requireOperationalAccess('สแกน QR')) return;
         setMobileRemoteOpen(false);
-        openSelectionScanner({ camera: true, returnWorkspace: 'mobileRemote' });
+        openMobileRemoteOperationScanner();
         return;
       }
       const label = mode === 'return' ? 'รับคืนอุปกรณ์' : mode === 'event' ? 'นำอุปกรณ์ออกงาน' : 'ยืมอุปกรณ์';
@@ -17133,7 +17144,7 @@ S.N.: ${item.sn || '-'}
                   <div className="font-black text-lg">เลือกอุปกรณ์</div>
                   <div className={`text-xs font-bold ${remoteMuted}`}>พบ {mobileItems.length.toLocaleString('th-TH')} • เลือก {actionTargetIds.length.toLocaleString('th-TH')}</div>
                 </div>
-                <button type="button" onClick={() => { setScannerReturnWorkspace('mobileRemote'); openSelectionScanner({ camera: true, returnWorkspace: 'mobileRemote' }); }} className="px-3 py-2 rounded-xl bg-slate-950 text-white text-xs font-black">สแกนหลายรายการ</button>
+                <button type="button" onClick={openMobileRemoteOperationScanner} className="px-3 py-2 rounded-xl bg-slate-950 text-white text-xs font-black">สแกนหลายรายการ</button>
               </div>
               <div className={`mt-3 flex items-center gap-3 px-4 py-3 rounded-2xl border ${theme.input}`}>
                 <Icons.Search className={`w-5 h-5 ${remoteMuted}`} />
@@ -18455,7 +18466,7 @@ S.N.: ${item.sn || '-'}
       )}
 
       {/* 🛒 Bulk Selection Action Bar */}
-      {canUseOperationalTools && selectedItems.length > 0 && (() => {
+      {canUseOperationalTools && selectedItems.length > 0 && !mobileRemoteOpen && scannerReturnWorkspace !== 'mobileRemote' && (() => {
         const selectedActiveItems = selectedItems.map(id => items.find(item => item.id === id)).filter(Boolean);
         const availableCount = selectedActiveItems.filter(item => item.status === 'available').length;
         const returnableCount = selectedActiveItems.filter(item => item.status === 'borrowed' || item.status === 'out-for-event').length;
