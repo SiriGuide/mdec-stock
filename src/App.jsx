@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.1.8.5 Mobile Remote Scanner Isolation Fix';
-const APP_UPDATE_NOTE = 'Mobile Remote Scanner Isolation Fix: แยก Mobile Scanner ออกจากหน้า scanner ของเว็บเต็มแบบเด็ดขาด แก้ปัญหาสแกนติดแล้วเด้งเข้า form บันทึกการยืมทันที ให้สแกนหลายชิ้นอยู่ใน overlay มือถือจนกดกลับเอง';
+const APP_VERSION = 'v22.57.1.8.6 Mobile Remote Standalone Scanner Fix';
+const APP_UPDATE_NOTE = 'Mobile Remote Standalone Scanner Fix: แก้โหมดสแกนมือถือใหม่ให้แยกจาก scanner/web state ของเว็บเต็มอย่างเด็ดขาด ไม่ใช้ showScanModal/activeWorkspace scanner ของเว็บเต็ม เพิ่ม state และ handler สแกนมือถือแยกเอง เพื่อไม่ให้เด้งเข้าหน้าบันทึกหรือ error หลังสแกน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6824,6 +6824,10 @@ function MainApp() {
   const [mobileRemoteOpen, setMobileRemoteOpen] = useState(true);
   const [mobileRemoteAction, setMobileRemoteAction] = useState('home');
   const [mobileRemoteScannerOpen, setMobileRemoteScannerOpen] = useState(false);
+  const [mobileRemoteUseCamera, setMobileRemoteUseCamera] = useState(true);
+  const [mobileRemoteScanInput, setMobileRemoteScanInput] = useState('');
+  const [mobileRemoteScanMessage, setMobileRemoteScanMessage] = useState({ text: '', type: '' });
+  const mobileRemoteQrRef = useRef(null);
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
   const [scanMode, setScanMode] = useState('select'); // select | borrowChecklist | eventChecklist | returnChecklist
@@ -13918,14 +13922,13 @@ S.N.: ${item.sn || '-'}
   const openMobileRemoteOperationScanner = () => {
     if (!requireOperationalAccess('สแกนหลายอุปกรณ์')) return;
     setShowMoreMenu(false);
-    setScannerReturnWorkspace('mobileRemote');
-    setScanMode('mobileRemoteSelect');
-    setUseCamera(true);
     setMobileRemoteOpen(true);
     setMobileRemoteScannerOpen(true);
-    setShowScanModal(true);
-    // สำคัญ: อย่า setActiveWorkspace('scanner') ในโหมดมือถือ
-    // เพราะจะไปเรียกหน้า scanner ของเว็บเต็มและทำให้ flow เด้งไป form เดิม
+    setMobileRemoteUseCamera(true);
+    setMobileRemoteScanInput('');
+    setMobileRemoteScanMessage({ text: '', type: '' });
+    // สำคัญ: Mobile Remote Scanner ไม่ใช้ showScanModal / activeWorkspace='scanner'
+    // เพื่อไม่ให้เด้งเข้า flow scanner และ action bar ของเว็บเต็ม
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
@@ -16889,7 +16892,120 @@ S.N.: ${item.sn || '-'}
     );
   }
 
-    const renderMobileRemoteScanner = () => {
+    const closeMobileRemoteScanner = () => {
+    setMobileRemoteScannerOpen(false);
+    setMobileRemoteScanInput('');
+    setMobileRemoteScanMessage({ text: '', type: '' });
+  };
+
+  const processMobileRemoteScan = (scannedVal) => {
+    const val = String(scannedVal || '').trim();
+    if (!val) return;
+    if (scanCooldownRef.current) return;
+    scanCooldownRef.current = true;
+    window.setTimeout(() => { scanCooldownRef.current = false; }, 950);
+
+    const foundItem = (itemsRefForScan.current || []).find(i => i.id === val || (i.sn && String(i.sn).toLowerCase() === val.toLowerCase()));
+    if (!foundItem) {
+      setMobileRemoteScanMessage({ text: `❌ ไม่พบรหัสนี้: "${val}"`, type: 'error' });
+      try { if (navigator?.vibrate) navigator.vibrate([60, 40, 60]); } catch(e){}
+      try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
+      setMobileRemoteScanInput('');
+      setTimeout(() => setMobileRemoteScanMessage({ text: '', type: '' }), 3400);
+      return;
+    }
+
+    if (!['borrow', 'event', 'return'].includes(mobileRemoteAction)) {
+      setMobileRemoteScanMessage({ text: '⚠️ กรุณาเลือกโหมด ยืม / คืน / ออกงาน ก่อนสแกน', type: 'error' });
+      setMobileRemoteScanInput('');
+      return;
+    }
+
+    const isReturnMode = mobileRemoteAction === 'return';
+    const canUseForMode = isReturnMode
+      ? (foundItem.status === 'borrowed' || foundItem.status === 'out-for-event')
+      : foundItem.status === 'available';
+
+    if (!canUseForMode) {
+      setMobileRemoteScanMessage({
+        text: isReturnMode
+          ? `⚠️ "${foundItem.name}" ยังไม่ใช่รายการที่รอคืน`
+          : `⚠️ "${foundItem.name}" ไม่ได้อยู่ในสถานะพร้อมใช้`,
+        type: 'error'
+      });
+      try { if (navigator?.vibrate) navigator.vibrate([70, 45, 70]); } catch(e){}
+      try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
+      setMobileRemoteScanInput('');
+      setTimeout(() => setMobileRemoteScanMessage({ text: '', type: '' }), 3400);
+      return;
+    }
+
+    const currentIds = mobileRemoteAction === 'event'
+      ? eventTargetIds
+      : mobileRemoteAction === 'return'
+        ? returnTargetIds
+        : borrowTargetIds;
+    const alreadySelected = currentIds.includes(foundItem.id);
+
+    if (mobileRemoteAction === 'event') {
+      setEventTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+      setEventChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+    } else if (mobileRemoteAction === 'return') {
+      setReturnTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+      setReturnChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+    } else {
+      setBorrowTargetIds(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+      setPackingChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+    }
+
+    const nextCount = alreadySelected ? currentIds.length : currentIds.length + 1;
+    setLastScannedItemId(foundItem.id);
+    setMobileRemoteScanMessage({
+      text: alreadySelected
+        ? `ℹ️ "${foundItem.name}" อยู่ในรายการแล้ว (${nextCount} รายการ)`
+        : `✅ เพิ่ม "${foundItem.name}" แล้ว • รวม ${nextCount} รายการ`,
+      type: 'success'
+    });
+    try { if (navigator?.vibrate) navigator.vibrate(alreadySelected ? 40 : 90); } catch(e){}
+    try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
+    setMobileRemoteScanInput('');
+    setTimeout(() => setMobileRemoteScanMessage({ text: '', type: '' }), 3400);
+  };
+
+  useEffect(() => {
+    let scanner = null;
+    if (mobileRemoteScannerOpen && mobileRemoteUseCamera && isScannerLoaded) {
+      const readerId = 'mobile-remote-qr-reader';
+      try {
+        scanner = new window.Html5QrcodeScanner(
+          readerId,
+          {
+            fps: 12,
+            rememberLastUsedCamera: true,
+            aspectRatio: 1.0,
+            disableFlip: false,
+            videoConstraints: { facingMode: { ideal: 'environment' } }
+          },
+          false
+        );
+        scanner.render(
+          (decodedText) => processMobileRemoteScan(decodedText),
+          () => {}
+        );
+      } catch(e) {
+        console.error('Mobile remote scanner init error', e);
+        setMobileRemoteScanMessage({ text: '❌ เปิดกล้องสแกนไม่ได้ ลองใช้ช่องกรอกรหัสแทน', type: 'error' });
+        setMobileRemoteUseCamera(false);
+      }
+    }
+    return () => {
+      if (scanner) {
+        scanner.clear().catch(() => {});
+      }
+    };
+  }, [mobileRemoteScannerOpen, mobileRemoteUseCamera, isScannerLoaded, mobileRemoteAction, borrowTargetIds, eventTargetIds, returnTargetIds]);
+
+  const renderMobileRemoteScanner = () => {
     const isOperationScan = ['borrow', 'event', 'return'].includes(mobileRemoteAction);
     const title = isOperationScan
       ? mobileRemoteAction === 'event'
@@ -16922,7 +17038,7 @@ S.N.: ${item.sn || '-'}
                 <h1 className="text-3xl font-black mt-1 tracking-tight">{title}</h1>
                 <p className={`text-sm font-bold mt-1 ${remoteMuted}`}>{hint}</p>
               </div>
-              <button type="button" onClick={() => closeScannerPage('mobileRemote')} className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${remoteSoft}`} title="ปิดสแกน">
+              <button type="button" onClick={closeMobileRemoteScanner} className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${remoteSoft}`} title="ปิดสแกน">
                 <Icons.X className="w-5 h-5" />
               </button>
             </div>
@@ -16931,7 +17047,7 @@ S.N.: ${item.sn || '-'}
                 <div className={`text-[11px] font-black ${remoteMuted}`}>เลือกแล้ว</div>
                 <div className="text-2xl font-black mt-1">{selectedCount.toLocaleString('th-TH')}</div>
               </div>
-              <button type="button" onClick={() => closeScannerPage('mobileRemote')} className="rounded-2xl bg-blue-600 text-white font-black">
+              <button type="button" onClick={closeMobileRemoteScanner} className="rounded-2xl bg-blue-600 text-white font-black">
                 เสร็จแล้วกลับไปทำรายการ
               </button>
             </div>
@@ -16942,14 +17058,13 @@ S.N.: ${item.sn || '-'}
 
           <div className={`mt-4 rounded-[2rem] border overflow-hidden shadow-sm ${remotePanel}`}>
             <div className="p-3">
-              {useCamera ? (
-                <div id="qr-reader" className="qr-reader-mobile-remote rounded-[1.4rem] overflow-hidden"></div>
+              {mobileRemoteUseCamera ? (
+                <div id="mobile-remote-qr-reader" ref={mobileRemoteQrRef} className="qr-reader-mobile-remote rounded-[1.4rem] overflow-hidden"></div>
               ) : (
-                <form onSubmit={handleScanSubmit} className="space-y-3">
+                <form onSubmit={(e) => { e.preventDefault(); processMobileRemoteScan(mobileRemoteScanInput); }} className="space-y-3">
                   <input
-                    ref={scanInputRef}
-                    value={scanInput}
-                    onChange={e => setScanInput(e.target.value)}
+                    value={mobileRemoteScanInput}
+                    onChange={e => setMobileRemoteScanInput(e.target.value)}
                     className={`w-full px-4 py-4 rounded-2xl border font-black text-lg outline-none ${theme.input}`}
                     placeholder="ยิงบาร์โค้ด / พิมพ์รหัส QR"
                   />
@@ -16959,13 +17074,13 @@ S.N.: ${item.sn || '-'}
             </div>
           </div>
 
-          {scanMessage.text && (
+          {mobileRemoteScanMessage.text && (
             <div className={`mt-4 rounded-[2rem] border p-4 font-black ${
-              scanMessage.type === 'success'
+              mobileRemoteScanMessage.type === 'success'
                 ? (isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
                 : (isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')
             }`}>
-              {scanMessage.text}
+              {mobileRemoteScanMessage.text}
             </div>
           )}
 
@@ -16989,8 +17104,8 @@ S.N.: ${item.sn || '-'}
             <div className={`text-sm font-bold mt-1 ${remoteMuted}`}>
               เล็ง QR ให้อยู่กลางกรอบ เมื่อสแกนสำเร็จ รายการจะถูกเพิ่มเข้าโหมดมือถืออัตโนมัติ แล้วกด “เสร็จแล้วกลับไปทำรายการ”
             </div>
-            <button type="button" onClick={() => setUseCamera(!useCamera)} className={`mt-3 w-full py-3 rounded-2xl border font-black ${remoteSoft}`}>
-              {useCamera ? 'ใช้ช่องกรอกรหัสแทน' : 'เปิดกล้องสแกน'}
+            <button type="button" onClick={() => setMobileRemoteUseCamera(!mobileRemoteUseCamera)} className={`mt-3 w-full py-3 rounded-2xl border font-black ${remoteSoft}`}>
+              {mobileRemoteUseCamera ? 'ใช้ช่องกรอกรหัสแทน' : 'เปิดกล้องสแกน'}
             </button>
           </div>
         </div>
@@ -17734,7 +17849,7 @@ S.N.: ${item.sn || '-'}
   return (
     <div data-polish-theme={isDarkMode ? 'dark' : 'light'} className={`factory-stock-polish desktop-overview-clean min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain} ${homeCompactMode ? 'home-comfort-compact' : ''}`}>
       <FactoryPolishStyle isDarkMode={isDarkMode} />
-      {mobileRemoteOpen && !mobileRemoteScannerOpen && !showScanModal && renderMobileRemoteMode()}
+      {mobileRemoteOpen && !mobileRemoteScannerOpen && renderMobileRemoteMode()}
       {/* FactoryStock Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-72 bg-slate-950 text-white flex-col border-r border-white/10">
         <div className="p-6 border-b border-white/10">
@@ -18906,7 +19021,7 @@ S.N.: ${item.sn || '-'}
 
       {renderCameraAccessoryHelperModal()}
 
-      {showScanModal && scannerReturnWorkspace === 'mobileRemote' && mobileRemoteScannerOpen && renderMobileRemoteScanner()}
+      {mobileRemoteScannerOpen && renderMobileRemoteScanner()}
 
       {/* 📷 หน้าสแกน QR Code แบบใหม่: ใช้งานหน้างาน / มือถือ / เครื่องยิงบาร์โค้ด */}
       {showScanModal && activeWorkspace === 'scanner' && scannerReturnWorkspace !== 'mobileRemote' && !mobileRemoteScannerOpen && (() => {
@@ -19133,7 +19248,7 @@ S.N.: ${item.sn || '-'}
                         <div className={`text-[10px] font-black px-2 py-0.5 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'กล้อง' : 'รหัส'}</div>
                       </div>
 
-                      {useCamera ? (
+                      {mobileRemoteUseCamera ? (
                         <div className="p-3">
                           <div className={`mb-2 p-2 rounded-lg border text-left text-[11px] font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
                             จัด QR ให้อยู่กลางกรอบและถือให้นิ่ง
@@ -19147,7 +19262,7 @@ S.N.: ${item.sn || '-'}
                               <div id="qr-reader" className="w-full"></div>
                             </div>
                           )}
-                          <form onSubmit={handleScanSubmit} className="mt-2 grid grid-cols-[1fr_auto] gap-1.5">
+                          <form onSubmit={(e) => { e.preventDefault(); processMobileRemoteScan(mobileRemoteScanInput); }} className="mt-2 grid grid-cols-[1fr_auto] gap-1.5">
                             <input
                               type="text"
                               className={`px-3 py-2 rounded-lg font-black text-center outline-none border ${theme.input}`}
@@ -19160,7 +19275,7 @@ S.N.: ${item.sn || '-'}
                         </div>
                       ) : (
                         <div className="p-3">
-                          <form onSubmit={handleScanSubmit}>
+                          <form onSubmit={(e) => { e.preventDefault(); processMobileRemoteScan(mobileRemoteScanInput); }}>
                             <label className={`block text-left text-sm font-black mb-2 ${theme.textTitle}`}>รหัสอุปกรณ์ / S.N.</label>
                             <input
                               type="text"
@@ -19183,8 +19298,8 @@ S.N.: ${item.sn || '-'}
 
                     <div className="space-y-2.5 qr-side-panel">
                       {scanMessage.text ? (
-                        <div className={`p-3 rounded-[1rem] border font-black shadow-sm ${scanMessage.type === 'success' ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800') : (isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')}`}>
-                          {scanMessage.text}
+                        <div className={`p-3 rounded-[1rem] border font-black shadow-sm ${mobileRemoteScanMessage.type === 'success' ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800') : (isDarkMode ? 'bg-rose-950/40 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800')}`}>
+                          {mobileRemoteScanMessage.text}
                         </div>
                       ) : (
                         <div className={`p-3 rounded-[1rem] border font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
