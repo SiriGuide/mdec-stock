@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.5.0 Inventory Search & Department Icon Polish';
-const APP_UPDATE_NOTE = 'Inventory Search & Department Icon Polish: ปรับหน้า คลังอุปกรณ์ ให้ใช้ไอคอนตามฝ่ายแทนไอคอนกล่อง, รวมตัวกรองเป็นปุ่มเดียว, เพิ่มช่องเลือกหมวดหมู่/ที่เก็บ/โครงการแบบค้นหาได้ และขยาย smart search ให้เหมาะกับรายการที่เริ่มเยอะ โดยไม่แตะ QR Scanner core, camera permission, Firebase path หรือ flow ยืม/คืน/ออกงาน';
+const APP_VERSION = 'v22.57.5.1 QR Scanner In-App Readability Fix';
+const APP_UPDATE_NOTE = 'QR Scanner In-App Readability Fix: เก็บหน้าสแกน QR ให้เป็นหน้าในเว็บที่อ่านง่ายขึ้นหลังโหมดพื้นอ่อน ทำให้ panel/ข้อความ/ปุ่ม/ช่องพิมพ์บนหน้าสแกนมี contrast ชัด ไม่เป็นกล่องดำโล่งหรือสีจม โดยไม่แตะ Html5QrcodeScanner core, camera permission, Firebase path หรือ flow ยืม/คืน/ออกงาน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -17631,9 +17631,9 @@ S.N.: ${item.sn || '-'}
         return (
           <div className="page-workspace-shell qr-scanner-page space-y-5">
             <style>{`
-              /* v22.57.4.4 QR Scanner In-Page Sidebar Fixed Hotfix
-                 ทำให้หน้าสแกนเป็น workspace ปกติของเว็บ ไม่ใช่ overlay และไม่หลุดไปท้ายหน้า
-                 Scope: layout/state only. ไม่แตะ Html5QrcodeScanner, camera permission, flow หรือ Firebase path */
+              /* v22.57.5.1 QR Scanner In-App Readability Fix
+                 ทำให้หน้าสแกนเป็น workspace ปกติของเว็บ และคืน contrast ให้ panel/ข้อความหลังโหมดพื้นอ่อน
+                 Scope: QR page UI/readability only. ไม่แตะ Html5QrcodeScanner, camera permission, flow หรือ Firebase path */
               .factory-stock-polish .qr-scanner-page {
                 position: relative !important;
                 z-index: 2 !important;
@@ -18478,6 +18478,85 @@ S.N.: ${item.sn || '-'}
 .factory-stock-polish .overview-essential-hero :is(h1,h2,h3,h4,strong,label,span,div,p,small):not(button *):not(aside *) {
   text-shadow: none !important;
 }
+
+
+
+              /* v22.57.5.1 QR Scanner In-App Readability Fix
+                 กัน CSS พื้นอ่อนทั้งเว็บไปทำให้หน้าสแกนกลายเป็นกล่องดำอ่านไม่ออก
+                 ใช้โทน dark tool panel เฉพาะหน้าสแกน เพื่อให้กล้อง/ปุ่ม/สถานะเห็นชัดทั้ง light และ dark mode */
+              .factory-stock-polish .qr-scanner-page .qr-scanner-page-shell,
+              .factory-stock-polish[data-polish-theme="light"] .qr-scanner-page .qr-scanner-page-shell,
+              .factory-stock-polish[data-polish-theme="dark"] .qr-scanner-page .qr-scanner-page-shell {
+                background: #020617 !important;
+                border-color: rgba(51, 65, 85, .92) !important;
+                box-shadow: 0 22px 70px rgba(15, 23, 42, .22) !important;
+                color: #e5edf8 !important;
+              }
+              .factory-stock-polish .qr-scanner-page .qr-scanner-page-shell > div,
+              .factory-stock-polish .qr-scanner-page .qr-scanner-page-shell .qr-side-panel,
+              .factory-stock-polish .qr-scanner-page .qr-scanner-page-shell .qr-side-panel > div,
+              .factory-stock-polish .qr-scanner-page .qr-scanner-page-shell .rounded-\[1\.15rem\],
+              .factory-stock-polish .qr-scanner-page .qr-scanner-page-shell .rounded-\[1rem\] {
+                background-color: #0f172a !important;
+                border-color: rgba(51, 65, 85, .9) !important;
+                color: #e5edf8 !important;
+              }
+              .factory-stock-polish .qr-scanner-page .qr-scanner-page-shell > div:first-child {
+                background: linear-gradient(180deg, #020617 0%, #0f172a 100%) !important;
+                border-color: rgba(51, 65, 85, .92) !important;
+              }
+              .factory-stock-polish .qr-scanner-page .qr-scanner-page-shell :is(h1,h2,h3,h4,h5,strong,label,span,p,div,small):not(button):not(button *):not(.bg-emerald-500):not(.bg-amber-500):not(.bg-slate-200) {
+                color: #e5edf8 !important;
+                text-shadow: none !important;
+              }
+              .factory-stock-polish .qr-scanner-page .qr-scanner-page-shell :is(p,small,.text-xs,.text-sm):not(button):not(button *) {
+                color: #94a3b8 !important;
+              }
+              .factory-stock-polish .qr-scanner-page .qr-scanner-page-shell input {
+                background: #020617 !important;
+                border-color: rgba(71, 85, 105, .95) !important;
+                color: #f8fafc !important;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.04) !important;
+              }
+              .factory-stock-polish .qr-scanner-page .qr-scanner-page-shell input::placeholder {
+                color: #94a3b8 !important;
+              }
+              .factory-stock-polish .qr-scanner-page .qr-scanner-page-shell button:not([class*="bg-gradient"]):not([class*="bg-emerald"]):not([class*="bg-amber"]):not([class*="bg-blue-600"]):not([class*="bg-rose"]) {
+                background: #1e293b !important;
+                border-color: rgba(71, 85, 105, .95) !important;
+                color: #e5edf8 !important;
+              }
+              .factory-stock-polish .qr-scanner-page .qr-scanner-page-shell button:not([class*="bg-gradient"]):not([class*="bg-emerald"]):not([class*="bg-amber"]):not([class*="bg-blue-600"]):not([class*="bg-rose"]):hover {
+                background: #334155 !important;
+              }
+              .factory-stock-polish .qr-scanner-page #qr-reader,
+              .factory-stock-polish .qr-scanner-page #qr-reader__scan_region,
+              .factory-stock-polish .qr-scanner-page #qr-reader__dashboard,
+              .factory-stock-polish .qr-scanner-page #qr-reader__dashboard_section,
+              .factory-stock-polish .qr-scanner-page #qr-reader__dashboard_section_csr {
+                background: #020617 !important;
+                color: #e5edf8 !important;
+                border-color: rgba(51,65,85,.9) !important;
+              }
+              .factory-stock-polish .qr-scanner-page #qr-reader select,
+              .factory-stock-polish .qr-scanner-page #qr-reader button {
+                background: #1e293b !important;
+                color: #f8fafc !important;
+                border: 1px solid rgba(71,85,105,.95) !important;
+                border-radius: 12px !important;
+                min-height: 38px !important;
+              }
+              .factory-stock-polish .qr-scanner-page #qr-reader__dashboard_section_csr span,
+              .factory-stock-polish .qr-scanner-page #qr-reader__status_span {
+                color: #cbd5e1 !important;
+              }
+              .factory-stock-polish .qr-scanner-page .qr-side-panel > div:empty::before {
+                content: 'รอสแกนรายการ';
+                display: block;
+                color: #94a3b8;
+                font-weight: 900;
+                padding: 18px;
+              }
 
 @media print {
   .factory-stock-polish::before { display: none !important; }
