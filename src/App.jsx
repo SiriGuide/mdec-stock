@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.4.9 Equipment Inventory Desktop Usability Polish';
-const APP_UPDATE_NOTE = 'Equipment Inventory Desktop Usability Polish: เก็บหน้า คลังอุปกรณ์ บนคอมให้ใช้งานง่ายขึ้น เพิ่ม hierarchy ของตาราง, sticky header, action buttons แบบมีชื่อ, selected toolbar ที่เห็นชัด และแถวรายการที่อ่านง่ายขึ้น โดยไม่แตะ QR Scanner core, camera permission, Firebase path หรือ flow ยืม/คืน/ออกงาน';
+const APP_VERSION = 'v22.57.5.0 Inventory Search & Department Icon Polish';
+const APP_UPDATE_NOTE = 'Inventory Search & Department Icon Polish: ปรับหน้า คลังอุปกรณ์ ให้ใช้ไอคอนตามฝ่ายแทนไอคอนกล่อง, รวมตัวกรองเป็นปุ่มเดียว, เพิ่มช่องเลือกหมวดหมู่/ที่เก็บ/โครงการแบบค้นหาได้ และขยาย smart search ให้เหมาะกับรายการที่เริ่มเยอะ โดยไม่แตะ QR Scanner core, camera permission, Firebase path หรือ flow ยืม/คืน/ออกงาน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6512,6 +6512,7 @@ function MainApp() {
   const [filterProject, setFilterProject] = useState('all');
   const [filterAssetStatus, setFilterAssetStatus] = useState('all');
   const [filterQrTagged, setFilterQrTagged] = useState('all');
+  const [showInventoryFilterPanel, setShowInventoryFilterPanel] = useState(false);
   const [smartQuickFilter, setSmartQuickFilter] = useState('all');
 
   const [isAdmin, setIsAdmin] = useState(() => {
@@ -11241,53 +11242,115 @@ S.N.: ${item.sn || '-'}
                 </div>
               </div>
 
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
-                <div className={`inventory-search-box xl:col-span-2 flex items-center gap-3 px-4 py-3 rounded-2xl border ${theme.input}`}>
-                  <Icons.Search className={`w-5 h-5 shrink-0 ${theme.textMuted}`} />
-                  <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-transparent outline-none w-full font-black" placeholder="ค้นหา ชื่อ / S.N. / รหัสสั้น / หมวด / ที่เก็บ / โครงการ" />
+              <div className="p-4 space-y-3">
+                <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-3 items-start">
+                  <div className={`inventory-search-box flex items-center gap-3 px-4 py-3 rounded-2xl border ${theme.input}`}>
+                    <Icons.Search className={`w-5 h-5 shrink-0 ${theme.textMuted}`} />
+                    <input
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="bg-transparent outline-none w-full font-black"
+                      placeholder="ค้นหา ชื่อ / S.N. / รหัสสั้น / หมวดหมู่ / ที่เก็บ / โครงการ / ฝ่าย"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2 justify-start xl:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setShowInventoryFilterPanel(v => !v)}
+                      className={`px-4 py-3 rounded-2xl border font-black flex items-center gap-2 ${hasActiveFilters ? (isDarkMode ? 'bg-blue-950/35 border-blue-700 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700') : theme.btnSecondary}`}
+                    >
+                      <Icons.Settings className="w-4 h-4" />
+                      ตัวกรอง
+                      {activeFilterCount > 0 && <span className="min-w-6 h-6 px-2 rounded-full bg-blue-600 text-white inline-flex items-center justify-center text-xs">{activeFilterCount}</span>}
+                    </button>
+                    {hasActiveFilters && <button type="button" onClick={clearAllFilters} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ล้างทั้งหมด</button>}
+                  </div>
                 </div>
-                <select value={filterDept} onChange={(e) => { setFilterDept(e.target.value); if (e.target.value !== 'ห้องประชุม') setShowRoomView(false); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
-                  <option value="all">ทุกฝ่าย</option>
-                  {DEPARTMENTS.map(dep => <option key={dep.id} value={dep.id}>{dep.label}</option>)}
-                </select>
-                <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
-                  <option value="all">ทุกหมวดหมู่</option>
-                  {(settingsOptions.categories || []).filter(Boolean).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
-                <select value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)} className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
-                  <option value="all">ทุกที่เก็บ</option>
-                  {(settingsOptions.locations || []).filter(Boolean).map(loc => <option key={loc} value={loc}>{loc}</option>)}
-                </select>
-                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
-                  <option value="all">ทุกสถานะ</option>
-                  {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
-              </div>
 
-              <div className="px-4 pb-4 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3">
                 <div className="flex flex-wrap gap-2">
                   {activeFilterChips.map(chip => (
                     <button key={chip.id} type="button" onClick={chip.clear} className={`px-3 py-2 rounded-full border text-xs font-black flex items-center gap-2 ${isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
                       {chip.label}<span className="opacity-70">×</span>
                     </button>
                   ))}
-                  {activeFilterChips.length === 0 && <span className={`text-xs font-bold px-3 py-2 ${theme.textMuted}`}>ยังไม่มีตัวกรองเพิ่มเติม</span>}
+                  {activeFilterChips.length === 0 && <span className={`text-xs font-bold px-3 py-2 ${theme.textMuted}`}>พิมพ์ค้นหาได้จากชื่อ, S.N., รหัสสั้น, หมวดหมู่, ที่เก็บ, โครงการ และฝ่าย</span>}
                 </div>
-                <div className="flex flex-wrap gap-2 justify-start lg:justify-end">
-                  <select value={filterProject} onChange={(e) => setFilterProject(e.target.value)} className={`px-3 py-2 rounded-xl border font-black text-sm ${theme.input}`}>
-                    <option value="all">ทุกโครงการ</option>
-                    {projectOptions.filter(Boolean).map(project => <option key={project} value={project}>{project}</option>)}
-                  </select>
-                  <select value={filterAssetStatus} onChange={(e) => setFilterAssetStatus(e.target.value)} className={`px-3 py-2 rounded-xl border font-black text-sm ${theme.input}`}>
-                    <option value="all">สถานะพัสดุทั้งหมด</option>
-                    {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                  </select>
-                  <select value={filterQrTagged} onChange={(e) => setFilterQrTagged(e.target.value)} className={`px-3 py-2 rounded-xl border font-black text-sm ${theme.input}`}>
-                    <option value="all">QR ทั้งหมด</option>
-                    <option value="tagged">ติด QR แล้ว</option>
-                    <option value="untagged">ยังไม่ติด QR</option>
-                  </select>
-                </div>
+
+                {showInventoryFilterPanel && (
+                  <div className={`inventory-filter-panel rounded-[1.4rem] border p-4 shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
+                      <div>
+                        <div className={`font-black ${theme.textTitle}`}>ตัวกรองละเอียด</div>
+                        <div className={`text-xs font-bold ${theme.textMuted}`}>รวมตัวเลือกไว้ที่เดียว และช่องหมวด/ที่เก็บ/โครงการสามารถพิมพ์ค้นหาได้</div>
+                      </div>
+                      <button type="button" onClick={() => setShowInventoryFilterPanel(false)} className={`px-3 py-2 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ปิดตัวกรอง</button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      <div>
+                        <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>ฝ่าย</label>
+                        <select value={filterDept} onChange={(e) => { setFilterDept(e.target.value); if (e.target.value !== 'ห้องประชุม') setShowRoomView(false); }} className={`w-full px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
+                          <option value="all">ทุกฝ่าย</option>
+                          {DEPARTMENTS.map(dep => <option key={dep.id} value={dep.id}>{dep.label}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สถานะ</label>
+                        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`w-full px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
+                          <option value="all">ทุกสถานะ</option>
+                          {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>QR</label>
+                        <select value={filterQrTagged} onChange={(e) => setFilterQrTagged(e.target.value)} className={`w-full px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
+                          <option value="all">QR ทั้งหมด</option>
+                          <option value="tagged">ติด QR แล้ว</option>
+                          <option value="untagged">ยังไม่ติด QR</option>
+                        </select>
+                      </div>
+                      <SmartOptionInput
+                        label="หมวดหมู่"
+                        value={filterCategory === 'all' ? '' : filterCategory}
+                        options={settingsOptions.categories || []}
+                        onChange={(value) => setFilterCategory(String(value || '').trim() || 'all')}
+                        placeholder="พิมพ์ค้นหาหมวดหมู่ หรือเลือกจากรายการ"
+                        helper="เหมาะกับตอนหมวดหมู่เริ่มเยอะ"
+                        theme={theme}
+                        isDarkMode={isDarkMode}
+                        icon="🏷️"
+                      />
+                      <SmartOptionInput
+                        label="ที่เก็บ / ห้อง / ชั้น"
+                        value={filterLocation === 'all' ? '' : filterLocation}
+                        options={settingsOptions.locations || []}
+                        onChange={(value) => setFilterLocation(String(value || '').trim() || 'all')}
+                        placeholder="พิมพ์ค้นหาที่เก็บ เช่น ห้องใต้บันได / สโตร์"
+                        helper="ค้นหาได้จากรายการที่เก็บทั้งหมด"
+                        theme={theme}
+                        isDarkMode={isDarkMode}
+                        icon="📍"
+                      />
+                      <SmartOptionInput
+                        label="โครงการ"
+                        value={filterProject === 'all' ? '' : filterProject}
+                        options={projectOptions.filter(Boolean)}
+                        onChange={(value) => setFilterProject(String(value || '').trim() || 'all')}
+                        placeholder="พิมพ์ค้นหาโครงการ"
+                        helper="ใช้กรองของที่ผูกกับโครงการจัดซื้อ"
+                        theme={theme}
+                        isDarkMode={isDarkMode}
+                        icon="📁"
+                      />
+                      <div>
+                        <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สถานะพัสดุ</label>
+                        <select value={filterAssetStatus} onChange={(e) => setFilterAssetStatus(e.target.value)} className={`w-full px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
+                          <option value="all">สถานะพัสดุทั้งหมด</option>
+                          {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -11345,6 +11408,7 @@ S.N.: ${item.sn || '-'}
                     <tbody>
                       {inventoryRows.map((item) => {
                         const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
+                        const DeptIcon = Icons[deptInfo.iconName] || Icons.Package;
                         const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
                         const assetInfo = getAssetStatusInfo(item.assetStatus);
                         const proofCount = getItemProofCount(item);
@@ -11358,8 +11422,8 @@ S.N.: ${item.sn || '-'}
                             </td>
                             <td className="inventory-row-name-cell px-4 py-4">
                               <div className="flex items-start gap-3 min-w-0">
-                                <div className={`inventory-row-icon mt-0.5 w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-slate-900 text-blue-300 border border-slate-700' : 'bg-blue-50 text-blue-700 border border-blue-100'}`}>
-                                  <Icons.Package className="w-5 h-5" />
+                                <div className={`inventory-row-icon mt-0.5 w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${isDarkMode ? `${deptInfo.darkColor || 'bg-slate-900 text-blue-300'} border-slate-700` : `${deptInfo.color || 'bg-blue-50 text-blue-700'} border-slate-200`}`}>
+                                  <DeptIcon className="w-5 h-5" />
                                 </div>
                                 <div className="min-w-0">
                                   <div className={`font-black text-base leading-snug truncate ${theme.textTitle}`}>{item.name || '-'}</div>
