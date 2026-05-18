@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.5.6 Top Action Buttons Tone Harmonize';
-const APP_UPDATE_NOTE = 'Top Action Buttons Tone Harmonize: ปรับปุ่มแถวบนของศูนย์งานประจำวันให้กลมกลืนกับโทนเว็บทั้ง Light/Dark Mode ลดปุ่มน้ำเงินสดที่โดดเกินไป และคง Command Center/QR Scanner/คลังอุปกรณ์ล่าสุดไว้โดยไม่แตะ Firebase path หรือ flow ยืม/คืน/ออกงาน';
+const APP_VERSION = 'v22.57.5.7 Command Center Neutral KPI Fix';
+const APP_UPDATE_NOTE = 'Command Center Neutral KPI Fix: เปลี่ยนการ์ด KPI รอคืนทั้งหมดจากน้ำเงินสดเป็นโทนกลางแบบกลมกลืนกับหน้า Overview ทั้ง Light/Dark Mode โดยแก้ที่ JSX tone โดยตรง ไม่ใช่ CSS override และไม่แตะ QR Scanner/Firebase/flow ยืมคืน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -18724,19 +18724,21 @@ S.N.: ${item.sn || '-'}
             {[
               ['ต้องคืนวันนี้', dueTodayItems.length, 'ครบกำหนดวันนี้', 'amber', () => openTrackingCenter('today')],
               ['เลยกำหนด', overdueItems.length, 'ควรรีบตาม', 'rose', () => openTrackingCenter('overdue')],
-              ['รอคืนทั้งหมด', currentBorrowedItems.length + currentEventItems.length, 'ยืม + ออกงาน', 'blue', () => openTrackingCenter('borrowed')],
+              ['รอคืนทั้งหมด', currentBorrowedItems.length + currentEventItems.length, 'ยืม + ออกงาน', 'slate', () => openTrackingCenter('borrowed')],
               ['ซ่อม/ตรวจซ้ำ', stats.maintenance + stockCountStats.recheck.length, `${stats.maintenance} ซ่อม • ${stockCountStats.recheck.length} ตรวจซ้ำ`, 'violet', openDailyDataQuality]
             ].map(([label, value, desc, tone, action]) => {
               const toneMap = {
                 amber: isDarkMode ? 'border-amber-500/30 bg-amber-400/10 text-amber-100' : 'border-amber-200 bg-amber-50 text-amber-900',
                 rose: isDarkMode ? 'border-rose-500/30 bg-rose-400/10 text-rose-100' : 'border-rose-200 bg-rose-50 text-rose-900',
                 blue: isDarkMode ? 'border-blue-500/30 bg-blue-400/10 text-blue-100' : 'border-blue-200 bg-blue-50 text-blue-900',
+                slate: isDarkMode ? 'border-slate-600/70 bg-slate-900/75 text-slate-100' : 'border-slate-200 bg-slate-50 text-slate-900',
                 violet: isDarkMode ? 'border-violet-500/30 bg-violet-400/10 text-violet-100' : 'border-violet-200 bg-violet-50 text-violet-900'
               }[tone];
               const barMap = {
                 amber: 'bg-amber-400',
                 rose: 'bg-rose-400',
                 blue: 'bg-blue-400',
+                slate: 'bg-slate-400',
                 violet: 'bg-violet-400'
               }[tone];
               return (
