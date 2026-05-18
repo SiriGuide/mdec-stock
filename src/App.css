@@ -94,7 +94,7 @@
   #qr-reader__scan_region video {
     width: 100% !important;
     height: auto !important;
-    max-height: 52vh !important;
+    max-height: 46vh !important;
     object-fit: contain !important;
     object-position: center center !important;
     border-radius: 16px !important;
