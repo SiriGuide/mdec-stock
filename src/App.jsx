@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.5.7 Command Center Neutral KPI Fix';
+const APP_VERSION = 'v22.57.5.8 Overview Strip Cleanup';
 const APP_UPDATE_NOTE = 'Command Center Neutral KPI Fix: เปลี่ยนการ์ด KPI รอคืนทั้งหมดจากน้ำเงินสดเป็นโทนกลางแบบกลมกลืนกับหน้า Overview ทั้ง Light/Dark Mode โดยแก้ที่ JSX tone โดยตรง ไม่ใช่ CSS override และไม่แตะ QR Scanner/Firebase/flow ยืมคืน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -9006,35 +9006,8 @@ S.N.: ${item.sn || '-'}
   };
   const currentWorkspaceMeta = workspaceMeta[activeWorkspace] || workspaceMeta.overview;
 
-  const renderWorkspaceTabs = () => (
-    <div className={`workspace-tabbar w-full mb-5 rounded-[1.5rem] border shadow-sm p-2 flex gap-2 overflow-x-auto ${theme.cardBg}`}>
-      {[
-        ['overview', 'ภาพรวม', Icons.Package, 'หน้าแรกงานประจำวัน'],
-        ['inventory', 'คลังอุปกรณ์', Icons.Database, `${filteredItems.length.toLocaleString('th-TH')} รายการตามตัวกรอง`],
-        ['borrowReturn', 'ยืม-คืน', Icons.UserPlus, `${currentBorrowedItems.length + currentEventItems.length} รายการค้าง`],
-        ['tracking', 'ติดตามคืน', Icons.History, `${(dueTodayItems.length + overdueItems.length).toLocaleString('th-TH')} รายการเร่งด่วน`],
-        ['records', 'เอกสาร/ประวัติ', Icons.ClipboardList, `${borrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร`],
-        ['tools', 'เครื่องมือ', Icons.ViewGrid, 'เมนูรองทั้งหมด'],
-        ['projects', 'โครงการจัดซื้อ', Icons.Database, `${projectStats.length.toLocaleString('th-TH')} โครงการ`],
-        ['organize', 'กล่อง / เซ็ต', Icons.Layers, `${(settingsOptions.storageBoxes || []).length} กล่อง • ${(settingsOptions.bundles || []).length} เซ็ต`],
-        ['stockCount', 'ตรวจนับ', Icons.CheckCircle, `${stockCountStats.found.length.toLocaleString('th-TH')}/${stockCountStats.auditTarget.length.toLocaleString('th-TH')} พบแล้ว`],
-        ['reports', 'รายงาน', Icons.ClipboardList, `${monthlyReportData.total.toLocaleString('th-TH')} ประวัติเดือนนี้`]
-      ].map(([id, label, Icon, desc]) => (
-        <button
-          key={id}
-          type="button"
-          onClick={() => openWorkspace(id)}
-          className={`min-w-[190px] flex items-center gap-3 px-4 py-3 rounded-2xl border text-left transition-all ${activeWorkspace === id ? 'bg-blue-600 border-blue-600 text-white shadow-md' : theme.btnSecondary}`}
-        >
-          <Icon className="w-5 h-5 shrink-0" />
-          <span className="min-w-0">
-            <span className="block font-black truncate">{label}</span>
-            <span className={`block text-[11px] font-bold truncate ${activeWorkspace === id ? 'text-blue-100' : theme.textMuted}`}>{desc}</span>
-          </span>
-        </button>
-      ))}
-    </div>
-  );
+  const renderWorkspaceTabs = () => null; // v22.57.5.8 Overview Strip Cleanup: ถอดแถบ Workspace แนวนอนออก เพราะซ้ำกับ Sidebar และ Top Action แล้ว
+
 
   const renderProjectWorkspace = () => {
     const selectedProjectName = normalizeProjectName(selectedPurchaseProject);
@@ -17484,7 +17457,7 @@ S.N.: ${item.sn || '-'}
         </div>
       </div>
 
-      {isLoggedIn && (
+      {false && isLoggedIn && (
         <div className={`login-status-bar monthly-report-no-print w-full mb-6 p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
           <div className="flex items-center gap-3">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>👤</div>
@@ -17777,6 +17750,14 @@ S.N.: ${item.sn || '-'}
     radial-gradient(circle at 86% 12%, rgba(14,165,233,.13), transparent 32%),
     linear-gradient(180deg, rgba(15,23,42,.18), transparent 42%);
 }
+
+/* v22.57.5.8 Overview Strip Cleanup
+   ซ่อนแถบสถานะ login ซ้ำและ workspace tabbar ในกรณีที่ยังมี class เก่าค้างจาก component อื่น */
+.factory-stock-polish .login-status-bar,
+.factory-stock-polish .workspace-tabbar {
+  display: none !important;
+}
+
 /* v22.57.4.4 QR Scanner In-Page Sidebar Fixed Hotfix
    อย่า override position ของ fixed elements เช่น sidebar/toast/mobile nav
    เพราะจะทำให้ sidebar กลับเข้า normal flow และดันหน้าสแกน QR ลงไปข้างล่าง */
