@@ -79,4 +79,41 @@
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
+
+  /* ===== MDEC STOCK : QR Scanner Camera Preview Fit Fix ===== */
+  #qr-reader,
+  #qr-reader__scan_region {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    background: #020617 !important;
+    border-radius: 18px !important;
+  }
+
+  #qr-reader video,
+  #qr-reader__scan_region video {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 52vh !important;
+    object-fit: contain !important;
+    object-position: center center !important;
+    border-radius: 16px !important;
+    background: #020617 !important;
+  }
+
+  #qr-reader canvas,
+  #qr-reader__scan_region canvas {
+    object-fit: contain !important;
+  }
+
+  #qr-reader__dashboard_section,
+  #qr-reader__dashboard_section_csr {
+    background: #020617 !important;
+    color: #e5e7eb !important;
+  }
+
+  #qr-reader select,
+  #qr-reader button {
+    color: #e5e7eb !important;
+  }
 }
