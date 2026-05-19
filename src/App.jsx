@@ -14347,8 +14347,6 @@ S.N.: ${item.sn || '-'}
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
-
-
   const openReturnForItems = (ids = []) => {
     if (!requireOperationalAccess('รับคืนอุปกรณ์')) return;
     const validIds = Array.from(new Set((ids || []).filter(id => {
@@ -14370,43 +14368,57 @@ S.N.: ${item.sn || '-'}
   };
 
   const playScanSuccessSound = () => {
-    // เสียงสแกนสำเร็จแบบเครื่องคิดเงิน/สแกนบาร์โค้ด: ยาวขึ้นและดังขึ้นกว่ารอบก่อน
-    // ใช้ Web Audio API ในเครื่อง ไม่โหลดไฟล์เสียงภายนอก
-    try {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) return;
-      const ctx = new AudioContextClass();
-      const now = ctx.currentTime;
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioContext();
+    const now = ctx.currentTime;
 
-      const master = ctx.createGain();
-      master.gain.setValueAtTime(0.0001, now);
-      master.gain.exponentialRampToValueAtTime(0.42, now + 0.018);
-      master.gain.exponentialRampToValueAtTime(0.0001, now + 0.58);
-      master.connect(ctx.destination);
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, now);
+    master.gain.exponentialRampToValueAtTime(0.85, now + 0.01);
+    master.gain.exponentialRampToValueAtTime(0.55, now + 0.06);
+    master.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+    master.connect(ctx.destination);
 
-      const playTone = ({ freq, start, duration, type = 'square', gainValue = 0.22 }) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, now + start);
-        gain.gain.setValueAtTime(0.0001, now + start);
-        gain.gain.exponentialRampToValueAtTime(gainValue, now + start + 0.012);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + start + duration);
-        osc.connect(gain);
-        gain.connect(master);
-        osc.start(now + start);
-        osc.stop(now + start + duration + 0.035);
-      };
+    // เสียงหลัก: ปี๊บแหลมแบบเครื่องสแกน
+    const osc1 = ctx.createOscillator();
+    osc1.type = 'square';
+    osc1.frequency.setValueAtTime(1850, now);
+    osc1.frequency.setValueAtTime(2100, now + 0.045);
+    osc1.frequency.setValueAtTime(1900, now + 0.11);
 
-      // ปิ๊บ-ติ๊ด แบบ POS scanner: มีหัวเสียงแหลมชัด แล้วตามด้วยเสียงสูงสั้น ๆ ให้จำได้ง่าย
-      playTone({ freq: 1046.5, start: 0.00, duration: 0.16, type: 'square', gainValue: 0.24 });
-      playTone({ freq: 1318.5, start: 0.02, duration: 0.14, type: 'sine', gainValue: 0.12 });
-      playTone({ freq: 1568.0, start: 0.18, duration: 0.13, type: 'square', gainValue: 0.22 });
-      playTone({ freq: 2093.0, start: 0.31, duration: 0.10, type: 'triangle', gainValue: 0.13 });
+    const gain1 = ctx.createGain();
+    gain1.gain.setValueAtTime(0.9, now);
 
-      window.setTimeout(() => { try { ctx.close && ctx.close(); } catch(e) {} }, 760);
-    } catch(e) {}
-  };
+    osc1.connect(gain1);
+    gain1.connect(master);
+
+    // เสียงซ้อนบาง ๆ ให้รู้สึกเป็น "ปิ๊ป" แบบเครื่องคิดเงิน
+    const osc2 = ctx.createOscillator();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(1200, now + 0.015);
+    osc2.frequency.setValueAtTime(1450, now + 0.08);
+
+    const gain2 = ctx.createGain();
+    gain2.gain.setValueAtTime(0.18, now);
+    gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+    osc2.connect(gain2);
+    gain2.connect(master);
+
+    osc1.start(now);
+    osc2.start(now + 0.01);
+
+    osc1.stop(now + 0.22);
+    osc2.stop(now + 0.20);
+
+    setTimeout(() => {
+      ctx.close().catch(() => {});
+    }, 350);
+  } catch (error) {
+    console.warn('scan beep error', error);
+  }
+};
 
   const playScanErrorSound = () => {
     try {
