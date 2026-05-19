@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.4 Department Color Identity Polish';
-const APP_UPDATE_NOTE = 'Department Color Identity Polish: เพิ่มสีประจำฝ่ายแบบคุมโทนในหน้าคลังอุปกรณ์และรายการที่เลือกจาก QR โดยใช้สีเฉพาะไอคอน/badge/เส้น accent เพื่อแยกฝ่ายง่ายขึ้น ไม่ย้อมทั้งแถว และไม่แตะ QR Scanner core/Firebase path';
+const APP_VERSION = 'v22.57.6.5 Department Contrast / Action Tone Fix';
+const APP_UPDATE_NOTE = 'Department Contrast / Action Tone Fix: ปรับโทนปุ่ม action ในหน้าคลังให้ไม่หลุดโทนเกินไป และแยกสีฝ่ายภาพนิ่งกับเครื่องเสียงให้อ่านขาดจากกันชัดขึ้น โดยยังไม่แตะ QR Scanner core/Firebase path';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -108,9 +108,9 @@ const STATUSES = [
 ];
 
 const DEPARTMENTS = [
-  { id: 'ภาพนิ่ง', label: 'ฝ่ายภาพนิ่ง', color: 'bg-blue-100 text-blue-700', darkColor: 'bg-blue-900/40 text-blue-400', iconName: 'Camera', iconColor: 'text-blue-500' },
+  { id: 'ภาพนิ่ง', label: 'ฝ่ายภาพนิ่ง', color: 'bg-blue-100 text-blue-700', darkColor: 'bg-blue-900/40 text-blue-300', iconName: 'Camera', iconColor: 'text-blue-500' },
   { id: 'วิดีโอ', label: 'ฝ่ายวิดีโอ', color: 'bg-indigo-100 text-indigo-700', darkColor: 'bg-indigo-900/40 text-indigo-400', iconName: 'VideoCamera', iconColor: 'text-indigo-500' },
-  { id: 'เครื่องเสียง', label: 'ฝ่ายอุปกรณ์เครื่องเสียง', color: 'bg-cyan-100 text-cyan-700', darkColor: 'bg-cyan-900/40 text-cyan-400', iconName: 'Speaker', iconColor: 'text-cyan-500' },
+  { id: 'เครื่องเสียง', label: 'ฝ่ายอุปกรณ์เครื่องเสียง', color: 'bg-emerald-100 text-emerald-700', darkColor: 'bg-emerald-900/40 text-emerald-300', iconName: 'Speaker', iconColor: 'text-emerald-500' },
   { id: 'ห้องประชุม', label: 'ห้องประชุม', color: 'bg-sky-100 text-sky-700', darkColor: 'bg-sky-900/40 text-sky-400', iconName: 'Users', iconColor: 'text-sky-500' },
   { id: 'ob-live', label: 'OB-LIVE', color: 'bg-violet-100 text-violet-700', darkColor: 'bg-violet-900/40 text-violet-400', iconName: 'Signal', iconColor: 'text-violet-500' }
 ];
@@ -138,9 +138,9 @@ const getInventoryDeptIdentity = (item = {}) => {
       key: 'sound',
       label: 'เครื่องเสียง',
       iconName: 'Speaker',
-      iconWrap: 'bg-cyan-500/15 border-cyan-400/30 text-cyan-300',
-      badge: 'bg-cyan-500/15 border-cyan-400/25 text-cyan-200',
-      accent: '#22d3ee'
+      iconWrap: 'bg-emerald-500/15 border-emerald-400/30 text-emerald-300',
+      badge: 'bg-emerald-500/15 border-emerald-400/25 text-emerald-200',
+      accent: '#34d399'
     };
   }
 
@@ -154,9 +154,9 @@ const getInventoryDeptIdentity = (item = {}) => {
       key: 'photo',
       label: 'ภาพนิ่ง',
       iconName: 'Camera',
-      iconWrap: 'bg-sky-500/15 border-sky-400/30 text-sky-300',
-      badge: 'bg-sky-500/15 border-sky-400/25 text-sky-200',
-      accent: '#38bdf8'
+      iconWrap: 'bg-blue-500/15 border-blue-400/30 text-blue-300',
+      badge: 'bg-blue-500/15 border-blue-400/25 text-blue-200',
+      accent: '#60a5fa'
     };
   }
 
@@ -295,7 +295,7 @@ function SmartOptionInput({
     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-white hover:border-blue-200';
   const selectedChipClass = isDarkMode
     ? 'bg-blue-500/15 border-blue-500/35 text-blue-200'
-    : 'bg-blue-50 border-blue-200 text-blue-700';
+    : 'bg-slate-50 border-slate-200 text-slate-700';
   const chipClass = isDarkMode
     ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white'
     : 'bg-white border-slate-200 text-slate-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200';
@@ -11411,7 +11411,7 @@ S.N.: ${item.sn || '-'}
                     <button
                       type="button"
                       onClick={() => setShowInventoryFilterPanel(v => !v)}
-                      className={`px-4 py-3 rounded-2xl border font-black flex items-center gap-2 ${hasActiveFilters ? (isDarkMode ? 'bg-blue-950/35 border-blue-700 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700') : theme.btnSecondary}`}
+                      className={`px-4 py-3 rounded-2xl border font-black flex items-center gap-2 ${hasActiveFilters ? (isDarkMode ? 'bg-blue-950/35 border-blue-700 text-blue-200' : 'bg-slate-50 border-slate-200 text-slate-700') : theme.btnSecondary}`}
                     >
                       <Icons.Settings className="w-4 h-4" />
                       ตัวกรอง
@@ -11423,7 +11423,7 @@ S.N.: ${item.sn || '-'}
 
                 <div className="flex flex-wrap gap-2">
                   {activeFilterChips.map(chip => (
-                    <button key={chip.id} type="button" onClick={chip.clear} className={`px-3 py-2 rounded-full border text-xs font-black flex items-center gap-2 ${isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+                    <button key={chip.id} type="button" onClick={chip.clear} className={`px-3 py-2 rounded-full border text-xs font-black flex items-center gap-2 ${isDarkMode ? 'bg-slate-900/60 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
                       {chip.label}<span className="opacity-70">×</span>
                     </button>
                   ))}
@@ -11627,11 +11627,11 @@ S.N.: ${item.sn || '-'}
                               <div className="inventory-row-actions flex items-center justify-center gap-1.5">
                                 <button type="button" onClick={() => setShowHistory(item.id)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${theme.btnCancel}`} title="เปิดแฟ้ม"><Icons.History className="w-4 h-4" /><span>แฟ้ม</span></button>
                                 <button type="button" onClick={() => copyItemSummary(item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${theme.btnCancel}`} title="คัดลอก"><Icons.ClipboardList className="w-4 h-4" /><span>คัดลอก</span></button>
-                                {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowBorrow(e, item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${isDarkMode ? 'bg-purple-900/40 text-purple-400 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white'}`} title="ยืม"><Icons.UserPlus className="w-4 h-4" /><span>ยืม</span></button>}
-                                {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowEvent(e, item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${isDarkMode ? 'bg-orange-900/40 text-orange-400 hover:bg-orange-600 hover:text-white' : 'bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white'}`} title="ออกงาน"><Icons.Truck className="w-4 h-4" /><span>ออกงาน</span></button>}
-                                {canUseOperationalTools && returnable && <button type="button" onClick={() => openReturnForItems([item.id])} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle className="w-4 h-4" /><span>รับคืน</span></button>}
-                                {canUseOperationalTools && <button type="button" onClick={() => openRepairForItem(item)} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="แจ้งซ่อม"><Icons.Alert className="w-4 h-4" /></button>}
-                                {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>}
+                                {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowBorrow(e, item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${isDarkMode ? 'bg-violet-950/35 border border-violet-500/25 text-violet-300 hover:bg-violet-600 hover:border-violet-600 hover:text-white' : 'bg-violet-50 border border-violet-200 text-violet-700 hover:bg-violet-600 hover:border-violet-600 hover:text-white'}`} title="ยืม"><Icons.UserPlus className="w-4 h-4" /><span>ยืม</span></button>}
+                                {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowEvent(e, item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${isDarkMode ? 'bg-orange-950/35 border border-orange-500/25 text-orange-300 hover:bg-orange-600 hover:border-orange-600 hover:text-white' : 'bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-600 hover:border-orange-600 hover:text-white'}`} title="ออกงาน"><Icons.Truck className="w-4 h-4" /><span>ออกงาน</span></button>}
+                                {canUseOperationalTools && returnable && <button type="button" onClick={() => openReturnForItems([item.id])} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${isDarkMode ? 'bg-emerald-950/35 border border-emerald-500/25 text-emerald-300 hover:bg-emerald-600 hover:border-emerald-600 hover:text-white' : 'bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-600 hover:border-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle className="w-4 h-4" /><span>รับคืน</span></button>}
+                                {canUseOperationalTools && <button type="button" onClick={() => openRepairForItem(item)} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-rose-950/30 border border-rose-500/25 text-rose-300 hover:bg-rose-600 hover:border-rose-600 hover:text-white' : 'bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-600 hover:border-rose-600 hover:text-white'}`} title="แจ้งซ่อม"><Icons.Alert className="w-4 h-4" /></button>}
+                                {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-sky-950/30 border border-sky-500/25 text-sky-300 hover:bg-sky-600 hover:border-sky-600 hover:text-white' : 'bg-sky-50 border border-sky-200 text-sky-700 hover:bg-sky-600 hover:border-sky-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>}
                               </div>
                             </td>
                           </tr>
@@ -19529,7 +19529,7 @@ S.N.: ${item.sn || '-'}
                 />
               </label>
 
-              <div className={`p-2.5 rounded-lg border text-sm font-bold ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+              <div className={`p-2.5 rounded-lg border text-sm font-bold ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
                 หลังบันทึกแล้ว ให้ไปที่เมนู “กล่องเก็บของ” แล้วกด “พิมพ์ฉลาก” จากกล่องนั้น ฉลากจะดึงข้อมูลกล่องล่าสุดเสมอ
               </div>
             </div>
@@ -20724,7 +20724,7 @@ S.N.: ${item.sn || '-'}
                 </div>
               ) : settingsTab === 'database' ? (
                 <div className="p-6 space-y-6">
-                  <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+                  <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
                     <div className="font-black text-base mb-1">คำแนะนำก่อนจัดการฐานข้อมูล</div>
                     <div className="text-sm font-bold">แนะนำให้ใช้ “ศูนย์สำรองข้อมูล” เพื่อดาวน์ดาวน์โหลด JSON สำหรับกู้คืน, CSV สำหรับเปิดใน Google Sheets และ HTML สำหรับดูรูปหลักฐาน ก่อนล้างประวัติทุกครั้ง</div>
                   </div>
@@ -21088,7 +21088,7 @@ S.N.: ${item.sn || '-'}
                 </label>
               ))}
             </div>
-            <div className={`mt-5 p-2.5 rounded-lg border text-sm font-bold ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>Checklist นี้เป็นตัวช่วยเตือนเท่านั้น รอบนี้ไม่ได้เพิ่มปุ่มล้างข้อมูลจริงใหม่ เพื่อความปลอดภัย</div>
+            <div className={`mt-5 p-2.5 rounded-lg border text-sm font-bold ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>Checklist นี้เป็นตัวช่วยเตือนเท่านั้น รอบนี้ไม่ได้เพิ่มปุ่มล้างข้อมูลจริงใหม่ เพื่อความปลอดภัย</div>
           </div>
         </div>
       )}
