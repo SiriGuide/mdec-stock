@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.5.8 Overview Strip Cleanup';
-const APP_UPDATE_NOTE = 'Command Center Neutral KPI Fix: เปลี่ยนการ์ด KPI รอคืนทั้งหมดจากน้ำเงินสดเป็นโทนกลางแบบกลมกลืนกับหน้า Overview ทั้ง Light/Dark Mode โดยแก้ที่ JSX tone โดยตรง ไม่ใช่ CSS override และไม่แตะ QR Scanner/Firebase/flow ยืมคืน';
+const APP_VERSION = 'v22.57.5.9 Compact Multi-Filter Redesign';
+const APP_UPDATE_NOTE = 'Compact Multi-Filter Redesign: ย่อแถบค้นหา/ตัวกรองหน้า Inventory, เพิ่มตัวกรองแบบติ๊กเลือกได้หลายรายการสำหรับฝ่าย หมวดหมู่ ที่เก็บ และโครงการ พร้อม chip แสดงรายการที่เลือก โดยไม่แตะ QR Scanner/Firebase/flow ยืมคืน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -388,6 +388,100 @@ function SmartOptionInput({
       )}
 
       {helper && <p className={`text-xs font-bold mt-2 ${textMuted}`}>{helper}</p>}
+    </div>
+  );
+}
+
+function CompactMultiFilter({
+  label,
+  icon = '•',
+  options = [],
+  selected = [],
+  onChange,
+  placeholder = 'ค้นหา...',
+  helper = '',
+  theme = {},
+  isDarkMode = false,
+  getOptionLabel = (value) => value,
+  maxHeightClass = 'max-h-52'
+}) {
+  const [query, setQuery] = useState('');
+  const selectedValues = Array.isArray(selected) ? selected.map(v => String(v || '').trim()).filter(Boolean) : [];
+  const normalizedSelected = selectedValues.map(v => v.toLowerCase());
+
+  const cleanOptions = useMemo(() => {
+    return [...new Set((options || [])
+      .map(v => String(v || '').trim())
+      .filter(Boolean)
+      .filter(v => v !== 'อื่นๆ'))]
+      .sort((a, b) => a.localeCompare(b, 'th', { numeric: true, sensitivity: 'base' }));
+  }, [options]);
+
+  const filteredOptions = useMemo(() => {
+    const q = String(query || '').trim().toLowerCase();
+    if (!q) return cleanOptions;
+    return cleanOptions.filter(option => {
+      const labelText = String(getOptionLabel(option) || option).toLowerCase();
+      return labelText.includes(q) || String(option).toLowerCase().includes(q);
+    });
+  }, [cleanOptions, query, getOptionLabel]);
+
+  const updateSelected = (next) => {
+    const unique = [...new Set(next.map(v => String(v || '').trim()).filter(Boolean))];
+    onChange(unique);
+  };
+
+  const toggleValue = (value) => {
+    const clean = String(value || '').trim();
+    if (!clean) return;
+    const exists = normalizedSelected.includes(clean.toLowerCase());
+    updateSelected(exists ? selectedValues.filter(v => v.toLowerCase() !== clean.toLowerCase()) : [...selectedValues, clean]);
+  };
+
+  const selectedCount = selectedValues.length;
+  const panelClass = isDarkMode ? 'bg-slate-950/80 border-slate-700' : 'bg-white border-slate-200';
+  const inputClass = isDarkMode ? 'bg-slate-950 border-slate-700 text-white placeholder:text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400';
+  const itemClass = isDarkMode ? 'hover:bg-slate-800 text-slate-200' : 'hover:bg-slate-50 text-slate-700';
+  const pickedClass = isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-800';
+
+  return (
+    <div className={`compact-multi-filter rounded-2xl border p-3 ${panelClass}`}>
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="min-w-0">
+          <div className={`text-sm font-black flex items-center gap-2 ${theme.textTitle || ''}`}><span>{icon}</span><span>{label}</span></div>
+          {helper && <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted || ''}`}>{helper}</div>}
+        </div>
+        {selectedCount > 0 && (
+          <button type="button" onClick={() => updateSelected([])} className={`px-2.5 py-1 rounded-full border text-[11px] font-black shrink-0 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>ล้าง {selectedCount}</button>
+        )}
+      </div>
+      <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${inputClass}`}>
+        <Icons.Search className="w-4 h-4 opacity-60 shrink-0" />
+        <input value={query} onChange={(e) => setQuery(e.target.value)} className="bg-transparent outline-none w-full text-sm font-bold" placeholder={placeholder} />
+      </div>
+      {selectedCount > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {selectedValues.slice(0, 6).map(value => (
+            <button key={`picked_${label}_${value}`} type="button" onClick={() => toggleValue(value)} className={`px-2.5 py-1 rounded-full border text-[11px] font-black ${pickedClass}`}>{getOptionLabel(value)} ×</button>
+          ))}
+          {selectedCount > 6 && <span className={`px-2.5 py-1 rounded-full border text-[11px] font-black ${isDarkMode ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'}`}>+{selectedCount - 6}</span>}
+        </div>
+      )}
+      <div className={`${maxHeightClass} overflow-y-auto custom-scrollbar mt-2 space-y-1 pr-1`}>
+        {filteredOptions.map(option => {
+          const optionLabel = getOptionLabel(option);
+          const checked = normalizedSelected.includes(String(option).toLowerCase());
+          return (
+            <button key={`${label}_${option}`} type="button" onClick={() => toggleValue(option)} className={`w-full min-h-[38px] px-2.5 py-2 rounded-xl flex items-center gap-2 text-left transition-colors ${checked ? pickedClass : itemClass}`}>
+              <input type="checkbox" checked={checked} readOnly className="stock-checkbox shrink-0" />
+              <span className="text-sm font-black truncate">{optionLabel}</span>
+            </button>
+          );
+        })}
+        {!filteredOptions.length && (
+          <div className={`px-2 py-3 text-xs font-bold ${theme.textMuted || ''}`}>ไม่พบรายการที่ค้นหา</div>
+        )}
+      </div>
     </div>
   );
 }
@@ -6505,11 +6599,11 @@ function MainApp() {
   });
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterDept, setFilterDept] = useState('all');
-  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterDept, setFilterDept] = useState([]);
+  const [filterCategory, setFilterCategory] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterLocation, setFilterLocation] = useState('all');
-  const [filterProject, setFilterProject] = useState('all');
+  const [filterLocation, setFilterLocation] = useState([]);
+  const [filterProject, setFilterProject] = useState([]);
   const [filterAssetStatus, setFilterAssetStatus] = useState('all');
   const [filterQrTagged, setFilterQrTagged] = useState('all');
   const [showInventoryFilterPanel, setShowInventoryFilterPanel] = useState(false);
@@ -8195,6 +8289,32 @@ function MainApp() {
     return [...new Set([...withoutOther, 'อื่นๆ'])];
   }, [settingsOptions.projects, items]);
 
+
+  const inventoryCategoryOptions = useMemo(() => {
+    const fromSettings = Array.isArray(settingsOptions.categories) ? settingsOptions.categories : [];
+    const fromItems = items.map(i => String(i?.category || '').trim()).filter(Boolean);
+    return [...new Set([...fromSettings, ...fromItems].map(v => String(v || '').trim()).filter(Boolean).filter(v => v !== 'อื่นๆ'))]
+      .sort((a, b) => a.localeCompare(b, 'th', { numeric: true, sensitivity: 'base' }));
+  }, [settingsOptions.categories, items]);
+
+  const inventoryLocationOptions = useMemo(() => {
+    const fromSettings = Array.isArray(settingsOptions.locations) ? settingsOptions.locations : [];
+    const fromItems = items.flatMap(i => [i?.location, i?.storageLocation]).map(v => String(v || '').trim()).filter(Boolean);
+    return [...new Set([...fromSettings, ...fromItems].map(v => String(v || '').trim()).filter(Boolean).filter(v => v !== 'อื่นๆ'))]
+      .sort((a, b) => a.localeCompare(b, 'th', { numeric: true, sensitivity: 'base' }));
+  }, [settingsOptions.locations, items]);
+
+  const inventoryProjectFilterOptions = useMemo(() => {
+    return (projectOptions || []).map(p => normalizeProjectName(p)).filter(Boolean).filter(p => p !== 'อื่นๆ');
+  }, [projectOptions]);
+
+  const hasMultiFilter = (values) => Array.isArray(values) && values.length > 0;
+  const multiFilterIncludes = (values, value, normalizer = (v) => String(v || '').trim()) => {
+    if (!Array.isArray(values) || values.length === 0) return true;
+    const target = normalizer(value);
+    return values.some(v => normalizer(v) === target);
+  };
+
   const getAssetStatusInfo = (id) => ASSET_STATUSES.find(s => s.id === (id || 'active')) || ASSET_STATUSES[0];
 
   const getMissingDataLabels = (item = {}) => {
@@ -8218,8 +8338,8 @@ function MainApp() {
     const next = !showRoomView;
     setShowRoomView(next);
     if (next) {
-      setFilterDept('all');
-      setFilterLocation('all');
+      setFilterDept([]);
+      setFilterLocation([]);
     }
   };
 
@@ -8314,11 +8434,11 @@ function MainApp() {
       const smartText = getItemSmartText(item);
       const matchSearch = searchTokens.length === 0 || searchTokens.every(token => smartText.includes(token));
 
-      const matchDept = filterDept === 'all' || String(item.department) === String(filterDept);
-      const matchCategory = filterCategory === 'all' || String(item.category) === String(filterCategory);
+      const matchDept = multiFilterIncludes(filterDept, item.department);
+      const matchCategory = multiFilterIncludes(filterCategory, item.category);
       const matchStatus = filterStatus === 'all' || String(item.status) === String(filterStatus);
-      const matchLocation = filterLocation === 'all' || String(item.location) === String(filterLocation);
-      const matchProject = filterProject === 'all' || normalizeProjectName(item.project) === normalizeProjectName(filterProject);
+      const matchLocation = multiFilterIncludes(filterLocation, item.location);
+      const matchProject = multiFilterIncludes(filterProject, item.project, normalizeProjectName);
       const matchAssetStatus = filterAssetStatus === 'all' || String(item.assetStatus || 'active') === String(filterAssetStatus);
       const matchQrTagged = filterQrTagged === 'all' || (filterQrTagged === 'tagged' && !!item.qrTagged) || (filterQrTagged === 'untagged' && !item.qrTagged);
       const matchProblem = !quickProblemOnly || isProblemItem(item);
@@ -8340,19 +8460,19 @@ function MainApp() {
     return result;
   }, [items, searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterProject, filterAssetStatus, filterQrTagged, quickProblemOnly, smartQuickFilter, todayMs]);
 
-  const hasActiveFilters = !!searchTerm || filterDept !== 'all' || filterCategory !== 'all' || filterStatus !== 'all' || filterLocation !== 'all' || filterProject !== 'all' || filterAssetStatus !== 'all' || filterQrTagged !== 'all' || quickProblemOnly || smartQuickFilter !== 'all';
+  const hasActiveFilters = !!searchTerm || hasMultiFilter(filterDept) || hasMultiFilter(filterCategory) || filterStatus !== 'all' || hasMultiFilter(filterLocation) || hasMultiFilter(filterProject) || filterAssetStatus !== 'all' || filterQrTagged !== 'all' || quickProblemOnly || smartQuickFilter !== 'all';
 
-  const activeFilterCount = [!!searchTerm, filterDept !== 'all', filterCategory !== 'all', filterStatus !== 'all', filterLocation !== 'all', filterProject !== 'all', filterAssetStatus !== 'all', filterQrTagged !== 'all', quickProblemOnly, smartQuickFilter !== 'all'].filter(Boolean).length;
+  const activeFilterCount = [!!searchTerm, ...filterDept, ...filterCategory, filterStatus !== 'all', ...filterLocation, ...filterProject, filterAssetStatus !== 'all', filterQrTagged !== 'all', quickProblemOnly, smartQuickFilter !== 'all'].filter(Boolean).length;
 
   const activeFilterChips = useMemo(() => {
     const chips = [];
     if (searchTerm) chips.push({ id: 'search', label: `ค้นหา: ${searchTerm}`, clear: () => setSearchTerm('') });
     if (smartQuickFilter !== 'all') chips.push({ id: 'smart', label: `ตัวกรองด่วน: ${smartQuickFilterOptions.find(f => f.id === smartQuickFilter)?.label || smartQuickFilter}`, clear: () => setSmartQuickFilter('all') });
-    if (filterDept !== 'all') chips.push({ id: 'dept', label: `ฝ่าย: ${DEPARTMENTS.find(d => d.id === filterDept)?.label || filterDept}`, clear: () => setFilterDept('all') });
-    if (filterLocation !== 'all') chips.push({ id: 'location', label: `ห้อง/ที่เก็บ: ${filterLocation}`, clear: () => setFilterLocation('all') });
-    if (filterCategory !== 'all') chips.push({ id: 'category', label: `หมวด: ${filterCategory}`, clear: () => setFilterCategory('all') });
+    (filterDept || []).forEach(value => chips.push({ id: `dept_${value}`, label: `ฝ่าย: ${DEPARTMENTS.find(d => d.id === value)?.label || value}`, clear: () => setFilterDept(prev => prev.filter(v => v !== value)) }));
+    (filterLocation || []).forEach(value => chips.push({ id: `location_${value}`, label: `ที่เก็บ: ${value}`, clear: () => setFilterLocation(prev => prev.filter(v => v !== value)) }));
+    (filterCategory || []).forEach(value => chips.push({ id: `category_${value}`, label: `หมวด: ${value}`, clear: () => setFilterCategory(prev => prev.filter(v => v !== value)) }));
     if (filterStatus !== 'all') chips.push({ id: 'status', label: `สถานะ: ${STATUSES.find(s => s.id === filterStatus)?.label || filterStatus}`, clear: () => setFilterStatus('all') });
-    if (filterProject !== 'all') chips.push({ id: 'project', label: `โครงการ: ${filterProject}`, clear: () => setFilterProject('all') });
+    (filterProject || []).forEach(value => chips.push({ id: `project_${value}`, label: `โครงการ: ${value}`, clear: () => setFilterProject(prev => prev.filter(v => v !== value)) }));
     if (filterAssetStatus !== 'all') chips.push({ id: 'asset', label: `พัสดุ: ${getAssetStatusInfo(filterAssetStatus).label}`, clear: () => setFilterAssetStatus('all') });
     if (filterQrTagged !== 'all') chips.push({ id: 'qr', label: filterQrTagged === 'tagged' ? 'ติด QR แล้ว' : 'ยังไม่ติด QR', clear: () => setFilterQrTagged('all') });
     if (quickProblemOnly) chips.push({ id: 'problem', label: 'ของที่ต้องจัดการ', clear: () => setQuickProblemOnly(false) });
@@ -8381,11 +8501,11 @@ function MainApp() {
 
   const clearAllFilters = () => {
     setSearchTerm('');
-    setFilterDept('all');
-    setFilterCategory('all');
+    setFilterDept([]);
+    setFilterCategory([]);
     setFilterStatus('all');
-    setFilterLocation('all');
-    setFilterProject('all');
+    setFilterLocation([]);
+    setFilterProject([]);
     setFilterAssetStatus('all');
     setFilterQrTagged('all');
     setSmartQuickFilter('all');
@@ -8564,7 +8684,7 @@ function MainApp() {
       setProjectManagerSearch('');
       setActiveWorkspace('projects');
       setSelectedPurchaseProject(existingKey || name);
-      setFilterProject('all');
+      setFilterProject([]);
       setQuickProjectName('');
       await setDoc(getSettingsDoc(), { projects: nextProjects, projectMeta: nextMeta }, { merge: true });
 
@@ -8657,7 +8777,7 @@ function MainApp() {
           });
           return setDoc(getItemDoc(item.id), { project: newName, history, updatedAt: nowIso, updatedBy: currentOperator?.name || 'Admin' }, { merge: true });
         }));
-        if (filterProject === oldName) setFilterProject(newName);
+        if ((filterProject || []).includes(oldName)) setFilterProject(prev => prev.map(v => v === oldName ? newName : v));
       }
       setSelectedPurchaseProject(newName);
       await logAction('บันทึกรายละเอียดโครงการจัดซื้อ', newName, newName !== oldName ? `เปลี่ยนชื่อจาก ${oldName}` : 'แก้ไขรายละเอียดโครงการ');
@@ -8822,7 +8942,7 @@ function MainApp() {
         }, { merge: true });
       }));
 
-      if (filterProject === oldName) setFilterProject(clean);
+      if ((filterProject || []).includes(oldName)) setFilterProject(prev => prev.map(v => v === oldName ? clean : v));
       await logAction('เปลี่ยนชื่อโครงการ', clean, `จาก ${oldName} เป็น ${clean} / กระทบอุปกรณ์ ${affectedItems.length} รายการ`);
       pushToast('เปลี่ยนชื่อโครงการเรียบร้อยแล้ว', 'success');
     } catch (error) {
@@ -9058,7 +9178,7 @@ S.N.: ${item.sn || '-'}
             </div>
             <div className="grid grid-cols-2 sm:flex gap-2">
               <button type="button" onClick={() => document.getElementById('quick-project-input')?.focus()} className="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black">+ สร้างโครงการ</button>
-              <button type="button" onClick={() => { setFilterProject('all'); setProjectManagerSearch(''); setSelectedPurchaseProject(null); }} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
+              <button type="button" onClick={() => { setFilterProject([]); setProjectManagerSearch(''); setSelectedPurchaseProject(null); }} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
             </div>
           </div>
 
@@ -9084,7 +9204,7 @@ S.N.: ${item.sn || '-'}
                   <div className="font-black">มีอุปกรณ์ {unassignedProjectItemCount.toLocaleString('th-TH')} รายการที่ยังไม่ได้ผูกโครงการจัดซื้อ</div>
                   <div className="text-xs font-bold opacity-80 mt-1">ระบบจะไม่เอารายการเหล่านี้ไปรวมเป็นโครงการ “ไม่ระบุชื่อโครงการ” อีกแล้ว ต้องเลือกผูกเข้ากับโครงการจริงเท่านั้น</div>
                 </div>
-                <button type="button" onClick={() => { setFilterProject('all'); openWorkspace('overview'); }} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ดูรายการในคลัง</button>
+                <button type="button" onClick={() => { setFilterProject([]); openWorkspace('overview'); }} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ดูรายการในคลัง</button>
               </div>
             )}
 
@@ -9459,7 +9579,7 @@ S.N.: ${item.sn || '-'}
                           <button type="button" onClick={() => selectStorageBoxItems(box)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>เลือกของในกล่อง</button>
                           <button type="button" onClick={() => openStorageBoxLabel(box)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">พิมพ์ฉลาก</button>
                           <button type="button" onClick={() => openStorageBoxEditor(box)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>แก้ไขกล่อง</button>
-                          <button type="button" onClick={() => { setFilterLocation('all'); setSearchTerm(box.name || ''); openWorkspace('overview'); }} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ดูในสต๊อก</button>
+                          <button type="button" onClick={() => { setFilterLocation([]); setSearchTerm(box.name || ''); openWorkspace('overview'); }} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ดูในสต๊อก</button>
                         </div>
                       </div>
                     );
@@ -11201,68 +11321,83 @@ S.N.: ${item.sn || '-'}
                       </div>
                       <button type="button" onClick={() => setShowInventoryFilterPanel(false)} className={`px-3 py-2 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ปิดตัวกรอง</button>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                      <div>
-                        <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>ฝ่าย</label>
-                        <select value={filterDept} onChange={(e) => { setFilterDept(e.target.value); if (e.target.value !== 'ห้องประชุม') setShowRoomView(false); }} className={`w-full px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
-                          <option value="all">ทุกฝ่าย</option>
-                          {DEPARTMENTS.map(dep => <option key={dep.id} value={dep.id}>{dep.label}</option>)}
-                        </select>
+                    <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_1.1fr_1fr] gap-3">
+                      <div className="space-y-3">
+                        <CompactMultiFilter
+                          label="ฝ่าย"
+                          icon="👥"
+                          options={DEPARTMENTS.map(dep => dep.id)}
+                          selected={filterDept}
+                          onChange={(values) => { setFilterDept(values); if (!values.includes('ห้องประชุม')) setShowRoomView(false); }}
+                          placeholder="ค้นหาฝ่าย..."
+                          helper="ติ๊กได้หลายฝ่ายพร้อมกัน"
+                          theme={theme}
+                          isDarkMode={isDarkMode}
+                          getOptionLabel={(value) => DEPARTMENTS.find(dep => dep.id === value)?.label || value}
+                        />
+                        <CompactMultiFilter
+                          label="หมวดหมู่"
+                          icon="🏷️"
+                          options={inventoryCategoryOptions}
+                          selected={filterCategory}
+                          onChange={setFilterCategory}
+                          placeholder="ค้นหาหมวด เช่น ขาไมค์ / ลำโพง"
+                          helper="ในหัวข้อนี้เลือกหลายอัน = แสดงแบบ OR"
+                          theme={theme}
+                          isDarkMode={isDarkMode}
+                        />
                       </div>
-                      <div>
-                        <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สถานะ</label>
-                        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`w-full px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
-                          <option value="all">ทุกสถานะ</option>
-                          {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                        </select>
+                      <div className="space-y-3">
+                        <CompactMultiFilter
+                          label="ที่เก็บ / ห้อง / ชั้น"
+                          icon="📍"
+                          options={inventoryLocationOptions}
+                          selected={filterLocation}
+                          onChange={setFilterLocation}
+                          placeholder="ค้นหาที่เก็บ เช่น ห้องใต้บันได A2"
+                          helper="เลือกหลายที่เก็บเพื่อดูของหลายจุดพร้อมกัน"
+                          theme={theme}
+                          isDarkMode={isDarkMode}
+                        />
+                        <CompactMultiFilter
+                          label="โครงการ"
+                          icon="📁"
+                          options={inventoryProjectFilterOptions}
+                          selected={filterProject}
+                          onChange={setFilterProject}
+                          placeholder="ค้นหาโครงการ..."
+                          helper="กรองของที่ผูกกับโครงการจัดซื้อ"
+                          theme={theme}
+                          isDarkMode={isDarkMode}
+                        />
                       </div>
-                      <div>
-                        <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>QR</label>
-                        <select value={filterQrTagged} onChange={(e) => setFilterQrTagged(e.target.value)} className={`w-full px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
-                          <option value="all">QR ทั้งหมด</option>
-                          <option value="tagged">ติด QR แล้ว</option>
-                          <option value="untagged">ยังไม่ติด QR</option>
-                        </select>
-                      </div>
-                      <SmartOptionInput
-                        label="หมวดหมู่"
-                        value={filterCategory === 'all' ? '' : filterCategory}
-                        options={settingsOptions.categories || []}
-                        onChange={(value) => setFilterCategory(String(value || '').trim() || 'all')}
-                        placeholder="พิมพ์ค้นหาหมวดหมู่ หรือเลือกจากรายการ"
-                        helper="เหมาะกับตอนหมวดหมู่เริ่มเยอะ"
-                        theme={theme}
-                        isDarkMode={isDarkMode}
-                        icon="🏷️"
-                      />
-                      <SmartOptionInput
-                        label="ที่เก็บ / ห้อง / ชั้น"
-                        value={filterLocation === 'all' ? '' : filterLocation}
-                        options={settingsOptions.locations || []}
-                        onChange={(value) => setFilterLocation(String(value || '').trim() || 'all')}
-                        placeholder="พิมพ์ค้นหาที่เก็บ เช่น ห้องใต้บันได / สโตร์"
-                        helper="ค้นหาได้จากรายการที่เก็บทั้งหมด"
-                        theme={theme}
-                        isDarkMode={isDarkMode}
-                        icon="📍"
-                      />
-                      <SmartOptionInput
-                        label="โครงการ"
-                        value={filterProject === 'all' ? '' : filterProject}
-                        options={projectOptions.filter(Boolean)}
-                        onChange={(value) => setFilterProject(String(value || '').trim() || 'all')}
-                        placeholder="พิมพ์ค้นหาโครงการ"
-                        helper="ใช้กรองของที่ผูกกับโครงการจัดซื้อ"
-                        theme={theme}
-                        isDarkMode={isDarkMode}
-                        icon="📁"
-                      />
-                      <div>
-                        <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สถานะพัสดุ</label>
-                        <select value={filterAssetStatus} onChange={(e) => setFilterAssetStatus(e.target.value)} className={`w-full px-4 py-3 rounded-2xl border font-black ${theme.input}`}>
-                          <option value="all">สถานะพัสดุทั้งหมด</option>
-                          {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                        </select>
+                      <div className="space-y-3">
+                        <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+                          <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สถานะใช้งาน</label>
+                          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
+                            <option value="all">ทุกสถานะ</option>
+                            {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                          </select>
+                        </div>
+                        <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+                          <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สถานะพัสดุ</label>
+                          <select value={filterAssetStatus} onChange={(e) => setFilterAssetStatus(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
+                            <option value="all">สถานะพัสดุทั้งหมด</option>
+                            {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                          </select>
+                        </div>
+                        <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+                          <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>QR</label>
+                          <select value={filterQrTagged} onChange={(e) => setFilterQrTagged(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
+                            <option value="all">QR ทั้งหมด</option>
+                            <option value="tagged">ติด QR แล้ว</option>
+                            <option value="untagged">ยังไม่ติด QR</option>
+                          </select>
+                        </div>
+                        <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/80 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                          <div className="text-xs font-black">หลักการกรอง</div>
+                          <div className="text-[11px] font-bold mt-1 opacity-75">ในหัวข้อเดียวกัน = หรือ เช่น ขาไมค์/ลำโพง • คนละหัวข้อ = และ เช่น หมวด + ที่เก็บ</div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -11909,7 +12044,7 @@ S.N.: ${item.sn || '-'}
   }, [items]);
 
   const deptItems = useMemo(() => {
-    return items.filter(item => !item.isDeleted && (filterDept === 'all' || item.department === filterDept));
+    return items.filter(item => !item.isDeleted && multiFilterIncludes(filterDept, item.department));
   }, [items, filterDept]);
 
   const categoryStats = useMemo(() => {
@@ -23033,10 +23168,10 @@ S.N.: ${item.sn || '-'}
                 <button type="button" onClick={() => setProjectManagerSearch('')} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างค้นหา</button>
               </div>
 
-              {filterProject !== 'all' && (
+              {hasMultiFilter(filterProject) && (
                 <div className={`p-2.5 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800 text-indigo-200' : 'bg-indigo-50 border-indigo-200 text-indigo-700'}`}>
-                  <div className="font-black">กำลังกรองโครงการ: {filterProject}</div>
-                  <button type="button" onClick={() => setFilterProject('all')} className={`px-3 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>ยกเลิกกรองโครงการ</button>
+                  <div className="font-black">กำลังกรองโครงการ: {filterProject.join(', ')}</div>
+                  <button type="button" onClick={() => setFilterProject([])} className={`px-3 py-2 rounded-xl border font-black ${theme.btnSecondary}`}>ยกเลิกกรองโครงการ</button>
                 </div>
               )}
 
