@@ -1,4 +1,4 @@
-// v22.57.6.14 Admin Delete Borrow Documents - แอดมินลบเอกสารย้อนหลังเฉพาะรายการได้, ไม่แตะสถานะอุปกรณ์/หลักฐาน/QR/Firebase path
+// v22.57.6.15 Admin Delete Docs Build Hotfix - แก้ unterminated string ในฟังก์ชันลบเอกสารย้อนหลัง
 // v22.53.26 Data Quality Center Polish - gallery, filters, proof cards and empty states, no QR scanner/camera/database path changes
 // v22.53.17 Operational Slip Clean Design - fixed clean A4 borrow/event/return documents, removes before-print logo/watermark controls, no QR/camera/database path changes
 // v22.53.24 QR Label Print Polish - final visual balance for operational print forms, no QR/camera/database path changes
@@ -7365,9 +7365,9 @@ function MainApp() {
       ? `
 
 ⚠️ เอกสารนี้ยังมีสถานะ "${docData.statusLabel || status || 'รอคืน'}" การลบนี้จะลบเฉพาะเอกสารย้อนหลัง ไม่ได้เปลี่ยนสถานะอุปกรณ์และไม่ได้ลบประวัติในแฟ้มอุปกรณ์`
-      : '
+      : `
 
-การลบนี้จะลบเฉพาะเอกสารย้อนหลัง ไม่ได้ลบประวัติในแฟ้มอุปกรณ์หรือหลักฐานรูปภาพ';
+การลบนี้จะลบเฉพาะเอกสารย้อนหลัง ไม่ได้ลบประวัติในแฟ้มอุปกรณ์หรือหลักฐานรูปภาพ`;
     const ok = window.confirm(`ยืนยันลบเอกสารย้อนหลัง ${label} ?
 รายการในเอกสาร: ${itemCount.toLocaleString('th-TH')} ชิ้น${warning}`);
     if (!ok) return;
