@@ -51,8 +51,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.11 Central History Readable Group Layout';
-const APP_UPDATE_NOTE = 'Dark Mode Only: ล็อกระบบให้ใช้โหมดมืดเป็นหลัก เอาปุ่มสลับโหมดสว่างออก และบังคับบันทึก theme เป็น dark โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
+const APP_VERSION = 'v22.57.6.17 Admin Purge Deleted History';
+const APP_UPDATE_NOTE = 'Admin Purge Deleted History: เพิ่มระบบลบถาวรสำหรับประวัติส่วนกลางที่ถูกซ่อนแล้ว เพื่อล้างรายการทดสอบออกจากฐานข้อมูลจริง โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6882,6 +6882,28 @@ function MainApp() {
   const [historyCenterFilter, setHistoryCenterFilter] = useState('all');
   const [historyCenterSearch, setHistoryCenterSearch] = useState('');
   const [selectedHistoryRecordIds, setSelectedHistoryRecordIds] = useState([]);
+  const softDeletedHistoryEntries = useMemo(() => {
+    const rows = [];
+    (items || []).forEach((item) => {
+      const historyList = Array.isArray(item?.history) ? item.history : [];
+      historyList.forEach((h, historyIndex) => {
+        if (!h?.deletedFromHistory) return;
+        rows.push({
+          id: `${item.id}__deleted__${historyIndex}`,
+          itemId: item.id,
+          itemName: item.name || '-',
+          historyIndex,
+          type: h.type || h.historyType || 'other',
+          date: h.date || h.createdAt || '',
+          subject: h.borrower || h.eventName || h.subject || h.problem || h.note || '-',
+          deletedAt: h.deletedAt || '',
+          deletedBy: h.deletedBy || '-',
+          deleteReason: h.deleteReason || '-'
+        });
+      });
+    });
+    return rows;
+  }, [items]);
   const [historyGroupMode, setHistoryGroupMode] = useState(true);
   const [expandedProofGroupId, setExpandedProofGroupId] = useState(null);
   const [modalReturnStack, setModalReturnStack] = useState([]); // v22.52.8: ['borrowDocs', 'historyCenter', 'proofCenter']
@@ -11859,6 +11881,7 @@ S.N.: ${item.sn || '-'}
                     <div className="flex flex-wrap items-center gap-2">
                       <div className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เลือกแล้ว {selectedHistoryRecordIds.length.toLocaleString('th-TH')} รายการ</div>
                       <button type="button" onClick={handleSoftDeleteSelectedHistory} disabled={selectedHistoryRecordIds.length === 0 || isBusy} className={`px-4 py-2 rounded-xl text-sm font-black ${selectedHistoryRecordIds.length === 0 || isBusy ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}>ลบประวัติที่เลือก</button>
+                      <button type="button" onClick={handlePurgeDeletedHistory} disabled={softDeletedHistoryEntries.length === 0 || isBusy} className={`px-4 py-2 rounded-xl text-sm font-black border ${softDeletedHistoryEntries.length === 0 || isBusy ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-red-950/50 border-red-500/40 text-red-200 hover:bg-red-700 hover:text-white'}`}>ลบถาวรที่ซ่อนไว้ {softDeletedHistoryEntries.length.toLocaleString('th-TH')}</button>
                     </div>
                   </div>
                 )}
@@ -12666,6 +12689,52 @@ S.N.: ${item.sn || '-'}
     }
   };
 
+
+  const handlePurgeDeletedHistory = async () => {
+    if (!canDeleteItems) return alert('บัญชีนี้ไม่มีสิทธิ์ลบถาวร');
+    if (softDeletedHistoryEntries.length === 0) return alert('ยังไม่มีประวัติที่ถูกซ่อนให้ล้างออกจากฐานข้อมูล');
+
+    const previewLines = softDeletedHistoryEntries.slice(0, 8).map((entry, idx) => `${idx + 1}. ${entry.itemName} • ${entry.subject} • ${entry.deleteReason}`).join('\n');
+    const confirmText = window.prompt(`พบประวัติที่ถูกซ่อนแล้ว ${softDeletedHistoryEntries.length} รายการ\n\nรายการตัวอย่าง:\n${previewLines}${softDeletedHistoryEntries.length > 8 ? '\n...และรายการอื่น ๆ' : ''}\n\nการลบถาวรจะเอาประวัติเหล่านี้ออกจากฐานข้อมูลจริง และกู้คืนไม่ได้\nพิมพ์ PURGE เพื่อยืนยัน`);
+    if (confirmText !== 'PURGE') return alert('ยกเลิกการลบถาวร');
+
+    const secondConfirm = window.prompt('ยืนยันอีกครั้ง: พิมพ์ ลบถาวร เพื่อดำเนินการ');
+    if (secondConfirm !== 'ลบถาวร') return alert('ยกเลิกการลบถาวร');
+
+    try {
+      setIsBusy(true);
+      const now = new Date().toISOString();
+      const affectedItems = (items || []).filter(item => (Array.isArray(item?.history) ? item.history : []).some(h => h?.deletedFromHistory));
+      const tasks = affectedItems.map((item) => {
+        const oldHistory = Array.isArray(item.history) ? item.history : [];
+        const nextHistory = oldHistory.filter(h => !h?.deletedFromHistory);
+        return setDoc(getItemDoc(item.id), {
+          history: nextHistory,
+          updatedAt: now,
+          updatedBy: currentAccountLabel,
+          lastPurgeHistoryAt: now,
+          lastPurgeHistoryBy: currentAccountLabel
+        }, { merge: true });
+      });
+      await Promise.all(tasks);
+      await addDoc(getAuditCol(), {
+        action: 'ลบถาวรประวัติส่วนกลางที่ถูกซ่อน',
+        itemName: `${softDeletedHistoryEntries.length} รายการ`,
+        detail: `ลบถาวรจาก item.history ${softDeletedHistoryEntries.length} รายการ / อุปกรณ์ที่กระทบ ${affectedItems.length} รายการ\nโดย: ${currentAccountLabel}`,
+        createdAt: now,
+        createdBy: currentAccountLabel,
+        role: currentAccountRole
+      });
+      clearHistorySelection();
+      pushToast(`ลบถาวรประวัติที่ถูกซ่อนแล้ว ${softDeletedHistoryEntries.length} รายการ`, 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ ลบถาวรไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const allHistoryCenterEntries = useMemo(() => {
     const rows = [];
     const localProofKey = (proof = {}) => String(
@@ -12883,7 +12952,9 @@ S.N.: ${item.sn || '-'}
     `${proof.createdAt || 'nodate'}_${proof.originalName || ''}_${proof.sizeBytes || ''}_${String(proof.thumbUrl || proof.url || '').slice(0, 96)}`
   );
 
-  const getItemProofCount = (item) => (Array.isArray(item?.history) ? item.history : []).reduce((sum, h) => sum + (Array.isArray(h.proofs) ? h.proofs.length : 0), 0);
+  const getItemProofCount = (item) => (Array.isArray(item?.history) ? item.history : [])
+    .filter(h => h && !h.deletedFromHistory)
+    .reduce((sum, h) => sum + (Array.isArray(h.proofs) ? h.proofs.length : 0), 0);
 
   const allProofEntries = useMemo(() => {
     const entries = [];
@@ -22350,7 +22421,10 @@ S.N.: ${item.sn || '-'}
 
         const detailStatus = STATUSES.find(s => s.id === detailItem.status) || STATUSES[0];
         const detailDept = DEPARTMENTS.find(d => d.id === detailItem.department) || DEPARTMENTS[0];
-        const historyList = detailItem.history || [];
+        const rawHistoryList = Array.isArray(detailItem.history) ? detailItem.history : [];
+        // ประวัติที่ถูกลบจากประวัติส่วนกลางแบบ soft delete ต้องหายจากแฟ้มประวัติด้วย
+        // เพื่อไม่ให้รายการทดสอบยังโผล่ใน Asset Profile หลังแอดมินลบแล้ว
+        const historyList = rawHistoryList.filter(h => h && !h.deletedFromHistory);
         const latestHistory = historyList.slice(-1)[0];
         const detailProofCount = getItemProofCount(detailItem);
         const textOf = (...keys) => {
@@ -22793,7 +22867,7 @@ S.N.: ${item.sn || '-'}
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {historyList.map((entry, originalIndex) => ({ entry, originalIndex })).reverse().map(({ entry: h, originalIndex }) => {
+                        {rawHistoryList.map((entry, originalIndex) => ({ entry, originalIndex })).filter(({ entry }) => entry && !entry.deletedFromHistory).reverse().map(({ entry: h, originalIndex }) => {
                           const isBorrow = h.type === 'borrow';
                           const isEvent = h.type === 'event';
                           const isReturn = h.type === 'return';
