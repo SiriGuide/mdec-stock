@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.5.9 Compact Multi-Filter Redesign';
+const APP_VERSION = 'v22.57.6.0 Asset Profile Static Summary Cleanup';
 const APP_UPDATE_NOTE = 'Compact Multi-Filter Redesign: ย่อแถบค้นหา/ตัวกรองหน้า Inventory, เพิ่มตัวกรองแบบติ๊กเลือกได้หลายรายการสำหรับฝ่าย หมวดหมู่ ที่เก็บ และโครงการ พร้อม chip แสดงรายการที่เลือก โดยไม่แตะ QR Scanner/Firebase/flow ยืมคืน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -6664,7 +6664,6 @@ function MainApp() {
   const [returnChecklist, setReturnChecklist] = useState([]);
   
   const [showHistory, setShowHistory] = useState(null);
-  const [assetProfileTab, setAssetProfileTab] = useState('overview');
 
   const [showSettings, setShowSettings] = useState(false);
   const [settingsTab, setSettingsTab] = useState('categories');
@@ -21759,17 +21758,16 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div className={`shrink-0 px-4 sm:px-6 py-3 border-b ${theme.divide} ${isDarkMode ? 'bg-slate-950' : 'bg-white'}`}>
-                <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+                <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1 asset-profile-summary-strip">
                   {assetProfileTabs.map(([id, label, count]) => (
-                    <button
+                    <div
                       key={id}
-                      type="button"
-                      onClick={() => setAssetProfileTab(id)}
-                      className={`px-4 py-2.5 rounded-2xl border text-sm font-black whitespace-nowrap ${assetProfileTab === id ? 'bg-blue-600 text-white border-blue-600 shadow-md' : theme.btnSecondary}`}
+                      className={`px-3.5 py-2 rounded-2xl border text-sm font-black whitespace-nowrap select-none ${isDarkMode ? 'bg-slate-900/80 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
+                      title="สรุปข้อมูลในแฟ้ม ไม่ใช่ปุ่มเมนู"
                     >
                       {label}
-                      <span className={`ml-1 text-xs ${assetProfileTab === id ? 'text-white/75' : theme.textMuted}`}>{id === 'system' ? `${count}%` : Number(count || 0).toLocaleString('th-TH')}</span>
-                    </button>
+                      <span className={`ml-1.5 text-xs ${theme.textMuted}`}>{id === 'system' ? `${count}%` : Number(count || 0).toLocaleString('th-TH')}</span>
+                    </div>
                   ))}
                 </div>
               </div>
