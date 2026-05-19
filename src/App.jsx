@@ -14409,7 +14409,7 @@ S.N.: ${item.sn || '-'}
     osc1.start(now);
     osc2.start(now + 0.01);
 
-    osc1.stop(now + 0.22);
+    osc1.stop(now + 0.28);
     osc2.stop(now + 0.20);
 
     setTimeout(() => {
