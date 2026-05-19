@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.9 Central History Proof Restore Fix';
+const APP_VERSION = 'v22.57.6.11 Central History Readable Group Layout';
 const APP_UPDATE_NOTE = 'Dark Mode Only: ล็อกระบบให้ใช้โหมดมืดเป็นหลัก เอาปุ่มสลับโหมดสว่างออก และบังคับบันทึก theme เป็น dark โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -11880,10 +11880,16 @@ S.N.: ${item.sn || '-'}
                     const groupProofs = Array.from(groupLinkedProofMap.values()).filter(Boolean);
                     const previewProofs = groupProofs.slice(0, 4);
                     const totalProofs = groupProofs.length || rowsInGroup.reduce((sum, row) => sum + Number(row.proofCount || 0), 0);
+                    const operationLabel = isGroup ? `${entry.typeLabel || entry.historyType || '-'}กลุ่ม` : (entry.typeLabel || entry.historyType || '-');
+                    const displayTitle = isGroup
+                      ? (entry.subject && entry.subject !== '-' ? entry.subject : `${entry.typeLabel || 'ประวัติ'} ${rowsInGroup.length} รายการ`)
+                      : (entry.itemName || '-');
+                    const sampleItems = rowsInGroup.slice(0, 5);
+                    const extraItems = Math.max(0, rowsInGroup.length - sampleItems.length);
                     return (
-                    <div key={entry.groupKey || entry.id} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
+                    <div key={entry.groupKey || entry.id} className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.9fr)_auto] gap-4 items-stretch">
+                        <div className="min-w-0">
                           <div className="flex items-start gap-3">
                             {canDeleteItems && <input type="checkbox" className="stock-checkbox mt-1" checked={rowsInGroup.every(row => isHistorySelected(row.id))} onChange={() => {
                               const groupIds = rowsInGroup.map(row => row.id);
@@ -11892,41 +11898,81 @@ S.N.: ${item.sn || '-'}
                             }} />}
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className={`px-2.5 py-1 rounded-xl border text-xs font-black ${getHistoryTypeTone(entry.historyType)}`}>{isGroup ? `${entry.typeLabel || entry.historyType || '-'}กลุ่ม` : (entry.typeLabel || entry.historyType || '-')}</span>
+                                <span className={`px-2.5 py-1 rounded-xl border text-xs font-black ${getHistoryTypeTone(entry.historyType)}`}>{operationLabel}</span>
                                 {isGroup && <span className="px-2.5 py-1 rounded-xl border border-cyan-500/25 bg-cyan-500/10 text-cyan-200 text-xs font-black">{rowsInGroup.length} อุปกรณ์</span>}
                                 {totalProofs > 0 && <span className="px-2.5 py-1 rounded-xl border border-pink-500/25 bg-pink-500/10 text-pink-200 text-xs font-black">หลักฐาน {totalProofs} รูป</span>}
                               </div>
-                              <div className={`font-black text-lg truncate mt-2 ${theme.textTitle}`}>{isGroup ? (entry.subject && entry.subject !== '-' ? entry.subject : `${entry.typeLabel || 'ประวัติ'} ${rowsInGroup.length} รายการ`) : (entry.itemName || '-')}</div>
-                              <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-'} • โดย {entry.staff || '-'} • {isGroup ? `ตัวอย่าง: ${rowsInGroup.slice(0, 3).map(row => row.itemName).join(' / ')}` : `S.N. ${entry.sn || '-'}`}</div>
-                              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง: {entry.subject || '-'}{isGroup && rowsInGroup.length > 3 ? ` • และอีก ${rowsInGroup.length - 3} รายการ` : ''}</div>
-                              {previewProofs.length > 0 && (
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                  {previewProofs.map((proof, idx) => {
-                                    const previewSrc = proof?.thumbUrl || proof?.url || proof?.dataUrl || '';
-                                    return (
-                                      <button
-                                        key={proof?.proofDocId || proof?.id || idx}
-                                        type="button"
-                                        onClick={() => openProofImage(proof)}
-                                        className={`h-16 w-20 rounded-xl border overflow-hidden shrink-0 ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-100 border-slate-200'}`}
-                                        title="เปิดรูปหลักฐาน"
-                                      >
-                                        {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-cover" loading="lazy" /> : <div className={`h-full flex items-center justify-center text-[10px] font-black ${theme.textMuted}`}>รูป</div>}
-                                      </button>
-                                    );
-                                  })}
-                                  {totalProofs > previewProofs.length && (
-                                    <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`h-16 px-3 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>+{totalProofs - previewProofs.length}<br />รูป</button>
-                                  )}
+
+                              <div className="mt-3 flex flex-wrap items-baseline gap-2">
+                                <div className={`text-xs font-black uppercase tracking-wide ${theme.textMuted}`}>{isGroup ? 'รายการแบบกลุ่ม' : 'รายการเดี่ยว'}</div>
+                                <div className={`text-xl font-black leading-tight ${theme.textTitle}`}>{displayTitle}</div>
+                              </div>
+
+                              <div className={`mt-2 text-sm font-bold ${theme.textMuted}`}>
+                                {entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-'} • โดย {entry.staff || '-'}
+                              </div>
+
+                              {isGroup ? (
+                                <div className={`mt-3 rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                  <div className={`text-xs font-black mb-2 ${theme.textMuted}`}>อุปกรณ์ในกลุ่มนี้</div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {sampleItems.map((row, idx) => (
+                                      <span key={row.id || idx} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-slate-800/70 border-slate-700 text-slate-100' : 'bg-slate-100 border-slate-200 text-slate-800'}`}>
+                                        {row.itemName || '-'}{row.sn ? ` • ${row.sn}` : ''}
+                                      </span>
+                                    ))}
+                                    {extraItems > 0 && <span className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>+ อีก {extraItems} รายการ</span>}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className={`mt-3 rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                  <div className={`text-xs font-black ${theme.textMuted}`}>อุปกรณ์</div>
+                                  <div className={`mt-1 text-sm font-black ${theme.textTitle}`}>{entry.itemName || '-'}</div>
+                                  <div className={`mt-1 text-xs font-bold ${theme.textMuted}`}>S.N. {entry.sn || '-'}</div>
                                 </div>
                               )}
+
+                              <div className={`text-xs font-bold mt-3 ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง: {entry.subject || '-'}{isGroup && rowsInGroup.length > 3 ? ` • และอีก ${rowsInGroup.length - 3} รายการ` : ''}</div>
                             </div>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 shrink-0">
-                          <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-3 py-2 rounded-lg border text-sm font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
-                          <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2 rounded-lg bg-pink-600 text-white text-sm font-black">{isGroup ? 'เพิ่มรูปกลุ่ม' : 'เพิ่มรูป'}</button>
-                          {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className="px-3 py-2 rounded-lg bg-slate-800 text-white text-sm font-black">ดูรูป</button>}
+
+                        <div className={`rounded-2xl border p-3 min-h-[132px] flex flex-col justify-center ${isDarkMode ? 'bg-slate-950/55 border-slate-800' : 'bg-white border-slate-200'}`}>
+                          <div className="flex items-center justify-between gap-2 mb-3">
+                            <div className={`text-xs font-black ${theme.textMuted}`}>หลักฐานที่เกี่ยวข้อง</div>
+                            {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`px-2.5 py-1 rounded-lg border text-[11px] font-black ${theme.btnSecondary}`}>ดูทั้งหมด</button>}
+                          </div>
+                          {previewProofs.length > 0 ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4 gap-2">
+                              {previewProofs.map((proof, idx) => {
+                                const previewSrc = proof?.thumbUrl || proof?.url || proof?.dataUrl || '';
+                                return (
+                                  <button
+                                    key={proof?.proofDocId || proof?.id || idx}
+                                    type="button"
+                                    onClick={() => openProofImage(proof)}
+                                    className={`aspect-[4/3] rounded-2xl border overflow-hidden shrink-0 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'}`}
+                                    title="เปิดรูปหลักฐาน"
+                                  >
+                                    {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-cover" loading="lazy" /> : <div className={`h-full flex items-center justify-center text-[10px] font-black ${theme.textMuted}`}>รูป</div>}
+                                  </button>
+                                );
+                              })}
+                              {totalProofs > previewProofs.length && (
+                                <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`aspect-[4/3] rounded-2xl border text-xs font-black ${theme.btnSecondary}`}>+{totalProofs - previewProofs.length}<br />รูป</button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className={`rounded-2xl border border-dashed p-5 text-center text-sm font-black ${isDarkMode ? 'border-slate-700 text-slate-500' : 'border-slate-300 text-slate-400'}`}>
+                              ยังไม่มีรูปหลักฐานในรายการนี้
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex xl:flex-col gap-2 justify-start shrink-0">
+                          <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-4 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
+                          <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-sm font-black">{isGroup ? 'เพิ่มรูปกลุ่ม' : 'เพิ่มรูป'}</button>
+                          {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`px-4 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>ดูรูป</button>}
                         </div>
                       </div>
                     </div>
