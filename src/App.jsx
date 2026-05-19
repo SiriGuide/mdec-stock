@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.8 Central History Evidence Sync Fix';
+const APP_VERSION = 'v22.57.6.9 Central History Proof Restore Fix';
 const APP_UPDATE_NOTE = 'Dark Mode Only: ล็อกระบบให้ใช้โหมดมืดเป็นหลัก เอาปุ่มสลับโหมดสว่างออก และบังคับบันทึก theme เป็น dark โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -11832,7 +11832,9 @@ S.N.: ${item.sn || '-'}
                     const isGroup = historyGroupMode && rowsInGroup.length > 1;
                     const groupLinkedProofMap = new Map();
                     rowsInGroup.forEach(row => (row.linkedProofs || row.directProofs || row.rawHistory?.proofs || []).forEach((proof, idx) => groupLinkedProofMap.set(String(proof.proofDocId || proof.id || proof.docId || `${proof.createdAt || 'nodate'}_${idx}`), proof)));
-                    const totalProofs = groupLinkedProofMap.size || rowsInGroup.reduce((sum, row) => sum + Number(row.proofCount || 0), 0);
+                    const groupProofs = Array.from(groupLinkedProofMap.values()).filter(Boolean);
+                    const previewProofs = groupProofs.slice(0, 4);
+                    const totalProofs = groupProofs.length || rowsInGroup.reduce((sum, row) => sum + Number(row.proofCount || 0), 0);
                     return (
                     <div key={entry.groupKey || entry.id} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                       <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-3">
@@ -11852,6 +11854,27 @@ S.N.: ${item.sn || '-'}
                               <div className={`font-black text-lg truncate mt-2 ${theme.textTitle}`}>{isGroup ? (entry.subject && entry.subject !== '-' ? entry.subject : `${entry.typeLabel || 'ประวัติ'} ${rowsInGroup.length} รายการ`) : (entry.itemName || '-')}</div>
                               <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-'} • โดย {entry.staff || '-'} • {isGroup ? `ตัวอย่าง: ${rowsInGroup.slice(0, 3).map(row => row.itemName).join(' / ')}` : `S.N. ${entry.sn || '-'}`}</div>
                               <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง: {entry.subject || '-'}{isGroup && rowsInGroup.length > 3 ? ` • และอีก ${rowsInGroup.length - 3} รายการ` : ''}</div>
+                              {previewProofs.length > 0 && (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {previewProofs.map((proof, idx) => {
+                                    const previewSrc = proof?.thumbUrl || proof?.url || proof?.dataUrl || '';
+                                    return (
+                                      <button
+                                        key={proof?.proofDocId || proof?.id || idx}
+                                        type="button"
+                                        onClick={() => openProofImage(proof)}
+                                        className={`h-16 w-20 rounded-xl border overflow-hidden shrink-0 ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-100 border-slate-200'}`}
+                                        title="เปิดรูปหลักฐาน"
+                                      >
+                                        {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-cover" loading="lazy" /> : <div className={`h-full flex items-center justify-center text-[10px] font-black ${theme.textMuted}`}>รูป</div>}
+                                      </button>
+                                    );
+                                  })}
+                                  {totalProofs > previewProofs.length && (
+                                    <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`h-16 px-3 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>+{totalProofs - previewProofs.length}<br />รูป</button>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -12533,16 +12556,115 @@ S.N.: ${item.sn || '-'}
         return true;
       });
     };
+    const normalizeHistoryProofText = (value = '') => String(value || '').trim().toLowerCase();
+    const getProofDateKey = (value) => {
+      if (!value) return '';
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return '';
+      return parsed.toISOString().slice(0, 10);
+    };
+    const getProofDateMs = (value) => {
+      if (!value) return 0;
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+    };
+    const getDocTypeKey = (value = '') => {
+      const raw = String(value || '').toLowerCase();
+      if (raw.includes('return') || raw.includes('คืน')) return 'return';
+      if (raw.includes('event') || raw.includes('ออกงาน')) return 'event';
+      if (raw.includes('borrow') || raw.includes('ยืม')) return 'borrow';
+      return raw || 'other';
+    };
+
     const docProofMap = new Map();
+    const docProofRecords = [];
     (borrowเอกสารs || []).forEach((docData = {}) => {
       const proofs = Array.isArray(docData.proofs) ? docData.proofs : [];
       if (proofs.length === 0) return;
-      [docData.id, docData.ref, docData.documentId, docData.documentRef].filter(Boolean).forEach(key => {
-        const cleanKey = String(key);
-        if (!docProofMap.has(cleanKey)) docProofMap.set(cleanKey, []);
-        docProofMap.get(cleanKey).push(...proofs);
+      const docItems = Array.isArray(docData.items) ? docData.items : [];
+      const itemIds = new Set([
+        ...(Array.isArray(docData.itemIds) ? docData.itemIds : []),
+        ...docItems.map(it => it?.id || it?.itemId).filter(Boolean)
+      ].map(String));
+      const itemNames = docItems.flatMap(it => [it?.name, it?.sn, it?.serialNumber, it?.shortCode]).filter(Boolean);
+      const keys = [docData.id, docData.ref, docData.documentId, docData.documentRef, docData.docId].filter(Boolean).map(String);
+      keys.forEach(key => {
+        if (!docProofMap.has(key)) docProofMap.set(key, []);
+        docProofMap.get(key).push(...proofs);
+      });
+      docProofRecords.push({
+        docData,
+        proofs,
+        keys,
+        itemIds,
+        itemNames: itemNames.map(normalizeHistoryProofText),
+        typeKey: getDocTypeKey(docData.type || docData.docType || docData.title || docData.statusLabel),
+        dateKey: getProofDateKey(docData.date || docData.createdAt || docData.updatedAt),
+        dateMs: getProofDateMs(docData.date || docData.createdAt || docData.updatedAt),
+        searchText: normalizeHistoryProofText([
+          docData.id,
+          docData.ref,
+          docData.documentId,
+          docData.documentRef,
+          docData.title,
+          docData.type,
+          docData.borrower,
+          docData.subject,
+          docData.eventName,
+          docData.staffOut,
+          docData.staffIn,
+          docData.operatorName,
+          docData.note,
+          docData.statusLabel,
+          ...itemNames
+        ].filter(Boolean).join(' '))
       });
     });
+
+    const findDocumentProofsForHistory = (h = {}, item = {}) => {
+      const directKeys = [h.documentId, h.documentRef, h.docId, h.ref, h.borrowDocId, h.borrowDocRef]
+        .filter(Boolean)
+        .map(String);
+      const byDirectKey = directKeys.flatMap(key => docProofMap.get(key) || []);
+      const hTypeKey = getDocTypeKey(h.type || h.historyType || h.title);
+      const hDateKey = getProofDateKey(h.date || h.createdAt);
+      const hDateMs = getProofDateMs(h.date || h.createdAt);
+      const hText = normalizeHistoryProofText([
+        h.borrower,
+        h.eventName,
+        h.subject,
+        h.problem,
+        h.staffOut,
+        h.staffIn,
+        h.operatorName,
+        h.staff,
+        h.note,
+        item.name,
+        item.sn,
+        item.serialNumber,
+        item.shortCode
+      ].filter(Boolean).join(' '));
+      const itemId = String(item.id || '');
+      const itemTokens = [item.name, item.sn, item.serialNumber, item.shortCode].filter(Boolean).map(normalizeHistoryProofText).filter(Boolean);
+      const matched = docProofRecords.filter(doc => {
+        const refMatch = directKeys.some(key => doc.keys.includes(key));
+        if (refMatch) return true;
+        const itemMatch = (itemId && doc.itemIds.has(itemId)) || itemTokens.some(token => token && doc.searchText.includes(token));
+        if (!itemMatch) return false;
+        const typeMatch = !hTypeKey || !doc.typeKey || hTypeKey === 'other' || doc.typeKey === 'other' || hTypeKey === doc.typeKey;
+        const dateClose = !hDateMs || !doc.dateMs || Math.abs(hDateMs - doc.dateMs) <= 1000 * 60 * 60 * 36 || (hDateKey && hDateKey === doc.dateKey);
+        const subjectMatch = hText && doc.searchText && (
+          doc.searchText.includes(hText) ||
+          hText.includes(doc.searchText) ||
+          [h.borrower, h.eventName, h.subject, h.staffOut, h.staffIn, h.operatorName]
+            .filter(Boolean)
+            .map(normalizeHistoryProofText)
+            .some(token => token.length >= 3 && doc.searchText.includes(token))
+        );
+        return itemMatch && (refMatch || (typeMatch && dateClose) || subjectMatch);
+      }).flatMap(doc => doc.proofs || []);
+      return uniqueProofs([...byDirectKey, ...matched]);
+    };
 
     items.filter(i => i && !i.isDeleted).forEach((item) => {
       const historyList = Array.isArray(item.history) ? item.history : [];
@@ -12554,9 +12676,7 @@ S.N.: ${item.sn || '-'}
         const staff = h.staffOut || h.staffIn || h.operatorName || '-';
         const groupKey = h.date ? getHistoryGroupKey(h) : '';
         const directProofs = Array.isArray(h.proofs) ? h.proofs : [];
-        const documentProofs = [h.documentId, h.documentRef, h.docId, h.ref]
-          .filter(Boolean)
-          .flatMap(key => docProofMap.get(String(key)) || []);
+        const documentProofs = findDocumentProofsForHistory(h, item);
         rows.push({
           id: `${item.id}__history__${historyIndex}`,
           rawHistory: h,
