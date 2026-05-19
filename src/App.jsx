@@ -51,8 +51,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.21 Borrow Workspace Filter Polish';
-const APP_UPDATE_NOTE = 'Borrow Workspace Filter Polish: ปรับหน้าเลือกโหมดงานให้เข้ากับเว็บมากขึ้น และเพิ่มตัวกรองเลือกอุปกรณ์แบบค้นหา/เลือกหลายรายการ แยกฝ่าย หมวด ที่เก็บ โครงการ พร้อม quick filter โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
+const APP_VERSION = 'v22.57.6.22 Borrow Workspace Theme Unify';
+const APP_UPDATE_NOTE = 'Borrow Workspace Theme Unify: คุมธีมหน้ายืม/ออกงาน/รับคืนให้เป็นโทนเดียว ลดสีปุ่มที่โดดเกินไป และปรับหน้าเลือกอุปกรณ์/ตัวกรองให้ดูเป็น workspace เดียวกัน โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -10285,8 +10285,8 @@ S.N.: ${item.sn || '-'}
           icon: Icons.Truck,
           status: 'out-for-event',
           primaryBtn: 'bg-orange-600 hover:bg-orange-500',
-          activeClass: isDarkMode ? 'bg-orange-950/45 border-orange-700 text-orange-200' : 'bg-orange-50 border-orange-300 text-orange-800',
-          softClass: isDarkMode ? 'bg-orange-950/25 border-orange-800 text-orange-300' : 'bg-orange-50 border-orange-200 text-orange-800',
+          activeClass: isDarkMode ? 'bg-slate-800/95 border-slate-500 text-white' : 'bg-slate-100 border-slate-300 text-slate-900',
+          softClass: isDarkMode ? 'bg-slate-800/80 border-slate-600 text-slate-100' : 'bg-slate-100 border-slate-300 text-slate-800',
           stepLabel: 'กรอกชื่องานและผู้รับผิดชอบ'
         }
       : borrowReturnMode === 'return'
@@ -10299,8 +10299,8 @@ S.N.: ${item.sn || '-'}
             icon: Icons.CheckCircle,
             status: 'available',
             primaryBtn: 'bg-emerald-600 hover:bg-emerald-500',
-            activeClass: isDarkMode ? 'bg-emerald-950/45 border-emerald-700 text-emerald-200' : 'bg-emerald-50 border-emerald-300 text-emerald-800',
-            softClass: isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800',
+            activeClass: isDarkMode ? 'bg-slate-800/95 border-slate-500 text-white' : 'bg-slate-100 border-slate-300 text-slate-900',
+            softClass: isDarkMode ? 'bg-slate-800/80 border-slate-600 text-slate-100' : 'bg-slate-100 border-slate-300 text-slate-800',
             stepLabel: 'เลือกผู้รับคืนและเช็กของกลับ'
           }
         : {
@@ -10312,8 +10312,8 @@ S.N.: ${item.sn || '-'}
             icon: Icons.UserPlus,
             status: 'borrowed',
             primaryBtn: 'bg-blue-600 hover:bg-blue-500',
-            activeClass: isDarkMode ? 'bg-blue-950/45 border-blue-700 text-blue-200' : 'bg-blue-50 border-blue-300 text-blue-800',
-            softClass: isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-800',
+            activeClass: isDarkMode ? 'bg-slate-800/95 border-slate-500 text-white' : 'bg-slate-100 border-slate-300 text-slate-900',
+            softClass: isDarkMode ? 'bg-slate-800/80 border-slate-600 text-slate-100' : 'bg-slate-100 border-slate-300 text-slate-800',
             stepLabel: 'กรอกผู้ยืมและกำหนดคืน'
           };
 
@@ -10462,7 +10462,7 @@ S.N.: ${item.sn || '-'}
               <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
                 <button type="button" onClick={() => openSelectionScanner({ camera: true, returnWorkspace: 'borrowReturn' })} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center justify-center gap-2"><Icons.QrCode className="w-5 h-5" /> สแกน QR</button>
                 <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เอกสารย้อนหลัง</button>
-                {borrowReturnMode !== 'return' && <button type="button" onClick={() => openCameraAccessoryHelper(borrowReturnMode)} className="col-span-2 sm:col-span-1 px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black flex items-center justify-center gap-2"><Icons.Camera className="w-5 h-5" /> ตัวช่วยกล้อง</button>}
+                {borrowReturnMode !== 'return' && <button type="button" onClick={() => openCameraAccessoryHelper(borrowReturnMode)} className={`col-span-2 sm:col-span-1 px-4 py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100' : 'bg-slate-900 hover:bg-slate-800 border-slate-900 text-white'}`}><Icons.Camera className="w-5 h-5" /> ตัวช่วยกล้อง</button>}
               </div>
             </div>
 
@@ -10487,7 +10487,7 @@ S.N.: ${item.sn || '-'}
               <div className={`px-4 sm:px-5 py-3 border-b ${theme.divide}`}>
                 <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <div className={`text-[10px] font-black uppercase tracking-[0.22em] ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>Operation Control</div>
+                    <div className={`text-[10px] font-black uppercase tracking-[0.22em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Operation Control</div>
                     <h3 className={`text-base sm:text-lg font-black mt-1 ${theme.textTitle}`}>เลือกโหมดงาน</h3>
                     <p className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>แถบนี้ใช้เลือกงานหลัก ส่วนตัวกรองอุปกรณ์อยู่ด้านล่างเพื่อค้นหาของได้ไวขึ้น</p>
                   </div>
@@ -10504,16 +10504,16 @@ S.N.: ${item.sn || '-'}
                     const active = borrowReturnMode === id;
                     const modeShort = id === 'borrow' ? 'ยืม' : id === 'event' ? 'ออกงาน' : 'รับคืน';
                     const toneClasses = tone === 'orange'
-                      ? { active: 'bg-orange-500/12 border-orange-400/45 text-orange-100', dot: 'bg-orange-400', icon: 'text-orange-300 bg-orange-500/15 border-orange-400/30' }
+                      ? { active: 'bg-slate-800/95 border-orange-400/35 text-white', dot: 'bg-orange-400', icon: 'text-orange-300 bg-orange-500/12 border-orange-400/25' }
                       : tone === 'emerald'
-                        ? { active: 'bg-emerald-500/12 border-emerald-400/45 text-emerald-100', dot: 'bg-emerald-400', icon: 'text-emerald-300 bg-emerald-500/15 border-emerald-400/30' }
-                        : { active: 'bg-blue-500/13 border-blue-400/50 text-blue-100', dot: 'bg-blue-400', icon: 'text-blue-300 bg-blue-500/15 border-blue-400/30' };
+                        ? { active: 'bg-slate-800/95 border-emerald-400/35 text-white', dot: 'bg-emerald-400', icon: 'text-emerald-300 bg-emerald-500/12 border-emerald-400/25' }
+                        : { active: 'bg-slate-800/95 border-blue-400/35 text-white', dot: 'bg-blue-400', icon: 'text-blue-300 bg-blue-500/12 border-blue-400/25' };
                     return (
                       <button
                         key={id}
                         type="button"
                         onClick={() => { clearOperationSelection(); setBorrowReturnMode(id); }}
-                        className={`group relative overflow-hidden rounded-2xl border px-4 py-3 text-left transition-all ${active ? `${toneClasses.active} shadow-[0_10px_30px_rgba(0,0,0,0.25)]` : (isDarkMode ? 'bg-slate-900/70 border-slate-700/80 text-slate-300 hover:bg-slate-900 hover:border-slate-600' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-white')}`}
+                        className={`group relative overflow-hidden rounded-2xl border px-4 py-3 text-left transition-all ${active ? `${toneClasses.active} shadow-[0_12px_34px_rgba(0,0,0,0.28)] ring-1 ring-white/5` : (isDarkMode ? 'bg-slate-900/70 border-slate-700/80 text-slate-300 hover:bg-slate-900 hover:border-slate-600' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-white')}`}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${active ? toneClasses.icon : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
@@ -10522,10 +10522,10 @@ S.N.: ${item.sn || '-'}
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <span className={`h-2 w-2 rounded-full ${active ? toneClasses.dot : (isDarkMode ? 'bg-slate-600' : 'bg-slate-300')}`} />
-                              <span className={`text-[10px] font-black uppercase tracking-[0.18em] ${active ? 'text-white/80' : theme.textMuted}`}>{active ? 'ACTIVE' : `0${index + 1}`}</span>
+                              <span className={`text-[10px] font-black uppercase tracking-[0.18em] ${active ? 'text-slate-300' : theme.textMuted}`}>{active ? 'ACTIVE' : `0${index + 1}`}</span>
                             </div>
                             <div className={`mt-1 text-base font-black ${active ? '' : theme.textTitle}`}>{label}</div>
-                            <div className={`text-xs font-bold mt-0.5 ${active ? 'text-white/60' : theme.textMuted}`}>{desc}</div>
+                            <div className={`text-xs font-bold mt-0.5 ${active ? 'text-slate-400' : theme.textMuted}`}>{desc}</div>
                           </div>
                           <div className={`text-xs font-black rounded-full px-2.5 py-1 border ${active ? 'border-white/15 bg-white/10 text-white' : (isDarkMode ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500')}`}>{modeShort}</div>
                         </div>
@@ -10561,11 +10561,11 @@ S.N.: ${item.sn || '-'}
             </section>
 
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.12fr)_minmax(380px,.88fr)] gap-5 items-start">
-              <section className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <section className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/80 border-slate-800 shadow-[0_18px_55px_rgba(0,0,0,0.18)]' : 'bg-white border-slate-200 shadow-sm'}`}>
                 <div className={`p-4 border-b ${theme.divide}`}>
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>Equipment Picker</div>
+                      <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Equipment Picker</div>
                       <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>{borrowReturnMode === 'return' ? 'เลือกอุปกรณ์ที่รอรับคืน' : 'เลือกอุปกรณ์ที่พร้อมใช้งาน'}</h3>
                       <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ค้นหาได้จากชื่อ, S.N., รหัสสั้น, หมวด, ที่เก็บ, โครงการ, ฝ่าย, ผู้ยืม หรืองาน</p>
                     </div>
@@ -10675,7 +10675,7 @@ S.N.: ${item.sn || '-'}
                     return (
                       <button key={item.id} type="button" onClick={() => toggleOperationalItem(item.id)} className={`w-full p-3 rounded-2xl border text-left transition-all ${selected ? modeInfo.activeClass : (isDarkMode ? 'bg-slate-900/85 border-slate-800 hover:border-slate-600 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-blue-200')}`}>
                         <div className="grid grid-cols-[auto_minmax(0,1fr)] sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] gap-3 items-start">
-                          <span className={`mt-1 w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black ${selected ? `${toneBtn} border-transparent text-white` : isDarkMode ? 'border-slate-600 bg-slate-950' : 'border-slate-300 bg-white'}`}>{selected ? '✓' : ''}</span>
+                          <span className={`mt-1 w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black ${selected ? (isDarkMode ? 'bg-slate-200 border-slate-200 text-slate-950' : 'bg-slate-900 border-slate-900 text-white') : isDarkMode ? 'border-slate-600 bg-slate-950' : 'border-slate-300 bg-white'}`}>{selected ? '✓' : ''}</span>
                           <div className={`hidden sm:flex w-10 h-10 rounded-2xl border items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-white/15 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
                             <DeptIcon className="w-5 h-5" />
                           </div>
@@ -10748,7 +10748,7 @@ S.N.: ${item.sn || '-'}
                   )}
 
                   {borrowReturnMode !== 'return' && (
-                    <button type="button" onClick={() => openCameraAccessoryHelper(borrowReturnMode)} className="w-full px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black flex items-center justify-center gap-2"><Icons.Camera className="w-5 h-5" /> เพิ่มกล้องแบบมีตัวช่วย</button>
+                    <button type="button" onClick={() => openCameraAccessoryHelper(borrowReturnMode)} className={`w-full px-4 py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100' : 'bg-slate-900 hover:bg-slate-800 border-slate-900 text-white'}`}><Icons.Camera className="w-5 h-5" /> เพิ่มกล้องแบบมีตัวช่วย</button>
                   )}
 
                   {borrowReturnMode === 'borrow' && (
