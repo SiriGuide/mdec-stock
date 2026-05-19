@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.2 QR No Floating Bar / Cashier Beep';
-const APP_UPDATE_NOTE = 'QR No Floating Bar / Cashier Beep: ซ่อนแถบทำรายการลอยระหว่างอยู่หน้าสแกน QR เพื่อไม่บังกล้อง และเปลี่ยนเสียงสแกนสำเร็จเป็นเสียงบี๊บแบบเครื่องคิดเงิน โดยไม่แตะ QR Scanner core/Firebase path';
+const APP_VERSION = 'v22.57.6.3 QR Louder Seven-Style Beep';
+const APP_UPDATE_NOTE = 'QR Louder Seven-Style Beep: ปรับเสียงสแกนสำเร็จให้ยาวขึ้น ชัดขึ้น และฟีลเครื่องคิดเงิน/สแกนบาร์โค้ดมากขึ้น พร้อมคงการซ่อนแถบลอยหน้า QR โดยไม่แตะ QR Scanner core/Firebase path';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -14370,35 +14370,41 @@ S.N.: ${item.sn || '-'}
   };
 
   const playScanSuccessSound = () => {
-    // เสียงบี๊บแบบเครื่องคิดเงิน: สร้างด้วย Web Audio API ในเครื่อง ไม่โหลดไฟล์เสียงภายนอก
+    // เสียงสแกนสำเร็จแบบเครื่องคิดเงิน/สแกนบาร์โค้ด: ยาวขึ้นและดังขึ้นกว่ารอบก่อน
+    // ใช้ Web Audio API ในเครื่อง ไม่โหลดไฟล์เสียงภายนอก
     try {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextClass) return;
       const ctx = new AudioContextClass();
       const now = ctx.currentTime;
+
       const master = ctx.createGain();
       master.gain.setValueAtTime(0.0001, now);
-      master.gain.exponentialRampToValueAtTime(0.22, now + 0.01);
-      master.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+      master.gain.exponentialRampToValueAtTime(0.42, now + 0.018);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 0.58);
       master.connect(ctx.destination);
 
-      const tone = (freq, start, duration, gainValue = 0.18) => {
+      const playTone = ({ freq, start, duration, type = 'square', gainValue = 0.22 }) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'square';
+        osc.type = type;
         osc.frequency.setValueAtTime(freq, now + start);
         gain.gain.setValueAtTime(0.0001, now + start);
-        gain.gain.exponentialRampToValueAtTime(gainValue, now + start + 0.008);
+        gain.gain.exponentialRampToValueAtTime(gainValue, now + start + 0.012);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + start + duration);
         osc.connect(gain);
         gain.connect(master);
         osc.start(now + start);
-        osc.stop(now + start + duration + 0.02);
+        osc.stop(now + start + duration + 0.035);
       };
 
-      tone(1175, 0.00, 0.075, 0.18);
-      tone(1568, 0.085, 0.085, 0.16);
-      window.setTimeout(() => { try { ctx.close && ctx.close(); } catch(e) {} }, 420);
+      // ปิ๊บ-ติ๊ด แบบ POS scanner: มีหัวเสียงแหลมชัด แล้วตามด้วยเสียงสูงสั้น ๆ ให้จำได้ง่าย
+      playTone({ freq: 1046.5, start: 0.00, duration: 0.16, type: 'square', gainValue: 0.24 });
+      playTone({ freq: 1318.5, start: 0.02, duration: 0.14, type: 'sine', gainValue: 0.12 });
+      playTone({ freq: 1568.0, start: 0.18, duration: 0.13, type: 'square', gainValue: 0.22 });
+      playTone({ freq: 2093.0, start: 0.31, duration: 0.10, type: 'triangle', gainValue: 0.13 });
+
+      window.setTimeout(() => { try { ctx.close && ctx.close(); } catch(e) {} }, 760);
     } catch(e) {}
   };
 
