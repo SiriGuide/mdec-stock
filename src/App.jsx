@@ -11954,7 +11954,7 @@ S.N.: ${item.sn || '-'}
                                     className={`aspect-[4/3] rounded-2xl border overflow-hidden shrink-0 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'}`}
                                     title="เปิดรูปหลักฐาน"
                                   >
-                                    {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-cover" loading="lazy" /> : <div className={`h-full flex items-center justify-center text-[10px] font-black ${theme.textMuted}`}>รูป</div>}
+                                    {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-contain p-1" loading="lazy" /> : <div className={`h-full flex items-center justify-center text-[10px] font-black ${theme.textMuted}`}>รูป</div>}
                                   </button>
                                 );
                               })}
