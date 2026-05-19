@@ -51,8 +51,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.18 Admin Purge Confirm UX Fix';
-const APP_UPDATE_NOTE = 'Admin Purge Confirm UX Fix: ปรับ popup ลบถาวรให้ไม่ต้องจำ/พิมพ์คำยืนยัน ใช้ confirm สองชั้นพร้อมข้อความเตือนชัดเจน โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
+const APP_VERSION = 'v22.57.6.19 Compact Operation Steps';
+const APP_UPDATE_NOTE = 'Compact Operation Steps: ลดแถบขั้นตอนยืม/ออกงาน/รับคืนที่ใหญ่เทอะทะให้เป็นแถบสถานะขนาดเล็ก อ่านง่าย ไม่กินพื้นที่ โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -10468,17 +10468,26 @@ S.N.: ${item.sn || '-'}
               })}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-              {stepCards.map(([no, label, value, done]) => (
-                <div key={no} className={`p-3 rounded-2xl border ${done ? modeInfo.softClass : (isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-700')}`}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black ${done ? modeInfo.primaryBtn + ' text-white' : isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{no}</span>
-                    <span className="text-[11px] font-black opacity-70">{done ? 'OK' : 'WAIT'}</span>
+            <div className={`rounded-[1.35rem] border px-3.5 py-3 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className={`text-xs font-black ${theme.textMuted}`}>ขั้นตอนรายการ</div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {stepCards.map(([no, label, value, done], index) => (
+                      <div key={no} className="flex items-center gap-2">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-black ${done ? modeInfo.softClass : (isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500')}`}>
+                          <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${done ? modeInfo.primaryBtn + ' text-white' : isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>{no}</span>
+                          {label}
+                        </span>
+                        {index < stepCards.length - 1 && <span className={`${isDarkMode ? 'text-slate-700' : 'text-slate-300'} hidden sm:inline`}>›</span>}
+                      </div>
+                    ))}
                   </div>
-                  <div className="text-xs font-black mt-2">{label}</div>
-                  <div className="text-[11px] font-bold mt-0.5 opacity-75">{value}</div>
                 </div>
-              ))}
+                <div className={`shrink-0 rounded-2xl border px-3 py-2 text-sm font-black ${isReadyToSubmit ? modeInfo.softClass : (isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700')}`}>
+                  {isReadyToSubmit ? 'พร้อมบันทึกรายการ' : `ยังขาด: ${missingSteps.slice(0, 2).join(' / ')}${missingSteps.length > 2 ? ' ...' : ''}`}
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.12fr)_minmax(380px,.88fr)] gap-5 items-start">
