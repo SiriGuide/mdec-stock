@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.3 QR Louder Seven-Style Beep';
-const APP_UPDATE_NOTE = 'QR Louder Seven-Style Beep: ปรับเสียงสแกนสำเร็จให้ยาวขึ้น ชัดขึ้น และฟีลเครื่องคิดเงิน/สแกนบาร์โค้ดมากขึ้น พร้อมคงการซ่อนแถบลอยหน้า QR โดยไม่แตะ QR Scanner core/Firebase path';
+const APP_VERSION = 'v22.57.6.4 Department Color Identity Polish';
+const APP_UPDATE_NOTE = 'Department Color Identity Polish: เพิ่มสีประจำฝ่ายแบบคุมโทนในหน้าคลังอุปกรณ์และรายการที่เลือกจาก QR โดยใช้สีเฉพาะไอคอน/badge/เส้น accent เพื่อแยกฝ่ายง่ายขึ้น ไม่ย้อมทั้งแถว และไม่แตะ QR Scanner core/Firebase path';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -114,6 +114,125 @@ const DEPARTMENTS = [
   { id: 'ห้องประชุม', label: 'ห้องประชุม', color: 'bg-sky-100 text-sky-700', darkColor: 'bg-sky-900/40 text-sky-400', iconName: 'Users', iconColor: 'text-sky-500' },
   { id: 'ob-live', label: 'OB-LIVE', color: 'bg-violet-100 text-violet-700', darkColor: 'bg-violet-900/40 text-violet-400', iconName: 'Signal', iconColor: 'text-violet-500' }
 ];
+
+
+// ===== v22.57.6.4 Department Color Identity Helper =====
+const getInventoryDeptIdentity = (item = {}) => {
+  const raw = [
+    item.department,
+    item.category,
+    item.name,
+    item.location,
+    item.project
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  if (
+    raw.includes('เครื่องเสียง') ||
+    raw.includes('ลำโพง') ||
+    raw.includes('ไมค์') ||
+    raw.includes('ขาไมค์') ||
+    raw.includes('sound') ||
+    raw.includes('audio')
+  ) {
+    return {
+      key: 'sound',
+      label: 'เครื่องเสียง',
+      iconName: 'Speaker',
+      iconWrap: 'bg-cyan-500/15 border-cyan-400/30 text-cyan-300',
+      badge: 'bg-cyan-500/15 border-cyan-400/25 text-cyan-200',
+      accent: '#22d3ee'
+    };
+  }
+
+  if (
+    raw.includes('ภาพนิ่ง') ||
+    raw.includes('กล้องถ่ายภาพ') ||
+    raw.includes('photo') ||
+    raw.includes('still')
+  ) {
+    return {
+      key: 'photo',
+      label: 'ภาพนิ่ง',
+      iconName: 'Camera',
+      iconWrap: 'bg-sky-500/15 border-sky-400/30 text-sky-300',
+      badge: 'bg-sky-500/15 border-sky-400/25 text-sky-200',
+      accent: '#38bdf8'
+    };
+  }
+
+  if (
+    raw.includes('วิดีโอ') ||
+    raw.includes('video') ||
+    raw.includes('กิมบอล') ||
+    raw.includes('โดรน')
+  ) {
+    return {
+      key: 'video',
+      label: 'วิดีโอ',
+      iconName: 'VideoCamera',
+      iconWrap: 'bg-violet-500/15 border-violet-400/30 text-violet-300',
+      badge: 'bg-violet-500/15 border-violet-400/25 text-violet-200',
+      accent: '#a78bfa'
+    };
+  }
+
+  if (
+    raw.includes('ob') ||
+    raw.includes('live') ||
+    raw.includes('switcher') ||
+    raw.includes('สวิต') ||
+    raw.includes('led')
+  ) {
+    return {
+      key: 'ob',
+      label: 'OB / Live',
+      iconName: 'Signal',
+      iconWrap: 'bg-orange-500/15 border-orange-400/30 text-orange-300',
+      badge: 'bg-orange-500/15 border-orange-400/25 text-orange-200',
+      accent: '#fb923c'
+    };
+  }
+
+  if (
+    raw.includes('ห้องประชุม') ||
+    raw.includes('ราชพฤกษ์') ||
+    raw.includes('สุพรรณิการ์') ||
+    raw.includes('meeting')
+  ) {
+    return {
+      key: 'meeting',
+      label: 'ห้องประชุม',
+      iconName: 'Users',
+      iconWrap: 'bg-emerald-500/15 border-emerald-400/30 text-emerald-300',
+      badge: 'bg-emerald-500/15 border-emerald-400/25 text-emerald-200',
+      accent: '#34d399'
+    };
+  }
+
+  if (
+    raw.includes('ไฟ') ||
+    raw.includes('แสง') ||
+    raw.includes('lighting')
+  ) {
+    return {
+      key: 'light',
+      label: 'แสง',
+      iconName: 'Sun',
+      iconWrap: 'bg-amber-500/15 border-amber-400/30 text-amber-300',
+      badge: 'bg-amber-500/15 border-amber-400/25 text-amber-200',
+      accent: '#facc15'
+    };
+  }
+
+  return {
+    key: 'default',
+    label: item.department || 'ไม่ระบุฝ่าย',
+    iconName: 'Package',
+    iconWrap: 'bg-slate-500/15 border-slate-400/20 text-slate-300',
+    badge: 'bg-slate-500/15 border-slate-400/20 text-slate-200',
+    accent: '#64748b'
+  };
+};
 
 
 const ASSET_STATUSES = [
@@ -11457,8 +11576,8 @@ S.N.: ${item.sn || '-'}
                     </thead>
                     <tbody>
                       {inventoryRows.map((item) => {
-                        const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || DEPARTMENTS[0];
-                        const DeptIcon = Icons[deptInfo.iconName] || Icons.Package;
+                        const deptUI = getInventoryDeptIdentity(item);
+                        const DeptIcon = Icons[deptUI.iconName] || Icons.Package;
                         const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
                         const assetInfo = getAssetStatusInfo(item.assetStatus);
                         const proofCount = getItemProofCount(item);
@@ -11472,7 +11591,10 @@ S.N.: ${item.sn || '-'}
                             </td>
                             <td className="inventory-row-name-cell px-4 py-4">
                               <div className="flex items-start gap-3 min-w-0">
-                                <div className={`inventory-row-icon mt-0.5 w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${isDarkMode ? `${deptInfo.darkColor || 'bg-slate-900 text-blue-300'} border-slate-700` : `${deptInfo.color || 'bg-blue-50 text-blue-700'} border-slate-200`}`}>
+                                <div
+                                  className={`inventory-row-icon mt-0.5 w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${deptUI.iconWrap}`}
+                                  style={{ boxShadow: `inset 3px 0 0 ${deptUI.accent}55` }}
+                                >
                                   <DeptIcon className="w-5 h-5" />
                                 </div>
                                 <div className="min-w-0">
@@ -11484,7 +11606,7 @@ S.N.: ${item.sn || '-'}
                             </td>
                             <td className="px-4 py-4">
                               <div className={`font-bold ${theme.textMuted}`}>{item.category || '-'}</div>
-                              <span className={`inline-block mt-1 px-2.5 py-1 rounded-lg text-xs font-black ${isDarkMode ? deptInfo.darkColor : deptInfo.color}`}>{deptInfo.label}</span>
+                              <span className={`inline-flex mt-1 px-2.5 py-1 rounded-lg text-xs font-black border ${deptUI.badge}`}>{item.department || deptUI.label || 'ไม่ระบุฝ่าย'}</span>
                             </td>
                             <td className="px-4 py-4">
                               <div className={`font-bold ${theme.textMuted}`}>{item.location || '-'}</div>
@@ -14347,6 +14469,8 @@ S.N.: ${item.sn || '-'}
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
+
+
   const openReturnForItems = (ids = []) => {
     if (!requireOperationalAccess('รับคืนอุปกรณ์')) return;
     const validIds = Array.from(new Set((ids || []).filter(id => {
@@ -14368,57 +14492,43 @@ S.N.: ${item.sn || '-'}
   };
 
   const playScanSuccessSound = () => {
-  try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    const ctx = new AudioContext();
-    const now = ctx.currentTime;
+    // เสียงสแกนสำเร็จแบบเครื่องคิดเงิน/สแกนบาร์โค้ด: ยาวขึ้นและดังขึ้นกว่ารอบก่อน
+    // ใช้ Web Audio API ในเครื่อง ไม่โหลดไฟล์เสียงภายนอก
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      const now = ctx.currentTime;
 
-    const master = ctx.createGain();
-    master.gain.setValueAtTime(0.0001, now);
-    master.gain.exponentialRampToValueAtTime(0.85, now + 0.01);
-    master.gain.exponentialRampToValueAtTime(0.55, now + 0.06);
-    master.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
-    master.connect(ctx.destination);
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.exponentialRampToValueAtTime(0.42, now + 0.018);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 0.58);
+      master.connect(ctx.destination);
 
-    // เสียงหลัก: ปี๊บแหลมแบบเครื่องสแกน
-    const osc1 = ctx.createOscillator();
-    osc1.type = 'square';
-    osc1.frequency.setValueAtTime(1850, now);
-    osc1.frequency.setValueAtTime(2100, now + 0.045);
-    osc1.frequency.setValueAtTime(1900, now + 0.11);
+      const playTone = ({ freq, start, duration, type = 'square', gainValue = 0.22 }) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now + start);
+        gain.gain.setValueAtTime(0.0001, now + start);
+        gain.gain.exponentialRampToValueAtTime(gainValue, now + start + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + start + duration);
+        osc.connect(gain);
+        gain.connect(master);
+        osc.start(now + start);
+        osc.stop(now + start + duration + 0.035);
+      };
 
-    const gain1 = ctx.createGain();
-    gain1.gain.setValueAtTime(0.9, now);
+      // ปิ๊บ-ติ๊ด แบบ POS scanner: มีหัวเสียงแหลมชัด แล้วตามด้วยเสียงสูงสั้น ๆ ให้จำได้ง่าย
+      playTone({ freq: 1046.5, start: 0.00, duration: 0.16, type: 'square', gainValue: 0.24 });
+      playTone({ freq: 1318.5, start: 0.02, duration: 0.14, type: 'sine', gainValue: 0.12 });
+      playTone({ freq: 1568.0, start: 0.18, duration: 0.13, type: 'square', gainValue: 0.22 });
+      playTone({ freq: 2093.0, start: 0.31, duration: 0.10, type: 'triangle', gainValue: 0.13 });
 
-    osc1.connect(gain1);
-    gain1.connect(master);
-
-    // เสียงซ้อนบาง ๆ ให้รู้สึกเป็น "ปิ๊ป" แบบเครื่องคิดเงิน
-    const osc2 = ctx.createOscillator();
-    osc2.type = 'triangle';
-    osc2.frequency.setValueAtTime(1200, now + 0.015);
-    osc2.frequency.setValueAtTime(1450, now + 0.08);
-
-    const gain2 = ctx.createGain();
-    gain2.gain.setValueAtTime(0.18, now);
-    gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
-
-    osc2.connect(gain2);
-    gain2.connect(master);
-
-    osc1.start(now);
-    osc2.start(now + 0.01);
-
-    osc1.stop(now + 0.28);
-    osc2.stop(now + 0.20);
-
-    setTimeout(() => {
-      ctx.close().catch(() => {});
-    }, 350);
-  } catch (error) {
-    console.warn('scan beep error', error);
-  }
-};
+      window.setTimeout(() => { try { ctx.close && ctx.close(); } catch(e) {} }, 760);
+    } catch(e) {}
+  };
 
   const playScanErrorSound = () => {
     try {
@@ -18611,12 +18721,26 @@ S.N.: ${item.sn || '-'}
                               <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
                                 {scannedSelection.map(item => {
                                   const st = STATUSES.find(s => s.id === item.status) || STATUSES[0];
+                                  const deptUI = getInventoryDeptIdentity(item);
+                                  const DeptIcon = Icons[deptUI.iconName] || Icons.Package;
                                   return (
-                                    <div key={item.id} className={`p-3 rounded-2xl border flex items-start justify-between gap-3 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                                      <div className="min-w-0">
-                                        <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
-                                        <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • {item.location || 'ไม่ระบุที่เก็บ'}</div>
-                                        <span className={`inline-flex mt-2 px-2.5 py-1 rounded-full text-[11px] font-black border ${isDarkMode ? st.darkColor : st.color}`}>{st.label}</span>
+                                    <div
+                                      key={item.id}
+                                      className={`p-3 rounded-2xl border flex items-start justify-between gap-3 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}
+                                      style={{ borderLeft: `3px solid ${deptUI.accent}` }}
+                                    >
+                                      <div className="flex items-start gap-3 min-w-0">
+                                        <div className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 border ${deptUI.iconWrap}`}>
+                                          <DeptIcon className="w-4 h-4" />
+                                        </div>
+                                        <div className="min-w-0">
+                                          <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
+                                          <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • {item.location || 'ไม่ระบุที่เก็บ'}</div>
+                                          <div className="flex flex-wrap gap-1.5 mt-2">
+                                            <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-black border ${deptUI.badge}`}>{item.department || deptUI.label || 'ไม่ระบุฝ่าย'}</span>
+                                            <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-black border ${isDarkMode ? st.darkColor : st.color}`}>{st.label}</span>
+                                          </div>
+                                        </div>
                                       </div>
                                       <button
                                         type="button"
