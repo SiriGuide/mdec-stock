@@ -1,3 +1,4 @@
+// v22.57.6.14 Admin Delete Borrow Documents - แอดมินลบเอกสารย้อนหลังเฉพาะรายการได้, ไม่แตะสถานะอุปกรณ์/หลักฐาน/QR/Firebase path
 // v22.53.26 Data Quality Center Polish - gallery, filters, proof cards and empty states, no QR scanner/camera/database path changes
 // v22.53.17 Operational Slip Clean Design - fixed clean A4 borrow/event/return documents, removes before-print logo/watermark controls, no QR/camera/database path changes
 // v22.53.24 QR Label Print Polish - final visual balance for operational print forms, no QR/camera/database path changes
@@ -7351,6 +7352,38 @@ function MainApp() {
     });
   };
 
+  const handleDeleteBorrowเอกสาร = async (docData) => {
+    if (!docData) return;
+    if (!canDeleteItems) return alert('❌ ต้องเป็นแอดมินหรือผู้ดูแลระบบเท่านั้น จึงจะลบเอกสารย้อนหลังได้');
+    const docId = docData.id || docData.ref;
+    if (!docId) return alert('❌ ไม่พบรหัสเอกสารที่จะลบ');
+    const label = docData.ref || docData.id || docData.title || 'เอกสารนี้';
+    const itemCount = Array.isArray(docData.items) ? docData.items.length : (Array.isArray(docData.itemIds) ? docData.itemIds.length : 0);
+    const status = docData.status || 'active';
+    const isOpen = !status || status === 'active' || status === 'partial';
+    const warning = isOpen
+      ? `
+
+⚠️ เอกสารนี้ยังมีสถานะ "${docData.statusLabel || status || 'รอคืน'}" การลบนี้จะลบเฉพาะเอกสารย้อนหลัง ไม่ได้เปลี่ยนสถานะอุปกรณ์และไม่ได้ลบประวัติในแฟ้มอุปกรณ์`
+      : '
+
+การลบนี้จะลบเฉพาะเอกสารย้อนหลัง ไม่ได้ลบประวัติในแฟ้มอุปกรณ์หรือหลักฐานรูปภาพ';
+    const ok = window.confirm(`ยืนยันลบเอกสารย้อนหลัง ${label} ?
+รายการในเอกสาร: ${itemCount.toLocaleString('th-TH')} ชิ้น${warning}`);
+    if (!ok) return;
+    try {
+      await deleteDoc(getBorrowDoc(docId));
+      logAction('ลบเอกสารย้อนหลัง', `ลบเอกสาร ${label}`, `ลบโดย: ${currentAccountLabel}
+ประเภท: ${docData.title || docData.type || '-'}
+รายการ: ${itemCount} ชิ้น
+หมายเหตุ: ลบเฉพาะเอกสารย้อนหลัง ไม่แตะประวัติอุปกรณ์/หลักฐาน/สถานะอุปกรณ์`);
+      pushToast('ลบเอกสารย้อนหลังแล้ว', `${label} ถูกลบออกจากรายการเอกสารย้อนหลัง`, 'warning');
+    } catch (error) {
+      console.error(error);
+      alert('❌ ลบเอกสารย้อนหลังไม่สำเร็จ: ' + (error?.message || error));
+    }
+  };
+
   const saveเอกสารSettings = async (patch = {}) => {
     const nextเอกสารSettings = { ...DEFAULT_DOCUMENT_SETTINGS, ...(settingsOptions.documentSettings || {}), ...patch };
     const nextSettings = { ...settingsOptions, documentSettings: nextเอกสารSettings };
@@ -11789,9 +11822,12 @@ S.N.: ${item.sn || '-'}
                           <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{docData.borrower || docData.subject || docData.eventName || '-'} • {docData.date ? new Date(docData.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
                           <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>รายการ {(docData.items?.length || docData.itemIds?.length || 0).toLocaleString('th-TH')} ชิ้น • {docData.statusLabel || docData.status || '-'}</div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 shrink-0">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 shrink-0">
                           <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-black">พิมพ์/Preview</button>
                           <button type="button" onClick={() => { setHistoryCenterSearch(docData.ref || docData.borrower || ''); setRecordsCenterMode('history'); }} className={`px-3 py-2 rounded-lg border text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
+                          {canDeleteItems && (
+                            <button type="button" onClick={() => handleDeleteBorrowเอกสาร(docData)} className={`col-span-2 lg:col-span-1 px-3 py-2 rounded-lg border text-sm font-black ${isDarkMode ? 'bg-rose-950/35 border-rose-800/70 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>ลบ</button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -24732,6 +24768,11 @@ S.N.: ${item.sn || '-'}
                           <button type="button" onClick={() => { setShowBorrowDocsModal(false); setTrackingTab('today'); setShowTrackingCenterModal(true); }} className={`px-4 py-3 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
                             ติดตามการคืน
                           </button>
+                          {canDeleteItems && (
+                            <button type="button" onClick={() => handleDeleteBorrowเอกสาร(docData)} className={`px-4 py-3 rounded-2xl border font-black transition-all ${isDarkMode ? 'bg-rose-950/35 border-rose-800/70 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>
+                              ลบเอกสารนี้
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
