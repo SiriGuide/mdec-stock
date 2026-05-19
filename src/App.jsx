@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.7 Central History / Group Evidence / Admin Cleanup';
+const APP_VERSION = 'v22.57.6.8 Central History Evidence Sync Fix';
 const APP_UPDATE_NOTE = 'Dark Mode Only: ล็อกระบบให้ใช้โหมดมืดเป็นหลัก เอาปุ่มสลับโหมดสว่างออก และบังคับบันทึก theme เป็น dark โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -11830,7 +11830,9 @@ S.N.: ${item.sn || '-'}
                   {filteredHistoryCenterEntries.length === 0 ? <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบประวัติ</div> : groupedHistoryCenterEntries.slice(0, 180).map(entry => {
                     const rowsInGroup = entry.groupRows || [entry];
                     const isGroup = historyGroupMode && rowsInGroup.length > 1;
-                    const totalProofs = rowsInGroup.reduce((sum, row) => sum + Number(row.proofCount || 0), 0);
+                    const groupLinkedProofMap = new Map();
+                    rowsInGroup.forEach(row => (row.linkedProofs || row.directProofs || row.rawHistory?.proofs || []).forEach((proof, idx) => groupLinkedProofMap.set(String(proof.proofDocId || proof.id || proof.docId || `${proof.createdAt || 'nodate'}_${idx}`), proof)));
+                    const totalProofs = groupLinkedProofMap.size || rowsInGroup.reduce((sum, row) => sum + Number(row.proofCount || 0), 0);
                     return (
                     <div key={entry.groupKey || entry.id} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                       <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-3">
@@ -11856,7 +11858,7 @@ S.N.: ${item.sn || '-'}
                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 shrink-0">
                           <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-3 py-2 rounded-lg border text-sm font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
                           <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2 rounded-lg bg-pink-600 text-white text-sm font-black">{isGroup ? 'เพิ่มรูปกลุ่ม' : 'เพิ่มรูป'}</button>
-                          {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.sn || entry.itemName || entry.subject || ''); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className="px-3 py-2 rounded-lg bg-slate-800 text-white text-sm font-black">ดูรูป</button>}
+                          {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className="px-3 py-2 rounded-lg bg-slate-800 text-white text-sm font-black">ดูรูป</button>}
                         </div>
                       </div>
                     </div>
@@ -12516,6 +12518,32 @@ S.N.: ${item.sn || '-'}
 
   const allHistoryCenterEntries = useMemo(() => {
     const rows = [];
+    const localProofKey = (proof = {}) => String(
+      proof.proofDocId ||
+      proof.id ||
+      proof.docId ||
+      `${proof.createdAt || 'nodate'}_${proof.originalName || ''}_${proof.sizeBytes || ''}_${String(proof.thumbUrl || proof.url || proof.dataUrl || '').slice(0, 96)}`
+    );
+    const uniqueProofs = (proofList = []) => {
+      const seen = new Set();
+      return proofList.filter(proof => {
+        const key = localProofKey(proof);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    };
+    const docProofMap = new Map();
+    (borrowเอกสารs || []).forEach((docData = {}) => {
+      const proofs = Array.isArray(docData.proofs) ? docData.proofs : [];
+      if (proofs.length === 0) return;
+      [docData.id, docData.ref, docData.documentId, docData.documentRef].filter(Boolean).forEach(key => {
+        const cleanKey = String(key);
+        if (!docProofMap.has(cleanKey)) docProofMap.set(cleanKey, []);
+        docProofMap.get(cleanKey).push(...proofs);
+      });
+    });
+
     items.filter(i => i && !i.isDeleted).forEach((item) => {
       const historyList = Array.isArray(item.history) ? item.history : [];
       historyList.forEach((h, historyIndex) => {
@@ -12525,6 +12553,10 @@ S.N.: ${item.sn || '-'}
         const subject = h.borrower || h.eventName || h.problem || h.staffIn || h.note || '-';
         const staff = h.staffOut || h.staffIn || h.operatorName || '-';
         const groupKey = h.date ? getHistoryGroupKey(h) : '';
+        const directProofs = Array.isArray(h.proofs) ? h.proofs : [];
+        const documentProofs = [h.documentId, h.documentRef, h.docId, h.ref]
+          .filter(Boolean)
+          .flatMap(key => docProofMap.get(String(key)) || []);
         rows.push({
           id: `${item.id}__history__${historyIndex}`,
           rawHistory: h,
@@ -12542,7 +12574,10 @@ S.N.: ${item.sn || '-'}
           subject,
           staff,
           note: h.note || h.problem || '',
-          proofCount: Array.isArray(h.proofs) ? h.proofs.length : 0,
+          directProofs,
+          documentProofs,
+          linkedProofs: [],
+          proofCount: 0,
           groupKey,
         });
       });
@@ -12558,10 +12593,16 @@ S.N.: ${item.sn || '-'}
     return rows
       .map(row => {
         const groupRows = row.groupKey ? (historyGroupMap.get(row.groupKey) || [row]) : [row];
-        return { ...row, groupCount: groupRows.length, groupRows };
+        const linkedProofs = uniqueProofs([
+          ...(row.directProofs || []),
+          ...(row.documentProofs || []),
+          ...groupRows.flatMap(groupRow => groupRow.directProofs || []),
+          ...groupRows.flatMap(groupRow => groupRow.documentProofs || [])
+        ]);
+        return { ...row, proofCount: linkedProofs.length, linkedProofs, groupCount: groupRows.length, groupRows };
       })
       .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-  }, [items]);
+  }, [items, borrowเอกสารs]);
 
   const filteredHistoryCenterEntries = useMemo(() => {
     const keyword = String(historyCenterSearch || '').toLowerCase().trim();
@@ -12626,8 +12667,41 @@ S.N.: ${item.sn || '-'}
         });
       });
     });
+    // เพิ่มรูปที่แนบอยู่กับเอกสารย้อนหลังโดยตรง เผื่อข้อมูลเก่าบางรายการยังไม่ได้ฝัง proofs ลง history รายชิ้น
+    (borrowเอกสารs || []).forEach((docData, docIndex) => {
+      const proofs = Array.isArray(docData.proofs) ? docData.proofs : [];
+      if (proofs.length === 0) return;
+      const relatedItems = (docData.itemIds || docData.items?.map(it => it.id) || [])
+        .map(id => items.find(item => item.id === id))
+        .filter(Boolean);
+      const targets = relatedItems.length > 0 ? relatedItems : [docData.items?.[0] || {}];
+      proofs.forEach((proof, proofIndex) => {
+        targets.forEach((item, itemIndex) => {
+          const type = docData.type || 'other';
+          const typeLabel = type === 'borrow' ? 'ยืม' : type === 'event' ? 'ออกงาน' : type === 'return' ? 'รับคืน' : type === 'repair' || type === 'repair-done' ? 'ซ่อม' : 'อื่น ๆ';
+          entries.push({
+            id: `${item.id || docData.id || docData.ref || 'doc'}_doc_${docIndex}_${itemIndex}_${proof.id || proof.proofDocId || proofIndex}`,
+            itemId: item.id,
+            itemName: item.name || docData.items?.[proofIndex]?.name || docData.subject || docData.title || '-',
+            sn: item.sn || docData.items?.[proofIndex]?.sn || '-',
+            department: item.department || docData.items?.[proofIndex]?.department || '-',
+            category: item.category || docData.items?.[proofIndex]?.category || '-',
+            location: item.location || docData.items?.[proofIndex]?.location || '-',
+            storageBoxName: item.storageBoxName || docData.items?.[proofIndex]?.storageBoxName || '',
+            historyIndex: `doc_${docIndex}_${itemIndex}`,
+            historyType: type,
+            typeLabel,
+            date: docData.date || docData.createdAt || proof.createdAt || '',
+            subject: docData.subject || docData.borrower || docData.eventName || '-',
+            staff: docData.staffOut || docData.staffIn || proof.createdBy || '-',
+            note: docData.note || '',
+            proof
+          });
+        });
+      });
+    });
     return entries.sort((a, b) => new Date(b.date || b.proof?.createdAt || 0) - new Date(a.date || a.proof?.createdAt || 0));
-  }, [items]);
+  }, [items, borrowเอกสารs]);
 
   const filteredProofEntries = useMemo(() => {
     const keyword = String(proofCenterSearch || '').toLowerCase().trim();
