@@ -11831,7 +11831,52 @@ S.N.: ${item.sn || '-'}
                     const rowsInGroup = entry.groupRows || [entry];
                     const isGroup = historyGroupMode && rowsInGroup.length > 1;
                     const groupLinkedProofMap = new Map();
-                    rowsInGroup.forEach(row => (row.linkedProofs || row.directProofs || row.rawHistory?.proofs || []).forEach((proof, idx) => groupLinkedProofMap.set(String(proof.proofDocId || proof.id || proof.docId || `${proof.createdAt || 'nodate'}_${idx}`), proof)));
+                    rowsInGroup.forEach(row => (row.linkedProofs || row.directProofs || row.documentProofs || row.rawHistory?.proofs || []).forEach((proof, idx) => groupLinkedProofMap.set(String(proof.proofDocId || proof.id || proof.docId || `${proof.createdAt || 'nodate'}_${idx}`), proof)));
+
+                    // v22.57.6.10: fallback ดึงรูปจากศูนย์หลักฐานโดยตรง
+                    // บางข้อมูลเก่าเก็บรูปไว้ในเอกสารย้อนหลัง/ศูนย์หลักฐาน แต่ไม่ได้ฝังกลับเข้า history.proofs
+                    // ทำให้ tab หลักฐานเห็นรูป แต่ tab ประวัติไม่เห็นรูป จึง match ซ้ำจาก dedupedProofGroups ตอน render การ์ด
+                    const rowSearchTokens = rowsInGroup.flatMap((row = {}) => [
+                      row.itemId,
+                      row.itemName,
+                      row.sn,
+                      row.category,
+                      row.location,
+                      row.subject,
+                      row.staff,
+                      row.note,
+                      row.rawHistory?.borrower,
+                      row.rawHistory?.eventName,
+                      row.rawHistory?.staffOut,
+                      row.rawHistory?.staffIn,
+                      row.rawHistory?.operatorName,
+                      row.rawHistory?.documentRef,
+                      row.rawHistory?.documentId,
+                      row.rawHistory?.ref
+                    ]).filter(Boolean).map(v => String(v).toLowerCase().trim()).filter(v => v.length >= 2);
+                    const rowStrongTokens = rowSearchTokens.filter(v => v.length >= 3);
+                    const rowTypeSet = new Set(rowsInGroup.map(row => row.historyType).filter(Boolean));
+                    const rowDateMsList = rowsInGroup.map(row => new Date(row.date || 0).getTime()).filter(Number.isFinite);
+                    const fallbackProofs = (dedupedProofGroups || []).filter((group = {}) => {
+                      const groupText = String(group.searchText || '').toLowerCase();
+                      const groupTypes = Array.isArray(group.historyTypes) ? group.historyTypes : [];
+                      const typeMatch = groupTypes.length === 0 || groupTypes.some(type => rowTypeSet.has(type)) || (rowTypeSet.has('repair') && groupTypes.some(type => String(type).includes('repair')));
+                      if (!typeMatch) return false;
+                      const itemMatch = (group.itemRefs || []).some(ref => {
+                        const refText = [ref.itemId, ref.itemName, ref.sn, ref.subject, ref.typeLabel].filter(Boolean).join(' ').toLowerCase();
+                        return rowStrongTokens.some(token => refText.includes(token) || groupText.includes(token));
+                      });
+                      const subjectMatch = rowsInGroup.some(row => {
+                        const subject = String(row.subject || '').toLowerCase().trim();
+                        const staff = String(row.staff || '').toLowerCase().trim();
+                        return (subject.length >= 3 && groupText.includes(subject)) || (staff.length >= 3 && groupText.includes(staff));
+                      });
+                      const dateMs = new Date(group.firstDate || group.representative?.date || group.proof?.createdAt || 0).getTime();
+                      const dateClose = !Number.isFinite(dateMs) || rowDateMsList.length === 0 || rowDateMsList.some(rowMs => Math.abs(rowMs - dateMs) <= 1000 * 60 * 60 * 72);
+                      return (itemMatch || subjectMatch) && dateClose;
+                    }).map(group => group.proof).filter(Boolean);
+                    fallbackProofs.forEach((proof, idx) => groupLinkedProofMap.set(String(proof.proofDocId || proof.id || proof.docId || `fallback_${proof.createdAt || 'nodate'}_${idx}`), proof));
+
                     const groupProofs = Array.from(groupLinkedProofMap.values()).filter(Boolean);
                     const previewProofs = groupProofs.slice(0, 4);
                     const totalProofs = groupProofs.length || rowsInGroup.reduce((sum, row) => sum + Number(row.proofCount || 0), 0);
