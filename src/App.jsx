@@ -50,7 +50,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.6 Dark Mode Only';
+const APP_VERSION = 'v22.57.6.7 Central History / Group Evidence / Admin Cleanup';
 const APP_UPDATE_NOTE = 'Dark Mode Only: ล็อกระบบให้ใช้โหมดมืดเป็นหลัก เอาปุ่มสลับโหมดสว่างออก และบังคับบันทึก theme เป็น dark โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -6880,6 +6880,8 @@ function MainApp() {
   const [showHistoryCenterModal, setShowHistoryCenterModal] = useState(false);
   const [historyCenterFilter, setHistoryCenterFilter] = useState('all');
   const [historyCenterSearch, setHistoryCenterSearch] = useState('');
+  const [selectedHistoryRecordIds, setSelectedHistoryRecordIds] = useState([]);
+  const [historyGroupMode, setHistoryGroupMode] = useState(true);
   const [expandedProofGroupId, setExpandedProofGroupId] = useState(null);
   const [modalReturnStack, setModalReturnStack] = useState([]); // v22.52.8: ['borrowDocs', 'historyCenter', 'proofCenter']
   const modalReturnTarget = modalReturnStack[modalReturnStack.length - 1] || null;
@@ -7807,41 +7809,37 @@ function MainApp() {
       const typeLabel = targetHistory.type === 'borrow' ? 'หลักฐานการยืม' : targetHistory.type === 'event' ? 'หลักฐานออกงาน' : 'หลักฐานรับคืน';
       const uploadedProofs = await uploadProofFiles(proofAttachFiles, `${typeLabel} • ${item.name || ''}`);
 
-      // ถ้าเป็น "รับคืน" ที่ทำเป็นกลุ่ม ให้แนบหลักฐานย้อนหลังชุดเดียวกันให้ทุกอุปกรณ์ในกลุ่มรับคืนนั้น
-      // ใช้ key จากวันที่ทำรายการ + ผู้รับคืน + ผู้ทำรายการ เพื่อไม่ต้องเปลี่ยนโครงสร้างฐานข้อมูล
-      const isReturnGroupHistory = targetHistory.type === 'return' && targetHistory.date;
-      if (isReturnGroupHistory) {
-        const sameReturnGroupItems = items
+      // ถ้าเป็นรายการที่เกิดพร้อมกันเป็นกลุ่ม ให้แนบหลักฐานย้อนหลังชุดเดียวกันให้ทุกอุปกรณ์ในกลุ่มนั้น
+      // ใช้ key จากประเภท + เวลา + เรื่อง/ผู้เกี่ยวข้อง + ผู้ดำเนินการ เพื่อไม่ต้องเปลี่ยนโครงสร้างฐานข้อมูล
+      const targetGroupKey = targetHistory.date ? getHistoryGroupKey(targetHistory) : '';
+      if (targetGroupKey) {
+        const sameHistoryGroupItems = items
           .map(groupItem => {
             const groupHistory = Array.isArray(groupItem.history) ? groupItem.history : [];
             const matchIndexes = groupHistory
               .map((h, idx) => ({ h, idx }))
-              .filter(({ h }) => (
-                h &&
-                h.type === 'return' &&
-                h.date === targetHistory.date &&
-                (h.staffIn || '') === (targetHistory.staffIn || '') &&
-                (h.operatorName || '') === (targetHistory.operatorName || '')
-              ))
+              .filter(({ h }) => h && !h.deletedFromHistory && h.date && getHistoryGroupKey(h) === targetGroupKey)
               .map(({ idx }) => idx);
             return { groupItem, groupHistory, matchIndexes };
           })
           .filter(row => row.matchIndexes.length > 0);
 
-        const affectedCount = sameReturnGroupItems.length || 1;
-        await Promise.all(sameReturnGroupItems.map(({ groupItem, groupHistory, matchIndexes }) => {
-          const nextHistory = groupHistory.map((h, idx) => matchIndexes.includes(idx)
-            ? { ...h, proofs: [...(h.proofs || []), ...uploadedProofs] }
-            : h
-          );
-          return setDoc(getItemDoc(groupItem.id), { history: nextHistory, updatedAt: new Date().toISOString(), updatedBy: currentAccountLabel }, { merge: true });
-        }));
-        await logAction('เพิ่มหลักฐานรับคืนย้อนหลังเป็นกลุ่ม', `ผูกหลักฐาน ${affectedCount} รายการ`, `เพิ่มหลักฐาน ${uploadedProofs.length} รูป ให้กลุ่มรับคืนวันที่ ${targetHistory.date}
-ผู้รับคืน: ${targetHistory.staffIn || '-'}
+        const affectedCount = sameHistoryGroupItems.length || 1;
+        if (affectedCount > 1) {
+          await Promise.all(sameHistoryGroupItems.map(({ groupItem, groupHistory, matchIndexes }) => {
+            const nextHistory = groupHistory.map((h, idx) => matchIndexes.includes(idx)
+              ? { ...h, proofs: [...(h.proofs || []), ...uploadedProofs] }
+              : h
+            );
+            return setDoc(getItemDoc(groupItem.id), { history: nextHistory, updatedAt: new Date().toISOString(), updatedBy: currentAccountLabel }, { merge: true });
+          }));
+          await logAction('เพิ่มหลักฐานย้อนหลังเป็นกลุ่ม', `ผูกหลักฐาน ${affectedCount} รายการ`, `เพิ่มหลักฐาน ${uploadedProofs.length} รูป ให้กลุ่ม ${typeLabel}
+วันที่: ${targetHistory.date}
 เริ่มจากรายการ: ${item.name || '-'}`);
-        closeProofAttachModal();
-        pushToast(`เพิ่มหลักฐานรับคืนย้อนหลังให้ทั้งกลุ่มแล้ว (${affectedCount} รายการ)`, 'success');
-        return;
+          closeProofAttachModal();
+          pushToast(`เพิ่มหลักฐานย้อนหลังให้ทั้งกลุ่มแล้ว (${affectedCount} รายการ)`, 'success');
+          return;
+        }
       }
 
       history[historyIndex] = { ...targetHistory, proofs: [...(targetHistory.proofs || []), ...uploadedProofs] };
@@ -11815,23 +11813,54 @@ S.N.: ${item.sn || '-'}
                   </select>
                   <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{filteredHistoryCenterEntries.length.toLocaleString('th-TH')} รายการ</div>
                 </div>
+                {canDeleteItems && (
+                  <div className={`p-3 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-3 ${theme.divide}`}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button type="button" onClick={() => setHistoryGroupMode(prev => !prev)} className={`px-3 py-2 rounded-xl border text-sm font-black ${historyGroupMode ? 'bg-slate-800 border-slate-600 text-white' : theme.btnSecondary}`}>{historyGroupMode ? 'มุมมองกลุ่ม' : 'มุมมองรายการเดี่ยว'}</button>
+                      <button type="button" onClick={() => setSelectedHistoryRecordIds(selectedVisibleHistoryIds)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เลือกที่แสดง</button>
+                      <button type="button" onClick={clearHistorySelection} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>ล้างเลือก</button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เลือกแล้ว {selectedHistoryRecordIds.length.toLocaleString('th-TH')} รายการ</div>
+                      <button type="button" onClick={handleSoftDeleteSelectedHistory} disabled={selectedHistoryRecordIds.length === 0 || isBusy} className={`px-4 py-2 rounded-xl text-sm font-black ${selectedHistoryRecordIds.length === 0 || isBusy ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}>ลบประวัติที่เลือก</button>
+                    </div>
+                  </div>
+                )}
                 <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
-                  {filteredHistoryCenterEntries.length === 0 ? <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบประวัติ</div> : filteredHistoryCenterEntries.slice(0, 180).map(entry => (
-                    <div key={entry.id} className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className={`font-black text-lg truncate ${theme.textTitle}`}>{entry.itemName || '-'}</div>
-                          <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{entry.typeLabel || entry.historyType || '-'} • {entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-'} • หลักฐาน {entry.proofCount || 0} รูป</div>
-                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง: {entry.subject || '-'} • โดย {entry.staff || '-'}</div>
+                  {filteredHistoryCenterEntries.length === 0 ? <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบประวัติ</div> : groupedHistoryCenterEntries.slice(0, 180).map(entry => {
+                    const rowsInGroup = entry.groupRows || [entry];
+                    const isGroup = historyGroupMode && rowsInGroup.length > 1;
+                    const totalProofs = rowsInGroup.reduce((sum, row) => sum + Number(row.proofCount || 0), 0);
+                    return (
+                    <div key={entry.groupKey || entry.id} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start gap-3">
+                            {canDeleteItems && <input type="checkbox" className="stock-checkbox mt-1" checked={rowsInGroup.every(row => isHistorySelected(row.id))} onChange={() => {
+                              const groupIds = rowsInGroup.map(row => row.id);
+                              const allPicked = groupIds.every(id => selectedHistoryRecordIds.includes(id));
+                              setSelectedHistoryRecordIds(prev => allPicked ? prev.filter(id => !groupIds.includes(id)) : Array.from(new Set([...prev, ...groupIds])));
+                            }} />}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={`px-2.5 py-1 rounded-xl border text-xs font-black ${getHistoryTypeTone(entry.historyType)}`}>{isGroup ? `${entry.typeLabel || entry.historyType || '-'}กลุ่ม` : (entry.typeLabel || entry.historyType || '-')}</span>
+                                {isGroup && <span className="px-2.5 py-1 rounded-xl border border-cyan-500/25 bg-cyan-500/10 text-cyan-200 text-xs font-black">{rowsInGroup.length} อุปกรณ์</span>}
+                                {totalProofs > 0 && <span className="px-2.5 py-1 rounded-xl border border-pink-500/25 bg-pink-500/10 text-pink-200 text-xs font-black">หลักฐาน {totalProofs} รูป</span>}
+                              </div>
+                              <div className={`font-black text-lg truncate mt-2 ${theme.textTitle}`}>{isGroup ? (entry.subject && entry.subject !== '-' ? entry.subject : `${entry.typeLabel || 'ประวัติ'} ${rowsInGroup.length} รายการ`) : (entry.itemName || '-')}</div>
+                              <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-'} • โดย {entry.staff || '-'} • {isGroup ? `ตัวอย่าง: ${rowsInGroup.slice(0, 3).map(row => row.itemName).join(' / ')}` : `S.N. ${entry.sn || '-'}`}</div>
+                              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง: {entry.subject || '-'}{isGroup && rowsInGroup.length > 3 ? ` • และอีก ${rowsInGroup.length - 3} รายการ` : ''}</div>
+                            </div>
+                          </div>
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 shrink-0">
                           <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-3 py-2 rounded-lg border text-sm font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
-                          <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2 rounded-lg bg-pink-600 text-white text-sm font-black">เพิ่มรูป</button>
-                          {entry.proofCount > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.sn || entry.itemName || ''); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className="px-3 py-2 rounded-lg bg-slate-800 text-white text-sm font-black">ดูรูป</button>}
+                          <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2 rounded-lg bg-pink-600 text-white text-sm font-black">{isGroup ? 'เพิ่มรูปกลุ่ม' : 'เพิ่มรูป'}</button>
+                          {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.sn || entry.itemName || entry.subject || ''); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className="px-3 py-2 rounded-lg bg-slate-800 text-white text-sm font-black">ดูรูป</button>}
                         </div>
                       </div>
                     </div>
-                  ))}
+                  );})}
                 </div>
               </div>
             )}
@@ -12409,18 +12438,97 @@ S.N.: ${item.sn || '-'}
     };
   }, [todayFollowup, trackingSearch, borrowเอกสารs, todayMs]);
 
+
+  const getHistoryGroupKey = (history = {}) => {
+    const type = history.type || 'other';
+    const rawDate = history.date || '';
+    const dateKey = rawDate ? new Date(rawDate).toISOString().slice(0, 16) : 'no-date';
+    const subjectKey = String(history.borrower || history.eventName || history.subject || history.problem || history.note || '').trim().toLowerCase();
+    const staffKey = String(history.staffOut || history.staffIn || history.operatorName || history.staff || '').trim().toLowerCase();
+    return `${type}__${dateKey}__${subjectKey}__${staffKey}`;
+  };
+
+  const getHistoryTypeTone = (type = '') => {
+    const t = String(type || '');
+    if (t === 'borrow') return 'bg-violet-500/10 border-violet-500/25 text-violet-200';
+    if (t === 'event') return 'bg-orange-500/10 border-orange-500/25 text-orange-200';
+    if (t === 'return') return 'bg-emerald-500/10 border-emerald-500/25 text-emerald-200';
+    if (t.includes('repair')) return 'bg-rose-500/10 border-rose-500/25 text-rose-200';
+    return 'bg-slate-500/10 border-slate-500/25 text-slate-200';
+  };
+
+  const isHistorySelected = (id) => selectedHistoryRecordIds.includes(id);
+  const toggleHistorySelection = (id) => {
+    setSelectedHistoryRecordIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+  const clearHistorySelection = () => setSelectedHistoryRecordIds([]);
+
+  const handleSoftDeleteSelectedHistory = async () => {
+    if (!canDeleteItems) return alert('บัญชีนี้ไม่มีสิทธิ์ลบประวัติส่วนกลาง');
+    if (selectedHistoryRecordIds.length === 0) return alert('กรุณาเลือกรายการประวัติที่ต้องการลบก่อน');
+    const reason = window.prompt('เหตุผลที่ลบประวัติส่วนกลาง เช่น รายการทดสอบ / บันทึกผิด / ซ้ำ', 'รายการทดสอบ');
+    if (reason === null) return;
+    const confirmText = window.prompt(`ยืนยันลบประวัติที่เลือก ${selectedHistoryRecordIds.length} รายการ
+พิมพ์ DELETE เพื่อยืนยัน`);
+    if (confirmText !== 'DELETE') return alert('ยกเลิกการลบประวัติ');
+
+    const selectedSet = new Set(selectedHistoryRecordIds);
+    const groupedByItem = new Map();
+    allHistoryCenterEntries.forEach(entry => {
+      if (!selectedSet.has(entry.id)) return;
+      if (!groupedByItem.has(entry.itemId)) groupedByItem.set(entry.itemId, []);
+      groupedByItem.get(entry.itemId).push(entry.historyIndex);
+    });
+
+    try {
+      setIsBusy(true);
+      const now = new Date().toISOString();
+      const tasks = [];
+      groupedByItem.forEach((indexes, itemId) => {
+        const item = items.find(i => i.id === itemId);
+        if (!item) return;
+        const indexSet = new Set(indexes.map(Number));
+        const nextHistory = (Array.isArray(item.history) ? item.history : []).map((h, idx) => indexSet.has(idx)
+          ? { ...h, deletedFromHistory: true, deletedAt: now, deletedBy: currentAccountLabel, deleteReason: reason || 'ไม่ระบุเหตุผล' }
+          : h
+        );
+        tasks.push(setDoc(getItemDoc(item.id), { history: nextHistory, updatedAt: now, updatedBy: currentAccountLabel }, { merge: true }));
+      });
+      await Promise.all(tasks);
+      await addDoc(getAuditCol(), {
+        action: 'ลบประวัติส่วนกลางแบบ soft delete',
+        itemName: `${selectedHistoryRecordIds.length} รายการ`,
+        detail: `เหตุผล: ${reason || '-'}
+โดย: ${currentAccountLabel}`,
+        createdAt: now,
+        createdBy: currentAccountLabel,
+        role: currentAccountRole
+      });
+      clearHistorySelection();
+      pushToast(`ซ่อนประวัติที่เลือกแล้ว ${selectedHistoryRecordIds.length} รายการ`, 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ ลบประวัติไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const allHistoryCenterEntries = useMemo(() => {
     const rows = [];
     items.filter(i => i && !i.isDeleted).forEach((item) => {
       const historyList = Array.isArray(item.history) ? item.history : [];
       historyList.forEach((h, historyIndex) => {
+        if (h?.deletedFromHistory) return;
         const historyType = h.type || 'other';
         const typeLabel = historyType === 'borrow' ? 'ยืม' : historyType === 'event' ? 'ออกงาน' : historyType === 'return' ? 'รับคืน' : historyType === 'projectChange' ? 'โครงการ' : String(historyType).includes('repair') ? 'ซ่อม' : 'อื่น ๆ';
         const subject = h.borrower || h.eventName || h.problem || h.staffIn || h.note || '-';
         const staff = h.staffOut || h.staffIn || h.operatorName || '-';
-        const groupKey = historyType === 'return' && h.date ? `${h.date}__${h.staffIn || ''}__${h.operatorName || ''}` : '';
+        const groupKey = h.date ? getHistoryGroupKey(h) : '';
         rows.push({
-          id: `${item.id}_${historyIndex}`,
+          id: `${item.id}__history__${historyIndex}`,
+          rawHistory: h,
+          department: item.department || '-',
           itemId: item.id,
           itemName: item.name || '-',
           sn: item.sn || '-',
@@ -12440,13 +12548,18 @@ S.N.: ${item.sn || '-'}
       });
     });
 
-    const returnGroupCounts = new Map();
+    const historyGroupMap = new Map();
     rows.forEach((row) => {
-      if (row.groupKey) returnGroupCounts.set(row.groupKey, (returnGroupCounts.get(row.groupKey) || 0) + 1);
+      if (!row.groupKey) return;
+      if (!historyGroupMap.has(row.groupKey)) historyGroupMap.set(row.groupKey, []);
+      historyGroupMap.get(row.groupKey).push(row);
     });
 
     return rows
-      .map(row => ({ ...row, groupCount: row.groupKey ? (returnGroupCounts.get(row.groupKey) || 1) : 1 }))
+      .map(row => {
+        const groupRows = row.groupKey ? (historyGroupMap.get(row.groupKey) || [row]) : [row];
+        return { ...row, groupCount: groupRows.length, groupRows };
+      })
       .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
   }, [items]);
 
@@ -12458,6 +12571,22 @@ S.N.: ${item.sn || '-'}
       return matchType && (!keyword || haystack.includes(keyword));
     });
   }, [allHistoryCenterEntries, historyCenterFilter, historyCenterSearch]);
+
+
+  const groupedHistoryCenterEntries = useMemo(() => {
+    if (!historyGroupMode) return filteredHistoryCenterEntries;
+    const seen = new Set();
+    const groups = [];
+    filteredHistoryCenterEntries.forEach(entry => {
+      const key = entry.groupKey || entry.id;
+      if (seen.has(key)) return;
+      seen.add(key);
+      groups.push(entry);
+    });
+    return groups;
+  }, [filteredHistoryCenterEntries, historyGroupMode]);
+
+  const selectedVisibleHistoryIds = useMemo(() => groupedHistoryCenterEntries.flatMap(entry => (entry.groupRows || [entry]).map(row => row.id)), [groupedHistoryCenterEntries]);
 
   const getProofUniqueKey = (proof = {}) => String(
     proof.proofDocId ||
