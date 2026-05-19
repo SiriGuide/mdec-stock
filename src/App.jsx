@@ -10726,7 +10726,7 @@ S.N.: ${item.sn || '-'}
                         <div className="flex items-center justify-between text-[11px] font-black opacity-75 mb-1">
                           <span>เช็กของแล้ว</span><span>{checklistPercent}%</span>
                         </div>
-                        <div className={`h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-white/70'}`}>
+                        <div className={`h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-white/100'}`}>
                           <div className="h-full bg-emerald-500 transition-all" style={{ width: `${checklistPercent}%` }} />
                         </div>
                       </div>
@@ -11883,75 +11883,122 @@ S.N.: ${item.sn || '-'}
           : trackingTab === 'borrowed'
             ? returnTrackingData.borrowed
             : activeList;
+
+    const trackingTabs = [
+      { id: 'all', label: 'ทั้งหมด', value: activeList.length, hint: 'ยืม + ออกงาน', icon: Icons.History, tone: 'slate' },
+      { id: 'today', label: 'ต้องคืนวันนี้', value: returnTrackingData.dueToday.length, hint: 'เช็กก่อนปิดวัน', icon: Icons.History, tone: 'amber' },
+      { id: 'overdue', label: 'เลยกำหนด', value: returnTrackingData.overdue.length, hint: 'ควรติดตาม', icon: Icons.Alert, tone: 'rose' },
+      { id: 'borrowed', label: 'ยืมอยู่', value: returnTrackingData.borrowed.length, hint: 'รายการยืม', icon: Icons.UserPlus, tone: 'violet' },
+      { id: 'event', label: 'ออกงานอยู่', value: returnTrackingData.event.length, hint: 'นอกสถานที่', icon: Icons.Truck, tone: 'orange' }
+    ];
+
+    const toneClass = (tone, active = false) => {
+      const map = {
+        slate: active ? 'border-slate-500/55 bg-slate-800/80 text-slate-50' : 'border-slate-700/70 bg-slate-900/55 text-slate-300 hover:border-slate-600/90 hover:bg-slate-900/85',
+        amber: active ? 'border-amber-400/45 bg-amber-500/10 text-amber-100' : 'border-slate-700/70 bg-slate-900/55 text-slate-300 hover:border-amber-400/30 hover:bg-amber-500/5',
+        rose: active ? 'border-rose-400/45 bg-rose-500/10 text-rose-100' : 'border-slate-700/70 bg-slate-900/55 text-slate-300 hover:border-rose-400/30 hover:bg-rose-500/5',
+        violet: active ? 'border-violet-400/45 bg-violet-500/10 text-violet-100' : 'border-slate-700/70 bg-slate-900/55 text-slate-300 hover:border-violet-400/30 hover:bg-violet-500/5',
+        orange: active ? 'border-orange-400/45 bg-orange-500/10 text-orange-100' : 'border-slate-700/70 bg-slate-900/55 text-slate-300 hover:border-orange-400/30 hover:bg-orange-500/5',
+        emerald: active ? 'border-emerald-400/45 bg-emerald-500/10 text-emerald-100' : 'border-slate-700/70 bg-slate-900/55 text-slate-300 hover:border-emerald-400/30 hover:bg-emerald-500/5'
+      };
+      return map[tone] || map.slate;
+    };
+
+    const statusPillClass = (tone) => tone === 'rose'
+      ? 'bg-rose-500/10 border-rose-400/25 text-rose-200'
+      : tone === 'amber'
+        ? 'bg-amber-500/10 border-amber-400/25 text-amber-200'
+        : 'bg-emerald-500/10 border-emerald-400/25 text-emerald-200';
+
     return (
       <div className="page-workspace-shell tracking-workspace space-y-5">
         {renderWorkspaceTabs()}
-        <div className={`rounded-[1.8rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
-          <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-4 ${theme.divide}`}>
-            <div>
-              <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>RETURN TRACKING PAGE</div>
-              <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>ติดตามของรอคืน</h2>
-              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ย้ายจาก popup มาเป็นหน้าเต็ม เพื่อดูงานค้างและรับคืนได้ชัดขึ้นบนคอม</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => openWorkspace('borrowReturn')} className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">เปิดหน้ายืม-คืน</button>
-              <button type="button" onClick={() => openWorkspace('overview')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับภาพรวม</button>
+
+        <section className="rounded-[28px] border border-slate-700/70 bg-slate-950/45 shadow-[0_18px_60px_rgba(0,0,0,0.22)] overflow-hidden">
+          <div className="p-5 sm:p-6 border-b border-slate-800/90">
+            <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-2 text-[11px] font-black tracking-[0.22em] uppercase text-slate-400">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)]" />
+                  Return Tracking
+                </div>
+                <h2 className={`text-2xl sm:text-3xl font-black mt-2 ${theme.textTitle}`}>ติดตามของรอคืน</h2>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมรายการครบกำหนด เลยกำหนด ยืมอยู่ และออกงานอยู่ ให้ดูในหน้าเดียวแบบคุมโทนเดียวกับระบบ</p>
+              </div>
+
+              <div className="flex flex-wrap gap-2 shrink-0">
+                <button type="button" onClick={() => openWorkspace('borrowReturn')} className="px-4 py-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/15 font-black transition-colors">เปิดหน้ายืม-คืน</button>
+                <button type="button" onClick={() => openWorkspace('overview')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับภาพรวม</button>
+              </div>
             </div>
           </div>
 
           <div className="p-4 sm:p-5 space-y-4">
-            <div className="grid grid-cols-2 xl:grid-cols-5 gap-2.5">
-              {[
-                ['today', 'ต้องคืนวันนี้', returnTrackingData.dueToday.length, 'amber'],
-                ['overdue', 'เลยกำหนด', returnTrackingData.overdue.length, 'rose'],
-                ['borrowed', 'ยืมอยู่', returnTrackingData.borrowed.length, 'purple'],
-                ['event', 'ออกงานอยู่', returnTrackingData.event.length, 'orange'],
-                ['all', 'รอคืนทั้งหมด', activeList.length, 'blue']
-              ].map(([id, label, value, tone]) => {
-                const cls = tone === 'rose'
-                  ? (isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-800')
-                  : tone === 'amber'
-                    ? (isDarkMode ? 'bg-amber-950/30 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800')
-                    : tone === 'purple'
-                      ? (isDarkMode ? 'bg-purple-950/30 border-purple-800 text-purple-300' : 'bg-purple-50 border-purple-200 text-purple-800')
-                      : tone === 'orange'
-                        ? (isDarkMode ? 'bg-orange-950/30 border-orange-800 text-orange-300' : 'bg-orange-50 border-orange-200 text-orange-800')
-                        : (isDarkMode ? 'bg-blue-950/30 border-blue-800 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-800');
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-2.5">
+              {trackingTabs.map(({ id, label, value, hint, icon: Icon, tone }) => {
+                const active = trackingTab === id || (id === 'all' && !['today', 'overdue', 'issues', 'event', 'borrowed'].includes(trackingTab));
                 return (
-                  <button key={id} type="button" onClick={() => setTrackingTab(id)} className={`page-workspace-card p-4 rounded-2xl border text-left ${trackingTab === id ? 'ring-2 ring-blue-500/30' : ''} ${cls}`}>
-                    <div className="text-3xl font-black leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
-                    <div className="text-xs sm:text-sm font-black mt-2">{label}</div>
+                  <button key={id} type="button" onClick={() => setTrackingTab(id)} className={`group rounded-2xl border p-3.5 text-left transition-all ${toneClass(tone, active)} ${active ? 'ring-1 ring-white/5 shadow-[0_12px_35px_rgba(0,0,0,0.22)]' : ''}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className={`h-10 w-10 rounded-2xl border flex items-center justify-center ${active ? 'border-white/15 bg-white/10 text-white' : 'border-slate-700/80 bg-slate-800/55 text-slate-400 group-hover:text-slate-200'}`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className={`text-2xl font-black leading-none ${active ? 'text-white' : 'text-slate-200'}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                    </div>
+                    <div className={`mt-3 text-sm font-black ${active ? 'text-white' : 'text-slate-200'}`}>{label}</div>
+                    <div className={`mt-0.5 text-[11px] font-bold ${active ? 'text-slate-300' : 'text-slate-500'}`}>{hint}</div>
                   </button>
                 );
               })}
             </div>
 
-            <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div className={`p-4 border-b grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 ${theme.divide}`}>
+            <div className="rounded-[24px] border border-slate-800/90 bg-slate-950/65 overflow-hidden">
+              <div className="p-4 border-b border-slate-800/90 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3">
                 <div className="relative">
-                  <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${theme.textMuted}`} />
-                  <input className={`w-full pl-12 pr-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาชื่ออุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน" value={trackingSearch} onChange={e => setTrackingSearch(e.target.value)} />
+                  <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                  <input className={`w-full pl-12 pr-4 py-3 rounded-2xl border font-bold ${theme.input}`} placeholder="ค้นหาชื่ออุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน" value={trackingSearch} onChange={e => setTrackingSearch(e.target.value)} />
                 </div>
-                <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{visibleList.length.toLocaleString('th-TH')} รายการ</div>
+                <div className="px-4 py-3 rounded-2xl border border-slate-700/70 bg-slate-900/70 text-slate-200 font-black text-center min-w-[120px]">{visibleList.length.toLocaleString('th-TH')} รายการ</div>
               </div>
+
               <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
                 {visibleList.length === 0 ? (
-                  <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่มีรายการในหมวดนี้</div>
+                  <div className="p-10 rounded-[24px] border border-slate-800 bg-slate-900/35 text-center">
+                    <div className="mx-auto h-12 w-12 rounded-2xl border border-slate-700 bg-slate-900 flex items-center justify-center text-slate-500"><Icons.CheckCircle className="w-5 h-5" /></div>
+                    <div className={`mt-3 font-black ${theme.textTitle}`}>ไม่มีรายการในหมวดนี้</div>
+                    <div className={`mt-1 text-sm font-bold ${theme.textMuted}`}>รายการรอคืนในหมวดนี้ถูกจัดการเรียบร้อยแล้ว</div>
+                  </div>
                 ) : visibleList.map(item => {
                   const info = getReturnTrackingDateInfo(item);
+                  const isEvent = item.status === 'out-for-event' || item._kind === 'event';
+                  const ownerText = isEvent ? (item.currentEvent || item.eventName || '-') : (item.currentBorrower || item.borrower || '-');
                   return (
-                    <div key={item.id} className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className={`font-black text-lg truncate ${theme.textTitle}`}>{item.name}</div>
-                          <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.status === 'out-for-event' ? (item.currentEvent || item.eventName || '-') : (item.currentBorrower || item.borrower || '-')}</div>
-                          <div className={`text-xs font-black mt-2 inline-flex px-3 py-1.5 rounded-xl border ${info.tone === 'rose' ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : info.tone === 'amber' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>{info.label} • {info.dueText}</div>
+                    <div key={item.id} className="rounded-[22px] border border-slate-800 bg-slate-900/55 p-4 hover:border-slate-700/90 transition-colors">
+                      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                        <div className="min-w-0 flex items-start gap-3">
+                          <div className={`mt-0.5 h-11 w-11 rounded-2xl border flex items-center justify-center shrink-0 ${isEvent ? 'border-orange-400/25 bg-orange-500/10 text-orange-200' : 'border-violet-400/25 bg-violet-500/10 text-violet-200'}`}>
+                            {isEvent ? <Icons.Truck className="w-5 h-5" /> : <Icons.UserPlus className="w-5 h-5" />}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${isEvent ? 'bg-orange-500/10 border-orange-400/25 text-orange-200' : 'bg-violet-500/10 border-violet-400/25 text-violet-200'}`}>{isEvent ? 'ออกงาน' : 'ยืมอยู่'}</span>
+                              <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${statusPillClass(info.tone)}`}>{info.label}</span>
+                            </div>
+                            <div className={`font-black text-lg mt-2 truncate ${theme.textTitle}`}>{item.name}</div>
+                            <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {ownerText}</div>
+                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-bold text-slate-400">
+                              <span className="px-2.5 py-1 rounded-full border border-slate-700/70 bg-slate-950/40">{item.category || item.type || 'ไม่ระบุหมวด'}</span>
+                              <span className="px-2.5 py-1 rounded-full border border-slate-700/70 bg-slate-950/40">{item.location || item.storage || 'ไม่ระบุที่เก็บ'}</span>
+                              <span className="px-2.5 py-1 rounded-full border border-slate-700/70 bg-slate-950/40">{info.dueText}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 shrink-0">
-                          <button type="button" onClick={() => openReturnForItems([item.id])} className="px-3 py-2 rounded-lg bg-emerald-600 text-white font-black text-sm">รับคืน</button>
-                          <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-lg border font-black text-sm ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
-                          <button type="button" onClick={() => copyReturnTrackingMessage(item)} className={`px-3 py-2 rounded-lg border font-black text-sm ${theme.btnSecondary}`}>คัดลอก</button>
-                          <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-3 py-2 rounded-lg border font-black text-sm ${theme.btnSecondary}`}>เอกสาร</button>
+
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 shrink-0 xl:w-auto w-full">
+                          <button type="button" onClick={() => openReturnForItems([item.id])} className="px-3 py-2.5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/15 font-black text-sm">รับคืน</button>
+                          <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
+                          <button type="button" onClick={() => copyReturnTrackingMessage(item)} className={`px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>คัดลอก</button>
+                          <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>เอกสาร</button>
                         </div>
                       </div>
                     </div>
@@ -11960,7 +12007,7 @@ S.N.: ${item.sn || '-'}
               </div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     );
   };
@@ -21024,13 +21071,13 @@ S.N.: ${item.sn || '-'}
                       return (
                         <button key={card.id} type="button" onClick={card.action} className={`text-left p-5 rounded-3xl border transition-all hover:-translate-y-0.5 hover:shadow-lg ${card.tone}`}>
                           <div className="flex items-start gap-3">
-                            <span className="w-12 h-12 rounded-2xl bg-white/70 text-slate-900 flex items-center justify-center shrink-0 shadow-sm"><Icon className="w-6 h-6" /></span>
+                            <span className="w-12 h-12 rounded-2xl bg-white/100 text-slate-900 flex items-center justify-center shrink-0 shadow-sm"><Icon className="w-6 h-6" /></span>
                             <div className="min-w-0 flex-1">
                               <div className="font-black text-lg leading-tight">{card.title}</div>
                               <div className="text-sm font-bold mt-1 opacity-80 leading-snug">{card.desc}</div>
                               <div className="mt-3 flex flex-wrap gap-2">
-                                <span className="inline-flex px-3 py-1.5 rounded-full bg-white/70 text-slate-900 text-xs font-black border border-white/60">{card.stats}</span>
-                                <span className="inline-flex px-3 py-1.5 rounded-full bg-white/70 text-slate-900 text-xs font-black border border-white/60">เข้าไปแก้ไข →</span>
+                                <span className="inline-flex px-3 py-1.5 rounded-full bg-white/100 text-slate-900 text-xs font-black border border-white/60">{card.stats}</span>
+                                <span className="inline-flex px-3 py-1.5 rounded-full bg-white/100 text-slate-900 text-xs font-black border border-white/60">เข้าไปแก้ไข →</span>
                               </div>
                             </div>
                           </div>
@@ -21771,7 +21818,7 @@ S.N.: ${item.sn || '-'}
                       แพ็กนี้มีเฉพาะสรุป / Export / Checklist เพื่อกันกดพลาด ถ้าจะล้างข้อมูลจริงให้ใช้ระบบเดิมที่มี Safety Confirm เท่านั้น
                     </p>
                   </div>
-                  <button type="button" onClick={() => setShowAnnualCleanupModal(true)} className="px-5 py-3 rounded-2xl border border-rose-300 bg-white/70 text-rose-700 font-black">
+                  <button type="button" onClick={() => setShowAnnualCleanupModal(true)} className="px-5 py-3 rounded-2xl border border-rose-300 bg-white/100 text-rose-700 font-black">
                     ดู Checklist ปิดปี
                   </button>
                 </div>
@@ -23082,7 +23129,7 @@ S.N.: ${item.sn || '-'}
                                   {subName && <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ผู้เกี่ยวข้อง/เจ้าหน้าที่: {subName}</div>}
                                   {(h.operatorName || h.performedBy) && <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ผู้ทำรายการในระบบ: {h.operatorName || h.performedBy}</div>}
                                   {h.expectedReturn && <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>กำหนดคืน: {new Date(h.expectedReturn).toLocaleDateString('th-TH')}</div>}
-                                  {h.note && <div className={`mt-2.5 p-2.5 rounded-xl border text-sm font-bold ${isDarkMode ? 'bg-slate-950/60 border-slate-700 text-slate-300' : 'bg-white/70 border-white text-slate-700'}`}>หมายเหตุ: {h.note}</div>}
+                                  {h.note && <div className={`mt-2.5 p-2.5 rounded-xl border text-sm font-bold ${isDarkMode ? 'bg-slate-950/60 border-slate-700 text-slate-300' : 'bg-white/100 border-white text-slate-700'}`}>หมายเหตุ: {h.note}</div>}
                                 </div>
                                 <div className="shrink-0 sm:text-right">
                                   <div className={`text-xs font-black ${theme.textMuted}`}>หลักฐาน</div>
@@ -23544,7 +23591,7 @@ S.N.: ${item.sn || '-'}
                               key={opt.id || 'general'}
                               type="button"
                               onClick={() => setFormData(prev => ({...prev, equipmentType: opt.id}))}
-                              className={`smart-equipment-type-card text-left p-3 rounded-2xl border transition-all ${active ? (isDarkMode ? 'bg-sky-950/60 border-sky-600 shadow-lg shadow-sky-950/30' : 'bg-white border-sky-400 shadow-md shadow-sky-100') : (isDarkMode ? 'bg-slate-950/40 border-slate-800 hover:border-sky-700' : 'bg-white/70 border-sky-100 hover:border-sky-300')}`}
+                              className={`smart-equipment-type-card text-left p-3 rounded-2xl border transition-all ${active ? (isDarkMode ? 'bg-sky-950/60 border-sky-600 shadow-lg shadow-sky-950/30' : 'bg-white border-sky-400 shadow-md shadow-sky-100') : (isDarkMode ? 'bg-slate-950/40 border-slate-800 hover:border-sky-700' : 'bg-white/100 border-sky-100 hover:border-sky-300')}`}
                             >
                               <div className="text-xl mb-1">{opt.icon}</div>
                               <div className={`font-black text-sm leading-tight ${theme.textTitle}`}>{opt.label}</div>
@@ -23636,7 +23683,7 @@ S.N.: ${item.sn || '-'}
                                   ].map(([id, label, desc]) => {
                                     const active = (formData.memoryAssignMode || '') === id;
                                     return (
-                                      <button key={id} type="button" onClick={() => setFormData({...formData, memoryAssignMode: id})} className={`p-3 rounded-2xl border text-left transition ${active ? (isDarkMode ? 'bg-cyan-950/50 border-cyan-600' : 'bg-white border-cyan-400 shadow-sm') : (isDarkMode ? 'bg-slate-950/40 border-slate-800' : 'bg-white/70 border-cyan-100')}`}>
+                                      <button key={id} type="button" onClick={() => setFormData({...formData, memoryAssignMode: id})} className={`p-3 rounded-2xl border text-left transition ${active ? (isDarkMode ? 'bg-cyan-950/50 border-cyan-600' : 'bg-white border-cyan-400 shadow-sm') : (isDarkMode ? 'bg-slate-950/40 border-slate-800' : 'bg-white/100 border-cyan-100')}`}>
                                         <div className={`font-black text-sm ${theme.textTitle}`}>{label}</div>
                                         <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
                                       </button>
@@ -23958,7 +24005,7 @@ S.N.: ${item.sn || '-'}
                           </div>
                         </div>
 
-                        <div className={`mt-2.5 p-2.5 rounded-xl border ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white/75 border-slate-200'}`}>
+                        <div className={`mt-2.5 p-2.5 rounded-xl border ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white/105 border-slate-200'}`}>
                           <div className={`text-xs font-black ${theme.textMuted}`}>อาการ / ปัญหาล่าสุด</div>
                           <div className={`font-black mt-1 ${theme.textTitle}`}>{row.problem || 'ยังไม่มีรายละเอียดอาการ'}</div>
                           <div className={`text-xs font-bold mt-2 ${theme.textMuted}`}>สถานะซ่อม: {getRepairStageLabel(row.stage)} • วันที่พบ: {row.dateText ? new Date(row.dateText).toLocaleDateString('th-TH') : '-'}</div>
