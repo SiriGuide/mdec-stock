@@ -51,8 +51,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.17 Admin Purge Deleted History';
-const APP_UPDATE_NOTE = 'Admin Purge Deleted History: เพิ่มระบบลบถาวรสำหรับประวัติส่วนกลางที่ถูกซ่อนแล้ว เพื่อล้างรายการทดสอบออกจากฐานข้อมูลจริง โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
+const APP_VERSION = 'v22.57.6.18 Admin Purge Confirm UX Fix';
+const APP_UPDATE_NOTE = 'Admin Purge Confirm UX Fix: ปรับ popup ลบถาวรให้ไม่ต้องจำ/พิมพ์คำยืนยัน ใช้ confirm สองชั้นพร้อมข้อความเตือนชัดเจน โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -12695,11 +12695,33 @@ S.N.: ${item.sn || '-'}
     if (softDeletedHistoryEntries.length === 0) return alert('ยังไม่มีประวัติที่ถูกซ่อนให้ล้างออกจากฐานข้อมูล');
 
     const previewLines = softDeletedHistoryEntries.slice(0, 8).map((entry, idx) => `${idx + 1}. ${entry.itemName} • ${entry.subject} • ${entry.deleteReason}`).join('\n');
-    const confirmText = window.prompt(`พบประวัติที่ถูกซ่อนแล้ว ${softDeletedHistoryEntries.length} รายการ\n\nรายการตัวอย่าง:\n${previewLines}${softDeletedHistoryEntries.length > 8 ? '\n...และรายการอื่น ๆ' : ''}\n\nการลบถาวรจะเอาประวัติเหล่านี้ออกจากฐานข้อมูลจริง และกู้คืนไม่ได้\nพิมพ์ PURGE เพื่อยืนยัน`);
-    if (confirmText !== 'PURGE') return alert('ยกเลิกการลบถาวร');
+    const firstConfirm = window.confirm(
+      [
+        `พบประวัติที่ถูกซ่อนแล้ว ${softDeletedHistoryEntries.length} รายการ`,
+        '',
+        'รายการตัวอย่าง:',
+        previewLines,
+        softDeletedHistoryEntries.length > 8 ? '...และรายการอื่น ๆ' : '',
+        '',
+        'การลบถาวรจะเอาประวัติเหล่านี้ออกจากฐานข้อมูลจริง',
+        'ไม่ใช่แค่ซ่อนจากหน้าเว็บ และกู้คืนไม่ได้',
+        '',
+        'ต้องการดำเนินการต่อหรือไม่?'
+      ].filter(Boolean).join('\n')
+    );
+    if (!firstConfirm) return alert('ยกเลิกการลบถาวร');
 
-    const secondConfirm = window.prompt('ยืนยันอีกครั้ง: พิมพ์ ลบถาวร เพื่อดำเนินการ');
-    if (secondConfirm !== 'ลบถาวร') return alert('ยกเลิกการลบถาวร');
+    const secondConfirm = window.confirm(
+      [
+        '⚠️ ยืนยันขั้นสุดท้าย',
+        '',
+        `กำลังจะลบถาวร ${softDeletedHistoryEntries.length} รายการออกจากฐานข้อมูลจริง`,
+        'การกระทำนี้ย้อนกลับไม่ได้',
+        '',
+        'ยืนยันลบถาวรจริง ๆ ใช่ไหม?'
+      ].join('\n')
+    );
+    if (!secondConfirm) return alert('ยกเลิกการลบถาวร');
 
     try {
       setIsBusy(true);
