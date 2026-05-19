@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.1 QR Multi-Select Action Panel';
-const APP_UPDATE_NOTE = 'QR Multi-Select Action Panel: เพิ่มแผงรายการอุปกรณ์ที่สแกนเลือกไว้บนหน้า QR พร้อมปุ่มทำรายการต่อ เช่น ยืม ออกงาน รับคืน และล้างรายการ โดยไม่แตะ QR Scanner core/Firebase path';
+const APP_VERSION = 'v22.57.6.2 QR No Floating Bar / Cashier Beep';
+const APP_UPDATE_NOTE = 'QR No Floating Bar / Cashier Beep: ซ่อนแถบทำรายการลอยระหว่างอยู่หน้าสแกน QR เพื่อไม่บังกล้อง และเปลี่ยนเสียงสแกนสำเร็จเป็นเสียงบี๊บแบบเครื่องคิดเงิน โดยไม่แตะ QR Scanner core/Firebase path';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -14369,6 +14369,61 @@ S.N.: ${item.sn || '-'}
     setShowBundleManager(true);
   };
 
+  const playScanSuccessSound = () => {
+    // เสียงบี๊บแบบเครื่องคิดเงิน: สร้างด้วย Web Audio API ในเครื่อง ไม่โหลดไฟล์เสียงภายนอก
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      const now = ctx.currentTime;
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.exponentialRampToValueAtTime(0.22, now + 0.01);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+      master.connect(ctx.destination);
+
+      const tone = (freq, start, duration, gainValue = 0.18) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(freq, now + start);
+        gain.gain.setValueAtTime(0.0001, now + start);
+        gain.gain.exponentialRampToValueAtTime(gainValue, now + start + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + start + duration);
+        osc.connect(gain);
+        gain.connect(master);
+        osc.start(now + start);
+        osc.stop(now + start + duration + 0.02);
+      };
+
+      tone(1175, 0.00, 0.075, 0.18);
+      tone(1568, 0.085, 0.085, 0.16);
+      window.setTimeout(() => { try { ctx.close && ctx.close(); } catch(e) {} }, 420);
+    } catch(e) {}
+  };
+
+  const playScanErrorSound = () => {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(260, now);
+      osc.frequency.exponentialRampToValueAtTime(180, now + 0.16);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.14, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.20);
+      window.setTimeout(() => { try { ctx.close && ctx.close(); } catch(e) {} }, 360);
+    } catch(e) {}
+  };
+
   const handleProcessScan = (scannedVal) => {
     const val = String(scannedVal || '').trim();
     if (!val) return;
@@ -14385,7 +14440,7 @@ S.N.: ${item.sn || '-'}
         if (!targetIds.includes(foundItem.id)) {
           setScanMessage({ text: `⚠️ "${foundItem.name}" ไม่ได้อยู่ในเช็กลิสต์${label}`, type: 'error' });
           try { if (navigator?.vibrate) navigator.vibrate([70, 45, 70]); } catch(e){}
-          try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
+          playScanErrorSound();
           return;
         }
         if (currentChecklist.includes(foundItem.id)) {
@@ -14401,14 +14456,14 @@ S.N.: ${item.sn || '-'}
           type: 'success'
         });
         try { if (navigator?.vibrate) navigator.vibrate(isComplete ? [90, 40, 120] : 90); } catch(e){}
-        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
+        playScanSuccessSound();
       };
 
       if (scanMode === 'stockCount') {
         markStockCountFound(foundItem, 'camera');
         setScanMessage({ text: `✅ ตรวจนับพบแล้ว: "${foundItem.name}"`, type: 'success' });
         try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
-        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
+        playScanSuccessSound();
       } else if (scanMode === 'borrowChecklist') {
         markChecklist(borrowTargetIds, packingChecklist, setPackingChecklist, 'ก่อนปล่อยยืม');
       } else if (scanMode === 'eventChecklist') {
@@ -14419,12 +14474,12 @@ S.N.: ${item.sn || '-'}
         setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
         setScanMessage({ text: `✅ สแกนสำเร็จ: "${foundItem.name}" เพิ่มเข้ารายการแล้ว`, type: 'success' });
         try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
-        try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
+        playScanSuccessSound();
       }
     } else {
       setScanMessage({ text: `❌ ไม่พบรหัสนี้: "${val}" ในระบบ`, type: 'error' });
       try { if (navigator?.vibrate) navigator.vibrate([60, 40, 60]); } catch(e){}
-      try { new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3').play(); } catch(e){}
+      playScanErrorSound();
     }
 
     setScanInput('');
@@ -19131,7 +19186,7 @@ S.N.: ${item.sn || '-'}
       )}
 
       {/* 🛒 Bulk Selection Action Bar */}
-      {canUseOperationalTools && selectedItems.length > 0 && (() => {
+      {canUseOperationalTools && selectedItems.length > 0 && !(showScanModal && activeWorkspace === 'scanner') && (() => {
         const selectedActiveItems = selectedItems.map(id => items.find(item => item.id === id)).filter(Boolean);
         const availableCount = selectedActiveItems.filter(item => item.status === 'available').length;
         const returnableCount = selectedActiveItems.filter(item => item.status === 'borrowed' || item.status === 'out-for-event').length;
