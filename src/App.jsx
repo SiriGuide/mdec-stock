@@ -51,8 +51,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.19 Compact Operation Steps';
-const APP_UPDATE_NOTE = 'Compact Operation Steps: ลดแถบขั้นตอนยืม/ออกงาน/รับคืนที่ใหญ่เทอะทะให้เป็นแถบสถานะขนาดเล็ก อ่านง่าย ไม่กินพื้นที่ โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
+const APP_VERSION = 'v22.57.6.20.1 Operation Mode Redesign Full App';
+const APP_UPDATE_NOTE = 'Operation Mode Redesign Full App: ปรับแถบเลือกโหมดยืม/ออกงาน/รับคืนให้ดูเท่ขึ้นแบบ command mode และรวมใน App.jsx เต็มไฟล์ ไม่ใช่ component แยก โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -10451,44 +10451,119 @@ S.N.: ${item.sn || '-'}
           </div>
 
           <div className="p-4 sm:p-6 space-y-5">
-            <div className={`rounded-[1.5rem] border p-2 grid grid-cols-1 md:grid-cols-3 gap-2 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-              {modeTabs.map(([id, label, Icon, desc, tone]) => {
-                const active = borrowReturnMode === id;
-                const activeClass = tone === 'orange'
-                  ? (isDarkMode ? 'bg-orange-950/45 border-orange-700 text-orange-200' : 'bg-orange-50 border-orange-300 text-orange-800')
-                  : tone === 'emerald'
-                    ? (isDarkMode ? 'bg-emerald-950/45 border-emerald-700 text-emerald-200' : 'bg-emerald-50 border-emerald-300 text-emerald-800')
-                    : (isDarkMode ? 'bg-blue-950/45 border-blue-700 text-blue-200' : 'bg-blue-50 border-blue-300 text-blue-800');
-                return (
-                  <button key={id} type="button" onClick={() => { clearOperationSelection(); setBorrowReturnMode(id); }} className={`p-4 rounded-2xl border text-left transition-all ${active ? `${activeClass} shadow-sm` : theme.btnSecondary}`}>
-                    <div className="flex items-center gap-2 font-black"><Icon className="w-5 h-5" /> {label}</div>
-                    <div className={`text-[11px] font-bold mt-1 ${active ? 'opacity-80' : theme.textMuted}`}>{desc}</div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className={`rounded-[1.35rem] border px-3.5 py-3 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className={`text-xs font-black ${theme.textMuted}`}>ขั้นตอนรายการ</div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    {stepCards.map(([no, label, value, done], index) => (
-                      <div key={no} className="flex items-center gap-2">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-black ${done ? modeInfo.softClass : (isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500')}`}>
-                          <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${done ? modeInfo.primaryBtn + ' text-white' : isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>{no}</span>
-                          {label}
-                        </span>
-                        {index < stepCards.length - 1 && <span className={`${isDarkMode ? 'text-slate-700' : 'text-slate-300'} hidden sm:inline`}>›</span>}
-                      </div>
-                    ))}
+            <section className={`rounded-[1.8rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/60 border-slate-800 shadow-[0_18px_55px_rgba(0,0,0,0.28)]' : 'bg-white border-slate-200 shadow-sm'}`}>
+              <div className={`px-4 sm:px-5 py-3 border-b ${theme.divide}`}>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className={`text-[10px] font-black uppercase tracking-[0.24em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Operation Mode</div>
+                    <h3 className={`text-base sm:text-lg font-black mt-1 ${theme.textTitle}`}>เลือกโหมดการทำรายการ</h3>
+                    <p className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>เลือกงานที่กำลังจะทำ แล้วระบบจะจัด flow ด้านล่างให้ตรงกับโหมดนั้น</p>
+                  </div>
+                  <div className={`inline-flex items-center gap-2 self-start rounded-full border px-3 py-1.5 text-[11px] font-black ${isReadyToSubmit ? modeInfo.softClass : (isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700')}`}>
+                    <span className={`inline-block h-2 w-2 rounded-full ${isReadyToSubmit ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.85)]' : 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,.65)]'}`} />
+                    {isReadyToSubmit ? 'พร้อมบันทึกรายการ' : `ยังขาด ${missingSteps.length} จุด`}
                   </div>
                 </div>
-                <div className={`shrink-0 rounded-2xl border px-3 py-2 text-sm font-black ${isReadyToSubmit ? modeInfo.softClass : (isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700')}`}>
-                  {isReadyToSubmit ? 'พร้อมบันทึกรายการ' : `ยังขาด: ${missingSteps.slice(0, 2).join(' / ')}${missingSteps.length > 2 ? ' ...' : ''}`}
+              </div>
+
+              <div className="p-3 sm:p-4 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {modeTabs.map(([id, label, Icon, desc, tone], index) => {
+                    const active = borrowReturnMode === id;
+                    const modeShort = id === 'borrow' ? 'BORROW' : id === 'event' ? 'EVENT' : 'RETURN';
+                    const toneClasses = tone === 'orange'
+                      ? {
+                          accent: 'from-orange-500/20 via-amber-500/10 to-transparent',
+                          ring: 'ring-orange-400/35',
+                          border: 'border-orange-400/40',
+                          icon: 'bg-orange-500/15 text-orange-200 border-orange-400/30',
+                          text: 'text-orange-100',
+                          badge: 'bg-orange-500/15 text-orange-200 border-orange-400/30'
+                        }
+                      : tone === 'emerald'
+                        ? {
+                            accent: 'from-emerald-500/18 via-green-500/10 to-transparent',
+                            ring: 'ring-emerald-400/35',
+                            border: 'border-emerald-400/40',
+                            icon: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30',
+                            text: 'text-emerald-100',
+                            badge: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30'
+                          }
+                        : {
+                            accent: 'from-blue-500/25 via-blue-500/10 to-cyan-400/10',
+                            ring: 'ring-blue-400/40',
+                            border: 'border-blue-400/45',
+                            icon: 'bg-blue-500/18 text-blue-200 border-blue-400/35',
+                            text: 'text-blue-100',
+                            badge: 'bg-blue-500/18 text-blue-200 border-blue-400/35'
+                          };
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => { clearOperationSelection(); setBorrowReturnMode(id); }}
+                        className={`group relative overflow-hidden rounded-[1.45rem] border px-4 py-4 text-left transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400/30 ${active ? `${toneClasses.border} bg-slate-900 ring-1 ${toneClasses.ring} shadow-[0_10px_35px_rgba(0,0,0,0.35)]` : (isDarkMode ? 'border-slate-700/70 bg-slate-900/60 hover:border-slate-600/80 hover:bg-slate-900/80' : 'border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300')}`}
+                      >
+                        <div className={`absolute inset-0 transition-opacity duration-200 ${active ? `bg-gradient-to-br ${toneClasses.accent}` : (isDarkMode ? 'bg-gradient-to-br from-white/[0.025] to-transparent' : 'bg-gradient-to-br from-white to-transparent')}`} />
+                        <div className="relative">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition-all duration-200 ${active ? toneClasses.icon : (isDarkMode ? 'border-slate-700/70 bg-slate-800/85 text-slate-300 group-hover:border-slate-600 group-hover:text-white' : 'border-slate-200 bg-white text-slate-600')}`}>
+                                <Icon className="w-5 h-5" />
+                              </div>
+                              <div className="min-w-0">
+                                <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] ${active ? toneClasses.badge : (isDarkMode ? 'border-slate-700/70 bg-slate-800/90 text-slate-400' : 'border-slate-200 bg-white text-slate-500')}`}>{modeShort}</span>
+                                <div className={`mt-2 text-base font-black ${active ? toneClasses.text : theme.textTitle}`}>{label}</div>
+                                <div className={`mt-1 text-xs font-bold ${theme.textMuted}`}>{desc}</div>
+                              </div>
+                            </div>
+                            <div className="pt-0.5 text-right shrink-0">
+                              <div className={`text-[10px] font-black uppercase tracking-[0.22em] ${active ? 'text-white/80' : theme.textMuted}`}>{active ? 'ACTIVE' : `0${index + 1}`}</div>
+                              {active && (
+                                <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-black text-white">
+                                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-white" /> ใช้งานอยู่
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="mt-4 flex items-center justify-between">
+                            <div className={`flex items-center gap-2 text-[11px] font-bold ${theme.textMuted}`}>
+                              <span className={`inline-block h-1.5 w-8 rounded-full transition-all duration-200 ${active ? 'bg-white/85' : (isDarkMode ? 'bg-slate-700/90' : 'bg-slate-300')}`} />
+                              {active ? 'พร้อมเริ่มขั้นตอนถัดไป' : 'กดเพื่อสลับโหมด'}
+                            </div>
+                            <div className={`text-xs font-black transition-all duration-200 ${active ? 'translate-x-0 text-white' : (isDarkMode ? 'text-slate-500 group-hover:text-slate-300' : 'text-slate-400 group-hover:text-slate-600')}`}>→</div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className={`rounded-[1.35rem] border px-3.5 py-3 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Process</div>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {stepCards.map(([no, label, value, done], index) => (
+                          <div key={no} className="flex items-center gap-2">
+                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-black ${done ? modeInfo.softClass : (isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`} title={String(value || '')}>
+                              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${done ? modeInfo.primaryBtn + ' text-white' : isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>{done ? '✓' : no}</span>
+                              {label}
+                            </span>
+                            {index < stepCards.length - 1 && <span className={`${isDarkMode ? 'text-slate-700' : 'text-slate-300'} hidden sm:inline`}>›</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {!isReadyToSubmit && (
+                      <div className={`shrink-0 rounded-2xl border px-3 py-2 text-xs font-black ${isDarkMode ? 'bg-amber-950/25 border-amber-800/60 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                        ยังขาด: {missingSteps.slice(0, 2).join(' / ')}{missingSteps.length > 2 ? ' ...' : ''}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            </section>
 
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.12fr)_minmax(380px,.88fr)] gap-5 items-start">
               <section className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
