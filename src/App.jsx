@@ -50,8 +50,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.0 Asset Profile Static Summary Cleanup';
-const APP_UPDATE_NOTE = 'Compact Multi-Filter Redesign: ย่อแถบค้นหา/ตัวกรองหน้า Inventory, เพิ่มตัวกรองแบบติ๊กเลือกได้หลายรายการสำหรับฝ่าย หมวดหมู่ ที่เก็บ และโครงการ พร้อม chip แสดงรายการที่เลือก โดยไม่แตะ QR Scanner/Firebase/flow ยืมคืน';
+const APP_VERSION = 'v22.57.6.1 QR Multi-Select Action Panel';
+const APP_UPDATE_NOTE = 'QR Multi-Select Action Panel: เพิ่มแผงรายการอุปกรณ์ที่สแกนเลือกไว้บนหน้า QR พร้อมปุ่มทำรายการต่อ เช่น ยืม ออกงาน รับคืน และล้างรายการ โดยไม่แตะ QR Scanner core/Firebase path';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -14305,6 +14305,48 @@ S.N.: ${item.sn || '-'}
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
+  const openScannerSelectionToBorrow = () => {
+    if (!requireOperationalAccess('เปิดรายการยืมจากหน้าสแกน')) return;
+    try {
+      const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
+      if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมให้ยืมในรายการที่สแกนไว้\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้")');
+      setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' });
+      setBorrowProofFiles([]);
+      setBorrowTargetIds([...validIds]);
+      setPackingChecklist([]);
+      closeScannerPage('overview');
+    } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
+  };
+
+  const openScannerSelectionToEvent = () => {
+    if (!requireOperationalAccess('เปิดรายการออกงานจากหน้าสแกน')) return;
+    try {
+      const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
+      if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมออกงานในรายการที่สแกนไว้\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้")');
+      setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
+      setEventProofFiles([]);
+      setEventTargetIds([...validIds]);
+      setEventChecklist([]);
+      closeScannerPage('overview');
+    } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
+  };
+
+  const openScannerSelectionToReturn = () => {
+    if (!requireOperationalAccess('เปิดรายการรับคืนจากหน้าสแกน')) return;
+    try {
+      const validIds = selectedItems.filter(id => {
+        const st = items.find(i => i.id === id)?.status;
+        return st === 'borrowed' || st === 'out-for-event';
+      });
+      if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่สามารถรับคืนได้ในรายการที่สแกนไว้\n(อุปกรณ์ต้องมีสถานะ "ถูกยืม" หรือ "ออกงาน")');
+      setReturnData({ staff: '', newStaff: '' });
+      setReturnProofFiles([]);
+      setReturnTargetIds([...validIds]);
+      setReturnChecklist([]);
+      closeScannerPage('overview');
+    } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
+  };
+
 
 
   const openReturnForItems = (ids = []) => {
@@ -17659,6 +17701,9 @@ S.N.: ${item.sn || '-'}
         const pendingIds = isChecklistMode ? targetIds.filter(id => !checkedIds.includes(id)).slice(0, 4) : [];
         const recentItem = lastScannedItemId ? items.find(i => i.id === lastScannedItemId) : null;
         const recentStatus = recentItem ? (STATUSES.find(s => s.id === recentItem.status) || STATUSES[0]) : null;
+        const scannedSelection = scanMode === 'select' ? selectedItems.map(id => items.find(i => i.id === id)).filter(Boolean) : [];
+        const scannedAvailableCount = scannedSelection.filter(item => item.status === 'available').length;
+        const scannedReturnableCount = scannedSelection.filter(item => item.status === 'borrowed' || item.status === 'out-for-event').length;
         const toneClass = scanMode === 'borrowChecklist'
           ? 'from-purple-600 to-violet-700'
           : scanMode === 'eventChecklist'
@@ -18469,6 +18514,60 @@ S.N.: ${item.sn || '-'}
                         <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
                           <div className={`text-xs font-black mb-2 ${theme.textMuted}`}>สแกนล่าสุด</div>
                           <div className={`font-bold ${theme.textMuted}`}>ยังไม่มีรายการล่าสุดในรอบนี้</div>
+                        </div>
+                      )}
+
+                      {scanMode === 'select' && (
+                        <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <div className="min-w-0">
+                              <div className={`text-xs font-black mb-1 ${theme.textMuted}`}>รายการที่เลือกจากการสแกน</div>
+                              <div className={`font-black text-lg ${theme.textTitle}`}>เลือกแล้ว {scannedSelection.length.toLocaleString('th-TH')} รายการ</div>
+                            </div>
+                            {scannedSelection.length > 0 && (
+                              <button type="button" onClick={() => setSelectedItems([])} className={`px-3 py-2 rounded-xl border text-xs font-black shrink-0 ${theme.btnSecondary}`}>ล้าง</button>
+                            )}
+                          </div>
+
+                          {scannedSelection.length === 0 ? (
+                            <div className={`p-4 rounded-2xl border text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                              สแกนอุปกรณ์แล้ว รายการจะมาแสดงตรงนี้ทันที จากนั้นเลือกว่าจะยืม ออกงาน หรือรับคืนต่อได้เลย
+                            </div>
+                          ) : (
+                            <>
+                              <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+                                {scannedSelection.map(item => {
+                                  const st = STATUSES.find(s => s.id === item.status) || STATUSES[0];
+                                  return (
+                                    <div key={item.id} className={`p-3 rounded-2xl border flex items-start justify-between gap-3 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                                      <div className="min-w-0">
+                                        <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
+                                        <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • {item.location || 'ไม่ระบุที่เก็บ'}</div>
+                                        <span className={`inline-flex mt-2 px-2.5 py-1 rounded-full text-[11px] font-black border ${isDarkMode ? st.darkColor : st.color}`}>{st.label}</span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedItems(prev => prev.filter(id => id !== item.id))}
+                                        className={`w-8 h-8 rounded-xl border font-black shrink-0 ${theme.btnSecondary}`}
+                                        title="เอาออกจากรายการที่เลือก"
+                                      >×</button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              <div className={`mt-3 p-3 rounded-2xl border text-xs font-bold ${isDarkMode ? 'bg-slate-950/80 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                พร้อมยืม/ออกงาน {scannedAvailableCount.toLocaleString('th-TH')} รายการ • พร้อมรับคืน {scannedReturnableCount.toLocaleString('th-TH')} รายการ
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
+                                <button type="button" disabled={scannedAvailableCount === 0} onClick={openScannerSelectionToBorrow} className={`px-3 py-3 rounded-2xl font-black text-sm border ${scannedAvailableCount === 0 ? 'opacity-45 cursor-not-allowed bg-slate-700 text-slate-300 border-slate-700' : 'bg-purple-600 hover:bg-purple-500 text-white border-purple-500'}`}>ยืม</button>
+                                <button type="button" disabled={scannedAvailableCount === 0} onClick={openScannerSelectionToEvent} className={`px-3 py-3 rounded-2xl font-black text-sm border ${scannedAvailableCount === 0 ? 'opacity-45 cursor-not-allowed bg-slate-700 text-slate-300 border-slate-700' : 'bg-orange-600 hover:bg-orange-500 text-white border-orange-500'}`}>ออกงาน</button>
+                                <button type="button" disabled={scannedReturnableCount === 0} onClick={openScannerSelectionToReturn} className={`px-3 py-3 rounded-2xl font-black text-sm border ${scannedReturnableCount === 0 ? 'opacity-45 cursor-not-allowed bg-slate-700 text-slate-300 border-slate-700' : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500'}`}>รับคืน</button>
+                              </div>
+                              <button type="button" onClick={() => closeScannerPage('inventory')} className={`mt-2 w-full px-3 py-3 rounded-2xl border font-black text-sm ${theme.btnSecondary}`}>กลับไปดูในคลังอุปกรณ์</button>
+                            </>
+                          )}
                         </div>
                       )}
 
