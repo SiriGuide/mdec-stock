@@ -15,6 +15,7 @@
 // v22.52.6 Data Quality Action Polish - supports camera/department/flexible memory choice without fixed sets
 // v22.52.6 Data Quality Action Polish - UI-only polish, no QR/camera/database changes
 // v22.52.1 ตัวช่วยกล้อง Final UX - UI/UX safe polish, no QR/camera/database changes
+// v22.57.6.25 Asset Profile Readability Polish - แฟ้มอุปกรณ์อ่านง่ายขึ้น ลดความแน่น จัดหัวแฟ้ม/ข้อมูล/ประวัติ/หลักฐานให้ชัด โดยไม่แตะ QR Scanner/Firebase path/flow หลัก
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
@@ -51,8 +52,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.22 Borrow Workspace Theme Unify';
-const APP_UPDATE_NOTE = 'Borrow Workspace Theme Unify: คุมธีมหน้ายืม/ออกงาน/รับคืนให้เป็นโทนเดียว ลดสีปุ่มที่โดดเกินไป และปรับหน้าเลือกอุปกรณ์/ตัวกรองให้ดูเป็น workspace เดียวกัน โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
+const APP_VERSION = 'v22.57.6.25 Asset Profile Readability Polish';
+const APP_UPDATE_NOTE = 'Asset Profile Readability Polish: กวาดธีมโหมดมืดทั้งเว็บให้ใช้โทน slate เดียวกัน ลดสีสดที่หลุดธีม รวมทรงปุ่ม/การ์ด/ช่องค้นหา/empty state ให้สอดคล้องกัน โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7239,6 +7240,156 @@ function MainApp() {
     document.body.style.backgroundColor = '#0f172a';
   }, []);
 
+
+  useEffect(() => {
+    const styleId = 'mdec-global-dark-theme-consistency-v2257624';
+    const oldStyle = document.getElementById(styleId);
+    if (oldStyle) oldStyle.remove();
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      :root {
+        color-scheme: dark;
+        --mdec-bg: #020617;
+        --mdec-panel: rgba(15, 23, 42, 0.82);
+        --mdec-panel-soft: rgba(30, 41, 59, 0.62);
+        --mdec-panel-subtle: rgba(15, 23, 42, 0.58);
+        --mdec-border: rgba(100, 116, 139, 0.34);
+        --mdec-border-soft: rgba(71, 85, 105, 0.45);
+        --mdec-text: #f8fafc;
+        --mdec-muted: #94a3b8;
+        --mdec-accent: rgba(96, 165, 250, 0.22);
+        --mdec-accent-border: rgba(96, 165, 250, 0.34);
+        --mdec-accent-text: #bfdbfe;
+      }
+
+      body {
+        background: radial-gradient(circle at top left, rgba(30, 64, 175, 0.14), transparent 34rem), var(--mdec-bg) !important;
+      }
+
+      .page-workspace-shell,
+      .records-workspace,
+      .tracking-workspace,
+      .tools-workspace {
+        color: var(--mdec-text);
+      }
+
+      .page-workspace-shell section,
+      .page-workspace-shell .theme-panel,
+      .records-workspace section,
+      .tracking-workspace section,
+      .tools-workspace section {
+        background-color: var(--mdec-panel) !important;
+        border-color: var(--mdec-border) !important;
+      }
+
+      .page-workspace-shell input,
+      .page-workspace-shell select,
+      .page-workspace-shell textarea,
+      .records-workspace input,
+      .records-workspace select,
+      .records-workspace textarea,
+      .tracking-workspace input,
+      .tracking-workspace select,
+      .tracking-workspace textarea,
+      .tools-workspace input,
+      .tools-workspace select,
+      .tools-workspace textarea {
+        background-color: rgba(2, 6, 23, 0.78) !important;
+        border-color: var(--mdec-border) !important;
+        color: var(--mdec-text) !important;
+        box-shadow: none !important;
+      }
+
+      .page-workspace-shell input::placeholder,
+      .records-workspace input::placeholder,
+      .tracking-workspace input::placeholder,
+      .tools-workspace input::placeholder {
+        color: rgba(148, 163, 184, 0.78) !important;
+      }
+
+      .page-workspace-shell button,
+      .records-workspace button,
+      .tracking-workspace button,
+      .tools-workspace button {
+        box-shadow: none !important;
+      }
+
+      .page-workspace-shell [class*="bg-blue-600"],
+      .page-workspace-shell [class*="bg-blue-500"],
+      .records-workspace [class*="bg-blue-600"],
+      .records-workspace [class*="bg-blue-500"],
+      .tracking-workspace [class*="bg-blue-600"],
+      .tracking-workspace [class*="bg-blue-500"],
+      .tools-workspace [class*="bg-blue-600"],
+      .tools-workspace [class*="bg-blue-500"] {
+        background-color: var(--mdec-accent) !important;
+        border-color: var(--mdec-accent-border) !important;
+        color: var(--mdec-accent-text) !important;
+      }
+
+      .page-workspace-shell [class*="bg-orange-600"],
+      .page-workspace-shell [class*="bg-orange-500"],
+      .page-workspace-shell [class*="bg-amber-600"],
+      .page-workspace-shell [class*="bg-amber-500"],
+      .records-workspace [class*="bg-orange-600"],
+      .records-workspace [class*="bg-orange-500"],
+      .tracking-workspace [class*="bg-orange-600"],
+      .tracking-workspace [class*="bg-orange-500"] {
+        background-color: rgba(251, 146, 60, 0.13) !important;
+        border-color: rgba(251, 146, 60, 0.28) !important;
+        color: #fed7aa !important;
+      }
+
+      .page-workspace-shell [class*="bg-emerald-600"],
+      .page-workspace-shell [class*="bg-emerald-500"],
+      .records-workspace [class*="bg-emerald-600"],
+      .records-workspace [class*="bg-emerald-500"],
+      .tracking-workspace [class*="bg-emerald-600"],
+      .tracking-workspace [class*="bg-emerald-500"] {
+        background-color: rgba(16, 185, 129, 0.13) !important;
+        border-color: rgba(52, 211, 153, 0.27) !important;
+        color: #bbf7d0 !important;
+      }
+
+      .page-workspace-shell [class*="bg-purple-600"],
+      .page-workspace-shell [class*="bg-purple-500"],
+      .page-workspace-shell [class*="bg-violet-600"],
+      .page-workspace-shell [class*="bg-violet-500"],
+      .records-workspace [class*="bg-purple-600"],
+      .records-workspace [class*="bg-purple-500"],
+      .tracking-workspace [class*="bg-purple-600"],
+      .tracking-workspace [class*="bg-violet-500"] {
+        background-color: rgba(139, 92, 246, 0.13) !important;
+        border-color: rgba(167, 139, 250, 0.25) !important;
+        color: #ddd6fe !important;
+      }
+
+      .page-workspace-shell [class*="shadow-"],
+      .records-workspace [class*="shadow-"],
+      .tracking-workspace [class*="shadow-"],
+      .tools-workspace [class*="shadow-"] {
+        box-shadow: 0 18px 60px rgba(0,0,0,0.18) !important;
+      }
+
+      .page-workspace-shell .custom-scrollbar::-webkit-scrollbar-thumb,
+      .records-workspace .custom-scrollbar::-webkit-scrollbar-thumb,
+      .tracking-workspace .custom-scrollbar::-webkit-scrollbar-thumb,
+      .tools-workspace .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(100, 116, 139, 0.55) !important;
+        border-radius: 999px;
+      }
+
+      .page-workspace-shell [class*="text-yellow"],
+      .records-workspace [class*="text-yellow"],
+      .tracking-workspace [class*="text-yellow"] {
+        color: #fde68a !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => style.remove();
+  }, []);
+
   useEffect(() => {
     try { localStorage.setItem('mdec_show_category_summary', showCategorySummary ? 'true' : 'false'); } catch(e) {}
   }, [showCategorySummary]);
@@ -7851,7 +8002,7 @@ function MainApp() {
         </div>
         <div className="grid grid-cols-2 gap-2 mt-3">
           <button type="button" onClick={() => openProofImage(first)} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>เปิดรูปแรก</button>
-          <button type="button" onClick={openProofCenterFromHistory} className="px-3 py-2 rounded-xl text-xs font-black bg-pink-600 text-white">จัดการหลักฐาน</button>
+          <button type="button" onClick={openProofCenterFromHistory} className="px-3 py-2 rounded-xl text-xs font-black bg-pink-600 text-white">จัดการดูหลักฐานทั้งหมด</button>
         </div>
       </div>
     );
@@ -11163,7 +11314,7 @@ S.N.: ${item.sn || '-'}
             ) : (
               <button type="button" onClick={() => markStockCountFound(item, 'button')} className="px-3 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">พบแล้ว</button>
             )}
-            <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
+            <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เปิด</button>
             <button type="button" onClick={() => openItemEditor(item)} className={`px-3 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>แก้ข้อมูล</button>
             <button type="button" onClick={() => openRepairForItem(item)} className={`px-3 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>แจ้งซ่อม</button>
           </div>
@@ -11577,7 +11728,7 @@ S.N.: ${item.sn || '-'}
             <div className="min-w-0">
               <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>FACTORY STYLE INVENTORY</div>
               <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>คลังอุปกรณ์</h2>
-              <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>ค้นหา เปิดแฟ้ม เลือกหลายรายการ ยืม ออกงาน รับคืน และจัดการข้อมูลอุปกรณ์จากหน้าเดียว เน้นใช้งานบนคอมให้เร็วและอ่านง่ายขึ้น</p>
+              <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>ค้นหา เปิด เลือกหลายรายการ ยืม ออกงาน รับคืน และจัดการข้อมูลอุปกรณ์จากหน้าเดียว เน้นใช้งานบนคอมให้เร็วและอ่านง่ายขึ้น</p>
             </div>
             <div className="inventory-header-actions flex flex-wrap gap-2 shrink-0">
               {canAddEditItems && <button type="button" onClick={openAddItemForm} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm"><Icons.Plus className="w-5 h-5 inline-block mr-1" /> เพิ่มอุปกรณ์</button>}
@@ -11766,7 +11917,7 @@ S.N.: ${item.sn || '-'}
               <div className={`p-4 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${theme.divide}`}>
                 <div>
                   <div className={`font-black text-lg ${theme.textTitle}`}>รายการอุปกรณ์ในคลัง</div>
-                  <div className={`text-xs font-bold ${theme.textMuted}`}>เลือก checkbox เพื่อทำรายการแบบกลุ่ม หรือกดแถวเพื่อเปิดแฟ้มประวัติ</div>
+                  <div className={`text-xs font-bold ${theme.textMuted}`}>เลือก checkbox เพื่อทำรายการแบบกลุ่ม หรือกดแถวเพื่อเปิดประวัติ</div>
                 </div>
                 <div className={`text-xs font-black px-3 py-2 rounded-full border ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>Factory Table View</div>
               </div>
@@ -11823,7 +11974,7 @@ S.N.: ${item.sn || '-'}
                                 <div className="min-w-0">
                                   <div className={`font-black text-base leading-snug truncate ${theme.textTitle}`}>{item.name || '-'}</div>
                                   <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || item.assetShortCode || item.localCode || 'ไม่มีรหัสสั้น'}</div>
-                                  <div className={`inventory-open-cue text-[11px] font-black mt-1 ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>กดแถวเพื่อเปิดแฟ้มอุปกรณ์</div>
+                                  <div className={`inventory-open-cue text-[11px] font-black mt-1 ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>กดแถวเพื่อเปิดอุปกรณ์</div>
                                 </div>
                               </div>
                             </td>
@@ -11848,7 +11999,7 @@ S.N.: ${item.sn || '-'}
                             </td>
                             <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                               <div className="inventory-row-actions flex items-center justify-center gap-1.5">
-                                <button type="button" onClick={() => setShowHistory(item.id)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${theme.btnCancel}`} title="เปิดแฟ้ม"><Icons.History className="w-4 h-4" /><span>แฟ้ม</span></button>
+                                <button type="button" onClick={() => setShowHistory(item.id)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${theme.btnCancel}`} title="เปิด"><Icons.History className="w-4 h-4" /><span>แฟ้ม</span></button>
                                 <button type="button" onClick={() => copyItemSummary(item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${theme.btnCancel}`} title="คัดลอก"><Icons.ClipboardList className="w-4 h-4" /><span>คัดลอก</span></button>
                                 {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowBorrow(e, item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${isDarkMode ? 'bg-violet-950/35 border border-violet-500/25 text-violet-300 hover:bg-violet-600 hover:border-violet-600 hover:text-white' : 'bg-violet-50 border border-violet-200 text-violet-700 hover:bg-violet-600 hover:border-violet-600 hover:text-white'}`} title="ยืม"><Icons.UserPlus className="w-4 h-4" /><span>ยืม</span></button>}
                                 {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowEvent(e, item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${isDarkMode ? 'bg-orange-950/35 border border-orange-500/25 text-orange-300 hover:bg-orange-600 hover:border-orange-600 hover:text-white' : 'bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-600 hover:border-orange-600 hover:text-white'}`} title="ออกงาน"><Icons.Truck className="w-4 h-4" /><span>ออกงาน</span></button>}
@@ -11996,8 +12147,8 @@ S.N.: ${item.sn || '-'}
 
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 shrink-0 xl:w-auto w-full">
                           <button type="button" onClick={() => openReturnForItems([item.id])} className="px-3 py-2.5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/15 font-black text-sm">รับคืน</button>
-                          <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
-                          <button type="button" onClick={() => copyReturnTrackingMessage(item)} className={`px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>คัดลอก</button>
+                          <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>เปิด</button>
+                          <button type="button" onClick={() => copyReturnTrackingMessage(item)} className={`px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>คัดลอกสรุป</button>
                           <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>เอกสาร</button>
                         </div>
                       </div>
@@ -12251,7 +12402,7 @@ S.N.: ${item.sn || '-'}
                         </div>
 
                         <div className="flex xl:flex-col gap-2 justify-start shrink-0">
-                          <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-4 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
+                          <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-4 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เปิด</button>
                           <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-sm font-black">{isGroup ? 'เพิ่มรูปกลุ่ม' : 'เพิ่มรูป'}</button>
                           {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`px-4 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>ดูรูป</button>}
                         </div>
@@ -12292,7 +12443,7 @@ S.N.: ${item.sn || '-'}
                               <div className={`font-black truncate ${theme.textTitle}`}>{group.itemRefs?.length > 1 ? `เกี่ยวข้องกับ ${group.itemRefs.length} อุปกรณ์` : (entry.itemName || '-')}</div>
                               <div className={`text-xs font-bold mt-1 truncate ${theme.textMuted}`}>{group.itemRefs?.map(ref => ref.itemName).slice(0,2).join(' • ') || '-'}</div>
                               <div className="grid grid-cols-2 gap-2 mt-3">
-                                {group.itemRefs?.[0]?.itemId && <button type="button" onClick={() => setShowHistory(group.itemRefs[0].itemId)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
+                                {group.itemRefs?.[0]?.itemId && <button type="button" onClick={() => setShowHistory(group.itemRefs[0].itemId)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิด</button>}
                                 <button type="button" onClick={() => openProofImage(proof)} className="px-3 py-2 rounded-xl bg-pink-600 text-white text-xs font-black">เปิดรูป</button>
                               </div>
                             </div>
@@ -20590,7 +20741,7 @@ S.N.: ${item.sn || '-'}
                         {list.slice(0, 10).map(i => (
                           <div key={i.id} className={`text-sm font-bold px-3 py-2 rounded-xl flex items-center justify-between gap-2 ${isDarkMode ? 'bg-slate-800 text-slate-200' : 'bg-white text-slate-700'}`}>
                             <span className="truncate">{i.name} <span className={theme.textMuted}>{i.sn ? `• ${i.sn}` : ''}</span></span>
-                            {(i.status === 'borrowed' || i.status === 'out-for-event') && <button type="button" onClick={() => copyReturnTrackingMessage(i)} className={`px-2 py-1 rounded-lg text-xs font-black ${theme.btnSecondary}`}>คัดลอก</button>}
+                            {(i.status === 'borrowed' || i.status === 'out-for-event') && <button type="button" onClick={() => copyReturnTrackingMessage(i)} className={`px-2 py-1 rounded-lg text-xs font-black ${theme.btnSecondary}`}>คัดลอกสรุป</button>}
                           </div>
                         ))}
                         {list.length === 0 && <div className={`text-sm font-bold ${theme.textMuted}`}>ไม่มีรายการ</div>}
@@ -21317,7 +21468,7 @@ S.N.: ${item.sn || '-'}
                     <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-start">
                       <div>
                         <div className={`font-black text-lg ${theme.textTitle}`}>ตัวกรองรายการที่ควรเติม</div>
-                        <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกหมวดแล้วกด “แก้ไข” เพื่อเปิดฟอร์มอุปกรณ์โดยตรง หรือ “เปิดแฟ้ม” เพื่อดูประวัติชิ้นนั้น</p>
+                        <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกหมวดแล้วกด “แก้ไข” เพื่อเปิดฟอร์มอุปกรณ์โดยตรง หรือ “เปิด” เพื่อดูประวัติชิ้นนั้น</p>
                       </div>
                       <input
                         value={dataQualitySearch}
@@ -21455,12 +21606,12 @@ S.N.: ${item.sn || '-'}
                                               }
                                             }}
                                             className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}
-                                          >เปิดแฟ้ม</button>
+                                          >เปิด</button>
                                           <button
                                             type="button"
                                             onClick={() => target && copyItemSummary(target)}
                                             className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}
-                                          >คัดลอก</button>
+                                          >คัดลอกสรุป</button>
                                         </div>
                                       </div>
                                     </div>
@@ -22799,13 +22950,13 @@ S.N.: ${item.sn || '-'}
 
         return (
           <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-2 sm:p-5 z-[9999]`}>
-            <div className={`asset-profile-modal compact-modal-shell rounded-[1.7rem] sm:rounded-[2rem] w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div className={`shrink-0 px-4 sm:px-6 py-4 border-b ${theme.divide} ${isDarkMode ? 'bg-slate-950' : 'bg-white'}`}>
+            <div className={`asset-profile-modal asset-profile-readable compact-modal-shell rounded-[1.7rem] sm:rounded-[2rem] w-full max-w-[1180px] max-h-[94vh] flex flex-col shadow-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`shrink-0 px-4 sm:px-6 py-2.5 border-b ${theme.divide} ${isDarkMode ? 'bg-slate-950' : 'bg-white'}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className={`text-xs font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>Asset Profile</div>
-                    <h3 className={`text-xl sm:text-2xl font-black leading-tight truncate mt-1 ${theme.textTitle}`}>แฟ้มประวัติทรัพย์สิน</h3>
-                    <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>รายละเอียดอุปกรณ์ ประวัติการใช้งาน และหลักฐานที่เกี่ยวข้อง</p>
+                    <h3 className={`text-xl sm:text-2xl font-black leading-tight truncate mt-1 ${theme.textTitle}`}>แฟ้มอุปกรณ์</h3>
+                    <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปสถานะอุปกรณ์ ประวัติ เอกสาร และหลักฐานทั้งหมดในแฟ้มเดียว</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button type="button" onClick={printAssetProfile} className={`hidden sm:inline-flex px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>พิมพ์แฟ้ม</button>
@@ -22816,7 +22967,7 @@ S.N.: ${item.sn || '-'}
                 </div>
               </div>
 
-              <div className={`shrink-0 px-4 sm:px-6 py-3 border-b ${theme.divide} ${isDarkMode ? 'bg-slate-950' : 'bg-white'}`}>
+              <div className={`shrink-0 px-4 sm:px-6 py-2.5 border-b ${theme.divide} ${isDarkMode ? 'bg-slate-950' : 'bg-white'}`}>
                 <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1 asset-profile-summary-strip">
                   {assetProfileTabs.map(([id, label, count]) => (
                     <div
@@ -22832,7 +22983,7 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 space-y-4">
-                <div className={`rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                   <div className={`p-5 sm:p-6 border-b ${isDarkMode ? 'border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950' : 'border-slate-200 bg-gradient-to-br from-sky-50 to-white'}`}>
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                       <div className="min-w-0 flex-1">
@@ -22841,7 +22992,7 @@ S.N.: ${item.sn || '-'}
                           <span className={`inline-flex px-3 py-1.5 rounded-xl text-xs font-black border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>{typeBadge}</span>
                           <span className={`inline-flex px-3 py-1.5 rounded-xl text-xs font-black border ${detailItem.qrTagged ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-amber-500 text-white border-amber-500'}`}>QR: {detailItem.qrTagged ? 'ติดแล้ว' : 'ยังไม่ติด'}</span>
                         </div>
-                        <div className={`text-2xl sm:text-3xl font-black leading-tight ${theme.textTitle}`}>{detailItem.name || '-'}</div>
+                        <div className={`text-2xl sm:text-3xl font-black leading-tight tracking-tight ${theme.textTitle}`}>{detailItem.name || '-'}</div>
                         <div className={`text-sm font-bold mt-2 ${theme.textMuted}`}>S.N. {detailItem.sn || '-'} • {detailItem.category || '-'} • {detailItem.location || '-'}</div>
                         <div className={`mt-3 text-sm font-bold ${theme.textMuted}`}>ประวัติล่าสุด: {latestText}</div>
                         <div className={`mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm`}>
@@ -22873,9 +23024,9 @@ S.N.: ${item.sn || '-'}
                       {canUseOperationalTools && (detailItem.status === 'borrowed' || detailItem.status === 'out-for-event') && <button type="button" onClick={() => { setShowHistory(null); openReturnForItems([detailItem.id]); }} className="px-3 py-3 rounded-2xl font-black text-sm bg-emerald-600 text-white shadow-sm">รับคืน</button>}
                       {canAddEditItems && <button type="button" onClick={() => { setShowHistory(null); openItemEditor(detailItem); }} className="px-3 py-3 rounded-2xl font-black text-sm bg-blue-600 text-white shadow-sm">แก้ไข</button>}
                       <button type="button" onClick={() => openItemQrLabelFromDetail(detailItem)} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>พิมพ์ QR</button>
-                      <button type="button" onClick={() => openProofCenterFromAssetProfile(detailItem)} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>หลักฐาน</button>
+                      <button type="button" onClick={() => openProofCenterFromAssetProfile(detailItem)} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>ดูหลักฐานทั้งหมด</button>
                       <button type="button" onClick={() => openProofAttachFromAssetProfile(detailItem)} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>+ รูปล่าสุด</button>
-                      <button type="button" onClick={() => copyItemSummary(detailItem)} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>คัดลอก</button>
+                      <button type="button" onClick={() => copyItemSummary(detailItem)} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>คัดลอกสรุป</button>
                       <button type="button" onClick={printAssetProfile} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>พิมพ์แฟ้ม</button>
                       <button type="button" onClick={() => exportItemHistoryCSV(detailItem)} className={`sm:hidden px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>CSV</button>
                     </div>
@@ -22915,11 +23066,11 @@ S.N.: ${item.sn || '-'}
                   </div>
 
                   <div className={`px-4 sm:px-5 pt-4 grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4`}>
-                    <div className={`rounded-[1.7rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className={`rounded-[1.45rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <div>
-                          <div className={`font-black text-lg ${theme.textTitle}`}>สรุปการใช้งานอุปกรณ์ชิ้นนี้</div>
-                          <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>นับจากประวัติที่บันทึกในแฟ้มอุปกรณ์</div>
+                          <div className={`font-black text-lg ${theme.textTitle}`}>ภาพรวมการใช้งาน</div>
+                          <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>ดูจำนวนครั้งแบบรวดเร็ว แยกตามประเภทงาน</div>
                         </div>
                         <span className={`px-3 py-1.5 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ล่าสุด {usageStats.lastUsed}</span>
                       </div>
@@ -22953,7 +23104,7 @@ S.N.: ${item.sn || '-'}
                       </div>
                     </div>
 
-                    <div className={`rounded-[1.7rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className={`rounded-[1.45rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                       <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>เอกสารที่เกี่ยวข้อง</div>
                       {relatedDocs.length === 0 ? (
                         <div className={`p-5 rounded-2xl border text-center font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>ยังไม่พบเอกสารที่เชื่อมกับอุปกรณ์นี้</div>
@@ -22971,8 +23122,8 @@ S.N.: ${item.sn || '-'}
                   </div>
 
                   <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-[1.15fr_.85fr] gap-4">
-                    <div className={`rounded-[1.7rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                      <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>ข้อมูลหลัก</div>
+                    <div className={`rounded-[1.45rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                      <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>ข้อมูลอุปกรณ์</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {primaryInfoCards.map(([label, value]) => (
                           <div key={label} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
@@ -22984,8 +23135,8 @@ S.N.: ${item.sn || '-'}
                       {detailItem.internalNote && <div className={`mt-2.5 p-2.5 rounded-xl border text-sm font-bold ${isDarkMode ? 'bg-amber-950/20 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>โน้ตภายใน: {detailItem.internalNote}</div>}
                     </div>
 
-                    <div className={`rounded-[1.7rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                      <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>ข้อมูลเฉพาะอุปกรณ์</div>
+                    <div className={`rounded-[1.45rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                      <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>รายละเอียดเพิ่มเติม</div>
                       <div className="space-y-2">
                         {specificInfoCards.map(([label, value]) => (
                           <div key={label} className={`flex items-start justify-between gap-3 p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
@@ -22999,8 +23150,8 @@ S.N.: ${item.sn || '-'}
                   </div>
 
                   <div className={`px-4 sm:px-5 pb-5 grid grid-cols-1 lg:grid-cols-[.95fr_1.05fr] gap-4`}>
-                    <div className={`rounded-[1.7rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                      <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>สถานะและความครบถ้วนของแฟ้ม</div>
+                    <div className={`rounded-[1.45rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                      <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>สถานะข้อมูลแฟ้ม</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {profileHealthCards.map(card => (
                           <div key={card.label} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
@@ -23021,10 +23172,10 @@ S.N.: ${item.sn || '-'}
                       )}
                     </div>
 
-                    <div className={`rounded-[1.7rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className={`rounded-[1.45rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <div>
-                          <div className={`font-black text-lg ${theme.textTitle}`}>หลักฐานล่าสุด</div>
+                          <div className={`font-black text-lg ${theme.textTitle}`}>หลักฐานที่เกี่ยวข้องล่าสุด</div>
                           <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>ดึงจากประวัติยืม / ออกงาน / รับคืนของอุปกรณ์นี้</div>
                         </div>
                         <button type="button" onClick={() => openProofCenterFromAssetProfile(detailItem)} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ดูทั้งหมด</button>
@@ -23233,10 +23384,10 @@ S.N.: ${item.sn || '-'}
 
               <div className={`shrink-0 px-4 sm:px-6 py-3 border-t ${theme.divide} ${isDarkMode ? 'bg-slate-950' : 'bg-white'}`}>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <button type="button" onClick={() => openProofCenterFromAssetProfile(detailItem)} className={`py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>หลักฐาน</button>
+                  <button type="button" onClick={() => openProofCenterFromAssetProfile(detailItem)} className={`py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>ดูหลักฐานทั้งหมด</button>
                   <button type="button" onClick={() => openItemQrLabelFromDetail(detailItem)} className={`py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>พิมพ์ QR</button>
-                  <button type="button" onClick={() => copyItemSummary(detailItem)} className={`py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>คัดลอก</button>
-                  <button type="button" onClick={closeItemHistoryModal} className={`py-3 rounded-2xl font-black text-sm ${theme.btnCancel}`}>{modalReturnTarget === 'historyCenter' ? 'กลับประวัติ' : modalReturnTarget === 'proofCenter' ? 'กลับหลักฐาน' : 'ปิดแฟ้ม'}</button>
+                  <button type="button" onClick={() => copyItemSummary(detailItem)} className={`py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>คัดลอกสรุป</button>
+                  <button type="button" onClick={closeItemHistoryModal} className={`py-3 rounded-2xl font-black text-sm ${theme.btnCancel}`}>{modalReturnTarget === 'historyCenter' ? 'กลับประวัติ' : modalReturnTarget === 'proofCenter' ? 'กลับหลักฐาน' : 'ปิด'}</button>
                 </div>
               </div>
             </div>
@@ -23458,7 +23609,7 @@ S.N.: ${item.sn || '-'}
                             onClick={() => setShowHistory(item.id)}
                             className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}
                           >
-                            เปิดแฟ้ม
+                            เปิด
                           </button>
                           <button
                             type="button"
@@ -23515,7 +23666,7 @@ S.N.: ${item.sn || '-'}
 
             <div className="space-y-5">
               <section className={`item-form-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>1. ข้อมูลหลัก</div>
+                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>1. ข้อมูลอุปกรณ์</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
                     <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>ชื่ออุปกรณ์ <span className="text-rose-500">*</span></label>
@@ -23573,7 +23724,7 @@ S.N.: ${item.sn || '-'}
                     <>
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
                         <div>
-                          <div className={`font-black text-lg mb-1 flex items-center gap-2 ${theme.textTitle}`}>2. ข้อมูลเฉพาะอุปกรณ์</div>
+                          <div className={`font-black text-lg mb-1 flex items-center gap-2 ${theme.textTitle}`}>2. รายละเอียดเพิ่มเติม</div>
                           <p className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>เลือกประเภทก่อน ระบบจะแสดงเฉพาะช่องที่เกี่ยวข้อง เพื่อลดความรกและช่วยให้ตัวช่วยกล้องทำงานแม่นขึ้น</p>
                         </div>
                         {hasSpecificType && (
@@ -24013,10 +24164,10 @@ S.N.: ${item.sn || '-'}
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
-                          <button type="button" onClick={() => { setShowRepairCenterModal(false); setShowHistory(row.item.id); }} className={`px-3 py-3 rounded-2xl border text-sm font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
+                          <button type="button" onClick={() => { setShowRepairCenterModal(false); setShowHistory(row.item.id); }} className={`px-3 py-3 rounded-2xl border text-sm font-black ${theme.btnSecondary}`}>เปิด</button>
                           <button type="button" onClick={() => { setShowRepairCenterModal(false); openRepairForItem(row.item); }} className="px-3 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-black">อัปเดตซ่อม</button>
                           {row.item.status === 'maintenance' && <button type="button" onClick={() => { setShowRepairCenterModal(false); openRepairForItem(row.item); setRepairForm(prev => ({ ...prev, statusStage: 'done', markAvailable: true, doneDate: new Date().toISOString().slice(0,10) })); }} className="px-3 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black">ปิดงาน</button>}
-                          <button type="button" onClick={() => copyItemSummary(row.item)} className={`px-3 py-3 rounded-2xl border text-sm font-black ${theme.btnSecondary}`}>คัดลอก</button>
+                          <button type="button" onClick={() => copyItemSummary(row.item)} className={`px-3 py-3 rounded-2xl border text-sm font-black ${theme.btnSecondary}`}>คัดลอกสรุป</button>
                         </div>
                       </div>
                     );
@@ -24284,7 +24435,7 @@ S.N.: ${item.sn || '-'}
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
                                       <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>
                                       {canAddEditItems && <button type="button" onClick={() => { setShowProjectsModal(false); openItemEditor(item); }} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">แก้ไข</button>}
-                                      <button type="button" onClick={() => copyItemSummary(item)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>คัดลอก</button>
+                                      <button type="button" onClick={() => copyItemSummary(item)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>คัดลอกสรุป</button>
                                     </div>
                                   </div>
                                 );
@@ -24472,7 +24623,7 @@ S.N.: ${item.sn || '-'}
                     <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white flex items-center justify-center shadow-lg">📷</span>
                     ศูนย์หลักฐานรูปภาพ
                   </h3>
-                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>คลังหลักฐานจากการยืม / ออกงาน / รับคืน / ซ่อม พร้อมค้นหาและเปิดแฟ้มอุปกรณ์ที่เกี่ยวข้องได้ทันที</p>
+                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>คลังหลักฐานจากการยืม / ออกงาน / รับคืน / ซ่อม พร้อมค้นหาและเปิดอุปกรณ์ที่เกี่ยวข้องได้ทันที</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button type="button" onClick={() => { setProofCenterSearch(''); setProofCenterFilter('all'); }} className={`px-3.5 py-2 rounded-lg border text-sm font-black ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
@@ -24535,8 +24686,8 @@ S.N.: ${item.sn || '-'}
                 <div className="text-xs mt-1">กด “เปิดภาพใหญ่” เพื่อดูรูปจริงโดยไม่ครอปหัว/ขอบภาพ</div>
               </div>
               <div className={`p-3 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-                <div className="font-black">เปิดแฟ้มอุปกรณ์</div>
-                <div className="text-xs mt-1">จากการ์ดหลักฐานสามารถเปิดแฟ้มประวัติอุปกรณ์ที่เกี่ยวข้องได้ทันที</div>
+                <div className="font-black">เปิดอุปกรณ์</div>
+                <div className="text-xs mt-1">จากการ์ดหลักฐานสามารถเปิดประวัติอุปกรณ์ที่เกี่ยวข้องได้ทันที</div>
               </div>
               <div className={`p-3 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
                 <div className="font-black">รวมรูปซ้ำอัตโนมัติ</div>
@@ -24619,7 +24770,7 @@ S.N.: ${item.sn || '-'}
 
                           <div className="grid grid-cols-2 gap-2">
                             <button type="button" onClick={() => openProofImage(proof)} className={`py-2 rounded-lg border text-xs font-black ${theme.btnSecondary}`}>เปิดภาพใหญ่</button>
-                            <button type="button" onClick={() => firstRef.itemId && openItemHistoryFromProofCenter(firstRef.itemId)} disabled={!firstRef.itemId} className={`py-2 rounded-lg border text-xs font-black ${theme.btnSecondary} disabled:opacity-50`}>เปิดแฟ้มอุปกรณ์</button>
+                            <button type="button" onClick={() => firstRef.itemId && openItemHistoryFromProofCenter(firstRef.itemId)} disabled={!firstRef.itemId} className={`py-2 rounded-lg border text-xs font-black ${theme.btnSecondary} disabled:opacity-50`}>เปิดอุปกรณ์</button>
                             <button type="button" onClick={() => setExpandedProofGroupId(expanded ? null : group.groupId)} className={`col-span-2 py-2 rounded-lg border text-xs font-black ${theme.btnSecondary}`}>
                               {expanded ? 'ซ่อนรายการที่เกี่ยวข้อง' : `ดูรายการที่เกี่ยวข้อง (${group.itemRefs.length})`}
                             </button>
@@ -24628,7 +24779,7 @@ S.N.: ${item.sn || '-'}
                           {canUseOperationalTools && (
                             <div className="grid grid-cols-2 gap-2">
                               <button type="button" onClick={() => openProofEditModal(group)} className={`py-2 rounded-lg border text-xs font-black ${theme.btnSecondary}`}>แก้ไข / แทนที่</button>
-                              <button type="button" onClick={() => handleDeleteProofGroup(group)} className="py-2 rounded-lg border text-xs font-black bg-rose-600 text-white border-rose-600 hover:bg-rose-700">ลบหลักฐาน</button>
+                              <button type="button" onClick={() => handleDeleteProofGroup(group)} className="py-2 rounded-lg border text-xs font-black bg-rose-600 text-white border-rose-600 hover:bg-rose-700">ลบดูหลักฐานทั้งหมด</button>
                             </div>
                           )}
 
@@ -25264,7 +25415,7 @@ function TodayPanel({ title, color, items, empty, isDarkMode, theme, dateInfoOf,
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
                 <button type="button" onClick={() => onReturn?.(item)} className="px-3 py-3 rounded-xl text-xs sm:text-sm font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm">รับคืน</button>
-                <button type="button" onClick={() => onDetail?.(item)} className={`px-3 py-3 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
+                <button type="button" onClick={() => onDetail?.(item)} className={`px-3 py-3 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>เปิด</button>
                 <button type="button" onClick={() => onDocs?.(item)} className={`px-3 py-3 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>เอกสาร</button>
                 <button type="button" onClick={() => onCopy?.(item)} className={`px-3 py-3 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>คัดลอกตามของ</button>
               </div>
