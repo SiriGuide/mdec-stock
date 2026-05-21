@@ -15,6 +15,7 @@
 // v22.52.6 Data Quality Action Polish - supports camera/department/flexible memory choice without fixed sets
 // v22.52.6 Data Quality Action Polish - UI-only polish, no QR/camera/database changes
 // v22.52.1 ตัวช่วยกล้อง Final UX - UI/UX safe polish, no QR/camera/database changes
+// v22.57.7.1 Strict Login Gate Fix - ไม่ล็อกอินห้ามเห็นคลังละเอียด/ติ๊กเลือก/ทำรายการจริง ใช้ได้เฉพาะหน้าอ่านอย่างเดียวและต้องล็อกอินก่อนปฏิบัติการ
 // v22.57.6.25 Asset Profile Readability Polish - แฟ้มอุปกรณ์อ่านง่ายขึ้น ลดความแน่น จัดหัวแฟ้ม/ข้อมูล/ประวัติ/หลักฐานให้ชัด โดยไม่แตะ QR Scanner/Firebase path/flow หลัก
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { initializeApp } from "firebase/app";
@@ -8383,6 +8384,12 @@ function MainApp() {
     return false;
   };
 
+  useEffect(() => {
+    if (!canUseOperationalTools && selectedItems.length > 0) {
+      setSelectedItems([]);
+    }
+  }, [canUseOperationalTools, selectedItems.length]);
+
   const currentFullAccount = getEffectiveAccounts().find(acc => acc.id === currentOperator?.id || String(acc.username || '').toLowerCase() === String(currentOperator?.username || '').toLowerCase()) || currentOperator;
   const activeProofSettings = { ...DEFAULT_PROOF_SETTINGS, ...(settingsOptions.proofSettings || {}) };
   const proofRequirementLabel = (value) => value === 'required' ? 'บังคับ' : value === 'recommended' ? 'แนะนำ' : 'ไม่บังคับ';
@@ -11757,6 +11764,45 @@ S.N.: ${item.sn || '-'}
       URL.revokeObjectURL(url);
       pushToast('Export CSV สำเร็จ', `ส่งออก ${filteredItems.length.toLocaleString('th-TH')} รายการ`, 'success');
     };
+
+    if (!canUseOperationalTools) {
+      return (
+        <div className="equipment-inventory-page equipment-desktop-polish space-y-5">
+          {renderWorkspaceTabs()}
+
+          <section className={`rounded-[1.8rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
+            <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-4 ${theme.divide}`}>
+              <div className="min-w-0">
+                <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-amber-300' : 'text-amber-600'}`}>LOGIN REQUIRED</div>
+                <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>คลังอุปกรณ์ถูกล็อกไว้</h2>
+                <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>หน้านี้มีข้อมูลละเอียดและปุ่มเลือกหลายรายการ จึงเปิดให้เฉพาะเจ้าหน้าที่ที่เข้าสู่ระบบแล้วเท่านั้น เพื่อกันการติ๊กเลือกหรือทำรายการโดยไม่ได้ตั้งใจ</p>
+              </div>
+              <div className="flex flex-wrap gap-2 shrink-0">
+                <button type="button" onClick={() => setShowLogin(true)} className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">เข้าสู่ระบบเจ้าหน้าที่</button>
+                <button type="button" onClick={() => openWorkspace('overview')} className={`px-5 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับภาพรวม</button>
+              </div>
+            </div>
+
+            <div className="p-5 sm:p-6">
+              <div className={`rounded-[1.6rem] border p-5 sm:p-6 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                  {[
+                    ['ดูได้หลังล็อกอิน', 'รายการอุปกรณ์แบบละเอียด / S.N. / ที่เก็บ / โครงการ'],
+                    ['ทำรายการได้หลังล็อกอิน', 'ยืม / ออกงาน / รับคืน / เลือกหลายรายการ / สแกนเพื่อเลือกของ'],
+                    ['หลังบ้านเฉพาะแอดมิน', 'เพิ่ม แก้ไข ลบ ลบถาวร ตั้งค่า Backup และข้อมูลระบบ']
+                  ].map(([title, desc]) => (
+                    <div key={title} className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-900/70 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <div className={`text-sm font-black ${theme.textTitle}`}>{title}</div>
+                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>{desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      );
+    }
 
     return (
       <div className="equipment-inventory-page equipment-desktop-polish space-y-5">
