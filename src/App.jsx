@@ -7007,11 +7007,15 @@ function MainApp() {
   };
 
   const openProofCenterFromBorrowDocs = () => {
-    setModalReturnStack(['borrowDocs']);
+    // v22.57.7.3: รวมศูนย์หลักฐานเข้า Records Workspace แทนการเปิด popup ซ้อน
+    setModalReturnStack([]);
     setShowBorrowDocsModal(false);
     setProofCenterSearch(borrowDocSearch || '');
     setProofCenterFilter('all');
-    setShowProofCenterModal(true);
+    setRecordsCenterMode('proofs');
+    setShowProofCenterModal(false);
+    setActiveWorkspace('records');
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
   // v22.53.0 Mobile UX Big Polish
@@ -7073,11 +7077,15 @@ function MainApp() {
 
   const openProofCenterFromHistoryCenter = (entry) => {
     if (!entry) return;
-    pushModalReturnTarget('historyCenter');
+    // v22.57.7.3: ไม่เปิด Evidence Center เป็น popup แล้ว ให้กระโดดไปแท็บหลักฐานในประวัติส่วนกลางโดยตรง
+    setModalReturnStack([]);
     setShowHistoryCenterModal(false);
-    setProofCenterSearch(entry.sn || entry.itemName || '');
+    setProofCenterSearch(entry.sn || entry.itemName || entry.subject || '');
     setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType);
-    setShowProofCenterModal(true);
+    setRecordsCenterMode('proofs');
+    setShowProofCenterModal(false);
+    setActiveWorkspace('records');
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
 
@@ -7277,7 +7285,9 @@ function MainApp() {
       setShowHistoryCenterModal(true);
     } else if (modalReturnTarget === 'proofCenter') {
       popModalReturnTarget();
-      setShowProofCenterModal(true);
+      setRecordsCenterMode('proofs');
+      setShowProofCenterModal(false);
+      setActiveWorkspace('records');
     }
   };
 
@@ -8148,7 +8158,10 @@ function MainApp() {
     const openProofCenterFromHistory = () => {
       setProofCenterSearch(itemKeyword || first.contextLabel || first.originalName || '');
       setProofCenterFilter('all');
-      setShowProofCenterModal(true);
+      setRecordsCenterMode('proofs');
+      setShowProofCenterModal(false);
+      setActiveWorkspace('records');
+      window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
     };
     return (
       <div className={`mt-4 p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
@@ -9541,11 +9554,15 @@ S.N.: ${item.sn || '-'}
 
   const openProofCenterFromAssetProfile = (item) => {
     if (!item?.id) return;
-    pushModalReturnTarget(`assetProfile:${item.id}`);
+    // v22.57.7.3: รวมหลักฐานไว้ใน Records Workspace แทน popup ซ้อนจากแฟ้มอุปกรณ์
+    setModalReturnStack([]);
     setShowHistory(null);
     setProofCenterSearch(item.sn || item.name || '');
     setProofCenterFilter('all');
-    setShowProofCenterModal(true);
+    setRecordsCenterMode('proofs');
+    setShowProofCenterModal(false);
+    setActiveWorkspace('records');
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
   const openProofAttachFromAssetProfile = (item) => {
@@ -18852,7 +18869,7 @@ S.N.: ${item.sn || '-'}
           <button type="button" onClick={() => openMonthlyReportPage()} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'reports' ? 'bg-gradient-to-r from-amber-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
             <Icons.ClipboardList className="w-5 h-5" /> รายงาน
           </button>
-          <button type="button" onClick={() => setShowProofCenterModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+          <button type="button" onClick={() => openMainProofCenter({ reset: true })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
             <Icons.Camera className="w-5 h-5" /> หลักฐานรูปภาพ
           </button>
           <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
