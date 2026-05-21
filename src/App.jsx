@@ -18183,13 +18183,16 @@ S.N.: ${item.sn || '-'}
 
   if (printSlipData) {
     const slipType = printSlipData.type || 'borrow';
-    const isPrepSlip = slipType === 'prep';
     const isEventSlip = slipType === 'event';
     const isReturnSlip = slipType === 'return';
+    const isPrepSlip = slipType === 'prep';
     const printItems = Array.isArray(printSlipData.items) ? printSlipData.items : [];
-    const returnedIdSet = new Set(Array.isArray(printSlipData.returnedItemIds) ? printSlipData.returnedItemIds : []);
-    const printedAt = new Date();
-    const formatThaiDate = (value, withTime = false) => {
+    const proofCount = Array.isArray(printSlipData.proofs) ? printSlipData.proofs.length : 0;
+    const safeText = (value, fallback = '-') => {
+      const text = String(value ?? '').trim();
+      return text || fallback;
+    };
+    const formatSlipDate = (value, withTime = false) => {
       if (!value) return '-';
       const d = new Date(value);
       if (Number.isNaN(d.getTime())) return '-';
@@ -18197,576 +18200,112 @@ S.N.: ${item.sn || '-'}
         ? d.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short', hour12: false })
         : d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
     };
-    const safeText = (value, fallback = '-') => {
-      const text = String(value ?? '').trim();
-      return text || fallback;
-    };
     const docTitle = printSlipData.title || (isReturnSlip ? 'ใบรับคืนอุปกรณ์' : isEventSlip ? 'ใบนำอุปกรณ์ออกงาน' : isPrepSlip ? 'ใบเตรียมอุปกรณ์' : 'ใบยืมสิ่งของ / อุปกรณ์');
-    const docCode = isReturnSlip ? 'RETURN FORM' : isEventSlip ? 'EVENT OUT FORM' : isPrepSlip ? 'PREPARATION CHECKLIST' : 'BORROW FORM';
-    const docSubtitle = isReturnSlip
-      ? 'แบบฟอร์มบันทึกการรับคืนและตรวจสภาพอุปกรณ์'
-      : isEventSlip
-        ? 'แบบฟอร์มนำอุปกรณ์ออกนอกศูนย์เพื่อปฏิบัติงาน'
-        : isPrepSlip
-          ? 'แบบฟอร์มตรวจเช็กรายการอุปกรณ์ก่อนปฏิบัติงาน'
-          : 'แบบฟอร์มยืมสิ่งของและอุปกรณ์สำหรับการปฏิบัติงาน';
-    const subjectLabel = isReturnSlip ? 'รายการรับคืน / อ้างอิง' : isPrepSlip ? 'ชื่องาน / รายการเตรียมของ' : isEventSlip ? 'ชื่องาน / สถานที่' : 'ผู้ยืม / ผู้รับผิดชอบ';
-    const subjectValue = isReturnSlip ? safeText(printSlipData.ref, 'รับคืนตามรายการที่เลือก') : safeText(printSlipData.borrower);
-    const staffLabel = isReturnSlip ? 'เจ้าหน้าที่ผู้รับคืน' : isPrepSlip ? 'ผู้เตรียม / ผู้รับผิดชอบ' : isEventSlip ? 'ผู้นำอุปกรณ์ออกงาน' : 'เจ้าหน้าที่ผู้ให้ยืม';
-    const staffValue = isReturnSlip ? safeText(printSlipData.staffIn || printSlipData.returnStaff) : safeText(printSlipData.staffOut);
-    const dateLabel = isReturnSlip ? 'วันที่รับคืน' : isPrepSlip ? 'วันที่ใช้งาน' : 'กำหนดคืน';
-    const dateValue = isReturnSlip ? formatThaiDate(printSlipData.date, true) : formatThaiDate(printSlipData.expectedReturn, false);
-    const statusLabel = isReturnSlip ? 'บันทึกรับคืน' : isPrepSlip ? 'ใช้สำหรับเตรียมของ' : (printSlipData.statusLabel || (printSlipData.archivedStatus === 'closed' ? 'คืนครบแล้ว' : printSlipData.archivedStatus === 'partial' ? 'คืนบางส่วน' : 'รอคืน'));
-    const proofCount = Array.isArray(printSlipData.proofs) ? printSlipData.proofs.length : 0;
-    const problemReturnCount = isReturnSlip ? printItems.filter(item => item.returnCondition && item.returnCondition !== 'ปกติ').length : 0;
-    const signatureLabels = isReturnSlip
-      ? ['ผู้ส่งคืน / ผู้รับผิดชอบ', 'เจ้าหน้าที่ผู้รับคืน', 'ผู้ตรวจสอบ']
-      : isPrepSlip
-        ? ['ผู้เตรียมอุปกรณ์', 'ผู้ตรวจรายการ', 'ผู้รับผิดชอบงาน']
-        : isEventSlip
-          ? ['ผู้รับผิดชอบงาน', 'เจ้าหน้าที่ผู้นำออก', 'ผู้อนุมัติ / ตรวจสอบ']
-          : ['ผู้ยืม / ผู้รับผิดชอบ', 'เจ้าหน้าที่ผู้ให้ยืม', 'ผู้อนุมัติ / ตรวจสอบ'];
-    const ruleLines = isReturnSlip
-      ? ['ตรวจนับอุปกรณ์ตามรายการและบันทึกสภาพจริงทุกครั้ง', 'หากพบชำรุด/สูญหาย ให้บันทึกหมายเหตุและแจ้งผู้รับผิดชอบทันที', 'เอกสารนี้ใช้ประกอบการติดตามประวัติอุปกรณ์ภายในศูนย์']
-      : isPrepSlip
-        ? ['ตรวจเช็กรายการก่อนนำอุปกรณ์ออกจากพื้นที่จัดเก็บ', 'รายการที่ยังไม่พร้อมใช้ต้องแจ้งผู้รับผิดชอบก่อนวันงาน', 'หลังจบงานให้นำข้อมูลไปทำรายการออกงาน/รับคืนตามขั้นตอนจริง']
-        : isEventSlip
-          ? ['อุปกรณ์ที่นำออกงานต้องอยู่ภายใต้ความรับผิดชอบของผู้รับผิดชอบงาน', 'ต้องคืนตามกำหนด หรือแจ้งเหตุผลหากมีความจำเป็นต้องขยายเวลา', 'หากเกิดความเสียหาย/สูญหาย ต้องรายงานเจ้าหน้าที่ศูนย์ทันที']
-          : ['ผู้ยืมต้องตรวจสภาพอุปกรณ์ก่อนรับไปใช้งานทุกครั้ง', 'ต้องคืนอุปกรณ์ตามกำหนดและครบถ้วนตามรายการในเอกสาร', 'หากอุปกรณ์ชำรุดหรือสูญหาย ผู้ยืม/ผู้รับผิดชอบต้องแจ้งเจ้าหน้าที่ศูนย์ทันที'];
-    const summaryLine = isReturnSlip
-      ? `รับคืน ${printItems.length.toLocaleString('th-TH')} รายการ${problemReturnCount ? ` • พบรายการมีหมายเหตุ ${problemReturnCount.toLocaleString('th-TH')} รายการ` : ''}`
-      : isPrepSlip
-        ? `เตรียมอุปกรณ์ ${printItems.length.toLocaleString('th-TH')} รายการ`
-        : `${statusLabel} • จำนวน ${printItems.length.toLocaleString('th-TH')} รายการ${proofCount ? ` • หลักฐาน ${proofCount.toLocaleString('th-TH')} รูป` : ''}`;
-    const onePageSlipCandidate = printItems.length <= 12;
-
-    const FieldLine = ({ label, value, wide = false }) => (
-      <div className={`classic-field-line ${wide ? 'classic-field-wide' : ''}`}>
-        <span>{label}</span>
-        <strong>{safeText(value)}</strong>
-      </div>
-    );
+    const subjectLabel = isReturnSlip ? 'เอกสารอ้างอิง' : isEventSlip ? 'ชื่องาน / สถานที่' : isPrepSlip ? 'ชื่องาน / รายการเตรียมของ' : 'ผู้ยืม / ผู้รับผิดชอบ';
+    const subjectValue = isReturnSlip ? safeText(printSlipData.ref, 'รับคืนตามรายการที่เลือก') : safeText(printSlipData.borrower || printSlipData.subject || printSlipData.eventName);
+    const staffLabel = isReturnSlip ? 'เจ้าหน้าที่ผู้รับคืน' : isEventSlip ? 'ผู้นำอุปกรณ์ออกงาน' : isPrepSlip ? 'ผู้เตรียม / ผู้รับผิดชอบ' : 'เจ้าหน้าที่ผู้ให้ยืม';
+    const staffValue = safeText(printSlipData.staffIn || printSlipData.returnStaff || printSlipData.staffOut || printSlipData.operatorName || printSlipData.createdBy);
+    const dueLabel = isReturnSlip ? 'วันที่รับคืน' : isPrepSlip ? 'วันที่ใช้งาน' : 'กำหนดคืน';
+    const dueValue = isReturnSlip ? formatSlipDate(printSlipData.date, true) : formatSlipDate(printSlipData.expectedReturn, false);
 
     return (
-      <div className="factory-stock-polish operation-print-page classic-operation-print min-h-screen font-sans text-slate-900 print:bg-white bg-slate-100">
+      <div className="factory-stock-polish min-h-screen bg-slate-950 text-slate-100 font-sans print:bg-white print:text-slate-950">
         <style>{`
-          .classic-operation-print {
-            --classic-ink: #111827;
-            --classic-soft-ink: #374151;
-            --classic-muted: #6b7280;
-            --classic-line: #111827;
-            --classic-soft-line: #cbd5e1;
-            --classic-form-line: #9ca3af;
-            --classic-fill: #f8fafc;
-            --classic-watermark-opacity: .035;
-          }
-          .classic-print-toolbar {
-            background: #0f172a;
-            color: white;
-            border-bottom: 1px solid rgba(255,255,255,.08);
-          }
-          .classic-form-wrap {
-            max-width: 900px;
-          }
-          .classic-operation-sheet {
-            width: 210mm;
-            max-width: calc(100vw - 32px);
-            margin: 0 auto;
-            background: #fff;
-            color: var(--classic-ink);
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 22px 70px rgba(15,23,42,.16);
-            padding: 13mm 14mm 9.5mm;
-            position: relative;
-            overflow: hidden;
-          }
-          .classic-doc-watermark {
-            position: absolute;
-            left: 50%;
-            top: 52%;
-            transform: translate(-50%, -50%);
-            width: 106mm;
-            max-width: 54%;
-            opacity: var(--classic-watermark-opacity);
-            filter: grayscale(1) contrast(.78);
-            pointer-events: none;
-            user-select: none;
-            z-index: 0;
-          }
-          .classic-watermark-text {
-            position: absolute;
-            left: 50%;
-            top: 52%;
-            transform: translate(-50%, -50%) rotate(-18deg);
-            font-size: 58pt;
-            font-weight: 950;
-            letter-spacing: .12em;
-            color: rgba(17,24,39,.036);
-            white-space: nowrap;
-            z-index: 0;
-          }
-          .classic-sheet-content { position: relative; z-index: 1; }
-          .classic-letterhead {
-            display: grid;
-            grid-template-columns: 34mm 1fr 39mm;
-            gap: 5.5mm;
-            align-items: start;
-            border-bottom: 1.35px solid var(--classic-line);
-            padding-bottom: 4.1mm;
-            margin-bottom: 4.4mm;
-          }
-          .classic-logo-box {
-            width: 27mm !important;
-            height: 11.5mm !important;
-            border: 0 !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-            background: transparent !important;
-          }
-          .classic-logo-box img { object-fit: contain !important; }
-          .classic-title-group { text-align: center; min-width: 0; }
-          .classic-doc-code {
-            font-size: 7.2pt;
-            font-weight: 900;
-            letter-spacing: .18em;
-            color: #9ca3af;
-            text-transform: uppercase;
-            margin-bottom: 1mm;
-          }
-          .classic-doc-title {
-            margin: 0;
-            font-size: 19.4pt;
-            line-height: 1.04;
-            font-weight: 950;
-            color: #000;
-          }
-          .classic-doc-subtitle {
-            margin: 1mm 0 0;
-            font-size: 8.35pt;
-            line-height: 1.28;
-            font-weight: 700;
-            color: var(--classic-soft-ink);
-          }
-          .classic-ref-box {
-            border: 1px solid #6b7280;
-            padding: 2mm 2.25mm;
-            font-size: 7.75pt;
-            line-height: 1.36;
-            background: rgba(255,255,255,.86);
-          }
-          .classic-ref-row {
-            display: grid;
-            grid-template-columns: 16mm 1fr;
-            gap: 1.2mm;
-            align-items: end;
-          }
-          .classic-ref-row + .classic-ref-row { margin-top: 1.2mm; }
-          .classic-dot-line {
-            border-bottom: 1px solid var(--classic-form-line);
-            min-height: 4.8mm;
-            font-weight: 900;
-            color: #000;
-          }
-          .classic-org-line {
-            margin-top: 1.2mm;
-            font-size: 6.65pt;
-            font-weight: 800;
-            color: #9ca3af;
-            line-height: 1.2;
-          }
-          .classic-form-intro {
-            font-size: 9.25pt;
-            line-height: 1.5;
-            font-weight: 780;
-            margin-bottom: 3.1mm;
-          }
-          .classic-form-intro .classic-fill-line {
-            display: inline-block;
-            min-width: 52mm;
-            border-bottom: 1px dotted var(--classic-line);
-            padding: 0 1mm;
-            font-weight: 900;
-          }
-          .classic-form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 1.8mm 5mm;
-            margin-bottom: 3.5mm;
-            padding: 2.2mm 0 1.2mm;
-            border-top: 1px solid #d7dee8;
-            border-bottom: 1px solid #d7dee8;
-            background: transparent;
-          }
-          .classic-field-line {
-            display: grid;
-            grid-template-columns: 22mm 1fr;
-            align-items: baseline;
-            column-gap: 2mm;
-            min-height: 4.8mm;
-            padding: 0;
-            border: 0;
-            background: transparent;
-            font-size: 8pt;
-            font-weight: 850;
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-          .classic-field-wide { grid-column: 1 / -1; }
-          .classic-field-wide.classic-field-line {
-            grid-template-columns: 22mm 1fr;
-          }
-          .classic-field-line span {
-            display: block;
-            margin: 0;
-            color: #64748b;
-            font-size: 7pt;
-            font-weight: 950;
-            letter-spacing: .01em;
-            white-space: nowrap;
-          }
-          .classic-field-line strong {
-            display: block;
-            min-height: 0;
-            padding: 0;
-            font-size: 9.2pt;
-            line-height: 1.28;
-            color: #000;
-            overflow-wrap: anywhere;
-            background: transparent;
-            border: 0;
-          }
-          .classic-summary-strip {
-            border: 1px solid #cbd5e1;
-            border-left: 3px solid #334155;
-            background: #f8fafc;
-            padding: 1.8mm 2.4mm;
-            font-size: 8.25pt;
-            font-weight: 950;
-            margin-bottom: 2.9mm;
-            display: flex;
-            justify-content: space-between;
-            gap: 3mm;
-          }
-          .classic-table-wrap { margin-bottom: 3.4mm; }
-          .classic-table-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: end;
-            gap: 3mm;
-            font-size: 8.65pt;
-            font-weight: 950;
-            margin-bottom: 1.35mm;
-          }
-          .classic-equipment-table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-            font-size: 8.4pt;
-            line-height: 1.28;
-            background: rgba(255,255,255,.9);
-          }
-          .classic-equipment-table th,
-          .classic-equipment-table td {
-            border: 1px solid #111827;
-            padding: 1.55mm 1.55mm;
-            vertical-align: top;
-            color: #000;
-          }
-          .classic-equipment-table th {
-            background: #eef2f7;
-            font-size: 7.35pt;
-            font-weight: 950;
-            text-align: center;
-          }
-          .classic-equipment-table tr { break-inside: avoid; page-break-inside: avoid; }
-          .classic-table-subtext { display: block; color: var(--classic-muted); font-size: 6.8pt; font-weight: 750; margin-top: .5mm; }
-          .classic-note-rules {
-            display: grid;
-            grid-template-columns: 1fr 1.08fr;
-            gap: 3.2mm;
-            margin-bottom: 3.1mm;
-          }
-          .classic-note-box,
-          .classic-rules-box {
-            border: 1px solid #cbd5e1;
-            background: rgba(255,255,255,.9);
-            min-height: 17mm;
-            padding: 2mm 2.4mm;
-            font-size: 7.7pt;
-            line-height: 1.36;
-            font-weight: 760;
-          }
-          .classic-box-title {
-            font-size: 7.5pt;
-            font-weight: 950;
-            margin-bottom: 1.4mm;
-            color: #000;
-          }
-          .classic-rules-list { margin: 0; padding-left: 4mm; }
-          .classic-rules-list li + li { margin-top: .7mm; }
-          .classic-signatures {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0,1fr));
-            gap: 3.5mm;
-            margin-top: 2.8mm;
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-          .classic-sign-box {
-            text-align: center;
-            font-size: 8pt;
-            font-weight: 850;
-            color: #000;
-            min-height: 18mm;
-            padding: 2mm 1.3mm 1.1mm;
-            border: 1px solid #d7dee8;
-            background: rgba(255,255,255,.72);
-          }
-          .classic-sign-line {
-            width: 32mm;
-            max-width: 76%;
-            height: 6.4mm;
-            border-bottom: 1px solid #111827;
-            margin: 0 auto 1.2mm;
-          }
-          .classic-sign-caption { font-size: 7.75pt; line-height: 1.22; font-weight: 900; }
-          .classic-sign-date { margin-top: 1mm; font-size: 6.35pt; color: #9ca3af; }
-          .classic-footer {
-            margin-top: 2.2mm;
-            padding-top: 1.2mm;
-            border-top: 1px solid var(--classic-soft-line);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 3mm;
-            font-size: 5.8pt;
-            line-height: 1.22;
-            font-weight: 700;
-            color: #9ca3af;
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-          .classic-footer span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-          .classic-onepage .classic-sheet-content {
-            min-height: 262mm;
-            display: flex;
-            flex-direction: column;
-          }
-          .classic-onepage .classic-signatures {
-            margin-top: auto;
-          }
-          .classic-onepage .classic-note-rules {
-            margin-bottom: 3mm;
-          }
           @media print {
-            @page { size: A4 portrait; margin: 10mm 10mm 9mm; }
-            html, body { background: #fff !important; }
-            .classic-print-toolbar { display: none !important; }
-            .classic-operation-print {
-              background: #fff !important;
-              min-height: auto !important;
-            }
-            .classic-form-wrap {
-              max-width: none !important;
-              width: auto !important;
-              padding: 0 !important;
-              margin: 0 !important;
-            }
-            .classic-operation-sheet {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              width: auto !important;
-              max-width: none !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              border: 0 !important;
-              box-shadow: none !important;
-              overflow: visible !important;
-            }
-            .classic-doc-watermark { width: 98mm !important; max-width: none !important; opacity: .032 !important; }
-            .classic-watermark-text { color: rgba(17,24,39,.034) !important; }
-            .classic-letterhead { grid-template-columns: 32mm 1fr 37mm !important; gap: 4.2mm !important; padding-bottom: 3.2mm !important; margin-bottom: 3.1mm !important; }
-            .classic-logo-box { width: 25mm !important; height: 9.5mm !important; }
-            .classic-doc-title { font-size: 17.8pt !important; }
-            .classic-doc-subtitle { font-size: 7.7pt !important; }
-            .classic-doc-code { font-size: 6.6pt !important; }
-            .classic-ref-box { padding: 1.35mm 1.65mm !important; font-size: 6.85pt !important; }
-            .classic-dot-line { min-height: 4.2mm !important; }
-            .classic-form-intro { font-size: 8.3pt !important; margin-bottom: 2.4mm !important; }
-            .classic-form-grid { gap: 1.45mm !important; margin-bottom: 2.2mm !important; padding: 1.8mm !important; }
-            .classic-field-line { min-height: 7.7mm !important; padding: .85mm 1.2mm !important; font-size: 7pt !important; }
-            .classic-field-line span { font-size: 6.15pt !important; margin-bottom: .25mm !important; }
-            .classic-field-line strong { min-height: 3.25mm !important; font-size: 7.9pt !important; }
-            .classic-summary-strip { padding: 1.2mm 1.7mm !important; font-size: 7.35pt !important; margin-bottom: 2mm !important; }
-            .classic-table-title { font-size: 7.6pt !important; margin-bottom: 1mm !important; }
-            .classic-equipment-table { font-size: 7.45pt !important; line-height: 1.17 !important; }
-            .classic-equipment-table th { font-size: 6.35pt !important; }
-            .classic-equipment-table th,
-            .classic-equipment-table td { padding: .92mm .95mm !important; }
-            .classic-table-subtext { font-size: 5.9pt !important; }
-            .classic-note-rules { gap: 2.4mm !important; margin-bottom: 2mm !important; }
-            .classic-note-box,
-            .classic-rules-box { min-height: 13.2mm !important; padding: 1.35mm 1.6mm !important; font-size: 6.55pt !important; line-height: 1.18 !important; }
-            .classic-box-title { font-size: 6.8pt !important; margin-bottom: .9mm !important; }
-            .classic-signatures { display: grid !important; grid-template-columns: repeat(3, minmax(0,1fr)) !important; gap: 2.8mm !important; margin-top: 2mm !important; }
-            .classic-sign-box { min-height: 15.2mm !important; font-size: 6.65pt !important; padding: 1.45mm .9mm .75mm !important; }
-            .classic-sign-line { width: 29mm !important; max-width: 74% !important; height: 5.2mm !important; margin: 0 auto .75mm !important; }
-            .classic-sign-date { font-size: 5.7pt !important; }
-            .classic-footer { margin-top: 1mm !important; padding-top: .65mm !important; font-size: 4.9pt !important; color: #b8c0cc !important; }
-            .classic-onepage .classic-sheet-content { min-height: 268mm !important; display: flex !important; flex-direction: column !important; }
-            .classic-onepage .classic-signatures { margin-top: auto !important; }
-            .classic-onepage .classic-footer { flex-shrink: 0 !important; }
-            .classic-onepage .classic-note-rules { margin-bottom: 2mm !important; }
-          }
-          @media (max-width: 720px) {
-            .classic-operation-sheet { padding: 20px; max-width: calc(100vw - 16px); }
-            .classic-letterhead { grid-template-columns: 1fr; text-align: center; }
-            .classic-ref-box { max-width: 100%; }
-            .classic-form-grid,
-            .classic-note-rules,
-            .classic-signatures { grid-template-columns: 1fr; }
-            .classic-field-line,
-            .classic-field-wide { display: block; }
-            .classic-sign-line { width: 160px; max-width: 72%; }
+            @page { size: A4 portrait; margin: 12mm; }
+            .no-print { display: none !important; }
+            .print-sheet { box-shadow: none !important; border: 0 !important; padding: 0 !important; max-width: none !important; }
+            body { background: white !important; }
           }
         `}</style>
-
-        <div className="classic-print-toolbar print:hidden p-4 fixed top-0 w-full z-50 shadow-md">
-          <div className="max-w-6xl mx-auto flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-            <div className="min-w-0">
-              <h2 className="font-black text-xl flex items-center gap-2"><Icons.พิมพ์er className="w-6 h-6" /> {docTitle}</h2>
-              <p className="text-slate-300 text-sm font-bold mt-1">ฟอร์ม A4 ปรับสมดุลสุดท้าย หัวเอกสารโปร่งขึ้น ตารางอ่านง่ายขึ้น ลายเซ็นลงตัว และยังคุมลายน้ำจางกลางกระดาษ</p>
+        <div className="no-print sticky top-0 z-50 border-b border-slate-800 bg-slate-950/95 backdrop-blur px-4 py-3">
+          <div className="mx-auto max-w-5xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-black tracking-[0.22em] text-blue-300 uppercase">MDEC STOCK DOCUMENT</div>
+              <h1 className="text-xl font-black text-white">{docTitle}</h1>
+              <p className="text-xs text-slate-400 font-bold">เอกสารหลังบันทึกรายการ • hotfix ป้องกันหน้าเว็บค้างหลังบันทึก</p>
             </div>
-            <div className="flex flex-wrap gap-3 w-full xl:w-auto shrink-0">
-              <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-black flex items-center justify-center gap-2 transition-colors flex-1 sm:flex-none"><Icons.พิมพ์er className="w-5 h-5"/> {isReturnSlip ? 'พิมพ์ใบรับคืน' : isPrepSlip ? 'พิมพ์ใบเตรียมของ' : isEventSlip ? 'พิมพ์ใบออกงาน' : 'พิมพ์ใบยืม'}</button>
-              <button onClick={() => setพิมพ์SlipData(null)} className="bg-slate-600 hover:bg-slate-500 px-6 py-2 rounded-lg font-black transition-colors flex-1 sm:flex-none">ปิด</button>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => window.print()} className="rounded-2xl bg-blue-600 px-5 py-2.5 text-sm font-black text-white hover:bg-blue-500">พิมพ์เอกสาร</button>
+              <button type="button" onClick={() => setพิมพ์SlipData(null)} className="rounded-2xl border border-slate-700 bg-slate-800 px-5 py-2.5 text-sm font-black text-white hover:bg-slate-700">ปิด</button>
             </div>
           </div>
         </div>
 
-        <div className="classic-form-wrap pt-36 print:pt-0 p-4 sm:p-6 print:p-0 mx-auto">
-          <article className={`classic-operation-sheet ${onePageSlipCandidate ? 'classic-onepage' : 'classic-multipage'} ${isReturnSlip ? 'classic-return' : isEventSlip ? 'classic-event' : isPrepSlip ? 'classic-prep' : 'classic-borrow'}`}>
-            {!brandLogoError ? (
-              <img src={ORG_LOGO_SRC} alt="MDEC Watermark" className="classic-doc-watermark" onError={() => setBrandLogoError(true)} />
-            ) : (
-              <div className="classic-watermark-text">MDEC</div>
-            )}
-
-            <div className="classic-sheet-content">
-              <header className="classic-letterhead">
+        <main className="mx-auto max-w-5xl p-4 sm:p-6 print:p-0">
+          <article className="print-sheet rounded-[28px] border border-slate-800 bg-white text-slate-950 shadow-2xl p-6 sm:p-8 print:rounded-none">
+            <header className="border-b-2 border-slate-900 pb-5 mb-5">
+              <div className="flex items-start justify-between gap-4">
                 <div>
-                  {renderOrgLogoBox({ className: 'classic-logo-box', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-5 h-5' })}
-                  <div className="classic-org-line">ศูนย์มัลติมีเดียทางการศึกษา<br/>วิทยาลัยเทคโนโลยีภาคตะวันออก (อี.เทค)</div>
+                  <div className="text-xs font-black tracking-[0.22em] text-slate-500 uppercase">MULTIMEDIA DEVELOPMENT EDUCATION CENTER</div>
+                  <h2 className="mt-2 text-3xl font-black tracking-tight">{docTitle}</h2>
+                  <p className="mt-1 text-sm font-bold text-slate-600">วิทยาลัยเทคโนโลยีภาคตะวันออก (อี.เทค)</p>
                 </div>
-
-                <div className="classic-title-group">
-                  <div className="classic-doc-code">{docCode}</div>
-                  <h1 className="classic-doc-title">{docTitle}</h1>
-                  <p className="classic-doc-subtitle">{docSubtitle}</p>
+                <div className="text-right text-sm font-bold text-slate-700">
+                  <div>เลขที่: <span className="font-black text-slate-950">{safeText(printSlipData.ref)}</span></div>
+                  <div>วันที่: {formatSlipDate(printSlipData.date, true)}</div>
+                  <div>{APP_VERSION}</div>
                 </div>
-
-                <div className="classic-ref-box">
-                  <div className="classic-ref-row"><span>เล่มที่</span><div className="classic-dot-line"></div></div>
-                  <div className="classic-ref-row"><span>เลขที่</span><div className="classic-dot-line">{safeText(printSlipData.ref)}</div></div>
-                  <div className="classic-ref-row"><span>วันที่</span><div className="classic-dot-line">{formatThaiDate(printSlipData.date, true)}</div></div>
-                </div>
-              </header>
-
-              <section className="classic-form-intro">
-                เอกสารฉบับนี้จัดทำขึ้นเพื่อใช้เป็นหลักฐานการ{isReturnSlip ? 'รับคืนและตรวจสภาพอุปกรณ์' : isPrepSlip ? 'เตรียมและตรวจเช็กรายการอุปกรณ์' : isEventSlip ? 'นำอุปกรณ์ออกปฏิบัติงาน' : 'ยืมสิ่งของ/อุปกรณ์'}ของศูนย์มัลติมีเดียทางการศึกษา โดยมีรายละเอียดดังต่อไปนี้
-              </section>
-
-              <section className="classic-form-grid">
-                <FieldLine label={subjectLabel} value={subjectValue} wide />
-                <FieldLine label={staffLabel} value={staffValue} />
-                <FieldLine label={dateLabel} value={dateValue} />
-                <FieldLine label="สถานะเอกสาร" value={statusLabel} />
-                <FieldLine label="จำนวนรายการ" value={`${printItems.length.toLocaleString('th-TH')} รายการ`} />
-                <FieldLine label="หลักฐานแนบ" value={proofCount ? `${proofCount.toLocaleString('th-TH')} รูป` : 'ไม่มี / ไม่ได้แนบ'} />
-                <FieldLine label="ผู้บันทึก" value={safeText(printSlipData.operatorName || printSlipData.createdBy || printSlipData.staffOut || printSlipData.returnStaff)} />
-              </section>
-
-              <div className="classic-summary-strip">
-                <span>{summaryLine}</span>
-                <span>ใช้ประกอบการตรวจรับ-ส่งอุปกรณ์ภายในศูนย์</span>
               </div>
+            </header>
 
-              <section className="classic-table-wrap">
-                <div className="classic-table-title">
-                  <span>รายการอุปกรณ์</span>
-                  <span>โปรดตรวจสอบชื่ออุปกรณ์ / S.N. / ที่เก็บ ก่อนลงนาม</span>
-                </div>
-                <table className="classic-equipment-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: isPrepSlip ? '9mm' : '10mm' }}>{isPrepSlip ? 'เช็ก' : 'ลำดับ'}</th>
-                      {isPrepSlip && <th style={{ width: '9mm' }}>#</th>}
-                      <th>รายการ</th>
-                      <th style={{ width: '28mm' }}>S.N. / รหัส</th>
-                      <th style={{ width: '30mm' }}>หมวดหมู่ / ฝ่าย</th>
-                      <th style={{ width: '27mm' }}>ที่เก็บ</th>
-                      <th style={{ width: '32mm' }}>{isReturnSlip ? 'สภาพ / หมายเหตุ' : 'หมายเหตุ'}</th>
+            <section className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5 text-sm">
+              <div className="rounded-2xl border border-slate-300 bg-slate-50 p-3"><div className="text-[11px] font-black text-slate-500">{subjectLabel}</div><div className="mt-1 text-lg font-black">{subjectValue}</div></div>
+              <div className="rounded-2xl border border-slate-300 bg-slate-50 p-3"><div className="text-[11px] font-black text-slate-500">{staffLabel}</div><div className="mt-1 text-lg font-black">{staffValue}</div></div>
+              <div className="rounded-2xl border border-slate-300 bg-slate-50 p-3"><div className="text-[11px] font-black text-slate-500">{dueLabel}</div><div className="mt-1 text-lg font-black">{dueValue}</div></div>
+              <div className="rounded-2xl border border-slate-300 bg-slate-50 p-3"><div className="text-[11px] font-black text-slate-500">สรุปรายการ</div><div className="mt-1 text-lg font-black">{printItems.length.toLocaleString('th-TH')} รายการ • หลักฐาน {proofCount.toLocaleString('th-TH')} รูป</div></div>
+            </section>
+
+            <section className="mb-5">
+              <div className="mb-2 text-sm font-black">รายการอุปกรณ์</div>
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-slate-900 text-white">
+                    <th className="border border-slate-400 px-2 py-2 text-center w-12">ลำดับ</th>
+                    <th className="border border-slate-400 px-2 py-2 text-left">อุปกรณ์</th>
+                    <th className="border border-slate-400 px-2 py-2 text-left w-36">S.N.</th>
+                    <th className="border border-slate-400 px-2 py-2 text-left w-40">หมวด / ฝ่าย</th>
+                    <th className="border border-slate-400 px-2 py-2 text-left w-44">หมายเหตุ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {printItems.length === 0 ? (
+                    <tr><td colSpan={5} className="border border-slate-300 px-3 py-8 text-center font-bold text-slate-500">ยังไม่มีรายการอุปกรณ์ในเอกสารนี้</td></tr>
+                  ) : printItems.map((item, index) => (
+                    <tr key={item.id || index}>
+                      <td className="border border-slate-300 px-2 py-2 text-center font-black">{index + 1}</td>
+                      <td className="border border-slate-300 px-2 py-2 font-bold">{safeText(item.name)}<div className="text-xs text-slate-500">{safeText(item.shortCode || item.internalNote, '')}</div></td>
+                      <td className="border border-slate-300 px-2 py-2">{safeText(item.sn)}</td>
+                      <td className="border border-slate-300 px-2 py-2">{safeText(item.category)} / {safeText(item.department)}</td>
+                      <td className="border border-slate-300 px-2 py-2">{isReturnSlip ? safeText(item.returnNote || item.returnCondition) : safeText(item.note || item.currentNote)}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {printItems.length === 0 ? (
-                      <tr><td colSpan={isPrepSlip ? 7 : 6} className="text-center font-bold text-slate-500 py-8">ยังไม่มีรายการอุปกรณ์ในเอกสารนี้</td></tr>
-                    ) : printItems.map((item, index) => {
-                      const itemReturned = returnedIdSet.has(item.id);
-                      const conditionText = isReturnSlip
-                        ? `${item.returnCondition || 'ปกติ'}${item.returnNote ? ` • ${item.returnNote}` : ''}`
-                        : (item.internalNote || item.project || '-');
-                      return (
-                        <tr key={item.id || index}>
-                          <td className="text-center font-black">{isPrepSlip ? (item.checked ? '☑' : '☐') : index + 1}</td>
-                          {isPrepSlip && <td className="text-center font-black">{index + 1}</td>}
-                          <td>
-                            <strong>{safeText(item.name)}</strong>
-                            {itemReturned && <span className="classic-table-subtext">คืนแล้ว</span>}
-                          </td>
-                          <td>{safeText(item.sn || item.shortCode || item.localCode)}</td>
-                          <td>{safeText(item.category)}<span className="classic-table-subtext">{safeText(item.department)}</span></td>
-                          <td>{safeText(item.storageBoxName || item.location)}</td>
-                          <td>{safeText(conditionText)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </section>
+                  ))}
+                </tbody>
+              </table>
+            </section>
 
-              <section className="classic-note-rules">
-                <div className="classic-note-box">
-                  <div className="classic-box-title">หมายเหตุ / วัตถุประสงค์</div>
-                  <div>{safeText(printSlipData.note, '-')}</div>
-                  {!isReturnSlip && printSlipData.expectedReturn && <div className="mt-2">กำหนดคืน / วันที่ใช้งาน: {formatThaiDate(printSlipData.expectedReturn, false)}</div>}
-                </div>
-                <div className="classic-rules-box">
-                  <div className="classic-box-title">ข้อกำหนดการใช้งานเอกสาร</div>
-                  <ol className="classic-rules-list">
-                    {ruleLines.map((line, index) => <li key={index}>{line}</li>)}
-                  </ol>
-                </div>
-              </section>
+            <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div className="rounded-2xl border border-slate-300 p-4 min-h-24">
+                <div className="font-black mb-2">หมายเหตุ</div>
+                <div>{safeText(printSlipData.note, '-')}</div>
+              </div>
+              <div className="rounded-2xl border border-slate-300 p-4 min-h-24">
+                <div className="font-black mb-2">ข้อกำหนด</div>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>ตรวจนับอุปกรณ์ทุกครั้งก่อนรับและคืน</li>
+                  <li>หากพบชำรุดหรือสูญหายให้แจ้งเจ้าหน้าที่ทันที</li>
+                  <li>เอกสารนี้ออกโดยระบบ MDEC Stock</li>
+                </ul>
+              </div>
+            </section>
 
-              <section className="classic-signatures">
-                {signatureLabels.map((label) => (
-                  <div key={label} className="classic-sign-box">
-                    <div className="classic-sign-line"></div>
-                    <div className="classic-sign-caption">({label})</div>
-                    <div className="classic-sign-date">ลงชื่อ / วันที่ ........../........../..........</div>
-                  </div>
-                ))}
-              </section>
-
-              <footer className="classic-footer">
-                <span>เอกสารนี้สร้างจากระบบ MDEC-Stock • พิมพ์เมื่อ {printedAt.toLocaleString('th-TH', { hour12: false })}</span>
-                <span>{APP_VERSION}</span>
-              </footer>
-            </div>
+            <section className="grid grid-cols-3 gap-5 mt-12 text-center text-sm font-bold">
+              <div><div className="h-12 border-b border-slate-900 mb-2"></div><div>ผู้รับผิดชอบ</div></div>
+              <div><div className="h-12 border-b border-slate-900 mb-2"></div><div>เจ้าหน้าที่</div></div>
+              <div><div className="h-12 border-b border-slate-900 mb-2"></div><div>ผู้ตรวจสอบ</div></div>
+            </section>
           </article>
-        </div>
+        </main>
       </div>
     );
   }
