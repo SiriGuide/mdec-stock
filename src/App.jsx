@@ -54,13 +54,17 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.58.2 Boot Crash Hotfix';
-const APP_UPDATE_NOTE = 'Boot Crash Hotfix: แก้ ReferenceError getActiveProofs/gu ตอนเปิดเว็บและหลังบันทึกเอกสาร โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
+const APP_VERSION = 'v22.58.3 Safe Array Boot Hotfix';
+const APP_UPDATE_NOTE = 'Safe Array Boot Hotfix: กันข้อมูล settings/history/proofs ที่ไม่ใช่ array ทำให้เว็บล้มตอนเปิด โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
 const DEFAULT_DOCUMENT_SETTINGS = { qrLogo: true, slipLogo: true, boxLabelLogo: true, proofStamp: true, watermark: true, logoSize: 'normal', printTone: 'official', slipTemplate: 'formal' };
 const DEFAULT_UI_SETTINGS = { density: 'comfortable', cleanMode: true, mobileCards: true, reduceEffects: false };
+
+// v22.58.3 Safe Array Helper
+// กันกรณีข้อมูลเก่าหรือ settings บาง field เป็น object/string/null แล้วถูกเรียก .forEach/.map/.filter จนเว็บล้มใน production
+const asArray = (value) => Array.isArray(value) ? value : [];
 
 const Icons = {
   Plus: ({ className = "" }) => <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
@@ -7095,7 +7099,7 @@ function MainApp() {
 
   const softDeletedHistoryEntries = useMemo(() => {
     const rows = [];
-    (items || []).forEach((item) => {
+    asArray(items).forEach((item) => {
       const historyList = Array.isArray(item?.history) ? item.history : [];
       historyList.forEach((h, historyIndex) => {
         if (!h?.deletedFromHistory) return;
@@ -9203,11 +9207,11 @@ function MainApp() {
     const chips = [];
     if (searchTerm) chips.push({ id: 'search', label: `ค้นหา: ${searchTerm}`, clear: () => setSearchTerm('') });
     if (smartQuickFilter !== 'all') chips.push({ id: 'smart', label: `ตัวกรองด่วน: ${smartQuickFilterOptions.find(f => f.id === smartQuickFilter)?.label || smartQuickFilter}`, clear: () => setSmartQuickFilter('all') });
-    (filterDept || []).forEach(value => chips.push({ id: `dept_${value}`, label: `ฝ่าย: ${DEPARTMENTS.find(d => d.id === value)?.label || value}`, clear: () => setFilterDept(prev => prev.filter(v => v !== value)) }));
-    (filterLocation || []).forEach(value => chips.push({ id: `location_${value}`, label: `ที่เก็บ: ${value}`, clear: () => setFilterLocation(prev => prev.filter(v => v !== value)) }));
-    (filterCategory || []).forEach(value => chips.push({ id: `category_${value}`, label: `หมวด: ${value}`, clear: () => setFilterCategory(prev => prev.filter(v => v !== value)) }));
+    asArray(filterDept).forEach(value => chips.push({ id: `dept_${value}`, label: `ฝ่าย: ${DEPARTMENTS.find(d => d.id === value)?.label || value}`, clear: () => setFilterDept(prev => prev.filter(v => v !== value)) }));
+    asArray(filterLocation).forEach(value => chips.push({ id: `location_${value}`, label: `ที่เก็บ: ${value}`, clear: () => setFilterLocation(prev => prev.filter(v => v !== value)) }));
+    asArray(filterCategory).forEach(value => chips.push({ id: `category_${value}`, label: `หมวด: ${value}`, clear: () => setFilterCategory(prev => prev.filter(v => v !== value)) }));
     if (filterStatus !== 'all') chips.push({ id: 'status', label: `สถานะ: ${STATUSES.find(s => s.id === filterStatus)?.label || filterStatus}`, clear: () => setFilterStatus('all') });
-    (filterProject || []).forEach(value => chips.push({ id: `project_${value}`, label: `โครงการ: ${value}`, clear: () => setFilterProject(prev => prev.filter(v => v !== value)) }));
+    asArray(filterProject).forEach(value => chips.push({ id: `project_${value}`, label: `โครงการ: ${value}`, clear: () => setFilterProject(prev => prev.filter(v => v !== value)) }));
     if (filterAssetStatus !== 'all') chips.push({ id: 'asset', label: `พัสดุ: ${getAssetStatusInfo(filterAssetStatus).label}`, clear: () => setFilterAssetStatus('all') });
     if (filterQrTagged !== 'all') chips.push({ id: 'qr', label: filterQrTagged === 'tagged' ? 'ติด QR แล้ว' : 'ยังไม่ติด QR', clear: () => setFilterQrTagged('all') });
     if (quickProblemOnly) chips.push({ id: 'problem', label: 'ของที่ต้องจัดการ', clear: () => setQuickProblemOnly(false) });
@@ -9512,7 +9516,7 @@ function MainApp() {
           });
           return setDoc(getItemDoc(item.id), { project: newName, history, updatedAt: nowIso, updatedBy: currentOperator?.name || 'Admin' }, { merge: true });
         }));
-        if ((filterProject || []).includes(oldName)) setFilterProject(prev => prev.map(v => v === oldName ? newName : v));
+        if (asArray(filterProject).includes(oldName)) setFilterProject(prev => asArray(prev).map(v => v === oldName ? newName : v));
       }
       setSelectedPurchaseProject(newName);
       await logAction('บันทึกรายละเอียดโครงการจัดซื้อ', newName, newName !== oldName ? `เปลี่ยนชื่อจาก ${oldName}` : 'แก้ไขรายละเอียดโครงการ');
@@ -9616,7 +9620,7 @@ function MainApp() {
         }, { merge: true });
       }));
       await logAction('ผูกอุปกรณ์กับโครงการจัดซื้อ', projectAssignTarget, `เลือกไว้ ${selectedItemsForProject.length} รายการ / เพิ่มใหม่ ${addCount} / นำออก ${removeCount}`);
-      setFilterProject(selectedItemsForProject.length > 0 ? projectAssignTarget : 'all');
+      setFilterProject(selectedItemsForProject.length > 0 ? [projectAssignTarget] : []);
       setShowProjectAssignModal(false);
       pushToast(`บันทึกการผูกอุปกรณ์แล้ว: เลือกไว้ ${selectedItemsForProject.length} รายการ${removeCount ? ` / นำออก ${removeCount} รายการ` : ''}`, 'success');
     } catch (error) {
@@ -9677,7 +9681,7 @@ function MainApp() {
         }, { merge: true });
       }));
 
-      if ((filterProject || []).includes(oldName)) setFilterProject(prev => prev.map(v => v === oldName ? clean : v));
+      if (asArray(filterProject).includes(oldName)) setFilterProject(prev => asArray(prev).map(v => v === oldName ? clean : v));
       await logAction('เปลี่ยนชื่อโครงการ', clean, `จาก ${oldName} เป็น ${clean} / กระทบอุปกรณ์ ${affectedItems.length} รายการ`);
       pushToast('เปลี่ยนชื่อโครงการเรียบร้อยแล้ว', 'success');
     } catch (error) {
@@ -10095,7 +10099,7 @@ S.N.: ${item.sn || '-'}
                             <div className="flex justify-between gap-3"><span className={theme.textMuted}>ข้อมูลไม่ครบ</span><span className={theme.textTitle}>{(selectedProject.missingData || 0).toLocaleString('th-TH')}</span></div>
                           </div>
                           <div className={`mt-4 pt-4 border-t ${theme.divide}`}>
-                            <button type="button" onClick={() => { setFilterProject(selectedProject.name); openWorkspace('overview'); }} className="w-full px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black">ดูในหน้าคลังสินค้า</button>
+                            <button type="button" onClick={() => { setFilterProject([selectedProject.name]); openWorkspace('overview'); }} className="w-full px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black">ดูในหน้าคลังสินค้า</button>
                           </div>
                         </div>
                       </div>
@@ -10558,7 +10562,7 @@ S.N.: ${item.sn || '-'}
       }
     ];
 
-    (memoryList || []).forEach(memory => {
+    asArray(memoryList).forEach(memory => {
       const dept = getCameraHelperDepartment(memory);
       if (isMemoryDedicatedToCamera(memory, camera)) groups[0].items.push(memory);
       else if (selectedDept && selectedDept !== 'ไม่ระบุฝ่าย' && dept === selectedDept) groups[1].items.push(memory);
@@ -12743,7 +12747,7 @@ S.N.: ${item.sn || '-'}
                     const rowsInGroup = entry.groupRows || [entry];
                     const isGroup = historyGroupMode && rowsInGroup.length > 1;
                     const groupLinkedProofMap = new Map();
-                    rowsInGroup.forEach(row => (row.linkedProofs || row.directProofs || row.documentProofs || row.rawHistory?.proofs || []).forEach((proof, idx) => groupLinkedProofMap.set(String(proof.proofDocId || proof.id || proof.docId || `${proof.createdAt || 'nodate'}_${idx}`), proof)));
+                    rowsInGroup.forEach(row => asArray(row.linkedProofs || row.directProofs || row.documentProofs || row.rawHistory?.proofs).forEach((proof, idx) => groupLinkedProofMap.set(String(proof.proofDocId || proof.id || proof.docId || `${proof.createdAt || 'nodate'}_${idx}`), proof)));
 
                     // v22.57.6.10: fallback ดึงรูปจากศูนย์หลักฐานโดยตรง
                     // บางข้อมูลเก่าเก็บรูปไว้ในเอกสารย้อนหลัง/ศูนย์หลักฐาน แต่ไม่ได้ฝังกลับเข้า history.proofs
@@ -13255,7 +13259,7 @@ S.N.: ${item.sn || '-'}
 
   const categoryStats = useMemo(() => {
     const catData = {};
-    (settingsOptions?.categories || []).filter(c => c !== 'อื่นๆ').forEach(cat => { catData[cat] = { total: 0, available: 0 }; });
+    asArray(settingsOptions?.categories).filter(c => c !== 'อื่นๆ').forEach(cat => { catData[cat] = { total: 0, available: 0 }; });
 
     deptItems.forEach(item => {
       const qty = Number(item.quantity) || 1;
@@ -13331,7 +13335,7 @@ S.N.: ${item.sn || '-'}
       }
     });
 
-    (settingsOptions.prepLists || []).forEach((prep) => {
+    asArray(settingsOptions.prepLists).forEach((prep) => {
       addEvent(getDateKey(prep.useDate), {
         type: 'prep',
         title: `เตรียมของ: ${prep.name || '-'}`,
@@ -13682,7 +13686,7 @@ S.N.: ${item.sn || '-'}
 
     const docProofMap = new Map();
     const docProofRecords = [];
-    (borrowเอกสารs || []).forEach((docData = {}) => {
+    asArray(borrowเอกสารs).forEach((docData = {}) => {
       const proofs = getActiveProofs(docData.proofs);
       if (proofs.length === 0) return;
       const docItems = Array.isArray(docData.items) ? docData.items : [];
@@ -13895,7 +13899,7 @@ S.N.: ${item.sn || '-'}
       });
     });
     // เพิ่มรูปที่แนบอยู่กับเอกสารย้อนหลังโดยตรง เผื่อข้อมูลเก่าบางรายการยังไม่ได้ฝัง proofs ลง history รายชิ้น
-    (borrowเอกสารs || []).forEach((docData, docIndex) => {
+    asArray(borrowเอกสารs).forEach((docData, docIndex) => {
       const proofs = getActiveProofs(docData.proofs);
       if (proofs.length === 0) return;
       const relatedItems = (docData.itemIds || docData.items?.map(it => it.id) || [])
@@ -24465,7 +24469,7 @@ S.N.: ${item.sn || '-'}
                             <div className="flex flex-wrap gap-2 shrink-0">
                               {canAddEditItems && project.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectAssign(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 hover:bg-blue-500 text-white">จัดอุปกรณ์</button>}
                               <button type="button" onClick={() => openProjectพิมพ์(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 text-white">พิมพ์รายงาน</button>
-                              <button type="button" onClick={() => { setFilterProject(project.name); setShowProjectsModal(false); }} className="px-3 py-2 rounded-xl text-sm font-black bg-indigo-600 hover:bg-indigo-500 text-white">ดูเฉพาะโครงการนี้</button>
+                              <button type="button" onClick={() => { setFilterProject([project.name]); setShowProjectsModal(false); }} className="px-3 py-2 rounded-xl text-sm font-black bg-indigo-600 hover:bg-indigo-500 text-white">ดูเฉพาะโครงการนี้</button>
                             </div>
                           </div>
                           <div className={`mt-4 h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
