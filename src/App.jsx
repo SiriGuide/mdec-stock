@@ -15,7 +15,7 @@
 // v22.52.6 Data Quality Action Polish - supports camera/department/flexible memory choice without fixed sets
 // v22.52.6 Data Quality Action Polish - UI-only polish, no QR/camera/database changes
 // v22.52.1 ตัวช่วยกล้อง Final UX - UI/UX safe polish, no QR/camera/database changes
-// v22.57.7.2 Evidence Recovery Safety Fix - เพิ่มปุ่มกู้รูปหลักฐานที่อาจหลุดจากระบบ + เปลี่ยนการลบรูปเป็นซ่อนก่อน ไม่ hard delete ทันที
+// v22.57.8 System Settings / Global Final Polish - เก็บงานหน้าตั้งค่าและคุมธีมทั้งเว็บก่อนรอบทดสอบจริง
 // v22.57.7.1 Strict Login Gate Fix - ไม่ล็อกอินห้ามเห็นคลังละเอียด/ติ๊กเลือก/ทำรายการจริง ใช้ได้เฉพาะหน้าอ่านอย่างเดียวและต้องล็อกอินก่อนปฏิบัติการ
 // v22.57.6.25 Asset Profile Readability Polish - แฟ้มอุปกรณ์อ่านง่ายขึ้น ลดความแน่น จัดหัวแฟ้ม/ข้อมูล/ประวัติ/หลักฐานให้ชัด โดยไม่แตะ QR Scanner/Firebase path/flow หลัก
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -6697,6 +6697,207 @@ button[class*="orange"]:not(:disabled) {
   }
 }
 
+
+
+
+/* ===== v22.57.8 System Settings / Global Final Polish =====
+   เป้าหมาย: เก็บงานหน้าตั้งค่าระบบ + คุมธีมทั้งเว็บก่อนรอบทดลองใช้งานจริง
+   ปรับเฉพาะ UI/CSS ไม่แตะ QR Scanner core, Firebase path, หรือ flow หลัก
+*/
+.factory-stock-polish {
+  --mdec-surface-0: #020617;
+  --mdec-surface-1: #0f172a;
+  --mdec-surface-2: #111827;
+  --mdec-surface-3: #1e293b;
+  --mdec-border-soft: rgba(71, 85, 105, .72);
+  --mdec-border-strong: rgba(100, 116, 139, .88);
+  --mdec-text-title: #f8fafc;
+  --mdec-text-main: #dbeafe;
+  --mdec-text-muted: #94a3b8;
+  --mdec-blue: #60a5fa;
+  --mdec-blue-soft: rgba(37, 99, 235, .14);
+  --mdec-danger-soft: rgba(244, 63, 94, .12);
+  --mdec-success-soft: rgba(16, 185, 129, .12);
+}
+.factory-stock-polish .settings-shell {
+  max-width: min(1180px, calc(100vw - 24px)) !important;
+  background:
+    radial-gradient(circle at top left, rgba(37,99,235,.12), transparent 34%),
+    linear-gradient(180deg, rgba(15,23,42,.98), rgba(2,6,23,.98)) !important;
+  border: 1px solid rgba(71,85,105,.82) !important;
+  box-shadow: 0 30px 90px rgba(0,0,0,.48) !important;
+}
+.factory-stock-polish .settings-shell > div:first-child {
+  background: linear-gradient(135deg, rgba(15,23,42,.96), rgba(2,6,23,.98)) !important;
+  border-bottom-color: rgba(71,85,105,.72) !important;
+}
+.factory-stock-polish .settings-shell > div:first-child h3::before {
+  content: '⚙️';
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-right: 10px;
+  border-radius: 14px;
+  background: rgba(37,99,235,.16);
+  border: 1px solid rgba(96,165,250,.35);
+  font-size: 18px;
+  vertical-align: middle;
+}
+.factory-stock-polish .settings-center-overview > div:first-child {
+  background:
+    radial-gradient(circle at right top, rgba(96,165,250,.18), transparent 34%),
+    linear-gradient(135deg, rgba(15,23,42,.98), rgba(2,6,23,.96)) !important;
+  border-color: rgba(71,85,105,.78) !important;
+  box-shadow: 0 18px 50px rgba(0,0,0,.22) !important;
+}
+.factory-stock-polish .settings-center-overview > div:first-child h4 {
+  letter-spacing: -.02em;
+}
+.factory-stock-polish .settings-nav-grid {
+  gap: 12px !important;
+}
+.factory-stock-polish .settings-nav-grid button,
+.factory-stock-polish .settings-section-switcher button,
+.factory-stock-polish .settings-back-toolbar button {
+  border-radius: 18px !important;
+  border-color: rgba(71,85,105,.78) !important;
+  background: rgba(15,23,42,.78) !important;
+  color: #dbeafe !important;
+  box-shadow: none !important;
+}
+.factory-stock-polish .settings-nav-grid button:hover,
+.factory-stock-polish .settings-section-switcher button:hover,
+.factory-stock-polish .settings-back-toolbar button:hover {
+  background: rgba(30,41,59,.92) !important;
+  transform: translateY(-1px);
+}
+.factory-stock-polish .settings-section-switcher button[class*="bg-blue-600"],
+.factory-stock-polish .settings-nav-grid button[class*="bg-blue-600"],
+.factory-stock-polish .settings-center-overview button[class*="bg-blue-600"] {
+  background: rgba(37,99,235,.22) !important;
+  border-color: rgba(96,165,250,.52) !important;
+  color: #bfdbfe !important;
+  box-shadow: inset 0 0 0 1px rgba(147,197,253,.08) !important;
+}
+.factory-stock-polish .settings-shell :is(.settings-card,.settings-panel,.backup-card,.settings-safety-zone),
+.factory-stock-polish .settings-shell :is(.p-5,.p-6,.p-4).rounded-2xl,
+.factory-stock-polish .settings-shell :is(.p-5,.p-6,.p-4).rounded-3xl {
+  border-color: rgba(71,85,105,.68) !important;
+  background: rgba(15,23,42,.68) !important;
+  box-shadow: none !important;
+}
+.factory-stock-polish .settings-shell .settings-safety-zone,
+.factory-stock-polish .settings-shell [class*="bg-rose"],
+.factory-stock-polish .settings-shell [class*="border-rose"] {
+  background: rgba(127,29,29,.16) !important;
+  border-color: rgba(244,63,94,.38) !important;
+}
+.factory-stock-polish .settings-shell label {
+  color: #cbd5e1 !important;
+  font-weight: 850 !important;
+}
+.factory-stock-polish .settings-shell :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea),
+.factory-stock-polish :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea).system-polish-input {
+  background: rgba(2,6,23,.72) !important;
+  border-color: rgba(71,85,105,.82) !important;
+  color: #f8fafc !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04) !important;
+}
+.factory-stock-polish .settings-shell :is(input,textarea)::placeholder {
+  color: #64748b !important;
+}
+.factory-stock-polish .settings-shell .custom-scrollbar {
+  scrollbar-color: rgba(100,116,139,.72) transparent;
+}
+.factory-stock-polish .settings-shell .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100,116,139,.72) !important;
+  border-radius: 999px !important;
+}
+.factory-stock-polish .settings-shell table,
+.factory-stock-polish table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.factory-stock-polish .settings-shell :is(th,td),
+.factory-stock-polish .solid-panel :is(th,td) {
+  border-color: rgba(51,65,85,.72) !important;
+}
+.factory-stock-polish :is(.solid-panel,.operation-workspace-card,.workspace-action-card,.purchase-project-card,.stock-mobile-card,.item-detail-shell,.item-form-shell,.compact-modal-shell,.operational-modal-shell,.factory-empty-state,.empty-state-card) {
+  border-color: rgba(71,85,105,.70) !important;
+}
+.factory-stock-polish :is(.solid-panel,.operation-workspace-card,.workspace-action-card,.purchase-project-card,.stock-mobile-card,.item-detail-shell,.item-form-shell,.compact-modal-shell,.operational-modal-shell) :is(.text-blue-500,.text-indigo-500,.text-purple-500) {
+  color: #93c5fd !important;
+}
+.factory-stock-polish button:not(:disabled) {
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease, transform .16s ease, opacity .16s ease !important;
+}
+.factory-stock-polish button:disabled {
+  opacity: .52 !important;
+  cursor: not-allowed !important;
+}
+.factory-stock-polish button[class*="bg-blue-600"]:not(.force-blue-action),
+.factory-stock-polish button[class*="bg-indigo-600"]:not(.force-blue-action) {
+  background: rgba(37,99,235,.22) !important;
+  border: 1px solid rgba(96,165,250,.46) !important;
+  color: #dbeafe !important;
+}
+.factory-stock-polish button[class*="bg-blue-600"]:not(.force-blue-action):hover,
+.factory-stock-polish button[class*="bg-indigo-600"]:not(.force-blue-action):hover {
+  background: rgba(37,99,235,.32) !important;
+}
+.factory-stock-polish .factory-primary-btn,
+.factory-stock-polish .factory-ghost-btn,
+.factory-stock-polish .factory-icon-btn {
+  border-radius: 16px !important;
+}
+.factory-stock-polish .factory-empty-state,
+.factory-stock-polish .empty-state-card {
+  background: rgba(15,23,42,.62) !important;
+  color: #cbd5e1 !important;
+}
+.factory-stock-polish .factory-empty-state :is(p,span,small),
+.factory-stock-polish .empty-state-card :is(p,span,small) {
+  color: #94a3b8 !important;
+}
+.factory-stock-polish .evidence-card img,
+.factory-stock-polish img.proof-preview,
+.factory-stock-polish [data-proof-preview] img {
+  object-fit: contain !important;
+  background: #020617 !important;
+}
+.factory-stock-polish .system-final-test-note {
+  border: 1px solid rgba(96,165,250,.35);
+  background: rgba(37,99,235,.12);
+  color: #dbeafe;
+  border-radius: 18px;
+  padding: 12px 14px;
+  font-size: 12px;
+  font-weight: 900;
+}
+@media (max-width: 760px) {
+  .factory-stock-polish .settings-shell {
+    max-width: calc(100vw - 16px) !important;
+    border-radius: 24px !important;
+  }
+  .factory-stock-polish .settings-shell > div:first-child h3::before {
+    width: 30px;
+    height: 30px;
+    border-radius: 12px;
+    margin-right: 7px;
+    font-size: 15px;
+  }
+  .factory-stock-polish .settings-nav-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    overflow: visible !important;
+  }
+  .factory-stock-polish .settings-nav-grid button {
+    min-width: 0 !important;
+    min-height: 66px !important;
+    padding: 10px !important;
+  }
+}
 
 `}</style>
   );
@@ -21447,9 +21648,9 @@ S.N.: ${item.sn || '-'}
                       ← หน้ารวม
                     </button>
                   )}
-                  <h3 className={`text-xl sm:text-3xl font-black ${theme.textTitle}`}>ตั้งค่าระบบ</h3>
+                  <h3 className={`text-xl sm:text-3xl font-black ${theme.textTitle}`}>หลังบ้าน / ตั้งค่าระบบ</h3>
                 </div>
-                <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>เริ่มจากหน้ารวม แล้วเข้าไปแก้ทีละหมวดได้ มีปุ่มกลับหน้ารวมตลอดทาง</p>
+                <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>รวมเครื่องมือหลังบ้านไว้เป็นหมวดชัดเจน ใช้แก้ระบบ ตรวจข้อมูล สำรองข้อมูล และเตรียมทดสอบได้ในหน้าเดียว</p>
               </div>
               <button type="button" onClick={() => { setShowSettings(false); resetSettingsFormState(); }} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -21512,8 +21713,8 @@ S.N.: ${item.sn || '-'}
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="min-w-0">
                         <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-500">SETTINGS COMMAND CENTER</div>
-                        <h4 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>จัดการหลังบ้านทั้งหมดในหน้าเดียว</h4>
-                        <p className={`text-sm font-bold mt-2 ${theme.textMuted}`}>แยกหมวดชัดเจนสำหรับข้อมูลพื้นฐาน ผู้ใช้งาน เอกสาร หลักฐาน สำรองข้อมูล และตรวจคุณภาพข้อมูล เหมาะกับการใช้งานบนมือถือ</p>
+                        <h4 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>ศูนย์จัดการระบบ MDEC Stock</h4>
+                        <p className={`text-sm font-bold mt-2 ${theme.textMuted}`}>เก็บงานหน้าตั้งค่าให้เป็นหลังบ้านจริง แยกหมวดงานระบบ ผู้ใช้งาน เอกสาร หลักฐาน สำรองข้อมูล และคุณภาพข้อมูล เพื่อเตรียมทดสอบเพิ่ม/ลบอุปกรณ์รอบใหม่</p>
                       </div>
                       <div className={`shrink-0 p-4 rounded-2xl border text-center ${dataQualityAudit.scoreTone === 'emerald' ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : dataQualityAudit.scoreTone === 'amber' ? (isDarkMode ? 'bg-amber-950/30 border-amber-800' : 'bg-amber-50 border-amber-200') : (isDarkMode ? 'bg-rose-950/30 border-rose-800' : 'bg-rose-50 border-rose-200')}`}>
                         <div className={`text-xs font-black ${theme.textMuted}`}>DATA QUALITY</div>
