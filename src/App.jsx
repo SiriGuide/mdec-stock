@@ -15,6 +15,7 @@
 // v22.52.6 Data Quality Action Polish - supports camera/department/flexible memory choice without fixed sets
 // v22.52.6 Data Quality Action Polish - UI-only polish, no QR/camera/database changes
 // v22.52.1 ตัวช่วยกล้อง Final UX - UI/UX safe polish, no QR/camera/database changes
+// v22.57.7.2 Evidence Recovery Safety Fix - เพิ่มปุ่มกู้รูปหลักฐานที่อาจหลุดจากระบบ + เปลี่ยนการลบรูปเป็นซ่อนก่อน ไม่ hard delete ทันที
 // v22.57.7.1 Strict Login Gate Fix - ไม่ล็อกอินห้ามเห็นคลังละเอียด/ติ๊กเลือก/ทำรายการจริง ใช้ได้เฉพาะหน้าอ่านอย่างเดียวและต้องล็อกอินก่อนปฏิบัติการ
 // v22.57.6.25 Asset Profile Readability Polish - แฟ้มอุปกรณ์อ่านง่ายขึ้น ลดความแน่น จัดหัวแฟ้ม/ข้อมูล/ประวัติ/หลักฐานให้ชัด โดยไม่แตะ QR Scanner/Firebase path/flow หลัก
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -53,8 +54,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.6.25 Asset Profile Readability Polish';
-const APP_UPDATE_NOTE = 'Asset Profile Readability Polish: กวาดธีมโหมดมืดทั้งเว็บให้ใช้โทน slate เดียวกัน ลดสีสดที่หลุดธีม รวมทรงปุ่ม/การ์ด/ช่องค้นหา/empty state ให้สอดคล้องกัน โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
+const APP_VERSION = 'v22.57.7.2 Evidence Recovery Safety Fix';
+const APP_UPDATE_NOTE = 'Evidence Recovery Safety Fix: เพิ่มปุ่มกู้รูปหลักฐานที่อาจหลุดจากประวัติ/เอกสารย้อนหลัง และเปลี่ยนการลบรูปหลักฐานเป็น soft delete เพื่อกู้คืนได้ โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7079,6 +7080,165 @@ function MainApp() {
     setShowProofCenterModal(true);
   };
 
+
+  const handleRecoverMissingProofForHistoryCenter = async (entry) => {
+    if (!entry) return;
+    if (!canUseOperationalTools) {
+      alert('บัญชีนี้ไม่มีสิทธิ์กู้รูปหลักฐาน');
+      return;
+    }
+
+    const rowsInGroup = entry.groupRows || [entry];
+    const normalizeRecoveryText = (value = '') => String(value || '').trim().toLowerCase();
+    const recoveryTokenRaw = rowsInGroup.flatMap((row = {}) => {
+      const rowItems = Array.isArray(row.rawHistory?.items)
+        ? row.rawHistory.items.flatMap(it => [it?.name, it?.sn, it?.shortCode])
+        : [];
+      return [
+        row.itemId,
+        row.itemName,
+        row.sn,
+        row.category,
+        row.location,
+        row.subject,
+        row.staff,
+        row.note,
+        row.rawHistory?.borrower,
+        row.rawHistory?.eventName,
+        row.rawHistory?.staffOut,
+        row.rawHistory?.staffIn,
+        row.rawHistory?.operatorName,
+        ...rowItems
+      ];
+    });
+    const recoveryTokens = Array.from(new Set(recoveryTokenRaw.filter(Boolean).map(normalizeRecoveryText).filter(v => v.length >= 3)));
+    const rowDateList = rowsInGroup.map(row => new Date(row.date || row.rawHistory?.date || row.rawHistory?.createdAt || 0).getTime()).filter(Number.isFinite);
+    const rowTypeSet = new Set(rowsInGroup.map(row => row.historyType).filter(Boolean));
+
+    const buildProofRef = (proofDoc = {}) => ({
+      id: proofDoc.id || proofDoc.proofDocId,
+      proofDocId: proofDoc.proofDocId || proofDoc.id,
+      thumbUrl: proofDoc.thumbUrl || '',
+      url: proofDoc.url || '',
+      originalName: proofDoc.originalName || 'recovered-proof.jpg',
+      createdAt: proofDoc.createdAt || new Date().toISOString(),
+      timestampText: proofDoc.timestampText || '',
+      locationText: proofDoc.locationText || '',
+      createdBy: proofDoc.createdBy || proofDoc.updatedBy || currentAccountLabel,
+      contextLabel: proofDoc.contextLabel || 'กู้คืนรูปหลักฐาน',
+      note: proofDoc.note || 'กู้คืน/ผูกกลับจากระบบกู้หลักฐาน',
+      storageType: proofDoc.storageType || 'firestore-doc-base64',
+      sizeBytes: proofDoc.sizeBytes || 0,
+      sizeText: proofDoc.sizeText || '',
+      recoveredAt: new Date().toISOString(),
+      recoveredBy: currentAccountLabel,
+      recoveredFrom: 'proofs-collection'
+    });
+
+    try {
+      setIsBusy(true);
+      const snap = await getDocs(getProofsCol());
+      const proofDocs = [];
+      snap.forEach((docSnap) => {
+        const data = docSnap.data() || {};
+        const proof = { id: data.id || docSnap.id, proofDocId: data.proofDocId || data.id || docSnap.id, ...data };
+        if (proof.dataUrl || proof.url || proof.thumbUrl) proofDocs.push(proof);
+      });
+
+      const candidates = proofDocs.map((proof) => {
+        const proofText = normalizeRecoveryText([
+          proof.id,
+          proof.proofDocId,
+          proof.contextLabel,
+          proof.note,
+          proof.originalName,
+          proof.createdBy,
+          proof.updatedBy,
+          proof.deletedBy,
+          proof.timestampText,
+          proof.locationText,
+          proof.historyType,
+          proof.type,
+          ...(Array.isArray(proof.itemRefs) ? proof.itemRefs.flatMap(ref => [ref?.itemName, ref?.sn, ref?.subject, ref?.typeLabel]) : []),
+          ...(Array.isArray(proof.items) ? proof.items.flatMap(it => [it?.name, it?.sn, it?.shortCode]) : [])
+        ].filter(Boolean).join(' '));
+        const tokenHits = recoveryTokens.filter(token => proofText.includes(token)).length;
+        const proofDate = new Date(proof.createdAt || proof.updatedAt || proof.deletedAt || 0).getTime();
+        const dateDiff = rowDateList.length && Number.isFinite(proofDate) ? Math.min(...rowDateList.map(rowMs => Math.abs(rowMs - proofDate))) : Infinity;
+        const dateClose = !rowDateList.length || !Number.isFinite(proofDate) || dateDiff <= 1000 * 60 * 60 * 24 * 14;
+        const typeText = normalizeRecoveryText(proof.historyType || proof.type || proof.contextLabel || '');
+        const typeHit = !rowTypeSet.size || Array.from(rowTypeSet).some(type => typeText.includes(String(type).toLowerCase()) || String(type).toLowerCase().includes(typeText));
+        const score = (tokenHits * 10) + (dateClose ? 4 : 0) + (typeHit ? 2 : 0) + (proof.softDeleted || proof.deletedAt ? 3 : 0);
+        return { proof, score, tokenHits, dateDiff, dateClose };
+      }).filter(c => c.score >= 6 || (c.dateClose && (c.proof.softDeleted || c.proof.deletedAt))).sort((a, b) => b.score - a.score || a.dateDiff - b.dateDiff).slice(0, 8);
+
+      if (candidates.length === 0) {
+        alert('ยังไม่พบรูปหลักฐานที่ระบบสามารถกู้กลับให้อัตโนมัติได้\n\nถ้ารูปถูกลบจากฐานข้อมูลไปแล้วจริง ๆ ระบบจะกู้เองไม่ได้ ต้องอัปโหลดรูปใหม่ให้รายการนี้');
+        openProofAttachFromHistoryCenter(entry);
+        return;
+      }
+
+      let chosen = candidates[0];
+      if (candidates.length > 1) {
+        const choices = candidates.map((c, idx) => {
+          const p = c.proof || {};
+          const dt = p.createdAt ? new Date(p.createdAt).toLocaleString('th-TH', { hour12: false }) : '-';
+          return `${idx + 1}) ${p.contextLabel || 'หลักฐาน'} • ${dt} • โดย ${p.createdBy || '-'}${p.softDeleted || p.deletedAt ? ' • เคยถูกซ่อนไว้' : ''}`;
+        }).join('\n');
+        const picked = window.prompt(`พบรูปหลักฐานที่อาจเกี่ยวข้อง ${candidates.length} รูป\n\n${choices}\n\nพิมพ์เลขรูปที่ต้องการกู้กลับ`, '1');
+        const index = Number(picked) - 1;
+        if (!Number.isFinite(index) || index < 0 || index >= candidates.length) return;
+        chosen = candidates[index];
+      }
+
+      const proofRef = buildProofRef(chosen.proof);
+      const targetRows = rowsInGroup.filter(row => row.itemId && Number.isFinite(Number(row.historyIndex)));
+      if (targetRows.length === 0) {
+        alert('รายการนี้เป็นเอกสารเก่าหรือไม่มีตำแหน่ง historyIndex ที่ผูกกลับได้ ระบบจะเปิดหน้าต่างเพิ่มรูปให้แทน');
+        openProofAttachFromHistoryCenter(entry);
+        return;
+      }
+
+      await Promise.all(targetRows.map((row) => {
+        const item = items.find(i => i.id === row.itemId);
+        if (!item) return Promise.resolve();
+        const history = Array.isArray(item.history) ? item.history.slice() : [];
+        const idx = Number(row.historyIndex);
+        const current = history[idx] || {};
+        const currentProofs = Array.isArray(current.proofs) ? current.proofs : [];
+        const exists = currentProofs.some(p => String(p.proofDocId || p.id) === String(proofRef.proofDocId || proofRef.id));
+        history[idx] = {
+          ...current,
+          proofs: exists ? currentProofs : [...currentProofs, proofRef],
+          proofRecoveredAt: new Date().toISOString(),
+          proofRecoveredBy: currentAccountLabel
+        };
+        return setDoc(getItemDoc(item.id), { history, updatedAt: new Date().toISOString(), updatedBy: currentAccountLabel }, { merge: true });
+      }));
+
+      try {
+        await setDoc(getProofDoc(proofRef.proofDocId || proofRef.id), {
+          softDeleted: false,
+          deletedAt: null,
+          deletedBy: null,
+          restoredAt: new Date().toISOString(),
+          restoredBy: currentAccountLabel,
+          contextLabel: chosen.proof?.contextLabel || proofRef.contextLabel
+        }, { merge: true });
+      } catch (restoreDocError) {
+        console.warn('Proof restore meta skipped:', restoreDocError);
+      }
+
+      await logAction('กู้คืนรูปหลักฐาน', proofRef.contextLabel || 'หลักฐาน', `กู้/ผูกรูปหลักฐานกลับเข้าประวัติ ${targetRows.length} รายการ`);
+      pushToast('กู้รูปหลักฐานกลับเข้ารายการแล้ว', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ กู้รูปหลักฐานไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const openItemHistoryFromProofCenter = (itemId) => {
     if (!itemId) return;
     pushModalReturnTarget('proofCenter');
@@ -8202,26 +8362,35 @@ function MainApp() {
     const targetKey = group.groupId;
     const proofDocId = group.proof?.proofDocId || group.proof?.id || group.groupId;
     const linkedItems = group.itemRefs?.length || group.entries?.length || 1;
-    const ok = window.confirm(`คุณกำลังลบรูปหลักฐานนี้\n\nรูปนี้เกี่ยวข้องกับ ${linkedItems} อุปกรณ์/รายการ\nเมื่อลบแล้ว รูปจะหายจากประวัติทั้งหมดที่เกี่ยวข้อง และไม่สามารถกู้คืนจากระบบได้\n\nต้องการลบต่อหรือไม่?`);
+    const ok = window.confirm(`คุณกำลังซ่อนรูปหลักฐานนี้ออกจากหน้าประวัติ\n\nรูปนี้เกี่ยวข้องกับ ${linkedItems} อุปกรณ์/รายการ\nรอบนี้ระบบจะไม่ลบรูปออกจากฐานข้อมูลทันที แต่จะซ่อนไว้ก่อนเพื่อให้กู้คืนได้ ถ้าลบผิดให้ใช้ปุ่ม “กู้รูปที่ระบบทำหลุด” ในรายการนั้น\n\nต้องการซ่อนรูปนี้หรือไม่?`);
     if (!ok) return;
 
     try {
       setIsBusy(true);
-      const affectedItems = await updateProofReferencesInItems(targetKey, () => null);
+      const affectedItems = await updateProofReferencesInItems(targetKey, (proof) => ({
+        ...proof,
+        deletedFromProofCenter: true,
+        softDeleted: true,
+        deletedAt: new Date().toISOString(),
+        deletedBy: currentAccountLabel
+      }));
 
       try {
-        if (proofDocId) await deleteDoc(getProofDoc(proofDocId));
+        if (proofDocId) await setDoc(getProofDoc(proofDocId), {
+          softDeleted: true,
+          deletedAt: new Date().toISOString(),
+          deletedBy: currentAccountLabel,
+          hiddenFromProofCenter: true
+        }, { merge: true });
       } catch (proofDocError) {
-        console.warn('Proof doc delete skipped:', proofDocError);
+        console.warn('Proof doc soft delete skipped:', proofDocError);
       }
 
       try {
         const oldMeta = settingsOptions.proofStorageMeta || {};
-        const bytesToRemove = (Number(group.proof?.sizeBytes) || 0) + (Number(group.proof?.thumbBytes) || 0);
         const newMeta = {
           ...oldMeta,
           count: Math.max(0, (Number(oldMeta.count) || 0) - 1),
-          totalBytes: Math.max(0, (Number(oldMeta.totalBytes) || 0) - bytesToRemove),
           updatedAt: new Date().toISOString()
         };
         await setDoc(getSettingsDoc(), { proofStorageMeta: newMeta }, { merge: true });
@@ -8230,12 +8399,12 @@ function MainApp() {
         console.warn('Proof meta update skipped:', metaError);
       }
 
-      await logAction('ลบรูปหลักฐาน', group.representative?.itemName || 'รูปหลักฐาน', `ลบรูปหลักฐานที่เชื่อมโยงกับ ${affectedItems} อุปกรณ์/รายการ`);
+      await logAction('ซ่อนรูปหลักฐาน', group.representative?.itemName || 'รูปหลักฐาน', `ซ่อนรูปหลักฐานที่เชื่อมโยงกับ ${affectedItems} อุปกรณ์/รายการ โดยยังไม่ลบถาวร`);
       setExpandedProofGroupId(null);
-      pushToast('ลบรูปหลักฐานเรียบร้อยแล้ว', 'success');
+      pushToast('ซ่อนรูปหลักฐานแล้ว สามารถกู้คืนได้จากรายการที่เกี่ยวข้อง', 'success');
     } catch (error) {
       console.error(error);
-      alert('❌ ลบรูปหลักฐานไม่สำเร็จ: ' + error.message);
+      alert('❌ ซ่อนรูปหลักฐานไม่สำเร็จ: ' + error.message);
     } finally {
       setIsBusy(false);
     }
@@ -12481,7 +12650,13 @@ S.N.: ${item.sn || '-'}
                             </div>
                           ) : (
                             <div className={`rounded-2xl border border-dashed p-5 text-center text-sm font-black ${isDarkMode ? 'border-slate-700 text-slate-500' : 'border-slate-300 text-slate-400'}`}>
-                              ยังไม่มีรูปหลักฐานในรายการนี้
+                              <div>ยังไม่มีรูปหลักฐานในรายการนี้</div>
+                              {canUseOperationalTools && (
+                                <div className="mt-3 flex flex-col sm:flex-row gap-2 justify-center">
+                                  <button type="button" onClick={() => handleRecoverMissingProofForHistoryCenter(entry)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>กู้รูปที่ระบบทำหลุด</button>
+                                  <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-xs font-black">อัปโหลดรูปใหม่</button>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -13255,7 +13430,7 @@ S.N.: ${item.sn || '-'}
     const docProofMap = new Map();
     const docProofRecords = [];
     (borrowเอกสารs || []).forEach((docData = {}) => {
-      const proofs = Array.isArray(docData.proofs) ? docData.proofs : [];
+      const proofs = (Array.isArray(docData.proofs) ? docData.proofs : []).filter(proof => proof && !proof.deletedFromProofCenter && !proof.softDeleted);
       if (proofs.length === 0) return;
       const docItems = Array.isArray(docData.items) ? docData.items : [];
       const itemIds = new Set([
@@ -13440,7 +13615,7 @@ S.N.: ${item.sn || '-'}
     const entries = [];
     items.filter(i => i && !i.isDeleted).forEach((item) => {
       (Array.isArray(item.history) ? item.history : []).forEach((h, historyIndex) => {
-        const proofs = Array.isArray(h.proofs) ? h.proofs : [];
+        const proofs = (Array.isArray(h.proofs) ? h.proofs : []).filter(proof => proof && !proof.deletedFromProofCenter && !proof.softDeleted);
         proofs.forEach((proof, proofIndex) => {
           const type = h.type || 'other';
           const typeLabel = type === 'borrow' ? 'ยืม' : type === 'event' ? 'ออกงาน' : type === 'return' ? 'รับคืน' : type === 'repair' || type === 'repair-done' ? 'ซ่อม' : 'อื่น ๆ';
@@ -13467,7 +13642,7 @@ S.N.: ${item.sn || '-'}
     });
     // เพิ่มรูปที่แนบอยู่กับเอกสารย้อนหลังโดยตรง เผื่อข้อมูลเก่าบางรายการยังไม่ได้ฝัง proofs ลง history รายชิ้น
     (borrowเอกสารs || []).forEach((docData, docIndex) => {
-      const proofs = Array.isArray(docData.proofs) ? docData.proofs : [];
+      const proofs = (Array.isArray(docData.proofs) ? docData.proofs : []).filter(proof => proof && !proof.deletedFromProofCenter && !proof.softDeleted);
       if (proofs.length === 0) return;
       const relatedItems = (docData.itemIds || docData.items?.map(it => it.id) || [])
         .map(id => items.find(item => item.id === id))
