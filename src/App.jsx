@@ -55,7 +55,7 @@ const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
 const APP_VERSION = 'v22.58.3 Safe Array Boot Hotfix';
-const APP_UPDATE_NOTE = 'Safe Array Boot Hotfix: กันข้อมูล settings/history/proofs ที่ไม่ใช่ array ทำให้เว็บล้มตอนเปิด โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
+const APP_UPDATE_NOTE = 'Evidence Hard Delete / Storage Sync Fix: ลบรูปหลักฐานได้จริงจากศูนย์หลักฐาน ซิงก์ประวัติส่วนกลาง/แฟ้มอุปกรณ์/เอกสารย้อนหลัง และคำนวณจำนวนรูปจากข้อมูลจริง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -8468,16 +8468,21 @@ function MainApp() {
 
   const updateProofReferencesInItems = async (targetProofKey, updater) => {
     const updateTasks = [];
+    let affectedRefs = 0;
+
     items.filter(item => item && !item.isDeleted).forEach((item) => {
       let changed = false;
-      const history = (Array.isArray(item.history) ? item.history : []).map((h) => {
-        const proofs = Array.isArray(h.proofs) ? h.proofs : [];
+      const history = asArray(item.history).map((h) => {
+        const proofs = asArray(h.proofs);
+        let proofChanged = false;
         const nextProofs = proofs.map((proof) => {
           if (getProofUniqueKey(proof) !== targetProofKey) return proof;
           changed = true;
-          return updater(proof, h, item);
+          proofChanged = true;
+          affectedRefs += 1;
+          return updater(proof, h, item, { source: 'item-history' });
         }).filter(Boolean);
-        return changed && nextProofs !== proofs ? { ...h, proofs: nextProofs } : h;
+        return proofChanged ? { ...h, proofs: nextProofs } : h;
       });
       if (changed) {
         updateTasks.push(setDoc(getItemDoc(item.id), {
@@ -8487,8 +8492,32 @@ function MainApp() {
         }, { merge: true }));
       }
     });
+
+    // v22.58.6: รูปบางชุดถูกเก็บซ้ำในเอกสารย้อนหลังโดยตรงด้วย
+    // ถ้าไม่อัปเดตจุดนี้ ผู้ใช้จะลบจากประวัติ/แฟ้มแล้ว แต่ Evidence Center ยังเห็นรูปเดิมอยู่
+    asArray(borrowเอกสารs).forEach((docData) => {
+      const docId = docData?.id || docData?.ref || docData?.documentRef || docData?.docId;
+      if (!docId) return;
+      const proofs = asArray(docData.proofs);
+      if (proofs.length === 0) return;
+      let changed = false;
+      const nextProofs = proofs.map((proof) => {
+        if (getProofUniqueKey(proof) !== targetProofKey) return proof;
+        changed = true;
+        affectedRefs += 1;
+        return updater(proof, docData, null, { source: 'borrow-document' });
+      }).filter(Boolean);
+      if (changed) {
+        updateTasks.push(setDoc(getBorrowDoc(docId), {
+          proofs: nextProofs,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentAccountLabel
+        }, { merge: true }));
+      }
+    });
+
     await Promise.all(updateTasks);
-    return updateTasks.length;
+    return affectedRefs;
   };
 
   const handleSaveProofEdit = async () => {
@@ -8627,10 +8656,67 @@ function MainApp() {
 
       await logAction('ซ่อนรูปหลักฐาน', group.representative?.itemName || 'รูปหลักฐาน', `ซ่อนรูปหลักฐานที่เชื่อมโยงกับ ${affectedItems} อุปกรณ์/รายการ โดยยังไม่ลบถาวร`);
       setExpandedProofGroupId(null);
-      pushToast('ซ่อนรูปหลักฐานแล้ว สามารถกู้คืนได้จากรายการที่เกี่ยวข้อง', 'success');
+      pushToast('ซ่อนรูปหลักฐานแล้ว ถ้าต้องการเอาพื้นที่คืนให้กดลบถาวรในศูนย์หลักฐาน', 'success');
     } catch (error) {
       console.error(error);
       alert('❌ ซ่อนรูปหลักฐานไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handlePermanentDeleteProofGroup = async (group) => {
+    if (!group) return;
+    if (!canUseOperationalTools) return alert('บัญชีนี้ไม่มีสิทธิ์ลบรูปหลักฐานถาวร');
+    const targetKey = group.groupId;
+    const proofDocId = group.proof?.proofDocId || group.proof?.id || group.groupId;
+    const linkedItems = group.itemRefs?.length || group.entries?.length || 1;
+    const proofBytes = (Number(group.proof?.sizeBytes) || 0) + (Number(group.proof?.thumbBytes) || 0);
+
+    const ok1 = window.confirm(`⚠️ ลบรูปหลักฐานถาวร
+
+รูปนี้เกี่ยวข้องกับ ${linkedItems} อุปกรณ์/รายการ
+การลบถาวรจะเอารูปออกจากเอกสารย้อนหลัง ประวัติส่วนกลาง แฟ้มอุปกรณ์ และศูนย์หลักฐาน
+
+ต้องการดำเนินการต่อหรือไม่?`);
+    if (!ok1) return;
+    const ok2 = window.confirm(`ยืนยันอีกครั้ง: ลบถาวรแล้วกู้คืนจากเว็บไม่ได้ ต้องใช้ไฟล์ Backup เท่านั้น\n\nยืนยันลบรูปนี้ถาวรจริง ๆ ใช่ไหม?`);
+    if (!ok2) return;
+
+    try {
+      setIsBusy(true);
+      const affectedRefs = await updateProofReferencesInItems(targetKey, () => null);
+
+      try {
+        if (proofDocId) await deleteDoc(getProofDoc(proofDocId));
+      } catch (proofDocError) {
+        console.warn('Proof doc permanent delete skipped:', proofDocError);
+      }
+
+      try {
+        const oldMeta = settingsOptions.proofStorageMeta || {};
+        const nextCount = Math.max(0, (Number(oldMeta.count) || allProofEntries.length || 0) - 1);
+        const nextBytes = Math.max(0, (Number(oldMeta.totalBytes) || 0) - proofBytes);
+        const newMeta = {
+          ...oldMeta,
+          count: nextCount,
+          totalBytes: nextBytes,
+          updatedAt: new Date().toISOString(),
+          recalculatedBy: currentAccountLabel,
+          lastPermanentDeleteAt: new Date().toISOString()
+        };
+        await setDoc(getSettingsDoc(), { proofStorageMeta: newMeta }, { merge: true });
+        setSettingsOptions(prev => ({ ...prev, proofStorageMeta: newMeta }));
+      } catch (metaError) {
+        console.warn('Proof permanent delete meta update skipped:', metaError);
+      }
+
+      await logAction('ลบรูปหลักฐานถาวร', group.representative?.itemName || 'รูปหลักฐาน', `ลบรูปหลักฐานถาวรที่เชื่อมโยงกับ ${affectedRefs} จุดอ้างอิง / ${linkedItems} อุปกรณ์`);
+      setExpandedProofGroupId(null);
+      pushToast('ลบรูปหลักฐานถาวรแล้ว และซิงก์ออกจากประวัติ/แฟ้ม/เอกสารย้อนหลังแล้ว', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ ลบรูปหลักฐานถาวรไม่สำเร็จ: ' + error.message);
     } finally {
       setIsBusy(false);
     }
@@ -14032,16 +14118,20 @@ S.N.: ${item.sn || '-'}
   }, [dedupedProofGroups]);
 
   const proofStorageForecast = useMemo(() => {
-    const proofBytes = Number(settingsOptions.proofStorageMeta?.totalBytes || 0);
-    const proofCount = Number(settingsOptions.proofStorageMeta?.count || allProofEntries.length || 0);
-    const avgBytes = proofCount > 0 ? proofBytes / proofCount : (Number(activeProofSettings.targetKB || 150) * 1024);
+    // v22.58.6: แสดงจำนวนรูปจากข้อมูลที่ยังใช้งานจริง ไม่ใช้ meta อย่างเดียว
+    // เพราะ meta อาจถูกลดตอน soft delete แต่รูปยังอยู่ใน Evidence Center ได้
+    const metaBytes = Number(settingsOptions.proofStorageMeta?.totalBytes || 0);
+    const proofCount = allProofEntries.length;
+    const fallbackAvg = Math.max(1, Number(activeProofSettings.targetKB || 150) * 1024);
+    const avgBytes = proofCount > 0 ? Math.max(1, metaBytes || (fallbackAvg * proofCount)) / proofCount : fallbackAvg;
+    const proofBytes = proofCount > 0 ? (metaBytes || Math.round(avgBytes * proofCount)) : 0;
     const limitBytes = 1024 * 1024 * 1024;
     const safeBytes = 800 * 1024 * 1024;
-    const usedEstimate = Number(settingsOptions.proofStorageMeta?.totalBytes || 0) + (items.length * 1400);
+    const usedEstimate = proofBytes + (items.length * 1400);
     const remainingSafe = Math.max(0, safeBytes - usedEstimate);
     const remainingByAvg = avgBytes > 0 ? Math.floor(remainingSafe / avgBytes) : 0;
     return { proofBytes, proofCount, avgBytes, remainingSafe, remainingByAvg };
-  }, [settingsOptions.proofStorageMeta, allProofEntries.length, activeProofSettings.targetKB]);
+  }, [settingsOptions.proofStorageMeta, allProofEntries.length, activeProofSettings.targetKB, items.length]);
 
   const monthlyReportData = useMemo(() => {
     const monthKey = monthlyReportMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
@@ -24822,9 +24912,10 @@ S.N.: ${item.sn || '-'}
                           </div>
 
                           {canUseOperationalTools && (
-                            <div className="grid grid-cols-2 gap-2">
-                              <button type="button" onClick={() => openProofEditModal(group)} className={`py-2 rounded-lg border text-xs font-black ${theme.btnSecondary}`}>แก้ไข / แทนที่</button>
-                              <button type="button" onClick={() => handleDeleteProofGroup(group)} className="py-2 rounded-lg border text-xs font-black bg-rose-600 text-white border-rose-600 hover:bg-rose-700">ลบดูหลักฐานทั้งหมด</button>
+                            <div className="grid grid-cols-3 gap-2">
+                              <button type="button" onClick={() => openProofEditModal(group)} className={`py-2 rounded-lg border text-xs font-black ${theme.btnSecondary}`}>แก้ไข</button>
+                              <button type="button" onClick={() => handleDeleteProofGroup(group)} className={`py-2 rounded-lg border text-xs font-black ${theme.btnSecondary}`}>ซ่อนรูป</button>
+                              <button type="button" onClick={() => handlePermanentDeleteProofGroup(group)} className="py-2 rounded-lg border text-xs font-black bg-rose-600 text-white border-rose-600 hover:bg-rose-700">ลบถาวร</button>
                             </div>
                           )}
 
