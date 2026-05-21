@@ -54,8 +54,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.58.0 Major Cleanup Test Build';
-const APP_UPDATE_NOTE = 'Evidence Recovery Safety Fix: เพิ่มปุ่มกู้รูปหลักฐานที่อาจหลุดจากประวัติ/เอกสารย้อนหลัง และเปลี่ยนการลบรูปหลักฐานเป็น soft delete เพื่อกู้คืนได้ โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
+const APP_VERSION = 'v22.58.2 Boot Crash Hotfix';
+const APP_UPDATE_NOTE = 'Boot Crash Hotfix: แก้ ReferenceError getActiveProofs/gu ตอนเปิดเว็บและหลังบันทึกเอกสาร โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7086,6 +7086,13 @@ function MainApp() {
   const [historyCenterFilter, setHistoryCenterFilter] = useState('all');
   const [historyCenterSearch, setHistoryCenterSearch] = useState('');
   const [selectedHistoryRecordIds, setSelectedHistoryRecordIds] = useState([]);
+
+  // v22.58.2 Boot Crash Hotfix
+  // ประกาศตัวกรองหลักฐานก่อน useMemo ที่ทำงานทันทีตอน render
+  // เพื่อแก้ ReferenceError: Cannot access 'gu' before initialization ใน production bundle
+  const isActiveProof = (proof = {}) => !!proof && !proof.deletedFromProofCenter && !proof.softDeleted && !proof.hiddenFromProofCenter;
+  const getActiveProofs = (proofs = []) => (Array.isArray(proofs) ? proofs : []).filter(isActiveProof);
+
   const softDeletedHistoryEntries = useMemo(() => {
     const rows = [];
     (items || []).forEach((item) => {
@@ -13853,8 +13860,6 @@ S.N.: ${item.sn || '-'}
     `${proof.createdAt || 'nodate'}_${proof.originalName || ''}_${proof.sizeBytes || ''}_${String(proof.thumbUrl || proof.url || '').slice(0, 96)}`
   );
 
-  const isActiveProof = (proof = {}) => !!proof && !proof.deletedFromProofCenter && !proof.softDeleted && !proof.hiddenFromProofCenter;
-  const getActiveProofs = (proofs = []) => (Array.isArray(proofs) ? proofs : []).filter(isActiveProof);
 
   const getItemProofCount = (item) => (Array.isArray(item?.history) ? item.history : [])
     .filter(h => h && !h.deletedFromHistory)
