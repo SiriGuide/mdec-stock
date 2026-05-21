@@ -12649,16 +12649,43 @@ S.N.: ${item.sn || '-'}
                             <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4 gap-2">
                               {previewProofs.map((proof, idx) => {
                                 const previewSrc = proof?.thumbUrl || proof?.url || proof?.dataUrl || '';
+                                const proofDeleteGroup = {
+                                  groupId: getProofUniqueKey(proof),
+                                  proof,
+                                  representative: entry,
+                                  entries: rowsInGroup,
+                                  itemRefs: rowsInGroup.map((row = {}) => ({
+                                    itemId: row.itemId,
+                                    itemName: row.itemName,
+                                    sn: row.sn,
+                                    subject: row.subject,
+                                    typeLabel: row.typeLabel
+                                  })).filter(ref => ref.itemId || ref.itemName || ref.sn)
+                                };
                                 return (
-                                  <button
+                                  <div
                                     key={proof?.proofDocId || proof?.id || idx}
-                                    type="button"
-                                    onClick={() => openProofImage(proof)}
-                                    className={`aspect-[4/3] rounded-2xl border overflow-hidden shrink-0 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'}`}
-                                    title="เปิดรูปหลักฐาน"
+                                    className={`relative aspect-[4/3] rounded-2xl border overflow-hidden shrink-0 group ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'}`}
                                   >
-                                    {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-contain p-1" loading="lazy" /> : <div className={`h-full flex items-center justify-center text-[10px] font-black ${theme.textMuted}`}>รูป</div>}
-                                  </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => openProofImage(proof)}
+                                      className="block w-full h-full"
+                                      title="เปิดรูปหลักฐาน"
+                                    >
+                                      {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-contain p-1" loading="lazy" /> : <div className={`h-full flex items-center justify-center text-[10px] font-black ${theme.textMuted}`}>รูป</div>}
+                                    </button>
+                                    {canDeleteItems && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); handleDeleteProofGroup(proofDeleteGroup); }}
+                                        className="absolute right-1.5 bottom-1.5 rounded-lg bg-rose-600/95 px-2 py-1 text-[10px] font-black text-white shadow-lg opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                                        title="ซ่อน/ลบรูปนี้จากรายการประวัติส่วนกลาง"
+                                      >
+                                        ลบ
+                                      </button>
+                                    )}
+                                  </div>
                                 );
                               })}
                               {totalProofs > previewProofs.length && (
