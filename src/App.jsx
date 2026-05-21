@@ -15,7 +15,7 @@
 // v22.52.6 Data Quality Action Polish - supports camera/department/flexible memory choice without fixed sets
 // v22.52.6 Data Quality Action Polish - UI-only polish, no QR/camera/database changes
 // v22.52.1 ตัวช่วยกล้อง Final UX - UI/UX safe polish, no QR/camera/database changes
-// v22.57.8 System Settings / Global Final Polish - เก็บงานหน้าตั้งค่าและคุมธีมทั้งเว็บก่อนรอบทดสอบจริง
+// v22.58.0 Major Cleanup Test Build - รวมรอบเก็บงานใหญ่: Settings, Global Theme, Evidence, Permissions, Remove Duplicate Control Center
 // v22.57.7.1 Strict Login Gate Fix - ไม่ล็อกอินห้ามเห็นคลังละเอียด/ติ๊กเลือก/ทำรายการจริง ใช้ได้เฉพาะหน้าอ่านอย่างเดียวและต้องล็อกอินก่อนปฏิบัติการ
 // v22.57.6.25 Asset Profile Readability Polish - แฟ้มอุปกรณ์อ่านง่ายขึ้น ลดความแน่น จัดหัวแฟ้ม/ข้อมูล/ประวัติ/หลักฐานให้ชัด โดยไม่แตะ QR Scanner/Firebase path/flow หลัก
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -54,7 +54,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.57.7.2 Evidence Recovery Safety Fix';
+const APP_VERSION = 'v22.58.0 Major Cleanup Test Build';
 const APP_UPDATE_NOTE = 'Evidence Recovery Safety Fix: เพิ่มปุ่มกู้รูปหลักฐานที่อาจหลุดจากประวัติ/เอกสารย้อนหลัง และเปลี่ยนการลบรูปหลักฐานเป็น soft delete เพื่อกู้คืนได้ โดยไม่แตะ QR Scanner core/Firebase path/flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -7176,9 +7176,10 @@ function MainApp() {
   };
 
   const openControlCenter = () => {
+    // v22.58.0: Control Center เดิมซ้ำกับ Sidebar แล้ว จึง redirect ไปหลังบ้าน/ตั้งค่าระบบแทน
     setShowMoreMenu(false);
-    setActiveWorkspace('tools');
-    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+    setSettingsTab('overview');
+    setShowSettings(true);
   };
   const openTrackingCenter = (tab = 'today') => {
     setTrackingTab(tab);
@@ -9830,9 +9831,9 @@ S.N.: ${item.sn || '-'}
       desc: 'รวมงานค้นเอกสารย้อนหลัง ประวัติส่วนกลาง และหลักฐานรูปภาพไว้เป็นหน้าเดียว'
     },
     tools: {
-      kicker: 'TOOLS CENTER',
-      title: 'เครื่องมือทั้งหมด',
-      desc: 'รวมฟังก์ชันรองที่ไม่จำเป็นต้องอยู่บนหน้าแรก เพื่อให้ Overview สะอาดขึ้น'
+      kicker: 'ADMIN CENTER',
+      title: 'หลังบ้าน / เครื่องมือระบบ',
+      desc: 'พื้นที่จัดการระบบสำหรับผู้ดูแล ไม่ใช่เมนูซ้ำกับ Sidebar'
     },
     projects: {
       kicker: 'PURCHASE PROJECTS',
@@ -12972,9 +12973,9 @@ S.N.: ${item.sn || '-'}
       <div className={`rounded-[1.8rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
         <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-4 ${theme.divide}`}>
           <div>
-            <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>TOOLS PAGE</div>
-            <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>เครื่องมือทั้งหมด</h2>
-            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ย้ายเมนูรองออกจากหน้า Overview ให้หน้าแรกเหลือเฉพาะงานที่ใช้บ่อย</p>
+            <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>ADMIN TOOLS</div>
+            <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>หลังบ้าน / เครื่องมือระบบ</h2>
+            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมเครื่องมือหลังบ้านที่จำเป็นสำหรับผู้ดูแลระบบ โดยไม่ซ้ำกับเมนูหลักด้านซ้าย</p>
           </div>
           <button type="button" onClick={() => openWorkspace('overview')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับภาพรวม</button>
         </div>
@@ -19106,10 +19107,6 @@ S.N.: ${item.sn || '-'}
           <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
             <Icons.พิมพ์er className="w-5 h-5" /> เอกสารย้อนหลัง
           </button>
-          <button type="button" onClick={openControlCenter} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-            <Icons.ViewGrid className="w-5 h-5" /> Control Center
-          </button>
-
           <div className="pt-4 mt-4 border-t border-white/10 space-y-2">
             {canManageระบบ && (
               <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
@@ -19205,11 +19202,6 @@ S.N.: ${item.sn || '-'}
                   <Icons.Plus className="w-5 h-5" /><span>เพิ่มอุปกรณ์</span>
                 </button>
               )}
-              {canUseOperationalTools && (
-                <button type="button" onClick={openControlCenter} className="factory-ghost-btn" title="Control Center">
-                  <Icons.ViewGrid className="w-5 h-5" /><span>เพิ่มเติม</span>
-                </button>
-              )}
               {canManageระบบ && (
                 <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className="factory-ghost-btn" title="ตั้งค่าระบบ">
                   <Icons.Settings className="w-5 h-5" /><span>ตั้งค่า</span>
@@ -19229,7 +19221,7 @@ S.N.: ${item.sn || '-'}
 
           {!isAdmin && (
             <button type="button" onClick={() => setShowLogin(true)} className="factory-primary-btn">
-              <Icons.Lock className="w-5 h-5" /><span>เข้าสู่ระบบจัดการ</span>
+              <Icons.Lock className="w-5 h-5" /><span>เข้าสู่ระบบเจ้าหน้าที่</span>
             </button>
           )}
         </div>
@@ -20230,7 +20222,7 @@ S.N.: ${item.sn || '-'}
       {activeWorkspace === 'overview' && (
         <>
 
-      {/* Control Center: รวมฟังก์ชันที่คล้ายกันให้เป็นหมวดใหญ่ */}
+      {/* v22.58.0: เมนูรวมเดิมถูกถอดจากทางเข้าหลักแล้ว เหลือไว้เป็น fallback ภายในเท่านั้น */}
       {showMoreMenu && (
         <div className={`mobile-more-menu-overlay fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`mobile-more-menu-shell rounded-[2rem] shadow-2xl w-full max-w-6xl overflow-hidden border ring-1 ring-white/10 ${isDarkMode ? 'bg-slate-900 border-slate-700 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
@@ -20418,7 +20410,9 @@ S.N.: ${item.sn || '-'}
             <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
               <button type="button" onClick={() => openWorkspace('borrowReturn')} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">เริ่มทำรายการ</button>
               <button type="button" onClick={scrollToHomeStockList} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ค้นหาอุปกรณ์</button>
-              <button type="button" onClick={() => openControlCenter()} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เมนูทั้งหมด</button>
+              {canManageระบบ && (
+                <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>หลังบ้าน / ตั้งค่า</button>
+              )}
             </div>
           </div>
         </div>
@@ -20689,7 +20683,7 @@ S.N.: ${item.sn || '-'}
                     ['ยืม / คืน', 'ทำรายการหลัก', () => { setBorrowReturnMode('borrow'); openWorkspace('borrowReturn'); }],
                     ['ติดตามคืน', 'วันนี้ / เลยกำหนด', () => openTrackingCenter('today')],
                     ['เอกสารย้อนหลัง', 'ค้นหาและพิมพ์ซ้ำ', () => openBorrowDocsArchive({ reset: false })],
-                    ['เครื่องมือทั้งหมด', 'ซ่อม ตรวจนับ Backup', openControlCenter]
+                    ['หลังบ้าน / ตั้งค่า', 'ระบบ ผู้ใช้ Backup', () => { setSettingsTab('overview'); setShowSettings(true); }]
                   ].map(([title, sub, action]) => (
                     <button key={title} type="button" onClick={action} className={`p-3 rounded-2xl border text-left font-black transition-all hover:-translate-y-0.5 ${theme.btnSecondary}`}>
                       {title}<span className={`block text-[11px] mt-1 font-bold ${theme.textMuted}`}>{sub}</span>
