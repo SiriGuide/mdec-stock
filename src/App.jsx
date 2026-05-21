@@ -7007,7 +7007,7 @@ function MainApp() {
   };
 
   const openProofCenterFromBorrowDocs = () => {
-    // v22.57.7.3: รวมศูนย์หลักฐานเข้า Records Workspace แทนการเปิด popup ซ้อน
+    // v22.57.7.4: รวมศูนย์หลักฐานเข้า Records Workspace แทนการเปิด popup ซ้อน
     setModalReturnStack([]);
     setShowBorrowDocsModal(false);
     setProofCenterSearch(borrowDocSearch || '');
@@ -7077,7 +7077,7 @@ function MainApp() {
 
   const openProofCenterFromHistoryCenter = (entry) => {
     if (!entry) return;
-    // v22.57.7.3: ไม่เปิด Evidence Center เป็น popup แล้ว ให้กระโดดไปแท็บหลักฐานในประวัติส่วนกลางโดยตรง
+    // v22.57.7.4: ไม่เปิด Evidence Center เป็น popup แล้ว ให้กระโดดไปแท็บหลักฐานในประวัติส่วนกลางโดยตรง
     setModalReturnStack([]);
     setShowHistoryCenterModal(false);
     setProofCenterSearch(entry.sn || entry.itemName || entry.subject || '');
@@ -8151,7 +8151,7 @@ function MainApp() {
   };
 
   const renderProofGallery = (proofs = [], itemKeyword = '') => {
-    const list = Array.isArray(proofs) ? proofs : [];
+    const list = getActiveProofs(proofs);
     if (list.length === 0) return null;
     const first = list[0] || {};
     const previewSrc = first.thumbUrl || first.url || '';
@@ -9554,7 +9554,7 @@ S.N.: ${item.sn || '-'}
 
   const openProofCenterFromAssetProfile = (item) => {
     if (!item?.id) return;
-    // v22.57.7.3: รวมหลักฐานไว้ใน Records Workspace แทน popup ซ้อนจากแฟ้มอุปกรณ์
+    // v22.57.7.4: รวมหลักฐานไว้ใน Records Workspace แทน popup ซ้อนจากแฟ้มอุปกรณ์
     setModalReturnStack([]);
     setShowHistory(null);
     setProofCenterSearch(item.sn || item.name || '');
@@ -13447,7 +13447,7 @@ S.N.: ${item.sn || '-'}
     const docProofMap = new Map();
     const docProofRecords = [];
     (borrowเอกสารs || []).forEach((docData = {}) => {
-      const proofs = (Array.isArray(docData.proofs) ? docData.proofs : []).filter(proof => proof && !proof.deletedFromProofCenter && !proof.softDeleted);
+      const proofs = getActiveProofs(docData.proofs);
       if (proofs.length === 0) return;
       const docItems = Array.isArray(docData.items) ? docData.items : [];
       const itemIds = new Set([
@@ -13624,15 +13624,18 @@ S.N.: ${item.sn || '-'}
     `${proof.createdAt || 'nodate'}_${proof.originalName || ''}_${proof.sizeBytes || ''}_${String(proof.thumbUrl || proof.url || '').slice(0, 96)}`
   );
 
+  const isActiveProof = (proof = {}) => !!proof && !proof.deletedFromProofCenter && !proof.softDeleted && !proof.hiddenFromProofCenter;
+  const getActiveProofs = (proofs = []) => (Array.isArray(proofs) ? proofs : []).filter(isActiveProof);
+
   const getItemProofCount = (item) => (Array.isArray(item?.history) ? item.history : [])
     .filter(h => h && !h.deletedFromHistory)
-    .reduce((sum, h) => sum + (Array.isArray(h.proofs) ? h.proofs.length : 0), 0);
+    .reduce((sum, h) => sum + getActiveProofs(h.proofs).length, 0);
 
   const allProofEntries = useMemo(() => {
     const entries = [];
     items.filter(i => i && !i.isDeleted).forEach((item) => {
       (Array.isArray(item.history) ? item.history : []).forEach((h, historyIndex) => {
-        const proofs = (Array.isArray(h.proofs) ? h.proofs : []).filter(proof => proof && !proof.deletedFromProofCenter && !proof.softDeleted);
+        const proofs = getActiveProofs(h.proofs);
         proofs.forEach((proof, proofIndex) => {
           const type = h.type || 'other';
           const typeLabel = type === 'borrow' ? 'ยืม' : type === 'event' ? 'ออกงาน' : type === 'return' ? 'รับคืน' : type === 'repair' || type === 'repair-done' ? 'ซ่อม' : 'อื่น ๆ';
@@ -13659,7 +13662,7 @@ S.N.: ${item.sn || '-'}
     });
     // เพิ่มรูปที่แนบอยู่กับเอกสารย้อนหลังโดยตรง เผื่อข้อมูลเก่าบางรายการยังไม่ได้ฝัง proofs ลง history รายชิ้น
     (borrowเอกสารs || []).forEach((docData, docIndex) => {
-      const proofs = (Array.isArray(docData.proofs) ? docData.proofs : []).filter(proof => proof && !proof.deletedFromProofCenter && !proof.softDeleted);
+      const proofs = getActiveProofs(docData.proofs);
       if (proofs.length === 0) return;
       const relatedItems = (docData.itemIds || docData.items?.map(it => it.id) || [])
         .map(id => items.find(item => item.id === id))
@@ -23151,7 +23154,7 @@ S.N.: ${item.sn || '-'}
         const dueText = detailItem.expectedReturn || detailItem.returnDate || latestHistory?.expectedReturn
           ? new Date(detailItem.expectedReturn || detailItem.returnDate || latestHistory?.expectedReturn).toLocaleDateString('th-TH')
           : '-';
-        const allDetailProofs = historyList.flatMap((h, historyIndex) => (Array.isArray(h.proofs) ? h.proofs : []).map((proof, proofIndex) => ({ proof, h, historyIndex, proofIndex })));
+        const allDetailProofs = historyList.flatMap((h, historyIndex) => getActiveProofs(h.proofs).map((proof, proofIndex) => ({ proof, h, historyIndex, proofIndex })));
         const latestProofEntries = allDetailProofs.slice(-4).reverse();
         const missingProfileFields = [
           ['S.N.', detailItem.sn],
@@ -23462,15 +23465,31 @@ S.N.: ${item.sn || '-'}
                       ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                           {latestProofEntries.map(({ proof, h, historyIndex, proofIndex }) => (
-                            <button key={`${historyIndex}_${proofIndex}_${getProofUniqueKey(proof)}`} type="button" onClick={() => openProofImage(proof)} className={`text-left rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-white'}`}>
-                              <div className={`aspect-[4/3] ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'} flex items-center justify-center overflow-hidden`}>
-                                {proof.thumbUrl || proof.url ? <img src={proof.thumbUrl || proof.url} alt="proof" className="w-full h-full object-cover" /> : <Icons.Camera className={`w-7 h-7 ${theme.textMuted}`} />}
-                              </div>
-                              <div className="p-2">
-                                <div className={`text-[11px] font-black truncate ${theme.textTitle}`}>{historyLabel(h)}</div>
-                                <div className={`text-[10px] font-bold truncate ${theme.textMuted}`}>{h.date ? new Date(h.date).toLocaleDateString('th-TH') : proof.createdAt ? new Date(proof.createdAt).toLocaleDateString('th-TH') : '-'}</div>
-                              </div>
-                            </button>
+                            <div key={`${historyIndex}_${proofIndex}_${getProofUniqueKey(proof)}`} className={`text-left rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                              <button type="button" onClick={() => openProofImage(proof)} className="block w-full text-left">
+                                <div className={`aspect-[4/3] ${isDarkMode ? 'bg-slate-950' : 'bg-slate-100'} flex items-center justify-center overflow-hidden`}>
+                                  {proof.thumbUrl || proof.url ? <img src={proof.thumbUrl || proof.url} alt="proof" className="w-full h-full object-contain" /> : <Icons.Camera className={`w-7 h-7 ${theme.textMuted}`} />}
+                                </div>
+                                <div className="p-2">
+                                  <div className={`text-[11px] font-black truncate ${theme.textTitle}`}>{historyLabel(h)}</div>
+                                  <div className={`text-[10px] font-bold truncate ${theme.textMuted}`}>{h.date ? new Date(h.date).toLocaleDateString('th-TH') : proof.createdAt ? new Date(proof.createdAt).toLocaleDateString('th-TH') : '-'}</div>
+                                </div>
+                              </button>
+                              {canUseOperationalTools && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteProofGroup({
+                                    groupId: getProofUniqueKey(proof),
+                                    proof,
+                                    itemRefs: [{ itemId: detailItem.id, historyIndex, proofIndex }],
+                                    representative: { itemName: detailItem.name || '-', typeLabel: historyLabel(h), note: h.note || '' }
+                                  })}
+                                  className={`w-full border-t px-2 py-2 text-[11px] font-black ${isDarkMode ? 'border-slate-800 text-rose-300 hover:bg-rose-950/35' : 'border-slate-200 text-rose-600 hover:bg-rose-50'}`}
+                                >
+                                  ซ่อน/ลบรูปนี้
+                                </button>
+                              )}
+                            </div>
                           ))}
                         </div>
                       )}
@@ -23561,7 +23580,7 @@ S.N.: ${item.sn || '-'}
                                 </div>
                                 <div className="shrink-0 sm:text-right">
                                   <div className={`text-xs font-black ${theme.textMuted}`}>หลักฐาน</div>
-                                  <div className={`text-lg font-black ${theme.textTitle}`}>{(h.proofs || []).length} รูป</div>
+                                  <div className={`text-lg font-black ${theme.textTitle}`}>{getActiveProofs(h.proofs).length} รูป</div>
                                 </div>
                               </div>
                               {renderProofGallery(h.proofs, detailItem?.sn || detailItem?.name || '')}
