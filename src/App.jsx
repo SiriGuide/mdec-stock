@@ -8362,8 +8362,22 @@ function MainApp() {
   const canUseOperationalTools = isAdmin && ['owner', 'admin', 'staff'].includes(currentAccountRole);
   const canAddEditItems = canUseOperationalTools;
   const canDeleteItems = isAdmin && (currentAccountRole === 'owner' || currentAccountRole === 'admin');
-  const requireOperationalAccess = (actionLabel = 'ทำรายการ') => {
-    if (canUseOperationalTools) return true;
+  const canBorrowItems = canUseOperationalTools;
+  const canEventOutItems = canUseOperationalTools;
+  const canReturnItems = canUseOperationalTools;
+  const getOperationPermissionLabel = (type = 'borrow') => {
+    if (type === 'return') return 'รับคืนอุปกรณ์';
+    if (type === 'event') return 'นำอุปกรณ์ออกงาน';
+    return 'ยืมอุปกรณ์';
+  };
+  const hasOperationPermission = (type = 'borrow') => {
+    if (type === 'return') return canReturnItems;
+    if (type === 'event') return canEventOutItems;
+    return canBorrowItems;
+  };
+  const requireOperationalAccess = (actionLabel = 'ทำรายการ', type = null) => {
+    const allowed = type ? hasOperationPermission(type) : canUseOperationalTools;
+    if (allowed) return true;
     pushToast(`ต้องเข้าสู่ระบบเจ้าหน้าที่ก่อน${actionLabel ? ` เพื่อ${actionLabel}` : ''}`, 'warning');
     setShowLogin(true);
     return false;
@@ -10516,6 +10530,8 @@ S.N.: ${item.sn || '-'}
     const selectedActionItems = actionTargetIds.map(id => items.find(item => item.id === id)).filter(Boolean);
     const ActionIcon = modeInfo.icon;
     const toneBtn = modeInfo.primaryBtn;
+    const canUseCurrentOperation = hasOperationPermission(borrowReturnMode);
+    const currentOperationPermissionLabel = getOperationPermissionLabel(borrowReturnMode);
 
     const setActionTargets = (ids) => {
       const unique = Array.from(new Set(ids || []));
@@ -10556,6 +10572,7 @@ S.N.: ${item.sn || '-'}
     };
 
     const toggleOperationalItem = (id) => {
+    if (!hasOperationPermission(borrowReturnMode)) { requireOperationalAccess(getOperationPermissionLabel(borrowReturnMode), borrowReturnMode); return; }
       if (actionTargetIds.includes(id)) {
         const next = actionTargetIds.filter(x => x !== id);
         setActionTargets(next);
@@ -10566,7 +10583,13 @@ S.N.: ${item.sn || '-'}
       }
     };
 
-    const selectVisibleItems = () => setActionTargets(operationalItems.map(item => item.id));
+    const selectVisibleItems = () => {
+      if (!hasOperationPermission(borrowReturnMode)) {
+        requireOperationalAccess(getOperationPermissionLabel(borrowReturnMode), borrowReturnMode);
+        return;
+      }
+      setActionTargets(operationalItems.map(item => item.id));
+    };
 
     const missingSteps = [];
     if (borrowReturnMode === 'borrow') {
@@ -10602,6 +10625,22 @@ S.N.: ${item.sn || '-'}
     return (
       <div className="solid-workspace space-y-5">
         {renderWorkspaceTabs()}
+        {!canUseCurrentOperation && (
+          <div className={`rounded-[1.5rem] border p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${isDarkMode ? 'bg-amber-950/25 border-amber-800/60' : 'bg-amber-50 border-amber-200'}`}>
+            <div className="flex items-start gap-3 min-w-0">
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-amber-500/15 text-amber-200 border border-amber-700/60' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
+                <Icons.Lock className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className={`font-black text-lg ${theme.textTitle}`}>ต้องเข้าสู่ระบบเจ้าหน้าที่ก่อน{currentOperationPermissionLabel}</div>
+                <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ยังดูและค้นหาอุปกรณ์ได้ แต่การเลือกของ เช็กของ อัปหลักฐาน และบันทึกรายการจะถูกล็อกไว้ เพื่อให้รู้ว่าใครเป็นผู้ทำรายการจริง</div>
+              </div>
+            </div>
+            <button type="button" onClick={() => setShowLogin(true)} className="px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-sm">
+              เข้าสู่ระบบเพื่อทำรายการ
+            </button>
+          </div>
+        )}
         <div className={`rounded-[1.9rem] border shadow-sm overflow-hidden operation-workspace-card borrow-return-polish ${theme.cardBg}`}>
           <div className={`p-5 sm:p-6 border-b ${theme.divide}`}>
             <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
@@ -10611,9 +10650,9 @@ S.N.: ${item.sn || '-'}
                 <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>เลือกโหมดงาน เลือกอุปกรณ์ กรอกข้อมูล เช็กของ และยืนยันในหน้าเดียวแบบเป็นขั้นตอน</p>
               </div>
               <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
-                <button type="button" onClick={() => openSelectionScanner({ camera: true, returnWorkspace: 'borrowReturn' })} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center justify-center gap-2"><Icons.QrCode className="w-5 h-5" /> สแกน QR</button>
+                <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; openSelectionScanner({ camera: true, returnWorkspace: 'borrowReturn' }); }} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center justify-center gap-2"><Icons.QrCode className="w-5 h-5" /> สแกน QR</button>
                 <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เอกสารย้อนหลัง</button>
-                {borrowReturnMode !== 'return' && <button type="button" onClick={() => openCameraAccessoryHelper(borrowReturnMode)} className={`col-span-2 sm:col-span-1 px-4 py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100' : 'bg-slate-900 hover:bg-slate-800 border-slate-900 text-white'}`}><Icons.Camera className="w-5 h-5" /> ตัวช่วยกล้อง</button>}
+                {borrowReturnMode !== 'return' && <button type="button" onClick={() => { if (!requireOperationalAccess('ใช้ตัวช่วยเลือกกล้อง', borrowReturnMode)) return; openCameraAccessoryHelper(borrowReturnMode); }} className={`col-span-2 sm:col-span-1 px-4 py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100' : 'bg-slate-900 hover:bg-slate-800 border-slate-900 text-white'}`}><Icons.Camera className="w-5 h-5" /> ตัวช่วยกล้อง</button>}
               </div>
             </div>
 
@@ -10724,7 +10763,7 @@ S.N.: ${item.sn || '-'}
                       <button type="button" onClick={() => setShowBorrowReturnFilters(v => !v)} className={`px-3 py-2 rounded-xl text-sm font-black border flex items-center gap-2 ${borrowReturnActiveFilterCount > 0 ? modeInfo.softClass : theme.btnSecondary}`}>
                         <Icons.Settings className="w-4 h-4" /> ตัวกรอง {borrowReturnActiveFilterCount > 0 ? borrowReturnActiveFilterCount : ''}
                       </button>
-                      <button type="button" onClick={selectVisibleItems} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>เลือกที่เห็น</button>
+                      <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; selectVisibleItems(); }} className={`px-3 py-2 rounded-xl text-sm font-black border ${canUseCurrentOperation ? theme.btnSecondary : (isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed')}`}>เลือกที่เห็น</button>
                       <button type="button" onClick={clearOperationSelection} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ล้างเลือก</button>
                     </div>
                   </div>
@@ -10869,7 +10908,7 @@ S.N.: ${item.sn || '-'}
                         <div className="text-xs font-bold mt-1 opacity-75 truncate">{selectedPreview || 'เลือกจากรายการด้านซ้าย หรือสแกน QR เพื่อเริ่มทำรายการ'}</div>
                       </div>
                       {actionTargetIds.length > 0 && (
-                        <button type="button" onClick={() => setActionChecklist(actionTargetIds)} className="shrink-0 px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">เช็กครบ</button>
+                        <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionChecklist(actionTargetIds); }} className="shrink-0 px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">เช็กครบ</button>
                       )}
                     </div>
                     {actionTargetIds.length > 0 && (
@@ -10899,7 +10938,7 @@ S.N.: ${item.sn || '-'}
                   )}
 
                   {borrowReturnMode !== 'return' && (
-                    <button type="button" onClick={() => openCameraAccessoryHelper(borrowReturnMode)} className={`w-full px-4 py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100' : 'bg-slate-900 hover:bg-slate-800 border-slate-900 text-white'}`}><Icons.Camera className="w-5 h-5" /> เพิ่มกล้องแบบมีตัวช่วย</button>
+                    <button type="button" onClick={() => { if (!requireOperationalAccess('ใช้ตัวช่วยเลือกกล้อง', borrowReturnMode)) return; openCameraAccessoryHelper(borrowReturnMode); }} className={`w-full px-4 py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100' : 'bg-slate-900 hover:bg-slate-800 border-slate-900 text-white'}`}><Icons.Camera className="w-5 h-5" /> เพิ่มกล้องแบบมีตัวช่วย</button>
                   )}
 
                   {borrowReturnMode === 'borrow' && (
@@ -10936,8 +10975,8 @@ S.N.: ${item.sn || '-'}
                     <div className="flex items-center justify-between gap-3 mb-3">
                       <div className={`font-black ${theme.textTitle}`}>เช็กลิสต์ ({actionChecklist.length}/{actionTargetIds.length})</div>
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => setActionChecklist(actionTargetIds)} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>เช็กครบ</button>
-                        <button type="button" onClick={() => setActionChecklist([])} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ล้างเช็ก</button>
+                        <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionChecklist(actionTargetIds); }} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>เช็กครบ</button>
+                        <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionChecklist([]); }} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ล้างเช็ก</button>
                       </div>
                     </div>
                     <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
@@ -10945,7 +10984,7 @@ S.N.: ${item.sn || '-'}
                         const checked = actionChecklist.includes(item.id);
                         return (
                           <label key={item.id} className={`flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer ${checked ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200')}`}>
-                            <input type="checkbox" className="stock-check mt-0.5" checked={checked} onChange={e => setActionChecklist(e.target.checked ? [...actionChecklist, item.id] : actionChecklist.filter(id => id !== item.id))} />
+                            <input type="checkbox" className="stock-check mt-0.5" checked={checked} onChange={e => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionChecklist(e.target.checked ? [...actionChecklist, item.id] : actionChecklist.filter(id => id !== item.id)); }} />
                             <span className={`min-w-0 flex-1 text-sm font-black ${theme.textTitle}`}>{item.name}<span className={`block text-xs font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'}</span></span>
                           </label>
                         );
@@ -10955,7 +10994,7 @@ S.N.: ${item.sn || '-'}
 
                   <div className="grid grid-cols-2 gap-3">
                     <button type="button" onClick={clearOperationSelection} className={`py-4 rounded-xl font-black border ${theme.btnCancel}`}>ยกเลิก</button>
-                    <button type="button" onClick={() => requestOperationConfirm(borrowReturnMode === 'event' ? 'event' : borrowReturnMode === 'return' ? 'return' : 'borrow')} disabled={!isReadyToSubmit} className={`py-4 rounded-xl font-black text-white ${toneBtn} disabled:bg-slate-400 disabled:cursor-not-allowed`}>{borrowReturnMode === 'event' ? 'บันทึกนำออกงาน' : borrowReturnMode === 'return' ? 'บันทึกรับคืน' : 'บันทึกการยืม'}</button>
+                    <button type="button" onClick={() => requestOperationConfirm(borrowReturnMode === 'event' ? 'event' : borrowReturnMode === 'return' ? 'return' : 'borrow')} disabled={!canUseCurrentOperation || !isReadyToSubmit} className={`py-4 rounded-xl font-black text-white ${toneBtn} disabled:bg-slate-400 disabled:cursor-not-allowed`}>{borrowReturnMode === 'event' ? 'บันทึกนำออกงาน' : borrowReturnMode === 'return' ? 'บันทึกรับคืน' : 'บันทึกการยืม'}</button>
                   </div>
                 </div>
               </section>
@@ -14888,7 +14927,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const requestOperationConfirm = (type = 'borrow') => {
-    if (!requireOperationalAccess(type === 'return' ? 'รับคืนอุปกรณ์' : type === 'event' ? 'นำอุปกรณ์ออกงาน' : 'ยืมอุปกรณ์')) return;
+    if (!requireOperationalAccess(type === 'return' ? 'รับคืนอุปกรณ์' : type === 'event' ? 'นำอุปกรณ์ออกงาน' : 'ยืมอุปกรณ์', type)) return;
     if (type === 'borrow') {
       if (!borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return alert('❌ กรุณากรอกผู้ยืม เลือกเจ้าหน้าที่ และติ๊ก/สแกนเช็กอุปกรณ์อย่างน้อย 1 ชิ้น');
     } else if (type === 'event') {
@@ -14901,7 +14940,7 @@ S.N.: ${item.sn || '-'}
 
   const executeOperationConfirm = async () => {
     const type = operationConfirm?.type || 'borrow';
-    if (!requireOperationalAccess(type === 'return' ? 'รับคืนอุปกรณ์' : type === 'event' ? 'นำอุปกรณ์ออกงาน' : 'ยืมอุปกรณ์')) {
+    if (!requireOperationalAccess(type === 'return' ? 'รับคืนอุปกรณ์' : type === 'event' ? 'นำอุปกรณ์ออกงาน' : 'ยืมอุปกรณ์', type)) {
       setOperationConfirm(null);
       return;
     }
@@ -14912,7 +14951,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const handleBorrow = async () => {
-    if (!requireOperationalAccess('บันทึกการยืม')) return;
+    if (!requireOperationalAccess('บันทึกการยืม', 'borrow')) return;
     if (!borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return;
     
     if (!checkPersonalItemsWarning(packingChecklist)) return; 
@@ -14971,7 +15010,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const handleEventOut = async () => {
-    if (!requireOperationalAccess('บันทึกการออกงาน')) return;
+    if (!requireOperationalAccess('บันทึกการออกงาน', 'event')) return;
     if (!eventData.eventName || !eventData.staff || eventChecklist.length === 0) return;
 
     if (!checkPersonalItemsWarning(eventChecklist)) return;
@@ -15030,7 +15069,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const handleReturn = async () => {
-    if (!requireOperationalAccess('บันทึกรับคืน')) return;
+    if (!requireOperationalAccess('บันทึกรับคืน', 'return')) return;
     if (!returnData.staff || returnChecklist.length === 0) return;
     let finalStaff = returnData.staff;
     try {
