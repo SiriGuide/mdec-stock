@@ -15,8 +15,8 @@
 // v22.52.6 Data Quality Action Polish - supports camera/department/flexible memory choice without fixed sets
 // v22.52.6 Data Quality Action Polish - UI-only polish, no QR/camera/database changes
 // v22.52.1 ตัวช่วยกล้อง Final UX - UI/UX safe polish, no QR/camera/database changes
-// v22.58.8 Settings Proof Count Sync Hotfix
-// v22.58.0 Major Cleanup Test Build - รวมรอบเก็บงานใหญ่: Settings, Global Theme, Evidence, Permissions, Remove Duplicate Control Center
+// v22.59.0 Front Desk / Admin Center Split
+// v22.58.0 Major Cleanup Test Build - รวมรอบเก็บงานใหญ่: Settings, Global Theme, Evidence, Permissions, Remove Duplicate หลังบ้าน / Admin Center
 // v22.57.7.1 Strict Login Gate Fix - ไม่ล็อกอินห้ามเห็นคลังละเอียด/ติ๊กเลือก/ทำรายการจริง ใช้ได้เฉพาะหน้าอ่านอย่างเดียวและต้องล็อกอินก่อนปฏิบัติการ
 // v22.57.6.25 Asset Profile Readability Polish - แฟ้มอุปกรณ์อ่านง่ายขึ้น ลดความแน่น จัดหัวแฟ้ม/ข้อมูล/ประวัติ/หลักฐานให้ชัด โดยไม่แตะ QR Scanner/Firebase path/flow หลัก
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -55,7 +55,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.58.3 Safe Array Boot Hotfix';
+const APP_VERSION = 'v22.59.0 Front Desk / Admin Center Split';
 const APP_UPDATE_NOTE = 'Inline Evidence Actions Fix: เพิ่มปุ่มซ่อนรูป/ลบถาวรในหลักฐานรูปภาพแบบหน้าเดียว และซิงก์การลบให้ตรงทุกจุด';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -7188,7 +7188,7 @@ function MainApp() {
   };
 
   const openControlCenter = () => {
-    // v22.58.0: Control Center เดิมซ้ำกับ Sidebar แล้ว จึง redirect ไปหลังบ้าน/ตั้งค่าระบบแทน
+    // v22.58.0: หลังบ้าน / Admin Center เดิมซ้ำกับ Sidebar แล้ว จึง redirect ไปหลังบ้าน/ตั้งค่าระบบแทน
     setShowMoreMenu(false);
     setSettingsTab('overview');
     setShowSettings(true);
@@ -9900,8 +9900,8 @@ S.N.: ${item.sn || '-'}
   const workspaceMeta = {
     overview: {
       kicker: 'MDEC STOCK CENTER',
-      title: 'ภาพรวมระบบ',
-      desc: 'หน้าแรกสำหรับดูงานวันนี้ ทำรายการหลัก และทางลัดสำคัญ'
+      title: 'ศูนย์งานประจำวัน',
+      desc: 'หน้าใช้งานหลักแบบ Front Desk สำหรับยืม คืน ออกงาน สแกน และติดตามงานด่วน'
     },
     inventory: {
       kicker: 'EQUIPMENT INVENTORY',
@@ -9930,8 +9930,8 @@ S.N.: ${item.sn || '-'}
     },
     tools: {
       kicker: 'ADMIN CENTER',
-      title: 'หลังบ้าน / เครื่องมือระบบ',
-      desc: 'พื้นที่จัดการระบบสำหรับผู้ดูแล ไม่ใช่เมนูซ้ำกับ Sidebar'
+      title: 'หลังบ้าน / จัดการระบบ',
+      desc: 'รวมเมนูจัดการข้อมูลทั้งหมดไว้ในที่เดียว ลดความรกของหน้าใช้งานประจำวัน'
     },
     projects: {
       kicker: 'PURCHASE PROJECTS',
@@ -10337,7 +10337,7 @@ S.N.: ${item.sn || '-'}
             <div>
               <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>ORGANIZE WORKSPACE</div>
               <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>กล่องจริง / เซ็ตอุปกรณ์</h2>
-              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดการที่เก็บจริงและชุดอุปกรณ์ที่หยิบใช้บ่อย โดยไม่ใช้ระบบรายการเตรียมของแล้ว ให้ยืม/ออกงานผ่าน flow หลักแทน</p>
+              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดการที่เก็บจริงและชุดอุปกรณ์ที่หยิบใช้บ่อย โดยไม่ใช้ระบบเซ็ตใช้งานแล้ว ให้ยืม/ออกงานผ่าน flow หลักแทน</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={() => openStorageBoxEditor()} className="px-4 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black shadow-lg shadow-cyan-900/20">+ เพิ่มกล่องจริง</button>
@@ -11377,7 +11377,7 @@ S.N.: ${item.sn || '-'}
                       <div className="min-w-0">
                         <div className="text-[11px] font-black opacity-70">สรุปรายการ</div>
                         <div className="font-black mt-0.5">{actionTargetIds.length > 0 ? `เลือกแล้ว ${actionTargetIds.length} รายการ` : 'ยังไม่ได้เลือกอุปกรณ์'}</div>
-                        <div className="text-xs font-bold mt-1 opacity-75 truncate">{selectedPreview || 'เลือกจากรายการด้านซ้าย หรือสแกน QR เพื่อเริ่มทำรายการ'}</div>
+                        <div className="text-xs font-bold mt-1 opacity-75 truncate">{selectedPreview || 'เลือกจากรายการด้านซ้าย หรือสแกน QR เพื่อยืม / คืน / ออกงาน'}</div>
                       </div>
                       {actionTargetIds.length > 0 && (
                         <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionChecklist(actionTargetIds); }} className="shrink-0 px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">เช็กครบ</button>
@@ -13303,7 +13303,7 @@ S.N.: ${item.sn || '-'}
       id: `prep_${prep.id || prep.name}`,
       tone: 'blue',
       label: 'เตรียมของวันนี้',
-      title: prep.name || 'รายการเตรียมของ',
+      title: prep.name || 'เซ็ตใช้งาน',
       desc: `${(prep.checkedIds || []).length}/${(prep.itemIds || []).length} รายการ • ${prep.staff || '-'}`,
       action: () => openWorkspace('organize')
     }));
@@ -14769,7 +14769,7 @@ S.N.: ${item.sn || '-'}
           id: 'prep',
           title: 'เตรียมของวันนี้',
           value: prepTodayLists.length,
-          desc: prepTodayLists.length ? nextPrep.map(p => p.name || 'รายการเตรียมของ').join(' • ') : 'ยังไม่มี checklist วันนี้',
+          desc: prepTodayLists.length ? nextPrep.map(p => p.name || 'เซ็ตใช้งาน').join(' • ') : 'ยังไม่มี checklist วันนี้',
           tone: prepTodayLists.length ? 'blue' : 'slate',
           action: () => openWorkspace('organize')
         },
@@ -17446,7 +17446,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const openPrepAssignFromSelection = () => {
-    if (selectedItems.length === 0) return alert('❌ กรุณาเลือกอุปกรณ์ก่อนสร้างรายการเตรียมของ');
+    if (selectedItems.length === 0) return alert('❌ กรุณาเลือกอุปกรณ์ก่อนสร้างเซ็ตใช้งาน');
     setPrepForm({
       id: null,
       name: '',
@@ -17464,13 +17464,13 @@ S.N.: ${item.sn || '-'}
     const newSettings = { ...settingsOptions, prepLists: newPrepLists };
     setSettingsOptions(newSettings);
     await setDoc(getSettingsDoc(), newSettings);
-    if (actionLabel) await logAction(actionLabel, targetName || 'รายการเตรียมของ', details);
+    if (actionLabel) await logAction(actionLabel, targetName || 'เซ็ตใช้งาน', details);
   };
 
   const handleSavePrepList = async () => {
     if (!user) return;
     const prepName = String(prepForm.name || '').trim();
-    if (!prepName) return alert('❌ กรุณาระบุชื่องาน / ชื่อรายการเตรียมของ');
+    if (!prepName) return alert('❌ กรุณาระบุชื่องาน / ชื่อเซ็ตใช้งาน');
     if (!prepForm.useDate) return alert('❌ กรุณาเลือกวันที่ใช้งาน');
     const itemIds = [...new Set(prepForm.itemIds || [])].filter((id) => items.some((item) => item.id === id));
     if (itemIds.length === 0) return alert('❌ กรุณาเลือกอุปกรณ์อย่างน้อย 1 ชิ้น');
@@ -17494,14 +17494,14 @@ S.N.: ${item.sn || '-'}
       };
       const newPrepLists = [...existingLists.filter((prep) => prep.id !== prepId), newPrep]
         .sort((a, b) => String(a.useDate || '').localeCompare(String(b.useDate || '')) || String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true }));
-      await savePrepLists(newPrepLists, prepForm.id ? 'แก้ไขรายการเตรียมของ' : 'สร้างรายการเตรียมของ', prepName, `บันทึกอุปกรณ์ ${itemIds.length} รายการ วันที่ใช้งาน ${prepForm.useDate}`);
+      await savePrepLists(newPrepLists, prepForm.id ? 'แก้ไขเซ็ตใช้งาน' : 'สร้างเซ็ตใช้งาน', prepName, `บันทึกอุปกรณ์ ${itemIds.length} รายการ วันที่ใช้งาน ${prepForm.useDate}`);
       setShowPrepAssignModal(false);
       openWorkspace('organize');
       setSelectedItems([]);
-      alert('✅ บันทึกรายการเตรียมของเรียบร้อยแล้ว\nสถานะอุปกรณ์ยังไม่ถูกเปลี่ยน จนกว่าจะกด “ยืนยันนำออกงาน”');
+      alert('✅ บันทึกเซ็ตใช้งานเรียบร้อยแล้ว\nสถานะอุปกรณ์ยังไม่ถูกเปลี่ยน จนกว่าจะกด “ยืนยันนำออกงาน”');
     } catch (error) {
       console.error(error);
-      alert('❌ บันทึกรายการเตรียมของไม่สำเร็จ: ' + error.message);
+      alert('❌ บันทึกเซ็ตใช้งานไม่สำเร็จ: ' + error.message);
     }
   };
 
@@ -17552,7 +17552,7 @@ S.N.: ${item.sn || '-'}
 
   const openPrepพิมพ์ = (prep) => {
     const prepItems = (prep.itemIds || []).map((id) => items.find((item) => item.id === id)).filter(Boolean);
-    if (prepItems.length === 0) return alert('❌ รายการเตรียมของนี้ยังไม่มีอุปกรณ์ที่พิมพ์ได้');
+    if (prepItems.length === 0) return alert('❌ เซ็ตใช้งานนี้ยังไม่มีอุปกรณ์ที่พิมพ์ได้');
     setพิมพ์SlipData({
       type: 'prep',
       title: 'ใบเตรียมของ',
@@ -17591,20 +17591,20 @@ S.N.: ${item.sn || '-'}
       returnDate: '',
       staff: prep.staff || '',
       newStaff: '',
-      note: prep.note ? `จากรายการเตรียมของ: ${prep.note}` : 'จากรายการเตรียมของ'
+      note: prep.note ? `จากเซ็ตใช้งาน: ${prep.note}` : 'จากเซ็ตใช้งาน'
     });
     setShowPrepListsModal(false);
   };
 
   const cancelPrepList = async (prep) => {
     if (!user || !prep?.id) return;
-    const ok = confirm('ยกเลิกรายการเตรียมของ "' + (prep.name || '-') + '" หรือไม่?\n\nรายการนี้จะยังถูกเก็บไว้แต่สถานะจะเป็น “ยกเลิก”');
+    const ok = confirm('ยกเลิกเซ็ตใช้งาน "' + (prep.name || '-') + '" หรือไม่?\n\nรายการนี้จะยังถูกเก็บไว้แต่สถานะจะเป็น “ยกเลิก”');
     if (!ok) return;
     try {
       const newPrepLists = (settingsOptions.prepLists || []).map((item) =>
         item.id === prep.id ? { ...item, status: 'cancelled', updatedAt: new Date().toISOString() } : item
       );
-      await savePrepLists(newPrepLists, 'ยกเลิกรายการเตรียมของ', prep.name || '-', 'เปลี่ยนสถานะเป็นยกเลิก');
+      await savePrepLists(newPrepLists, 'ยกเลิกเซ็ตใช้งาน', prep.name || '-', 'เปลี่ยนสถานะเป็นยกเลิก');
     } catch (error) {
       console.error(error);
       alert('❌ ยกเลิกรายการไม่สำเร็จ: ' + error.message);
@@ -17613,12 +17613,12 @@ S.N.: ${item.sn || '-'}
 
   const deletePrepList = async (prep) => {
     if (!user || !prep?.id) return;
-    const ok = confirm('ลบรายการเตรียมของ "' + (prep.name || '-') + '" ออกจากระบบหรือไม่?\n\nการลบนี้ไม่กระทบสถานะอุปกรณ์');
+    const ok = confirm('ลบเซ็ตใช้งาน "' + (prep.name || '-') + '" ออกจากระบบหรือไม่?\n\nการลบนี้ไม่กระทบสถานะอุปกรณ์');
     if (!ok) return;
     try {
       const newPrepLists = (settingsOptions.prepLists || []).filter((item) => item.id !== prep.id);
-      await savePrepLists(newPrepLists, 'ลบรายการเตรียมของ', prep.name || '-', 'ลบรายการเตรียมของ โดยไม่กระทบอุปกรณ์');
-      alert('✅ ลบรายการเตรียมของแล้ว');
+      await savePrepLists(newPrepLists, 'ลบเซ็ตใช้งาน', prep.name || '-', 'ลบเซ็ตใช้งาน โดยไม่กระทบอุปกรณ์');
+      alert('✅ ลบเซ็ตใช้งานแล้ว');
     } catch (error) {
       console.error(error);
       alert('❌ ลบรายการไม่สำเร็จ: ' + error.message);
@@ -18311,7 +18311,7 @@ S.N.: ${item.sn || '-'}
         : d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
     };
     const docTitle = printSlipData.title || (isReturnSlip ? 'ใบรับคืนอุปกรณ์' : isEventSlip ? 'ใบนำอุปกรณ์ออกงาน' : isPrepSlip ? 'ใบเตรียมอุปกรณ์' : 'ใบยืมสิ่งของ / อุปกรณ์');
-    const subjectLabel = isReturnSlip ? 'เอกสารอ้างอิง' : isEventSlip ? 'ชื่องาน / สถานที่' : isPrepSlip ? 'ชื่องาน / รายการเตรียมของ' : 'ผู้ยืม / ผู้รับผิดชอบ';
+    const subjectLabel = isReturnSlip ? 'เอกสารอ้างอิง' : isEventSlip ? 'ชื่องาน / สถานที่' : isPrepSlip ? 'ชื่องาน / เซ็ตใช้งาน' : 'ผู้ยืม / ผู้รับผิดชอบ';
     const subjectValue = isReturnSlip ? safeText(printSlipData.ref, 'รับคืนตามรายการที่เลือก') : safeText(printSlipData.borrower || printSlipData.subject || printSlipData.eventName);
     const staffLabel = isReturnSlip ? 'เจ้าหน้าที่ผู้รับคืน' : isEventSlip ? 'ผู้นำอุปกรณ์ออกงาน' : isPrepSlip ? 'ผู้เตรียม / ผู้รับผิดชอบ' : 'เจ้าหน้าที่ผู้ให้ยืม';
     const staffValue = safeText(printSlipData.staffIn || printSlipData.returnStaff || printSlipData.staffOut || printSlipData.operatorName || printSlipData.createdBy);
@@ -18542,7 +18542,7 @@ S.N.: ${item.sn || '-'}
                 <Icons.Monitor className="w-6 h-6 text-cyan-200" />
               </div>
               <div className="min-w-0">
-                <div className="mc-top-title text-xl font-black tracking-tight text-white truncate">MDEC COMMAND CENTER</div>
+                <div className="mc-top-title text-xl font-black tracking-tight text-white truncate">FRONT DESK</div>
                 <div className="mc-top-sub text-xs font-black tracking-[.18em] text-cyan-300/75 uppercase truncate">LIVE INVENTORY CONTROL • {APP_VERSION}</div>
               </div>
             </div>
@@ -18715,56 +18715,47 @@ S.N.: ${item.sn || '-'}
           </div>
         </div>
 
-        <nav className="flex-1 px-4 py-5 space-y-2 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 px-4 py-5 space-y-3 overflow-y-auto custom-scrollbar">
+          <div className="px-3 pb-1 text-[10px] font-black tracking-[0.22em] uppercase text-slate-500">Front Desk</div>
           <button type="button" onClick={() => openWorkspace('overview')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'overview' ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.Package className="w-5 h-5" /> ภาพรวมระบบ
+            <Icons.Package className="w-5 h-5" /> ศูนย์งานประจำวัน
           </button>
-          <button type="button" onClick={() => openWorkspace('inventory')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'inventory' ? 'bg-gradient-to-r from-emerald-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.Database className="w-5 h-5" /> คลังอุปกรณ์
-          </button>
-          <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'borrowReturn' ? 'bg-gradient-to-r from-purple-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.UserPlus className="w-5 h-5" /> ยืม-คืนอุปกรณ์
+          <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'borrowReturn' ? 'bg-gradient-to-r from-slate-700 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
+            <Icons.UserPlus className="w-5 h-5" /> ยืม / คืน / ออกงาน
           </button>
           {canUseOperationalTools && (
-            <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'scanner' ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
+            <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'scanner' ? 'bg-gradient-to-r from-slate-700 to-orange-700 text-white shadow-lg shadow-amber-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
               <Icons.QrCode className="w-5 h-5" /> สแกน QR
             </button>
           )}
-          <button type="button" onClick={() => openTrackingCenter('today')} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-            <Icons.History className="w-5 h-5" /> ติดตามการคืน
+          <button type="button" onClick={scrollToHomeStockList} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'inventory' ? 'bg-gradient-to-r from-slate-700 to-emerald-700 text-white shadow-lg shadow-emerald-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
+            <Icons.Database className="w-5 h-5" /> ค้นหาอุปกรณ์
           </button>
-          <button type="button" onClick={() => openMainHistoryCenter({ reset: true })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-            <Icons.ClipboardList className="w-5 h-5" /> ประวัติส่วนกลาง
+          <button type="button" onClick={() => openTrackingCenter('today')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'tracking' ? 'bg-gradient-to-r from-slate-700 to-cyan-700 text-white shadow-lg shadow-cyan-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
+            <Icons.History className="w-5 h-5" /> ติดตามของรอคืน
           </button>
-          {canAddEditItems && (
-            <button type="button" onClick={openAddItemForm} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-              <Icons.Plus className="w-5 h-5" /> เพิ่มอุปกรณ์
-            </button>
-          )}
-          <button type="button" onClick={() => openWorkspace('projects')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'projects' ? 'bg-gradient-to-r from-indigo-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.Folder className="w-5 h-5" /> โครงการจัดซื้อ
-          </button>
-          <button type="button" onClick={() => openWorkspace('organize')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'organize' ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.Layers className="w-5 h-5" /> กล่อง / เซ็ตอุปกรณ์
-          </button>
-          <button type="button" onClick={() => openMonthlyReportPage()} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'reports' ? 'bg-gradient-to-r from-amber-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.ClipboardList className="w-5 h-5" /> รายงาน
-          </button>
-          <button type="button" onClick={() => openMainProofCenter({ reset: true })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-            <Icons.Camera className="w-5 h-5" /> หลักฐานรูปภาพ
-          </button>
-          <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-            <Icons.พิมพ์er className="w-5 h-5" /> เอกสารย้อนหลัง
-          </button>
+
           <div className="pt-4 mt-4 border-t border-white/10 space-y-2">
-            {canManageระบบ && (
-              <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-                <Icons.Settings className="w-5 h-5" /> ระบบ Settings
+            <div className="px-3 pb-1 text-[10px] font-black tracking-[0.22em] uppercase text-slate-500">Admin Center</div>
+            <button type="button" onClick={() => openWorkspace('tools')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'tools' ? 'bg-gradient-to-r from-slate-700 to-indigo-700 text-white shadow-lg shadow-indigo-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
+              <Icons.Settings className="w-5 h-5" /> หลังบ้าน / จัดการระบบ
+            </button>
+            <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+              <Icons.พิมพ์er className="w-5 h-5" /> เอกสารย้อนหลัง
+            </button>
+            <button type="button" onClick={() => openMainHistoryCenter({ reset: true })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+              <Icons.ClipboardList className="w-5 h-5" /> ประวัติ / หลักฐาน
+            </button>
+            {canAddEditItems && (
+              <button type="button" onClick={openAddItemForm} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+                <Icons.Plus className="w-5 h-5" /> เพิ่มอุปกรณ์
               </button>
             )}
-            <button type="button" onClick={() => setShowBackupCenterModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-              <Icons.Database className="w-5 h-5" /> Backup / ปิดปี
-            </button>
+            {canManageระบบ && (
+              <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
+                <Icons.Settings className="w-5 h-5" /> ตั้งค่าระบบ
+              </button>
+            )}
             <button type="button" onClick={() => setShowHelpModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
               <Icons.Alert className="w-5 h-5" /> คู่มือใช้งาน
             </button>
@@ -19881,9 +19872,9 @@ S.N.: ${item.sn || '-'}
                   <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
                     <Icons.ViewGrid className="w-6 h-6" />
                   </div>
-                  Control Center
+                  หลังบ้าน / Admin Center
                 </h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมเมนูที่ไม่ควรยัดไว้ในแถบล่าง แยกเป็นหมวดสำหรับใช้งานบนมือถือ</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมงานจัดการระบบไว้เป็นหมวดเดียว เพื่อไม่ให้หน้าใช้งานประจำวันรกเกินไป</p>
               </div>
               <button type="button" onClick={() => setShowMoreMenu(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -19949,8 +19940,8 @@ S.N.: ${item.sn || '-'}
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดเซ็ตใช้งานร่วมกัน</p>
                   </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); openWorkspace('organize'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                    <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายการเตรียมของ</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เตรียมรายการออกงาน</p>
+                    <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> เซ็ตใช้งาน</div>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดชุดอุปกรณ์ที่ใช้ร่วมกัน</p>
                   </button>
                   <button type="button" onClick={() => { setShowMoreMenu(false); setShowPersonalItemsModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.Tag className="w-5 h-5" /> ของส่วนตัว</div>
@@ -20053,14 +20044,14 @@ S.N.: ${item.sn || '-'}
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
             <div className="min-w-0">
               <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-blue-600'}`}>MDEC COMMAND CENTER</div>
-              <h2 className={`text-2xl sm:text-3xl font-black mt-1 tracking-tight ${theme.textTitle}`}>ภาพรวมวันนี้ของศูนย์สต๊อก</h2>
-              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เปิดหน้าแรกแล้วเห็นทันทีว่าควรทำอะไรต่อ เหมาะกับเจ้าหน้าที่ที่ใช้งานบนโทรศัพท์หน้างาน</p>
+              <h2 className={`text-2xl sm:text-3xl font-black mt-1 tracking-tight ${theme.textTitle}`}>วันนี้ต้องทำอะไร</h2>
+              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หน้าใช้งานหลักสำหรับงานประจำวัน เหลือเฉพาะยืม คืน ออกงาน สแกน ค้นหา และติดตามของค้าง</p>
             </div>
             <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
               <button type="button" onClick={() => openWorkspace('borrowReturn')} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">เริ่มทำรายการ</button>
               <button type="button" onClick={scrollToHomeStockList} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ค้นหาอุปกรณ์</button>
               {canManageระบบ && (
-                <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>หลังบ้าน / ตั้งค่า</button>
+                <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>หลังบ้าน</button>
               )}
             </div>
           </div>
@@ -20604,7 +20595,7 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
-      {/* 🧾 Modal สร้างรายการเตรียมของ */}
+      {/* 🧾 Modal สร้างเซ็ตใช้งาน */}
       {showPrepAssignModal && (
         <div className={`${theme.modalOverlay} fixed inset-0 flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden ${theme.cardBg}`}>
@@ -20612,7 +20603,7 @@ S.N.: ${item.sn || '-'}
               <div>
                 <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
                   <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-sky-900/50 text-sky-400' : 'bg-sky-100 text-sky-600'}`}><Icons.ClipboardList className="w-6 h-6"/></div>
-                  {prepForm.id ? 'แก้ไขรายการเตรียมของ' : 'สร้างรายการเตรียมของ'}
+                  {prepForm.id ? 'แก้ไขเซ็ตใช้งาน' : 'สร้างเซ็ตใช้งาน'}
                 </h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้วางแผนจัดของล่วงหน้า โดยยังไม่เปลี่ยนสถานะอุปกรณ์จริง</p>
               </div>
@@ -20621,7 +20612,7 @@ S.N.: ${item.sn || '-'}
 
             <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
               <label className="block">
-                <span className={`block text-base font-black mb-2 ${theme.textTitle}`}>ชื่องาน / ชื่อรายการเตรียมของ <span className="text-rose-500">*</span></span>
+                <span className={`block text-base font-black mb-2 ${theme.textTitle}`}>ชื่องาน / ชื่อเซ็ตใช้งาน <span className="text-rose-500">*</span></span>
                 <input value={prepForm.name || ''} onChange={(e) => setPrepForm({ ...prepForm, name: e.target.value })} className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น งานประชุมผู้ปกครอง / ไลฟ์สดพิธีเปิด" />
               </label>
 
@@ -20669,13 +20660,13 @@ S.N.: ${item.sn || '-'}
 
             <div className={`p-4 border-t flex flex-col sm:flex-row gap-3 ${theme.divide}`}>
               <button type="button" onClick={() => { setShowPrepAssignModal(false); openWorkspace('organize'); }} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={handleSavePrepList} className="flex-[2] py-4 bg-sky-600 hover:bg-sky-500 text-white font-black rounded-xl text-lg shadow-md">บันทึกรายการเตรียมของ</button>
+              <button type="button" onClick={handleSavePrepList} className="flex-[2] py-4 bg-sky-600 hover:bg-sky-500 text-white font-black rounded-xl text-lg shadow-md">บันทึกเซ็ตใช้งาน</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 🧾 Modal รายการเตรียมของ */}
+      {/* 🧾 Modal เซ็ตใช้งาน */}
       {showPrepListsModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
@@ -20683,7 +20674,7 @@ S.N.: ${item.sn || '-'}
               <div>
                 <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
                   <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-sky-900/50 text-sky-400' : 'bg-sky-100 text-sky-600'}`}><Icons.ClipboardList className="w-6 h-6"/></div>
-                  รายการเตรียมของ
+                  เซ็ตใช้งาน
                 </h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เตรียมรายการล่วงหน้าได้ โดยยังไม่เปลี่ยนสถานะอุปกรณ์ จนกว่าจะกดนำออกงานจริง</p>
               </div>
@@ -20698,7 +20689,7 @@ S.N.: ${item.sn || '-'}
               {(settingsOptions.prepLists || []).length === 0 ? (
                 <div className={`text-center py-12 font-bold text-xl flex flex-col items-center gap-3 ${theme.textMuted}`}>
                   <Icons.ClipboardList className="w-14 h-14" />
-                  ยังไม่มีรายการเตรียมของ
+                  ยังไม่มีเซ็ตใช้งาน
                   <p className="text-sm font-medium max-w-xl">เลือกอุปกรณ์จากตาราง แล้วกด “เตรียมของ” เพื่อวางแผนรายการล่วงหน้า</p>
                 </div>
               ) : (settingsOptions.prepLists || []).slice().sort((a, b) => String(a.useDate || '').localeCompare(String(b.useDate || ''))).map((prep) => {
@@ -20900,7 +20891,7 @@ S.N.: ${item.sn || '-'}
                     </div>
                   ))}
                   <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
-                    <h4 className={`font-black text-lg ${theme.textTitle}`}>รายการเตรียมของยังไม่ครบ</h4>
+                    <h4 className={`font-black text-lg ${theme.textTitle}`}>เซ็ตใช้งานยังไม่ครบ</h4>
                     <div className="text-4xl font-black my-2 text-sky-500">{actionCenterData.prepIncomplete.length}</div>
                     {actionCenterData.prepIncomplete.slice(0, 8).map(p => <div key={p.id} className={`text-sm font-bold px-3 py-2 rounded-xl mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>{p.name} • {(p.checkedIds||[]).length}/{(p.itemIds||[]).length}</div>)}
                     {actionCenterData.prepIncomplete.length === 0 && <div className={`text-sm font-bold ${theme.textMuted}`}>ไม่มีรายการ</div>}
@@ -20916,7 +20907,7 @@ S.N.: ${item.sn || '-'}
 
               {trackingTab === 'calendar' && (
                 <div className="space-y-4">
-                  {calendarDays.length === 0 && <div className={`text-center py-12 font-black text-xl ${theme.textMuted}`}>ยังไม่มีกำหนดคืนหรือรายการเตรียมของ</div>}
+                  {calendarDays.length === 0 && <div className={`text-center py-12 font-black text-xl ${theme.textMuted}`}>ยังไม่มีกำหนดคืนหรือเซ็ตใช้งาน</div>}
                   {calendarDays.map(day => (
                     <div key={day.date} className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
                       <div className="flex items-center justify-between mb-3">
@@ -24175,7 +24166,7 @@ S.N.: ${item.sn || '-'}
                 </div>
               ))}
               <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
-                <h4 className={`font-black text-lg ${theme.textTitle}`}>รายการเตรียมของยังไม่ครบ</h4>
+                <h4 className={`font-black text-lg ${theme.textTitle}`}>เซ็ตใช้งานยังไม่ครบ</h4>
                 <div className="text-4xl font-black my-2 text-sky-500">{actionCenterData.prepIncomplete.length}</div>
                 {actionCenterData.prepIncomplete.slice(0, 8).map(p => <div key={p.id} className={`text-sm font-bold px-3 py-2 rounded-xl mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-white'}`}>{p.name} • {(p.checkedIds||[]).length}/{(p.itemIds||[]).length}</div>)}
               </div>
@@ -24198,7 +24189,7 @@ S.N.: ${item.sn || '-'}
               <button onClick={() => setShowCalendarModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 overflow-y-auto custom-scrollbar space-y-4">
-              {calendarDays.length === 0 && <div className={`text-center py-12 font-black text-xl ${theme.textMuted}`}>ยังไม่มีกำหนดคืนหรือรายการเตรียมของ</div>}
+              {calendarDays.length === 0 && <div className={`text-center py-12 font-black text-xl ${theme.textMuted}`}>ยังไม่มีกำหนดคืนหรือเซ็ตใช้งาน</div>}
               {calendarDays.map(day => (
                 <div key={day.date} className={`rounded-2xl border p-4 ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
                   <div className="flex items-center justify-between mb-3">
@@ -25087,7 +25078,7 @@ S.N.: ${item.sn || '-'}
                 <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-bold ${theme.textMuted}`}>
                   <div><b>ติดตามการคืนงาน</b> = ดูของรอคืน ออกงานอยู่ วันนี้ และเลยกำหนด</div>
                   <div><b>ศูนย์หลักฐานรูปภาพ</b> = ดู แก้ไข แทนที่ หรือลบรูปหลักฐาน</div>
-                  <div><b>จัดเก็บและจัดชุด</b> = กล่องเก็บของ เซ็ตอุปกรณ์ และรายการเตรียมของ</div>
+                  <div><b>จัดเก็บและจัดชุด</b> = กล่องเก็บของ เซ็ตอุปกรณ์ และเซ็ตใช้งาน</div>
                   <div><b>เอกสารและฉลาก</b> = QR ฉลากกล่อง ใบยืม และตั้งค่าโลโก้เอกสาร</div>
                 </div>
               </div>
@@ -25140,7 +25131,7 @@ S.N.: ${item.sn || '-'}
                   ['ชำรุด/ส่งซ่อม', items.filter(i => i.status === 'maintenance' && !i.isDeleted).length],
                   ['ยังไม่ติด QR', items.filter(i => !i.qrTagged && !i.isDeleted).length],
                   ['กล่องเก็บของ', databaseStorageEstimate.boxCount],
-                  ['รายการเตรียมของ', databaseStorageEstimate.prepCount]
+                  ['เซ็ตใช้งาน', databaseStorageEstimate.prepCount]
                 ].map(([label,value]) => <div key={label} className={`p-2.5 rounded-lg border ${theme.btnSecondary}`}><div className={`text-xs font-bold ${theme.textMuted}`}>{label}</div><div className={`text-2xl font-black ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div></div>)}
               </div>
               <div className={`p-5 rounded-2xl border ${dataQualityAudit.scoreTone === 'emerald' ? (isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : dataQualityAudit.scoreTone === 'amber' ? (isDarkMode ? 'bg-amber-950/20 border-amber-800' : 'bg-amber-50 border-amber-200') : (isDarkMode ? 'bg-rose-950/20 border-rose-800' : 'bg-rose-50 border-rose-200')}`}>
