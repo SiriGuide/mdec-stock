@@ -15,6 +15,7 @@
 // v22.52.6 Data Quality Action Polish - supports camera/department/flexible memory choice without fixed sets
 // v22.52.6 Data Quality Action Polish - UI-only polish, no QR/camera/database changes
 // v22.52.1 ตัวช่วยกล้อง Final UX - UI/UX safe polish, no QR/camera/database changes
+// v22.58.8 Settings Proof Count Sync Hotfix
 // v22.58.0 Major Cleanup Test Build - รวมรอบเก็บงานใหญ่: Settings, Global Theme, Evidence, Permissions, Remove Duplicate Control Center
 // v22.57.7.1 Strict Login Gate Fix - ไม่ล็อกอินห้ามเห็นคลังละเอียด/ติ๊กเลือก/ทำรายการจริง ใช้ได้เฉพาะหน้าอ่านอย่างเดียวและต้องล็อกอินก่อนปฏิบัติการ
 // v22.57.6.25 Asset Profile Readability Polish - แฟ้มอุปกรณ์อ่านง่ายขึ้น ลดความแน่น จัดหัวแฟ้ม/ข้อมูล/ประวัติ/หลักฐานให้ชัด โดยไม่แตะ QR Scanner/Firebase path/flow หลัก
@@ -14527,8 +14528,14 @@ S.N.: ${item.sn || '-'}
     const prepCount = (settingsOptions.prepLists || []).length;
     const bundleCount = (settingsOptions.bundles || []).length;
     const proofMeta = settingsOptions.proofStorageMeta || {};
-    const proofStorageBytes = Number(proofMeta.totalBytes || 0);
-    const proofImageCount = Number(proofMeta.count || 0);
+    // v22.58.8: ใช้จำนวนรูปจาก Evidence Center ที่ยังแสดงจริงเป็นหลัก
+    // เพราะ proofStorageMeta อาจถูกปรับลดตอน soft delete ทำให้ Settings ขึ้น 0 รูป ทั้งที่หน้ายังมีรูปอยู่
+    const liveProofImageCount = Array.isArray(dedupedProofGroups) ? dedupedProofGroups.length : 0;
+    const metaProofCount = Number(proofMeta.count || 0);
+    const proofImageCount = liveProofImageCount || metaProofCount;
+    const metaProofBytes = Number(proofMeta.totalBytes || 0);
+    const liveProofBytes = Number(proofStorageForecast?.proofBytes || 0);
+    const proofStorageBytes = liveProofBytes || metaProofBytes;
     const payload = {
       items,
       settings: settingsOptions,
@@ -14601,7 +14608,7 @@ S.N.: ${item.sn || '-'}
       proofImageCount,
       proofStorageText: formatBytes(proofStorageBytes)
     };
-  }, [items, settingsOptions, auditLogs, isDarkMode]);
+  }, [items, settingsOptions, auditLogs, isDarkMode, dedupedProofGroups, proofStorageForecast]);
 
 
   const dataQualityAudit = useMemo(() => {
