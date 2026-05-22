@@ -55,7 +55,7 @@ const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
 const APP_VERSION = 'v22.58.3 Safe Array Boot Hotfix';
-const APP_UPDATE_NOTE = 'Evidence Hard Delete / Storage Sync Fix: ลบรูปหลักฐานได้จริงจากศูนย์หลักฐาน ซิงก์ประวัติส่วนกลาง/แฟ้มอุปกรณ์/เอกสารย้อนหลัง และคำนวณจำนวนรูปจากข้อมูลจริง';
+const APP_UPDATE_NOTE = 'Inline Evidence Actions Fix: เพิ่มปุ่มซ่อนรูป/ลบถาวรในหลักฐานรูปภาพแบบหน้าเดียว และซิงก์การลบให้ตรงทุกจุด';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -13028,6 +13028,31 @@ S.N.: ${item.sn || '-'}
                                 {group.itemRefs?.[0]?.itemId && <button type="button" onClick={() => setShowHistory(group.itemRefs[0].itemId)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิด</button>}
                                 <button type="button" onClick={() => openProofImage(proof)} className="px-3 py-2 rounded-xl bg-pink-600 text-white text-xs font-black">เปิดรูป</button>
                               </div>
+                              {canUseOperationalTools && (
+                                <div className="grid grid-cols-3 gap-2 mt-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => openProofEditModal(group)}
+                                    className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}
+                                  >
+                                    แก้ไข
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteProofGroup(group)}
+                                    className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}
+                                  >
+                                    ซ่อนรูป
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handlePermanentDeleteProofGroup(group)}
+                                    className="px-3 py-2 rounded-xl border text-xs font-black bg-rose-600 text-white border-rose-600 hover:bg-rose-700"
+                                  >
+                                    ลบถาวร
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
