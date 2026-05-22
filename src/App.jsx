@@ -20131,7 +20131,7 @@ S.N.: ${item.sn || '-'}
                 {[
                   ['ต้องคืนวันนี้', dashboardDailyTasks.filter(t => String(t.id || '').includes('due') || String(t.title || '').includes('คืนวันนี้')).length || dueTodayItems.length || 0, () => openTrackingCenter('today')],
                   ['เลยกำหนด', overdueItems.length || 0, () => openTrackingCenter('overdue')],
-                  ['ออกงานอยู่', eventOutItems.length || 0, () => openTrackingCenter('event')],
+                  ['ออกงานอยู่', currentEventItems.length || 0, () => openTrackingCenter('event')],
                   ['ข้อมูลควรเติม', dataQualityAudit.issueItemCount || 0, openDailyDataQuality]
                 ].map(([label, value, action]) => (
                   <button key={label} type="button" onClick={action} className={`rounded-2xl border p-3 text-left ${theme.btnSecondary}`}>
