@@ -10307,6 +10307,8 @@ S.N.: ${item.sn || '-'}
   };
 
   const renderOrganizeWorkspace = () => {
+    const boxes = asArray(settingsOptions.storageBoxes);
+    const bundles = asArray(settingsOptions.bundles);
     const boxItemTotal = boxes.reduce((sum, box) => sum + asArray(box.itemIds).filter((id) => safeItemById(id)).length, 0);
     const bundleItemTotal = bundles.reduce((sum, bundle) => sum + asArray(bundle.itemIds).filter((id) => safeItemById(id)).length, 0);
     const availableBundleCount = bundles.filter((bundle) => {
@@ -11030,6 +11032,41 @@ S.N.: ${item.sn || '-'}
       else setPackingChecklist(unique);
     };
 
+    const operationBoxShortcuts = asArray(settingsOptions.storageBoxes)
+      .map((box) => {
+        const ids = asArray(box.itemIds).filter((id) => {
+          const item = items.find((entry) => entry.id === id && !entry.isDeleted);
+          if (!item) return false;
+          if (borrowReturnMode === 'return') return item.status === 'borrowed' || item.status === 'out-for-event';
+          return item.status === 'available';
+        });
+        return { ...box, validIds: ids };
+      })
+      .filter((box) => box.validIds.length > 0)
+      .slice(0, 6);
+
+    const operationBundleShortcuts = asArray(settingsOptions.bundles)
+      .map((bundle) => {
+        const ids = asArray(bundle.itemIds).filter((id) => {
+          const item = items.find((entry) => entry.id === id && !entry.isDeleted);
+          if (!item) return false;
+          if (borrowReturnMode === 'return') return item.status === 'borrowed' || item.status === 'out-for-event';
+          return item.status === 'available';
+        });
+        return { ...bundle, validIds: ids };
+      })
+      .filter((bundle) => bundle.validIds.length > 0)
+      .slice(0, 6);
+
+    const addShortcutCollectionToOperation = (ids, label) => {
+      if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return;
+      const validIds = Array.from(new Set(asArray(ids))).filter((id) => items.some((item) => item.id === id && !item.isDeleted));
+      if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่เลือกได้ใน ' + (label || 'รายการนี้'));
+      const next = Array.from(new Set([...actionTargetIds, ...validIds]));
+      setActionTargets(next);
+      setActionChecklist(next);
+    };
+
     const clearOperationSelection = () => {
       if (borrowReturnMode === 'event') {
         setEventTargetIds([]);
@@ -11270,6 +11307,44 @@ S.N.: ${item.sn || '-'}
                       <button type="button" onClick={clearBorrowReturnFilters} className={`px-3 py-1.5 rounded-full border text-xs font-black ${isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>ล้างตัวกรอง</button>
                     )}
                   </div>
+
+                  {(operationBoxShortcuts.length > 0 || operationBundleShortcuts.length > 0) && (
+                    <div className={`mt-4 rounded-[1.35rem] border p-3 ${isDarkMode ? 'bg-slate-900/55 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                        <div>
+                          <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Box / Set Shortcut</div>
+                          <div className={`font-black ${theme.textTitle}`}>เลือกยืมเป็นกล่องหรือเซ็ตจากหน้านี้ได้เลย</div>
+                        </div>
+                        <div className={`text-xs font-bold ${theme.textMuted}`}>ระบบจะเพิ่มเฉพาะอุปกรณ์ที่อยู่ในสถานะเลือกได้</div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {operationBoxShortcuts.length > 0 && (
+                          <div className="space-y-2">
+                            <div className={`text-xs font-black ${isDarkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>กล่อง / ตู้ / ชั้น</div>
+                            <div className="flex flex-wrap gap-2">
+                              {operationBoxShortcuts.map((box) => (
+                                <button key={box.id || box.name} type="button" onClick={() => addShortcutCollectionToOperation(box.validIds, box.name || 'กล่องนี้')} className={`px-3 py-2 rounded-xl border text-left font-black text-xs ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-200 hover:border-cyan-500' : 'bg-white border-slate-200 text-slate-700 hover:border-cyan-400'}`}>
+                                  📦 {box.name || 'กล่องไม่มีชื่อ'} <span className={theme.textMuted}>({box.validIds.length})</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {operationBundleShortcuts.length > 0 && (
+                          <div className="space-y-2">
+                            <div className={`text-xs font-black ${isDarkMode ? 'text-violet-300' : 'text-violet-700'}`}>เซ็ตอุปกรณ์</div>
+                            <div className="flex flex-wrap gap-2">
+                              {operationBundleShortcuts.map((bundle) => (
+                                <button key={bundle.id || bundle.name} type="button" onClick={() => addShortcutCollectionToOperation(bundle.validIds, bundle.name || 'เซ็ตนี้')} className={`px-3 py-2 rounded-xl border text-left font-black text-xs ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-200 hover:border-violet-500' : 'bg-white border-slate-200 text-slate-700 hover:border-violet-400'}`}>
+                                  🧩 {bundle.name || 'เซ็ตไม่มีชื่อ'} <span className={theme.textMuted}>({bundle.validIds.length})</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {showBorrowReturnFilters && (
                     <div className={`mt-4 rounded-[1.35rem] border p-3 ${isDarkMode ? 'bg-slate-900/55 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
