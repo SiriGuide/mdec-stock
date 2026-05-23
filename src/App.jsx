@@ -13131,7 +13131,7 @@ S.N.: ${item.sn || '-'}
               <div className="grid grid-cols-3 gap-2 w-full xl:w-auto">
                 {[
                   ['อุปกรณ์', items.length],
-                  ['เอกสาร', borrowDocuments.length],
+                  ['เอกสาร', asArray(borrowเอกสารs).length],
                   ['บัญชี', getEffectiveAccounts().length]
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-center min-w-[94px]">
