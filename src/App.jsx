@@ -59,7 +59,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.5 Operation Wizard Flow Polish';
+const APP_VERSION = 'v23.1.6 Operation Wizard Workspace Redesign';
 const APP_UPDATE_NOTE = 'Operation Wizard Flow: แยกขั้นตอนเลือกอุปกรณ์ก่อน แล้วกดถัดไปเพื่อกรอกรายละเอียด สแกนเช็ก QR หรือติ๊กยืนยันก่อนบันทึก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -11307,7 +11307,7 @@ S.N.: ${item.sn || '-'}
               </div>
             </section>
 
-            <div className={`grid grid-cols-1 ${isOperationDetailsStep ? '' : 'xl:grid-cols-[minmax(0,1.12fr)_minmax(380px,.88fr)]'} gap-5 items-start`}>
+            <div className={`grid grid-cols-1 ${isOperationDetailsStep ? 'xl:grid-cols-[minmax(0,1fr)_minmax(420px,.72fr)]' : ''} gap-5 items-start`}>
               {!isOperationDetailsStep && (
               <section className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/80 border-slate-800 shadow-[0_18px_55px_rgba(0,0,0,0.18)]' : 'bg-white border-slate-200 shadow-sm'}`}>
                 <div className={`p-4 border-b ${theme.divide}`}>
@@ -11331,8 +11331,13 @@ S.N.: ${item.sn || '-'}
                       <Icons.Search className={`w-5 h-5 ${theme.textMuted}`} />
                       <input className="bg-transparent outline-none w-full font-black" placeholder="ค้นหาอุปกรณ์ เช่น ขาไมค์ / ลำโพง / ห้องราชพฤกษ์ / ฝ่ายเครื่องเสียง" value={borrowReturnSearch} onChange={e => setBorrowReturnSearch(e.target.value)} />
                     </div>
-                    <div className={`rounded-2xl border px-4 py-3 font-black text-sm text-center ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
-                      พบ {operationalItems.length.toLocaleString('th-TH')} • เลือก {actionTargetIds.length.toLocaleString('th-TH')}
+                    <div className="grid grid-cols-1 sm:grid-cols-[auto_auto] gap-2">
+                      <div className={`rounded-2xl border px-4 py-3 font-black text-sm text-center ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                        พบ {operationalItems.length.toLocaleString('th-TH')} • เลือก {actionTargetIds.length.toLocaleString('th-TH')}
+                      </div>
+                      <button type="button" onClick={goToOperationDetails} disabled={!canUseCurrentOperation || actionTargetIds.length === 0} className={`px-4 py-3 rounded-2xl font-black text-white ${toneBtn} disabled:bg-slate-500 disabled:cursor-not-allowed`}>
+                        ถัดไป
+                      </button>
                     </div>
                   </div>
 
@@ -11448,7 +11453,7 @@ S.N.: ${item.sn || '-'}
                   )}
                 </div>
 
-                <div className="p-2.5 sm:p-3 max-h-[660px] overflow-y-auto custom-scrollbar space-y-2">
+                <div className="p-2.5 sm:p-3 max-h-[720px] overflow-y-auto custom-scrollbar grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
                   {operationalItems.length === 0 ? (
                     <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ไม่พบรายการในโหมดนี้</div>
                   ) : operationalItems.map(item => {
@@ -11459,10 +11464,10 @@ S.N.: ${item.sn || '-'}
                     const DeptIcon = Icons[deptInfo?.iconName] || Icons.Package;
                     const deptPillClass = deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600');
                     return (
-                      <button key={item.id} type="button" onClick={() => toggleOperationalItem(item.id)} className={`w-full p-3 rounded-2xl border text-left transition-all ${selected ? modeInfo.activeClass : (isDarkMode ? 'bg-slate-900/85 border-slate-800 hover:border-slate-600 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-blue-200')}`}>
-                        <div className="grid grid-cols-[auto_minmax(0,1fr)] sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] gap-3 items-start">
+                      <button key={item.id} type="button" onClick={() => toggleOperationalItem(item.id)} className={`w-full h-full p-3 rounded-2xl border text-left transition-all ${selected ? modeInfo.activeClass : (isDarkMode ? 'bg-slate-900/85 border-slate-800 hover:border-slate-600 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-blue-200')}`}>
+                        <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 items-start">
                           <span className={`mt-1 w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black ${selected ? (isDarkMode ? 'bg-slate-200 border-slate-200 text-slate-950' : 'bg-slate-900 border-slate-900 text-white') : isDarkMode ? 'border-slate-600 bg-slate-950' : 'border-slate-300 bg-white'}`}>{selected ? '✓' : ''}</span>
-                          <div className={`hidden sm:flex w-10 h-10 rounded-2xl border items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-white/15 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
+                          <div className={`flex w-10 h-10 rounded-2xl border items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-white/15 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
                             <DeptIcon className="w-5 h-5" />
                           </div>
                           <div className="min-w-0 flex-1">
@@ -11480,7 +11485,7 @@ S.N.: ${item.sn || '-'}
                               {late && <span className="px-2.5 py-1 rounded-full text-xs font-black bg-rose-600 text-white">เลยกำหนดคืน</span>}
                             </div>
                           </div>
-                          <div className={`hidden sm:block px-3 py-2 rounded-xl border text-xs font-black text-center ${selected ? 'bg-white/10 border-white/15 text-white' : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600')}`}>
+                          <div className={`mt-3 px-3 py-2 rounded-xl border text-xs font-black text-center ${selected ? 'bg-white/10 border-white/15 text-white' : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600')}`}>
                             {selected ? 'เลือกแล้ว' : 'กดเลือก'}
                           </div>
                         </div>
@@ -11491,12 +11496,13 @@ S.N.: ${item.sn || '-'}
               </section>
               )}
 
+              {isOperationDetailsStep && (
               <section id="operation-details-panel" className={`rounded-[1.6rem] border overflow-hidden ${isOperationDetailsStep ? '' : 'sticky top-4'} ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className={`p-4 border-b ${theme.divide}`}>
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     <div className="min-w-0">
                       <h3 className={`text-xl font-black flex items-center gap-2 ${theme.textTitle}`}><ActionIcon className="w-6 h-6" /> {modeInfo.title}</h3>
-                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{isOperationDetailsStep ? 'กรอกรายละเอียด สแกนเช็ก QR หรือเช็กด้วยมือ แล้วกดยืนยันรายการ' : 'เลือกอุปกรณ์จากรายการด้านซ้ายก่อน แล้วกดถัดไปเพื่อกรอกรายละเอียด'}</p>
+                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>'กรอกรายละเอียด ตรวจรายการ สแกนเช็ก QR หรือเช็กด้วยมือ แล้วกดยืนยันรายการ'</p>
                     </div>
                     {isOperationDetailsStep && (
                       <button type="button" onClick={() => setBorrowReturnStage('select')} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>← กลับไปเลือกอุปกรณ์</button>
@@ -11617,6 +11623,7 @@ S.N.: ${item.sn || '-'}
                   )}
                 </div>
               </section>
+              )}
             </div>
           </div>
         </div>
