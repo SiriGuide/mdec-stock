@@ -59,8 +59,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.3 Operation Control Compact Layout Polish';
-const APP_UPDATE_NOTE = 'Operation Control Compact Layout: แยกเลือกโหมดงานด้านซ้าย สรุปตัวเลขด้านขวา ลดพื้นที่ว่าง และคง flow ยืม/ออกงาน/รับคืนเดิม';
+const APP_VERSION = 'v23.1.5 Operation Wizard Flow Polish';
+const APP_UPDATE_NOTE = 'Operation Wizard Flow: แยกขั้นตอนเลือกอุปกรณ์ก่อน แล้วกดถัดไปเพื่อกรอกรายละเอียด สแกนเช็ก QR หรือติ๊กยืนยันก่อนบันทึก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7148,6 +7148,7 @@ function MainApp() {
   });
   const [activeWorkspace, setActiveWorkspace] = useState('overview');
   const [borrowReturnMode, setBorrowReturnMode] = useState('borrow');
+  const [borrowReturnStage, setBorrowReturnStage] = useState('select'); // select | details
   const [borrowReturnSearch, setBorrowReturnSearch] = useState('');
   const [borrowReturnDeptFilter, setBorrowReturnDeptFilter] = useState([]);
   const [borrowReturnCategoryFilter, setBorrowReturnCategoryFilter] = useState([]);
@@ -11066,10 +11067,12 @@ S.N.: ${item.sn || '-'}
       if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่เลือกได้ใน ' + (label || 'รายการนี้'));
       const next = Array.from(new Set([...actionTargetIds, ...validIds]));
       setActionTargets(next);
-      setActionChecklist(next);
+      setActionChecklist(actionChecklist.filter(id => next.includes(id)));
+      setBorrowReturnStage('select');
     };
 
     const clearOperationSelection = () => {
+      setBorrowReturnStage('select');
       if (borrowReturnMode === 'event') {
         setEventTargetIds([]);
         setEventChecklist([]);
@@ -11122,6 +11125,14 @@ S.N.: ${item.sn || '-'}
     const isReadyToSubmit = missingSteps.length === 0;
     const checklistPercent = actionTargetIds.length > 0 ? Math.round((actionChecklist.length / actionTargetIds.length) * 100) : 0;
     const selectedPreview = selectedActionItems.slice(0, 3).map(i => i.name || i.sn || i.id).join(' • ');
+    const isOperationDetailsStep = borrowReturnStage === 'details' && actionTargetIds.length > 0;
+    const currentChecklistScanMode = borrowReturnMode === 'event' ? 'eventChecklist' : borrowReturnMode === 'return' ? 'returnChecklist' : 'borrowChecklist';
+    const goToOperationDetails = () => {
+      if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return;
+      if (actionTargetIds.length === 0) return alert('เลือกอุปกรณ์อย่างน้อย 1 รายการก่อนกดถัดไป');
+      setBorrowReturnStage('details');
+      window.setTimeout(() => document.getElementById('operation-details-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    };
 
     const modeTabs = [
       ['borrow', 'ยืมอุปกรณ์', Icons.UserPlus, 'เลือกของพร้อมใช้', 'blue'],
@@ -11132,8 +11143,8 @@ S.N.: ${item.sn || '-'}
     const stepCards = [
       ['1', 'เลือกโหมดงาน', modeInfo.shortTitle, true],
       ['2', 'เลือกอุปกรณ์', actionTargetIds.length > 0 ? `${actionTargetIds.length} รายการ` : 'ยังไม่เลือก', actionTargetIds.length > 0],
-      ['3', modeInfo.stepLabel, missingSteps.filter(x => !x.includes('อุปกรณ์')).length === 0 ? 'ครบแล้ว' : 'ยังขาดข้อมูล', missingSteps.filter(x => !x.includes('อุปกรณ์')).length === 0],
-      ['4', 'เช็กของ / แนบหลักฐาน', actionTargetIds.length > 0 ? `${checklistPercent}%` : 'รอเลือกของ', actionTargetIds.length > 0 && actionChecklist.length === actionTargetIds.length],
+      ['3', 'กรอกรายละเอียด', missingSteps.filter(x => !x.includes('อุปกรณ์')).length === 0 ? 'ครบแล้ว' : 'ยังขาดข้อมูล', missingSteps.filter(x => !x.includes('อุปกรณ์')).length === 0],
+      ['4', 'สแกน/เช็กของ', actionTargetIds.length > 0 ? `${checklistPercent}%` : 'รอเลือกของ', actionTargetIds.length > 0 && actionChecklist.length === actionTargetIds.length],
       ['5', 'ยืนยันรายการ', isReadyToSubmit ? 'พร้อมบันทึก' : 'ยังไม่พร้อม', isReadyToSubmit]
     ];
 
@@ -11190,7 +11201,7 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div className="p-3 sm:p-4 space-y-3">
-                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,1.05fr)] gap-3 items-stretch">
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)] gap-3 items-stretch">
                   <div className={`rounded-[1.35rem] border p-3 ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="flex items-center justify-between gap-3 mb-3">
                       <div>
@@ -11199,39 +11210,68 @@ S.N.: ${item.sn || '-'}
                       </div>
                       <div className={`rounded-full border px-2.5 py-1 text-[10px] font-black ${modeInfo.softClass}`}>{modeInfo.shortTitle}</div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-1 gap-2.5">
-                      {modeTabs.map(([id, label, Icon, desc, tone], index) => {
-                        const active = borrowReturnMode === id;
-                        const modeShort = id === 'borrow' ? 'ยืม' : id === 'event' ? 'ออกงาน' : 'รับคืน';
-                        const toneClasses = tone === 'orange'
-                          ? { active: 'bg-orange-500/13 border-orange-400/50 text-orange-100', dot: 'bg-orange-400', icon: 'text-orange-200 bg-orange-500/14 border-orange-400/35', glow: 'shadow-[0_14px_34px_rgba(249,115,22,0.10)]' }
-                          : tone === 'emerald'
-                            ? { active: 'bg-emerald-500/13 border-emerald-400/50 text-emerald-100', dot: 'bg-emerald-400', icon: 'text-emerald-200 bg-emerald-500/14 border-emerald-400/35', glow: 'shadow-[0_14px_34px_rgba(16,185,129,0.10)]' }
-                            : { active: 'bg-blue-500/13 border-blue-400/50 text-blue-100', dot: 'bg-blue-400', icon: 'text-blue-200 bg-blue-500/14 border-blue-400/35', glow: 'shadow-[0_14px_34px_rgba(59,130,246,0.10)]' };
-                        return (
-                          <button
-                            key={id}
-                            type="button"
-                            onClick={() => { clearOperationSelection(); setBorrowReturnMode(id); }}
-                            className={`group relative overflow-hidden rounded-2xl border px-3.5 py-3 text-left transition-all ${active ? `${toneClasses.active} ${toneClasses.glow} ring-1 ring-white/5` : (isDarkMode ? 'bg-slate-900/70 border-slate-700/80 text-slate-300 hover:bg-slate-900 hover:border-slate-600' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50')}`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${active ? toneClasses.icon : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
-                                <Icon className="w-5 h-5" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className={`h-2 w-2 rounded-full ${active ? `${toneClasses.dot} shadow-[0_0_12px_currentColor]` : (isDarkMode ? 'bg-slate-600' : 'bg-slate-300')}`} />
-                                  <span className={`text-[10px] font-black uppercase tracking-[0.18em] ${active ? 'text-current opacity-90' : theme.textMuted}`}>{active ? 'ACTIVE' : `0${index + 1}`}</span>
+
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        {modeTabs.map(([id, label, Icon, desc, tone], index) => {
+                          const active = borrowReturnMode === id;
+                          const modeShort = id === 'borrow' ? 'ยืม' : id === 'event' ? 'ออกงาน' : 'รับคืน';
+                          const toneClasses = tone === 'orange'
+                            ? { active: 'bg-orange-500/13 border-orange-400/50 text-orange-100', dot: 'bg-orange-400', icon: 'text-orange-200 bg-orange-500/14 border-orange-400/35', glow: 'shadow-[0_14px_34px_rgba(249,115,22,0.10)]' }
+                            : tone === 'emerald'
+                              ? { active: 'bg-emerald-500/13 border-emerald-400/50 text-emerald-100', dot: 'bg-emerald-400', icon: 'text-emerald-200 bg-emerald-500/14 border-emerald-400/35', glow: 'shadow-[0_14px_34px_rgba(16,185,129,0.10)]' }
+                              : { active: 'bg-blue-500/13 border-blue-400/50 text-blue-100', dot: 'bg-blue-400', icon: 'text-blue-200 bg-blue-500/14 border-blue-400/35', glow: 'shadow-[0_14px_34px_rgba(59,130,246,0.10)]' };
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => { clearOperationSelection(); setBorrowReturnStage('select'); setBorrowReturnMode(id); }}
+                              className={`group relative overflow-hidden rounded-2xl border px-3.5 py-3 text-left transition-all ${active ? `${toneClasses.active} ${toneClasses.glow} ring-1 ring-white/5` : (isDarkMode ? 'bg-slate-900/70 border-slate-700/80 text-slate-300 hover:bg-slate-900 hover:border-slate-600' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50')}`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${active ? toneClasses.icon : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
+                                  <Icon className="w-5 h-5" />
                                 </div>
-                                <div className={`mt-1 text-base font-black ${active ? '' : theme.textTitle}`}>{label}</div>
-                                <div className={`text-xs font-bold mt-0.5 ${active ? 'opacity-75' : theme.textMuted}`}>{desc}</div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`h-2 w-2 rounded-full ${active ? `${toneClasses.dot} shadow-[0_0_12px_currentColor]` : (isDarkMode ? 'bg-slate-600' : 'bg-slate-300')}`} />
+                                    <span className={`text-[10px] font-black uppercase tracking-[0.18em] ${active ? 'text-current opacity-90' : theme.textMuted}`}>{active ? 'ACTIVE' : `0${index + 1}`}</span>
+                                  </div>
+                                  <div className={`mt-1 text-base font-black leading-tight ${active ? '' : theme.textTitle}`}>{label}</div>
+                                  <div className={`text-xs font-bold mt-0.5 leading-snug ${active ? 'opacity-75' : theme.textMuted}`}>{desc}</div>
+                                </div>
+                                <div className={`text-xs font-black rounded-full px-2.5 py-1 border ${active ? 'border-white/15 bg-white/10 text-white' : (isDarkMode ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500')}`}>{modeShort}</div>
                               </div>
-                              <div className={`text-xs font-black rounded-full px-2.5 py-1 border ${active ? 'border-white/15 bg-white/10 text-white' : (isDarkMode ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500')}`}>{modeShort}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className={`rounded-2xl border px-3 py-3 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200'}`}>
+                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Process</div>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              {stepCards.map(([no, label, value, done], index) => (
+                                <div key={no} className="flex items-center gap-2">
+                                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-black ${done ? modeInfo.softClass : (isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500')}`} title={String(value || '')}>
+                                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${done ? modeInfo.primaryBtn + ' text-white' : isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>{done ? '✓' : no}</span>
+                                    {label}
+                                  </span>
+                                  {index < stepCards.length - 1 && <span className={`${isDarkMode ? 'text-slate-700' : 'text-slate-300'} hidden sm:inline`}>›</span>}
+                                </div>
+                              ))}
                             </div>
-                          </button>
-                        );
-                      })}
+                          </div>
+                          <div className="shrink-0 lg:w-[240px] xl:w-[255px]">
+                            <div className={`rounded-2xl border px-3 py-2.5 text-xs font-black ${isReadyToSubmit ? modeInfo.softClass : (isDarkMode ? 'bg-amber-950/25 border-amber-800/60 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800')}`}>
+                              {isReadyToSubmit
+                                ? 'พร้อมตรวจเช็กของและยืนยันรายการ'
+                                : `ยังขาด: ${missingSteps.slice(0, 2).join(' / ')}${missingSteps.length > 2 ? ' ...' : ''}`}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -11243,55 +11283,32 @@ S.N.: ${item.sn || '-'}
                       </div>
                       <div className={`rounded-full border px-2.5 py-1 text-[10px] font-black ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>อัปเดตจากข้อมูลจริง</div>
                     </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-2 gap-2">
                       {[
                         ['พร้อมใช้', stats.available, 'text-emerald-400', 'พร้อมยืม/ออกงาน', 'bg-emerald-500/10 border-emerald-400/25'],
                         ['ถูกยืม', currentBorrowedItems.length, 'text-blue-400', 'รอรับคืน', 'bg-blue-500/10 border-blue-400/25'],
                         ['ออกงาน', currentEventItems.length, 'text-orange-400', 'อยู่นอกศูนย์', 'bg-orange-500/10 border-orange-400/25'],
                         ['เลยกำหนด', overdueItems.length, 'text-rose-400', 'ควรติดตาม', 'bg-rose-500/10 border-rose-400/25']
                       ].map(([label, value, color, desc, accent]) => (
-                        <div key={label} className={`rounded-2xl border p-3 ${isDarkMode ? accent : 'bg-white border-slate-200'}`}>
+                        <div key={label} className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? accent : 'bg-white border-slate-200'}`}>
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <div className={`text-[11px] font-black ${theme.textMuted}`}>{label}</div>
-                              <div className={`text-3xl font-black leading-none mt-2 ${isDarkMode ? color : color.replace('400','600')}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                              <div className={`text-2xl sm:text-[1.7rem] font-black leading-none mt-1.5 ${isDarkMode ? color : color.replace('400','600')}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                              <div className={`text-[10px] font-bold mt-1.5 leading-tight ${theme.textMuted}`}>{desc}</div>
                             </div>
-                            <span className={`mt-1 h-2.5 w-2.5 rounded-full ${color.replace('text-', 'bg-')} shadow-[0_0_12px_currentColor]`} />
+                            <span className={`mt-1 h-2.5 w-2.5 rounded-full shrink-0 ${color.replace('text-', 'bg-')} shadow-[0_0_12px_currentColor]`} />
                           </div>
-                          <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>{desc}</div>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
-
-                <div className={`rounded-2xl border px-3.5 py-3 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                  <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Process</div>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        {stepCards.map(([no, label, value, done], index) => (
-                          <div key={no} className="flex items-center gap-2">
-                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-black ${done ? modeInfo.softClass : (isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`} title={String(value || '')}>
-                              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] ${done ? modeInfo.primaryBtn + ' text-white' : isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>{done ? '✓' : no}</span>
-                              {label}
-                            </span>
-                            {index < stepCards.length - 1 && <span className={`${isDarkMode ? 'text-slate-700' : 'text-slate-300'} hidden sm:inline`}>›</span>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    {!isReadyToSubmit && (
-                      <div className={`shrink-0 rounded-2xl border px-3 py-2 text-xs font-black ${isDarkMode ? 'bg-amber-950/25 border-amber-800/60 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
-                        ยังขาด: {missingSteps.slice(0, 2).join(' / ')}{missingSteps.length > 2 ? ' ...' : ''}
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
             </section>
 
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.12fr)_minmax(380px,.88fr)] gap-5 items-start">
+            <div className={`grid grid-cols-1 ${isOperationDetailsStep ? '' : 'xl:grid-cols-[minmax(0,1.12fr)_minmax(380px,.88fr)]'} gap-5 items-start`}>
+              {!isOperationDetailsStep && (
               <section className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/80 border-slate-800 shadow-[0_18px_55px_rgba(0,0,0,0.18)]' : 'bg-white border-slate-200 shadow-sm'}`}>
                 <div className={`p-4 border-b ${theme.divide}`}>
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -11472,11 +11489,19 @@ S.N.: ${item.sn || '-'}
                   })}
                 </div>
               </section>
+              )}
 
-              <section className={`rounded-[1.6rem] border overflow-hidden sticky top-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <section id="operation-details-panel" className={`rounded-[1.6rem] border overflow-hidden ${isOperationDetailsStep ? '' : 'sticky top-4'} ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className={`p-4 border-b ${theme.divide}`}>
-                  <h3 className={`text-xl font-black flex items-center gap-2 ${theme.textTitle}`}><ActionIcon className="w-6 h-6" /> {modeInfo.title}</h3>
-                  <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{modeInfo.desc}</p>
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className={`text-xl font-black flex items-center gap-2 ${theme.textTitle}`}><ActionIcon className="w-6 h-6" /> {modeInfo.title}</h3>
+                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{isOperationDetailsStep ? 'กรอกรายละเอียด สแกนเช็ก QR หรือเช็กด้วยมือ แล้วกดยืนยันรายการ' : 'เลือกอุปกรณ์จากรายการด้านซ้ายก่อน แล้วกดถัดไปเพื่อกรอกรายละเอียด'}</p>
+                    </div>
+                    {isOperationDetailsStep && (
+                      <button type="button" onClick={() => setBorrowReturnStage('select')} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>← กลับไปเลือกอุปกรณ์</button>
+                    )}
+                  </div>
                 </div>
                 <div className="p-4 space-y-4">
                   <div className={`rounded-2xl border p-4 ${actionTargetIds.length > 0 ? modeInfo.softClass : (isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700')}`}>
@@ -11501,6 +11526,18 @@ S.N.: ${item.sn || '-'}
                       </div>
                     )}
                   </div>
+
+                  {!isOperationDetailsStep ? (
+                    <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className={`font-black ${theme.textTitle}`}>ขั้นตอนที่ 1: เลือกอุปกรณ์ให้ครบก่อน</div>
+                      <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เลือกจากรายการด้านซ้าย ใช้ตัวกรอง หรือสแกน QR เพื่อเพิ่มอุปกรณ์เข้าใบงาน จากนั้นกดถัดไป</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                        <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; openSelectionScanner({ camera: true, returnWorkspace: 'borrowReturn' }); }} className={`px-4 py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.QrCode className="w-5 h-5" /> สแกน QR เพิ่มของ</button>
+                        <button type="button" onClick={goToOperationDetails} disabled={!canUseCurrentOperation || actionTargetIds.length === 0} className={`px-4 py-3 rounded-2xl font-black text-white ${toneBtn} disabled:bg-slate-500 disabled:cursor-not-allowed`}>ถัดไป: กรอกรายละเอียด</button>
+                      </div>
+                    </div>
+                  ) : (
+                  <>
 
                   {missingSteps.length > 0 ? (
                     <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-amber-950/25 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
@@ -11553,7 +11590,8 @@ S.N.: ${item.sn || '-'}
                   <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="flex items-center justify-between gap-3 mb-3">
                       <div className={`font-black ${theme.textTitle}`}>เช็กลิสต์ ({actionChecklist.length}/{actionTargetIds.length})</div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2 justify-end">
+                        <button type="button" onClick={() => openChecklistScanner(currentChecklistScanMode)} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>สแกน QR เช็ก</button>
                         <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionChecklist(actionTargetIds); }} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>เช็กครบ</button>
                         <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionChecklist([]); }} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ล้างเช็ก</button>
                       </div>
@@ -11573,8 +11611,10 @@ S.N.: ${item.sn || '-'}
 
                   <div className="grid grid-cols-2 gap-3">
                     <button type="button" onClick={clearOperationSelection} className={`py-4 rounded-xl font-black border ${theme.btnCancel}`}>ยกเลิก</button>
-                    <button type="button" onClick={() => requestOperationConfirm(borrowReturnMode === 'event' ? 'event' : borrowReturnMode === 'return' ? 'return' : 'borrow')} disabled={!canUseCurrentOperation || !isReadyToSubmit} className={`py-4 rounded-xl font-black text-white ${toneBtn} disabled:bg-slate-400 disabled:cursor-not-allowed`}>{borrowReturnMode === 'event' ? 'บันทึกนำออกงาน' : borrowReturnMode === 'return' ? 'บันทึกรับคืน' : 'บันทึกการยืม'}</button>
+                    <button type="button" onClick={() => requestOperationConfirm(borrowReturnMode === 'event' ? 'event' : borrowReturnMode === 'return' ? 'return' : 'borrow')} disabled={!canUseCurrentOperation || !isReadyToSubmit} className={`py-4 rounded-xl font-black text-white ${toneBtn} disabled:bg-slate-400 disabled:cursor-not-allowed`}>{borrowReturnMode === 'event' ? 'ยืนยันนำออกงาน' : borrowReturnMode === 'return' ? 'ยืนยันรับคืน' : 'ยืนยันการยืม'}</button>
                   </div>
+                  </>
+                  )}
                 </div>
               </section>
             </div>
