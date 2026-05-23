@@ -59,7 +59,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.9 Equipment Photo Lite Polish';
+const APP_VERSION = 'v23.1.10 Equipment Photo File Lite Display Fix';
 const APP_UPDATE_NOTE = 'Operation Wizard Flow: แยกขั้นตอนเลือกอุปกรณ์ก่อน แล้วกดถัดไปเพื่อกรอกรายละเอียด สแกนเช็ก QR หรือติ๊กยืนยันก่อนบันทึก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -8112,42 +8112,70 @@ function MainApp() {
 
   // v23.1.9 Equipment Photo Lite
   // รูปอุปกรณ์เป็นข้อมูลเสริม ไม่บังคับ และบีบให้เล็กมากเพื่อใช้เป็น thumbnail เท่านั้น
-  const EQUIPMENT_PHOTO_MAX_SIDE = 360;
-  const EQUIPMENT_PHOTO_TARGET_KB = 22;
-  const EQUIPMENT_PHOTO_MAX_KB = 40;
+  const EQUIPMENT_PHOTO_MAX_SIDE = 420;
+  const EQUIPMENT_PHOTO_TARGET_KB = 18;
+  const EQUIPMENT_PHOTO_MAX_KB = 32;
 
   const compressEquipmentPhotoFile = async (file) => {
     if (!file || !String(file.type || '').startsWith('image/')) {
       throw new Error('รองรับเฉพาะไฟล์รูปภาพเท่านั้น');
     }
     const img = await loadImageFromFile(file);
-    const scale = Math.min(1, EQUIPMENT_PHOTO_MAX_SIDE / Math.max(img.width || 1, img.height || 1));
-    const width = Math.max(1, Math.round((img.width || 1) * scale));
-    const height = Math.max(1, Math.round((img.height || 1) * scale));
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, 0, width, height);
-    ctx.drawImage(img, 0, 0, width, height);
+    const originalMaxSide = Math.max(img.width || 1, img.height || 1);
+    const targetBytes = EQUIPMENT_PHOTO_TARGET_KB * 1024;
+    const maxBytes = EQUIPMENT_PHOTO_MAX_KB * 1024;
 
+    let workingMaxSide = EQUIPMENT_PHOTO_MAX_SIDE;
     let bestBlob = null;
-    for (const quality of [0.62, 0.55, 0.48, 0.40, 0.34, 0.28]) {
-      const blob = await canvasToJpegBlob(canvas, quality);
-      if (!blob) continue;
-      bestBlob = blob;
-      if (blob.size <= EQUIPMENT_PHOTO_TARGET_KB * 1024) break;
+    let bestWidth = 1;
+    let bestHeight = 1;
+
+    // บีบ "ขนาดไฟล์" เป็นหลัก ไม่ได้บังคับให้รูปที่แสดงบนการ์ดเล็ก
+    // ถ้ายังใหญ่เกิน จะลด resolution ทีละรอบจนได้ไฟล์ที่เบาพอสำหรับ Firestore
+    for (let round = 0; round < 5; round += 1) {
+      const scale = Math.min(1, workingMaxSide / originalMaxSide);
+      const width = Math.max(1, Math.round((img.width || 1) * scale));
+      const height = Math.max(1, Math.round((img.height || 1) * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+
+      for (const quality of [0.58, 0.50, 0.42, 0.34, 0.28, 0.22]) {
+        const blob = await canvasToJpegBlob(canvas, quality);
+        if (!blob) continue;
+        if (!bestBlob || blob.size < bestBlob.size) {
+          bestBlob = blob;
+          bestWidth = width;
+          bestHeight = height;
+        }
+        if (blob.size <= targetBytes) {
+          return {
+            dataUrl: await blobToDataUrl(blob),
+            bytes: blob.size,
+            width,
+            height,
+            originalName: file.name || 'equipment-photo.jpg'
+          };
+        }
+      }
+
+      if (bestBlob && bestBlob.size <= maxBytes) break;
+      workingMaxSide = Math.max(220, Math.round(workingMaxSide * 0.82));
     }
+
     if (!bestBlob) throw new Error('ไม่สามารถบีบอัดรูปได้');
-    if (bestBlob.size > EQUIPMENT_PHOTO_MAX_KB * 1024) {
-      pushToast(`รูปย่อยังใหญ่ ${formatProofBytes(bestBlob.size)} แต่ระบบจะเก็บเท่าที่บีบได้`, 'warning');
+    if (bestBlob.size > maxBytes) {
+      pushToast(`ไฟล์รูปยังใหญ่ ${formatProofBytes(bestBlob.size)} แต่ระบบจะเก็บเท่าที่บีบได้`, 'warning');
     }
     return {
       dataUrl: await blobToDataUrl(bestBlob),
       bytes: bestBlob.size,
-      width,
-      height,
+      width: bestWidth,
+      height: bestHeight,
       originalName: file.name || 'equipment-photo.jpg'
     };
   };
@@ -11578,14 +11606,15 @@ S.N.: ${item.sn || '-'}
                         type="button"
                         onClick={() => toggleOperationalItem(item.id)}
                         className={`operation-picker-card group relative w-full p-2.5 rounded-2xl border text-left transition-all overflow-hidden ${selected ? `${modeInfo.activeClass} ring-2 ring-emerald-400/45 shadow-[0_12px_30px_rgba(16,185,129,0.14)]` : (isDarkMode ? 'bg-slate-900/85 border-slate-800 hover:border-slate-500 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-blue-200 hover:bg-white')}`}
-                        style={{ minHeight: '128px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                        style={{ minHeight: '188px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
                       >
                         <div>
-                          <div className="flex items-start justify-between gap-2">
-                            <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 overflow-hidden ${selected ? 'bg-white/10 border-white/20 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
-                              {thumbSrc ? <img src={thumbSrc} alt={item.name || 'รูปอุปกรณ์'} className="w-full h-full object-contain p-1" loading="lazy" /> : <DeptIcon className="w-5 h-5" />}
+                          <div className="relative">
+                            <div className={`w-full h-[82px] rounded-2xl border flex items-center justify-center overflow-hidden ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? 'bg-slate-950/75 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
+                              {thumbSrc ? <img src={thumbSrc} alt={item.name || 'รูปอุปกรณ์'} className="w-full h-full object-contain p-2" loading="lazy" /> : <DeptIcon className="w-8 h-8 opacity-80" />}
                             </div>
-                            <span className={`w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black text-xs transition-all ${selected ? (isDarkMode ? 'bg-emerald-400 border-emerald-300 text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white') : isDarkMode ? 'border-slate-600 bg-slate-950 text-slate-600 group-hover:text-slate-300' : 'border-slate-300 bg-white text-slate-300 group-hover:text-slate-500'}`}>{selected ? '✓' : ''}</span>
+                            <span className={`absolute top-2 left-2 w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black text-xs transition-all ${selected ? (isDarkMode ? 'bg-emerald-400 border-emerald-300 text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white') : isDarkMode ? 'border-slate-600 bg-slate-950/90 text-slate-600 group-hover:text-slate-300' : 'border-slate-300 bg-white/90 text-slate-300 group-hover:text-slate-500'}`}>{selected ? '✓' : ''}</span>
+                            {!!thumbSrc && <span className={`absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black border ${isDarkMode ? 'bg-slate-950/80 border-slate-700 text-slate-300' : 'bg-white/85 border-slate-200 text-slate-600'}`}>ไฟล์เบา</span>}
                           </div>
 
                           <div className="mt-2 min-w-0">
@@ -24046,7 +24075,7 @@ S.N.: ${item.sn || '-'}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className={`font-black text-lg flex items-center gap-2 ${theme.textTitle}`}>รูปอุปกรณ์ <span className={`text-xs font-black px-2 py-1 rounded-full border ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>ไม่บังคับ</span></div>
-                    <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้เป็นรูปย่อช่วยจำตอนเลือกของเท่านั้น ระบบจะบีบรูปเหลือประมาณ {EQUIPMENT_PHOTO_TARGET_KB} KB/รูป เพื่อประหยัดฐานข้อมูล</p>
+                    <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>รูปจะแสดงบนการ์ดให้พอดูออก แต่ไฟล์ที่เก็บจะถูกบีบเหลือประมาณ {EQUIPMENT_PHOTO_TARGET_KB} KB/รูป เพื่อประหยัดฐานข้อมูล</p>
                   </div>
                   <div className="flex flex-wrap gap-2 shrink-0">
                     <label className={`px-4 py-2.5 rounded-xl border font-black text-sm cursor-pointer ${theme.btnSecondary}`}>
@@ -24062,7 +24091,7 @@ S.N.: ${item.sn || '-'}
                   </div>
                   <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                     <div className={`text-sm font-black ${theme.textTitle}`}>{formData.photoThumb ? `มีรูปย่อแล้ว • ${formatProofBytes(formData.photoBytes || 0)}` : 'ไม่ต้องอัปครบทุกชิ้นก็ได้'}</div>
-                    <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>แนะนำให้ใส่เฉพาะของที่หน้าตาคล้ายกัน/หยิบบ่อย/หาเจอยากก่อน เช่น ไมค์ สาย เลนส์ เมม การ์ด กล่องอุปกรณ์ ส่วนของที่รู้จักง่ายให้ปล่อยว่างไว้เพื่อลดพื้นที่ฐานข้อมูล</div>
+                    <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>แนะนำให้ใส่เฉพาะของที่หน้าตาคล้ายกัน/หยิบบ่อย/หาเจอยากก่อน ระบบเน้นลดขนาดไฟล์ ไม่ได้ลดขนาดการแสดงผลบนการ์ด</div>
                   </div>
                 </div>
               </section>
