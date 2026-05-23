@@ -59,8 +59,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.11 Equipment Photo Display Bigger Polish';
-const APP_UPDATE_NOTE = 'Operation Wizard Flow: แยกขั้นตอนเลือกอุปกรณ์ก่อน แล้วกดถัดไปเพื่อกรอกรายละเอียด สแกนเช็ก QR หรือติ๊กยืนยันก่อนบันทึก';
+const APP_VERSION = 'v23.1.12 Remove Equipment Photo System';
+const APP_UPDATE_NOTE = 'Remove Equipment Photo System: เอาระบบรูปอุปกรณ์ออกจาก UI ใช้ไอคอนหมวดแทนทั้งหมด ลดความรกและให้หน้าการ์ดอุปกรณ์สะอาดขึ้น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11599,22 +11599,20 @@ S.N.: ${item.sn || '-'}
                     const deptInfo = DEPARTMENTS.find(d => d.id === (item.department || item.ownerDepartment));
                     const DeptIcon = Icons[deptInfo?.iconName] || Icons.Package;
                     const deptPillClass = deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600');
-                    const thumbSrc = getEquipmentThumb(item);
                     return (
                       <button
                         key={item.id}
                         type="button"
                         onClick={() => toggleOperationalItem(item.id)}
                         className={`operation-picker-card group relative w-full p-2.5 rounded-2xl border text-left transition-all overflow-hidden ${selected ? `${modeInfo.activeClass} ring-2 ring-emerald-400/45 shadow-[0_12px_30px_rgba(16,185,129,0.14)]` : (isDarkMode ? 'bg-slate-900/85 border-slate-800 hover:border-slate-500 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-blue-200 hover:bg-white')}`}
-                        style={{ minHeight: '232px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                        style={{ minHeight: '190px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
                       >
                         <div>
                           <div className="relative">
-                            <div className={`w-full h-[122px] rounded-2xl border flex items-center justify-center overflow-hidden ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? 'bg-slate-950/75 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
-                              {thumbSrc ? <img src={thumbSrc} alt={item.name || 'รูปอุปกรณ์'} className="w-full h-full object-contain p-1.5" loading="lazy" /> : <DeptIcon className="w-10 h-10 opacity-80" />}
+                            <div className={`w-full h-[72px] rounded-2xl border flex items-center justify-center overflow-hidden ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? 'bg-slate-950/75 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
+                              <DeptIcon className="w-11 h-11 opacity-85" />
                             </div>
                             <span className={`absolute top-2 left-2 w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black text-xs transition-all ${selected ? (isDarkMode ? 'bg-emerald-400 border-emerald-300 text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white') : isDarkMode ? 'border-slate-600 bg-slate-950/90 text-slate-600 group-hover:text-slate-300' : 'border-slate-300 bg-white/90 text-slate-300 group-hover:text-slate-500'}`}>{selected ? '✓' : ''}</span>
-                            {!!thumbSrc && <span className={`absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black border ${isDarkMode ? 'bg-slate-950/80 border-slate-700 text-slate-300' : 'bg-white/85 border-slate-200 text-slate-600'}`}>ไฟล์เบา</span>}
                           </div>
 
                           <div className="mt-2 min-w-0">
@@ -24071,30 +24069,6 @@ S.N.: ${item.sn || '-'}
                 </div>
               </section>
 
-              <section className={`item-form-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className={`font-black text-lg flex items-center gap-2 ${theme.textTitle}`}>รูปอุปกรณ์ <span className={`text-xs font-black px-2 py-1 rounded-full border ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>ไม่บังคับ</span></div>
-                    <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>รูปจะแสดงบนการ์ดให้พอดูออก แต่ไฟล์ที่เก็บจะถูกบีบเหลือประมาณ {EQUIPMENT_PHOTO_TARGET_KB} KB/รูป เพื่อประหยัดฐานข้อมูล</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 shrink-0">
-                    <label className={`px-4 py-2.5 rounded-xl border font-black text-sm cursor-pointer ${theme.btnSecondary}`}>
-                      เลือกรูป
-                      <input type="file" accept="image/*" className="hidden" onChange={handleEquipmentPhotoInput} />
-                    </label>
-                    {!!formData.photoThumb && <button type="button" onClick={clearEquipmentPhoto} className={`px-4 py-2.5 rounded-xl border font-black text-sm ${theme.btnCancel}`}>ลบรูป</button>}
-                  </div>
-                </div>
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-[210px_minmax(0,1fr)] gap-4 items-center">
-                  <div className={`w-full h-40 rounded-2xl border overflow-hidden flex items-center justify-center ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    {formData.photoThumb ? <img src={formData.photoThumb} alt="รูปอุปกรณ์" className="w-full h-full object-contain" /> : <div className={`text-xs font-black text-center px-3 ${theme.textMuted}`}>ยังไม่มีรูป<br/>ใช้ไอคอนแทนได้</div>}
-                  </div>
-                  <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className={`text-sm font-black ${theme.textTitle}`}>{formData.photoThumb ? `มีรูปย่อแล้ว • ${formatProofBytes(formData.photoBytes || 0)}` : 'ไม่ต้องอัปครบทุกชิ้นก็ได้'}</div>
-                    <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>แนะนำให้ใส่เฉพาะของที่หน้าตาคล้ายกัน/หยิบบ่อย/หาเจอยากก่อน ระบบเน้นลดขนาดไฟล์ ไม่ได้ลดขนาดการแสดงผลบนการ์ด</div>
-                  </div>
-                </div>
-              </section>
 
               <section className={`item-form-section smart-equipment-form-section equipment-metadata-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-sky-950/20 border-sky-800' : 'bg-sky-50 border-sky-200'}`}>
                 {(() => {
