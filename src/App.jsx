@@ -15,6 +15,7 @@
 // v22.52.6 Data Quality Action Polish - supports camera/department/flexible memory choice without fixed sets
 // v22.52.6 Data Quality Action Polish - UI-only polish, no QR/camera/database changes
 // v22.52.1 ตัวช่วยกล้อง Final UX - UI/UX safe polish, no QR/camera/database changes
+// v22.60.0 Login First Front Desk Flow
 // v22.59.1 Front Desk Usability Polish
 // v22.58.0 Major Cleanup Test Build - รวมรอบเก็บงานใหญ่: Settings, Global Theme, Evidence, Permissions, Remove Duplicate หลังบ้าน / Admin Center
 // v22.57.7.1 Strict Login Gate Fix - ไม่ล็อกอินห้ามเห็นคลังละเอียด/ติ๊กเลือก/ทำรายการจริง ใช้ได้เฉพาะหน้าอ่านอย่างเดียวและต้องล็อกอินก่อนปฏิบัติการ
@@ -55,7 +56,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v22.59.1 Front Desk Usability Polish';
+const APP_VERSION = 'v22.60.0 Login First Front Desk Flow';
 const APP_UPDATE_NOTE = 'Inline Evidence Actions Fix: เพิ่มปุ่มซ่อนรูป/ลบถาวรในหลักฐานรูปภาพแบบหน้าเดียว และซิงก์การลบให้ตรงทุกจุด';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -6954,7 +6955,9 @@ function MainApp() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [user, setUser] = useState(null);
-  const [showLogin, setShowLogin] = useState(false);
+  const [showLogin, setShowLogin] = useState(() => {
+    try { return localStorage.getItem('mdec_admin') !== 'true'; } catch (e) { return true; }
+  });
   const [pin, setPin] = useState('');
   const [loginUsername, setLoginUsername] = useState('admin');
   const [currentOperator, setCurrentOperator] = useState(() => {
@@ -9900,8 +9903,8 @@ S.N.: ${item.sn || '-'}
   const workspaceMeta = {
     overview: {
       kicker: 'MDEC STOCK CENTER',
-      title: 'ศูนย์งานประจำวัน',
-      desc: 'หน้าใช้งานหลักแบบ Front Desk สำหรับยืม คืน ออกงาน สแกน และติดตามงานด่วน'
+      title: 'หน้าใช้งานหลัก',
+      desc: 'เปิดเว็บมาให้ล็อกอิน แล้วเลือกงานหลัก: เติมของ ยืม ออกงาน รับคืน สแกน หรือดูสต็อกทั้งหมด'
     },
     inventory: {
       kicker: 'EQUIPMENT INVENTORY',
@@ -18718,7 +18721,7 @@ S.N.: ${item.sn || '-'}
         <nav className="flex-1 px-4 py-5 space-y-3 overflow-y-auto custom-scrollbar">
           <div className="px-3 pb-1 text-[10px] font-black tracking-[0.22em] uppercase text-slate-500">Front Desk</div>
           <button type="button" onClick={() => openWorkspace('overview')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'overview' ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.Package className="w-5 h-5" /> ศูนย์งานประจำวัน
+            <Icons.Package className="w-5 h-5" /> หน้าใช้งานหลัก
           </button>
           <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'borrowReturn' ? 'bg-gradient-to-r from-slate-700 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
             <Icons.UserPlus className="w-5 h-5" /> ยืม / คืน / ออกงาน
@@ -18729,7 +18732,7 @@ S.N.: ${item.sn || '-'}
             </button>
           )}
           <button type="button" onClick={() => openWorkspace('inventory')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'inventory' ? 'bg-gradient-to-r from-slate-700 to-emerald-700 text-white shadow-lg shadow-emerald-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.Database className="w-5 h-5" /> ค้นหาอุปกรณ์
+            <Icons.Database className="w-5 h-5" /> สต็อกทั้งหมด
           </button>
           <button type="button" onClick={() => openTrackingCenter('today')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'tracking' ? 'bg-gradient-to-r from-slate-700 to-cyan-700 text-white shadow-lg shadow-cyan-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
             <Icons.History className="w-5 h-5" /> ติดตามของรอคืน
@@ -20047,14 +20050,17 @@ S.N.: ${item.sn || '-'}
                 <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_18px_rgba(34,211,238,0.55)]" /> FRONT DESK
               </div>
               <h2 className={`text-3xl sm:text-5xl font-black mt-2 tracking-tight ${theme.textTitle}`}>วันนี้ต้องทำอะไร</h2>
-              <p className={`text-sm sm:text-base font-bold mt-2 max-w-4xl ${theme.textMuted}`}>หน้าใช้งานประจำวันสำหรับยืม คืน ออกงาน สแกน และค้นหาอุปกรณ์เร็ว ๆ โดยไม่ต้องเห็นเครื่องมือหลังบ้านทั้งหมด</p>
+              <p className={`text-sm sm:text-base font-bold mt-2 max-w-4xl ${theme.textMuted}`}>เปิดเว็บมาให้ล็อกอินก่อน จากนั้นเลือกงานหลักได้ทันที จะสแกน QR เพื่อประหยัดเวลา หรือเลือกจากรายการ/ตัวกรองเองก็ได้</p>
             </div>
             <div className="flex flex-wrap gap-2 shrink-0">
-              <button type="button" onClick={() => { setBorrowReturnMode('borrow'); openWorkspace('borrowReturn'); }} className="px-5 py-3 rounded-2xl bg-slate-100 text-slate-950 hover:bg-white font-black shadow-sm flex items-center gap-2">
-                <Icons.UserPlus className="w-5 h-5" /> เริ่มยืม
+              <button type="button" onClick={() => { if (!requireOperationalAccess('เติมของ/เพิ่มอุปกรณ์')) return; openAddItemForm(); }} className="px-5 py-3 rounded-2xl bg-slate-100 text-slate-950 hover:bg-white font-black shadow-sm flex items-center gap-2">
+                <Icons.Package className="w-5 h-5" /> เติมของ
               </button>
-              <button type="button" onClick={() => { setBorrowReturnMode('return'); openWorkspace('borrowReturn'); }} className={`px-5 py-3 rounded-2xl border font-black flex items-center gap-2 ${theme.btnSecondary}`}>
-                <Icons.CheckCircle className="w-5 h-5" /> รับคืน
+              <button type="button" onClick={() => { if (!requireOperationalAccess('ยืมอุปกรณ์', 'borrow')) return; setBorrowReturnMode('borrow'); openWorkspace('borrowReturn'); }} className={`px-5 py-3 rounded-2xl border font-black flex items-center gap-2 ${theme.btnSecondary}`}>
+                <Icons.UserPlus className="w-5 h-5" /> ยืม
+              </button>
+              <button type="button" onClick={() => { if (!requireOperationalAccess('นำอุปกรณ์ออกงาน', 'event')) return; setBorrowReturnMode('event'); openWorkspace('borrowReturn'); }} className={`px-5 py-3 rounded-2xl border font-black flex items-center gap-2 ${theme.btnSecondary}`}>
+                <Icons.Truck className="w-5 h-5" /> ออกงาน
               </button>
               <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`px-5 py-3 rounded-2xl border font-black flex items-center gap-2 ${theme.btnSecondary}`}>
                 <Icons.QrCode className="w-5 h-5" /> สแกน QR
@@ -20064,12 +20070,22 @@ S.N.: ${item.sn || '-'}
         </div>
 
         <div className="p-4 sm:p-6 space-y-5">
+          {!canUseOperationalTools && (
+            <div className={`rounded-[1.6rem] border p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${isDarkMode ? 'bg-amber-950/20 border-amber-500/25' : 'bg-amber-50 border-amber-200'}`}>
+              <div>
+                <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-amber-300' : 'text-amber-700'}`}>LOGIN REQUIRED</div>
+                <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>เข้าสู่ระบบก่อนเริ่มทำรายการ</div>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หน้าใช้งานหลักเปิดให้ดูภาพรวมได้ แต่การเติมของ ยืม ออกงาน รับคืน และสแกนเพื่อทำรายการ ต้องใช้บัญชีเจ้าหน้าที่เพื่อบันทึกผู้ทำรายการ</p>
+              </div>
+              <button type="button" onClick={() => setShowLogin(true)} className="px-6 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg shadow-blue-950/30">เข้าสู่ระบบ</button>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
             {[
-              { title: 'ยืมอุปกรณ์', sub: 'เลือกของพร้อมใช้', icon: Icons.UserPlus, action: () => { setBorrowReturnMode('borrow'); openWorkspace('borrowReturn'); }, primary: true },
-              { title: 'รับคืน', sub: 'ตรวจของกลับคลัง', icon: Icons.CheckCircle, action: () => { setBorrowReturnMode('return'); openWorkspace('borrowReturn'); } },
-              { title: 'ออกงาน', sub: 'นำของไปใช้นอกศูนย์', icon: Icons.Truck, action: () => { setBorrowReturnMode('event'); openWorkspace('borrowReturn'); } },
-              { title: 'สแกน QR', sub: 'ยิง QR เพื่อดู/ทำรายการ', icon: Icons.QrCode, action: () => openSelectionScanner({ camera: true }) }
+              { title: 'เติมของ', sub: 'เพิ่มอุปกรณ์เข้าสต็อก / กรอกข้อมูลใหม่', icon: Icons.Package, action: () => { if (!requireOperationalAccess('เติมของ/เพิ่มอุปกรณ์')) return; openAddItemForm(); }, primary: true },
+              { title: 'ยืมอุปกรณ์', sub: 'สแกน QR หรือเลือกจากรายการพร้อมตัวกรอง', icon: Icons.UserPlus, action: () => { if (!requireOperationalAccess('ยืมอุปกรณ์', 'borrow')) return; setBorrowReturnMode('borrow'); openWorkspace('borrowReturn'); } },
+              { title: 'ออกงาน', sub: 'จัดของออกกิจกรรม / งานนอกศูนย์', icon: Icons.Truck, action: () => { if (!requireOperationalAccess('นำอุปกรณ์ออกงาน', 'event')) return; setBorrowReturnMode('event'); openWorkspace('borrowReturn'); } },
+              { title: 'รับคืน', sub: 'สแกน QR หรือเลือกของที่รอคืน', icon: Icons.CheckCircle, action: () => { if (!requireOperationalAccess('รับคืนอุปกรณ์', 'return')) return; setBorrowReturnMode('return'); openWorkspace('borrowReturn'); } }
             ].map(action => {
               const ActionIcon = action.icon;
               return (
@@ -20082,6 +20098,7 @@ S.N.: ${item.sn || '-'}
                   </div>
                   <div className="mt-4 text-xl sm:text-2xl font-black">{action.title}</div>
                   <div className={`text-sm font-bold mt-1 ${action.primary ? 'text-white/75' : theme.textMuted}`}>{action.sub}</div>
+                  <div className={`mt-3 text-[11px] font-black ${action.primary ? 'text-white/65' : theme.textMuted}`}>สแกน QR ได้ • เลื่อนหาเองได้ • ใช้ตัวกรองได้</div>
                 </button>
               );
             })}
@@ -20091,10 +20108,10 @@ S.N.: ${item.sn || '-'}
             <div className={`rounded-[1.8rem] border p-4 sm:p-5 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200'}`}>
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                  <h3 className={`text-xl sm:text-2xl font-black ${theme.textTitle}`}>ค้นหาอุปกรณ์เร็ว</h3>
-                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>พิมพ์ชื่อ, S.N., รหัสสั้น, หมวด, ที่เก็บ, โครงการ หรือฝ่าย แล้วเปิดคลังเพื่อดูรายละเอียด</p>
+                  <h3 className={`text-xl sm:text-2xl font-black ${theme.textTitle}`}>ดูของทั้งหมดในสต็อก</h3>
+                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูว่าศูนย์มีอุปกรณ์อะไรบ้าง ค้นหาด้วยชื่อ, S.N., รหัสสั้น, หมวด, ที่เก็บ, โครงการ หรือฝ่าย</p>
                 </div>
-                <button type="button" onClick={() => openWorkspace('inventory')} className={`px-4 py-3 rounded-2xl border font-black shrink-0 ${theme.btnSecondary}`}>เปิดคลังเต็ม</button>
+                <button type="button" onClick={() => openWorkspace('inventory')} className={`px-4 py-3 rounded-2xl border font-black shrink-0 ${theme.btnSecondary}`}>เปิดสต็อกทั้งหมด</button>
               </div>
               <div className={`mt-4 rounded-2xl border flex items-center gap-3 px-4 py-3 ${theme.input}`}>
                 <Icons.Search className="w-5 h-5 opacity-60 shrink-0" />
@@ -20168,8 +20185,8 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <aside className={`rounded-[1.8rem] border p-4 sm:p-5 ${isDarkMode ? 'bg-slate-950/80 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <h3 className={`text-xl font-black ${theme.textTitle}`}>หลังบ้านย่อ</h3>
-              <p className={`text-sm font-bold mt-1 mb-3 ${theme.textMuted}`}>งานจัดการระบบเก็บไว้ตรงนี้ ไม่ให้ปนกับหน้าใช้งาน</p>
+              <h3 className={`text-xl font-black ${theme.textTitle}`}>หลังบ้าน / ระบบจัดการ</h3>
+              <p className={`text-sm font-bold mt-1 mb-3 ${theme.textMuted}`}>กดเข้าระบบหลังบ้านเมื่อจำเป็น เช่น รายงาน หลักฐาน โครงการ Backup และตั้งค่า</p>
               <div className="grid gap-2">
                 {[
                   ['หลังบ้าน / จัดการระบบ', 'เมนูจัดการทั้งหมด', () => openWorkspace('tools')],
