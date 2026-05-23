@@ -59,7 +59,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.8 Operation Picker Grid Hotfix';
+const APP_VERSION = 'v23.1.9 Equipment Photo Lite Polish';
 const APP_UPDATE_NOTE = 'Operation Wizard Flow: แยกขั้นตอนเลือกอุปกรณ์ก่อน แล้วกดถัดไปเพื่อกรอกรายละเอียด สแกนเช็ก QR หรือติ๊กยืนยันก่อนบันทึก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -6972,7 +6972,7 @@ function MainApp() {
   const [firebaseError, setFirebaseError] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '', equipmentType: '', shortCode: '', ownerDepartment: '', mount: '', compatibleWith: '', batteryModel: '', memoryCapacity: '', memoryType: '', memorySpeed: '', memoryAssignMode: '', assignedCamera: '' });
+  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '', equipmentType: '', shortCode: '', ownerDepartment: '', mount: '', compatibleWith: '', batteryModel: '', memoryCapacity: '', memoryType: '', memorySpeed: '', memoryAssignMode: '', assignedCamera: '', photoThumb: '', photoBytes: 0, photoUpdatedAt: '' });
   
   const [itemToDelete, setItemToDelete] = useState(null); 
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
@@ -8108,6 +8108,76 @@ function MainApp() {
     if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
     return `${(n / 1024 / 1024).toFixed(2)} MB`;
   };
+
+
+  // v23.1.9 Equipment Photo Lite
+  // รูปอุปกรณ์เป็นข้อมูลเสริม ไม่บังคับ และบีบให้เล็กมากเพื่อใช้เป็น thumbnail เท่านั้น
+  const EQUIPMENT_PHOTO_MAX_SIDE = 360;
+  const EQUIPMENT_PHOTO_TARGET_KB = 22;
+  const EQUIPMENT_PHOTO_MAX_KB = 40;
+
+  const compressEquipmentPhotoFile = async (file) => {
+    if (!file || !String(file.type || '').startsWith('image/')) {
+      throw new Error('รองรับเฉพาะไฟล์รูปภาพเท่านั้น');
+    }
+    const img = await loadImageFromFile(file);
+    const scale = Math.min(1, EQUIPMENT_PHOTO_MAX_SIDE / Math.max(img.width || 1, img.height || 1));
+    const width = Math.max(1, Math.round((img.width || 1) * scale));
+    const height = Math.max(1, Math.round((img.height || 1) * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+
+    let bestBlob = null;
+    for (const quality of [0.62, 0.55, 0.48, 0.40, 0.34, 0.28]) {
+      const blob = await canvasToJpegBlob(canvas, quality);
+      if (!blob) continue;
+      bestBlob = blob;
+      if (blob.size <= EQUIPMENT_PHOTO_TARGET_KB * 1024) break;
+    }
+    if (!bestBlob) throw new Error('ไม่สามารถบีบอัดรูปได้');
+    if (bestBlob.size > EQUIPMENT_PHOTO_MAX_KB * 1024) {
+      pushToast(`รูปย่อยังใหญ่ ${formatProofBytes(bestBlob.size)} แต่ระบบจะเก็บเท่าที่บีบได้`, 'warning');
+    }
+    return {
+      dataUrl: await blobToDataUrl(bestBlob),
+      bytes: bestBlob.size,
+      width,
+      height,
+      originalName: file.name || 'equipment-photo.jpg'
+    };
+  };
+
+  const handleEquipmentPhotoInput = async (event) => {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressEquipmentPhotoFile(file);
+      setFormData(prev => ({
+        ...prev,
+        photoThumb: compressed.dataUrl,
+        photoBytes: compressed.bytes,
+        photoUpdatedAt: new Date().toISOString(),
+        photoOriginalName: compressed.originalName
+      }));
+      pushToast(`เพิ่มรูปอุปกรณ์แล้ว (${formatProofBytes(compressed.bytes)})`, 'success');
+    } catch (error) {
+      alert('เพิ่มรูปอุปกรณ์ไม่สำเร็จ: ' + (error?.message || error));
+    } finally {
+      if (event?.target) event.target.value = '';
+    }
+  };
+
+  const clearEquipmentPhoto = () => {
+    setFormData(prev => ({ ...prev, photoThumb: '', photoBytes: 0, photoUpdatedAt: '', photoOriginalName: '' }));
+    pushToast('ลบรูปย่อออกจากรายการนี้แล้ว', 'success');
+  };
+
+  const getEquipmentThumb = (item = {}) => item.photoThumb || item.equipmentPhoto || item.thumbnail || item.imageThumb || item.imageUrl || '';
 
   const drawStampedProofCanvas = async (img, maxSide, contextLabel, timestampText, locationText) => {
     const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
@@ -11501,6 +11571,7 @@ S.N.: ${item.sn || '-'}
                     const deptInfo = DEPARTMENTS.find(d => d.id === (item.department || item.ownerDepartment));
                     const DeptIcon = Icons[deptInfo?.iconName] || Icons.Package;
                     const deptPillClass = deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600');
+                    const thumbSrc = getEquipmentThumb(item);
                     return (
                       <button
                         key={item.id}
@@ -11511,8 +11582,8 @@ S.N.: ${item.sn || '-'}
                       >
                         <div>
                           <div className="flex items-start justify-between gap-2">
-                            <div className={`w-8 h-8 rounded-2xl border flex items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-white/20 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
-                              <DeptIcon className="w-4 h-4" />
+                            <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 overflow-hidden ${selected ? 'bg-white/10 border-white/20 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
+                              {thumbSrc ? <img src={thumbSrc} alt={item.name || 'รูปอุปกรณ์'} className="w-full h-full object-contain p-1" loading="lazy" /> : <DeptIcon className="w-5 h-5" />}
                             </div>
                             <span className={`w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black text-xs transition-all ${selected ? (isDarkMode ? 'bg-emerald-400 border-emerald-300 text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white') : isDarkMode ? 'border-slate-600 bg-slate-950 text-slate-600 group-hover:text-slate-300' : 'border-slate-300 bg-white text-slate-300 group-hover:text-slate-500'}`}>{selected ? '✓' : ''}</span>
                           </div>
@@ -15690,7 +15761,10 @@ S.N.: ${item.sn || '-'}
       memoryType: '',
       memorySpeed: '',
       memoryAssignMode: '',
-      assignedCamera: ''
+      assignedCamera: '',
+      photoThumb: '',
+      photoBytes: 0,
+      photoUpdatedAt: ''
     });
     setShowForm(true);
   };
@@ -23964,6 +24038,31 @@ S.N.: ${item.sn || '-'}
                       isDarkMode={isDarkMode}
                       icon="🏷️"
                     />
+                  </div>
+                </div>
+              </section>
+
+              <section className={`item-form-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className={`font-black text-lg flex items-center gap-2 ${theme.textTitle}`}>รูปอุปกรณ์ <span className={`text-xs font-black px-2 py-1 rounded-full border ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>ไม่บังคับ</span></div>
+                    <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้เป็นรูปย่อช่วยจำตอนเลือกของเท่านั้น ระบบจะบีบรูปเหลือประมาณ {EQUIPMENT_PHOTO_TARGET_KB} KB/รูป เพื่อประหยัดฐานข้อมูล</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <label className={`px-4 py-2.5 rounded-xl border font-black text-sm cursor-pointer ${theme.btnSecondary}`}>
+                      เลือกรูป
+                      <input type="file" accept="image/*" className="hidden" onChange={handleEquipmentPhotoInput} />
+                    </label>
+                    {!!formData.photoThumb && <button type="button" onClick={clearEquipmentPhoto} className={`px-4 py-2.5 rounded-xl border font-black text-sm ${theme.btnCancel}`}>ลบรูป</button>}
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-[140px_minmax(0,1fr)] gap-4 items-center">
+                  <div className={`w-full h-28 rounded-2xl border overflow-hidden flex items-center justify-center ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    {formData.photoThumb ? <img src={formData.photoThumb} alt="รูปอุปกรณ์" className="w-full h-full object-contain" /> : <div className={`text-xs font-black text-center px-3 ${theme.textMuted}`}>ยังไม่มีรูป<br/>ใช้ไอคอนแทนได้</div>}
+                  </div>
+                  <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className={`text-sm font-black ${theme.textTitle}`}>{formData.photoThumb ? `มีรูปย่อแล้ว • ${formatProofBytes(formData.photoBytes || 0)}` : 'ไม่ต้องอัปครบทุกชิ้นก็ได้'}</div>
+                    <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>แนะนำให้ใส่เฉพาะของที่หน้าตาคล้ายกัน/หยิบบ่อย/หาเจอยากก่อน เช่น ไมค์ สาย เลนส์ เมม การ์ด กล่องอุปกรณ์ ส่วนของที่รู้จักง่ายให้ปล่อยว่างไว้เพื่อลดพื้นที่ฐานข้อมูล</div>
                   </div>
                 </div>
               </section>
