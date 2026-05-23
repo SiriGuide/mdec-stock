@@ -59,7 +59,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.6 Operation Wizard Workspace Redesign';
+const APP_VERSION = 'v23.1.7 Operation Picker Compact Selection Tray';
 const APP_UPDATE_NOTE = 'Operation Wizard Flow: แยกขั้นตอนเลือกอุปกรณ์ก่อน แล้วกดถัดไปเพื่อกรอกรายละเอียด สแกนเช็ก QR หรือติ๊กยืนยันก่อนบันทึก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -11453,9 +11453,44 @@ S.N.: ${item.sn || '-'}
                   )}
                 </div>
 
-                <div className="p-2.5 sm:p-3 max-h-[720px] overflow-y-auto custom-scrollbar grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
+                {actionTargetIds.length > 0 && (
+                  <div className={`px-3 sm:px-4 py-3 border-b ${theme.divide} ${isDarkMode ? 'bg-slate-950/90' : 'bg-white/95'} sticky top-0 z-20 backdrop-blur`}> 
+                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>รายการที่เลือก</div>
+                        <div className={`text-sm font-black ${theme.textTitle}`}>เลือกแล้ว {actionTargetIds.length.toLocaleString('th-TH')} รายการ</div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 shrink-0">
+                        <button type="button" onClick={clearOperationSelection} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ล้างทั้งหมด</button>
+                        <button type="button" onClick={goToOperationDetails} disabled={!canUseCurrentOperation || actionTargetIds.length === 0} className={`px-4 py-2 rounded-xl text-xs font-black text-white ${toneBtn} disabled:bg-slate-500 disabled:cursor-not-allowed`}>ถัดไป: กรอกรายละเอียด</button>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+                      {selectedActionItems.map(item => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => toggleOperationalItem(item.id)}
+                          className={`shrink-0 max-w-[250px] px-3 py-2 rounded-2xl border text-left transition-all ${isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-100 hover:bg-rose-950/30 hover:border-rose-700' : 'bg-emerald-50 border-emerald-200 text-emerald-900 hover:bg-rose-50 hover:border-rose-200'}`}
+                          title="กดเพื่อนำออกจากรายการที่เลือก"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="shrink-0 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black">✓</span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-xs font-black">{item.name || '-'}</span>
+                              <span className="block truncate text-[10px] font-bold opacity-75">S.N. {item.sn || '-'} • {item.location || item.storageLocation || '-'}</span>
+                            </span>
+                            <span className="shrink-0 text-[10px] font-black opacity-70">ลบ</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-2.5 sm:p-3 max-h-[calc(100vh-330px)] min-h-[420px] overflow-y-auto custom-scrollbar grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2.5 auto-rows-fr">
                   {operationalItems.length === 0 ? (
-                    <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ไม่พบรายการในโหมดนี้</div>
+                    <div className={`col-span-full p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ไม่พบรายการในโหมดนี้</div>
                   ) : operationalItems.map(item => {
                     const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
                     const selected = actionTargetIds.includes(item.id);
@@ -11464,31 +11499,36 @@ S.N.: ${item.sn || '-'}
                     const DeptIcon = Icons[deptInfo?.iconName] || Icons.Package;
                     const deptPillClass = deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600');
                     return (
-                      <button key={item.id} type="button" onClick={() => toggleOperationalItem(item.id)} className={`w-full h-full p-3 rounded-2xl border text-left transition-all ${selected ? modeInfo.activeClass : (isDarkMode ? 'bg-slate-900/85 border-slate-800 hover:border-slate-600 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-blue-200')}`}>
-                        <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 items-start">
-                          <span className={`mt-1 w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black ${selected ? (isDarkMode ? 'bg-slate-200 border-slate-200 text-slate-950' : 'bg-slate-900 border-slate-900 text-white') : isDarkMode ? 'border-slate-600 bg-slate-950' : 'border-slate-300 bg-white'}`}>{selected ? '✓' : ''}</span>
-                          <div className={`flex w-10 h-10 rounded-2xl border items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-white/15 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
-                            <DeptIcon className="w-5 h-5" />
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => toggleOperationalItem(item.id)}
+                        className={`group relative w-full h-full min-h-[150px] p-2.5 rounded-2xl border text-left transition-all overflow-hidden ${selected ? `${modeInfo.activeClass} ring-2 ring-emerald-400/45 shadow-[0_12px_30px_rgba(16,185,129,0.14)]` : (isDarkMode ? 'bg-slate-900/85 border-slate-800 hover:border-slate-500 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-blue-200 hover:bg-white')}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className={`w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-white/20 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
+                            <DeptIcon className="w-4 h-4" />
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <div className={`font-black clean-mobile-card-title ${selected ? '' : theme.textTitle}`}>{item.name || '-'}</div>
-                              <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${deptPillClass}`}>{deptInfo?.label || item.department || item.ownerDepartment || 'ไม่ระบุฝ่าย'}</span>
-                            </div>
-                            <div className={`text-xs font-bold mt-1 ${selected ? 'opacity-75' : theme.textMuted}`}>S.N. {item.sn || '-'} • รหัส {item.shortCode || '-'} • หมวด {item.category || '-'} • ที่เก็บ {item.location || item.storageLocation || '-'}</div>
-                            <div className="mt-2 flex flex-wrap gap-1.5">
-                              <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
-                              {item.project && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>โครงการ: {normalizeProjectName(item.project)}</span>}
-                              {item.storageBoxName && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-50 text-cyan-700'}`}>📦 {item.storageBoxName}</span>}
-                              {item.currentBorrower && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>ผู้ยืม: {item.currentBorrower}</span>}
-                              {item.currentEvent && <span className={`px-2.5 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-orange-900/40 text-orange-300' : 'bg-orange-50 text-orange-700'}`}>งาน: {item.currentEvent}</span>}
-                              {late && <span className="px-2.5 py-1 rounded-full text-xs font-black bg-rose-600 text-white">เลยกำหนดคืน</span>}
-                            </div>
-                          </div>
-                          <div className={`mt-3 px-3 py-2 rounded-xl border text-xs font-black text-center ${selected ? 'bg-white/10 border-white/15 text-white' : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600')}`}>
-                            {selected ? 'เลือกแล้ว' : 'กดเลือก'}
-                          </div>
+                          <span className={`w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black text-xs transition-all ${selected ? (isDarkMode ? 'bg-emerald-400 border-emerald-300 text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white') : isDarkMode ? 'border-slate-600 bg-slate-950 text-slate-600 group-hover:text-slate-300' : 'border-slate-300 bg-white text-slate-300 group-hover:text-slate-500'}`}>{selected ? '✓' : ''}</span>
                         </div>
+
+                        <div className="mt-2 min-w-0">
+                          <div className={`font-black text-sm leading-tight line-clamp-2 ${selected ? 'text-white' : theme.textTitle}`}>{item.name || '-'}</div>
+                          <div className={`mt-1 text-[11px] font-bold leading-snug line-clamp-2 ${selected ? 'text-white/75' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || '-'}</div>
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${deptPillClass}`}>{deptInfo?.label || item.department || item.ownerDepartment || 'ไม่ระบุฝ่าย'}</span>
+                          {late && <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white">เลยกำหนด</span>}
+                          {item.storageBoxName && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isDarkMode ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-50 text-cyan-700'}`}>📦 กล่อง</span>}
+                          {item.project && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isDarkMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>โครงการ</span>}
+                        </div>
+
+                        <div className={`absolute bottom-2.5 left-2.5 right-2.5 px-2.5 py-1.5 rounded-xl border text-[11px] font-black text-center ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? 'bg-slate-950/85 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600')}`}>
+                          {selected ? 'เลือกแล้ว • กดซ้ำเพื่อเอาออก' : 'กดเลือก'}
+                        </div>
+                        <div className="h-8" />
                       </button>
                     );
                   })}
