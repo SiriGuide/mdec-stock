@@ -1,3 +1,4 @@
+// v23.1.0 Official Command Layout / QR Scan Rework - รวมหลังบ้านกับตั้งค่าระบบ ปรับหน้าสแกน QR และลดกลิ่นเว็บเดิม
 // v22.57.6.15 Admin Delete Docs Build Hotfix - แก้ unterminated string ในฟังก์ชันลบเอกสารย้อนหลัง
 // v22.53.26 Data Quality Center Polish - gallery, filters, proof cards and empty states, no QR scanner/camera/database path changes
 // v22.53.17 Operational Slip Clean Design - fixed clean A4 borrow/event/return documents, removes before-print logo/watermark controls, no QR/camera/database path changes
@@ -13072,65 +13073,111 @@ S.N.: ${item.sn || '-'}
     );
   };
 
-  const renderToolsWorkspace = () => (
-    <div className="page-workspace-shell tools-workspace space-y-5">
-      {renderWorkspaceTabs()}
-      <div className={`rounded-[1.8rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
-        <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-4 ${theme.divide}`}>
-          <div>
-            <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>ADMIN TOOLS</div>
-            <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>หลังบ้าน / เครื่องมือระบบ</h2>
-            <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมเครื่องมือหลังบ้านที่จำเป็นสำหรับผู้ดูแลระบบ โดยไม่ซ้ำกับเมนูหลักด้านซ้าย</p>
-          </div>
-          <button type="button" onClick={() => openWorkspace('overview')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับภาพรวม</button>
-        </div>
-        <div className="p-4 sm:p-5 space-y-6">
-          {[
-            {
-              title: 'งานประจำวัน',
-              items: [
-                ['ยืม / ออกงาน / รับคืน', 'ทำรายการหลัก', Icons.UserPlus, () => openWorkspace('borrowReturn')],
-                ['ติดตามของรอคืน', 'ดูรายการค้างและคัดลอกตามของ', Icons.History, () => openTrackingCenter('today')],
-                ['สแกน QR', 'เลือกอุปกรณ์เร็ว', Icons.QrCode, () => openSelectionScanner({ camera: true })],
-                ['เอกสารย้อนหลัง', 'ค้นหา/พิมพ์ซ้ำ', Icons.พิมพ์er, () => openBorrowDocsArchive({ reset: false })]
-              ]
-            },
-            {
-              title: 'จัดการสต็อก',
-              items: [
-                ['โครงการจัดซื้อ', 'แหล่งที่มา/งบประมาณ', Icons.Database, () => openWorkspace('projects')],
-                ['กล่อง / เซ็ตอุปกรณ์', 'จัดเก็บและจัดชุด', Icons.Layers, () => openWorkspace('organize')],
-                ['ศูนย์ซ่อม', 'งานซ่อม/บำรุงรักษา', Icons.Settings, () => openRepairCenter('open')],
-                ['ตรวจนับสต๊อกจริง', 'Physical audit', Icons.CheckCircle, () => openWorkspace('stockCount')]
-              ]
-            },
-            {
-              title: 'ระบบและรายงาน',
-              items: [
-                ['รายงาน', 'สรุป/CSV/พิมพ์', Icons.ClipboardList, () => openMonthlyReportPage()],
-                ['ตรวจสุขภาพระบบ', 'ฐานข้อมูลและพื้นที่', Icons.Alert, () => setShowระบบHealthModal(true)],
-                ['Backup / ปิดปี', 'สำรองข้อมูล', Icons.Database, () => setShowBackupCenterModal(true)],
-                ['ตั้งค่าระบบ', 'หมวด/บัญชี/เอกสาร', Icons.Settings, () => { setSettingsTab('overview'); setShowSettings(true); }]
-              ]
-            }
-          ].map(group => (
-            <div key={group.title}>
-              <h3 className={`font-black text-lg mb-3 ${theme.textTitle}`}>{group.title}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                {group.items.map(([label, desc, Icon, action]) => (
-                  <button key={label} type="button" onClick={action} className={`page-workspace-card p-4 rounded-2xl border text-left ${theme.btnSecondary}`}>
-                    <Icon className="w-6 h-6 mb-3" />
-                    <div className="font-black">{label}</div>
-                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
-                  </button>
+  const renderToolsWorkspace = () => {
+    const systemGroups = [
+      {
+        title: 'ข้อมูลและสต็อก',
+        desc: 'ดูแลฐานข้อมูลอุปกรณ์และโครงสร้างการจัดเก็บ',
+        items: [
+          ['สต็อกทั้งหมด', 'ดู/ค้นหา/แก้ไขรายการอุปกรณ์', Icons.Database, () => openWorkspace('inventory')],
+          ['เพิ่มอุปกรณ์', 'เติมของใหม่เข้าสต็อก', Icons.Plus, () => openAddItemForm()],
+          ['กล่อง / เซ็ตอุปกรณ์', 'จัดกล่องจริงและชุดที่ใช้บ่อย', Icons.Layers, () => openWorkspace('organize')],
+          ['โครงการจัดซื้อ', 'จัดอุปกรณ์ตามแหล่งที่มา/งบ', Icons.Folder, () => openWorkspace('projects')]
+        ]
+      },
+      {
+        title: 'เอกสารและหลักฐาน',
+        desc: 'ค้นหา พิมพ์ซ้ำ ตรวจสอบรูปหลักฐาน และประวัติการทำรายการ',
+        items: [
+          ['เอกสารย้อนหลัง', 'ค้นหาใบยืม ใบออกงาน ใบรับคืน', Icons.พิมพ์er, () => openBorrowDocsArchive({ reset: false })],
+          ['ประวัติส่วนกลาง', 'ดู Timeline การยืมคืนทั้งหมด', Icons.ClipboardList, () => openMainHistoryCenter({ reset: true, tab: 'history' })],
+          ['หลักฐานรูปภาพ', 'รวมรูปยืม/คืนและการจัดการรูป', Icons.Camera, () => openMainHistoryCenter({ reset: true, tab: 'proofs' })],
+          ['รายงาน', 'สรุปการใช้งานและ Export', Icons.ViewGrid, () => openMonthlyReportPage()]
+        ]
+      },
+      {
+        title: 'ตรวจสอบและความปลอดภัย',
+        desc: 'งานผู้ดูแลระบบที่ต้องใช้ความระมัดระวัง',
+        items: [
+          ['ตรวจนับสต๊อกจริง', 'Physical Audit / ตรวจของจริง', Icons.CheckCircle, () => openWorkspace('stockCount')],
+          ['ตรวจคุณภาพข้อมูล', 'รายการที่ควรเติมข้อมูล', Icons.Alert, () => { setSettingsTab('quality'); setShowSettings(true); }],
+          ['Backup / ปิดปี', 'สำรอง กู้คืน และปิดรอบข้อมูล', Icons.Database, () => setShowBackupCenterModal(true)],
+          ['สถานะระบบ', 'ตรวจสุขภาพฐานข้อมูลและพื้นที่', Icons.Monitor, () => setShowระบบHealthModal(true)]
+        ]
+      },
+      {
+        title: 'ตั้งค่าระบบ',
+        desc: 'รวม Settings เดิมไว้ในศูนย์จัดการระบบนี้ ไม่แยกเป็นหลังบ้านซ้ำอีกหน้า',
+        items: [
+          ['ภาพรวมการตั้งค่า', 'หมวดหมู่ เอกสาร หลักฐาน และ UI', Icons.Settings, () => { setSettingsTab('overview'); setShowSettings(true); }],
+          ['บัญชีผู้ใช้ / สิทธิ์', 'PIN บทบาท และผู้รับผิดชอบ', Icons.UserPlus, () => { setSettingsTab('accounts'); setShowSettings(true); }],
+          ['หมวด / สถานที่ / เจ้าหน้าที่', 'ข้อมูลพื้นฐานที่ใช้ในฟอร์ม', Icons.Tag, () => { setSettingsTab('categories'); setShowSettings(true); }],
+          ['เอกสาร / โลโก้ / QR', 'ตั้งค่าการพิมพ์และภาพลักษณ์เอกสาร', Icons.พิมพ์er, () => { setSettingsTab('documents'); setShowSettings(true); }]
+        ]
+      }
+    ];
+
+    return (
+      <div className="page-workspace-shell official-system-center space-y-5">
+        <div className={`rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+          <div className="p-6 sm:p-8 border-b border-slate-700/40 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white relative overflow-hidden">
+            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,.55),transparent_34%),radial-gradient(circle_at_90%_0%,rgba(14,165,233,.35),transparent_32%)]"></div>
+            <div className="relative z-10 flex flex-col xl:flex-row xl:items-end justify-between gap-6">
+              <div className="max-w-3xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 bg-white/10 text-[11px] font-black tracking-[0.18em] uppercase text-blue-100">MDEC SYSTEM CENTER</div>
+                <h2 className="mt-4 text-3xl sm:text-4xl font-black tracking-tight">ศูนย์จัดการระบบ</h2>
+                <p className="mt-2 text-sm sm:text-base font-bold text-slate-300 leading-relaxed">รวมหลังบ้านและตั้งค่าระบบไว้ในหน้าเดียว สำหรับจัดการข้อมูล อุปกรณ์ เอกสาร หลักฐาน รายงาน Backup และสิทธิ์ผู้ใช้ โดยหน้าใช้งานหลักจะยังคงโล่งสำหรับงานประจำวัน</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2 w-full xl:w-auto">
+                {[
+                  ['อุปกรณ์', items.length],
+                  ['เอกสาร', borrowDocuments.length],
+                  ['บัญชี', getEffectiveAccounts().length]
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-center min-w-[94px]">
+                    <div className="text-2xl font-black">{Number(value || 0).toLocaleString('th-TH')}</div>
+                    <div className="text-[11px] font-bold text-slate-300">{label}</div>
+                  </div>
                 ))}
               </div>
             </div>
-          ))}
+          </div>
+
+          <div className="p-4 sm:p-6 space-y-6">
+            <div className={`rounded-[1.5rem] border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div>
+                <div className={`text-xs font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>Quick Admin Search</div>
+                <div className={`font-black text-xl mt-1 ${theme.textTitle}`}>ค้นหาแล้วเข้าไปจัดการต่อได้ทันที</div>
+              </div>
+              <div className={`w-full lg:max-w-xl rounded-2xl border px-4 py-2.5 flex items-center gap-2 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <Icons.Search className="w-5 h-5 opacity-60" />
+                <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') openWorkspace('inventory'); }} placeholder="ค้นหาอุปกรณ์ / S.N. / หมวด / ที่เก็บ" className={`flex-1 bg-transparent outline-none font-bold ${theme.textTitle}`} />
+                <button type="button" onClick={() => openWorkspace('inventory')} className="px-4 py-2 rounded-xl bg-blue-600 text-white font-black">ไปสต็อก</button>
+              </div>
+            </div>
+
+            {systemGroups.map(group => (
+              <section key={group.title} className={`rounded-[1.7rem] border p-4 sm:p-5 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                <div className="mb-4">
+                  <h3 className={`text-xl font-black ${theme.textTitle}`}>{group.title}</h3>
+                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{group.desc}</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                  {group.items.map(([label, desc, Icon, action]) => (
+                    <button key={label} type="button" onClick={action} className={`group p-4 rounded-2xl border text-left transition ${isDarkMode ? 'bg-slate-950/70 border-slate-800 hover:border-blue-700 hover:bg-slate-950' : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-blue-300'}`}>
+                      <div className="w-11 h-11 rounded-2xl bg-blue-600/10 border border-blue-500/20 text-blue-500 flex items-center justify-center mb-3 group-hover:bg-blue-600 group-hover:text-white transition"><Icon className="w-5 h-5" /></div>
+                      <div className={`font-black ${theme.textTitle}`}>{label}</div>
+                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>{desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderActiveWorkspace = () => {
     if (activeWorkspace === 'inventory') return renderEquipmentInventoryWorkspace();
@@ -13146,7 +13193,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const settingsNavItems = [
-    { id: 'overview', label: 'ภาพรวม', desc: 'ศูนย์รวมการตั้งค่า', icon: Icons.ViewGrid, group: 'เริ่มต้น' },
+    { id: 'overview', label: 'ศูนย์จัดการ', desc: 'ภาพรวมหลังบ้านและตั้งค่า', icon: Icons.ViewGrid, group: 'เริ่มต้น' },
     { id: 'categories', label: 'หมวดหมู่', desc: 'รายการหมวดอุปกรณ์', icon: Icons.Tag, group: 'ข้อมูลพื้นฐาน' },
     { id: 'locations', label: 'สถานที่ / ห้อง', desc: 'ที่เก็บและห้องประชุม', icon: Icons.Folder, group: 'ข้อมูลพื้นฐาน' },
     { id: 'staff', label: 'เจ้าหน้าที่', desc: 'รายชื่อผู้ทำรายการ', icon: Icons.Users, group: 'ข้อมูลพื้นฐาน' },
@@ -18739,26 +18786,10 @@ S.N.: ${item.sn || '-'}
           </button>
 
           <div className="pt-4 mt-4 border-t border-white/10 space-y-2">
-            <div className="px-3 pb-1 text-[10px] font-black tracking-[0.22em] uppercase text-slate-500">Admin Center</div>
+            <div className="px-3 pb-1 text-[10px] font-black tracking-[0.22em] uppercase text-slate-500">System</div>
             <button type="button" onClick={() => openWorkspace('tools')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'tools' ? 'bg-gradient-to-r from-slate-700 to-indigo-700 text-white shadow-lg shadow-indigo-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-              <Icons.Settings className="w-5 h-5" /> หลังบ้าน / จัดการระบบ
+              <Icons.Settings className="w-5 h-5" /> ศูนย์จัดการระบบ
             </button>
-            <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-              <Icons.พิมพ์er className="w-5 h-5" /> เอกสารย้อนหลัง
-            </button>
-            <button type="button" onClick={() => openMainHistoryCenter({ reset: true })} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-              <Icons.ClipboardList className="w-5 h-5" /> ประวัติ / หลักฐาน
-            </button>
-            {canAddEditItems && (
-              <button type="button" onClick={openAddItemForm} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-                <Icons.Plus className="w-5 h-5" /> เพิ่มอุปกรณ์
-              </button>
-            )}
-            {canManageระบบ && (
-              <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
-                <Icons.Settings className="w-5 h-5" /> ตั้งค่าระบบ
-              </button>
-            )}
             <button type="button" onClick={() => setShowHelpModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
               <Icons.Alert className="w-5 h-5" /> คู่มือใช้งาน
             </button>
@@ -18963,6 +18994,9 @@ S.N.: ${item.sn || '-'}
         return (
           <div className="page-workspace-shell qr-scanner-page space-y-5">
             <style>{`
+              /* v23.1.0 QR Scan Command Page Rework
+                 ปรับหน้าสแกนให้เป็น Scan Command Page: กล้องกลาง รายการสแกนชัด ปุ่มต่อรายการชัด
+                 Scope: UI only. ไม่แตะ Html5QrcodeScanner/camera core/Firebase path */
               /* v22.57.5.2 QR Scanner Dark Theme Safe Fix
                  ทำให้หน้าสแกนเป็น workspace ปกติของเว็บ และคืน contrast ให้ panel/ข้อความหลังโหมดพื้นอ่อน
                  Scope: QR page UI/readability only. ไม่แตะ Html5QrcodeScanner, camera permission, flow หรือ Firebase path */
@@ -18970,7 +19004,7 @@ S.N.: ${item.sn || '-'}
                 position: relative !important;
                 z-index: 2 !important;
                 width: 100% !important;
-                max-width: 1180px !important;
+                max-width: 1320px !important;
                 margin: 0 auto 24px !important;
                 padding: 0 !important;
                 overflow: visible !important;
@@ -19508,6 +19542,9 @@ S.N.: ${item.sn || '-'}
 }
 
 
+              /* v23.1.0 QR Scan Command Page Rework
+                 ปรับหน้าสแกนให้เป็น Scan Command Page: กล้องกลาง รายการสแกนชัด ปุ่มต่อรายการชัด
+                 Scope: UI only. ไม่แตะ Html5QrcodeScanner/camera core/Firebase path */
               /* v22.57.5.2 QR Scanner Dark Theme Safe Fix
                  คงหน้าสแกนเป็นโทนเครื่องมือสีมืด ให้เข้ากับ Dark Mode เดิมและไม่ย้อมพื้นเว็บเป็นสีอ่อน */
               .factory-stock-polish .qr-scanner-page .qr-scanner-page-shell,
@@ -19598,7 +19635,7 @@ S.N.: ${item.sn || '-'}
 `}</style>
 
             <div className="w-full flex items-stretch justify-center">
-              <div className={`qr-scanner-page-shell qr-scanner-compact-shell w-full rounded-[1.3rem] overflow-hidden shadow-sm border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`qr-scanner-page-shell qr-scanner-compact-shell w-full rounded-[2rem] overflow-hidden shadow-sm border flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div className={`shrink-0 p-2.5 sm:p-3 border-b ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-white'}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -19657,10 +19694,10 @@ S.N.: ${item.sn || '-'}
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-2.5 sm:p-3">
-                  <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,.95fr)_300px] gap-2.5 sm:gap-3 items-start">
+                  <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
                     <div className={`rounded-[1.15rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
                       <div className={`px-3 py-2 border-b flex items-center justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900' : 'border-slate-100 bg-slate-50'}`}>
-                        <div className="font-black text-sm">{useCamera ? 'พื้นที่สแกน' : 'พิมพ์รหัส / เครื่องยิงบาร์โค้ด'}</div>
+                        <div className="font-black text-sm">{useCamera ? 'Scan Command' : 'พิมพ์รหัส / เครื่องยิงบาร์โค้ด'}</div>
                         <div className={`text-[10px] font-black px-2 py-0.5 rounded-full ${useCamera ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'}`}>{useCamera ? 'กล้อง' : 'รหัส'}</div>
                       </div>
 
@@ -19725,7 +19762,7 @@ S.N.: ${item.sn || '-'}
                         </div>
                       ) : (
                         <div className={`p-3 rounded-[1rem] border font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
-                          พร้อมสแกน — แจ้งเตือนเมื่ออ่านสำเร็จ/ไม่พบ
+                          พร้อมสแกน — รายการที่อ่านได้จะเพิ่มในแผงด้านขวาทันที
                         </div>
                       )}
 
@@ -19758,7 +19795,7 @@ S.N.: ${item.sn || '-'}
                         <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
                           <div className="flex items-start justify-between gap-3 mb-3">
                             <div className="min-w-0">
-                              <div className={`text-xs font-black mb-1 ${theme.textMuted}`}>รายการที่เลือกจากการสแกน</div>
+                              <div className={`text-xs font-black mb-1 ${theme.textMuted}`}>รายการที่สแกน / เลือกไว้</div>
                               <div className={`font-black text-lg ${theme.textTitle}`}>เลือกแล้ว {scannedSelection.length.toLocaleString('th-TH')} รายการ</div>
                             </div>
                             {scannedSelection.length > 0 && (
@@ -19768,7 +19805,7 @@ S.N.: ${item.sn || '-'}
 
                           {scannedSelection.length === 0 ? (
                             <div className={`p-4 rounded-2xl border text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-                              สแกนอุปกรณ์แล้ว รายการจะมาแสดงตรงนี้ทันที จากนั้นเลือกว่าจะยืม ออกงาน หรือรับคืนต่อได้เลย
+                              สแกนอุปกรณ์หลายชิ้นต่อเนื่องได้เลย จากนั้นเลือกว่าจะยืม ออกงาน รับคืน หรือเปิดแฟ้มอุปกรณ์ต่อ
                             </div>
                           ) : (
                             <>
@@ -20236,11 +20273,11 @@ S.N.: ${item.sn || '-'}
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
                   <div className={`text-xs font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>Administration</div>
-                  <h3 className={`mt-1 text-2xl font-black ${theme.textTitle}`}>หลังบ้านสำหรับผู้ดูแลระบบ</h3>
-                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดการข้อมูล อุปกรณ์ โครงการ กล่อง/เซ็ต เอกสาร หลักฐาน รายงาน Backup และตั้งค่าระบบ แยกจากหน้าใช้งานประจำวัน</p>
+                  <h3 className={`mt-1 text-2xl font-black ${theme.textTitle}`}>ศูนย์จัดการระบบ</h3>
+                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมหลังบ้านและตั้งค่าระบบไว้ในศูนย์เดียว เพื่อให้หน้าใช้งานหลักไม่รก และยังคงเครื่องมือผู้ดูแลครบ</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={() => openWorkspace('tools')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เปิดหลังบ้าน</button>
+                  <button type="button" onClick={() => openWorkspace('tools')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เปิดศูนย์จัดการระบบ</button>
                   <button type="button" onClick={() => openMainHistoryCenter({ reset: true })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เอกสาร/หลักฐาน</button>
                   <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ตั้งค่าระบบ</button>
                 </div>
