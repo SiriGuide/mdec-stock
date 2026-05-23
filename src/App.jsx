@@ -59,7 +59,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.7 Operation Picker Compact Selection Tray';
+const APP_VERSION = 'v23.1.8 Operation Picker Grid Hotfix';
 const APP_UPDATE_NOTE = 'Operation Wizard Flow: แยกขั้นตอนเลือกอุปกรณ์ก่อน แล้วกดถัดไปเพื่อกรอกรายละเอียด สแกนเช็ก QR หรือติ๊กยืนยันก่อนบันทึก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -11488,9 +11488,12 @@ S.N.: ${item.sn || '-'}
                   </div>
                 )}
 
-                <div className="p-2.5 sm:p-3 max-h-[calc(100vh-330px)] min-h-[420px] overflow-y-auto custom-scrollbar grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2.5 auto-rows-fr">
+                <div
+                  className="operation-picker-grid p-2.5 sm:p-3 max-h-[calc(100vh-330px)] min-h-[420px] overflow-y-auto custom-scrollbar"
+                  style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '10px', alignItems: 'stretch' }}
+                >
                   {operationalItems.length === 0 ? (
-                    <div className={`col-span-full p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ไม่พบรายการในโหมดนี้</div>
+                    <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`} style={{ gridColumn: '1 / -1' }}>ไม่พบรายการในโหมดนี้</div>
                   ) : operationalItems.map(item => {
                     const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
                     const selected = actionTargetIds.includes(item.id);
@@ -11503,32 +11506,34 @@ S.N.: ${item.sn || '-'}
                         key={item.id}
                         type="button"
                         onClick={() => toggleOperationalItem(item.id)}
-                        className={`group relative w-full h-full min-h-[150px] p-2.5 rounded-2xl border text-left transition-all overflow-hidden ${selected ? `${modeInfo.activeClass} ring-2 ring-emerald-400/45 shadow-[0_12px_30px_rgba(16,185,129,0.14)]` : (isDarkMode ? 'bg-slate-900/85 border-slate-800 hover:border-slate-500 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-blue-200 hover:bg-white')}`}
+                        className={`operation-picker-card group relative w-full p-2.5 rounded-2xl border text-left transition-all overflow-hidden ${selected ? `${modeInfo.activeClass} ring-2 ring-emerald-400/45 shadow-[0_12px_30px_rgba(16,185,129,0.14)]` : (isDarkMode ? 'bg-slate-900/85 border-slate-800 hover:border-slate-500 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-blue-200 hover:bg-white')}`}
+                        style={{ minHeight: '128px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className={`w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-white/20 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
-                            <DeptIcon className="w-4 h-4" />
+                        <div>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className={`w-8 h-8 rounded-2xl border flex items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-white/20 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
+                              <DeptIcon className="w-4 h-4" />
+                            </div>
+                            <span className={`w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black text-xs transition-all ${selected ? (isDarkMode ? 'bg-emerald-400 border-emerald-300 text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white') : isDarkMode ? 'border-slate-600 bg-slate-950 text-slate-600 group-hover:text-slate-300' : 'border-slate-300 bg-white text-slate-300 group-hover:text-slate-500'}`}>{selected ? '✓' : ''}</span>
                           </div>
-                          <span className={`w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black text-xs transition-all ${selected ? (isDarkMode ? 'bg-emerald-400 border-emerald-300 text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white') : isDarkMode ? 'border-slate-600 bg-slate-950 text-slate-600 group-hover:text-slate-300' : 'border-slate-300 bg-white text-slate-300 group-hover:text-slate-500'}`}>{selected ? '✓' : ''}</span>
+
+                          <div className="mt-2 min-w-0">
+                            <div className={`font-black text-[13px] leading-tight line-clamp-2 ${selected ? 'text-white' : theme.textTitle}`}>{item.name || '-'}</div>
+                            <div className={`mt-1 text-[10px] font-bold leading-snug line-clamp-2 ${selected ? 'text-white/75' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || '-'}</div>
+                          </div>
+
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${deptPillClass}`}>{deptInfo?.label || item.department || item.ownerDepartment || 'ไม่ระบุฝ่าย'}</span>
+                            {late && <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white">เลยกำหนด</span>}
+                            {item.storageBoxName && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isDarkMode ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-50 text-cyan-700'}`}>📦 กล่อง</span>}
+                            {item.project && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isDarkMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>โครงการ</span>}
+                          </div>
                         </div>
 
-                        <div className="mt-2 min-w-0">
-                          <div className={`font-black text-sm leading-tight line-clamp-2 ${selected ? 'text-white' : theme.textTitle}`}>{item.name || '-'}</div>
-                          <div className={`mt-1 text-[11px] font-bold leading-snug line-clamp-2 ${selected ? 'text-white/75' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || '-'}</div>
+                        <div className={`mt-2 px-2.5 py-1.5 rounded-xl border text-[11px] font-black text-center ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? 'bg-slate-950/85 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600')}`}>
+                          {selected ? 'เลือกแล้ว • กดซ้ำเพื่อลบ' : 'กดเลือก'}
                         </div>
-
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${deptPillClass}`}>{deptInfo?.label || item.department || item.ownerDepartment || 'ไม่ระบุฝ่าย'}</span>
-                          {late && <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white">เลยกำหนด</span>}
-                          {item.storageBoxName && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isDarkMode ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-50 text-cyan-700'}`}>📦 กล่อง</span>}
-                          {item.project && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isDarkMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>โครงการ</span>}
-                        </div>
-
-                        <div className={`absolute bottom-2.5 left-2.5 right-2.5 px-2.5 py-1.5 rounded-xl border text-[11px] font-black text-center ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? 'bg-slate-950/85 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600')}`}>
-                          {selected ? 'เลือกแล้ว • กดซ้ำเพื่อเอาออก' : 'กดเลือก'}
-                        </div>
-                        <div className="h-8" />
                       </button>
                     );
                   })}
