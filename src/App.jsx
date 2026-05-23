@@ -1,3 +1,5 @@
+// v23.1.3 Operation Control Compact Layout Polish - จัดหน้า ยืม/ออกงาน/รับคืน ใหม่ แยกเลือกโหมดซ้าย สรุปตัวเลขขวา
+// v23.1.2 Box Bundle Borrow Shortcut Hotfix - เลือกยืมกล่อง/เซ็ตจากหน้าทำรายการได้เลย
 // v23.1.0 Official Command Layout / QR Scan Rework - รวมหลังบ้านกับตั้งค่าระบบ ปรับหน้าสแกน QR และลดกลิ่นเว็บเดิม
 // v22.57.6.15 Admin Delete Docs Build Hotfix - แก้ unterminated string ในฟังก์ชันลบเอกสารย้อนหลัง
 // v22.53.26 Data Quality Center Polish - gallery, filters, proof cards and empty states, no QR scanner/camera/database path changes
@@ -57,8 +59,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.0.0 MDEC Stock Reborn Alpha';
-const APP_UPDATE_NOTE = 'Inline Evidence Actions Fix: เพิ่มปุ่มซ่อนรูป/ลบถาวรในหลักฐานรูปภาพแบบหน้าเดียว และซิงก์การลบให้ตรงทุกจุด';
+const APP_VERSION = 'v23.1.3 Operation Control Compact Layout Polish';
+const APP_UPDATE_NOTE = 'Operation Control Compact Layout: แยกเลือกโหมดงานด้านซ้าย สรุปตัวเลขด้านขวา ลดพื้นที่ว่าง และคง flow ยืม/ออกงาน/รับคืนเดิม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11169,20 +11171,6 @@ S.N.: ${item.sn || '-'}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
-              {[
-                ['พร้อมใช้', stats.available, 'text-emerald-500', 'พร้อมยืม/ออกงาน'],
-                ['ถูกยืม', currentBorrowedItems.length, 'text-blue-500', 'รอรับคืน'],
-                ['ออกงาน', currentEventItems.length, 'text-orange-500', 'อยู่นอกศูนย์'],
-                ['เลยกำหนด', overdueItems.length, 'text-rose-500', 'ควรติดตาม']
-              ].map(([label, value, color, desc]) => (
-                <div key={label} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                  <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
-                  <div className={`text-3xl font-black mt-1 ${color}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
-                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div className="p-4 sm:p-6 space-y-5">
@@ -11202,39 +11190,79 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div className="p-3 sm:p-4 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                  {modeTabs.map(([id, label, Icon, desc, tone], index) => {
-                    const active = borrowReturnMode === id;
-                    const modeShort = id === 'borrow' ? 'ยืม' : id === 'event' ? 'ออกงาน' : 'รับคืน';
-                    const toneClasses = tone === 'orange'
-                      ? { active: 'bg-slate-800/95 border-orange-400/35 text-white', dot: 'bg-orange-400', icon: 'text-orange-300 bg-orange-500/12 border-orange-400/25' }
-                      : tone === 'emerald'
-                        ? { active: 'bg-slate-800/95 border-emerald-400/35 text-white', dot: 'bg-emerald-400', icon: 'text-emerald-300 bg-emerald-500/12 border-emerald-400/25' }
-                        : { active: 'bg-slate-800/95 border-blue-400/35 text-white', dot: 'bg-blue-400', icon: 'text-blue-300 bg-blue-500/12 border-blue-400/25' };
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => { clearOperationSelection(); setBorrowReturnMode(id); }}
-                        className={`group relative overflow-hidden rounded-2xl border px-4 py-3 text-left transition-all ${active ? `${toneClasses.active} shadow-[0_12px_34px_rgba(0,0,0,0.28)] ring-1 ring-white/5` : (isDarkMode ? 'bg-slate-900/70 border-slate-700/80 text-slate-300 hover:bg-slate-900 hover:border-slate-600' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-white')}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${active ? toneClasses.icon : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
-                            <Icon className="w-5 h-5" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className={`h-2 w-2 rounded-full ${active ? toneClasses.dot : (isDarkMode ? 'bg-slate-600' : 'bg-slate-300')}`} />
-                              <span className={`text-[10px] font-black uppercase tracking-[0.18em] ${active ? 'text-slate-300' : theme.textMuted}`}>{active ? 'ACTIVE' : `0${index + 1}`}</span>
+                <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,1.05fr)] gap-3 items-stretch">
+                  <div className={`rounded-[1.35rem] border p-3 ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div>
+                        <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Operation Mode</div>
+                        <div className={`text-sm font-black ${theme.textTitle}`}>เลือกงานที่กำลังทำ</div>
+                      </div>
+                      <div className={`rounded-full border px-2.5 py-1 text-[10px] font-black ${modeInfo.softClass}`}>{modeInfo.shortTitle}</div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-1 gap-2.5">
+                      {modeTabs.map(([id, label, Icon, desc, tone], index) => {
+                        const active = borrowReturnMode === id;
+                        const modeShort = id === 'borrow' ? 'ยืม' : id === 'event' ? 'ออกงาน' : 'รับคืน';
+                        const toneClasses = tone === 'orange'
+                          ? { active: 'bg-orange-500/13 border-orange-400/50 text-orange-100', dot: 'bg-orange-400', icon: 'text-orange-200 bg-orange-500/14 border-orange-400/35', glow: 'shadow-[0_14px_34px_rgba(249,115,22,0.10)]' }
+                          : tone === 'emerald'
+                            ? { active: 'bg-emerald-500/13 border-emerald-400/50 text-emerald-100', dot: 'bg-emerald-400', icon: 'text-emerald-200 bg-emerald-500/14 border-emerald-400/35', glow: 'shadow-[0_14px_34px_rgba(16,185,129,0.10)]' }
+                            : { active: 'bg-blue-500/13 border-blue-400/50 text-blue-100', dot: 'bg-blue-400', icon: 'text-blue-200 bg-blue-500/14 border-blue-400/35', glow: 'shadow-[0_14px_34px_rgba(59,130,246,0.10)]' };
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => { clearOperationSelection(); setBorrowReturnMode(id); }}
+                            className={`group relative overflow-hidden rounded-2xl border px-3.5 py-3 text-left transition-all ${active ? `${toneClasses.active} ${toneClasses.glow} ring-1 ring-white/5` : (isDarkMode ? 'bg-slate-900/70 border-slate-700/80 text-slate-300 hover:bg-slate-900 hover:border-slate-600' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50')}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${active ? toneClasses.icon : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
+                                <Icon className="w-5 h-5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className={`h-2 w-2 rounded-full ${active ? `${toneClasses.dot} shadow-[0_0_12px_currentColor]` : (isDarkMode ? 'bg-slate-600' : 'bg-slate-300')}`} />
+                                  <span className={`text-[10px] font-black uppercase tracking-[0.18em] ${active ? 'text-current opacity-90' : theme.textMuted}`}>{active ? 'ACTIVE' : `0${index + 1}`}</span>
+                                </div>
+                                <div className={`mt-1 text-base font-black ${active ? '' : theme.textTitle}`}>{label}</div>
+                                <div className={`text-xs font-bold mt-0.5 ${active ? 'opacity-75' : theme.textMuted}`}>{desc}</div>
+                              </div>
+                              <div className={`text-xs font-black rounded-full px-2.5 py-1 border ${active ? 'border-white/15 bg-white/10 text-white' : (isDarkMode ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500')}`}>{modeShort}</div>
                             </div>
-                            <div className={`mt-1 text-base font-black ${active ? '' : theme.textTitle}`}>{label}</div>
-                            <div className={`text-xs font-bold mt-0.5 ${active ? 'text-slate-400' : theme.textMuted}`}>{desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className={`rounded-[1.35rem] border p-3 ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div>
+                        <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Live Status Summary</div>
+                        <div className={`text-sm font-black ${theme.textTitle}`}>สรุปสถานะของในคลัง</div>
+                      </div>
+                      <div className={`rounded-full border px-2.5 py-1 text-[10px] font-black ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>อัปเดตจากข้อมูลจริง</div>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-2 gap-2.5">
+                      {[
+                        ['พร้อมใช้', stats.available, 'text-emerald-400', 'พร้อมยืม/ออกงาน', 'bg-emerald-500/10 border-emerald-400/25'],
+                        ['ถูกยืม', currentBorrowedItems.length, 'text-blue-400', 'รอรับคืน', 'bg-blue-500/10 border-blue-400/25'],
+                        ['ออกงาน', currentEventItems.length, 'text-orange-400', 'อยู่นอกศูนย์', 'bg-orange-500/10 border-orange-400/25'],
+                        ['เลยกำหนด', overdueItems.length, 'text-rose-400', 'ควรติดตาม', 'bg-rose-500/10 border-rose-400/25']
+                      ].map(([label, value, color, desc, accent]) => (
+                        <div key={label} className={`rounded-2xl border p-3 ${isDarkMode ? accent : 'bg-white border-slate-200'}`}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className={`text-[11px] font-black ${theme.textMuted}`}>{label}</div>
+                              <div className={`text-3xl font-black leading-none mt-2 ${isDarkMode ? color : color.replace('400','600')}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                            </div>
+                            <span className={`mt-1 h-2.5 w-2.5 rounded-full ${color.replace('text-', 'bg-')} shadow-[0_0_12px_currentColor]`} />
                           </div>
-                          <div className={`text-xs font-black rounded-full px-2.5 py-1 border ${active ? 'border-white/15 bg-white/10 text-white' : (isDarkMode ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500')}`}>{modeShort}</div>
+                          <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>{desc}</div>
                         </div>
-                      </button>
-                    );
-                  })}
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 <div className={`rounded-2xl border px-3.5 py-3 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
