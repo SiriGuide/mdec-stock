@@ -59,7 +59,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.10 Equipment Photo File Lite Display Fix';
+const APP_VERSION = 'v23.1.11 Equipment Photo Display Bigger Polish';
 const APP_UPDATE_NOTE = 'Operation Wizard Flow: แยกขั้นตอนเลือกอุปกรณ์ก่อน แล้วกดถัดไปเพื่อกรอกรายละเอียด สแกนเช็ก QR หรือติ๊กยืนยันก่อนบันทึก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -11588,7 +11588,7 @@ S.N.: ${item.sn || '-'}
 
                 <div
                   className="operation-picker-grid p-2.5 sm:p-3 max-h-[calc(100vh-330px)] min-h-[420px] overflow-y-auto custom-scrollbar"
-                  style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '10px', alignItems: 'stretch' }}
+                  style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(235px, 1fr))', gap: '12px', alignItems: 'stretch' }}
                 >
                   {operationalItems.length === 0 ? (
                     <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`} style={{ gridColumn: '1 / -1' }}>ไม่พบรายการในโหมดนี้</div>
@@ -11606,20 +11606,20 @@ S.N.: ${item.sn || '-'}
                         type="button"
                         onClick={() => toggleOperationalItem(item.id)}
                         className={`operation-picker-card group relative w-full p-2.5 rounded-2xl border text-left transition-all overflow-hidden ${selected ? `${modeInfo.activeClass} ring-2 ring-emerald-400/45 shadow-[0_12px_30px_rgba(16,185,129,0.14)]` : (isDarkMode ? 'bg-slate-900/85 border-slate-800 hover:border-slate-500 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-blue-200 hover:bg-white')}`}
-                        style={{ minHeight: '188px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                        style={{ minHeight: '232px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
                       >
                         <div>
                           <div className="relative">
-                            <div className={`w-full h-[82px] rounded-2xl border flex items-center justify-center overflow-hidden ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? 'bg-slate-950/75 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
-                              {thumbSrc ? <img src={thumbSrc} alt={item.name || 'รูปอุปกรณ์'} className="w-full h-full object-contain p-2" loading="lazy" /> : <DeptIcon className="w-8 h-8 opacity-80" />}
+                            <div className={`w-full h-[122px] rounded-2xl border flex items-center justify-center overflow-hidden ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? 'bg-slate-950/75 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
+                              {thumbSrc ? <img src={thumbSrc} alt={item.name || 'รูปอุปกรณ์'} className="w-full h-full object-contain p-1.5" loading="lazy" /> : <DeptIcon className="w-10 h-10 opacity-80" />}
                             </div>
                             <span className={`absolute top-2 left-2 w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black text-xs transition-all ${selected ? (isDarkMode ? 'bg-emerald-400 border-emerald-300 text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white') : isDarkMode ? 'border-slate-600 bg-slate-950/90 text-slate-600 group-hover:text-slate-300' : 'border-slate-300 bg-white/90 text-slate-300 group-hover:text-slate-500'}`}>{selected ? '✓' : ''}</span>
                             {!!thumbSrc && <span className={`absolute bottom-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-black border ${isDarkMode ? 'bg-slate-950/80 border-slate-700 text-slate-300' : 'bg-white/85 border-slate-200 text-slate-600'}`}>ไฟล์เบา</span>}
                           </div>
 
                           <div className="mt-2 min-w-0">
-                            <div className={`font-black text-[13px] leading-tight line-clamp-2 ${selected ? 'text-white' : theme.textTitle}`}>{item.name || '-'}</div>
-                            <div className={`mt-1 text-[10px] font-bold leading-snug line-clamp-2 ${selected ? 'text-white/75' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || '-'}</div>
+                            <div className={`font-black text-[14px] leading-tight line-clamp-2 ${selected ? 'text-white' : theme.textTitle}`}>{item.name || '-'}</div>
+                            <div className={`mt-1 text-[11px] font-bold leading-snug line-clamp-2 ${selected ? 'text-white/75' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || '-'}</div>
                           </div>
 
                           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -24085,8 +24085,8 @@ S.N.: ${item.sn || '-'}
                     {!!formData.photoThumb && <button type="button" onClick={clearEquipmentPhoto} className={`px-4 py-2.5 rounded-xl border font-black text-sm ${theme.btnCancel}`}>ลบรูป</button>}
                   </div>
                 </div>
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-[140px_minmax(0,1fr)] gap-4 items-center">
-                  <div className={`w-full h-28 rounded-2xl border overflow-hidden flex items-center justify-center ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-[210px_minmax(0,1fr)] gap-4 items-center">
+                  <div className={`w-full h-40 rounded-2xl border overflow-hidden flex items-center justify-center ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                     {formData.photoThumb ? <img src={formData.photoThumb} alt="รูปอุปกรณ์" className="w-full h-full object-contain" /> : <div className={`text-xs font-black text-center px-3 ${theme.textMuted}`}>ยังไม่มีรูป<br/>ใช้ไอคอนแทนได้</div>}
                   </div>
                   <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
