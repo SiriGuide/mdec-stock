@@ -59,7 +59,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.12 Equipment Picker Filter Side Popup';
+const APP_VERSION = 'v23.1.13 Separate Operation Pages';
 const APP_UPDATE_NOTE = 'Equipment Picker Filter Side Popup: ปรับตัวกรองในหน้าเลือกอุปกรณ์ให้เป็น popup เล็กด้านข้าง ไม่ดันรายการอุปกรณ์ลงเต็มหน้า และยังคง flow กล้อง/เลนส์/เมม/แบตจากเวอร์ชันก่อน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -7166,6 +7166,17 @@ function MainApp() {
     setShowStorageBoxesModal(false);
     setShowBundleManager(false);
 
+    // v23.1.13 Separate Operation Pages: ยืม / ออกงาน / รับคืน เป็นคนละหน้าใน navigation
+    if (['borrow', 'event', 'return'].includes(workspace)) {
+      setBorrowReturnMode(workspace);
+      setBorrowReturnStage('select');
+      setShowScanModal(false);
+      setUseCamera(false);
+      setActiveWorkspace(workspace);
+      window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+      return;
+    }
+
     // v22.57.4.4 QR Scanner In-Page Sidebar Fixed Hotfix
     // เมนู sidebar/topbar เรียก openWorkspace('scanner') โดยตรงได้
     // จึงต้องเปิด state หน้าสแกนพร้อมกัน ไม่งั้น activeWorkspace เป็น scanner แต่ showScanModal ยัง false แล้วหน้าจะว่าง/ตัวสแกนหลุดไปท้ายหน้า
@@ -9915,10 +9926,25 @@ S.N.: ${item.sn || '-'}
       title: 'คลังอุปกรณ์',
       desc: 'ค้นหา เพิ่ม แก้ไข ยืม ออกงาน รับคืน และจัดการอุปกรณ์ทั้งหมดแบบหน้าโรงงาน'
     },
+    borrow: {
+      kicker: 'BORROW EQUIPMENT',
+      title: 'ยืมอุปกรณ์',
+      desc: 'หน้าแยกสำหรับทำรายการยืม เลือกเฉพาะอุปกรณ์ที่พร้อมใช้ แล้วกรอกรายละเอียดผู้ยืม'
+    },
+    event: {
+      kicker: 'EVENT CHECKOUT',
+      title: 'ออกงาน',
+      desc: 'หน้าแยกสำหรับจัดอุปกรณ์ออกงาน ใช้กับกิจกรรม/งานนอกศูนย์และเอกสารออกงาน'
+    },
+    return: {
+      kicker: 'RETURN EQUIPMENT',
+      title: 'รับคืนอุปกรณ์',
+      desc: 'หน้าแยกสำหรับรับคืนของที่ถูกยืมหรือออกงาน พร้อมเช็กสภาพและแนบหลักฐาน'
+    },
     borrowReturn: {
       kicker: 'BORROW & RETURN',
       title: 'ยืม-คืนอุปกรณ์',
-      desc: 'หน้าทำงานหลักสำหรับให้ยืม นำออกงาน รับคืน และตรวจรายการค้าง'
+      desc: 'หน้ารวมเดิมสำหรับ compatibility ภายในระบบ'
     },
     scanner: {
       kicker: 'QR SCANNER',
@@ -11076,6 +11102,13 @@ S.N.: ${item.sn || '-'}
     const toneBtn = modeInfo.primaryBtn;
     const canUseCurrentOperation = hasOperationPermission(borrowReturnMode);
     const currentOperationPermissionLabel = getOperationPermissionLabel(borrowReturnMode);
+    const isDedicatedOperationPage = ['borrow', 'event', 'return'].includes(activeWorkspace);
+    const operationPageTitle = borrowReturnMode === 'event' ? 'หน้าออกงาน' : borrowReturnMode === 'return' ? 'หน้ารับคืน' : 'หน้ายืมอุปกรณ์';
+    const operationPageDesc = borrowReturnMode === 'event'
+      ? 'แยกไว้สำหรับจัดอุปกรณ์ออกงานเท่านั้น เลือกของพร้อมใช้แล้วกรอกรายละเอียดงาน'
+      : borrowReturnMode === 'return'
+        ? 'แยกไว้สำหรับรับคืนเท่านั้น ระบบจะแสดงเฉพาะของที่ถูกยืมหรือออกงานอยู่'
+        : 'แยกไว้สำหรับยืมอุปกรณ์เท่านั้น ระบบจะแสดงเฉพาะของที่พร้อมใช้';
 
     const setActionTargets = (ids) => {
       const unique = Array.from(new Set(ids || []));
@@ -11235,11 +11268,11 @@ S.N.: ${item.sn || '-'}
             <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>BORROW / EVENT / RETURN</div>
-                <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>ยืม • ออกงาน • รับคืน</h2>
+                <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>{operationPageTitle}</h2>
                 <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>เลือกโหมดงาน เลือกอุปกรณ์ กรอกข้อมูล เช็กของ และยืนยันในหน้าเดียวแบบเป็นขั้นตอน</p>
               </div>
               <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
-                <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; openSelectionScanner({ camera: true, returnWorkspace: 'borrowReturn' }); }} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center justify-center gap-2"><Icons.QrCode className="w-5 h-5" /> สแกน QR</button>
+                <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; openSelectionScanner({ camera: true, returnWorkspace: activeWorkspace }); }} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center justify-center gap-2"><Icons.QrCode className="w-5 h-5" /> สแกน QR</button>
                 <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เอกสารย้อนหลัง</button>
                 {borrowReturnMode !== 'return' && <button type="button" onClick={() => { if (!requireOperationalAccess('ใช้ตัวช่วยเลือกกล้อง', borrowReturnMode)) return; openCameraAccessoryHelper(borrowReturnMode); }} className={`col-span-2 sm:col-span-1 px-4 py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100' : 'bg-slate-900 hover:bg-slate-800 border-slate-900 text-white'}`}><Icons.Camera className="w-5 h-5" /> ตัวช่วยกล้อง</button>}
               </div>
@@ -11275,6 +11308,18 @@ S.N.: ${item.sn || '-'}
                     </div>
 
                     <div className="space-y-3">
+                      {isDedicatedOperationPage ? (
+                        <div className={`rounded-2xl border p-4 ${modeInfo.softClass}`}>
+                          <div className="flex items-start gap-3">
+                            <div className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-slate-950/35 border-white/10' : 'bg-white/70 border-slate-200'}`}><ActionIcon className="w-5 h-5" /></div>
+                            <div className="min-w-0">
+                              <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-75">Dedicated Page</div>
+                              <div className="text-base font-black mt-1">{operationPageTitle}</div>
+                              <div className="text-xs font-bold mt-1 opacity-75 leading-relaxed">หน้านี้ล็อกไว้สำหรับงานนี้โดยเฉพาะ ถ้าต้องการทำงานอื่นให้เลือกจากเมนูด้านซ้ายหรือแถบล่าง</div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                         {modeTabs.map(([id, label, Icon, desc, tone], index) => {
                           const active = borrowReturnMode === id;
@@ -11309,6 +11354,7 @@ S.N.: ${item.sn || '-'}
                           );
                         })}
                       </div>
+                      )}
 
                       <div className={`rounded-2xl border px-3 py-3 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200'}`}>
                         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
@@ -11701,7 +11747,7 @@ S.N.: ${item.sn || '-'}
                       <div className={`font-black ${theme.textTitle}`}>ขั้นตอนที่ 1: เลือกอุปกรณ์ให้ครบก่อน</div>
                       <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เลือกจากรายการด้านซ้าย ใช้ตัวกรอง หรือสแกน QR เพื่อเพิ่มอุปกรณ์เข้าใบงาน จากนั้นกดถัดไป</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                        <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; openSelectionScanner({ camera: true, returnWorkspace: 'borrowReturn' }); }} className={`px-4 py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.QrCode className="w-5 h-5" /> สแกน QR เพิ่มของ</button>
+                        <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; openSelectionScanner({ camera: true, returnWorkspace: activeWorkspace }); }} className={`px-4 py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.QrCode className="w-5 h-5" /> สแกน QR เพิ่มของ</button>
                         <button type="button" onClick={goToOperationDetails} disabled={!canUseCurrentOperation || actionTargetIds.length === 0} className={`px-4 py-3 rounded-2xl font-black text-white ${toneBtn} disabled:bg-slate-500 disabled:cursor-not-allowed`}>ถัดไป: กรอกรายละเอียด</button>
                       </div>
                     </div>
@@ -12945,7 +12991,7 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div className="flex flex-wrap gap-2 shrink-0">
-                <button type="button" onClick={() => openWorkspace('borrowReturn')} className="px-4 py-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/15 font-black transition-colors">เปิดหน้ายืม-คืน</button>
+                <button type="button" onClick={() => openWorkspace('borrow')} className="px-4 py-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/15 font-black transition-colors">เปิดหน้ายืม-คืน</button>
                 <button type="button" onClick={() => openWorkspace('overview')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับภาพรวม</button>
               </div>
             </div>
@@ -13494,7 +13540,7 @@ S.N.: ${item.sn || '-'}
 
   const renderActiveWorkspace = () => {
     if (activeWorkspace === 'inventory') return renderEquipmentInventoryWorkspace();
-    if (activeWorkspace === 'borrowReturn') return renderBorrowReturnWorkspace();
+    if (['borrow', 'event', 'return', 'borrowReturn'].includes(activeWorkspace)) return renderBorrowReturnWorkspace();
     if (activeWorkspace === 'tracking') return renderTrackingWorkspace();
     if (activeWorkspace === 'records') return renderRecordsWorkspace();
     if (activeWorkspace === 'tools') return renderToolsWorkspace();
@@ -13897,8 +13943,7 @@ S.N.: ${item.sn || '-'}
     setReturnChecklist([]);
     setReturnProofFiles([]);
     setReturnInspection({});
-    setBorrowReturnMode('return');
-    openWorkspace('borrowReturn');
+    openWorkspace('return');
     pushToast('เตรียมรายการรับคืนด่วนแล้ว', `โหลดรายการ ${ids.length} ชิ้นเข้าสู่หน้า ยืม / คืน`, 'success');
   };
 
@@ -13916,8 +13961,7 @@ S.N.: ${item.sn || '-'}
     setReturnProofFiles([]);
     setReturnInspection({});
     setShowTrackingCenterModal(false);
-    setBorrowReturnMode('return');
-    openWorkspace('borrowReturn');
+    openWorkspace('return');
   };
 
   const returnTrackingData = useMemo(() => {
@@ -16252,7 +16296,7 @@ S.N.: ${item.sn || '-'}
   const openChecklistScanner = (mode) => {
     if (!requireOperationalAccess('สแกนเช็กอุปกรณ์')) return;
     setShowMoreMenu(false);
-    setScannerReturnWorkspace('borrowReturn');
+    setScannerReturnWorkspace(mode === 'eventChecklist' ? 'event' : mode === 'returnChecklist' ? 'return' : 'borrow');
     setScanMode(mode);
     setUseCamera(true);
     setShowScanModal(true);
@@ -16264,7 +16308,7 @@ S.N.: ${item.sn || '-'}
     const fallbackWorkspace = targetWorkspace || scannerReturnWorkspace || (scanMode === 'stockCount'
       ? 'stockCount'
       : ['borrowChecklist', 'eventChecklist', 'returnChecklist'].includes(scanMode)
-        ? 'borrowReturn'
+        ? (scanMode === 'eventChecklist' ? 'event' : scanMode === 'returnChecklist' ? 'return' : 'borrow')
         : 'overview');
     setShowScanModal(false);
     setUseCamera(false);
@@ -19047,7 +19091,7 @@ S.N.: ${item.sn || '-'}
               <div className={`mc-panel mc-panel-pad ${mc.panelSoft}`}>
                 <div className="text-xs font-black tracking-[.18em] text-slate-400 uppercase mb-2">QUICK ACTIONS</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => { setShowCommandCenter(false); openWorkspace('borrowReturn'); }} className="rounded-2xl border border-purple-400/20 bg-purple-400/10 text-purple-100 p-3 font-black text-sm">ยืม-คืน</button>
+                  <button type="button" onClick={() => { setShowCommandCenter(false); openWorkspace('borrow'); }} className="rounded-2xl border border-purple-400/20 bg-purple-400/10 text-purple-100 p-3 font-black text-sm">ยืม-คืน</button>
                   <button type="button" onClick={() => { setShowCommandCenter(false); openSelectionScanner({ camera: true }); }} className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-100 p-3 font-black text-sm">สแกน QR</button>
                   <button type="button" onClick={() => { setShowCommandCenter(false); openWorkspace('projects'); }} className="rounded-2xl border border-indigo-400/20 bg-indigo-400/10 text-indigo-100 p-3 font-black text-sm">โครงการ</button>
                   <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className="rounded-2xl border border-blue-400/20 bg-blue-400/10 text-blue-100 p-3 font-black text-sm">เอกสารย้อนหลัง</button>
@@ -19083,8 +19127,14 @@ S.N.: ${item.sn || '-'}
           <button type="button" onClick={() => openWorkspace('overview')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'overview' ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
             <Icons.Package className="w-5 h-5" /> หน้าใช้งานหลัก
           </button>
-          <button type="button" onClick={() => openWorkspace('borrowReturn')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'borrowReturn' ? 'bg-gradient-to-r from-slate-700 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.UserPlus className="w-5 h-5" /> ยืม / คืน / ออกงาน
+          <button type="button" onClick={() => openWorkspace('borrow')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'borrow' ? 'bg-gradient-to-r from-slate-700 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
+            <Icons.UserPlus className="w-5 h-5" /> ยืมอุปกรณ์
+          </button>
+          <button type="button" onClick={() => openWorkspace('event')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'event' ? 'bg-gradient-to-r from-slate-700 to-orange-700 text-white shadow-lg shadow-orange-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
+            <Icons.Truck className="w-5 h-5" /> ออกงาน
+          </button>
+          <button type="button" onClick={() => openWorkspace('return')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'return' ? 'bg-gradient-to-r from-slate-700 to-emerald-700 text-white shadow-lg shadow-emerald-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
+            <Icons.CheckCircle className="w-5 h-5" /> รับคืน
           </button>
           {canUseOperationalTools && (
             <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'scanner' ? 'bg-gradient-to-r from-slate-700 to-orange-700 text-white shadow-lg shadow-amber-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
@@ -19175,7 +19225,7 @@ S.N.: ${item.sn || '-'}
               <button type="button" onClick={() => setShowCommandCenter(true)} className="factory-ghost-btn" title="Dashboard">
                 <Icons.Monitor className="w-5 h-5" /><span className="hidden-mobile">Dashboard</span>
               </button>
-              <button type="button" onClick={() => openWorkspace('borrowReturn')} className="factory-ghost-btn" title="ยืม-คืนอุปกรณ์">
+              <button type="button" onClick={() => openWorkspace('borrow')} className="factory-ghost-btn" title="ยืม-คืนอุปกรณ์">
                 <Icons.UserPlus className="w-5 h-5" /><span className="hidden-mobile">ยืม-คืน</span>
               </button>
               <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className="factory-ghost-btn" title="เอกสารย้อนหลัง">
@@ -19235,17 +19285,17 @@ S.N.: ${item.sn || '-'}
             <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เน้นงานหน้างานจริง: ยืม / ออกงาน / รับคืน / สแกน / ค้นหา / เอกสาร</p>
           </div>
           <div className="p-3 grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => { if (!requireOperationalAccess('ยืมอุปกรณ์')) return; setBorrowReturnMode('borrow'); openWorkspace('borrowReturn'); }} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+            <button type="button" onClick={() => { if (!requireOperationalAccess('ยืมอุปกรณ์')) return; openWorkspace('borrow'); }} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
               <span className="mobile-field-icon bg-purple-600 text-white mb-2"><Icons.UserPlus className="w-5 h-5" /></span>
               <span className={`block ${theme.textTitle}`}>ยืม</span>
               <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ปล่อยยืมอุปกรณ์</span>
             </button>
-            <button type="button" onClick={() => { if (!requireOperationalAccess('นำอุปกรณ์ออกงาน')) return; setBorrowReturnMode('event'); openWorkspace('borrowReturn'); }} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+            <button type="button" onClick={() => { if (!requireOperationalAccess('นำอุปกรณ์ออกงาน')) return; openWorkspace('event'); }} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
               <span className="mobile-field-icon bg-orange-500 text-white mb-2"><Icons.Truck className="w-5 h-5" /></span>
               <span className={`block ${theme.textTitle}`}>ออกงาน</span>
               <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>นำของออกกิจกรรม</span>
             </button>
-            <button type="button" onClick={() => { if (!requireOperationalAccess('รับคืนอุปกรณ์')) return; setBorrowReturnMode('return'); openWorkspace('borrowReturn'); }} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+            <button type="button" onClick={() => { if (!requireOperationalAccess('รับคืนอุปกรณ์')) return; openWorkspace('return'); }} className={`p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
               <span className="mobile-field-icon bg-emerald-600 text-white mb-2"><Icons.CheckCircle className="w-5 h-5" /></span>
               <span className={`block ${theme.textTitle}`}>รับคืน</span>
               <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{(currentBorrowedItems.length + currentEventItems.length).toLocaleString('th-TH')} รายการค้าง</span>
@@ -20262,7 +20312,7 @@ S.N.: ${item.sn || '-'}
               <div>
                 <h4 className={`font-black mb-3 flex items-center gap-2 ${theme.textTitle}`}><Icons.History className="w-5 h-5 text-sky-500" /> Daily Operations</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <button type="button" onClick={() => { setShowMoreMenu(false); openWorkspace('borrowReturn'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                  <button type="button" onClick={() => { setShowMoreMenu(false); openWorkspace('borrow'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.UserPlus className="w-5 h-5" /> ยืม / ออกงาน / รับคืน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวม flow ทำรายการหลักไว้ที่เดียว</p>
                   </button>
@@ -20484,24 +20534,24 @@ S.N.: ${item.sn || '-'}
                   desc: 'เลือกอุปกรณ์พร้อมใช้ให้ผู้ยืม พร้อมออกเอกสาร',
                   icon: Icons.UserPlus,
                   tag: 'BORROW',
-                  main: () => { if (!requireOperationalAccess('ยืมอุปกรณ์', 'borrow')) return; setBorrowReturnMode('borrow'); openWorkspace('borrowReturn'); },
-                  scan: () => { if (!requireOperationalAccess('ยืมอุปกรณ์', 'borrow')) return; setBorrowReturnMode('borrow'); openSelectionScanner({ camera: true }); }
+                  main: () => { if (!requireOperationalAccess('ยืมอุปกรณ์', 'borrow')) return; openWorkspace('borrow'); },
+                  scan: () => { if (!requireOperationalAccess('ยืมอุปกรณ์', 'borrow')) return; setBorrowReturnMode('borrow'); openSelectionScanner({ camera: true, returnWorkspace: 'borrow' }); }
                 },
                 {
                   title: 'ออกงาน',
                   desc: 'จัดอุปกรณ์สำหรับกิจกรรม งานถ่ายทำ หรือใช้งานนอกศูนย์',
                   icon: Icons.Truck,
                   tag: 'EVENT OUT',
-                  main: () => { if (!requireOperationalAccess('นำอุปกรณ์ออกงาน', 'event')) return; setBorrowReturnMode('event'); openWorkspace('borrowReturn'); },
-                  scan: () => { if (!requireOperationalAccess('นำอุปกรณ์ออกงาน', 'event')) return; setBorrowReturnMode('event'); openSelectionScanner({ camera: true }); }
+                  main: () => { if (!requireOperationalAccess('นำอุปกรณ์ออกงาน', 'event')) return; openWorkspace('event'); },
+                  scan: () => { if (!requireOperationalAccess('นำอุปกรณ์ออกงาน', 'event')) return; setBorrowReturnMode('event'); openSelectionScanner({ camera: true, returnWorkspace: 'event' }); }
                 },
                 {
                   title: 'รับคืนอุปกรณ์',
                   desc: 'ตรวจรับคืน ถ่ายหลักฐาน และคืนสถานะกลับเข้าคลัง',
                   icon: Icons.CheckCircle,
                   tag: 'RETURN',
-                  main: () => { if (!requireOperationalAccess('รับคืนอุปกรณ์', 'return')) return; setBorrowReturnMode('return'); openWorkspace('borrowReturn'); },
-                  scan: () => { if (!requireOperationalAccess('รับคืนอุปกรณ์', 'return')) return; setBorrowReturnMode('return'); openSelectionScanner({ camera: true }); }
+                  main: () => { if (!requireOperationalAccess('รับคืนอุปกรณ์', 'return')) return; openWorkspace('return'); },
+                  scan: () => { if (!requireOperationalAccess('รับคืนอุปกรณ์', 'return')) return; setBorrowReturnMode('return'); openSelectionScanner({ camera: true, returnWorkspace: 'return' }); }
                 }
               ].map(task => {
                 const Icon = task.icon;
@@ -25122,7 +25172,7 @@ S.N.: ${item.sn || '-'}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 max-w-3xl mx-auto">
                     <button type="button" onClick={() => { setProofCenterSearch(''); setProofCenterFilter('all'); }} className={`py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
-                    <button type="button" onClick={() => { setShowProofCenterModal(false); setActiveWorkspace('borrowReturn'); setBorrowReturnMode('borrow'); }} className="py-3 rounded-xl bg-purple-600 text-white font-black">ไปหน้ายืม / ออกงาน</button>
+                    <button type="button" onClick={() => { setShowProofCenterModal(false); openWorkspace('borrow'); }} className="py-3 rounded-xl bg-purple-600 text-white font-black">ไปหน้ายืม / ออกงาน</button>
                     <button type="button" onClick={() => { setShowProofCenterModal(false); setShowHistoryCenterModal(true); }} className={`py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ค้นประวัติส่วนกลาง</button>
                   </div>
                 </div>
@@ -25573,7 +25623,7 @@ S.N.: ${item.sn || '-'}
                     <div className={`text-xl sm:text-2xl font-black ${theme.textTitle}`}>ยังไม่มีเอกสารย้อนหลัง</div>
                     <p className={`text-sm font-bold mt-2 max-w-lg ${theme.textMuted}`}>เมื่อมีการยืมอุปกรณ์หรือออกงาน ระบบจะเก็บใบเอกสารและสถานะการคืนไว้ตรงนี้ให้อัตโนมัติ</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-xl mt-5">
-                      <button type="button" onClick={() => { setShowBorrowDocsModal(false); openWorkspace('borrowReturn'); }} className="borrow-docs-empty-action px-4 py-3 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-black shadow-lg shadow-purple-500/20 transition-all">
+                      <button type="button" onClick={() => { setShowBorrowDocsModal(false); openWorkspace('borrow'); }} className="borrow-docs-empty-action px-4 py-3 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-black shadow-lg shadow-purple-500/20 transition-all">
                         ทำรายการยืม / ออกงาน
                       </button>
                       <button type="button" onClick={openHistoryCenterFromBorrowDocs} className={`borrow-docs-empty-action px-4 py-3 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
@@ -25690,8 +25740,8 @@ S.N.: ${item.sn || '-'}
 
           <button
             type="button"
-            onClick={() => { if (!requireOperationalAccess('ยืม/ออกงาน')) return; setShowMoreMenu(false); setBorrowReturnMode('borrow'); openWorkspace('borrowReturn'); }}
-            className={`mobile-bottom-nav-btn ${activeWorkspace === 'borrowReturn' && borrowReturnMode !== 'return' ? 'is-active' : theme.textMuted}`}
+            onClick={() => { if (!requireOperationalAccess('ยืม/ออกงาน')) return; setShowMoreMenu(false); openWorkspace('borrow'); }}
+            className={`mobile-bottom-nav-btn ${['borrow','event'].includes(activeWorkspace) ? 'is-active' : theme.textMuted}`}
             title="ยืม / ออกงาน"
           >
             <Icons.UserPlus className="w-5 h-5" />
@@ -25710,8 +25760,8 @@ S.N.: ${item.sn || '-'}
 
           <button
             type="button"
-            onClick={() => { if (!requireOperationalAccess('รับคืน')) return; setShowMoreMenu(false); setBorrowReturnMode('return'); openWorkspace('borrowReturn'); }}
-            className={`mobile-bottom-nav-btn ${activeWorkspace === 'borrowReturn' && borrowReturnMode === 'return' ? 'is-active' : theme.textMuted}`}
+            onClick={() => { if (!requireOperationalAccess('รับคืน')) return; setShowMoreMenu(false); openWorkspace('return'); }}
+            className={`mobile-bottom-nav-btn ${activeWorkspace === 'return' ? 'is-active' : theme.textMuted}`}
             title="รับคืน"
           >
             <Icons.CheckCircle className="w-5 h-5" />
