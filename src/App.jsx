@@ -64,7 +64,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.23 Friendly Picker Selection Bar + Camera Helper';
+const APP_VERSION = 'v23.1.23.1 Human Status Label Hotfix';
 const APP_UPDATE_NOTE = 'Friendly Picker Selection Bar + Camera Helper: เพิ่มแถบรายการที่เลือกด้านล่าง popup ดู/ลบรายการที่เลือก และตัวช่วยกล้องพร้อมเลนส์/แบต/เมมแบบไม่บังคับ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -9173,6 +9173,17 @@ function MainApp() {
   };
 
   const getAssetStatusInfo = (id) => ASSET_STATUSES.find(s => s.id === (id || 'active')) || ASSET_STATUSES[0];
+
+  const getOperationHumanStatusLabel = (item = {}, mode = borrowReturnMode) => {
+    if (mode === 'return') {
+      if (item.status === 'borrowed' || item.status === 'out-for-event') return 'รอรับคืน';
+      return 'ตรวจสถานะ';
+    }
+    if (item.status === 'available') return 'พร้อมหยิบ';
+    if (item.status === 'maintenance') return 'ซ่อมอยู่';
+    if (item.status === 'damaged') return 'ชำรุด';
+    return (STATUSES.find(st => st.id === item.status) || STATUSES[0]).label;
+  };
 
   const getMissingDataLabels = (item = {}) => {
     const missing = [];
