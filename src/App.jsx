@@ -59,8 +59,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.11 Equipment Picker Focus + Camera Flow';
-const APP_UPDATE_NOTE = 'Equipment Picker Focus + Camera Flow: ลดความลายตาของการ์ดเลือกอุปกรณ์ เพิ่มมุมมองตู้กล้อง และปรับตัวช่วยกล้องให้เข้า flow กล้องพร้อมเลนส์/เมม/แบตในตัว';
+const APP_VERSION = 'v23.1.12 Equipment Picker Filter Side Popup';
+const APP_UPDATE_NOTE = 'Equipment Picker Filter Side Popup: ปรับตัวกรองในหน้าเลือกอุปกรณ์ให้เป็น popup เล็กด้านข้าง ไม่ดันรายการอุปกรณ์ลงเต็มหน้า และยังคง flow กล้อง/เลนส์/เมม/แบตจากเวอร์ชันก่อน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11461,59 +11461,100 @@ S.N.: ${item.sn || '-'}
                   )}
 
                   {showBorrowReturnFilters && (
-                    <div className={`mt-4 rounded-[1.35rem] border p-3 ${isDarkMode ? 'bg-slate-900/55 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                        <CompactMultiFilter
-                          label="ฝ่าย"
-                          icon="👥"
-                          options={DEPARTMENTS.map(dep => dep.id)}
-                          selected={borrowReturnDeptFilter}
-                          onChange={setBorrowReturnDeptFilter}
-                          placeholder="ค้นหาฝ่าย..."
-                          helper="เลือกได้หลายฝ่ายพร้อมกัน"
-                          theme={theme}
-                          isDarkMode={isDarkMode}
-                          getOptionLabel={(value) => DEPARTMENTS.find(dep => dep.id === value)?.label || value}
-                          maxHeightClass="max-h-44"
-                        />
-                        <CompactMultiFilter
-                          label="หมวดหมู่"
-                          icon="🏷️"
-                          options={inventoryCategoryOptions}
-                          selected={borrowReturnCategoryFilter}
-                          onChange={setBorrowReturnCategoryFilter}
-                          placeholder="ค้นหาหมวด เช่น ไมค์ / ลำโพง..."
-                          helper="ช่วยแยกของประเภทใกล้เคียง"
-                          theme={theme}
-                          isDarkMode={isDarkMode}
-                          maxHeightClass="max-h-44"
-                        />
-                        <CompactMultiFilter
-                          label="ที่เก็บ"
-                          icon="📍"
-                          options={inventoryLocationOptions}
-                          selected={borrowReturnLocationFilter}
-                          onChange={setBorrowReturnLocationFilter}
-                          placeholder="ค้นหาที่เก็บ / ห้อง / ชั้น..."
-                          helper="ค้นจากสถานที่เก็บทั้งหมด"
-                          theme={theme}
-                          isDarkMode={isDarkMode}
-                          maxHeightClass="max-h-44"
-                        />
-                        <CompactMultiFilter
-                          label="โครงการ"
-                          icon="📁"
-                          options={inventoryProjectFilterOptions}
-                          selected={borrowReturnProjectFilter}
-                          onChange={setBorrowReturnProjectFilter}
-                          placeholder="ค้นหาโครงการ..."
-                          helper="ใช้กรองของที่ผูกกับโครงการ"
-                          theme={theme}
-                          isDarkMode={isDarkMode}
-                          maxHeightClass="max-h-44"
-                        />
-                      </div>
-                    </div>
+                    <>
+                      <button
+                        type="button"
+                        aria-label="ปิดตัวกรอง"
+                        onClick={() => setShowBorrowReturnFilters(false)}
+                        className="fixed inset-0 z-[80] bg-black/25"
+                      />
+                      <aside className={`fixed z-[90] right-3 sm:right-5 top-20 bottom-5 w-[min(440px,calc(100vw-1.5rem))] rounded-[1.6rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`px-4 py-3 border-b flex items-start justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900/90' : 'border-slate-100 bg-slate-50'}`}>
+                          <div className="min-w-0">
+                            <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Filter Popup</div>
+                            <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>ตัวกรองรายการ</div>
+                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เลือกตัวกรองแล้วรายการด้านหลังจะอัปเดตทันที</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowBorrowReturnFilters(false)}
+                            className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}
+                            title="ปิดตัวกรอง"
+                          >
+                            <Icons.X className="w-5 h-5" />
+                          </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-3">
+                          <CompactMultiFilter
+                            label="ฝ่าย"
+                            icon="👥"
+                            options={DEPARTMENTS.map(dep => dep.id)}
+                            selected={borrowReturnDeptFilter}
+                            onChange={setBorrowReturnDeptFilter}
+                            placeholder="ค้นหาฝ่าย..."
+                            helper="เลือกได้หลายฝ่ายพร้อมกัน"
+                            theme={theme}
+                            isDarkMode={isDarkMode}
+                            getOptionLabel={(value) => DEPARTMENTS.find(dep => dep.id === value)?.label || value}
+                            maxHeightClass="max-h-32"
+                          />
+                          <CompactMultiFilter
+                            label="หมวดหมู่"
+                            icon="🏷️"
+                            options={inventoryCategoryOptions}
+                            selected={borrowReturnCategoryFilter}
+                            onChange={setBorrowReturnCategoryFilter}
+                            placeholder="ค้นหาหมวด เช่น ไมค์ / ลำโพง..."
+                            helper="ช่วยแยกของประเภทใกล้เคียง"
+                            theme={theme}
+                            isDarkMode={isDarkMode}
+                            maxHeightClass="max-h-32"
+                          />
+                          <CompactMultiFilter
+                            label="ที่เก็บ"
+                            icon="📍"
+                            options={inventoryLocationOptions}
+                            selected={borrowReturnLocationFilter}
+                            onChange={setBorrowReturnLocationFilter}
+                            placeholder="ค้นหาที่เก็บ / ห้อง / ชั้น..."
+                            helper="ค้นจากสถานที่เก็บทั้งหมด"
+                            theme={theme}
+                            isDarkMode={isDarkMode}
+                            maxHeightClass="max-h-32"
+                          />
+                          <CompactMultiFilter
+                            label="โครงการ"
+                            icon="📁"
+                            options={inventoryProjectFilterOptions}
+                            selected={borrowReturnProjectFilter}
+                            onChange={setBorrowReturnProjectFilter}
+                            placeholder="ค้นหาโครงการ..."
+                            helper="ใช้กรองของที่ผูกกับโครงการ"
+                            theme={theme}
+                            isDarkMode={isDarkMode}
+                            maxHeightClass="max-h-32"
+                          />
+                        </div>
+
+                        <div className={`px-4 py-3 border-t flex items-center justify-between gap-2 ${isDarkMode ? 'border-slate-800 bg-slate-900/90' : 'border-slate-100 bg-slate-50'}`}>
+                          <button
+                            type="button"
+                            onClick={clearBorrowReturnFilters}
+                            className={`px-4 py-2.5 rounded-2xl border text-sm font-black ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300 hover:bg-slate-900' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'}`}
+                          >
+                            ล้างตัวกรอง
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowBorrowReturnFilters(false)}
+                            className={`px-4 py-2.5 rounded-2xl text-sm font-black text-white ${toneBtn}`}
+                          >
+                            ใช้ตัวกรอง
+                          </button>
+                        </div>
+                      </aside>
+                    </>
                   )}
                 </div>
 
