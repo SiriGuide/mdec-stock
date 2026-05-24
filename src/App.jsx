@@ -59,8 +59,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.10.1 Box & Set Modal Runtime Hotfix';
-const APP_UPDATE_NOTE = 'Operation Wizard Flow: แยกขั้นตอนเลือกอุปกรณ์ก่อน แล้วกดถัดไปเพื่อกรอกรายละเอียด สแกนเช็ก QR หรือติ๊กยืนยันก่อนบันทึก';
+const APP_VERSION = 'v23.1.11 Equipment Picker Focus + Camera Flow';
+const APP_UPDATE_NOTE = 'Equipment Picker Focus + Camera Flow: ลดความลายตาของการ์ดเลือกอุปกรณ์ เพิ่มมุมมองตู้กล้อง และปรับตัวช่วยกล้องให้เข้า flow กล้องพร้อมเลนส์/เมม/แบตในตัว';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -10711,7 +10711,7 @@ S.N.: ${item.sn || '-'}
 
   const openCameraAccessoryHelper = (context = 'borrow') => {
     setCameraHelperContext(context === 'event' ? 'event' : 'borrow');
-    setCameraHelperForm({ cameraId: '', kitMode: 'body', lensIds: [], batteryIds: [], memoryIds: [] });
+    setCameraHelperForm({ cameraId: '', kitMode: 'cameraReady', lensIds: [], batteryIds: [], memoryIds: [] });
     setShowCameraHelper(true);
   };
 
@@ -10763,7 +10763,7 @@ S.N.: ${item.sn || '-'}
     const contextLabel = cameraHelperContext === 'event' ? 'ออกงาน' : 'ให้ยืม';
     const helperSteps = [
       { id: 1, title: 'กล้อง', desc: selectedCamera ? selectedCamera.name : 'เลือกกล้องหลัก' },
-      { id: 2, title: 'รูปแบบ', desc: cameraHelperForm.kitMode === 'withเลนส์' ? 'พร้อมเลนส์' : 'เฉพาะบอดี้' },
+      { id: 2, title: 'รูปแบบ', desc: cameraHelperForm.kitMode === 'cameraReady' ? 'พร้อมใช้งานจริง' : cameraHelperForm.kitMode === 'withเลนส์' ? 'เลือกเลนส์แยก' : 'เฉพาะบอดี้' },
       { id: 3, title: 'เลนส์', desc: cameraHelperForm.kitMode === 'withเลนส์' ? `${cameraHelperForm.lensIds.length} รายการ` : 'ข้ามขั้นตอนนี้' },
       { id: 4, title: 'แบต', desc: `${cameraHelperForm.batteryIds.length} ก้อน` },
       { id: 5, title: 'เมม', desc: `${cameraHelperForm.memoryIds.length} ใบ` },
@@ -10788,7 +10788,7 @@ S.N.: ${item.sn || '-'}
                 <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0"><Icons.Camera className="w-6 h-6" /></div>
                 <div className="min-w-0">
                   <h3 className={`text-xl sm:text-2xl font-black leading-tight ${theme.textTitle}`}>ตัวช่วยเลือกกล้อง</h3>
-                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้เฉพาะตอน{contextLabel} ไม่ใช่เซ็ตถาวร • เลือกบอดี้ เลนส์ แบต และเมมได้ในครั้งเดียว</p>
+                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้เฉพาะตอน{contextLabel} • ค่าเริ่มต้นคือกล้องพร้อมเลนส์คากล้อง เมมประจำตัว และแบตในตัว ส่วนแบต/เมมสำรองเลือกเพิ่มได้ถ้าต้องใช้</p>
                 </div>
               </div>
             </div>
@@ -10833,9 +10833,19 @@ S.N.: ${item.sn || '-'}
 
                 <div>
                   <div className={`text-sm font-black mb-2 ${theme.textTitle}`}>2) รูปแบบการยืม/ออกงาน</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button type="button" onClick={() => setCameraHelperForm(prev => ({ ...prev, kitMode: 'body', lensIds: [] }))} className={`p-3 rounded-2xl border font-black ${cameraHelperForm.kitMode === 'body' ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>เฉพาะบอดี้</button>
-                    <button type="button" onClick={() => setCameraHelperForm(prev => ({ ...prev, kitMode: 'withเลนส์' }))} className={`p-3 rounded-2xl border font-black ${cameraHelperForm.kitMode === 'withเลนส์' ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>พร้อมเลนส์</button>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button type="button" onClick={() => setCameraHelperForm(prev => ({ ...prev, kitMode: 'cameraReady', lensIds: [] }))} className={`p-3 rounded-2xl border text-left font-black ${cameraHelperForm.kitMode === 'cameraReady' ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>
+                      <span className="block text-sm">พร้อมใช้งาน</span>
+                      <span className="block text-[11px] font-bold opacity-75 mt-0.5">เลนส์คากล้อง + เมมประจำ + แบตในตัว</span>
+                    </button>
+                    <button type="button" onClick={() => setCameraHelperForm(prev => ({ ...prev, kitMode: 'body', lensIds: [] }))} className={`p-3 rounded-2xl border text-left font-black ${cameraHelperForm.kitMode === 'body' ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>
+                      <span className="block text-sm">เฉพาะบอดี้</span>
+                      <span className="block text-[11px] font-bold opacity-75 mt-0.5">ไม่คิดเลนส์/เมม/แบตในตัว</span>
+                    </button>
+                    <button type="button" onClick={() => setCameraHelperForm(prev => ({ ...prev, kitMode: 'withเลนส์' }))} className={`p-3 rounded-2xl border text-left font-black ${cameraHelperForm.kitMode === 'withเลนส์' ? 'bg-blue-600 text-white border-blue-600' : theme.btnSecondary}`}>
+                      <span className="block text-sm">เลือกเลนส์แยก</span>
+                      <span className="block text-[11px] font-bold opacity-75 mt-0.5">ใช้เมื่อเปลี่ยนเลนส์หรือเพิ่มเลนส์เสริม</span>
+                    </button>
                   </div>
                 </div>
 
@@ -10958,8 +10968,8 @@ S.N.: ${item.sn || '-'}
             <div className={`rounded-3xl border p-4 ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
               <div className="font-black">สรุปก่อนเพิ่มเข้ารายการ</div>
               <div className="text-sm font-bold mt-1">จะเพิ่ม {selectedCount} รายการเข้าโหมด{contextLabel} • ฟีเจอร์นี้เป็นตัวช่วยเลือกตอนทำรายการเท่านั้น ไม่สร้างเซ็ตถาวรและไม่ผูกกล้องกับเลนส์ถาวร</div>
-              {selectedCamera && cameraHelperForm.batteryIds.length === 0 && <div className="text-xs font-black mt-2 text-amber-600">⚠️ ยังไม่ได้เลือกแบตเตอรี่</div>}
-              {selectedCamera && cameraHelperForm.memoryIds.length === 0 && <div className="text-xs font-black mt-1 text-amber-600">⚠️ ยังไม่ได้เลือกเมมโมรี่การ์ด</div>}
+              {selectedCamera && cameraHelperForm.kitMode !== 'cameraReady' && cameraHelperForm.batteryIds.length === 0 && <div className="text-xs font-black mt-2 text-amber-600">⚠️ ยังไม่ได้เลือกแบตเตอรี่</div>}
+              {selectedCamera && cameraHelperForm.kitMode !== 'cameraReady' && cameraHelperForm.memoryIds.length === 0 && <div className="text-xs font-black mt-1 text-amber-600">⚠️ ยังไม่ได้เลือกเมมโมรี่การ์ด</div>}
             </div>
           </div>
 
@@ -11037,6 +11047,7 @@ S.N.: ${item.sn || '-'}
       .filter(item => multiFilterIncludes(borrowReturnLocationFilter, item.location || item.storageLocation))
       .filter(item => multiFilterIncludes(borrowReturnProjectFilter, item.project, normalizeProjectName))
       .filter(item => {
+        if (borrowReturnQuickFilter === 'cameraCabinet') return /ตู้กล้อง|กล้อง|camera|body|เลนส์|lens|แบต|battery|เมม|memory|sd/i.test(`${item.name || ''} ${item.category || ''} ${item.location || ''} ${item.storageBoxName || ''}`);
         if (borrowReturnQuickFilter === 'camera') return /กล้อง|camera|body|เลนส์|lens/i.test(`${item.name || ''} ${item.category || ''}`);
         if (borrowReturnQuickFilter === 'audio') return /ไมค์|microphone|sound|audio|เสียง|ลำโพง|speaker|mixer|xlr/i.test(`${item.name || ''} ${item.category || ''} ${item.department || ''}`);
         if (borrowReturnQuickFilter === 'noqr') return !item.qrCode && !item.qrTagged && !item.qrGeneratedAt;
@@ -11366,8 +11377,8 @@ S.N.: ${item.sn || '-'}
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Equipment Picker</div>
-                      <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>{borrowReturnMode === 'return' ? 'เลือกอุปกรณ์ที่รอรับคืน' : 'เลือกอุปกรณ์ที่พร้อมใช้งาน'}</h3>
-                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ค้นหาได้จากชื่อ, S.N., รหัสสั้น, หมวด, ที่เก็บ, โครงการ, ฝ่าย, ผู้ยืม หรืองาน</p>
+                      <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>{borrowReturnMode === 'return' ? 'เลือกรายการรอรับคืน' : 'เลือกของเข้ารายการ'}</h3>
+                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ลดความลายตา: ใช้ค้นหา/ตัวกรองก่อน แล้วค่อยเลือกจากการ์ดแบบอ่านง่าย</p>
                     </div>
                     <div className="flex flex-wrap gap-2 shrink-0">
                       <button type="button" onClick={() => setShowBorrowReturnFilters(v => !v)} className={`px-3 py-2 rounded-xl text-sm font-black border flex items-center gap-2 ${borrowReturnActiveFilterCount > 0 ? modeInfo.softClass : theme.btnSecondary}`}>
@@ -11397,6 +11408,7 @@ S.N.: ${item.sn || '-'}
                     {[
                       ['all', 'ทั้งหมด'],
                       ['audio', 'เครื่องเสียง'],
+                      ['cameraCabinet', 'ตู้กล้อง'],
                       ['camera', 'กล้อง/เลนส์'],
                       ['noqr', 'ยังไม่มี QR'],
                       ...(borrowReturnMode === 'return' ? [['late', 'เลยกำหนด']] : [])
@@ -11414,8 +11426,8 @@ S.N.: ${item.sn || '-'}
                     <div className={`mt-4 rounded-[1.35rem] border p-3 ${isDarkMode ? 'bg-slate-900/55 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                         <div>
-                          <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Box / Set Shortcut</div>
-                          <div className={`font-black ${theme.textTitle}`}>เลือกยืมเป็นกล่องหรือเซ็ตจากหน้านี้ได้เลย</div>
+                          <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Quick Pick</div>
+                          <div className={`font-black ${theme.textTitle}`}>เลือกเร็วจากกล่อง / เซ็ต</div>
                         </div>
                         <div className={`text-xs font-bold ${theme.textMuted}`}>ระบบจะเพิ่มเฉพาะอุปกรณ์ที่อยู่ในสถานะเลือกได้</div>
                       </div>
@@ -11540,9 +11552,22 @@ S.N.: ${item.sn || '-'}
                   </div>
                 )}
 
+                {borrowReturnMode !== 'return' && borrowReturnQuickFilter === 'cameraCabinet' && (
+                  <div className={`mx-3 mt-3 rounded-[1.35rem] border p-3 sm:p-4 ${isDarkMode ? 'bg-blue-950/18 border-blue-900/60' : 'bg-blue-50 border-blue-200'}`}>
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>Camera Cabinet Flow</div>
+                        <div className={`font-black mt-1 ${theme.textTitle}`}>กล้องในตู้: เลือกตัวกล้องเป็นหลักก่อน</div>
+                        <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ค่าเริ่มต้นถือว่า “กล้องพร้อมเลนส์คากล้อง + เมมประจำตัว + แบตในตัว” แล้ว ส่วนเลนส์แยก/แบตสำรอง/เมมสำรองค่อยเพิ่มจากตัวช่วยกล้องเมื่อจำเป็น</div>
+                      </div>
+                      <button type="button" onClick={() => { if (!requireOperationalAccess('ใช้ตัวช่วยเลือกกล้อง', borrowReturnMode)) return; openCameraAccessoryHelper(borrowReturnMode); }} className="shrink-0 px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black flex items-center justify-center gap-2"><Icons.Camera className="w-5 h-5" /> เปิดตัวช่วยกล้อง</button>
+                    </div>
+                  </div>
+                )}
+
                 <div
                   className="operation-picker-grid p-2.5 sm:p-3 max-h-[calc(100vh-330px)] min-h-[420px] overflow-y-auto custom-scrollbar"
-                  style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '10px', alignItems: 'stretch' }}
+                  style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '12px', alignItems: 'stretch' }}
                 >
                   {operationalItems.length === 0 ? (
                     <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`} style={{ gridColumn: '1 / -1' }}>ไม่พบรายการในโหมดนี้</div>
@@ -11559,7 +11584,7 @@ S.N.: ${item.sn || '-'}
                         type="button"
                         onClick={() => toggleOperationalItem(item.id)}
                         className={`operation-picker-card group relative w-full p-2.5 rounded-2xl border text-left transition-all overflow-hidden ${selected ? `${modeInfo.activeClass} ring-2 ring-emerald-400/45 shadow-[0_12px_30px_rgba(16,185,129,0.14)]` : (isDarkMode ? 'bg-slate-900/85 border-slate-800 hover:border-slate-500 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-blue-200 hover:bg-white')}`}
-                        style={{ minHeight: '128px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                        style={{ minHeight: '118px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
                       >
                         <div>
                           <div className="flex items-start justify-between gap-2">
@@ -11584,7 +11609,7 @@ S.N.: ${item.sn || '-'}
                         </div>
 
                         <div className={`mt-2 px-2.5 py-1.5 rounded-xl border text-[11px] font-black text-center ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? 'bg-slate-950/85 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600')}`}>
-                          {selected ? 'เลือกแล้ว • กดซ้ำเพื่อลบ' : 'กดเลือก'}
+                          {selected ? 'เลือกแล้ว' : 'เลือก'}
                         </div>
                       </button>
                     );
