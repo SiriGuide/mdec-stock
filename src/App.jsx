@@ -61,8 +61,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.20 Equipment Picker Folder Structure';
-const APP_UPDATE_NOTE = 'Dedicated Operation No Auto Modal: เลือกอุปกรณ์ในหน้ายืม/ออกงาน/รับคืนแล้วไม่เด้งฟอร์มทันที ต้องกดถัดไปก่อนกรอกรายละเอียด';
+const APP_VERSION = 'v23.1.20.1 Folder Structure Build Hotfix';
+const APP_UPDATE_NOTE = 'Folder Structure Build Hotfix: แก้ JSX raw > ในข้อความมุมมองแฟ้ม และคงโครงแฟ้ม ฝ่าย / ที่เก็บ / หมวดหมู่';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11365,7 +11365,7 @@ S.N.: ${item.sn || '-'}
                     <div className="min-w-0">
                       <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Equipment Picker</div>
                       <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>{borrowReturnMode === 'return' ? 'เลือกรายการรอรับคืน' : 'เลือกของเข้ารายการ'}</h3>
-                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>มุมมองแฟ้ม: ฝ่าย > ที่เก็บ > หมวดหมู่ แล้วเลือกของได้ทันที หรือพิมพ์ค้นหาจากช่องเดิม</p>
+                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>มุมมองแฟ้ม: ฝ่าย › ที่เก็บ › หมวดหมู่ แล้วเลือกของได้ทันที หรือพิมพ์ค้นหาจากช่องเดิม</p>
                     </div>
                     <div className="flex flex-wrap gap-2 shrink-0">
                       <button type="button" onClick={() => setShowBorrowReturnFilters(v => !v)} className={`px-3 py-2 rounded-xl text-sm font-black border flex items-center gap-2 ${borrowReturnActiveFilterCount > 0 ? modeInfo.softClass : theme.btnSecondary}`}>
