@@ -1,3 +1,4 @@
+// v23.1.26 Auto Camera Fields From Category - ถ้าหมวดเป็นกล้องให้แสดงช่องเลนส์/เมมอัตโนมัติ ไม่ต้องเลือกประเภทซ้ำ
 // v23.1.25 Simple Camera Link / Memory Field - ลดระบบกล้องให้เหลือแค่ลิงก์เลนส์ในคลัง + กรอกเมมที่คากล้องทั่วเว็บ
 // v23.1.24 Camera Kit Info Simple Flow - ตัด popup ตัวช่วยกล้อง และโชว์ข้อมูลชุดกล้อง/เลนส์/เมม/แบตในคลังกับหน้าทำรายการ
 // v23.1.23 Friendly Picker Selection Bar + Camera Helper - เพิ่มแถบรายการที่เลือก ดูรายการแบบ popup และตัวช่วยกล้องที่ขึ้นตามบริบท
@@ -66,8 +67,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.25 Simple Camera Link / Memory Field';
-const APP_UPDATE_NOTE = 'Simple Camera Link / Memory Field: ปรับทั้งเว็บให้ระบบกล้องเรียบง่าย เหลือแค่เลือกลิงก์เลนส์จากคลังและกรอกเมมที่คากล้อง';
+const APP_VERSION = 'v23.1.26 Auto Camera Fields From Category';
+const APP_UPDATE_NOTE = 'Auto Camera Fields From Category: หน้าเพิ่ม/แก้ไขอุปกรณ์อ่านประเภทจากหมวดหมู่ทันที ถ้าหมวดเป็นกล้องจะแสดงช่องลิงก์เลนส์และเมมคากล้องเอง ไม่ต้องเลือกซ้ำ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -24415,7 +24416,10 @@ S.N.: ${item.sn || '-'}
                       label="หมวดหมู่อุปกรณ์"
                       value={formData.category || ''}
                       options={settingsOptions.categories || []}
-                      onChange={(value) => setFormData({...formData, category: value, newCategory: ''})}
+                      onChange={(value) => {
+                        const inferredType = inferCameraHelperKind({ ...formData, category: value, equipmentType: '' });
+                        setFormData({...formData, category: value, newCategory: '', equipmentType: inferredType === 'other' ? '' : inferredType});
+                      }}
                       placeholder="พิมพ์ค้นหา / กดรายการทั้งหมดเพื่อเลื่อนเลือก"
                       helper="เลือกได้ทั้ง 2 แบบ: พิมพ์ค้นหาเร็ว ๆ หรือกด “รายการทั้งหมด” แล้วเลื่อนเลือกจากรายการเดิม"
                       theme={theme}
@@ -24428,18 +24432,25 @@ S.N.: ${item.sn || '-'}
 
               <section className={`item-form-section smart-equipment-form-section equipment-metadata-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-sky-950/20 border-sky-800' : 'bg-sky-50 border-sky-200'}`}>
                 {(() => {
-                  const equipmentType = formData.equipmentType || '';
-                  const typeOptions = [
-                    { id: '', label: 'ทั่วไป', icon: '📦', desc: 'ไม่ต้องกรอกข้อมูลเสริม' },
-                    { id: 'camera', label: 'กล้อง', icon: '📷', desc: 'ลิงก์เลนส์ + กรอกเมมที่คากล้อง' },
-                    { id: 'lens', label: 'เลนส์', icon: '🔭', desc: 'เก็บไว้ในคลังเพื่อให้กล้องเลือกลิงก์ได้' },
-                    { id: 'memory', label: 'เมม', icon: '💾', desc: 'กรอกความจุเมมแบบง่าย ๆ' },
-                    { id: 'accessory', label: 'อื่น ๆ', icon: '🧩', desc: 'อุปกรณ์เสริมทั่วไป' }
-                  ];
+                  const detectedEquipmentType = inferCameraHelperKind({
+                    ...formData,
+                    equipmentType: '',
+                    subType: '',
+                    compatibleWith: ''
+                  });
+                  const equipmentType = detectedEquipmentType !== 'other' ? detectedEquipmentType : (formData.equipmentType || '');
+                  const typeLabelMap = {
+                    camera: { label: 'กล้อง', icon: '📷', desc: 'ระบบแสดงช่องเลนส์ที่ลิงก์และเมมที่คากล้องให้อัตโนมัติ' },
+                    lens: { label: 'เลนส์', icon: '🔭', desc: 'ใช้เป็นรายการเลนส์ในคลังให้กล้องเลือกลิงก์ได้' },
+                    memory: { label: 'เมม', icon: '💾', desc: 'กรอกความจุเมมแบบง่าย ๆ' },
+                    battery: { label: 'แบตเตอรี่', icon: '🔋', desc: 'อุปกรณ์แยก เลือกตอนทำรายการได้ตามปกติ' },
+                    accessory: { label: 'อุปกรณ์เสริม', icon: '🧩', desc: 'อุปกรณ์ทั่วไป' }
+                  };
+                  const typeMeta = typeLabelMap[equipmentType] || { label: 'ทั่วไป', icon: '📦', desc: 'ไม่ต้องกรอกข้อมูลเสริม' };
                   const isCamera = equipmentType === 'camera';
                   const isLens = equipmentType === 'lens';
                   const isMemory = equipmentType === 'memory';
-                  const hasSpecificType = !!equipmentType;
+                  const hasSpecificType = ['camera', 'lens', 'memory'].includes(equipmentType);
                   const lensOptions = items
                     .filter(item => item && !item.isDeleted && item.id !== formData.id && inferCameraHelperKind(item) === 'lens')
                     .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true, sensitivity: 'base' }));
@@ -24461,36 +24472,30 @@ S.N.: ${item.sn || '-'}
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
                         <div>
                           <div className={`font-black text-lg mb-1 flex items-center gap-2 ${theme.textTitle}`}>2. ข้อมูลเสริมแบบง่าย</div>
-                          <p className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>ทั้งเว็บใช้หลักเดียวกัน: ถ้าเป็นกล้อง ให้เลือกเลนส์ในคลังที่ลิงก์อยู่ตอนนี้ และกรอกเมมที่คากล้องเท่านั้น</p>
+                          <p className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>ระบบอ่านจาก “หมวดหมู่อุปกรณ์” ให้อัตโนมัติ ไม่ต้องเลือกประเภทซ้ำ ถ้าหมวดเป็นกล้องจะแสดงแค่ช่องเลนส์ที่ลิงก์ + เมมที่คากล้อง</p>
                         </div>
-                        {hasSpecificType && (
-                          <div className={`px-3 py-2 rounded-2xl text-xs font-black border shrink-0 ${isDarkMode ? 'bg-slate-950/70 border-slate-800 text-slate-200' : 'bg-white border-sky-200 text-sky-700'}`}>
-                            {typeOptions.find(t => t.id === equipmentType)?.icon} {typeOptions.find(t => t.id === equipmentType)?.label}
+                        <div className={`px-3 py-2 rounded-2xl text-xs font-black border shrink-0 ${hasSpecificType ? (isDarkMode ? 'bg-slate-950/70 border-sky-800 text-sky-200' : 'bg-white border-sky-200 text-sky-700') : (isDarkMode ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600')}`}>
+                          {typeMeta.icon} อ่านจากหมวด: {typeMeta.label}
+                        </div>
+                      </div>
+
+                      <div className={`mb-4 p-3 rounded-2xl border text-sm font-bold ${hasSpecificType ? (isDarkMode ? 'bg-sky-950/25 border-sky-800 text-sky-100' : 'bg-white border-sky-200 text-sky-800') : (isDarkMode ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-white/80 border-sky-100 text-slate-600')}`}>
+                        {hasSpecificType ? (
+                          <div>
+                            <span className="font-black">{typeMeta.icon} ตรวจพบจากหมวดหมู่: {typeMeta.label}</span>
+                            <span className="block text-xs opacity-80 mt-1">{typeMeta.desc}</span>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="font-black">📦 อุปกรณ์ทั่วไป</span>
+                            <span className="block text-xs opacity-80 mt-1">ส่วนนี้จะซ่อนเอง ถ้าเลือกหมวด “กล้อง / เลนส์ / เมม” ระบบจะแสดงช่องที่เกี่ยวข้องให้อัตโนมัติ</span>
                           </div>
                         )}
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-4">
-                        {typeOptions.map(opt => {
-                          const active = equipmentType === opt.id;
-                          return (
-                            <button
-                              key={opt.id || 'general'}
-                              type="button"
-                              onClick={() => setFormData(prev => ({...prev, equipmentType: opt.id}))}
-                              className={`smart-equipment-type-card text-left p-3 rounded-2xl border transition-all ${active ? (isDarkMode ? 'bg-sky-950/60 border-sky-600 shadow-lg shadow-sky-950/30' : 'bg-white border-sky-400 shadow-md shadow-sky-100') : (isDarkMode ? 'bg-slate-950/40 border-slate-800 hover:border-sky-700' : 'bg-white/100 border-sky-100 hover:border-sky-300')}`}
-                            >
-                              <div className="text-xl mb-1">{opt.icon}</div>
-                              <div className={`font-black text-sm leading-tight ${theme.textTitle}`}>{opt.label}</div>
-                              <div className={`hidden sm:block text-[11px] font-bold mt-1 leading-snug ${theme.textMuted}`}>{opt.desc}</div>
-                            </button>
-                          );
-                        })}
-                      </div>
-
                       {!hasSpecificType ? (
                         <div className={`p-2.5 rounded-lg border text-sm font-bold ${isDarkMode ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-white/80 border-sky-100 text-slate-600'}`}>
-                          อุปกรณ์ทั่วไปไม่ต้องกรอกส่วนนี้ ถ้าเป็นกล้อง ให้เลือกประเภท “กล้อง” แล้วใส่แค่เลนส์ที่ลิงก์กับเมมที่คาอยู่
+                          อุปกรณ์ทั่วไปไม่ต้องกรอกส่วนนี้ ถ้าเป็นกล้องให้เลือกหมวดหมู่เป็น “กล้อง” แล้วระบบจะแสดงช่องเลนส์ที่ลิงก์กับเมมที่คากล้องให้อัตโนมัติ
                         </div>
                       ) : (
                         <div className="space-y-2.5 qr-side-panel">
@@ -24558,7 +24563,7 @@ S.N.: ${item.sn || '-'}
                           )}
 
                           <div className={`mt-2 p-3 rounded-2xl border text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950/70 border-slate-800 text-slate-300' : 'bg-white/80 border-sky-200 text-slate-600'}`}>
-                            รอบนี้ลดระบบกล้องให้เหลือเท่าที่ใช้งานจริง: เลือกเลนส์ที่ลิงก์กับกล้อง + กรอกเมมที่คากล้อง ส่วนเลนส์เสริม/เมมเพิ่มให้เลือกเป็นอุปกรณ์แยกตอนทำรายการ
+                            ระบบนี้ยึดหมวดหมู่เป็นหลัก: เลือกหมวดกล้องแล้วกรอกแค่เลนส์ที่ลิงก์ + เมมที่คากล้อง ส่วนเลนส์เสริม/เมมเพิ่มให้เลือกเป็นอุปกรณ์แยกตอนทำรายการ
                           </div>
                         </div>
                       )}
