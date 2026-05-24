@@ -1,4 +1,4 @@
-// v23.1.26 Auto Camera Fields From Category - ถ้าหมวดเป็นกล้องให้แสดงช่องเลนส์/เมมอัตโนมัติ ไม่ต้องเลือกประเภทซ้ำ
+// v23.1.27 Simplified Item Form / Remove Extra Codes - ลดช่องรหัสซ้ำ เหลือ S.N. หลัก + ข้อมูลกล้องเฉพาะเลนส์/เมม
 // v23.1.25 Simple Camera Link / Memory Field - ลดระบบกล้องให้เหลือแค่ลิงก์เลนส์ในคลัง + กรอกเมมที่คากล้องทั่วเว็บ
 // v23.1.24 Camera Kit Info Simple Flow - ตัด popup ตัวช่วยกล้อง และโชว์ข้อมูลชุดกล้อง/เลนส์/เมม/แบตในคลังกับหน้าทำรายการ
 // v23.1.23 Friendly Picker Selection Bar + Camera Helper - เพิ่มแถบรายการที่เลือก ดูรายการแบบ popup และตัวช่วยกล้องที่ขึ้นตามบริบท
@@ -67,8 +67,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.26 Auto Camera Fields From Category';
-const APP_UPDATE_NOTE = 'Auto Camera Fields From Category: หน้าเพิ่ม/แก้ไขอุปกรณ์อ่านประเภทจากหมวดหมู่ทันที ถ้าหมวดเป็นกล้องจะแสดงช่องลิงก์เลนส์และเมมคากล้องเอง ไม่ต้องเลือกซ้ำ';
+const APP_VERSION = 'v23.1.27 Simplified Item Form / Remove Extra Codes';
+const APP_UPDATE_NOTE = 'Simplified Item Form: หน้าเพิ่ม/แก้ไขอุปกรณ์ตัดรหัสสั้นและฝ่ายดูแลหลักซ้ำออก เหลือ S.N. เป็นรหัสหลัก และถ้าเป็นกล้องให้กรอกแค่เลนส์ที่ลิงก์กับเมมที่คากล้อง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -24499,23 +24499,8 @@ S.N.: ${item.sn || '-'}
                         </div>
                       ) : (
                         <div className="space-y-2.5 qr-side-panel">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className={fieldCardClass}>
-                              <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>รหัสสั้นบนตัวของ</label>
-                              <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border uppercase ${theme.input}`} placeholder={isMemory ? 'เช่น OB-M02' : isCamera ? 'เช่น CAM-01' : 'เช่น LENS-01'} value={formData.shortCode || ''} onChange={e => setFormData({...formData, shortCode: e.target.value.toUpperCase()})} />
-                              <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>ใช้สำหรับเขียนบนตัวของหรือกล่องเก็บ เพื่อหาเร็วขึ้น</div>
-                            </div>
-                            <div className={fieldCardClass}>
-                              <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>ฝ่ายดูแลหลัก</label>
-                              <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={formData.ownerDepartment || ''} onChange={e => setFormData({...formData, ownerDepartment: e.target.value})}>
-                                <option value="">-- ใช้ฝ่ายเดียวกับข้อมูลหลัก --</option>
-                                <option value="ภาพนิ่ง">ภาพนิ่ง</option>
-                                <option value="วิดีโอ">วิดีโอ</option>
-                                <option value="OB-Live">OB-Live</option>
-                                <option value="ส่วนกลาง">ส่วนกลาง</option>
-                              </select>
-                              <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>ใช้แยกเจ้าของอุปกรณ์แบบง่าย ๆ</div>
-                            </div>
+                          <div className={`p-3 rounded-2xl border text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950/50 border-slate-800 text-slate-300' : 'bg-white/80 border-sky-100 text-slate-600'}`}>
+                            ใช้ <span className="font-black">รหัส S.N.</span> จากข้อมูลหลักเป็นรหัสเดียวของอุปกรณ์ ไม่ต้องกรอกรหัสซ้ำในส่วนนี้
                           </div>
 
                           {isCamera && (
@@ -24563,7 +24548,7 @@ S.N.: ${item.sn || '-'}
                           )}
 
                           <div className={`mt-2 p-3 rounded-2xl border text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950/70 border-slate-800 text-slate-300' : 'bg-white/80 border-sky-200 text-slate-600'}`}>
-                            ระบบนี้ยึดหมวดหมู่เป็นหลัก: เลือกหมวดกล้องแล้วกรอกแค่เลนส์ที่ลิงก์ + เมมที่คากล้อง ส่วนเลนส์เสริม/เมมเพิ่มให้เลือกเป็นอุปกรณ์แยกตอนทำรายการ
+                            สรุป: เลือกหมวดกล้องแล้วกรอกแค่เลนส์ที่ลิงก์ + เมมที่คากล้อง ส่วนเลนส์เสริม/เมมเพิ่มให้เลือกเป็นอุปกรณ์แยกตอนทำรายการ
                           </div>
                         </div>
                       )}
