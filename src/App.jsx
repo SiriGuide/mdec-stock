@@ -1,3 +1,5 @@
+// v23.1.22 Friendly Equipment Picker / Storage First UX - เปลี่ยนหน้าเลือกอุปกรณ์ให้เริ่มจากที่เก็บจริง เลือกหมวด แล้วหยิบของแบบเป็นมิตร
+// v23.1.21 Equipment Picker 2-Pane Folder UX - เปลี่ยน Equipment Picker เป็นแฟ้ม 2 คอลัมน์ ฝ่าย / ที่เก็บ ทางซ้าย และรายการหยิบของทางขวา
 // v23.1.20 Equipment Picker Folder Structure - เปลี่ยน Equipment Picker เป็นมุมมองแฟ้ม ฝ่าย > ที่เก็บ > หมวดหมู่ พร้อมค้นหาเดิม
 // v23.1.17 Inventory Action Cleanup - คลังอุปกรณ์เป็นหน้าทะเบียน/แฟ้มอุปกรณ์ ตัดปุ่มยืม/ออกงาน/รับคืนออกจากคลัง
 // v23.1.3 Operation Control Compact Layout Polish - จัดหน้า ยืม/ออกงาน/รับคืน ใหม่ แยกเลือกโหมดซ้าย สรุปตัวเลขขวา
@@ -61,8 +63,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.20.1 Folder Structure Build Hotfix';
-const APP_UPDATE_NOTE = 'Folder Structure Build Hotfix: แก้ JSX raw > ในข้อความมุมมองแฟ้ม และคงโครงแฟ้ม ฝ่าย / ที่เก็บ / หมวดหมู่';
+const APP_VERSION = 'v23.1.22 Friendly Equipment Picker / Storage First UX';
+const APP_UPDATE_NOTE = 'Friendly Equipment Picker / Storage First UX: ปรับหน้าเลือกอุปกรณ์ให้เริ่มจากที่เก็บจริง เลือกหมวด แล้วหยิบของด้วยรายการแบบ compact ใช้งานง่ายขึ้น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7159,6 +7161,9 @@ function MainApp() {
   const [borrowReturnQuickFilter, setBorrowReturnQuickFilter] = useState('all');
   const [showBorrowReturnFilters, setShowBorrowReturnFilters] = useState(false);
   const [showOperationQuickPick, setShowOperationQuickPick] = useState(false);
+  const [operationPickerDept, setOperationPickerDept] = useState('');
+  const [operationPickerLocation, setOperationPickerLocation] = useState('');
+  const [operationPickerCategory, setOperationPickerCategory] = useState('');
   const [selectedPurchaseProject, setSelectedPurchaseProject] = useState(null);
   const [projectMetaEditTarget, setProjectMetaEditTarget] = useState(null);
   const [projectMetaForm, setProjectMetaForm] = useState({ name: '', fiscalYear: '', budget: '', owner: '', startDate: '', endDate: '', objective: '', note: '', status: 'active' });
@@ -11236,8 +11241,43 @@ S.N.: ${item.sn || '-'}
       return tree;
     }, {});
 
-    const operationFolderDeptEntries = Object.entries(operationFolderTree)
-      .sort(([a], [b]) => a.localeCompare(b, 'th', { numeric: true, sensitivity: 'base' }));
+    const sortOperationFolderEntries = (entries = []) => [...entries].sort(([a], [b]) => a.localeCompare(b, 'th', { numeric: true, sensitivity: 'base' }));
+    const operationFolderDeptEntries = sortOperationFolderEntries(Object.entries(operationFolderTree));
+
+    // v23.1.22 Friendly Storage First UX
+    // เปลี่ยนการคิดจาก “แฟ้ม/ฝ่ายก่อน” เป็น “ที่เก็บจริงก่อน” เพราะตรงกับพฤติกรรมการหยิบของในศูนย์มากกว่า
+    const operationStorageTree = operationalItems.reduce((tree, item) => {
+      const location = getOperationLocationLabel(item);
+      const category = getOperationCategoryLabel(item);
+      const dept = getOperationDeptLabel(item);
+      if (!tree[location]) tree[location] = { total: 0, categories: {}, departments: {} };
+      if (!tree[location].categories[category]) tree[location].categories[category] = [];
+      if (!tree[location].departments[dept]) tree[location].departments[dept] = 0;
+      tree[location].total += 1;
+      tree[location].departments[dept] += 1;
+      tree[location].categories[category].push(item);
+      return tree;
+    }, {});
+
+    const operationStorageEntries = sortOperationFolderEntries(Object.entries(operationStorageTree));
+    const operationSelectedStorageEntry = operationStorageEntries.find(([name]) => name === operationPickerLocation) || operationStorageEntries[0] || null;
+    const operationSelectedStorageName = operationSelectedStorageEntry?.[0] || '';
+    const operationSelectedStorageData = operationSelectedStorageEntry?.[1] || null;
+    const operationCategoryEntries = operationSelectedStorageData ? sortOperationFolderEntries(Object.entries(operationSelectedStorageData.categories || {})) : [];
+    const operationSelectedCategoryEntry = operationCategoryEntries.find(([name]) => name === operationPickerCategory) || operationCategoryEntries[0] || null;
+    const operationSelectedCategoryName = operationSelectedCategoryEntry?.[0] || '';
+    const operationSelectedCategoryItems = operationSelectedCategoryEntry?.[1] || [];
+    const operationSelectedStorageDeptEntries = operationSelectedStorageData ? sortOperationFolderEntries(Object.entries(operationSelectedStorageData.departments || {})) : [];
+
+    const selectOperationViewItems = (viewItems = []) => {
+      if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return;
+      const ids = viewItems.map(item => item.id).filter(Boolean);
+      if (ids.length === 0) return;
+      const next = Array.from(new Set([...actionTargetIds, ...ids]));
+      setActionTargets(next);
+      setActionChecklist(Array.from(new Set([...actionChecklist, ...ids])));
+    };
+
 
     const renderOperationPickerItemCard = (item, compact = false) => {
       const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
@@ -11275,6 +11315,46 @@ S.N.: ${item.sn || '-'}
           </div>
           <div className={`mt-2 px-2.5 py-1.5 rounded-xl border text-[11px] font-black text-center ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? 'bg-slate-950/85 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600')}`}>
             {selected ? 'เลือกแล้ว' : 'เลือก'}
+          </div>
+        </button>
+      );
+    };
+
+    const renderOperationPickerItemRow = (item, options = {}) => {
+      const { showFolderPath = false } = options;
+      const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
+      const selected = actionTargetIds.includes(item.id);
+      const late = (item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
+      const deptInfo = DEPARTMENTS.find(d => d.id === (item.department || item.ownerDepartment));
+      const DeptIcon = Icons[deptInfo?.iconName] || Icons.Package;
+      const deptPillClass = deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600');
+      return (
+        <button
+          key={`row_${item.id}`}
+          type="button"
+          onClick={() => toggleOperationalItem(item.id)}
+          className={`w-full rounded-2xl border px-3 py-3 text-left transition-all ${selected ? `${modeInfo.activeClass} ring-2 ring-emerald-400/40 shadow-[0_10px_28px_rgba(16,185,129,0.12)]` : (isDarkMode ? 'bg-slate-900/70 border-slate-800 hover:border-slate-600 hover:bg-slate-900' : 'bg-white border-slate-200 hover:border-blue-200 hover:bg-slate-50')}`}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex items-start gap-3">
+              <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-white/20 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500')}`}>
+                <DeptIcon className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className={`font-black text-sm leading-tight truncate ${selected ? 'text-white' : theme.textTitle}`}>{item.name || '-'}</div>
+                <div className={`text-[11px] font-bold mt-1 truncate ${selected ? 'text-white/75' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || item.storageBoxName || '-'}</div>
+                {showFolderPath && (
+                  <div className={`text-[10px] font-black mt-1 truncate ${selected ? 'text-white/70' : theme.textMuted}`}>{getOperationDeptLabel(item)} › {getOperationLocationLabel(item)} › {getOperationCategoryLabel(item)}</div>
+                )}
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? statusInfo.darkColor : statusInfo.color)}`}>{statusInfo.label}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${selected ? 'bg-white/10 text-white border border-white/20' : deptPillClass}`}>{deptInfo?.label || item.department || item.ownerDepartment || 'ไม่ระบุฝ่าย'}</span>
+                  {item.storageBoxName && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${selected ? 'bg-white/10 text-white border border-white/20' : (isDarkMode ? 'bg-cyan-900/35 text-cyan-300' : 'bg-cyan-50 text-cyan-700')}`}>📦 {item.storageBoxName}</span>}
+                  {late && <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white">เลยกำหนด</span>}
+                </div>
+              </div>
+            </div>
+            <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 font-black text-xs ${selected ? (isDarkMode ? 'bg-emerald-400 border-emerald-300 text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white') : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-500' : 'bg-white border-slate-300 text-slate-300')}`}>{selected ? '✓' : ''}</div>
           </div>
         </button>
       );
@@ -11365,7 +11445,7 @@ S.N.: ${item.sn || '-'}
                     <div className="min-w-0">
                       <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Equipment Picker</div>
                       <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>{borrowReturnMode === 'return' ? 'เลือกรายการรอรับคืน' : 'เลือกของเข้ารายการ'}</h3>
-                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>มุมมองแฟ้ม: ฝ่าย › ที่เก็บ › หมวดหมู่ แล้วเลือกของได้ทันที หรือพิมพ์ค้นหาจากช่องเดิม</p>
+                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เลือกจากที่เก็บจริงก่อน แล้วเลือกหมวดเพื่อหยิบของ หรือพิมพ์ค้นหาจากช่องเดิมได้ทันที</p>
                     </div>
                     <div className="flex flex-wrap gap-2 shrink-0">
                       <button type="button" onClick={() => setShowBorrowReturnFilters(v => !v)} className={`px-3 py-2 rounded-xl text-sm font-black border flex items-center gap-2 ${borrowReturnActiveFilterCount > 0 ? modeInfo.softClass : theme.btnSecondary}`}>
@@ -11396,23 +11476,14 @@ S.N.: ${item.sn || '-'}
                     </div>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {[
-                      ['all', 'ทั้งหมด'],
-                      ['audio', 'เครื่องเสียง'],
-                      ['cameraCabinet', 'ตู้กล้อง'],
-                      ['camera', 'กล้อง/เลนส์'],
-                      ['noqr', 'ยังไม่มี QR'],
-                      ...(borrowReturnMode === 'return' ? [['late', 'เลยกำหนด']] : [])
-                    ].map(([id, label]) => (
-                      <button key={id} type="button" onClick={() => setBorrowReturnQuickFilter(id)} className={`px-3 py-1.5 rounded-full border text-xs font-black transition-all ${borrowReturnQuickFilter === id ? modeInfo.softClass : (isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50')}`}>
-                        {label}
-                      </button>
-                    ))}
-                    {borrowReturnActiveFilterCount > 0 && (
+                  {borrowReturnActiveFilterCount > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <div className={`px-3 py-1.5 rounded-full border text-xs font-black ${modeInfo.softClass}`}>
+                        ใช้งานตัวกรองอยู่ {borrowReturnActiveFilterCount} รายการ
+                      </div>
                       <button type="button" onClick={clearBorrowReturnFilters} className={`px-3 py-1.5 rounded-full border text-xs font-black ${isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>ล้างตัวกรอง</button>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   {showOperationQuickPick && (operationBoxShortcuts.length > 0 || operationBundleShortcuts.length > 0) && (
                     <>
@@ -11642,93 +11713,123 @@ S.N.: ${item.sn || '-'}
                       <div className={`rounded-2xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                         <div className="min-w-0">
                           <div className={`text-xs font-black ${theme.textTitle}`}>ผลค้นหา “{borrowReturnSearch}”</div>
-                          <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>แสดงเป็นรายการตรง ๆ พร้อมบอกตำแหน่งของอุปกรณ์ในแฟ้ม</div>
+                          <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>แสดงเป็นรายการตรง ๆ พร้อมบอกที่เก็บและหมวด เพื่อเลือกของได้เร็ว</div>
                         </div>
-                        <button type="button" onClick={() => setBorrowReturnSearch('')} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>กลับมุมมองแฟ้ม</button>
+                        <div className="flex flex-wrap gap-2">
+                          <button type="button" onClick={() => selectOperationViewItems(operationalItems)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เลือกทั้งหมดที่พบ</button>
+                          <button type="button" onClick={() => setBorrowReturnSearch('')} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>กลับไปเลือกจากที่เก็บ</button>
+                        </div>
                       </div>
-                      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', alignItems: 'stretch' }}>
-                        {operationalItems.map(item => (
-                          <div key={`search_wrap_${item.id}`} className="space-y-1.5">
-                            <div className={`px-2 text-[10px] font-black truncate ${theme.textMuted}`}>{getOperationDeptLabel(item)} / {getOperationLocationLabel(item)} / {getOperationCategoryLabel(item)}</div>
-                            {renderOperationPickerItemCard(item, true)}
-                          </div>
-                        ))}
+                      <div className="space-y-2.5">
+                        {operationalItems.map(item => renderOperationPickerItemRow(item, { showFolderPath: true }))}
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      <div className={`rounded-2xl border px-4 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-2 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                        <div className="min-w-0">
-                          <div className={`text-xs font-black ${theme.textTitle}`}>แฟ้มอุปกรณ์</div>
-                          <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>เรียงตาม ฝ่าย → ที่เก็บ → หมวดหมู่ เหมือนเดินไปหยิบของจริง</div>
+                    <div className="grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)] gap-4 items-start">
+                      <aside className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                        <div className={`px-4 py-3 border-b ${theme.divide}`}>
+                          <div className={`text-xs font-black ${theme.textTitle}`}>เลือกจากที่เก็บจริง</div>
+                          <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>เริ่มจากห้อง / ตู้ / ชั้น เหมือนตอนเดินไปหยิบของ</div>
                         </div>
-                        <div className={`text-[11px] font-black ${theme.textMuted}`}>{operationFolderDeptEntries.length.toLocaleString('th-TH')} ฝ่าย / กลุ่มใหญ่</div>
-                      </div>
-
-                      {operationFolderDeptEntries.map(([deptName, deptData], deptIndex) => {
-                        const DeptFolderIcon = DEPARTMENTS.find(d => d.label === deptName || d.id === deptName)?.iconName ? Icons[DEPARTMENTS.find(d => d.label === deptName || d.id === deptName)?.iconName] : Icons.Folder;
-                        const locationEntries = Object.entries(deptData.locations).sort(([a], [b]) => a.localeCompare(b, 'th', { numeric: true, sensitivity: 'base' }));
-                        return (
-                          <details key={deptName} defaultOpen={deptIndex < 3 || locationEntries.length === 1} className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                            <summary className={`cursor-pointer select-none px-4 py-3 flex items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900/80 hover:bg-slate-900' : 'bg-slate-50 hover:bg-slate-100'}`}>
-                              <div className="flex items-center gap-3 min-w-0">
-                                <span className={`w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-slate-950 border-slate-700 text-blue-300' : 'bg-white border-slate-200 text-blue-600'}`}><DeptFolderIcon className="w-4 h-4" /></span>
-                                <span className="min-w-0">
-                                  <span className={`block text-sm font-black truncate ${theme.textTitle}`}>{deptName}</span>
-                                  <span className={`block text-[11px] font-bold ${theme.textMuted}`}>{locationEntries.length.toLocaleString('th-TH')} ที่เก็บ • {deptData.total.toLocaleString('th-TH')} รายการ</span>
-                                </span>
-                              </div>
-                              <span className={`px-2.5 py-1 rounded-full text-[11px] font-black ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-white text-slate-600 border border-slate-200'}`}>{deptData.total}</span>
-                            </summary>
-
-                            <div className="p-3 space-y-3">
-                              {locationEntries.map(([locationName, locationData]) => {
-                                const categoryEntries = Object.entries(locationData.categories).sort(([a], [b]) => a.localeCompare(b, 'th', { numeric: true, sensitivity: 'base' }));
-                                return (
-                                  <details key={`${deptName}_${locationName}`} defaultOpen={locationEntries.length <= 2} className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-900/45 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                                    <summary className="cursor-pointer select-none px-3 py-2.5 flex items-center justify-between gap-3">
-                                      <div className="min-w-0">
-                                        <div className={`text-sm font-black truncate ${theme.textTitle}`}>📍 {locationName}</div>
-                                        <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{categoryEntries.length.toLocaleString('th-TH')} หมวดหมู่ • {locationData.total.toLocaleString('th-TH')} รายการ</div>
-                                      </div>
-                                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-black ${isDarkMode ? 'bg-slate-950 text-slate-300 border border-slate-700' : 'bg-white text-slate-600 border border-slate-200'}`}>{locationData.total}</span>
-                                    </summary>
-
-                                    <div className="px-3 pb-3 space-y-3">
-                                      {categoryEntries.map(([categoryName, categoryItems]) => (
-                                        <div key={`${deptName}_${locationName}_${categoryName}`} className={`rounded-2xl border p-2.5 ${isDarkMode ? 'bg-slate-950/85 border-slate-800' : 'bg-white border-slate-200'}`}>
-                                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                                            <div className="min-w-0">
-                                              <div className={`text-sm font-black truncate ${theme.textTitle}`}>🏷️ {categoryName}</div>
-                                              <div className={`text-[11px] font-bold ${theme.textMuted}`}>{categoryItems.length.toLocaleString('th-TH')} รายการในหมวดนี้</div>
-                                            </div>
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return;
-                                                const ids = categoryItems.map(item => item.id);
-                                                const next = Array.from(new Set([...actionTargetIds, ...ids]));
-                                                setActionTargets(next);
-                                                setActionChecklist(actionChecklist.filter(id => next.includes(id)));
-                                              }}
-                                              className={`shrink-0 px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}
-                                            >เลือกทั้งหมวด</button>
-                                          </div>
-                                          <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', alignItems: 'stretch' }}>
-                                            {categoryItems.map(item => renderOperationPickerItemCard(item, true))}
-                                          </div>
-                                        </div>
-                                      ))}
+                        <div className="p-3 space-y-2.5 max-h-[calc(100vh-390px)] overflow-y-auto custom-scrollbar">
+                          {operationStorageEntries.map(([storageName, storageData]) => {
+                            const storageActive = storageName === operationSelectedStorageName;
+                            const categoryEntries = sortOperationFolderEntries(Object.entries(storageData.categories || {}));
+                            const deptEntries = sortOperationFolderEntries(Object.entries(storageData.departments || {}));
+                            const firstCategoryEntry = categoryEntries[0] || null;
+                            return (
+                              <button
+                                key={storageName}
+                                type="button"
+                                onClick={() => {
+                                  setOperationPickerDept('');
+                                  setOperationPickerLocation(storageName);
+                                  setOperationPickerCategory(firstCategoryEntry?.[0] || '');
+                                }}
+                                className={`w-full rounded-2xl border p-3 text-left transition-all ${storageActive ? modeInfo.softClass : (isDarkMode ? 'bg-slate-950/80 border-slate-800 hover:bg-slate-900 hover:border-slate-700' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300')}`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <div className={`text-sm font-black truncate ${storageActive ? 'text-white' : theme.textTitle}`}>📍 {storageName}</div>
+                                    <div className={`text-[11px] font-bold mt-1 ${storageActive ? 'text-white/75' : theme.textMuted}`}>
+                                      {categoryEntries.length.toLocaleString('th-TH')} หมวด • {storageData.total.toLocaleString('th-TH')} รายการ
                                     </div>
-                                  </details>
+                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                      {deptEntries.slice(0, 2).map(([deptName, count]) => (
+                                        <span key={`${storageName}_${deptName}`} className={`px-2 py-0.5 rounded-full text-[10px] font-black ${storageActive ? 'bg-white/10 text-white border border-white/20' : (isDarkMode ? 'bg-slate-900 text-slate-300 border border-slate-700' : 'bg-slate-50 text-slate-600 border border-slate-200')}`}>
+                                          {deptName} {count}
+                                        </span>
+                                      ))}
+                                      {deptEntries.length > 2 && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${storageActive ? 'bg-white/10 text-white border border-white/20' : (isDarkMode ? 'bg-slate-900 text-slate-400 border border-slate-700' : 'bg-slate-50 text-slate-500 border border-slate-200')}`}>+{deptEntries.length - 2}</span>}
+                                    </div>
+                                  </div>
+                                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-black shrink-0 ${storageActive ? 'bg-white/10 text-white border border-white/20' : (isDarkMode ? 'bg-slate-900 text-slate-300 border border-slate-700' : 'bg-slate-50 text-slate-600 border border-slate-200')}`}>{storageData.total}</span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </aside>
+
+                      <section className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                        <div className={`px-4 py-3 border-b ${theme.divide}`}>
+                          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className={`text-[11px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Storage View</div>
+                              <div className={`text-lg font-black mt-1 ${theme.textTitle}`}>{operationSelectedStorageName || 'เลือกที่เก็บ'}</div>
+                              <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>
+                                {operationSelectedCategoryName ? `หมวด ${operationSelectedCategoryName}` : 'เลือกหมวดก่อน'} • พบ {operationSelectedCategoryItems.length.toLocaleString('th-TH')} รายการ
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 shrink-0">
+                              <button type="button" onClick={() => selectOperationViewItems(operationSelectedCategoryItems)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เลือกหมวดนี้</button>
+                              <button type="button" onClick={clearOperationSelection} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ล้างเลือก</button>
+                            </div>
+                          </div>
+
+                          {operationSelectedStorageDeptEntries.length > 0 && (
+                            <div className="mt-3 flex flex-wrap gap-1.5">
+                              {operationSelectedStorageDeptEntries.map(([deptName, count]) => (
+                                <span key={`storage_dept_${deptName}`} className={`px-2.5 py-1 rounded-full border text-[11px] font-black ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                  {deptName} {count}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {operationCategoryEntries.length > 0 && (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {operationCategoryEntries.map(([categoryName, categoryItems]) => {
+                                const active = categoryName === operationSelectedCategoryName;
+                                return (
+                                  <button
+                                    key={`${operationSelectedStorageName}_${categoryName}`}
+                                    type="button"
+                                    onClick={() => {
+                                      setOperationPickerLocation(operationSelectedStorageName);
+                                      setOperationPickerCategory(categoryName);
+                                    }}
+                                    className={`px-3 py-1.5 rounded-full border text-xs font-black ${active ? modeInfo.softClass : (isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50')}`}
+                                  >
+                                    {categoryName} • {categoryItems.length}
+                                  </button>
                                 );
                               })}
                             </div>
-                          </details>
-                        );
-                      })}
+                          )}
+                        </div>
+
+                        <div className="p-3 sm:p-4 space-y-2.5 max-h-[calc(100vh-390px)] overflow-y-auto custom-scrollbar">
+                          {operationSelectedCategoryItems.length === 0 ? (
+                            <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ยังไม่มีอุปกรณ์ในหมวดนี้</div>
+                          ) : (
+                            operationSelectedCategoryItems.map(item => renderOperationPickerItemRow(item))
+                          )}
+                        </div>
+                      </section>
                     </div>
                   )}
+
                 </div>
               </section>
               )}
