@@ -1,4 +1,4 @@
-// v23.1.15 Operation Menu Dropdown Downward - รวมเมนูงานอุปกรณ์ และกางเมนูย่อยลงด้านล่างใน sidebar ไม่เด้งออกข้าง
+// v23.1.20 Equipment Picker Folder Structure - เปลี่ยน Equipment Picker เป็นมุมมองแฟ้ม ฝ่าย > ที่เก็บ > หมวดหมู่ พร้อมค้นหาเดิม
 // v23.1.17 Inventory Action Cleanup - คลังอุปกรณ์เป็นหน้าทะเบียน/แฟ้มอุปกรณ์ ตัดปุ่มยืม/ออกงาน/รับคืนออกจากคลัง
 // v23.1.3 Operation Control Compact Layout Polish - จัดหน้า ยืม/ออกงาน/รับคืน ใหม่ แยกเลือกโหมดซ้าย สรุปตัวเลขขวา
 // v23.1.2 Box Bundle Borrow Shortcut Hotfix - เลือกยืมกล่อง/เซ็ตจากหน้าทำรายการได้เลย
@@ -61,7 +61,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.19 Dedicated Operation No Auto Modal';
+const APP_VERSION = 'v23.1.20 Equipment Picker Folder Structure';
 const APP_UPDATE_NOTE = 'Dedicated Operation No Auto Modal: เลือกอุปกรณ์ในหน้ายืม/ออกงาน/รับคืนแล้วไม่เด้งฟอร์มทันที ต้องกดถัดไปก่อนกรอกรายละเอียด';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -11210,6 +11210,76 @@ S.N.: ${item.sn || '-'}
       setActionTargets(operationalItems.map(item => item.id));
     };
 
+    const normalizeOperationFolderText = (value, fallback = 'ไม่ระบุ') => {
+      const text = String(value || '').trim();
+      return text || fallback;
+    };
+
+    const getOperationDeptLabel = (item = {}) => {
+      const deptId = item.department || item.ownerDepartment;
+      return DEPARTMENTS.find(d => d.id === deptId)?.label || normalizeOperationFolderText(deptId, 'ไม่ระบุฝ่าย');
+    };
+
+    const getOperationLocationLabel = (item = {}) => normalizeOperationFolderText(item.location || item.storageLocation || item.storageBoxName, 'ไม่ระบุที่เก็บ');
+    const getOperationCategoryLabel = (item = {}) => normalizeOperationFolderText(item.category, 'ไม่ระบุหมวดหมู่');
+
+    const operationFolderTree = operationalItems.reduce((tree, item) => {
+      const dept = getOperationDeptLabel(item);
+      const location = getOperationLocationLabel(item);
+      const category = getOperationCategoryLabel(item);
+      if (!tree[dept]) tree[dept] = { total: 0, locations: {} };
+      if (!tree[dept].locations[location]) tree[dept].locations[location] = { total: 0, categories: {} };
+      if (!tree[dept].locations[location].categories[category]) tree[dept].locations[location].categories[category] = [];
+      tree[dept].total += 1;
+      tree[dept].locations[location].total += 1;
+      tree[dept].locations[location].categories[category].push(item);
+      return tree;
+    }, {});
+
+    const operationFolderDeptEntries = Object.entries(operationFolderTree)
+      .sort(([a], [b]) => a.localeCompare(b, 'th', { numeric: true, sensitivity: 'base' }));
+
+    const renderOperationPickerItemCard = (item, compact = false) => {
+      const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
+      const selected = actionTargetIds.includes(item.id);
+      const late = (item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
+      const deptInfo = DEPARTMENTS.find(d => d.id === (item.department || item.ownerDepartment));
+      const DeptIcon = Icons[deptInfo?.iconName] || Icons.Package;
+      const deptPillClass = deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600');
+      return (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => toggleOperationalItem(item.id)}
+          className={`operation-picker-card group relative w-full p-2.5 rounded-2xl border text-left transition-all overflow-hidden ${selected ? `${modeInfo.activeClass} ring-2 ring-emerald-400/45 shadow-[0_12px_30px_rgba(16,185,129,0.14)]` : (isDarkMode ? 'bg-slate-900/85 border-slate-800 hover:border-slate-500 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-blue-200 hover:bg-white')}`}
+          style={{ minHeight: compact ? '96px' : '118px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+        >
+          <div>
+            <div className="flex items-start justify-between gap-2">
+              <div className={`w-8 h-8 rounded-2xl border flex items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-white/20 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
+                <DeptIcon className="w-4 h-4" />
+              </div>
+              <span className={`w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black text-xs transition-all ${selected ? (isDarkMode ? 'bg-emerald-400 border-emerald-300 text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white') : isDarkMode ? 'border-slate-600 bg-slate-950 text-slate-600 group-hover:text-slate-300' : 'border-slate-300 bg-white text-slate-300 group-hover:text-slate-500'}`}>{selected ? '✓' : ''}</span>
+            </div>
+            <div className="mt-2 min-w-0">
+              <div className={`font-black text-[13px] leading-tight line-clamp-2 ${selected ? 'text-white' : theme.textTitle}`}>{item.name || '-'}</div>
+              <div className={`mt-1 text-[10px] font-bold leading-snug line-clamp-2 ${selected ? 'text-white/75' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || item.storageBoxName || '-'}</div>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${deptPillClass}`}>{deptInfo?.label || item.department || item.ownerDepartment || 'ไม่ระบุฝ่าย'}</span>
+              {late && <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white">เลยกำหนด</span>}
+              {item.storageBoxName && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isDarkMode ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-50 text-cyan-700'}`}>📦 กล่อง</span>}
+              {item.project && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isDarkMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>โครงการ</span>}
+            </div>
+          </div>
+          <div className={`mt-2 px-2.5 py-1.5 rounded-xl border text-[11px] font-black text-center ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? 'bg-slate-950/85 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600')}`}>
+            {selected ? 'เลือกแล้ว' : 'เลือก'}
+          </div>
+        </button>
+      );
+    };
+
     const missingSteps = [];
     if (borrowReturnMode === 'borrow') {
       if (!borrowData.staff) missingSteps.push('เลือกผู้ให้ยืม');
@@ -11295,7 +11365,7 @@ S.N.: ${item.sn || '-'}
                     <div className="min-w-0">
                       <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Equipment Picker</div>
                       <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>{borrowReturnMode === 'return' ? 'เลือกรายการรอรับคืน' : 'เลือกของเข้ารายการ'}</h3>
-                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ลดความลายตา: ใช้ค้นหา/ตัวกรองก่อน แล้วค่อยเลือกจากการ์ดแบบอ่านง่าย</p>
+                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>มุมมองแฟ้ม: ฝ่าย > ที่เก็บ > หมวดหมู่ แล้วเลือกของได้ทันที หรือพิมพ์ค้นหาจากช่องเดิม</p>
                     </div>
                     <div className="flex flex-wrap gap-2 shrink-0">
                       <button type="button" onClick={() => setShowBorrowReturnFilters(v => !v)} className={`px-3 py-2 rounded-xl text-sm font-black border flex items-center gap-2 ${borrowReturnActiveFilterCount > 0 ? modeInfo.softClass : theme.btnSecondary}`}>
@@ -11564,55 +11634,101 @@ S.N.: ${item.sn || '-'}
                   </div>
                 )}
 
-                <div
-                  className="operation-picker-grid p-2.5 sm:p-3 max-h-[calc(100vh-330px)] min-h-[420px] overflow-y-auto custom-scrollbar"
-                  style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '12px', alignItems: 'stretch' }}
-                >
+                <div className="operation-folder-picker p-2.5 sm:p-3 max-h-[calc(100vh-330px)] min-h-[420px] overflow-y-auto custom-scrollbar">
                   {operationalItems.length === 0 ? (
-                    <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`} style={{ gridColumn: '1 / -1' }}>ไม่พบรายการในโหมดนี้</div>
-                  ) : operationalItems.map(item => {
-                    const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
-                    const selected = actionTargetIds.includes(item.id);
-                    const late = (item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
-                    const deptInfo = DEPARTMENTS.find(d => d.id === (item.department || item.ownerDepartment));
-                    const DeptIcon = Icons[deptInfo?.iconName] || Icons.Package;
-                    const deptPillClass = deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600');
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => toggleOperationalItem(item.id)}
-                        className={`operation-picker-card group relative w-full p-2.5 rounded-2xl border text-left transition-all overflow-hidden ${selected ? `${modeInfo.activeClass} ring-2 ring-emerald-400/45 shadow-[0_12px_30px_rgba(16,185,129,0.14)]` : (isDarkMode ? 'bg-slate-900/85 border-slate-800 hover:border-slate-500 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-blue-200 hover:bg-white')}`}
-                        style={{ minHeight: '118px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-                      >
-                        <div>
-                          <div className="flex items-start justify-between gap-2">
-                            <div className={`w-8 h-8 rounded-2xl border flex items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-white/20 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
-                              <DeptIcon className="w-4 h-4" />
+                    <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ไม่พบรายการในโหมดนี้</div>
+                  ) : q ? (
+                    <div className="space-y-3">
+                      <div className={`rounded-2xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="min-w-0">
+                          <div className={`text-xs font-black ${theme.textTitle}`}>ผลค้นหา “{borrowReturnSearch}”</div>
+                          <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>แสดงเป็นรายการตรง ๆ พร้อมบอกตำแหน่งของอุปกรณ์ในแฟ้ม</div>
+                        </div>
+                        <button type="button" onClick={() => setBorrowReturnSearch('')} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>กลับมุมมองแฟ้ม</button>
+                      </div>
+                      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', alignItems: 'stretch' }}>
+                        {operationalItems.map(item => (
+                          <div key={`search_wrap_${item.id}`} className="space-y-1.5">
+                            <div className={`px-2 text-[10px] font-black truncate ${theme.textMuted}`}>{getOperationDeptLabel(item)} / {getOperationLocationLabel(item)} / {getOperationCategoryLabel(item)}</div>
+                            {renderOperationPickerItemCard(item, true)}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className={`rounded-2xl border px-4 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-2 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="min-w-0">
+                          <div className={`text-xs font-black ${theme.textTitle}`}>แฟ้มอุปกรณ์</div>
+                          <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>เรียงตาม ฝ่าย → ที่เก็บ → หมวดหมู่ เหมือนเดินไปหยิบของจริง</div>
+                        </div>
+                        <div className={`text-[11px] font-black ${theme.textMuted}`}>{operationFolderDeptEntries.length.toLocaleString('th-TH')} ฝ่าย / กลุ่มใหญ่</div>
+                      </div>
+
+                      {operationFolderDeptEntries.map(([deptName, deptData], deptIndex) => {
+                        const DeptFolderIcon = DEPARTMENTS.find(d => d.label === deptName || d.id === deptName)?.iconName ? Icons[DEPARTMENTS.find(d => d.label === deptName || d.id === deptName)?.iconName] : Icons.Folder;
+                        const locationEntries = Object.entries(deptData.locations).sort(([a], [b]) => a.localeCompare(b, 'th', { numeric: true, sensitivity: 'base' }));
+                        return (
+                          <details key={deptName} defaultOpen={deptIndex < 3 || locationEntries.length === 1} className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                            <summary className={`cursor-pointer select-none px-4 py-3 flex items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900/80 hover:bg-slate-900' : 'bg-slate-50 hover:bg-slate-100'}`}>
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className={`w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-slate-950 border-slate-700 text-blue-300' : 'bg-white border-slate-200 text-blue-600'}`}><DeptFolderIcon className="w-4 h-4" /></span>
+                                <span className="min-w-0">
+                                  <span className={`block text-sm font-black truncate ${theme.textTitle}`}>{deptName}</span>
+                                  <span className={`block text-[11px] font-bold ${theme.textMuted}`}>{locationEntries.length.toLocaleString('th-TH')} ที่เก็บ • {deptData.total.toLocaleString('th-TH')} รายการ</span>
+                                </span>
+                              </div>
+                              <span className={`px-2.5 py-1 rounded-full text-[11px] font-black ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-white text-slate-600 border border-slate-200'}`}>{deptData.total}</span>
+                            </summary>
+
+                            <div className="p-3 space-y-3">
+                              {locationEntries.map(([locationName, locationData]) => {
+                                const categoryEntries = Object.entries(locationData.categories).sort(([a], [b]) => a.localeCompare(b, 'th', { numeric: true, sensitivity: 'base' }));
+                                return (
+                                  <details key={`${deptName}_${locationName}`} defaultOpen={locationEntries.length <= 2} className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-900/45 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                                    <summary className="cursor-pointer select-none px-3 py-2.5 flex items-center justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <div className={`text-sm font-black truncate ${theme.textTitle}`}>📍 {locationName}</div>
+                                        <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{categoryEntries.length.toLocaleString('th-TH')} หมวดหมู่ • {locationData.total.toLocaleString('th-TH')} รายการ</div>
+                                      </div>
+                                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-black ${isDarkMode ? 'bg-slate-950 text-slate-300 border border-slate-700' : 'bg-white text-slate-600 border border-slate-200'}`}>{locationData.total}</span>
+                                    </summary>
+
+                                    <div className="px-3 pb-3 space-y-3">
+                                      {categoryEntries.map(([categoryName, categoryItems]) => (
+                                        <div key={`${deptName}_${locationName}_${categoryName}`} className={`rounded-2xl border p-2.5 ${isDarkMode ? 'bg-slate-950/85 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                            <div className="min-w-0">
+                                              <div className={`text-sm font-black truncate ${theme.textTitle}`}>🏷️ {categoryName}</div>
+                                              <div className={`text-[11px] font-bold ${theme.textMuted}`}>{categoryItems.length.toLocaleString('th-TH')} รายการในหมวดนี้</div>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return;
+                                                const ids = categoryItems.map(item => item.id);
+                                                const next = Array.from(new Set([...actionTargetIds, ...ids]));
+                                                setActionTargets(next);
+                                                setActionChecklist(actionChecklist.filter(id => next.includes(id)));
+                                              }}
+                                              className={`shrink-0 px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}
+                                            >เลือกทั้งหมวด</button>
+                                          </div>
+                                          <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', alignItems: 'stretch' }}>
+                                            {categoryItems.map(item => renderOperationPickerItemCard(item, true))}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </details>
+                                );
+                              })}
                             </div>
-                            <span className={`w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black text-xs transition-all ${selected ? (isDarkMode ? 'bg-emerald-400 border-emerald-300 text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white') : isDarkMode ? 'border-slate-600 bg-slate-950 text-slate-600 group-hover:text-slate-300' : 'border-slate-300 bg-white text-slate-300 group-hover:text-slate-500'}`}>{selected ? '✓' : ''}</span>
-                          </div>
-
-                          <div className="mt-2 min-w-0">
-                            <div className={`font-black text-[13px] leading-tight line-clamp-2 ${selected ? 'text-white' : theme.textTitle}`}>{item.name || '-'}</div>
-                            <div className={`mt-1 text-[10px] font-bold leading-snug line-clamp-2 ${selected ? 'text-white/75' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || '-'}</div>
-                          </div>
-
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${deptPillClass}`}>{deptInfo?.label || item.department || item.ownerDepartment || 'ไม่ระบุฝ่าย'}</span>
-                            {late && <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white">เลยกำหนด</span>}
-                            {item.storageBoxName && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isDarkMode ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-50 text-cyan-700'}`}>📦 กล่อง</span>}
-                            {item.project && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isDarkMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>โครงการ</span>}
-                          </div>
-                        </div>
-
-                        <div className={`mt-2 px-2.5 py-1.5 rounded-xl border text-[11px] font-black text-center ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? 'bg-slate-950/85 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600')}`}>
-                          {selected ? 'เลือกแล้ว' : 'เลือก'}
-                        </div>
-                      </button>
-                    );
-                  })}
+                          </details>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </section>
               )}
