@@ -59,7 +59,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.10 Box & Set Modal UI Unified Polish';
+const APP_VERSION = 'v23.1.10.1 Box & Set Modal Runtime Hotfix';
 const APP_UPDATE_NOTE = 'Operation Wizard Flow: แยกขั้นตอนเลือกอุปกรณ์ก่อน แล้วกดถัดไปเพื่อกรอกรายละเอียด สแกนเช็ก QR หรือติ๊กยืนยันก่อนบันทึก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -21199,7 +21199,7 @@ S.N.: ${item.sn || '-'}
                             setStorageBoxForm({...storageBoxForm, itemIds: [...new Set(newIds)]});
                           }} className={`text-left rounded-2xl border p-3 transition-all ${selected ? (isDarkMode ? 'bg-cyan-500/12 border-cyan-400/45 ring-1 ring-cyan-400/20' : 'bg-cyan-50 border-cyan-300 ring-1 ring-cyan-100') : (isDarkMode ? 'bg-slate-900/80 border-slate-800 hover:border-slate-600' : 'bg-white border-slate-200 hover:border-slate-300')}`}>
                             <div className="flex items-start gap-3">
-                              <div className={`mt-0.5 w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 ${selected ? 'bg-cyan-500 border-cyan-400 text-white' : (isDarkMode ? 'border-slate-600' : 'border-slate-300')}`}>{selected && <Icons.Check className="w-3.5 h-3.5" />}</div>
+                              <div className={`mt-0.5 w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 ${selected ? 'bg-cyan-500 border-cyan-400 text-white' : (isDarkMode ? 'border-slate-600' : 'border-slate-300')}`}>{selected && <Icons.CheckCircle className="w-3.5 h-3.5" />}</div>
                               <div className="min-w-0 flex-1">
                                 <div className={`font-black truncate ${selected ? (isDarkMode ? 'text-cyan-200' : 'text-cyan-800') : theme.textTitle}`}>{item.name}</div>
                                 <div className={`text-xs font-mono truncate mt-0.5 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'}</div>
@@ -21218,7 +21218,7 @@ S.N.: ${item.sn || '-'}
 
             <div className={`px-5 py-4 border-t shrink-0 flex flex-col sm:flex-row gap-3 ${theme.divide} ${isDarkMode ? 'bg-slate-950/35' : 'bg-white'}`}>
               <button type="button" onClick={() => { setShowStorageBoxEditor(false); setShowStorageBoxesModal(true); }} className={`sm:w-56 py-3.5 font-black rounded-2xl ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={saveStorageBox} className="flex-1 py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-2xl shadow-lg shadow-cyan-900/20">💾 บันทึกกล่องเก็บของ</button>
+              <button type="button" onClick={handleSaveStorageBoxEditor} className="flex-1 py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-2xl shadow-lg shadow-cyan-900/20">💾 บันทึกกล่องเก็บของ</button>
             </div>
           </div>
         </div>
@@ -22453,7 +22453,7 @@ S.N.: ${item.sn || '-'}
                           }} className={`text-left rounded-2xl border p-3 transition-all ${isSelected ? (isDarkMode ? 'bg-blue-500/12 border-blue-400/45 ring-1 ring-blue-400/20' : 'bg-blue-50 border-blue-300 ring-1 ring-blue-100') : (isDarkMode ? 'bg-slate-900/80 border-slate-800 hover:border-slate-600' : 'bg-white border-slate-200 hover:border-slate-300')}`}>
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex items-start gap-3 min-w-0">
-                                <div className={`mt-0.5 w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 ${isSelected ? 'bg-blue-500 border-blue-400 text-white' : (isDarkMode ? 'border-slate-600' : 'border-slate-300')}`}>{isSelected && <Icons.Check className="w-3.5 h-3.5" />}</div>
+                                <div className={`mt-0.5 w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 ${isSelected ? 'bg-blue-500 border-blue-400 text-white' : (isDarkMode ? 'border-slate-600' : 'border-slate-300')}`}>{isSelected && <Icons.CheckCircle className="w-3.5 h-3.5" />}</div>
                                 <div className="min-w-0">
                                   <div className={`font-black truncate ${isSelected ? (isDarkMode ? 'text-blue-200' : 'text-blue-800') : theme.textTitle}`}>{i.name}</div>
                                   <div className={`text-xs font-mono truncate mt-0.5 ${theme.textMuted}`}>S.N. {i.sn || '-'} • {i.category || '-'}</div>
