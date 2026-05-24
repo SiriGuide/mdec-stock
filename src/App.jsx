@@ -1,3 +1,4 @@
+// v23.1.14 Operation Menu Flyout - รวมเมนู ยืม/ออกงาน/รับคืน เป็นปุ่มงานอุปกรณ์ พร้อมเมนูย่อยแบบ flyout
 // v23.1.3 Operation Control Compact Layout Polish - จัดหน้า ยืม/ออกงาน/รับคืน ใหม่ แยกเลือกโหมดซ้าย สรุปตัวเลขขวา
 // v23.1.2 Box Bundle Borrow Shortcut Hotfix - เลือกยืมกล่อง/เซ็ตจากหน้าทำรายการได้เลย
 // v23.1.0 Official Command Layout / QR Scan Rework - รวมหลังบ้านกับตั้งค่าระบบ ปรับหน้าสแกน QR และลดกลิ่นเว็บเดิม
@@ -59,8 +60,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.13 Separate Operation Pages';
-const APP_UPDATE_NOTE = 'Equipment Picker Filter Side Popup: ปรับตัวกรองในหน้าเลือกอุปกรณ์ให้เป็น popup เล็กด้านข้าง ไม่ดันรายการอุปกรณ์ลงเต็มหน้า และยังคง flow กล้อง/เลนส์/เมม/แบตจากเวอร์ชันก่อน';
+const APP_VERSION = 'v23.1.14 Operation Menu Flyout';
+const APP_UPDATE_NOTE = 'Operation Menu Flyout: รวมเมนู ยืมอุปกรณ์ / ออกงาน / รับคืน เป็นปุ่มงานอุปกรณ์ปุ่มเดียวใน sidebar และแสดงเมนูย่อยแบบ flyout เมื่อ hover/click เพื่อลดความรกของเมนูซ้าย';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -19127,15 +19128,48 @@ S.N.: ${item.sn || '-'}
           <button type="button" onClick={() => openWorkspace('overview')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'overview' ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
             <Icons.Package className="w-5 h-5" /> หน้าใช้งานหลัก
           </button>
-          <button type="button" onClick={() => openWorkspace('borrow')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'borrow' ? 'bg-gradient-to-r from-slate-700 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.UserPlus className="w-5 h-5" /> ยืมอุปกรณ์
-          </button>
-          <button type="button" onClick={() => openWorkspace('event')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'event' ? 'bg-gradient-to-r from-slate-700 to-orange-700 text-white shadow-lg shadow-orange-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.Truck className="w-5 h-5" /> ออกงาน
-          </button>
-          <button type="button" onClick={() => openWorkspace('return')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'return' ? 'bg-gradient-to-r from-slate-700 to-emerald-700 text-white shadow-lg shadow-emerald-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.CheckCircle className="w-5 h-5" /> รับคืน
-          </button>
+          {/* v23.1.14 Operation Menu Flyout: รวม ยืม / ออกงาน / รับคืน ให้เหลือปุ่มเดียวใน sidebar */}
+          <div className="relative group operation-flyout-wrap">
+            <button
+              type="button"
+              onClick={() => openWorkspace(['borrow','event','return'].includes(activeWorkspace) ? activeWorkspace : 'borrow')}
+              className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl transition-all text-left ${['borrow','event','return'].includes(activeWorkspace) ? 'bg-gradient-to-r from-slate-700 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}
+            >
+              <span className="flex items-center gap-3 min-w-0">
+                <Icons.UserPlus className="w-5 h-5 shrink-0" />
+                <span className="truncate">งานอุปกรณ์</span>
+              </span>
+              <span className={`text-xs transition-transform duration-200 ${['borrow','event','return'].includes(activeWorkspace) ? 'text-white' : 'text-slate-500 group-hover:text-slate-200 group-hover:translate-x-0.5'}`}>▸</span>
+            </button>
+
+            <div className="absolute left-[calc(100%+10px)] top-0 z-50 w-56 rounded-3xl border border-white/10 bg-slate-950/98 p-2 shadow-[0_18px_60px_rgba(0,0,0,0.45)] opacity-0 invisible translate-x-2 pointer-events-none transition-all duration-200 group-hover:opacity-100 group-hover:visible group-hover:translate-x-0 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:visible focus-within:translate-x-0 focus-within:pointer-events-auto">
+              <div className="px-3 py-2">
+                <div className="text-[10px] font-black tracking-[0.20em] uppercase text-slate-500">Operation</div>
+                <div className="text-sm font-black text-white mt-0.5">เลือกงานที่ต้องทำ</div>
+              </div>
+              <button type="button" onClick={() => openWorkspace('borrow')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-left transition-all ${activeWorkspace === 'borrow' ? 'bg-blue-600 text-white font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
+                <Icons.UserPlus className="w-5 h-5 shrink-0" />
+                <span className="min-w-0">
+                  <span className="block truncate">ยืมอุปกรณ์</span>
+                  <span className="block text-[11px] font-bold opacity-70 truncate">เลือกของพร้อมใช้</span>
+                </span>
+              </button>
+              <button type="button" onClick={() => openWorkspace('event')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-left transition-all ${activeWorkspace === 'event' ? 'bg-orange-600 text-white font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
+                <Icons.Truck className="w-5 h-5 shrink-0" />
+                <span className="min-w-0">
+                  <span className="block truncate">ออกงาน</span>
+                  <span className="block text-[11px] font-bold opacity-70 truncate">นำของออกไปใช้งาน</span>
+                </span>
+              </button>
+              <button type="button" onClick={() => openWorkspace('return')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-left transition-all ${activeWorkspace === 'return' ? 'bg-emerald-600 text-white font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
+                <Icons.CheckCircle className="w-5 h-5 shrink-0" />
+                <span className="min-w-0">
+                  <span className="block truncate">รับคืน</span>
+                  <span className="block text-[11px] font-bold opacity-70 truncate">คืนของกลับเข้าศูนย์</span>
+                </span>
+              </button>
+            </div>
+          </div>
           {canUseOperationalTools && (
             <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'scanner' ? 'bg-gradient-to-r from-slate-700 to-orange-700 text-white shadow-lg shadow-amber-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
               <Icons.QrCode className="w-5 h-5" /> สแกน QR
