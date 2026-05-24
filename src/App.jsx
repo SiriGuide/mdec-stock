@@ -1,3 +1,4 @@
+// v23.1.24 Camera Kit Info Simple Flow - ตัด popup ตัวช่วยกล้อง และโชว์ข้อมูลชุดกล้อง/เลนส์/เมม/แบตในคลังกับหน้าทำรายการ
 // v23.1.23 Friendly Picker Selection Bar + Camera Helper - เพิ่มแถบรายการที่เลือก ดูรายการแบบ popup และตัวช่วยกล้องที่ขึ้นตามบริบท
 // v23.1.22 Friendly Equipment Picker / Storage First UX - เปลี่ยนหน้าเลือกอุปกรณ์ให้เริ่มจากที่เก็บจริง เลือกหมวด แล้วหยิบของแบบเป็นมิตร
 // v23.1.21 Equipment Picker 2-Pane Folder UX - เปลี่ยน Equipment Picker เป็นแฟ้ม 2 คอลัมน์ ฝ่าย / ที่เก็บ ทางซ้าย และรายการหยิบของทางขวา
@@ -64,8 +65,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.23.1 Human Status Label Hotfix';
-const APP_UPDATE_NOTE = 'Friendly Picker Selection Bar + Camera Helper: เพิ่มแถบรายการที่เลือกด้านล่าง popup ดู/ลบรายการที่เลือก และตัวช่วยกล้องพร้อมเลนส์/แบต/เมมแบบไม่บังคับ';
+const APP_VERSION = 'v23.1.24 Camera Kit Info Simple Flow';
+const APP_UPDATE_NOTE = 'Camera Kit Info Simple Flow: ตัด popup ตัวช่วยกล้องออก และแสดงข้อมูลกล้อง + เลนส์ + เมม + แบต ในคลังและหน้าทำรายการแบบตรงไปตรงมา';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -10694,6 +10695,73 @@ S.N.: ${item.sn || '-'}
     }))).filter(Boolean);
   };
 
+
+  // v23.1.24: กล้องไม่ต้องมี popup ตัวช่วยแล้ว — ให้โชว์ข้อมูลชุดกล้องตรง ๆ ในคลังและตอนทำรายการ
+  const getCameraKitField = (item = {}, keys = []) => keys.map(key => item?.[key]).find(value => String(value || '').trim()) || '';
+
+  const getCameraKitAssignedAccessories = (camera = {}, kind = '') => {
+    if (!camera || !kind) return [];
+    const tokens = getCameraHelperIdentityTokens(camera).filter(token => String(token || '').length >= 3);
+    if (tokens.length === 0) return [];
+    return items
+      .filter(item => item && !item.isDeleted && item.id !== camera.id && inferCameraHelperKind(item) === kind)
+      .filter(item => {
+        const text = getCameraHelperText(item);
+        return tokens.some(token => text.includes(token));
+      })
+      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true, sensitivity: 'base' }));
+  };
+
+  const getCameraKitSummary = (camera = {}) => {
+    if (!camera || inferCameraHelperKind(camera) !== 'camera') return null;
+    const assignedLenses = getCameraKitAssignedAccessories(camera, 'lens');
+    const assignedBatteries = getCameraKitAssignedAccessories(camera, 'battery');
+    const assignedMemories = getCameraKitAssignedAccessories(camera, 'memory');
+    const lensText = String(getCameraKitField(camera, ['currentLens', 'attachedLens', 'defaultLens', 'kitLens', 'lensAttached', 'lensInCamera']) || '').trim()
+      || (assignedLenses.length > 0 ? assignedLenses.slice(0, 2).map(item => item.name || item.sn).filter(Boolean).join(', ') : '')
+      || String(getCameraKitField(camera, ['compatibleWith', 'useWith', 'supportedDevices']) || '').trim();
+    const cameraMemorySpec = [
+      getCameraKitField(camera, ['memoryCapacity', 'capacity', 'storageCapacity']),
+      getCameraKitField(camera, ['memoryType', 'cardType']),
+      getCameraKitField(camera, ['memorySpeed', 'cardSpeed', 'speedClass'])
+    ].map(v => String(v || '').trim()).filter(Boolean).join(' • ');
+    const assignedMemoryText = assignedMemories.length > 0
+      ? assignedMemories.slice(0, 2).map(item => {
+          const spec = getMemoryCardSpec(item);
+          return `${item.name || item.sn || 'เมม'}${spec ? ` (${spec})` : ''}`;
+        }).join(', ')
+      : '';
+    const memoryText = assignedMemoryText || cameraMemorySpec;
+    const batteryText = String(getCameraKitField(camera, ['batteryModel', 'batteryType', 'batteryCode']) || '').trim()
+      || (assignedBatteries.length > 0 ? assignedBatteries.slice(0, 2).map(item => item.name || item.sn).filter(Boolean).join(', ') : 'แบตในตัว/ยังไม่ระบุ');
+    return {
+      lensText: lensText || 'ยังไม่ระบุเลนส์ที่คาอยู่',
+      memoryText: memoryText || 'ยังไม่ระบุเมมในกล้อง',
+      batteryText
+    };
+  };
+
+  const renderCameraKitInline = (item = {}, options = {}) => {
+    const kit = getCameraKitSummary(item);
+    if (!kit) return null;
+    const { selected = false, compact = false } = options;
+    const wrapClass = selected
+      ? 'bg-white/10 border-white/20 text-white'
+      : (isDarkMode ? 'bg-blue-950/22 border-blue-900/60 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-950');
+    const labelClass = selected ? 'text-white/70' : (isDarkMode ? 'text-blue-300' : 'text-blue-700');
+    const valueClass = selected ? 'text-white' : theme.textTitle;
+    return (
+      <div className={`mt-2 rounded-2xl border px-3 py-2 ${wrapClass}`}>
+        <div className={`text-[10px] font-black uppercase tracking-[0.16em] ${labelClass}`}>ข้อมูลชุดกล้อง</div>
+        <div className={`mt-1 grid ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-3'} gap-1.5 text-[11px] font-bold leading-snug`}>
+          <div className="truncate"><span className={labelClass}>เลนส์: </span><span className={valueClass}>{kit.lensText}</span></div>
+          <div className="truncate"><span className={labelClass}>เมม: </span><span className={valueClass}>{kit.memoryText}</span></div>
+          <div className="truncate"><span className={labelClass}>แบต: </span><span className={valueClass}>{kit.batteryText}</span></div>
+        </div>
+      </div>
+    );
+  };
+
   const isMemoryDedicatedToCamera = (memory, camera) => {
     if (!memory || !camera) return false;
     const text = getCameraHelperText(memory);
@@ -11380,6 +11448,7 @@ S.N.: ${item.sn || '-'}
                 {showFolderPath && (
                   <div className={`text-[10px] font-black mt-1 truncate ${selected ? 'text-white/70' : theme.textMuted}`}>{getOperationDeptLabel(item)} › {getOperationLocationLabel(item)} › {getOperationCategoryLabel(item)}</div>
                 )}
+                {renderCameraKitInline(item, { selected, compact: true })}
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? statusInfo.darkColor : statusInfo.color)}`}>{getOperationHumanStatusLabel(item)}</span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${selected ? 'bg-white/10 text-white border border-white/20' : deptPillClass}`}>{deptInfo?.label || item.department || item.ownerDepartment || 'ไม่ระบุฝ่าย'}</span>
@@ -11463,7 +11532,6 @@ S.N.: ${item.sn || '-'}
               <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
                 <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; openSelectionScanner({ camera: true, returnWorkspace: activeWorkspace }); }} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center justify-center gap-2"><Icons.QrCode className="w-5 h-5" /> สแกน QR</button>
                 <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เอกสารย้อนหลัง</button>
-                {borrowReturnMode !== 'return' && <button type="button" onClick={() => { if (!requireOperationalAccess('ใช้ตัวช่วยเลือกกล้อง', borrowReturnMode)) return; openCameraAccessoryHelper(borrowReturnMode); }} className={`col-span-2 sm:col-span-1 px-4 py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100' : 'bg-slate-900 hover:bg-slate-800 border-slate-900 text-white'}`}><Icons.Camera className="w-5 h-5" /> ตัวช่วยกล้อง</button>}
               </div>
             </div>
 
@@ -11709,26 +11777,23 @@ S.N.: ${item.sn || '-'}
 
                 {shouldShowOperationCameraNudge && (
                   <div className={`mx-3 mt-3 rounded-[1.35rem] border p-3 sm:p-4 ${isDarkMode ? 'bg-blue-950/20 border-blue-900/60' : 'bg-blue-50 border-blue-200'}`}>
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>Camera Helper</div>
-                        <div className={`font-black mt-1 ${theme.textTitle}`}>เลือกกล้องแล้ว ต้องการหยิบเลนส์ / แบต / เมมเพิ่มไหม</div>
-                        <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ตัวช่วยนี้ไม่บังคับและไม่สร้างเซ็ตถาวร แค่ช่วยเลือกของที่มักต้องหยิบคู่กับกล้อง เช่น เลนส์ที่คากล้อง แบตสำรอง และเมมประจำ/เมมส่วนกลาง</div>
-                      </div>
-                      <button type="button" onClick={() => { if (!requireOperationalAccess('ใช้ตัวช่วยเลือกกล้อง', borrowReturnMode)) return; openCameraAccessoryHelper(borrowReturnMode); }} className="shrink-0 px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black flex items-center justify-center gap-2"><Icons.Camera className="w-5 h-5" /> เปิดตัวช่วยกล้อง</button>
+                    <div className="min-w-0">
+                      <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>Camera Kit Info</div>
+                      <div className={`font-black mt-1 ${theme.textTitle}`}>เลือกกล้องแล้ว ตรวจชุดกล้องจากข้อมูลในคลังได้เลย</div>
+                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ระบบจะแสดงเลนส์ที่คาอยู่ เมมในกล้อง/ความจุ และรุ่นแบตตามข้อมูลที่บันทึกไว้ ส่วนเลนส์เสริม แบตสำรอง หรือเมมเพิ่ม ให้เลือกเป็นอุปกรณ์แยกจากรายการตามปกติ</div>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {selectedCameraActionItems.slice(0, 3).map(camera => <div key={`kit_nudge_${camera.id}`}>{renderCameraKitInline(camera)}</div>)}
                     </div>
                   </div>
                 )}
 
                 {borrowReturnMode !== 'return' && borrowReturnQuickFilter === 'cameraCabinet' && (
                   <div className={`mx-3 mt-3 rounded-[1.35rem] border p-3 sm:p-4 ${isDarkMode ? 'bg-blue-950/18 border-blue-900/60' : 'bg-blue-50 border-blue-200'}`}>
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>Camera Cabinet Flow</div>
-                        <div className={`font-black mt-1 ${theme.textTitle}`}>กล้องในตู้: เลือกตัวกล้องเป็นหลักก่อน</div>
-                        <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ค่าเริ่มต้นถือว่า “กล้องพร้อมเลนส์คากล้อง + เมมประจำตัว + แบตในตัว” แล้ว ส่วนเลนส์แยก/แบตสำรอง/เมมสำรองค่อยเพิ่มจากตัวช่วยกล้องเมื่อจำเป็น</div>
-                      </div>
-                      <button type="button" onClick={() => { if (!requireOperationalAccess('ใช้ตัวช่วยเลือกกล้อง', borrowReturnMode)) return; openCameraAccessoryHelper(borrowReturnMode); }} className="shrink-0 px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black flex items-center justify-center gap-2"><Icons.Camera className="w-5 h-5" /> เปิดตัวช่วยกล้อง</button>
+                    <div className="min-w-0">
+                      <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>Camera Cabinet</div>
+                      <div className={`font-black mt-1 ${theme.textTitle}`}>ตู้กล้อง: เลือกกล้องก่อน แล้วเลือกเลนส์/แบต/เมมเพิ่มเป็นรายการแยกถ้าต้องใช้</div>
+                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ในคลังจะแสดงข้อมูลชุดกล้องไว้ให้ดู เช่น เลนส์ที่คาอยู่ เมมในกล้องและความจุ เพื่อไม่ต้องเดาว่ากล้องตัวนี้มีอะไรติดตัวอยู่</div>
                     </div>
                   </div>
                 )}
@@ -11757,6 +11822,7 @@ S.N.: ${item.sn || '-'}
                                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{getOperationHumanStatusLabel(item)}</span>
                                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isDarkMode ? 'bg-slate-800 text-slate-200' : 'bg-white text-slate-600 border border-slate-200'}`}>{getOperationDeptLabel(item)}</span>
                                 </div>
+                                {renderCameraKitInline(item, { compact: true })}
                               </div>
                               <button type="button" onClick={() => removeOperationSelectedItem(item.id)} className={`shrink-0 px-3 py-2 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-300 hover:bg-rose-950/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>เอาออก</button>
                             </div>
@@ -11982,9 +12048,6 @@ S.N.: ${item.sn || '-'}
                     </div>
                   )}
 
-                  {borrowReturnMode !== 'return' && (
-                    <button type="button" onClick={() => { if (!requireOperationalAccess('ใช้ตัวช่วยเลือกกล้อง', borrowReturnMode)) return; openCameraAccessoryHelper(borrowReturnMode); }} className={`w-full px-4 py-3 rounded-2xl border font-black flex items-center justify-center gap-2 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-100' : 'bg-slate-900 hover:bg-slate-800 border-slate-900 text-white'}`}><Icons.Camera className="w-5 h-5" /> เพิ่มกล้องแบบมีตัวช่วย</button>
-                  )}
 
                   {borrowReturnMode === 'borrow' && (
                     <>
@@ -13102,6 +13165,7 @@ S.N.: ${item.sn || '-'}
                                   <div className={`font-black text-base leading-snug truncate ${theme.textTitle}`}>{item.name || '-'}</div>
                                   <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || item.assetShortCode || item.localCode || 'ไม่มีรหัสสั้น'}</div>
                                   <div className={`inventory-open-cue text-[11px] font-black mt-1 ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>กดแถวเพื่อเปิดแฟ้มอุปกรณ์</div>
+                                  {renderCameraKitInline(item, { compact: true })}
                                 </div>
                               </div>
                             </td>
@@ -21241,10 +21305,6 @@ S.N.: ${item.sn || '-'}
         </div>
       )}
 
-      {renderCameraAccessoryHelperModal()}
-
-
-
 
       {/* 🧭 Modal ติดตามของรอคืน / งานที่ควรเคลียร์ */}
       {showTrackingCenterModal && (
@@ -24377,7 +24437,7 @@ S.N.: ${item.sn || '-'}
                   const equipmentType = formData.equipmentType || '';
                   const typeOptions = [
                     { id: '', label: 'ทั่วไป', icon: '📦', desc: 'อุปกรณ์ทั่วไป ไม่ต้องกรอกข้อมูลเฉพาะ' },
-                    { id: 'camera', label: 'กล้อง', icon: '📷', desc: 'ใช้กับตัวช่วยบอดี้/พร้อมเลนส์' },
+                    { id: 'camera', label: 'กล้อง', icon: '📷', desc: 'บันทึกเลนส์ เมม และแบตที่ติดตัวอยู่' },
                     { id: 'lens', label: 'เลนส์', icon: '🔭', desc: 'ใช้แนะนำเลนส์ตามระบบเมาท์' },
                     { id: 'battery', label: 'แบตเตอรี่', icon: '🔋', desc: 'มีรุ่นแบตและฝ่ายดูแล' },
                     { id: 'memory', label: 'เมมโมรี่การ์ด', icon: '💾', desc: 'มีความจุ ประเภท ความเร็ว และรูปแบบการใช้' },
@@ -24395,7 +24455,7 @@ S.N.: ${item.sn || '-'}
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
                         <div>
                           <div className={`font-black text-lg mb-1 flex items-center gap-2 ${theme.textTitle}`}>2. รายละเอียดเพิ่มเติม</div>
-                          <p className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>เลือกประเภทก่อน ระบบจะแสดงเฉพาะช่องที่เกี่ยวข้อง เพื่อลดความรกและช่วยให้ตัวช่วยกล้องทำงานแม่นขึ้น</p>
+                          <p className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>เลือกประเภทก่อน ระบบจะแสดงช่องที่เกี่ยวข้อง เช่น กล้องจะมีข้อมูลเลนส์ที่คาอยู่ เมมในกล้อง และรุ่นแบต เพื่อโชว์ในคลังและเอกสารยืม</p>
                         </div>
                         {hasSpecificType && (
                           <div className={`px-3 py-2 rounded-2xl text-xs font-black border shrink-0 ${isDarkMode ? 'bg-slate-950/70 border-slate-800 text-slate-200' : 'bg-white border-sky-200 text-sky-700'}`}>
@@ -24424,7 +24484,7 @@ S.N.: ${item.sn || '-'}
 
                       {!hasSpecificType ? (
                         <div className={`p-2.5 rounded-lg border text-sm font-bold ${isDarkMode ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-white/80 border-sky-100 text-slate-600'}`}>
-                          ถ้าเป็นอุปกรณ์ทั่วไป สามารถข้ามส่วนนี้ได้เลย แต่ถ้าเป็นกล้อง เลนส์ แบต หรือเมม แนะนำให้เลือกประเภทเพื่อให้ระบบแนะนำตอนยืม/ออกงานได้ดีขึ้น
+                          ถ้าเป็นอุปกรณ์ทั่วไปสามารถข้ามส่วนนี้ได้ แต่ถ้าเป็นกล้อง เลนส์ แบต หรือเมม แนะนำให้เลือกประเภท เพื่อให้คลังแสดงข้อมูลของที่ติดตัวอยู่ได้ชัดเจน
                         </div>
                       ) : (
                         <div className="space-y-2.5 qr-side-panel">
@@ -24454,64 +24514,68 @@ S.N.: ${item.sn || '-'}
                                 <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น Sony E, Canon RF, Canon EF, Nikon Z" value={formData.mount || ''} onChange={e => setFormData({...formData, mount: e.target.value})} />
                               </div>
                               <div>
-                                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>ใช้ร่วมกับ / หมายเหตุความเข้ากันได้</label>
-                                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder={isCamera ? 'เช่น เลนส์ Sony E, แบต NP-FZ100' : 'เช่น กล้อง Sony E-mount'} value={formData.compatibleWith || ''} onChange={e => setFormData({...formData, compatibleWith: e.target.value})} />
+                                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>{isCamera ? 'เลนส์ที่คาอยู่ / ใช้กับกล้องตอนนี้' : 'ใช้ร่วมกับ / หมายเหตุความเข้ากันได้'}</label>
+                                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder={isCamera ? 'เช่น Sony FE 24-70mm F2.8 GM หรือ เลนส์คิต 28-70mm' : 'เช่น กล้อง Sony E-mount'} value={formData.compatibleWith || ''} onChange={e => setFormData({...formData, compatibleWith: e.target.value})} />
                               </div>
                               <div className={`sm:col-span-2 text-xs font-bold ${theme.textMuted}`}>
-                                {isCamera ? 'กล้องจะใช้ข้อมูลนี้ช่วยแนะนำเลนส์ แบต และเมมตอนยืม/ออกงาน' : 'เลนส์จะใช้ข้อมูลนี้ช่วยแสดงว่าเหมาะกับกล้องระบบใด'}
+                                {isCamera ? 'ข้อมูลนี้จะโชว์ในคลังว่า กล้องตัวนี้ตอนนี้คาเลนส์อะไรอยู่' : 'เลนส์จะใช้ข้อมูลนี้ช่วยแสดงว่าเหมาะกับกล้องระบบใด'}
                               </div>
                             </div>
                           )}
 
-                          {isBattery && (
+                          {(isCamera || isBattery) && (
                             <div className={`smart-specific-fields grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-3xl border ${isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200'}`}>
                               <div>
-                                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>รุ่นแบตเตอรี่</label>
-                                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น NP-FZ100, NP-FW50, V-Mount" value={formData.batteryModel || ''} onChange={e => setFormData({...formData, batteryModel: e.target.value})} />
+                                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>{isCamera ? 'รุ่นแบตที่ใช้ / แบตในกล้อง' : 'รุ่นแบตเตอรี่'}</label>
+                                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder={isCamera ? 'เช่น NP-FZ100 / มีแบตคากล้อง 1 ก้อน' : 'เช่น NP-FZ100, NP-FW50, V-Mount'} value={formData.batteryModel || ''} onChange={e => setFormData({...formData, batteryModel: e.target.value})} />
                               </div>
-                              <div>
-                                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>ใช้ร่วมกับ</label>
-                                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น Sony A7 III, Sony A7 IV" value={formData.compatibleWith || ''} onChange={e => setFormData({...formData, compatibleWith: e.target.value})} />
-                              </div>
-                              <div className={`sm:col-span-2 text-xs font-bold ${theme.textMuted}`}>แนะนำให้มีรหัสสั้น เช่น PH-B01 / VD-B02 เพื่อใช้ติดบนแบตก้อนจริง</div>
+                              {!isCamera && (
+                                <div>
+                                  <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>ใช้ร่วมกับ</label>
+                                  <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น Sony A7 III, Sony A7 IV" value={formData.compatibleWith || ''} onChange={e => setFormData({...formData, compatibleWith: e.target.value})} />
+                                </div>
+                              )}
+                              <div className={`sm:col-span-2 text-xs font-bold ${theme.textMuted}`}>{isCamera ? 'ข้อมูลรุ่นแบตจะแสดงในคลังร่วมกับชุดกล้อง เพื่อให้รู้ว่ากล้องตัวนี้ใช้แบตอะไรและมีแบตคาอยู่หรือไม่' : 'แนะนำให้มีรหัสสั้น เช่น PH-B01 / VD-B02 เพื่อใช้ติดบนแบตก้อนจริง'}</div>
                             </div>
                           )}
 
-                          {isMemory && (
+                          {(isCamera || isMemory) && (
                             <div className={`smart-specific-fields space-y-4 p-4 rounded-3xl border ${isDarkMode ? 'bg-cyan-950/20 border-cyan-800' : 'bg-cyan-50 border-cyan-200'}`}>
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div>
-                                  <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>ความจุเมม</label>
-                                  <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น 64GB, 128GB, 256GB" value={formData.memoryCapacity || ''} onChange={e => setFormData({...formData, memoryCapacity: e.target.value})} />
+                                  <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>{isCamera ? 'ความจุเมมที่คากล้อง' : 'ความจุเมม'}</label>
+                                  <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder={isCamera ? 'เช่น 128GB หรือ 64GB x2' : 'เช่น 64GB, 128GB, 256GB'} value={formData.memoryCapacity || ''} onChange={e => setFormData({...formData, memoryCapacity: e.target.value})} />
                                 </div>
                                 <div>
-                                  <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>ประเภทการ์ด</label>
+                                  <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>{isCamera ? 'ประเภทเมมในกล้อง' : 'ประเภทการ์ด'}</label>
                                   <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น SDXC, CFexpress Type A" value={formData.memoryType || ''} onChange={e => setFormData({...formData, memoryType: e.target.value})} />
                                 </div>
                                 <div>
-                                  <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>ความเร็ว / Class</label>
+                                  <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>{isCamera ? 'ความเร็วเมมในกล้อง' : 'ความเร็ว / Class'}</label>
                                   <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น V30, V60, V90" value={formData.memorySpeed || ''} onChange={e => setFormData({...formData, memorySpeed: e.target.value})} />
                                 </div>
                               </div>
 
-                              <div>
-                                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>รูปแบบการใช้งานเมม</label>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                  {[
-                                    ['camera', 'เมมประจำกล้อง', 'ใช้ติดกับกล้องบางตัว'],
-                                    ['department', 'เมมประจำฝ่าย', 'อยู่กับภาพนิ่ง/วิดีโอ/OB-Live'],
-                                    ['flexible', 'เมมส่วนกลาง/ยืดหยุ่น', 'หยิบใช้ตามงานและผู้ดูแล']
-                                  ].map(([id, label, desc]) => {
-                                    const active = (formData.memoryAssignMode || '') === id;
-                                    return (
-                                      <button key={id} type="button" onClick={() => setFormData({...formData, memoryAssignMode: id})} className={`p-3 rounded-2xl border text-left transition ${active ? (isDarkMode ? 'bg-cyan-950/50 border-cyan-600' : 'bg-white border-cyan-400 shadow-sm') : (isDarkMode ? 'bg-slate-950/40 border-slate-800' : 'bg-white/100 border-cyan-100')}`}>
-                                        <div className={`font-black text-sm ${theme.textTitle}`}>{label}</div>
-                                        <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
-                                      </button>
-                                    );
-                                  })}
+                              {isMemory && (
+                                <div>
+                                  <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>รูปแบบการใช้งานเมม</label>
+                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    {[
+                                      ['camera', 'เมมประจำกล้อง', 'ใช้ติดกับกล้องบางตัว'],
+                                      ['department', 'เมมประจำฝ่าย', 'อยู่กับภาพนิ่ง/วิดีโอ/OB-Live'],
+                                      ['flexible', 'เมมส่วนกลาง/ยืดหยุ่น', 'หยิบใช้ตามงานและผู้ดูแล']
+                                    ].map(([id, label, desc]) => {
+                                      const active = (formData.memoryAssignMode || '') === id;
+                                      return (
+                                        <button key={id} type="button" onClick={() => setFormData({...formData, memoryAssignMode: id})} className={`p-3 rounded-2xl border text-left transition ${active ? (isDarkMode ? 'bg-cyan-950/50 border-cyan-600' : 'bg-white border-cyan-400 shadow-sm') : (isDarkMode ? 'bg-slate-950/40 border-slate-800' : 'bg-white/100 border-cyan-100')}`}>
+                                          <div className={`font-black text-sm ${theme.textTitle}`}>{label}</div>
+                                          <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
-                              </div>
+                              )}
 
                               {(formData.memoryAssignMode || '') === 'camera' && (
                                 <div>
