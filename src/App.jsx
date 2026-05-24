@@ -1,3 +1,4 @@
+// v23.1.23 Friendly Picker Selection Bar + Camera Helper - เพิ่มแถบรายการที่เลือก ดูรายการแบบ popup และตัวช่วยกล้องที่ขึ้นตามบริบท
 // v23.1.22 Friendly Equipment Picker / Storage First UX - เปลี่ยนหน้าเลือกอุปกรณ์ให้เริ่มจากที่เก็บจริง เลือกหมวด แล้วหยิบของแบบเป็นมิตร
 // v23.1.21 Equipment Picker 2-Pane Folder UX - เปลี่ยน Equipment Picker เป็นแฟ้ม 2 คอลัมน์ ฝ่าย / ที่เก็บ ทางซ้าย และรายการหยิบของทางขวา
 // v23.1.20 Equipment Picker Folder Structure - เปลี่ยน Equipment Picker เป็นมุมมองแฟ้ม ฝ่าย > ที่เก็บ > หมวดหมู่ พร้อมค้นหาเดิม
@@ -63,8 +64,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.22 Friendly Equipment Picker / Storage First UX';
-const APP_UPDATE_NOTE = 'Friendly Equipment Picker / Storage First UX: ปรับหน้าเลือกอุปกรณ์ให้เริ่มจากที่เก็บจริง เลือกหมวด แล้วหยิบของด้วยรายการแบบ compact ใช้งานง่ายขึ้น';
+const APP_VERSION = 'v23.1.23 Friendly Picker Selection Bar + Camera Helper';
+const APP_UPDATE_NOTE = 'Friendly Picker Selection Bar + Camera Helper: เพิ่มแถบรายการที่เลือกด้านล่าง popup ดู/ลบรายการที่เลือก และตัวช่วยกล้องพร้อมเลนส์/แบต/เมมแบบไม่บังคับ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7161,6 +7162,7 @@ function MainApp() {
   const [borrowReturnQuickFilter, setBorrowReturnQuickFilter] = useState('all');
   const [showBorrowReturnFilters, setShowBorrowReturnFilters] = useState(false);
   const [showOperationQuickPick, setShowOperationQuickPick] = useState(false);
+  const [showOperationSelectedPanel, setShowOperationSelectedPanel] = useState(false);
   const [operationPickerDept, setOperationPickerDept] = useState('');
   const [operationPickerLocation, setOperationPickerLocation] = useState('');
   const [operationPickerCategory, setOperationPickerCategory] = useState('');
@@ -7178,6 +7180,7 @@ function MainApp() {
     if (['borrow', 'event', 'return'].includes(workspace)) {
       setBorrowReturnMode(workspace);
       setBorrowReturnStage('select');
+      setShowOperationSelectedPanel(false);
       setShowScanModal(false);
       setUseCamera(false);
       setShowOperationQuickPick(false);
@@ -10287,7 +10290,7 @@ S.N.: ${item.sn || '-'}
                                       <td className={`px-4 py-3 font-black ${theme.textTitle}`}>{item.name || '-'}</td>
                                       <td className={`px-4 py-3 text-sm font-bold ${theme.textMuted}`}>{item.category || '-'}<br />{item.location || '-'}</td>
                                       <td className={`px-4 py-3 text-center font-black ${theme.textTitle}`}>{Number(item.quantity || 1).toLocaleString('th-TH')}</td>
-                                      <td className="px-4 py-3"><div className="flex flex-col gap-1 items-start"><span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span><span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? assetInfo.darkColor : assetInfo.color}`}>{assetInfo.label}</span></div></td>
+                                      <td className="px-4 py-3"><div className="flex flex-col gap-1 items-start"><span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{getOperationHumanStatusLabel(item)}</span><span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? assetInfo.darkColor : assetInfo.color}`}>{assetInfo.label}</span></div></td>
                                       <td className="px-4 py-3 text-right"><div className="inline-flex gap-2"><button type="button" onClick={(e) => { e.stopPropagation(); setShowHistory(item.id); }} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>{canAddEditItems && <button type="button" onClick={(e) => { e.stopPropagation(); openItemEditor(item); }} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 text-white">แก้ไข</button>}</div></td>
                                     </tr>
                                   );
@@ -11108,6 +11111,15 @@ S.N.: ${item.sn || '-'}
     const actionTargetIds = borrowReturnMode === 'event' ? eventTargetIds : borrowReturnMode === 'return' ? returnTargetIds : borrowTargetIds;
     const actionChecklist = borrowReturnMode === 'event' ? eventChecklist : borrowReturnMode === 'return' ? returnChecklist : packingChecklist;
     const selectedActionItems = actionTargetIds.map(id => items.find(item => item.id === id)).filter(Boolean);
+    const selectedCameraActionItems = selectedActionItems.filter(item => inferCameraHelperKind(item) === 'camera');
+    const shouldShowOperationCameraNudge = borrowReturnMode !== 'return' && selectedCameraActionItems.length > 0 && borrowReturnStage === 'select';
+    const selectedActionPreviewItems = selectedActionItems.slice(0, 4);
+    const removeOperationSelectedItem = (id) => {
+      const next = actionTargetIds.filter(x => x !== id);
+      setActionTargets(next);
+      setActionChecklist(actionChecklist.filter(x => x !== id));
+      if (next.length === 0) setShowOperationSelectedPanel(false);
+    };
     const ActionIcon = modeInfo.icon;
     const toneBtn = modeInfo.primaryBtn;
     const canUseCurrentOperation = hasOperationPermission(borrowReturnMode);
@@ -11279,6 +11291,17 @@ S.N.: ${item.sn || '-'}
     };
 
 
+    const getOperationHumanStatusLabel = (item = {}) => {
+      if (borrowReturnMode === 'return') {
+        if (item.status === 'borrowed' || item.status === 'out-for-event') return 'รอรับคืน';
+        return 'ตรวจสถานะ';
+      }
+      if (item.status === 'available') return 'พร้อมหยิบ';
+      if (item.status === 'maintenance') return 'ซ่อมอยู่';
+      if (item.status === 'damaged') return 'ชำรุด';
+      return (STATUSES.find(st => st.id === item.status) || STATUSES[0]).label;
+    };
+
     const renderOperationPickerItemCard = (item, compact = false) => {
       const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
       const selected = actionTargetIds.includes(item.id);
@@ -11306,7 +11329,7 @@ S.N.: ${item.sn || '-'}
               <div className={`mt-1 text-[10px] font-bold leading-snug line-clamp-2 ${selected ? 'text-white/75' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || item.storageBoxName || '-'}</div>
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{getOperationHumanStatusLabel(item)}</span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${deptPillClass}`}>{deptInfo?.label || item.department || item.ownerDepartment || 'ไม่ระบุฝ่าย'}</span>
               {late && <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white">เลยกำหนด</span>}
               {item.storageBoxName && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isDarkMode ? 'bg-cyan-900/40 text-cyan-300' : 'bg-cyan-50 text-cyan-700'}`}>📦 กล่อง</span>}
@@ -11347,7 +11370,7 @@ S.N.: ${item.sn || '-'}
                   <div className={`text-[10px] font-black mt-1 truncate ${selected ? 'text-white/70' : theme.textMuted}`}>{getOperationDeptLabel(item)} › {getOperationLocationLabel(item)} › {getOperationCategoryLabel(item)}</div>
                 )}
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? statusInfo.darkColor : statusInfo.color)}`}>{statusInfo.label}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${selected ? 'bg-white/10 border-white/20 text-white' : (isDarkMode ? statusInfo.darkColor : statusInfo.color)}`}>{getOperationHumanStatusLabel(item)}</span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${selected ? 'bg-white/10 text-white border border-white/20' : deptPillClass}`}>{deptInfo?.label || item.department || item.ownerDepartment || 'ไม่ระบุฝ่าย'}</span>
                   {item.storageBoxName && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${selected ? 'bg-white/10 text-white border border-white/20' : (isDarkMode ? 'bg-cyan-900/35 text-cyan-300' : 'bg-cyan-50 text-cyan-700')}`}>📦 {item.storageBoxName}</span>}
                   {late && <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white">เลยกำหนด</span>}
@@ -11424,7 +11447,7 @@ S.N.: ${item.sn || '-'}
               <div className="min-w-0">
                 <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>BORROW / EVENT / RETURN</div>
                 <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>{operationPageTitle}</h2>
-                <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>เลือกอุปกรณ์จากรายการด้านล่าง ตรวจเช็กของ กรอกข้อมูล และยืนยันรายการได้ทันที</p>
+                <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>เลือกจากที่เก็บจริง เลือกของให้ครบก่อน แล้วค่อยกดถัดไปเพื่อกรอกรายละเอียด</p>
               </div>
               <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
                 <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; openSelectionScanner({ camera: true, returnWorkspace: activeWorkspace }); }} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center justify-center gap-2"><Icons.QrCode className="w-5 h-5" /> สแกน QR</button>
@@ -11445,7 +11468,7 @@ S.N.: ${item.sn || '-'}
                     <div className="min-w-0">
                       <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Equipment Picker</div>
                       <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>{borrowReturnMode === 'return' ? 'เลือกรายการรอรับคืน' : 'เลือกของเข้ารายการ'}</h3>
-                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เลือกจากที่เก็บจริงก่อน แล้วเลือกหมวดเพื่อหยิบของ หรือพิมพ์ค้นหาจากช่องเดิมได้ทันที</p>
+                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เลือกจากห้อง/ตู้/ชั้นที่เก็บจริง แล้วเลือกของหลายชิ้นได้ก่อนกดถัดไป</p>
                     </div>
                     <div className="flex flex-wrap gap-2 shrink-0">
                       <button type="button" onClick={() => setShowBorrowReturnFilters(v => !v)} className={`px-3 py-2 rounded-xl text-sm font-black border flex items-center gap-2 ${borrowReturnActiveFilterCount > 0 ? modeInfo.softClass : theme.btnSecondary}`}>
@@ -11468,7 +11491,7 @@ S.N.: ${item.sn || '-'}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-[auto_auto] gap-2">
                       <div className={`rounded-2xl border px-4 py-3 font-black text-sm text-center ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
-                        พบ {operationalItems.length.toLocaleString('th-TH')} • เลือก {actionTargetIds.length.toLocaleString('th-TH')}
+                        พบ {operationalItems.length.toLocaleString('th-TH')} • เลือกแล้ว {actionTargetIds.length.toLocaleString('th-TH')}
                       </div>
                       <button type="button" onClick={goToOperationDetails} disabled={!canUseCurrentOperation || actionTargetIds.length === 0} className={`px-4 py-3 rounded-2xl font-black text-white ${toneBtn} disabled:bg-slate-500 disabled:cursor-not-allowed`}>
                         ถัดไป
@@ -11658,36 +11681,30 @@ S.N.: ${item.sn || '-'}
                 </div>
 
                 {actionTargetIds.length > 0 && (
-                  <div className={`px-3 sm:px-4 py-3 border-b ${theme.divide} ${isDarkMode ? 'bg-slate-950/90' : 'bg-white/95'} sticky top-0 z-20 backdrop-blur`}> 
-                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                  <div className={`px-3 sm:px-4 py-3 border-b ${theme.divide} ${isDarkMode ? 'bg-slate-950/70' : 'bg-slate-50'}`}> 
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>รายการที่เลือก</div>
-                        <div className={`text-sm font-black ${theme.textTitle}`}>เลือกแล้ว {actionTargetIds.length.toLocaleString('th-TH')} รายการ</div>
+                        <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Selection Summary</div>
+                        <div className={`text-sm font-black ${theme.textTitle}`}>เลือกแล้ว {actionTargetIds.length.toLocaleString('th-TH')} รายการ • เลือกต่อได้เรื่อย ๆ แล้วค่อยกดถัดไป</div>
+                        <div className={`text-xs font-bold mt-1 truncate ${theme.textMuted}`}>{selectedPreview || 'รายการที่เลือกจะแสดงในแถบล่างและ popup สรุป'}</div>
                       </div>
                       <div className="flex flex-wrap gap-2 shrink-0">
+                        <button type="button" onClick={() => setShowOperationSelectedPanel(true)} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ดูรายการที่เลือก</button>
                         <button type="button" onClick={clearOperationSelection} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ล้างทั้งหมด</button>
-                        <button type="button" onClick={goToOperationDetails} disabled={!canUseCurrentOperation || actionTargetIds.length === 0} className={`px-4 py-2 rounded-xl text-xs font-black text-white ${toneBtn} disabled:bg-slate-500 disabled:cursor-not-allowed`}>ถัดไป: กรอกรายละเอียด</button>
                       </div>
                     </div>
-                    <div className="mt-2 flex gap-2 overflow-x-auto custom-scrollbar pb-1">
-                      {selectedActionItems.map(item => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => toggleOperationalItem(item.id)}
-                          className={`shrink-0 max-w-[250px] px-3 py-2 rounded-2xl border text-left transition-all ${isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-100 hover:bg-rose-950/30 hover:border-rose-700' : 'bg-emerald-50 border-emerald-200 text-emerald-900 hover:bg-rose-50 hover:border-rose-200'}`}
-                          title="กดเพื่อนำออกจากรายการที่เลือก"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="shrink-0 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black">✓</span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-xs font-black">{item.name || '-'}</span>
-                              <span className="block truncate text-[10px] font-bold opacity-75">S.N. {item.sn || '-'} • {item.location || item.storageLocation || '-'}</span>
-                            </span>
-                            <span className="shrink-0 text-[10px] font-black opacity-70">ลบ</span>
-                          </div>
-                        </button>
-                      ))}
+                  </div>
+                )}
+
+                {shouldShowOperationCameraNudge && (
+                  <div className={`mx-3 mt-3 rounded-[1.35rem] border p-3 sm:p-4 ${isDarkMode ? 'bg-blue-950/20 border-blue-900/60' : 'bg-blue-50 border-blue-200'}`}>
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>Camera Helper</div>
+                        <div className={`font-black mt-1 ${theme.textTitle}`}>เลือกกล้องแล้ว ต้องการหยิบเลนส์ / แบต / เมมเพิ่มไหม</div>
+                        <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ตัวช่วยนี้ไม่บังคับและไม่สร้างเซ็ตถาวร แค่ช่วยเลือกของที่มักต้องหยิบคู่กับกล้อง เช่น เลนส์ที่คากล้อง แบตสำรอง และเมมประจำ/เมมส่วนกลาง</div>
+                      </div>
+                      <button type="button" onClick={() => { if (!requireOperationalAccess('ใช้ตัวช่วยเลือกกล้อง', borrowReturnMode)) return; openCameraAccessoryHelper(borrowReturnMode); }} className="shrink-0 px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black flex items-center justify-center gap-2"><Icons.Camera className="w-5 h-5" /> เปิดตัวช่วยกล้อง</button>
                     </div>
                   </div>
                 )}
@@ -11703,6 +11720,44 @@ S.N.: ${item.sn || '-'}
                       <button type="button" onClick={() => { if (!requireOperationalAccess('ใช้ตัวช่วยเลือกกล้อง', borrowReturnMode)) return; openCameraAccessoryHelper(borrowReturnMode); }} className="shrink-0 px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black flex items-center justify-center gap-2"><Icons.Camera className="w-5 h-5" /> เปิดตัวช่วยกล้อง</button>
                     </div>
                   </div>
+                )}
+
+                {showOperationSelectedPanel && actionTargetIds.length > 0 && (
+                  <>
+                    <button type="button" aria-label="ปิดรายการที่เลือก" onClick={() => setShowOperationSelectedPanel(false)} className="fixed inset-0 z-[92] bg-black/30" />
+                    <aside className={`fixed z-[93] right-3 sm:right-5 top-20 bottom-5 w-[min(460px,calc(100vw-1.5rem))] rounded-[1.6rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <div className={`px-4 py-3 border-b flex items-start justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900/90' : 'border-slate-100 bg-slate-50'}`}>
+                        <div className="min-w-0">
+                          <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Selected Items</div>
+                          <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>รายการที่เลือก {actionTargetIds.length.toLocaleString('th-TH')} รายการ</div>
+                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>กด “เอาออก” เพื่อลบทีละชิ้น หรือกดถัดไปเมื่อเลือกครบแล้ว</div>
+                        </div>
+                        <button type="button" onClick={() => setShowOperationSelectedPanel(false)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}>×</button>
+                      </div>
+                      <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2.5">
+                        {selectedActionItems.map(item => {
+                          const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
+                          return (
+                            <div key={`selected_panel_${item.id}`} className={`rounded-2xl border p-3 flex items-start justify-between gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                              <div className="min-w-0">
+                                <div className={`font-black text-sm truncate ${theme.textTitle}`}>{item.name || '-'}</div>
+                                <div className={`text-[11px] font-bold mt-1 truncate ${theme.textMuted}`}>S.N. {item.sn || '-'} • {getOperationLocationLabel(item)} • {getOperationCategoryLabel(item)}</div>
+                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{getOperationHumanStatusLabel(item)}</span>
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${isDarkMode ? 'bg-slate-800 text-slate-200' : 'bg-white text-slate-600 border border-slate-200'}`}>{getOperationDeptLabel(item)}</span>
+                                </div>
+                              </div>
+                              <button type="button" onClick={() => removeOperationSelectedItem(item.id)} className={`shrink-0 px-3 py-2 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-300 hover:bg-rose-950/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>เอาออก</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className={`px-4 py-3 border-t flex items-center justify-between gap-2 ${isDarkMode ? 'border-slate-800 bg-slate-900/90' : 'border-slate-100 bg-slate-50'}`}>
+                        <button type="button" onClick={clearOperationSelection} className={`px-4 py-2.5 rounded-2xl border text-sm font-black ${theme.btnSecondary}`}>ล้างทั้งหมด</button>
+                        <button type="button" onClick={() => { setShowOperationSelectedPanel(false); goToOperationDetails(); }} disabled={!canUseCurrentOperation || actionTargetIds.length === 0} className={`px-4 py-2.5 rounded-2xl text-sm font-black text-white ${toneBtn} disabled:bg-slate-500 disabled:cursor-not-allowed`}>ถัดไป</button>
+                      </div>
+                    </aside>
+                  </>
                 )}
 
                 <div className="operation-folder-picker p-2.5 sm:p-3 max-h-[calc(100vh-330px)] min-h-[420px] overflow-y-auto custom-scrollbar">
@@ -11832,6 +11887,25 @@ S.N.: ${item.sn || '-'}
 
                 </div>
               </section>
+              )}
+
+              {!isOperationDetailsStep && actionTargetIds.length > 0 && (
+                <div className="fixed left-3 right-3 bottom-3 z-[70] pointer-events-none">
+                  <div className={`pointer-events-auto mx-auto max-w-4xl rounded-[1.35rem] border shadow-2xl px-3 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-950/95 border-slate-700 text-slate-100' : 'bg-white/95 border-slate-200 text-slate-900'} backdrop-blur`}>
+                    <div className="min-w-0 flex items-center gap-3">
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 font-black ${modeInfo.softClass}`}>{actionTargetIds.length}</div>
+                      <div className="min-w-0">
+                        <div className="font-black text-sm">เลือกแล้ว {actionTargetIds.length.toLocaleString('th-TH')} รายการ</div>
+                        <div className={`text-xs font-bold truncate ${theme.textMuted}`}>{selectedPreview || 'กดดูรายการเพื่อตรวจอีกครั้ง'}</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 sm:flex gap-2 shrink-0">
+                      <button type="button" onClick={() => setShowOperationSelectedPanel(true)} className={`px-3 py-2.5 rounded-2xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>ดูรายการ</button>
+                      <button type="button" onClick={clearOperationSelection} className={`px-3 py-2.5 rounded-2xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>ล้าง</button>
+                      <button type="button" onClick={goToOperationDetails} disabled={!canUseCurrentOperation || actionTargetIds.length === 0} className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black text-white ${toneBtn} disabled:bg-slate-500 disabled:cursor-not-allowed`}>ถัดไป</button>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {isOperationDetailsStep && (
@@ -13029,7 +13103,7 @@ S.N.: ${item.sn || '-'}
                               <div className={`text-xs font-black mt-1 ${isDarkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>{projectDisplayName(item.project)}</div>
                             </td>
                             <td className="px-4 py-4">
-                              <span className={`inline-flex px-3 py-1.5 rounded-lg text-sm font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                              <span className={`inline-flex px-3 py-1.5 rounded-lg text-sm font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{getOperationHumanStatusLabel(item)}</span>
                               <div className="mt-1"><span className={`inline-flex px-2 py-1 rounded-lg text-[11px] font-black border ${isDarkMode ? assetInfo.darkColor : assetInfo.color}`}>{assetInfo.label}</span></div>
                             </td>
                             <td className="px-4 py-4">
@@ -24736,7 +24810,7 @@ S.N.: ${item.sn || '-'}
                             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {row.item.sn || '-'} • {row.item.category || '-'} • {row.item.location || '-'}</div>
                           </div>
                           <div className="flex flex-col items-end gap-1 shrink-0">
-                            <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                            <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{getOperationHumanStatusLabel(item)}</span>
                             <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black border ${urgentCls}`}>{getRepairUrgencyLabel(row.urgency)}</span>
                           </div>
                         </div>
@@ -25013,7 +25087,7 @@ S.N.: ${item.sn || '-'}
                                         <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'} • {item.category || '-'}</div>
                                       </div>
                                       <div className="flex flex-col gap-1 items-end shrink-0">
-                                        <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{statusInfo.label}</span>
+                                        <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{getOperationHumanStatusLabel(item)}</span>
                                         <span className={`px-2 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? assetInfo.darkColor : assetInfo.color}`}>{assetInfo.label}</span>
                                       </div>
                                     </div>
