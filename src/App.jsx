@@ -1,4 +1,5 @@
 // v23.1.15 Operation Menu Dropdown Downward - รวมเมนูงานอุปกรณ์ และกางเมนูย่อยลงด้านล่างใน sidebar ไม่เด้งออกข้าง
+// v23.1.17 Inventory Action Cleanup - คลังอุปกรณ์เป็นหน้าทะเบียน/แฟ้มอุปกรณ์ ตัดปุ่มยืม/ออกงาน/รับคืนออกจากคลัง
 // v23.1.3 Operation Control Compact Layout Polish - จัดหน้า ยืม/ออกงาน/รับคืน ใหม่ แยกเลือกโหมดซ้าย สรุปตัวเลขขวา
 // v23.1.2 Box Bundle Borrow Shortcut Hotfix - เลือกยืมกล่อง/เซ็ตจากหน้าทำรายการได้เลย
 // v23.1.0 Official Command Layout / QR Scan Rework - รวมหลังบ้านกับตั้งค่าระบบ ปรับหน้าสแกน QR และลดกลิ่นเว็บเดิม
@@ -60,8 +61,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.16 Operation Control Remove / Picker First';
-const APP_UPDATE_NOTE = 'Operation Control Remove / Picker First: ตัดแผง Operation Control และ Live Status Summary ออกจากหน้ายืม/ออกงาน/รับคืน ให้เข้า Equipment Picker เร็วขึ้นและลดความรกของหน้า';
+const APP_VERSION = 'v23.1.17 Inventory Action Cleanup';
+const APP_UPDATE_NOTE = 'Inventory Action Cleanup: ปรับหน้าคลังอุปกรณ์ให้เป็นทะเบียน/แฟ้มอุปกรณ์ ตัดปุ่มยืม ออกงาน รับคืนออกจากคลัง และให้ทำรายการผ่านเมนูงานอุปกรณ์โดยเฉพาะ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -12754,7 +12755,7 @@ S.N.: ${item.sn || '-'}
                                 <div className="min-w-0">
                                   <div className={`font-black text-base leading-snug truncate ${theme.textTitle}`}>{item.name || '-'}</div>
                                   <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || item.assetShortCode || item.localCode || 'ไม่มีรหัสสั้น'}</div>
-                                  <div className={`inventory-open-cue text-[11px] font-black mt-1 ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>กดแถวเพื่อเปิดอุปกรณ์</div>
+                                  <div className={`inventory-open-cue text-[11px] font-black mt-1 ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>กดแถวเพื่อเปิดแฟ้มอุปกรณ์</div>
                                 </div>
                               </div>
                             </td>
@@ -12781,9 +12782,6 @@ S.N.: ${item.sn || '-'}
                               <div className="inventory-row-actions flex items-center justify-center gap-1.5">
                                 <button type="button" onClick={() => setShowHistory(item.id)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${theme.btnCancel}`} title="เปิด"><Icons.History className="w-4 h-4" /><span>แฟ้ม</span></button>
                                 <button type="button" onClick={() => copyItemSummary(item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${theme.btnCancel}`} title="คัดลอก"><Icons.ClipboardList className="w-4 h-4" /><span>คัดลอก</span></button>
-                                {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowBorrow(e, item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${isDarkMode ? 'bg-violet-950/35 border border-violet-500/25 text-violet-300 hover:bg-violet-600 hover:border-violet-600 hover:text-white' : 'bg-violet-50 border border-violet-200 text-violet-700 hover:bg-violet-600 hover:border-violet-600 hover:text-white'}`} title="ยืม"><Icons.UserPlus className="w-4 h-4" /><span>ยืม</span></button>}
-                                {canUseOperationalTools && item.status === 'available' && <button type="button" onClick={(e) => handleOpenRowEvent(e, item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${isDarkMode ? 'bg-orange-950/35 border border-orange-500/25 text-orange-300 hover:bg-orange-600 hover:border-orange-600 hover:text-white' : 'bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-600 hover:border-orange-600 hover:text-white'}`} title="ออกงาน"><Icons.Truck className="w-4 h-4" /><span>ออกงาน</span></button>}
-                                {canUseOperationalTools && returnable && <button type="button" onClick={() => openReturnForItems([item.id])} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${isDarkMode ? 'bg-emerald-950/35 border border-emerald-500/25 text-emerald-300 hover:bg-emerald-600 hover:border-emerald-600 hover:text-white' : 'bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-600 hover:border-emerald-600 hover:text-white'}`} title="รับคืน"><Icons.CheckCircle className="w-4 h-4" /><span>รับคืน</span></button>}
                                 {canUseOperationalTools && <button type="button" onClick={() => openRepairForItem(item)} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-rose-950/30 border border-rose-500/25 text-rose-300 hover:bg-rose-600 hover:border-rose-600 hover:text-white' : 'bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-600 hover:border-rose-600 hover:text-white'}`} title="แจ้งซ่อม"><Icons.Alert className="w-4 h-4" /></button>}
                                 {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-sky-950/30 border border-sky-500/25 text-sky-300 hover:bg-sky-600 hover:border-sky-600 hover:text-white' : 'bg-sky-50 border border-sky-200 text-sky-700 hover:bg-sky-600 hover:border-sky-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>}
                               </div>
@@ -20580,7 +20578,7 @@ S.N.: ${item.sn || '-'}
                     <div className="bg-indigo-600 text-white font-black w-11 h-11 rounded-2xl flex items-center justify-center shadow-inner text-lg shrink-0">{selectedItems.length}</div>
                     <div className="min-w-0">
                       <div className={`font-black leading-tight ${theme.textTitle}`}>รายการที่เลือก</div>
-                      <div className={`text-xs font-bold truncate ${theme.textMuted}`}>{selectionHint || 'พร้อมทำรายการแบบกลุ่ม'}</div>
+                      <div className={`text-xs font-bold truncate ${theme.textMuted}`}>{selectionHint || 'เลือกเพื่อเปิดแฟ้ม พิมพ์ฉลาก จัดกล่อง หรือแก้ไขข้อมูล'}</div>
                     </div>
                   </div>
                   <button
@@ -20618,47 +20616,10 @@ S.N.: ${item.sn || '-'}
                     </button>
                   )}
 
-                  {hasAvailable && (
-                    <button
-                      type="button"
-                      onClick={handleOpenBatchBorrow}
-                      className="px-4 py-3 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-black shadow-md flex items-center justify-center gap-2 text-sm transition-colors"
-                      title={`ยืมเฉพาะรายการที่พร้อมใช้ ${availableCount} รายการ`}
-                    >
-                      <Icons.UserPlus className="w-5 h-5" />
-                      <span>ยืม{availableCount > 1 ? ` ${availableCount}` : ''}</span>
-                    </button>
-                  )}
-
-                  {hasAvailable && (
-                    <button
-                      type="button"
-                      onClick={handleOpenBatchEvent}
-                      className="px-4 py-3 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-black shadow-md flex items-center justify-center gap-2 text-sm transition-colors"
-                      title={`ออกงานเฉพาะรายการที่พร้อมใช้ ${availableCount} รายการ`}
-                    >
-                      <Icons.Truck className="w-5 h-5" />
-                      <span>ออกงาน{availableCount > 1 ? ` ${availableCount}` : ''}</span>
-                    </button>
-                  )}
-
-                  {hasReturnable && (
-                    <button
-                      type="button"
-                      onClick={handleOpenBatchReturn}
-                      className={`${hasAvailable ? '' : 'col-span-2'} px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-md flex items-center justify-center gap-2 text-sm transition-colors`}
-                      title={`รับคืนเฉพาะรายการที่ถูกยืมหรือออกงาน ${returnableCount} รายการ`}
-                    >
-                      <Icons.CheckCircle className="w-5 h-5" />
-                      <span>รับคืน{returnableCount > 1 ? ` ${returnableCount}` : ''}</span>
-                    </button>
-                  )}
-
-                  {!hasAvailable && !hasReturnable && (
-                    <div className={`col-span-2 px-4 py-3 rounded-2xl border text-center font-black text-sm ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                      รายการที่เลือกยังทำรายการยืม/คืนไม่ได้
-                    </div>
-                  )}
+                  <div className={`col-span-2 px-4 py-3 rounded-2xl border text-left font-bold text-sm leading-6 ${isDarkMode ? 'bg-slate-900/70 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                    <div className={`font-black ${theme.textTitle}`}>คลังอุปกรณ์ใช้สำหรับเปิดแฟ้ม / จัดการข้อมูล</div>
+                    <div className={`text-xs mt-1 ${theme.textMuted}`}>ถ้าต้องการยืม ออกงาน หรือรับคืน ให้ไปที่เมนู “งานอุปกรณ์” เพื่อใช้หน้าทำรายการเฉพาะทาง</div>
+                  </div>
 
                   <details className="bulk-more-menu relative col-span-2 sm:col-span-1">
                     <summary className={`list-none cursor-pointer px-4 py-3 rounded-2xl font-black border flex items-center justify-center gap-2 text-sm ${theme.btnSecondary}`}>
