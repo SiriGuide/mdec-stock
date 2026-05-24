@@ -61,8 +61,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.18 Quick Pick Side Popup Polish';
-const APP_UPDATE_NOTE = 'Quick Pick Side Popup Polish: ปรับ Quick Pick กล่อง/เซ็ตให้เป็นปุ่มเล็กเปิด popup ข้างจอ ลดความแปลกและไม่กินพื้นที่หน้า Equipment Picker';
+const APP_VERSION = 'v23.1.19 Dedicated Operation No Auto Modal';
+const APP_UPDATE_NOTE = 'Dedicated Operation No Auto Modal: เลือกอุปกรณ์ในหน้ายืม/ออกงาน/รับคืนแล้วไม่เด้งฟอร์มทันที ต้องกดถัดไปก่อนกรอกรายละเอียด';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -22707,7 +22707,7 @@ S.N.: ${item.sn || '-'}
       })()}
 
       {/* 📋 Borrow Modal */}
-      {borrowTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
+      {borrowTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && !['borrow','event','return'].includes(activeWorkspace) && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`operational-modal-shell borrow-operation-modal rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
@@ -22840,7 +22840,7 @@ S.N.: ${item.sn || '-'}
       )}
 
       {/* 🚚 Event Modal */}
-      {eventTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
+      {eventTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && !['borrow','event','return'].includes(activeWorkspace) && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`operational-modal-shell event-operation-modal rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
@@ -22973,7 +22973,7 @@ S.N.: ${item.sn || '-'}
       )}
 
       {/* 📋 Return Modal */}
-      {returnTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && (
+      {returnTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && !['borrow','event','return'].includes(activeWorkspace) && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`operational-modal-shell return-operation-modal rounded-3xl p-4 sm:p-6 max-w-lg w-[calc(100vw-1.5rem)] sm:w-full shadow-2xl max-h-[92vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
