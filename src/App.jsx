@@ -61,8 +61,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.17 Inventory Action Cleanup';
-const APP_UPDATE_NOTE = 'Inventory Action Cleanup: ปรับหน้าคลังอุปกรณ์ให้เป็นทะเบียน/แฟ้มอุปกรณ์ ตัดปุ่มยืม ออกงาน รับคืนออกจากคลัง และให้ทำรายการผ่านเมนูงานอุปกรณ์โดยเฉพาะ';
+const APP_VERSION = 'v23.1.18 Quick Pick Side Popup Polish';
+const APP_UPDATE_NOTE = 'Quick Pick Side Popup Polish: ปรับ Quick Pick กล่อง/เซ็ตให้เป็นปุ่มเล็กเปิด popup ข้างจอ ลดความแปลกและไม่กินพื้นที่หน้า Equipment Picker';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7158,6 +7158,7 @@ function MainApp() {
   const [borrowReturnProjectFilter, setBorrowReturnProjectFilter] = useState([]);
   const [borrowReturnQuickFilter, setBorrowReturnQuickFilter] = useState('all');
   const [showBorrowReturnFilters, setShowBorrowReturnFilters] = useState(false);
+  const [showOperationQuickPick, setShowOperationQuickPick] = useState(false);
   const [selectedPurchaseProject, setSelectedPurchaseProject] = useState(null);
   const [projectMetaEditTarget, setProjectMetaEditTarget] = useState(null);
   const [projectMetaForm, setProjectMetaForm] = useState({ name: '', fiscalYear: '', budget: '', owner: '', startDate: '', endDate: '', objective: '', note: '', status: 'active' });
@@ -7174,6 +7175,7 @@ function MainApp() {
       setBorrowReturnStage('select');
       setShowScanModal(false);
       setUseCamera(false);
+      setShowOperationQuickPick(false);
       setActiveWorkspace(workspace);
       window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
       return;
@@ -7193,6 +7195,7 @@ function MainApp() {
     } else {
       setShowScanModal(false);
       setUseCamera(false);
+      setShowOperationQuickPick(false);
       setActiveWorkspace(workspace);
     }
 
@@ -11298,6 +11301,11 @@ S.N.: ${item.sn || '-'}
                       <button type="button" onClick={() => setShowBorrowReturnFilters(v => !v)} className={`px-3 py-2 rounded-xl text-sm font-black border flex items-center gap-2 ${borrowReturnActiveFilterCount > 0 ? modeInfo.softClass : theme.btnSecondary}`}>
                         <Icons.Settings className="w-4 h-4" /> ตัวกรอง {borrowReturnActiveFilterCount > 0 ? borrowReturnActiveFilterCount : ''}
                       </button>
+                      {(operationBoxShortcuts.length > 0 || operationBundleShortcuts.length > 0) && (
+                        <button type="button" onClick={() => setShowOperationQuickPick(true)} className={`px-3 py-2 rounded-xl text-sm font-black border flex items-center gap-2 ${theme.btnSecondary}`}>
+                          <Icons.Layers className="w-4 h-4" /> กล่อง/เซ็ต
+                        </button>
+                      )}
                       <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; selectVisibleItems(); }} className={`px-3 py-2 rounded-xl text-sm font-black border ${canUseCurrentOperation ? theme.btnSecondary : (isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed')}`}>เลือกที่เห็น</button>
                       <button type="button" onClick={clearOperationSelection} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>ล้างเลือก</button>
                     </div>
@@ -11336,42 +11344,78 @@ S.N.: ${item.sn || '-'}
                     )}
                   </div>
 
-                  {(operationBoxShortcuts.length > 0 || operationBundleShortcuts.length > 0) && (
-                    <div className={`mt-4 rounded-[1.35rem] border p-3 ${isDarkMode ? 'bg-slate-900/55 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                        <div>
-                          <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Quick Pick</div>
-                          <div className={`font-black ${theme.textTitle}`}>เลือกเร็วจากกล่อง / เซ็ต</div>
+                  {showOperationQuickPick && (operationBoxShortcuts.length > 0 || operationBundleShortcuts.length > 0) && (
+                    <>
+                      <button
+                        type="button"
+                        aria-label="ปิดเลือกจากกล่องและเซ็ต"
+                        onClick={() => setShowOperationQuickPick(false)}
+                        className="fixed inset-0 z-[80] bg-black/20"
+                      />
+                      <aside className={`fixed z-[91] right-3 sm:right-5 top-20 bottom-5 w-[min(420px,calc(100vw-1.5rem))] rounded-[1.6rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`px-4 py-3 border-b flex items-start justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900/90' : 'border-slate-100 bg-slate-50'}`}>
+                          <div className="min-w-0">
+                            <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Box / Bundle Picker</div>
+                            <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>เลือกจากกล่อง / เซ็ต</div>
+                            <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>กด “เพิ่ม” เพื่อดึงเฉพาะอุปกรณ์ที่สถานะใช้ได้ในหน้านี้</div>
+                          </div>
+                          <button type="button" onClick={() => setShowOperationQuickPick(false)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`} title="ปิด">
+                            <Icons.X className="w-5 h-5" />
+                          </button>
                         </div>
-                        <div className={`text-xs font-bold ${theme.textMuted}`}>ระบบจะเพิ่มเฉพาะอุปกรณ์ที่อยู่ในสถานะเลือกได้</div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {operationBoxShortcuts.length > 0 && (
-                          <div className="space-y-2">
-                            <div className={`text-xs font-black ${isDarkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>กล่อง / ตู้ / ชั้น</div>
-                            <div className="flex flex-wrap gap-2">
-                              {operationBoxShortcuts.map((box) => (
-                                <button key={box.id || box.name} type="button" onClick={() => addShortcutCollectionToOperation(box.validIds, box.name || 'กล่องนี้')} className={`px-3 py-2 rounded-xl border text-left font-black text-xs ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-200 hover:border-cyan-500' : 'bg-white border-slate-200 text-slate-700 hover:border-cyan-400'}`}>
-                                  📦 {box.name || 'กล่องไม่มีชื่อ'} <span className={theme.textMuted}>({box.validIds.length})</span>
-                                </button>
-                              ))}
+
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-3">
+                          {operationBoxShortcuts.length > 0 && (
+                            <div className={`rounded-[1.35rem] border p-3 ${isDarkMode ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                              <div className={`text-xs font-black mb-2 ${isDarkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>📦 กล่อง / ตู้ / ชั้น</div>
+                              <div className="space-y-2">
+                                {operationBoxShortcuts.map((box) => (
+                                  <div key={box.id || box.name} className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <div className={`font-black text-sm truncate ${theme.textTitle}`}>{box.name || 'กล่องไม่มีชื่อ'}</div>
+                                        <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>เลือกได้ {box.validIds.length.toLocaleString('th-TH')} รายการ</div>
+                                      </div>
+                                      <button type="button" onClick={() => { addShortcutCollectionToOperation(box.validIds, box.name || 'กล่องนี้'); setShowOperationQuickPick(false); }} className={`shrink-0 px-3 py-2 rounded-xl text-xs font-black border ${isDarkMode ? 'bg-cyan-950/35 border-cyan-800 text-cyan-200 hover:bg-cyan-900/45' : 'bg-cyan-50 border-cyan-200 text-cyan-800 hover:bg-cyan-100'}`}>
+                                        เพิ่ม
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                        {operationBundleShortcuts.length > 0 && (
-                          <div className="space-y-2">
-                            <div className={`text-xs font-black ${isDarkMode ? 'text-violet-300' : 'text-violet-700'}`}>เซ็ตอุปกรณ์</div>
-                            <div className="flex flex-wrap gap-2">
-                              {operationBundleShortcuts.map((bundle) => (
-                                <button key={bundle.id || bundle.name} type="button" onClick={() => addShortcutCollectionToOperation(bundle.validIds, bundle.name || 'เซ็ตนี้')} className={`px-3 py-2 rounded-xl border text-left font-black text-xs ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-200 hover:border-violet-500' : 'bg-white border-slate-200 text-slate-700 hover:border-violet-400'}`}>
-                                  🧩 {bundle.name || 'เซ็ตไม่มีชื่อ'} <span className={theme.textMuted}>({bundle.validIds.length})</span>
-                                </button>
-                              ))}
+                          )}
+
+                          {operationBundleShortcuts.length > 0 && (
+                            <div className={`rounded-[1.35rem] border p-3 ${isDarkMode ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                              <div className={`text-xs font-black mb-2 ${isDarkMode ? 'text-violet-300' : 'text-violet-700'}`}>🧩 เซ็ตอุปกรณ์</div>
+                              <div className="space-y-2">
+                                {operationBundleShortcuts.map((bundle) => (
+                                  <div key={bundle.id || bundle.name} className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <div className={`font-black text-sm truncate ${theme.textTitle}`}>{bundle.name || 'เซ็ตไม่มีชื่อ'}</div>
+                                        <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>เลือกได้ {bundle.validIds.length.toLocaleString('th-TH')} รายการ</div>
+                                      </div>
+                                      <button type="button" onClick={() => { addShortcutCollectionToOperation(bundle.validIds, bundle.name || 'เซ็ตนี้'); setShowOperationQuickPick(false); }} className={`shrink-0 px-3 py-2 rounded-xl text-xs font-black border ${isDarkMode ? 'bg-violet-950/35 border-violet-800 text-violet-200 hover:bg-violet-900/45' : 'bg-violet-50 border-violet-200 text-violet-800 hover:bg-violet-100'}`}>
+                                        เพิ่ม
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                          )}
+                        </div>
+
+                        <div className={`px-4 py-3 border-t flex items-center justify-between gap-2 ${isDarkMode ? 'border-slate-800 bg-slate-900/90' : 'border-slate-100 bg-slate-50'}`}>
+                          <div className={`text-xs font-bold ${theme.textMuted}`}>ไม่ดันหน้ารายการอุปกรณ์ลงแล้ว</div>
+                          <button type="button" onClick={() => setShowOperationQuickPick(false)} className={`px-4 py-2.5 rounded-2xl border text-sm font-black ${theme.btnSecondary}`}>
+                            ปิด
+                          </button>
+                        </div>
+                      </aside>
+                    </>
                   )}
 
                   {showBorrowReturnFilters && (
