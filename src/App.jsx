@@ -1,4 +1,4 @@
-// v23.1.46 Asset Profile Clean Redesign - เพิ่มปุ่มตรวจพื้นที่ฐานข้อมูลแบบสแกนทุก collection หลัก เพื่อให้แม่นกว่า estimate จาก state หน้าเว็บ
+// v23.1.46.1 Asset Profile Clean Redesign Build Hotfix - เพิ่มปุ่มตรวจพื้นที่ฐานข้อมูลแบบสแกนทุก collection หลัก เพื่อให้แม่นกว่า estimate จาก state หน้าเว็บ
 // v23.1.44 Warehouse Quick Release / No Approver - ปรับโกดัง/คลังสำรองให้เบิกเข้าคลังได้เร็วขึ้น ไม่ต้องกรอกผู้อนุมัติ เหลือแค่เหตุผลและบันทึกประวัติ
 // v23.1.34 Inventory Delete Button Restore - คืนปุ่มลบอุปกรณ์ในหน้าคลัง ทั้งรายชิ้นและแบบเลือกหลายรายการ
 // v23.1.33 Document Filename By Ref Fix - ตั้งชื่อไฟล์เวลาพิมพ์/บันทึก PDF ใบยืม/ออกงาน/รับคืนตามเลขเอกสารแทนชื่อเว็บ
@@ -75,8 +75,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.46 Asset Profile Clean Redesign';
-const APP_UPDATE_NOTE = 'Asset Profile Clean Redesign: ปรับหน้าแฟ้มอุปกรณ์ให้เป็นหน้าอ่านข้อมูล/ประวัติ/หลักฐาน ตัด Quick Action และปุ่มยืม/ออกงาน/รับคืนที่ซ้ำกับ flow หลักออก';
+const APP_VERSION = 'v23.1.46.1 Asset Profile Clean Redesign Build Hotfix';
+const APP_UPDATE_NOTE = 'Asset Profile Clean Redesign Build Hotfix: แก้ JSX closing tag ของหน้าแฟ้มอุปกรณ์ และคงการตัด Quick Action / ปุ่มยืม / ออกงาน / รับคืนออกจากแฟ้มอุปกรณ์';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -24528,7 +24528,7 @@ S.N.: ${item.sn || '-'}
                       <button type="button" onClick={printAssetProfile} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>พิมพ์แฟ้ม</button>
                       <button type="button" onClick={() => exportItemHistoryCSV(detailItem)} className={`sm:hidden px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>CSV</button>
                     </div>
-
+                    </div>
 
                   <div className={`px-4 sm:px-5 pt-4 grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4`}>
                     <div className={`rounded-[1.45rem] border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
