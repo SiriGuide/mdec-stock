@@ -1,3 +1,4 @@
+// v23.1.34 Inventory Delete Button Restore - คืนปุ่มลบอุปกรณ์ในหน้าคลัง ทั้งรายชิ้นและแบบเลือกหลายรายการ
 // v23.1.33 Document Filename By Ref Fix - ตั้งชื่อไฟล์เวลาพิมพ์/บันทึก PDF ใบยืม/ออกงาน/รับคืนตามเลขเอกสารแทนชื่อเว็บ
 // v23.1.29 Proof Link Strict Match Hotfix - แก้รูปหลักฐานในประวัติไม่ให้ดึงรูปจากเรื่อง/ผู้เกี่ยวข้องกว้างเกินไป ต้องผูกกับอุปกรณ์หรือเอกสารจริง
 // v23.1.28 Central Admin Permission Fix - บัญชีกลาง username admin ถือเป็น owner เสมอ เพื่อให้ลบ/กู้คืน/จัดการระบบได้ตรงสิทธิ์
@@ -72,8 +73,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.33 Document Filename By Ref Fix';
-const APP_UPDATE_NOTE = 'Document Filename By Ref Fix: เวลาพิมพ์/บันทึก PDF เอกสารย้อนหลัง ตั้งชื่อไฟล์จากเลขเอกสาร เช่น BR-25690525-xxxxxx แทนชื่อเว็บ';
+const APP_VERSION = 'v23.1.34 Inventory Delete Button Restore';
+const APP_UPDATE_NOTE = 'Inventory Delete Button Restore: คืนปุ่มลบอุปกรณ์ในหน้าคลังสำหรับบัญชีกลาง ทั้งลบรายชิ้น ลบรายการที่เลือก และปุ่มเปิดถังขยะให้เห็นชัด';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -12991,6 +12992,7 @@ S.N.: ${item.sn || '-'}
             </div>
             <div className="inventory-header-actions flex flex-wrap gap-2 shrink-0">
               {canAddEditItems && <button type="button" onClick={openAddItemForm} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm"><Icons.Plus className="w-5 h-5 inline-block mr-1" /> เพิ่มอุปกรณ์</button>}
+              {canDeleteItems && <button type="button" onClick={() => setShowTrashModal(true)} className={`px-4 py-3 rounded-2xl border font-black ${isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}><Icons.Trash className="w-5 h-5 inline-block mr-1" /> ถังขยะ</button>}
               <button type="button" onClick={exportInventoryCSV} className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">Export CSV</button>
               <button type="button" onClick={openMonthlyReportPage} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>พิมพ์/รายงาน</button>
               {canUseOperationalTools && <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>สแกน QR</button>}
@@ -13167,6 +13169,7 @@ S.N.: ${item.sn || '-'}
                   <button type="button" onClick={handleOpenBatchEvent} className="px-3.5 py-2.5 rounded-xl bg-orange-500 text-white font-black text-sm">ออกงานที่เลือก</button>
                   <button type="button" onClick={handleOpenBatchReturn} className="px-3.5 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-sm">รับคืนที่เลือก</button>
                   <button type="button" onClick={() => setShowพิมพ์Modal(true)} className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm flex items-center gap-2"><Icons.QrCode className="w-4 h-4" /> พิมพ์ QR</button>
+                  {canDeleteItems && <button type="button" onClick={handleDeleteSelectedItems} className={`px-3.5 py-2.5 rounded-xl border font-black text-sm ${isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>ลบที่เลือก</button>}
                   <button type="button" onClick={() => setSelectedItems([])} className={`px-3.5 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ล้างเลือก</button>
                 </div>
               </div>
@@ -13263,6 +13266,7 @@ S.N.: ${item.sn || '-'}
                                 <button type="button" onClick={() => copyItemSummary(item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${theme.btnCancel}`} title="คัดลอก"><Icons.ClipboardList className="w-4 h-4" /><span>คัดลอก</span></button>
                                 {canUseOperationalTools && <button type="button" onClick={() => openRepairForItem(item)} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-rose-950/30 border border-rose-500/25 text-rose-300 hover:bg-rose-600 hover:border-rose-600 hover:text-white' : 'bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-600 hover:border-rose-600 hover:text-white'}`} title="แจ้งซ่อม"><Icons.Alert className="w-4 h-4" /></button>}
                                 {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-sky-950/30 border border-sky-500/25 text-sky-300 hover:bg-sky-600 hover:border-sky-600 hover:text-white' : 'bg-sky-50 border border-sky-200 text-sky-700 hover:bg-sky-600 hover:border-sky-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>}
+                                {canDeleteItems && <button type="button" onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-red-950/40 border border-red-500/30 text-red-300 hover:bg-red-600 hover:border-red-600 hover:text-white' : 'bg-red-50 border border-red-200 text-red-700 hover:bg-red-600 hover:border-red-600 hover:text-white'}`} title="ลบอุปกรณ์"><Icons.Trash className="w-4 h-4" /></button>}
                               </div>
                             </td>
                           </tr>
@@ -16129,6 +16133,33 @@ S.N.: ${item.sn || '-'}
       console.error("Error deleting item:", error);
       alert(`เกิดข้อผิดพลาดจากฐานข้อมูล: ${error.message}`);
       setItemToDelete(null);
+    }
+  };
+
+  const handleDeleteSelectedItems = async () => {
+    if (!canDeleteItems) return alert('❌ เฉพาะบัญชีกลาง/ผู้ดูแลเท่านั้นที่ลบอุปกรณ์ได้');
+    const targetItems = selectedItems
+      .map(id => items.find(item => item.id === id))
+      .filter(item => item && item.id && !item.isDeleted);
+    if (targetItems.length === 0) return alert('❌ ยังไม่มีอุปกรณ์ที่เลือกสำหรับย้ายเข้าถังขยะ');
+    const preview = targetItems.slice(0, 8).map((item, idx) => `${idx + 1}. ${item.name || '-'}${item.sn ? ` / S.N. ${item.sn}` : ''}`).join('\n');
+    const more = targetItems.length > 8 ? `\n...และอีก ${targetItems.length - 8} รายการ` : '';
+    const ok = confirm(`ย้ายอุปกรณ์ที่เลือก ${targetItems.length} รายการเข้าถังขยะหรือไม่?\n\n${preview}${more}\n\nสามารถกู้คืนได้จากเมนูถังขยะ`);
+    if (!ok) return;
+    try {
+      const now = new Date().toISOString();
+      await Promise.all(targetItems.map(item => setDoc(getItemDoc(item.id), {
+        isDeleted: true,
+        deletedAt: now,
+        deletedBy: currentOperator?.name || 'Admin',
+        updatedAt: now
+      }, { merge: true })));
+      await logAction('ย้ายอุปกรณ์เข้าถังขยะหลายรายการ', `${targetItems.length} รายการ`, targetItems.map(item => item.name || item.id).slice(0, 20).join(', '));
+      setSelectedItems(prev => prev.filter(id => !targetItems.some(item => item.id === id)));
+      pushToast(`ย้ายเข้าถังขยะแล้ว ${targetItems.length} รายการ`, 'success');
+    } catch (error) {
+      console.error('Error deleting selected items:', error);
+      alert(`เกิดข้อผิดพลาดจากฐานข้อมูล: ${error.message}`);
     }
   };
 
@@ -21246,6 +21277,10 @@ S.N.: ${item.sn || '-'}
                         <Icons.ClipboardList className="w-5 h-5 shrink-0" />
                         <span><span className="block">กล่อง / เซ็ต</span><span className={`block text-xs font-bold ${theme.textMuted}`}>จัดกล่องและเซ็ตอุปกรณ์</span></span>
                       </button>
+                      {canDeleteItems && <button type="button" onClick={handleDeleteSelectedItems} className={`w-full px-4 py-3 rounded-2xl font-black text-sm border flex items-center gap-3 text-left ${isDarkMode ? 'bg-red-950/40 hover:bg-red-900 border-red-800 text-red-300' : 'bg-red-50 hover:bg-red-100 border-red-200 text-red-700'}`}>
+                        <Icons.Trash className="w-5 h-5 shrink-0" />
+                        <span><span className="block">ลบรายการที่เลือก</span><span className={`block text-xs font-bold ${theme.textMuted}`}>ย้ายเข้าถังขยะ กู้คืนได้ภายหลัง</span></span>
+                      </button>}
                       <button type="button" onClick={() => setSelectedItems([])} className={`w-full px-4 py-3 rounded-2xl font-black text-sm border flex items-center gap-3 text-left ${isDarkMode ? 'bg-rose-950/30 hover:bg-rose-900 border-rose-800 text-rose-300' : 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700'}`}>
                         <Icons.X className="w-5 h-5 shrink-0" />
                         <span>ล้างการเลือกทั้งหมด</span>
@@ -23932,6 +23967,7 @@ S.N.: ${item.sn || '-'}
                       {canUseOperationalTools && detailItem.status === 'available' && <button type="button" onClick={(e) => { setShowHistory(null); handleOpenRowEvent(e, detailItem); }} className="px-3 py-3 rounded-2xl font-black text-sm bg-orange-500 text-white shadow-sm">ออกงาน</button>}
                       {canUseOperationalTools && (detailItem.status === 'borrowed' || detailItem.status === 'out-for-event') && <button type="button" onClick={() => { setShowHistory(null); openReturnForItems([detailItem.id]); }} className="px-3 py-3 rounded-2xl font-black text-sm bg-emerald-600 text-white shadow-sm">รับคืน</button>}
                       {canAddEditItems && <button type="button" onClick={() => { setShowHistory(null); openItemEditor(detailItem); }} className="px-3 py-3 rounded-2xl font-black text-sm bg-blue-600 text-white shadow-sm">แก้ไข</button>}
+                      {canDeleteItems && !detailItem.isDeleted && <button type="button" onClick={() => { setShowHistory(null); setItemToDelete(detailItem); }} className={`px-3 py-3 rounded-2xl font-black text-sm border ${isDarkMode ? 'bg-red-950/40 border-red-800 text-red-200 hover:bg-red-900/60' : 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'}`}>ลบ</button>}
                       <button type="button" onClick={() => openItemQrLabelFromDetail(detailItem)} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>พิมพ์ QR</button>
                       <button type="button" onClick={() => openProofCenterFromAssetProfile(detailItem)} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>ดูหลักฐานทั้งหมด</button>
                       <button type="button" onClick={() => openProofAttachFromAssetProfile(detailItem)} className={`px-3 py-3 rounded-2xl font-black text-sm border ${theme.btnSecondary}`}>+ รูปล่าสุด</button>
