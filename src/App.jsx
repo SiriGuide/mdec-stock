@@ -75,8 +75,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.52 Merge System Center + Settings';
-const APP_UPDATE_NOTE = 'Merge System Center + Settings: รวมศูนย์จัดการระบบกับตั้งค่าให้เหลือชื่อเดียวคือ ตั้งค่าระบบ และให้เมนูชี้ไปหน้าเดียวกัน';
+const APP_VERSION = 'v23.1.53 One Settings Hub Polish';
+const APP_UPDATE_NOTE = 'One Settings Hub Polish: ปรับตั้งค่าระบบให้เป็นปุ่มเดียวจบ รวมเครื่องมือผู้ดูแลไว้ในหน้าเดียวแบบสวย สะอาด และใช้งานง่าย';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -14010,45 +14010,80 @@ S.N.: ${item.sn || '-'}
   };
 
   const renderToolsWorkspace = () => {
-    const systemGroups = [
+    const primaryCards = [
       {
-        title: 'ข้อมูลและสต็อก',
-        desc: 'ดูแลฐานข้อมูลอุปกรณ์และโครงสร้างการจัดเก็บ',
+        title: 'เพิ่มอุปกรณ์',
+        desc: 'เพิ่มของใหม่เข้าระบบ พร้อมกำหนดหมวด ที่เก็บ โครงการ รูป และสถานะ',
+        icon: Icons.Plus,
+        badge: 'งานเร็ว',
+        actionLabel: 'เพิ่มของ',
+        action: () => openAddItemForm()
+      },
+      {
+        title: 'จัดการสต็อกทั้งหมด',
+        desc: 'ค้นหา แก้ไข ลบ ย้ายเข้าโกดัง และเปิดแฟ้มอุปกรณ์จากจุดเดียว',
+        icon: Icons.Database,
+        badge: `${items.filter(item => item && !item.isDeleted).length.toLocaleString('th-TH')} รายการ`,
+        actionLabel: 'เปิดสต็อก',
+        action: () => openWorkspace('inventory')
+      },
+      {
+        title: 'เอกสาร / ประวัติ / หลักฐาน',
+        desc: 'เปิดใบย้อนหลัง ดูประวัติส่วนกลาง และจัดการรูปหลักฐานของงาน',
+        icon: Icons.ClipboardList,
+        badge: `${asArray(borrowเอกสารs).length.toLocaleString('th-TH')} เอกสาร`,
+        actionLabel: 'เปิดเอกสาร',
+        action: () => openBorrowDocsArchive({ reset: false })
+      },
+      {
+        title: 'ฐานข้อมูล / Backup',
+        desc: 'สำรองข้อมูล ตรวจพื้นที่ ล้าง log จิปาถะ และเตรียมปิดรอบปี',
+        icon: Icons.Database,
+        badge: databaseStorageEstimate.percentText || 'DB',
+        actionLabel: 'จัดการฐานข้อมูล',
+        action: () => openSettingsTab('database')
+      }
+    ];
+
+    const settingSections = [
+      {
+        title: 'ข้อมูลพื้นฐาน',
+        desc: 'ตั้งค่าข้อมูลที่ใช้ซ้ำในฟอร์มทั้งเว็บ',
         items: [
-          ['สต็อกทั้งหมด', 'ดู/ค้นหา/แก้ไขรายการอุปกรณ์', Icons.Database, () => openWorkspace('inventory')],
-          ['เพิ่มอุปกรณ์', 'เติมของใหม่เข้าสต็อก', Icons.Plus, () => openAddItemForm()],
-          ['กล่อง / เซ็ตอุปกรณ์', 'จัดกล่องจริงและชุดที่ใช้บ่อย', Icons.Layers, () => openWorkspace('organize')],
-          ['โครงการจัดซื้อ', 'จัดอุปกรณ์ตามแหล่งที่มา/งบ', Icons.Folder, () => openWorkspace('projects')]
+          ['หมวดหมู่', 'ประเภทอุปกรณ์ เช่น กล้อง เลนส์ ไมค์ ไฟ', Icons.Tag, () => openSettingsTab('categories')],
+          ['สถานที่ / ห้อง', 'ที่เก็บ ตู้ ห้องประชุม และพื้นที่ใช้งาน', Icons.Folder, () => openSettingsTab('locations')],
+          ['เจ้าหน้าที่', 'รายชื่อคนทำรายการและผู้เกี่ยวข้อง', Icons.Users, () => openSettingsTab('staff')],
+          ['โครงการ', 'โครงการจัดซื้อ / ที่มาของอุปกรณ์', Icons.Folder, () => openWorkspace('projects')]
         ]
       },
       {
-        title: 'เอกสารและหลักฐาน',
-        desc: 'ค้นหา พิมพ์ซ้ำ ตรวจสอบรูปหลักฐาน และประวัติการทำรายการ',
+        title: 'ผู้ใช้และความปลอดภัย',
+        desc: 'ดูแลบัญชี สิทธิ์ และงานที่ต้องระวัง',
         items: [
-          ['เอกสารย้อนหลัง', 'ค้นหาใบยืม ใบออกงาน ใบรับคืน', Icons.พิมพ์er, () => openBorrowDocsArchive({ reset: false })],
-          ['ประวัติส่วนกลาง', 'ดู Timeline การยืมคืนทั้งหมด', Icons.ClipboardList, () => openMainHistoryCenter({ reset: true, tab: 'history' })],
-          ['หลักฐานรูปภาพ', 'รวมรูปยืม/คืนและการจัดการรูป', Icons.Camera, () => openMainHistoryCenter({ reset: true, tab: 'proofs' })],
-          ['รายงาน', 'สรุปการใช้งานและ Export', Icons.ViewGrid, () => openMonthlyReportPage()]
+          ['บัญชีผู้ใช้', 'PIN บทบาท สิทธิ์ และบัญชีกลาง', Icons.UserPlus, () => openSettingsTab('accounts')],
+          ['ถังขยะ', 'กู้คืนหรือลบถาวรรายการที่ถูกลบ', Icons.Alert, () => openMainHistoryCenter({ reset: true, tab: 'trash' })],
+          ['ตรวจคุณภาพข้อมูล', 'เช็กข้อมูลอุปกรณ์ที่ยังไม่ครบ', Icons.CheckCircle, () => openSettingsTab('quality')],
+          ['สถานะระบบ', 'ตรวจสุขภาพระบบและพื้นที่ฐานข้อมูล', Icons.Monitor, () => setShowระบบHealthModal(true)]
         ]
       },
       {
-        title: 'ตรวจสอบและความปลอดภัย',
-        desc: 'งานผู้ดูแลระบบที่ต้องใช้ความระมัดระวัง',
+        title: 'เอกสารและการแสดงผล',
+        desc: 'จัดหน้าตาเอกสาร รูปหลักฐาน และความสบายตาของเว็บ',
         items: [
-          ['ตรวจนับสต๊อกจริง', 'Physical Audit / ตรวจของจริง', Icons.CheckCircle, () => openWorkspace('stockCount')],
-          ['ตรวจคุณภาพข้อมูล', 'รายการที่ควรเติมข้อมูล', Icons.Alert, () => { setSettingsTab('quality'); setShowSettings(true); }],
-          ['Backup / ปิดปี', 'สำรอง กู้คืน และปิดรอบข้อมูล', Icons.Database, () => setShowBackupCenterModal(true)],
-          ['สถานะระบบ', 'ตรวจสุขภาพฐานข้อมูลและพื้นที่', Icons.Monitor, () => setShowระบบHealthModal(true)]
+          ['เอกสาร / โลโก้ / QR', 'หัวเอกสาร ลายน้ำ โลโก้ และฉลาก QR', Icons.พิมพ์er, () => openSettingsTab('documents')],
+          ['หลักฐานรูปภาพ', 'กติกาการแนบรูป ย่อรูป และจัดการหลักฐาน', Icons.Camera, () => openSettingsTab('proofs')],
+          ['การแสดงผล', 'ความแน่นของหน้า การ์ด และเอฟเฟกต์', Icons.Monitor, () => openSettingsTab('display')],
+          ['รายงาน', 'สรุปรายเดือน รายงาน A4 และ Export CSV', Icons.ViewGrid, () => openMonthlyReportPage()]
         ]
       },
       {
-        title: 'ตั้งค่าระบบ',
-        desc: 'รวมศูนย์จัดการระบบและ Settings เดิมไว้ในหน้าเดียว ไม่แยกปุ่มให้สับสน',
+        title: 'คลังและงานจัดเตรียม',
+        desc: 'ของสำรอง กล่อง เซ็ต และการตรวจนับของจริง',
         items: [
-          ['ภาพรวมการตั้งค่า', 'หมวดหมู่ เอกสาร หลักฐาน และ UI', Icons.Settings, () => { setSettingsTab('overview'); setShowSettings(true); }],
-          ['บัญชีผู้ใช้ / สิทธิ์', 'PIN บทบาท และผู้รับผิดชอบ', Icons.UserPlus, () => { setSettingsTab('accounts'); setShowSettings(true); }],
-          ['หมวด / สถานที่ / เจ้าหน้าที่', 'ข้อมูลพื้นฐานที่ใช้ในฟอร์ม', Icons.Tag, () => { setSettingsTab('categories'); setShowSettings(true); }],
-          ['เอกสาร / โลโก้ / QR', 'ตั้งค่าการพิมพ์และภาพลักษณ์เอกสาร', Icons.พิมพ์er, () => { setSettingsTab('documents'); setShowSettings(true); }]
+          ['โกดัง / คลังสำรอง', 'ของยังไม่เปิดใช้และของสแปร์ที่ต้องเบิกก่อน', Icons.Folder, () => openWorkspace('warehouse')],
+          ['กล่อง / เซ็ตอุปกรณ์', 'จัดกล่องจริง เซ็ตใช้งาน และเช็กลิสต์', Icons.Layers, () => openWorkspace('organize')],
+          ['ตรวจนับสต๊อกจริง', 'Physical Audit / ตรวจของจริงตามรอบ', Icons.CheckCircle, () => openWorkspace('stockCount')],
+          ['ประวัติส่วนกลาง', 'เหตุการณ์สำคัญของระบบทั้งหมด', Icons.ClipboardList, () => openMainHistoryCenter({ reset: true, tab: 'history' })]
         ]
       }
     ];
@@ -14057,17 +14092,18 @@ S.N.: ${item.sn || '-'}
       <div className="page-workspace-shell official-system-center space-y-5">
         <div className={`rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
           <div className="p-6 sm:p-8 border-b border-slate-700/40 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white relative overflow-hidden">
-            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,.55),transparent_34%),radial-gradient(circle_at_90%_0%,rgba(14,165,233,.35),transparent_32%)]"></div>
-            <div className="relative z-10 flex flex-col xl:flex-row xl:items-end justify-between gap-6">
+            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_18%_15%,rgba(59,130,246,.55),transparent_34%),radial-gradient(circle_at_90%_0%,rgba(14,165,233,.35),transparent_32%)]"></div>
+            <div className="relative z-10 flex flex-col 2xl:flex-row 2xl:items-end justify-between gap-6">
               <div className="max-w-3xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 bg-white/10 text-[11px] font-black tracking-[0.18em] uppercase text-blue-100">MDEC SYSTEM SETTINGS</div>
-                <h2 className="mt-4 text-3xl sm:text-4xl font-black tracking-tight">ตั้งค่าระบบ</h2>
-                <p className="mt-2 text-sm sm:text-base font-bold text-slate-300 leading-relaxed">รวมศูนย์จัดการระบบและหน้าตั้งค่าไว้ในหน้าเดียว สำหรับจัดการข้อมูล อุปกรณ์ เอกสาร หลักฐาน รายงาน Backup และสิทธิ์ผู้ใช้ โดยหน้าใช้งานหลักจะยังคงโล่งสำหรับงานประจำวัน</p>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 bg-white/10 text-[11px] font-black tracking-[0.18em] uppercase text-blue-100">ONE SETTINGS HUB</div>
+                <h2 className="mt-4 text-3xl sm:text-5xl font-black tracking-tight">ตั้งค่าระบบ</h2>
+                <p className="mt-3 text-sm sm:text-base font-bold text-slate-300 leading-relaxed">ปุ่มเดียวจบสำหรับงานผู้ดูแลระบบ รวมเครื่องมือสำคัญของสต็อก เอกสาร หลักฐาน Backup บัญชี โกดัง และคุณภาพข้อมูลไว้ในหน้าเดียว โดยไม่ต้องจำว่าเมนูอยู่ตรงไหน</p>
               </div>
-              <div className="grid grid-cols-3 gap-2 w-full xl:w-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full 2xl:w-auto">
                 {[
-                  ['อุปกรณ์', items.length],
+                  ['อุปกรณ์', items.filter(item => item && !item.isDeleted).length],
                   ['เอกสาร', asArray(borrowเอกสารs).length],
+                  ['หลักฐาน', databaseStorageEstimate.proofImageCount || 0],
                   ['บัญชี', getEffectiveAccounts().length]
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-center min-w-[94px]">
@@ -14080,41 +14116,78 @@ S.N.: ${item.sn || '-'}
           </div>
 
           <div className="p-4 sm:p-6 space-y-6">
-            <div className={`rounded-[1.5rem] border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-              <div>
-                <div className={`text-xs font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>Quick Admin Search</div>
-                <div className={`font-black text-xl mt-1 ${theme.textTitle}`}>ค้นหาแล้วเข้าไปจัดการต่อได้ทันที</div>
+            <div className={`rounded-[1.5rem] border p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="min-w-0">
+                <div className={`text-xs font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>ค้นหาเร็ว</div>
+                <div className={`font-black text-xl mt-1 ${theme.textTitle}`}>พิมพ์ชื่ออุปกรณ์ / S.N. แล้วไปจัดการต่อได้ทันที</div>
+                <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ช่องนี้ใช้ค้นหาในสต็อก ไม่ใช่เพิ่มเมนูใหม่ให้รก</div>
               </div>
-              <div className={`w-full lg:max-w-xl rounded-2xl border px-4 py-2.5 flex items-center gap-2 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`w-full xl:max-w-xl rounded-2xl border px-4 py-2.5 flex items-center gap-2 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <Icons.Search className="w-5 h-5 opacity-60" />
                 <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') openWorkspace('inventory'); }} placeholder="ค้นหาอุปกรณ์ / S.N. / หมวด / ที่เก็บ" className={`flex-1 bg-transparent outline-none font-bold ${theme.textTitle}`} />
                 <button type="button" onClick={() => openWorkspace('inventory')} className="px-4 py-2 rounded-xl bg-blue-600 text-white font-black">ไปสต็อก</button>
               </div>
             </div>
 
-            {systemGroups.map(group => (
-              <section key={group.title} className={`rounded-[1.7rem] border p-4 sm:p-5 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                <div className="mb-4">
-                  <h3 className={`text-xl font-black ${theme.textTitle}`}>{group.title}</h3>
-                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{group.desc}</p>
+            <section>
+              <div className="mb-3 flex items-end justify-between gap-3">
+                <div>
+                  <h3 className={`text-xl sm:text-2xl font-black ${theme.textTitle}`}>งานหลักที่ใช้บ่อย</h3>
+                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ปุ่มใหญ่ 4 ปุ่ม สำหรับงานผู้ดูแลที่เปิดบ่อยที่สุด</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                  {group.items.map(([label, desc, Icon, action]) => (
-                    <button key={label} type="button" onClick={action} className={`group p-4 rounded-2xl border text-left transition ${isDarkMode ? 'bg-slate-950/70 border-slate-800 hover:border-blue-700 hover:bg-slate-950' : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-blue-300'}`}>
-                      <div className="w-11 h-11 rounded-2xl bg-blue-600/10 border border-blue-500/20 text-blue-500 flex items-center justify-center mb-3 group-hover:bg-blue-600 group-hover:text-white transition"><Icon className="w-5 h-5" /></div>
-                      <div className={`font-black ${theme.textTitle}`}>{label}</div>
-                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>{desc}</div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-3">
+                {primaryCards.map(card => {
+                  const Icon = card.icon;
+                  return (
+                    <button key={card.title} type="button" onClick={card.action} className={`group p-5 rounded-[1.5rem] border text-left transition overflow-hidden relative ${isDarkMode ? 'bg-slate-900/80 border-slate-800 hover:border-blue-700 hover:bg-slate-900' : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-md'}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/20"><Icon className="w-6 h-6" /></div>
+                        <span className={`px-2.5 py-1 rounded-full border text-[11px] font-black ${isDarkMode ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>{card.badge}</span>
+                      </div>
+                      <div className={`mt-4 text-lg font-black ${theme.textTitle}`}>{card.title}</div>
+                      <div className={`mt-1 text-sm font-bold leading-relaxed ${theme.textMuted}`}>{card.desc}</div>
+                      <div className="mt-4 inline-flex items-center gap-2 text-sm font-black text-blue-500">{card.actionLabel} <span className="transition group-hover:translate-x-1">→</span></div>
                     </button>
-                  ))}
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              {settingSections.map(section => (
+                <div key={section.title} className={`rounded-[1.7rem] border p-4 sm:p-5 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                  <div className="mb-4">
+                    <h3 className={`text-xl font-black ${theme.textTitle}`}>{section.title}</h3>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{section.desc}</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {section.items.map(([label, desc, Icon, action]) => (
+                      <button key={label} type="button" onClick={action} className={`group px-3.5 py-3 rounded-2xl border text-left transition flex items-start gap-3 ${isDarkMode ? 'bg-slate-950/70 border-slate-800 hover:border-blue-700 hover:bg-slate-950' : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-blue-300'}`}>
+                        <div className="w-10 h-10 rounded-2xl bg-blue-600/10 border border-blue-500/20 text-blue-500 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition"><Icon className="w-5 h-5" /></div>
+                        <div className="min-w-0">
+                          <div className={`font-black truncate ${theme.textTitle}`}>{label}</div>
+                          <div className={`text-xs font-bold mt-0.5 leading-relaxed ${theme.textMuted}`}>{desc}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </section>
-            ))}
+              ))}
+            </section>
+
+            <div className={`rounded-[1.5rem] border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isDarkMode ? 'bg-blue-950/20 border-blue-900/50' : 'bg-blue-50 border-blue-200'}`}>
+              <div>
+                <div className={`text-sm font-black ${theme.textTitle}`}>แนวคิดใหม่</div>
+                <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เมนูซ้ายใช้ทำงานประจำวัน ส่วนหน้านี้คือศูนย์รวมงานตั้งค่าและผู้ดูแลทั้งหมด กดปุ่มเดียวแล้วจบ</div>
+              </div>
+              <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black">เปิดหน้าตั้งค่าแบบละเอียด</button>
+            </div>
           </div>
         </div>
       </div>
     );
   };
-
 
   const warehouseItems = useMemo(() => {
     return items
@@ -20433,8 +20506,8 @@ ${auditChangeSummary}` : auditChangeSummary);
               )}
 
               <details className="relative factory-system-menu">
-                <summary className="factory-ghost-btn list-none cursor-pointer select-none" title={`บัญชี/ระบบ • ${currentAccountLabel}`}>
-                  <span className="text-base">👤</span><span className="hidden sm:inline">บัญชี/ระบบ</span><span className="text-xs opacity-70">▾</span>
+                <summary className="factory-ghost-btn list-none cursor-pointer select-none" title={`ตั้งค่าระบบ • ${currentAccountLabel}`}>
+                  <Icons.Settings className="w-5 h-5" /><span className="hidden sm:inline">ตั้งค่าระบบ</span><span className="text-xs opacity-70">▾</span>
                 </summary>
                 <div className={`absolute right-0 mt-2 w-64 rounded-2xl border shadow-2xl z-[80] p-2 ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-900'}`}>
                   <div className={`px-3 py-2 text-xs font-black ${theme.textMuted}`}>เข้าสู่ระบบโดย</div>
