@@ -73,7 +73,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.36 Central History All Actions + Trash Access';
+const APP_VERSION = 'v23.1.37 Camera Linked Lens Display Sync Hotfix';
 const APP_UPDATE_NOTE = 'Central History All Actions + Trash Access: ประวัติส่วนกลางรวม Audit Log ทุกการกระทำ และเพิ่มถังขยะเป็นแท็บ/ปุ่มที่หาเจอง่าย';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -10713,36 +10713,66 @@ S.N.: ${item.sn || '-'}
 
 
   // v23.1.25: ระบบกล้องแบบเรียบง่ายทั่วเว็บ — กล้องลิงก์เลนส์ได้ 1 ตัว และกรอกเมมที่คากล้องเป็นข้อความสั้น ๆ
-  const getCameraKitField = (item = {}, keys = []) => keys.map(key => item?.[key]).find(value => String(value || '').trim()) || '';
+  const flattenCameraKitValue = (value) => {
+    if (value === null || value === undefined) return [];
+    if (Array.isArray(value)) return value.flatMap(flattenCameraKitValue);
+    if (typeof value === 'object') {
+      return [
+        value.id, value.itemId, value.docId, value.lensId, value.linkedLensId,
+        value.name, value.label, value.title, value.sn, value.serial, value.shortCode, value.code
+      ].flatMap(flattenCameraKitValue);
+    }
+    return [String(value || '').trim()].filter(Boolean);
+  };
+  const getCameraKitField = (item = {}, keys = []) => keys.flatMap(key => flattenCameraKitValue(item?.[key])).find(value => String(value || '').trim()) || '';
   const normalizeLensLinkText = (value = '') => String(value || '').trim().toLowerCase().replace(/s\.?n\.?/g, '').replace(/[^a-z0-9ก-๙]+/gi, '');
-  const getCameraLegacyLensLinkRaw = (camera = {}) => getCameraKitField(camera, [
-    'linkedLensId', 'currentLensId', 'attachedLensId', 'lensId', 'defaultLensId', 'kitLensId', 'cameraLensId', 'pairedLensId', 'mainLensId',
-    'linkedLensName', 'currentLensName', 'attachedLensName', 'defaultLensName', 'kitLensName', 'cameraLensName', 'pairedLensName', 'mainLensName',
-    'currentLens', 'attachedLens', 'defaultLens', 'kitLens', 'lensAttached', 'lensInCamera', 'compatibleWith'
-  ]);
+  const cameraLensLinkKeys = [
+    'linkedLensId', 'currentLensId', 'attachedLensId', 'lensId', 'defaultLensId', 'kitLensId', 'cameraLensId', 'pairedLensId', 'mainLensId', 'primaryLensId', 'mountedLensId', 'lensItemId', 'lensDocId',
+    'linkedLensName', 'currentLensName', 'attachedLensName', 'defaultLensName', 'kitLensName', 'cameraLensName', 'pairedLensName', 'mainLensName', 'primaryLensName', 'mountedLensName',
+    'currentLens', 'attachedLens', 'defaultLens', 'kitLens', 'lensAttached', 'lensInCamera', 'mountedLens', 'primaryLens', 'compatibleWith',
+    'linkedLens', 'lens', 'lensInfo', 'cameraKitLens'
+  ];
+  const reverseCameraLinkKeys = [
+    'assignedCameraId', 'cameraId', 'linkedCameraId', 'defaultCameraId', 'currentCameraId', 'pairedCameraId', 'mountedCameraId', 'cameraBodyId',
+    'assignedCameraName', 'assignedCamera', 'cameraName', 'linkedCameraName', 'defaultCameraName', 'currentCameraName', 'pairedCameraName', 'mountedCameraName', 'cameraBodyName'
+  ];
+  const getCameraLensLinkValues = (camera = {}) => cameraLensLinkKeys.flatMap(key => flattenCameraKitValue(camera?.[key])).map(v => String(v || '').trim()).filter(Boolean);
+  const getCameraLegacyLensLinkRaw = (camera = {}) => getCameraLensLinkValues(camera).find(Boolean) || '';
 
   const getLinkedLensItem = (camera = {}) => {
-    const rawValues = [
-      camera?.linkedLensId, camera?.currentLensId, camera?.attachedLensId, camera?.lensId, camera?.defaultLensId, camera?.kitLensId, camera?.cameraLensId, camera?.pairedLensId, camera?.mainLensId,
-      camera?.linkedLensName, camera?.currentLensName, camera?.attachedLensName, camera?.defaultLensName, camera?.kitLensName, camera?.cameraLensName, camera?.pairedLensName, camera?.mainLensName,
-      camera?.currentLens, camera?.attachedLens, camera?.defaultLens, camera?.kitLens, camera?.lensAttached, camera?.lensInCamera, camera?.compatibleWith
-    ].map(v => String(v || '').trim()).filter(Boolean);
-    if (rawValues.length === 0) return null;
+    if (!camera) return null;
+    const rawValues = getCameraLensLinkValues(camera);
     const lensItems = items.filter(item => item && !item.isDeleted && inferCameraHelperKind(item) === 'lens');
 
     for (const raw of rawValues) {
-      const exact = lensItems.find(item => item.id === raw || String(item.sn || '').trim() === raw || String(item.shortCode || item.localCode || '').trim() === raw);
+      const exact = lensItems.find(item => item.id === raw || String(item.sn || '').trim() === raw || String(item.shortCode || item.localCode || item.assetShortCode || '').trim() === raw);
       if (exact) return exact;
     }
 
     const normalizedRaw = rawValues.map(normalizeLensLinkText).filter(Boolean);
     for (const raw of normalizedRaw) {
       const byClean = lensItems.find(item => {
-        const candidates = [item.name, item.sn, item.shortCode, item.localCode, item.assetShortCode].map(normalizeLensLinkText).filter(Boolean);
+        const candidates = [item.name, item.sn, item.shortCode, item.localCode, item.assetShortCode].flatMap(flattenCameraKitValue).map(normalizeLensLinkText).filter(Boolean);
         return candidates.some(candidate => candidate && (candidate === raw || candidate.includes(raw) || raw.includes(candidate)));
       });
       if (byClean) return byClean;
     }
+
+    // v23.1.37: เผื่อข้อมูลเก่าเก็บลิงก์ไว้ที่ตัวเลนส์แทนตัวกล้อง เช่น lens.assignedCamera = cameraId/name/S.N.
+    const cameraTokens = [camera.id, camera.name, camera.sn, camera.shortCode, camera.assetShortCode, camera.localCode]
+      .flatMap(flattenCameraKitValue)
+      .map(v => String(v || '').trim())
+      .filter(Boolean);
+    const normalizedCameraTokens = cameraTokens.map(normalizeLensLinkText).filter(Boolean);
+    const reverseMatch = lensItems.find(lens => {
+      const reverseValues = reverseCameraLinkKeys.flatMap(key => flattenCameraKitValue(lens?.[key])).map(v => String(v || '').trim()).filter(Boolean);
+      if (reverseValues.length === 0) return false;
+      if (reverseValues.some(v => cameraTokens.includes(v))) return true;
+      const normalizedReverseValues = reverseValues.map(normalizeLensLinkText).filter(Boolean);
+      return normalizedReverseValues.some(value => normalizedCameraTokens.some(token => token && value && (value === token || value.includes(token) || token.includes(value))));
+    });
+    if (reverseMatch) return reverseMatch;
+
     return null;
   };
 
