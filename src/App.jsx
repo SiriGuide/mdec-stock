@@ -1,3 +1,4 @@
+// v23.1.45 Accurate Database Storage Scan - เพิ่มปุ่มตรวจพื้นที่ฐานข้อมูลแบบสแกนทุก collection หลัก เพื่อให้แม่นกว่า estimate จาก state หน้าเว็บ
 // v23.1.44 Warehouse Quick Release / No Approver - ปรับโกดัง/คลังสำรองให้เบิกเข้าคลังได้เร็วขึ้น ไม่ต้องกรอกผู้อนุมัติ เหลือแค่เหตุผลและบันทึกประวัติ
 // v23.1.34 Inventory Delete Button Restore - คืนปุ่มลบอุปกรณ์ในหน้าคลัง ทั้งรายชิ้นและแบบเลือกหลายรายการ
 // v23.1.33 Document Filename By Ref Fix - ตั้งชื่อไฟล์เวลาพิมพ์/บันทึก PDF ใบยืม/ออกงาน/รับคืนตามเลขเอกสารแทนชื่อเว็บ
@@ -74,8 +75,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.44 Warehouse Quick Release / No Approver';
-const APP_UPDATE_NOTE = 'Warehouse Quick Release: โกดัง/คลังสำรองยังแยกจากสต๊อกใช้งาน แต่เวลาเบิกเข้าคลังไม่ต้องกรอกผู้อนุมัติแล้ว เหลือแค่เหตุผลและผู้ทำรายการ';
+const APP_VERSION = 'v23.1.45 Accurate Database Storage Scan';
+const APP_UPDATE_NOTE = 'Accurate Database Storage Scan: เพิ่มปุ่มตรวจพื้นที่ฐานข้อมูลแบบสแกนจริงทุก collection หลัก แยก raw JSON / overhead / รูปหลักฐาน เพื่อให้รู้แนวโน้มฐานข้อมูลใกล้เต็มได้แม่นขึ้น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7049,6 +7050,8 @@ function MainApp() {
   const [showCategorySummary, setShowCategorySummary] = useState(() => { try { return localStorage.getItem('mdec_show_category_summary') === 'true'; } catch(e) { return false; } });
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [databaseDeepScan, setDatabaseDeepScan] = useState(null);
+  const [isScanningDatabaseStorage, setIsScanningDatabaseStorage] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showTrashModal, setShowTrashModal] = useState(false);
   const [showMyAccountModal, setShowMyAccountModal] = useState(false);
@@ -15719,6 +15722,124 @@ S.N.: ${item.sn || '-'}
   }, [items, storageBoxSearchTerm, storageBoxForm.itemIds, showStorageBoxEditor]);
 
 
+  const formatDatabaseBytes = (bytes) => {
+    const safeBytes = Math.max(0, Number(bytes) || 0);
+    if (safeBytes < 1024) return `${safeBytes} B`;
+    if (safeBytes < 1024 * 1024) return `${(safeBytes / 1024).toFixed(1)} KB`;
+    if (safeBytes < 1024 * 1024 * 1024) return `${(safeBytes / 1024 / 1024).toFixed(2)} MB`;
+    return `${(safeBytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  };
+
+  const getJsonByteSize = (value) => {
+    try {
+      return new TextEncoder().encode(JSON.stringify(value ?? null)).length;
+    } catch (e) {
+      try { return JSON.stringify(value ?? null).length * 2; } catch (err) { return 0; }
+    }
+  };
+
+  const getEmbeddedImageBytesFromDoc = (value) => {
+    let total = 0;
+    const walk = (node) => {
+      if (!node) return;
+      if (typeof node === 'string') {
+        if (node.startsWith('data:image')) {
+          const commaIndex = node.indexOf(',');
+          const base64 = commaIndex >= 0 ? node.slice(commaIndex + 1) : node;
+          total += Math.ceil((base64.length * 3) / 4);
+        }
+        return;
+      }
+      if (Array.isArray(node)) return node.forEach(walk);
+      if (typeof node === 'object') Object.values(node).forEach(walk);
+    };
+    walk(value);
+    return total;
+  };
+
+  const scanDatabaseStorageNow = async () => {
+    if (isScanningDatabaseStorage) return;
+    setIsScanningDatabaseStorage(true);
+    try {
+      const scanCollection = async (label, colRef) => {
+        const snap = await getDocs(colRef);
+        let rawBytes = 0;
+        let embeddedImageBytes = 0;
+        const docs = [];
+        snap.forEach((docSnap) => {
+          const data = { id: docSnap.id, ...docSnap.data() };
+          docs.push(data);
+          rawBytes += getJsonByteSize(data);
+          embeddedImageBytes += getEmbeddedImageBytesFromDoc(data);
+        });
+        return { label, count: snap.size, rawBytes, embeddedImageBytes, docs };
+      };
+
+      const itemsScan = await scanCollection('อุปกรณ์ / items', getItemsCol());
+      const proofsScan = await scanCollection('รูปหลักฐาน / proofs', getProofsCol());
+      const docsScan = await scanCollection('เอกสารย้อนหลัง / borrow_documents', getBorrowDocsCol());
+      const auditScan = await scanCollection('Audit log / audit_logs', getAuditCol());
+      const settingsSnap = await getDoc(getSettingsDoc());
+      const settingsData = settingsSnap.exists() ? { id: settingsSnap.id, ...settingsSnap.data() } : null;
+      const settingsRawBytes = settingsData ? getJsonByteSize(settingsData) : 0;
+      const settingsEmbeddedImageBytes = settingsData ? getEmbeddedImageBytesFromDoc(settingsData) : 0;
+
+      const collections = [
+        { label: 'อุปกรณ์ / items', count: itemsScan.count, rawBytes: itemsScan.rawBytes, embeddedImageBytes: itemsScan.embeddedImageBytes },
+        { label: 'รูปหลักฐาน / proofs', count: proofsScan.count, rawBytes: proofsScan.rawBytes, embeddedImageBytes: proofsScan.embeddedImageBytes },
+        { label: 'เอกสารย้อนหลัง / borrow_documents', count: docsScan.count, rawBytes: docsScan.rawBytes, embeddedImageBytes: docsScan.embeddedImageBytes },
+        { label: 'Audit log / audit_logs', count: auditScan.count, rawBytes: auditScan.rawBytes, embeddedImageBytes: auditScan.embeddedImageBytes },
+        { label: 'ตั้งค่าระบบ / settings', count: settingsData ? 1 : 0, rawBytes: settingsRawBytes, embeddedImageBytes: settingsEmbeddedImageBytes }
+      ];
+
+      const totalDocs = collections.reduce((sum, row) => sum + row.count, 0);
+      const rawBytes = collections.reduce((sum, row) => sum + row.rawBytes, 0);
+      const embeddedImageBytes = collections.reduce((sum, row) => sum + row.embeddedImageBytes, 0);
+      const totalHistoryCount = itemsScan.docs.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.length : 0), 0);
+      const totalDeletedItems = itemsScan.docs.filter(item => item?.isDeleted).length;
+      const activeItems = Math.max(0, itemsScan.count - totalDeletedItems);
+
+      // Firestore Console ไม่เปิด API ให้ client อ่าน Usage จริงแบบเป๊ะ ๆ ได้
+      // เลยสแกนทุก doc หลัก แล้วบวก overhead/index เผื่อให้ใกล้เคียงและปลอดภัยกว่าการดู JSON ดิบ
+      const firestoreOverheadBytes = Math.ceil((rawBytes * 0.38) + (totalDocs * 950) + (collections.length * 1800) + (totalHistoryCount * 260));
+      const estimatedBytes = Math.ceil(rawBytes + firestoreOverheadBytes);
+      const limitBytes = 1024 * 1024 * 1024;
+      const percent = Math.min(100, Math.max(0, (estimatedBytes / limitBytes) * 100));
+
+      const result = {
+        scannedAt: new Date().toISOString(),
+        source: 'deep-scan',
+        collections,
+        totalDocs,
+        rawBytes,
+        embeddedImageBytes,
+        firestoreOverheadBytes,
+        estimatedBytes,
+        limitBytes,
+        percent,
+        percentText: percent < 0.1 && estimatedBytes > 0 ? '<0.1%' : `${percent.toFixed(1)}%`,
+        estimatedText: formatDatabaseBytes(estimatedBytes),
+        rawText: formatDatabaseBytes(rawBytes),
+        imageText: formatDatabaseBytes(embeddedImageBytes),
+        overheadText: formatDatabaseBytes(firestoreOverheadBytes),
+        itemCount: itemsScan.count,
+        activeItems,
+        deletedItems: totalDeletedItems,
+        historyCount: totalHistoryCount,
+        proofImageCount: proofsScan.count,
+        documentCount: docsScan.count,
+        auditCount: auditScan.count
+      };
+      setDatabaseDeepScan(result);
+      pushToast('ตรวจพื้นที่ฐานข้อมูลจาก Firestore ครบแล้ว', 'success');
+    } catch (error) {
+      console.error('Deep database scan failed:', error);
+      pushToast('ตรวจพื้นที่ฐานข้อมูลไม่สำเร็จ: ' + (error?.message || 'ไม่ทราบสาเหตุ'), 'error');
+    } finally {
+      setIsScanningDatabaseStorage(false);
+    }
+  };
+
   const databaseStorageEstimate = useMemo(() => {
     const historyCount = items.reduce((sum, item) => sum + (Array.isArray(item.history) ? item.history.length : 0), 0);
     const boxCount = (settingsOptions.storageBoxes || []).length;
@@ -15749,15 +15870,8 @@ S.N.: ${item.sn || '-'}
     // ประเมินเผื่อ overhead ของ Firestore/Index/metadata เพื่อให้ปลอดภัยกว่าไฟล์ JSON ดิบ
     const estimatedBytes = Math.ceil((rawBytes * 1.45) + proofStorageBytes + (items.length * 900) + (historyCount * 350) + (boxCount * 700) + (prepCount * 700) + ((auditLogs || []).length * 450));
     const limitBytes = 1024 * 1024 * 1024; // อิงแผนฟรี 1GB ที่ผู้ใช้ใช้งานอยู่
-    const percent = Math.min(100, Math.max(0, (estimatedBytes / limitBytes) * 100));
-
-    const formatBytes = (bytes) => {
-      if (!bytes || bytes < 0) return '0 B';
-      if (bytes < 1024) return bytes + ' B';
-      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-      if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(2) + ' MB';
-      return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' GB';
-    };
+    const effectiveEstimatedBytes = databaseDeepScan?.estimatedBytes || estimatedBytes;
+    const percent = Math.min(100, Math.max(0, (effectiveEstimatedBytes / limitBytes) * 100));
 
     let level = 'safe';
     let label = 'ปลอดภัยมาก';
@@ -15793,9 +15907,9 @@ S.N.: ${item.sn || '-'}
       textTone,
       percent,
       percentText: percent < 0.1 && estimatedBytes > 0 ? '<0.1%' : percent.toFixed(1) + '%',
-      estimatedText: formatBytes(estimatedBytes),
-      rawText: formatBytes(rawBytes),
-      limitText: formatBytes(limitBytes),
+      estimatedText: formatDatabaseBytes(effectiveEstimatedBytes),
+      rawText: databaseDeepScan?.rawText || formatDatabaseBytes(rawBytes),
+      limitText: formatDatabaseBytes(limitBytes),
       historyCount,
       boxCount,
       prepCount,
@@ -15803,9 +15917,13 @@ S.N.: ${item.sn || '-'}
       auditCount: (auditLogs || []).length,
       itemCount: items.length,
       proofImageCount,
-      proofStorageText: formatBytes(proofStorageBytes)
+      proofStorageText: databaseDeepScan?.imageText || formatDatabaseBytes(proofStorageBytes),
+      scanSource: databaseDeepScan?.source || 'state-estimate',
+      scannedAt: databaseDeepScan?.scannedAt || null,
+      rawBytes: databaseDeepScan?.rawBytes || rawBytes,
+      firestoreOverheadBytes: databaseDeepScan?.firestoreOverheadBytes || null
     };
-  }, [items, settingsOptions, auditLogs, isDarkMode, dedupedProofGroups, proofStorageForecast]);
+  }, [items, settingsOptions, auditLogs, isDarkMode, dedupedProofGroups, proofStorageForecast, databaseDeepScan]);
 
 
   const dataQualityAudit = useMemo(() => {
@@ -23021,18 +23139,23 @@ S.N.: ${item.sn || '-'}
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
                       <div>
                         <h4 className={`text-xl font-black mb-1 flex items-center gap-2 ${theme.textTitle}`}><Icons.Signal className={`w-6 h-6 ${databaseStorageEstimate.textTone}`}/> สถานะพื้นที่ฐานข้อมูล</h4>
-                        <p className={`text-sm font-bold ${theme.textMuted}`}>ประเมินจากข้อมูลที่เว็บดาวน์โหลดอยู่ เทียบกับพื้นที่ 1GB</p>
+                        <p className={`text-sm font-bold ${theme.textMuted}`}>{databaseStorageEstimate.scanSource === 'deep-scan' ? 'สแกนจาก Firestore collections หลักล่าสุด เทียบกับพื้นที่ 1GB' : 'ประเมินจากข้อมูลที่เว็บโหลดอยู่ เทียบกับพื้นที่ 1GB — กดตรวจละเอียดเพื่อสแกนจริง'}</p>
                       </div>
-                      <span className={`px-3 py-1.5 rounded-xl text-sm font-black border ${databaseStorageEstimate.cardTone} ${databaseStorageEstimate.textTone}`}>
-                        {databaseStorageEstimate.label}
-                      </span>
+                      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                        <button type="button" onClick={scanDatabaseStorageNow} disabled={isScanningDatabaseStorage} className={`px-3 py-2 rounded-xl text-sm font-black border transition-colors ${isScanningDatabaseStorage ? 'opacity-60 cursor-not-allowed' : ''} ${theme.btnSecondary}`}>
+                          {isScanningDatabaseStorage ? 'กำลังตรวจ...' : 'ตรวจพื้นที่จริงตอนนี้'}
+                        </button>
+                        <span className={`px-3 py-1.5 rounded-xl text-sm font-black border ${databaseStorageEstimate.cardTone} ${databaseStorageEstimate.textTone}`}>
+                          {databaseStorageEstimate.label}
+                        </span>
+                      </div>
                     </div>
 
                     <div className={`w-full h-5 rounded-full overflow-hidden border shadow-inner ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
                       <div className={`h-full rounded-full transition-all duration-500 ${databaseStorageEstimate.barClass}`} style={{ width: `${Math.max(databaseStorageEstimate.percent, databaseStorageEstimate.percent > 0 ? 1 : 0)}%` }}></div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 mt-4">
                       <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
                         <div className={`text-xs font-bold ${theme.textMuted}`}>ใช้ไปประมาณ</div>
                         <div className={`text-lg font-black ${databaseStorageEstimate.textTone}`}>{databaseStorageEstimate.percentText}</div>
@@ -23040,6 +23163,10 @@ S.N.: ${item.sn || '-'}
                       <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
                         <div className={`text-xs font-bold ${theme.textMuted}`}>ขนาดประเมิน</div>
                         <div className={`text-lg font-black ${theme.textTitle}`}>{databaseStorageEstimate.estimatedText}</div>
+                      </div>
+                      <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+                        <div className={`text-xs font-bold ${theme.textMuted}`}>ข้อมูลดิบ</div>
+                        <div className={`text-lg font-black ${theme.textTitle}`}>{databaseStorageEstimate.rawText}</div>
                       </div>
                       <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
                         <div className={`text-xs font-bold ${theme.textMuted}`}>อุปกรณ์</div>
@@ -23057,8 +23184,22 @@ S.N.: ${item.sn || '-'}
                     </div>
 
                     <p className={`text-xs mt-3 font-bold ${theme.textMuted}`}>
-                      * เป็นค่าประมาณเพื่อช่วยดูแนวโน้ม ไม่ใช่ตัวเลข Usage จริงจาก Firebase Console โดยตรง ถ้าเริ่มเกิน 75% ควรสำรอง JSON/CSV และล้างประวัติรายปี ส่วนรูปหลักฐานจะถูกย่อไฟล์ก่อนเก็บ
+                      * โหมดตรวจละเอียดจะอ่านทุก document ใน collections หลักของเว็บ: items, proofs, borrow_documents, audit_logs และ settings แล้วบวก overhead/index เผื่อความปลอดภัย จึงแม่นกว่า estimate เดิมมาก แต่ Firebase ยังไม่เปิดให้เว็บอ่าน Usage จริงจาก Console แบบ 100% ได้โดยตรง
+                      {databaseDeepScan?.scannedAt ? ` • ตรวจล่าสุด: ${new Date(databaseDeepScan.scannedAt).toLocaleString('th-TH', { hour12: false })}` : ''}
                     </p>
+                    {databaseDeepScan?.collections?.length ? (
+                      <div className={`mt-4 rounded-xl border overflow-hidden ${isDarkMode ? 'border-slate-700 bg-slate-950/40' : 'border-slate-200 bg-white'}`}>
+                        <div className={`px-3 py-2 text-xs font-black ${theme.textMuted}`}>รายละเอียดจากการสแกนฐานข้อมูลจริง</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-3">
+                          {databaseDeepScan.collections.map((row) => (
+                            <div key={row.label} className={`p-2 rounded-lg border ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
+                              <div className={`text-sm font-black ${theme.textTitle}`}>{row.label}</div>
+                              <div className={`text-xs font-bold ${theme.textMuted}`}>{row.count.toLocaleString('th-TH')} docs • {formatDatabaseBytes(row.rawBytes)} raw{row.embeddedImageBytes ? ` • รูปฝัง ${formatDatabaseBytes(row.embeddedImageBytes)}` : ''}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className={`p-6 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
