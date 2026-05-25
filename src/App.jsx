@@ -73,7 +73,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.34 Inventory Delete Button Restore';
+const APP_VERSION = 'v23.1.35 Inventory Filter Popup + Operation List Restore';
 const APP_UPDATE_NOTE = 'Inventory Delete Button Restore: คืนปุ่มลบอุปกรณ์ในหน้าคลังสำหรับบัญชีกลาง ทั้งลบรายชิ้น ลบรายการที่เลือก และปุ่มเปิดถังขยะให้เห็นชัด';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -11927,108 +11927,20 @@ S.N.: ${item.sn || '-'}
                       </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)] gap-4 items-start">
-                      <aside className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                        <div className={`px-4 py-3 border-b ${theme.divide}`}>
-                          <div className={`text-xs font-black ${theme.textTitle}`}>เลือกจากที่เก็บจริง</div>
-                          <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>เริ่มจากห้อง / ตู้ / ชั้น เหมือนตอนเดินไปหยิบของ</div>
+                    <div className="space-y-3">
+                      <div className={`rounded-2xl border px-4 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="min-w-0">
+                          <div className={`text-sm font-black ${theme.textTitle}`}>รายการอุปกรณ์ที่เลือกได้</div>
+                          <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>เรียงเป็นแถวแนวตั้ง เลือกทีละชิ้นหรือใช้ตัวกรองด้านบนให้เหลือเฉพาะของที่ต้องการ</div>
                         </div>
-                        <div className="p-3 space-y-2.5 max-h-[calc(100vh-390px)] overflow-y-auto custom-scrollbar">
-                          {operationStorageEntries.map(([storageName, storageData]) => {
-                            const storageActive = storageName === operationSelectedStorageName;
-                            const categoryEntries = sortOperationFolderEntries(Object.entries(storageData.categories || {}));
-                            const deptEntries = sortOperationFolderEntries(Object.entries(storageData.departments || {}));
-                            const firstCategoryEntry = categoryEntries[0] || null;
-                            return (
-                              <button
-                                key={storageName}
-                                type="button"
-                                onClick={() => {
-                                  setOperationPickerDept('');
-                                  setOperationPickerLocation(storageName);
-                                  setOperationPickerCategory(firstCategoryEntry?.[0] || '');
-                                }}
-                                className={`w-full rounded-2xl border p-3 text-left transition-all ${storageActive ? modeInfo.softClass : (isDarkMode ? 'bg-slate-950/80 border-slate-800 hover:bg-slate-900 hover:border-slate-700' : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300')}`}
-                              >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="min-w-0">
-                                    <div className={`text-sm font-black truncate ${storageActive ? 'text-white' : theme.textTitle}`}>📍 {storageName}</div>
-                                    <div className={`text-[11px] font-bold mt-1 ${storageActive ? 'text-white/75' : theme.textMuted}`}>
-                                      {categoryEntries.length.toLocaleString('th-TH')} หมวด • {storageData.total.toLocaleString('th-TH')} รายการ
-                                    </div>
-                                    <div className="flex flex-wrap gap-1.5 mt-2">
-                                      {deptEntries.slice(0, 2).map(([deptName, count]) => (
-                                        <span key={`${storageName}_${deptName}`} className={`px-2 py-0.5 rounded-full text-[10px] font-black ${storageActive ? 'bg-white/10 text-white border border-white/20' : (isDarkMode ? 'bg-slate-900 text-slate-300 border border-slate-700' : 'bg-slate-50 text-slate-600 border border-slate-200')}`}>
-                                          {deptName} {count}
-                                        </span>
-                                      ))}
-                                      {deptEntries.length > 2 && <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${storageActive ? 'bg-white/10 text-white border border-white/20' : (isDarkMode ? 'bg-slate-900 text-slate-400 border border-slate-700' : 'bg-slate-50 text-slate-500 border border-slate-200')}`}>+{deptEntries.length - 2}</span>}
-                                    </div>
-                                  </div>
-                                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-black shrink-0 ${storageActive ? 'bg-white/10 text-white border border-white/20' : (isDarkMode ? 'bg-slate-900 text-slate-300 border border-slate-700' : 'bg-slate-50 text-slate-600 border border-slate-200')}`}>{storageData.total}</span>
-                                </div>
-                              </button>
-                            );
-                          })}
+                        <div className="flex flex-wrap gap-2 shrink-0">
+                          <button type="button" onClick={() => selectOperationViewItems(operationalItems)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เลือกที่เห็น</button>
+                          <button type="button" onClick={clearOperationSelection} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ล้างเลือก</button>
                         </div>
-                      </aside>
-
-                      <section className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                        <div className={`px-4 py-3 border-b ${theme.divide}`}>
-                          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className={`text-[11px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Storage View</div>
-                              <div className={`text-lg font-black mt-1 ${theme.textTitle}`}>{operationSelectedStorageName || 'เลือกที่เก็บ'}</div>
-                              <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>
-                                {operationSelectedCategoryName ? `หมวด ${operationSelectedCategoryName}` : 'เลือกหมวดก่อน'} • พบ {operationSelectedCategoryItems.length.toLocaleString('th-TH')} รายการ
-                              </div>
-                            </div>
-                            <div className="flex flex-wrap gap-2 shrink-0">
-                              <button type="button" onClick={() => selectOperationViewItems(operationSelectedCategoryItems)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เลือกหมวดนี้</button>
-                              <button type="button" onClick={clearOperationSelection} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ล้างเลือก</button>
-                            </div>
-                          </div>
-
-                          {operationSelectedStorageDeptEntries.length > 0 && (
-                            <div className="mt-3 flex flex-wrap gap-1.5">
-                              {operationSelectedStorageDeptEntries.map(([deptName, count]) => (
-                                <span key={`storage_dept_${deptName}`} className={`px-2.5 py-1 rounded-full border text-[11px] font-black ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                                  {deptName} {count}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          {operationCategoryEntries.length > 0 && (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {operationCategoryEntries.map(([categoryName, categoryItems]) => {
-                                const active = categoryName === operationSelectedCategoryName;
-                                return (
-                                  <button
-                                    key={`${operationSelectedStorageName}_${categoryName}`}
-                                    type="button"
-                                    onClick={() => {
-                                      setOperationPickerLocation(operationSelectedStorageName);
-                                      setOperationPickerCategory(categoryName);
-                                    }}
-                                    className={`px-3 py-1.5 rounded-full border text-xs font-black ${active ? modeInfo.softClass : (isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50')}`}
-                                  >
-                                    {categoryName} • {categoryItems.length}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="p-3 sm:p-4 space-y-2.5 max-h-[calc(100vh-390px)] overflow-y-auto custom-scrollbar">
-                          {operationSelectedCategoryItems.length === 0 ? (
-                            <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ยังไม่มีอุปกรณ์ในหมวดนี้</div>
-                          ) : (
-                            operationSelectedCategoryItems.map(item => renderOperationPickerItemRow(item))
-                          )}
-                        </div>
-                      </section>
+                      </div>
+                      <div className="space-y-2.5">
+                        {operationalItems.map(item => renderOperationPickerItemRow(item, { showFolderPath: true }))}
+                      </div>
                     </div>
                   )}
 
@@ -13066,16 +12978,23 @@ S.N.: ${item.sn || '-'}
                 </div>
 
                 {showInventoryFilterPanel && (
-                  <div className={`inventory-filter-panel rounded-[1.4rem] border p-4 shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
-                      <div>
-                        <div className={`font-black ${theme.textTitle}`}>ตัวกรองละเอียด</div>
-                        <div className={`text-xs font-bold ${theme.textMuted}`}>รวมตัวเลือกไว้ที่เดียว และช่องหมวด/ที่เก็บ/โครงการสามารถพิมพ์ค้นหาได้</div>
+                  <div className="fixed inset-0 z-[90] flex justify-end pointer-events-none">
+                    <button
+                      type="button"
+                      aria-label="ปิดตัวกรองคลัง"
+                      onClick={() => setShowInventoryFilterPanel(false)}
+                      className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px] pointer-events-auto"
+                    />
+                    <aside className={`relative pointer-events-auto m-3 w-[min(430px,calc(100vw-24px))] h-[calc(100vh-24px)] rounded-[1.6rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <div className={`px-4 py-4 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
+                        <div className="min-w-0">
+                          <div className={`text-lg font-black ${theme.textTitle}`}>ตัวกรองคลัง</div>
+                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เลือกเท่าที่จำเป็น หน้าคลังด้านหลังจะอัปเดตตามทันที</div>
+                        </div>
+                        <button type="button" onClick={() => setShowInventoryFilterPanel(false)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`} title="ปิดตัวกรอง">×</button>
                       </div>
-                      <button type="button" onClick={() => setShowInventoryFilterPanel(false)} className={`px-3 py-2 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ปิดตัวกรอง</button>
-                    </div>
-                    <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_1.1fr_1fr] gap-3">
-                      <div className="space-y-3">
+
+                      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
                         <CompactMultiFilter
                           label="ฝ่าย"
                           icon="👥"
@@ -13095,19 +13014,17 @@ S.N.: ${item.sn || '-'}
                           selected={filterCategory}
                           onChange={setFilterCategory}
                           placeholder="ค้นหาหมวด เช่น ขาไมค์ / ลำโพง"
-                          helper="ในหัวข้อนี้เลือกหลายอัน = แสดงแบบ OR"
+                          helper="เลือกหลายหมวดได้"
                           theme={theme}
                           isDarkMode={isDarkMode}
                         />
-                      </div>
-                      <div className="space-y-3">
                         <CompactMultiFilter
                           label="ที่เก็บ / ห้อง / ชั้น"
                           icon="📍"
                           options={inventoryLocationOptions}
                           selected={filterLocation}
                           onChange={setFilterLocation}
-                          placeholder="ค้นหาที่เก็บ เช่น ห้องใต้บันได A2"
+                          placeholder="ค้นหาที่เก็บ เช่น ตู้กล้อง / ห้องประชุม"
                           helper="เลือกหลายที่เก็บเพื่อดูของหลายจุดพร้อมกัน"
                           theme={theme}
                           isDarkMode={isDarkMode}
@@ -13123,36 +13040,44 @@ S.N.: ${item.sn || '-'}
                           theme={theme}
                           isDarkMode={isDarkMode}
                         />
-                      </div>
-                      <div className="space-y-3">
-                        <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/80 border-slate-700' : 'bg-white border-slate-200'}`}>
-                          <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สถานะใช้งาน</label>
-                          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
-                            <option value="all">ทุกสถานะ</option>
-                            {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                          </select>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                            <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สถานะใช้งาน</label>
+                            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
+                              <option value="all">ทุกสถานะ</option>
+                              {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                            </select>
+                          </div>
+                          <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                            <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>QR</label>
+                            <select value={filterQrTagged} onChange={(e) => setFilterQrTagged(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
+                              <option value="all">QR ทั้งหมด</option>
+                              <option value="tagged">ติด QR แล้ว</option>
+                              <option value="untagged">ยังไม่ติด QR</option>
+                            </select>
+                          </div>
                         </div>
-                        <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+
+                        <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                           <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สถานะพัสดุ</label>
                           <select value={filterAssetStatus} onChange={(e) => setFilterAssetStatus(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
                             <option value="all">สถานะพัสดุทั้งหมด</option>
                             {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                           </select>
                         </div>
-                        <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/80 border-slate-700' : 'bg-white border-slate-200'}`}>
-                          <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>QR</label>
-                          <select value={filterQrTagged} onChange={(e) => setFilterQrTagged(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
-                            <option value="all">QR ทั้งหมด</option>
-                            <option value="tagged">ติด QR แล้ว</option>
-                            <option value="untagged">ยังไม่ติด QR</option>
-                          </select>
-                        </div>
-                        <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/80 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                          <div className="text-xs font-black">หลักการกรอง</div>
-                          <div className="text-[11px] font-bold mt-1 opacity-75">ในหัวข้อเดียวกัน = หรือ เช่น ขาไมค์/ลำโพง • คนละหัวข้อ = และ เช่น หมวด + ที่เก็บ</div>
+
+                        <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/70 border-slate-700 text-slate-300' : 'bg-blue-50 border-blue-100 text-blue-800'}`}>
+                          <div className="text-xs font-black">ตอนนี้พบ {filteredItems.length.toLocaleString('th-TH')} รายการ</div>
+                          <div className="text-[11px] font-bold mt-1 opacity-75">ตัวกรองในหัวข้อเดียวกัน = หรือ • คนละหัวข้อ = และ</div>
                         </div>
                       </div>
-                    </div>
+
+                      <div className={`p-3 border-t flex gap-2 ${theme.divide}`}>
+                        <button type="button" onClick={clearAllFilters} className={`flex-1 px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ล้างทั้งหมด</button>
+                        <button type="button" onClick={() => setShowInventoryFilterPanel(false)} className="flex-1 px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black">ใช้ตัวกรอง</button>
+                      </div>
+                    </aside>
                   </div>
                 )}
               </div>
