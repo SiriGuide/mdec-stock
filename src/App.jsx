@@ -73,8 +73,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.35 Inventory Filter Popup + Operation List Restore';
-const APP_UPDATE_NOTE = 'Inventory Delete Button Restore: คืนปุ่มลบอุปกรณ์ในหน้าคลังสำหรับบัญชีกลาง ทั้งลบรายชิ้น ลบรายการที่เลือก และปุ่มเปิดถังขยะให้เห็นชัด';
+const APP_VERSION = 'v23.1.36 Central History All Actions + Trash Access';
+const APP_UPDATE_NOTE = 'Central History All Actions + Trash Access: ประวัติส่วนกลางรวม Audit Log ทุกการกระทำ และเพิ่มถังขยะเป็นแท็บ/ปุ่มที่หาเจอง่าย';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -8857,7 +8857,7 @@ function MainApp() {
 
   useEffect(() => {
     if (!user) return;
-    if (showAuditModal || showCommandCenter) {
+    if (showAuditModal || showCommandCenter || activeWorkspace === 'records' || recordsCenterMode === 'history') {
       const auditRef = getAuditCol();
       const unsub = onSnapshot(auditRef, (snapshot) => {
         const logs = [];
@@ -8867,7 +8867,7 @@ function MainApp() {
       }, (error) => console.error(error));
       return () => unsub();
     }
-  }, [user, showAuditModal, showCommandCenter]);
+  }, [user, showAuditModal, showCommandCenter, activeWorkspace, recordsCenterMode]);
 
   const getEffectiveAccounts = () => {
     const savedAccounts = Array.isArray(settingsOptions.accounts) ? settingsOptions.accounts : [];
@@ -10130,7 +10130,7 @@ S.N.: ${item.sn || '-'}
 
             <div className={`rounded-[1.5rem] border p-4 ${isDarkMode ? 'bg-blue-950/20 border-blue-900/50' : 'bg-blue-50 border-blue-100'}`}>
               <div className={`font-black mb-3 ${isDarkMode ? 'text-blue-200' : 'text-blue-800'}`}>วิธีคิดใหม่ของหน้านี้</div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 {[
                   ['1', 'สร้างโครงการจัดซื้อ', 'บันทึกชื่อโครงการ ปีงบประมาณ งบ ผู้รับผิดชอบ และวัตถุประสงค์'],
                   ['2', 'ผูกอุปกรณ์เข้ากับโครงการ', 'เลือกจากคลังเดิม หรือกดเพิ่มสินค้าใหม่โดยระบบใส่ชื่อโครงการให้อัตโนมัติ'],
@@ -13353,7 +13353,8 @@ S.N.: ${item.sn || '-'}
     const recordTabs = [
       ['docs', 'เอกสารย้อนหลัง', borrowเอกสารs.length],
       ['history', 'ประวัติส่วนกลาง', filteredHistoryCenterEntries.length],
-      ['proofs', 'หลักฐานรูปภาพ', filteredProofGroups.length]
+      ['proofs', 'หลักฐานรูปภาพ', filteredProofGroups.length],
+      ['trash', 'ถังขยะ', deletedItems.length]
     ];
     return (
       <div className="page-workspace-shell records-workspace space-y-5">
@@ -13366,12 +13367,13 @@ S.N.: ${item.sn || '-'}
               <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ย้ายงานค้นย้อนหลังจาก popup หลายอันมาอยู่หน้าเดียว ลดการเด้งหน้าต่างซ้อนกัน</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              {canDeleteItems && <button type="button" onClick={() => setRecordsCenterMode('trash')} className={`px-4 py-3 rounded-2xl border font-black ${isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}><Icons.Trash className="w-5 h-5 inline-block mr-1" /> ถังขยะ</button>}
               <button type="button" onClick={() => openWorkspace('overview')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับภาพรวม</button>
             </div>
           </div>
 
           <div className="p-4 sm:p-5 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
               {recordTabs.map(([id, label, count]) => (
                 <button key={id} type="button" onClick={() => setRecordsCenterMode(id)} className={`p-2.5 rounded-lg border text-left font-black ${recordsCenterMode === id ? 'bg-blue-600 text-white border-blue-600 shadow-md' : theme.btnSecondary}`}>
                   <div>{label}</div>
@@ -13420,13 +13422,14 @@ S.N.: ${item.sn || '-'}
             {recordsCenterMode === 'history' && (
               <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className={`p-4 border-b grid grid-cols-1 lg:grid-cols-[1fr_220px_auto] gap-3 ${theme.divide}`}>
-                  <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / หมายเหตุ" value={historyCenterSearch} onChange={e => setHistoryCenterSearch(e.target.value)} />
+                  <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / การกระทำ / ผู้ใช้งาน" value={historyCenterSearch} onChange={e => setHistoryCenterSearch(e.target.value)} />
                   <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={historyCenterFilter} onChange={e => setHistoryCenterFilter(e.target.value)}>
                     <option value="all">ทุกประเภท</option>
                     <option value="borrow">ยืม</option>
                     <option value="event">ออกงาน</option>
                     <option value="return">รับคืน</option>
                     <option value="repair">ซ่อม/ชำรุด</option>
+                    <option value="system">ระบบ/ทุกการกระทำ</option>
                   </select>
                   <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{filteredHistoryCenterEntries.length.toLocaleString('th-TH')} รายการ</div>
                 </div>
@@ -13549,7 +13552,13 @@ S.N.: ${item.sn || '-'}
                                 {entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-'} • โดย {entry.staff || '-'}
                               </div>
 
-                              {isGroup ? (
+                              {entry.isAuditLog ? (
+                                <div className={`mt-3 rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                  <div className={`text-xs font-black ${theme.textMuted}`}>รายละเอียดการกระทำ</div>
+                                  <div className={`mt-1 text-sm font-black ${theme.textTitle}`}>{entry.subject || '-'}</div>
+                                  <div className={`mt-1 text-xs font-bold whitespace-pre-line ${theme.textMuted}`}>{entry.note || '-'}</div>
+                                </div>
+                              ) : isGroup ? (
                                 <div className={`mt-3 rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-white border-slate-200'}`}>
                                   <div className={`text-xs font-black mb-2 ${theme.textMuted}`}>อุปกรณ์ในกลุ่มนี้</div>
                                   <div className="flex flex-wrap gap-2">
@@ -13640,8 +13649,8 @@ S.N.: ${item.sn || '-'}
                         </div>
 
                         <div className="flex xl:flex-col gap-2 justify-start shrink-0">
-                          <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-4 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เปิด</button>
-                          <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-sm font-black">{isGroup ? 'เพิ่มรูปกลุ่ม' : 'เพิ่มรูป'}</button>
+                          {!entry.isAuditLog && <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-4 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เปิด</button>}
+                          {!entry.isAuditLog && <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-sm font-black">{isGroup ? 'เพิ่มรูปกลุ่ม' : 'เพิ่มรูป'}</button>}
                           {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`px-4 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>ดูรูป</button>}
                         </div>
                       </div>
@@ -13651,10 +13660,39 @@ S.N.: ${item.sn || '-'}
               </div>
             )}
 
+            {recordsCenterMode === 'trash' && (
+              <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className={`p-4 border-b flex flex-col md:flex-row md:items-center justify-between gap-3 ${theme.divide}`}>
+                  <div>
+                    <div className={`text-lg font-black ${theme.textTitle}`}>ถังขยะอุปกรณ์</div>
+                    <div className={`text-sm font-bold ${theme.textMuted}`}>รายการที่ถูกลบแบบย้ายเข้าถังขยะ สามารถกู้คืนหรือลบถาวรได้จากตรงนี้</div>
+                  </div>
+                  <button type="button" onClick={() => setShowTrashModal(true)} className={`px-4 py-3 rounded-2xl border font-black ${isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}><Icons.Trash className="w-5 h-5 inline-block mr-1" /> เปิดหน้าถังขยะเต็ม</button>
+                </div>
+                <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
+                  {deletedItems.length === 0 ? (
+                    <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ถังขยะว่างอยู่</div>
+                  ) : deletedItems.slice(0, 120).map(item => (
+                    <div key={item.id} className={`p-3 rounded-2xl border flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="min-w-0">
+                        <div className={`font-black text-lg truncate ${theme.textTitle}`}>{item.name || '-'}</div>
+                        <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • ลบโดย {item.deletedBy || '-'}</div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 shrink-0">
+                        <button type="button" onClick={() => handleRestoreTrashItem(item)} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black">กู้คืน</button>
+                        <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เปิด</button>
+                        <button type="button" onClick={() => handlePermanentDeleteTrashItem(item)} className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-black">ลบถาวร</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {recordsCenterMode === 'proofs' && (
               <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className={`p-4 border-b grid grid-cols-1 xl:grid-cols-[1fr_220px_auto] gap-3 ${theme.divide}`}>
-                  <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / หมายเหตุ" value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} />
+                  <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / การกระทำ / ผู้ใช้งาน" value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} />
                   <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={proofCenterFilter} onChange={e => setProofCenterFilter(e.target.value)}>
                     <option value="all">หลักฐานทั้งหมด</option>
                     <option value="borrow">การยืม</option>
@@ -14608,6 +14646,40 @@ S.N.: ${item.sn || '-'}
       historyGroupMap.get(row.groupKey).push(row);
     });
 
+    const auditRows = (auditLogs || []).map((log, auditIndex) => {
+      const actionText = log.action || log.actionType || 'การกระทำในระบบ';
+      const targetText = log.target || log.targetName || log.itemName || '-';
+      const detailText = log.details || log.detail || log.note || '';
+      const userText = log.user || log.createdBy || log.updatedBy || 'Admin';
+      return {
+        id: `audit__${log.id || auditIndex}`,
+        rawHistory: log,
+        isAuditLog: true,
+        department: 'ระบบ',
+        itemId: '',
+        itemName: targetText,
+        sn: '-',
+        category: 'Audit Log',
+        location: 'ประวัติระบบ',
+        status: '-',
+        historyIndex: `audit_${auditIndex}`,
+        historyType: 'system',
+        typeLabel: 'ระบบ',
+        date: log.timestamp || log.createdAt || log.updatedAt || '',
+        subject: targetText,
+        staff: userText,
+        note: detailText,
+        directProofs: [],
+        documentProofs: [],
+        linkedProofs: [],
+        proofCount: 0,
+        groupKey: '',
+        groupCount: 1,
+        groupRows: []
+      };
+    });
+    rows.push(...auditRows);
+
     return rows
       .map(row => {
         const groupRows = row.groupKey ? (historyGroupMap.get(row.groupKey) || [row]) : [row];
@@ -14620,12 +14692,12 @@ S.N.: ${item.sn || '-'}
         return { ...row, proofCount: linkedProofs.length, linkedProofs, groupCount: groupRows.length, groupRows };
       })
       .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-  }, [items, borrowเอกสารs]);
+  }, [items, borrowเอกสารs, auditLogs]);
 
   const filteredHistoryCenterEntries = useMemo(() => {
     const keyword = String(historyCenterSearch || '').toLowerCase().trim();
     return allHistoryCenterEntries.filter((entry) => {
-      const matchType = historyCenterFilter === 'all' || entry.historyType === historyCenterFilter || (historyCenterFilter === 'repair' && String(entry.historyType || '').includes('repair'));
+      const matchType = historyCenterFilter === 'all' || entry.historyType === historyCenterFilter || (historyCenterFilter === 'repair' && String(entry.historyType || '').includes('repair')) || (historyCenterFilter === 'system' && entry.isAuditLog);
       const haystack = `${entry.itemName} ${entry.sn} ${entry.category} ${entry.location} ${entry.subject} ${entry.staff} ${entry.note} ${entry.typeLabel} ${entry.date} ${entry.status} ${entry.department || ''}`.toLowerCase();
       return matchType && (!keyword || haystack.includes(keyword));
     });
@@ -25404,6 +25476,7 @@ S.N.: ${item.sn || '-'}
                 <option value="event">ออกงาน</option>
                 <option value="return">รับคืน</option>
                 <option value="repair">ซ่อม/ชำรุด</option>
+                    <option value="system">ระบบ/ทุกการกระทำ</option>
                 <option value="projectChange">โครงการ</option>
               </select>
               <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{filteredHistoryCenterEntries.length.toLocaleString('th-TH')} รายการ</div>
