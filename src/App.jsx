@@ -75,8 +75,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.51 Top Bar Minimal Cleanup';
-const APP_UPDATE_NOTE = 'Top Bar Minimal Cleanup: ตัดปุ่มนำทางซ้ำจากแถบบน เอาปุ่มโหมดสีที่ไม่มีฟังก์ชันออก และยุบปุ่มบัญชี/ตั้งค่า/ล็อก/ออกเป็นเมนูระบบ';
+const APP_VERSION = 'v23.1.52 Merge System Center + Settings';
+const APP_UPDATE_NOTE = 'Merge System Center + Settings: รวมศูนย์จัดการระบบกับตั้งค่าให้เหลือชื่อเดียวคือ ตั้งค่าระบบ และให้เมนูชี้ไปหน้าเดียวกัน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -10037,9 +10037,9 @@ S.N.: ${item.sn || '-'}
       desc: 'รวมงานค้นเอกสารย้อนหลัง ประวัติส่วนกลาง และหลักฐานรูปภาพไว้เป็นหน้าเดียว'
     },
     tools: {
-      kicker: 'ADMIN CENTER',
-      title: 'หลังบ้าน / จัดการระบบ',
-      desc: 'รวมเมนูจัดการข้อมูลทั้งหมดไว้ในที่เดียว ลดความรกของหน้าใช้งานประจำวัน'
+      kicker: 'SYSTEM SETTINGS',
+      title: 'ตั้งค่าระบบ',
+      desc: 'รวมศูนย์จัดการระบบและหน้าตั้งค่าไว้ในที่เดียว ลดเมนูซ้ำและทำให้ผู้ดูแลเข้าใจง่ายขึ้น'
     },
     projects: {
       kicker: 'PURCHASE PROJECTS',
@@ -14043,7 +14043,7 @@ S.N.: ${item.sn || '-'}
       },
       {
         title: 'ตั้งค่าระบบ',
-        desc: 'รวม Settings เดิมไว้ในศูนย์จัดการระบบนี้ ไม่แยกเป็นหลังบ้านซ้ำอีกหน้า',
+        desc: 'รวมศูนย์จัดการระบบและ Settings เดิมไว้ในหน้าเดียว ไม่แยกปุ่มให้สับสน',
         items: [
           ['ภาพรวมการตั้งค่า', 'หมวดหมู่ เอกสาร หลักฐาน และ UI', Icons.Settings, () => { setSettingsTab('overview'); setShowSettings(true); }],
           ['บัญชีผู้ใช้ / สิทธิ์', 'PIN บทบาท และผู้รับผิดชอบ', Icons.UserPlus, () => { setSettingsTab('accounts'); setShowSettings(true); }],
@@ -14060,9 +14060,9 @@ S.N.: ${item.sn || '-'}
             <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,.55),transparent_34%),radial-gradient(circle_at_90%_0%,rgba(14,165,233,.35),transparent_32%)]"></div>
             <div className="relative z-10 flex flex-col xl:flex-row xl:items-end justify-between gap-6">
               <div className="max-w-3xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 bg-white/10 text-[11px] font-black tracking-[0.18em] uppercase text-blue-100">MDEC SYSTEM CENTER</div>
-                <h2 className="mt-4 text-3xl sm:text-4xl font-black tracking-tight">ศูนย์จัดการระบบ</h2>
-                <p className="mt-2 text-sm sm:text-base font-bold text-slate-300 leading-relaxed">รวมหลังบ้านและตั้งค่าระบบไว้ในหน้าเดียว สำหรับจัดการข้อมูล อุปกรณ์ เอกสาร หลักฐาน รายงาน Backup และสิทธิ์ผู้ใช้ โดยหน้าใช้งานหลักจะยังคงโล่งสำหรับงานประจำวัน</p>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 bg-white/10 text-[11px] font-black tracking-[0.18em] uppercase text-blue-100">MDEC SYSTEM SETTINGS</div>
+                <h2 className="mt-4 text-3xl sm:text-4xl font-black tracking-tight">ตั้งค่าระบบ</h2>
+                <p className="mt-2 text-sm sm:text-base font-bold text-slate-300 leading-relaxed">รวมศูนย์จัดการระบบและหน้าตั้งค่าไว้ในหน้าเดียว สำหรับจัดการข้อมูล อุปกรณ์ เอกสาร หลักฐาน รายงาน Backup และสิทธิ์ผู้ใช้ โดยหน้าใช้งานหลักจะยังคงโล่งสำหรับงานประจำวัน</p>
               </div>
               <div className="grid grid-cols-3 gap-2 w-full xl:w-auto">
                 {[
@@ -14257,7 +14257,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const settingsNavItems = [
-    { id: 'overview', label: 'ศูนย์จัดการ', desc: 'ภาพรวมหลังบ้านและตั้งค่า', icon: Icons.ViewGrid, group: 'เริ่มต้น' },
+    { id: 'overview', label: 'ภาพรวมระบบ', desc: 'ภาพรวมตั้งค่าระบบทั้งหมด', icon: Icons.ViewGrid, group: 'เริ่มต้น' },
     { id: 'categories', label: 'หมวดหมู่', desc: 'รายการหมวดอุปกรณ์', icon: Icons.Tag, group: 'ข้อมูลพื้นฐาน' },
     { id: 'locations', label: 'สถานที่ / ห้อง', desc: 'ที่เก็บและห้องประชุม', icon: Icons.Folder, group: 'ข้อมูลพื้นฐาน' },
     { id: 'staff', label: 'เจ้าหน้าที่', desc: 'รายชื่อผู้ทำรายการ', icon: Icons.Users, group: 'ข้อมูลพื้นฐาน' },
@@ -20367,7 +20367,7 @@ ${auditChangeSummary}` : auditChangeSummary);
           <div className="pt-4 mt-4 border-t border-white/10 space-y-2">
             <div className="px-3 pb-1 text-[10px] font-black tracking-[0.22em] uppercase text-slate-500">System</div>
             <button type="button" onClick={() => openWorkspace('tools')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'tools' ? 'bg-gradient-to-r from-slate-700 to-indigo-700 text-white shadow-lg shadow-indigo-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-              <Icons.Settings className="w-5 h-5" /> ศูนย์จัดการระบบ
+              <Icons.Settings className="w-5 h-5" /> ตั้งค่าระบบ
             </button>
             <button type="button" onClick={() => setShowHelpModal(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-300 hover:bg-white/8 hover:text-white transition-all text-left font-bold">
               <Icons.Alert className="w-5 h-5" /> คู่มือใช้งาน
@@ -20442,8 +20442,8 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <span>👤</span><span className="truncate">{currentAccountLabel}</span>
                   </button>
                   {canManageระบบ && (
-                    <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className={`w-full px-3 py-2.5 rounded-xl text-left font-black hover:bg-white/10 flex items-center gap-2 ${theme.textTitle}`} title="ตั้งค่าระบบ">
-                      <Icons.Settings className="w-5 h-5" /><span>ตั้งค่า</span>
+                    <button type="button" onClick={() => openWorkspace('tools')} className={`w-full px-3 py-2.5 rounded-xl text-left font-black hover:bg-white/10 flex items-center gap-2 ${theme.textTitle}`} title="ตั้งค่าระบบ">
+                      <Icons.Settings className="w-5 h-5" /><span>ตั้งค่าระบบ</span>
                     </button>
                   )}
                   <button type="button" onClick={handleLockScreen} className={`w-full px-3 py-2.5 rounded-xl text-left font-black hover:bg-white/10 flex items-center gap-2 ${theme.textTitle}`} title="ล็อกหน้าจอชั่วคราว">
@@ -21837,13 +21837,13 @@ ${auditChangeSummary}` : auditChangeSummary);
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
                   <div className={`text-xs font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>Administration</div>
-                  <h3 className={`mt-1 text-2xl font-black ${theme.textTitle}`}>ศูนย์จัดการระบบ</h3>
-                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมหลังบ้านและตั้งค่าระบบไว้ในศูนย์เดียว เพื่อให้หน้าใช้งานหลักไม่รก และยังคงเครื่องมือผู้ดูแลครบ</p>
+                  <h3 className={`mt-1 text-2xl font-black ${theme.textTitle}`}>ตั้งค่าระบบ</h3>
+                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมศูนย์จัดการระบบและตั้งค่าไว้ในหน้าเดียว เพื่อให้เมนูไม่ซ้ำและยังคงเครื่องมือผู้ดูแลครบ</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={() => openWorkspace('tools')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เปิดศูนย์จัดการระบบ</button>
+                  <button type="button" onClick={() => openWorkspace('tools')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เปิดตั้งค่าระบบ</button>
                   <button type="button" onClick={() => openMainHistoryCenter({ reset: true })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เอกสาร/หลักฐาน</button>
-                  <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ตั้งค่าระบบ</button>
+                  <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>หมวดการตั้งค่า</button>
                 </div>
               </div>
             </section>
@@ -22756,9 +22756,9 @@ ${auditChangeSummary}` : auditChangeSummary);
                       ← หน้ารวม
                     </button>
                   )}
-                  <h3 className={`text-xl sm:text-3xl font-black ${theme.textTitle}`}>หลังบ้าน / ตั้งค่าระบบ</h3>
+                  <h3 className={`text-xl sm:text-3xl font-black ${theme.textTitle}`}>ตั้งค่าระบบ</h3>
                 </div>
-                <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>รวมเครื่องมือหลังบ้านไว้เป็นหมวดชัดเจน ใช้แก้ระบบ ตรวจข้อมูล สำรองข้อมูล และเตรียมทดสอบได้ในหน้าเดียว</p>
+                <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>รวมเครื่องมือผู้ดูแลและการตั้งค่าไว้เป็นหมวดชัดเจน ใช้แก้ระบบ ตรวจข้อมูล สำรองข้อมูล และเตรียมทดสอบได้ในหน้าเดียว</p>
               </div>
               <button type="button" onClick={() => { setShowSettings(false); resetSettingsFormState(); }} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
@@ -22821,8 +22821,8 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="min-w-0">
                         <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-500">SETTINGS COMMAND CENTER</div>
-                        <h4 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>ศูนย์จัดการระบบ MDEC Stock</h4>
-                        <p className={`text-sm font-bold mt-2 ${theme.textMuted}`}>เก็บงานหน้าตั้งค่าให้เป็นหลังบ้านจริง แยกหมวดงานระบบ ผู้ใช้งาน เอกสาร หลักฐาน สำรองข้อมูล และคุณภาพข้อมูล เพื่อเตรียมทดสอบเพิ่ม/ลบอุปกรณ์รอบใหม่</p>
+                        <h4 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>ตั้งค่าระบบ MDEC Stock</h4>
+                        <p className={`text-sm font-bold mt-2 ${theme.textMuted}`}>รวมงานตั้งค่าระบบ ผู้ใช้งาน เอกสาร หลักฐาน สำรองข้อมูล และคุณภาพข้อมูลไว้ในหน้าเดียว เพื่อเตรียมทดสอบเพิ่ม/ลบอุปกรณ์รอบใหม่</p>
                       </div>
                       <div className={`shrink-0 p-4 rounded-2xl border text-center ${dataQualityAudit.scoreTone === 'emerald' ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : dataQualityAudit.scoreTone === 'amber' ? (isDarkMode ? 'bg-amber-950/30 border-amber-800' : 'bg-amber-50 border-amber-200') : (isDarkMode ? 'bg-rose-950/30 border-rose-800' : 'bg-rose-50 border-rose-200')}`}>
                         <div className={`text-xs font-black ${theme.textMuted}`}>DATA QUALITY</div>
