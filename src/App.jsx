@@ -1,3 +1,4 @@
+// v23.1.44 Warehouse Quick Release / No Approver - ปรับโกดัง/คลังสำรองให้เบิกเข้าคลังได้เร็วขึ้น ไม่ต้องกรอกผู้อนุมัติ เหลือแค่เหตุผลและบันทึกประวัติ
 // v23.1.34 Inventory Delete Button Restore - คืนปุ่มลบอุปกรณ์ในหน้าคลัง ทั้งรายชิ้นและแบบเลือกหลายรายการ
 // v23.1.33 Document Filename By Ref Fix - ตั้งชื่อไฟล์เวลาพิมพ์/บันทึก PDF ใบยืม/ออกงาน/รับคืนตามเลขเอกสารแทนชื่อเว็บ
 // v23.1.29 Proof Link Strict Match Hotfix - แก้รูปหลักฐานในประวัติไม่ให้ดึงรูปจากเรื่อง/ผู้เกี่ยวข้องกว้างเกินไป ต้องผูกกับอุปกรณ์หรือเอกสารจริง
@@ -73,8 +74,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.41 Camera Kit Adjacent Inventory Cards';
-const APP_UPDATE_NOTE = 'Central History All Actions + Trash Access: ประวัติส่วนกลางรวม Audit Log ทุกการกระทำ และเพิ่มถังขยะเป็นแท็บ/ปุ่มที่หาเจอง่าย';
+const APP_VERSION = 'v23.1.44 Warehouse Quick Release / No Approver';
+const APP_UPDATE_NOTE = 'Warehouse Quick Release: โกดัง/คลังสำรองยังแยกจากสต๊อกใช้งาน แต่เวลาเบิกเข้าคลังไม่ต้องกรอกผู้อนุมัติแล้ว เหลือแค่เหตุผลและผู้ทำรายการ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -127,6 +128,7 @@ const Icons = {
 };
 
 const STATUSES = [
+  { id: 'warehouse', label: 'อยู่โกดัง / คลังสำรอง', color: 'bg-slate-100 text-slate-700 border-slate-200', darkColor: 'bg-slate-800 text-slate-300 border-slate-700' },
   { id: 'available', label: 'พร้อมใช้', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', darkColor: 'bg-emerald-900/40 text-emerald-400 border-emerald-800' },
   { id: 'in-use', label: 'กำลังใช้งาน', color: 'bg-amber-100 text-amber-700 border-amber-200', darkColor: 'bg-amber-900/40 text-amber-400 border-amber-800' },
   { id: 'borrowed', label: 'ถูกยืม', color: 'bg-purple-100 text-purple-700 border-purple-200', darkColor: 'bg-purple-900/40 text-purple-400 border-purple-800' },
@@ -6986,7 +6988,7 @@ function MainApp() {
   const [firebaseError, setFirebaseError] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '', equipmentType: '', shortCode: '', ownerDepartment: '', mount: '', compatibleWith: '', linkedLensId: '', linkedLensName: '', currentLens: '', batteryModel: '', memoryCapacity: '', memoryType: '', memorySpeed: '', memoryAssignMode: '', assignedCamera: '' });
+  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '', equipmentType: '', shortCode: '', ownerDepartment: '', mount: '', compatibleWith: '', linkedLensId: '', linkedLensName: '', currentLens: '', batteryModel: '', memoryCapacity: '', memoryType: '', memorySpeed: '', linkedMemoryId: '', linkedMemoryName: '', memoryAssignMode: '', assignedCamera: '' });
   
   const [itemToDelete, setItemToDelete] = useState(null); 
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
@@ -9198,6 +9200,7 @@ function MainApp() {
       if (item.status === 'borrowed' || item.status === 'out-for-event') return 'รอรับคืน';
       return 'ตรวจสถานะ';
     }
+    if (item.status === 'warehouse') return 'อยู่โกดัง';
     if (item.status === 'available') return 'พร้อมหยิบ';
     if (item.status === 'maintenance') return 'ซ่อมอยู่';
     if (item.status === 'damaged') return 'ชำรุด';
@@ -9284,6 +9287,7 @@ function MainApp() {
       case 'borrowed': return item.status === 'borrowed';
       case 'event': return item.status === 'out-for-event';
       case 'maintenance': return item.status === 'maintenance';
+      case 'warehouse': return item.status === 'warehouse';
       case 'untaggedQr': return !item.qrTagged;
       case 'incomplete': return getMissingDataLabels(item).length > 0;
       case 'camera': return isCameraLikeItem(item);
@@ -9304,6 +9308,7 @@ function MainApp() {
       { id: 'borrowed', label: 'ถูกยืม', count: countBy('borrowed'), desc: 'รอคืน' },
       { id: 'event', label: 'ออกงาน', count: countBy('event'), desc: 'อยู่นอกศูนย์' },
       { id: 'maintenance', label: 'ซ่อม/ชำรุด', count: countBy('maintenance'), desc: 'ต้องติดตาม' },
+      { id: 'warehouse', label: 'โกดัง', count: countBy('warehouse'), desc: 'สำรอง/ยังไม่เปิดใช้' },
       { id: 'untaggedQr', label: 'ยังไม่ติด QR', count: countBy('untaggedQr'), desc: 'ควรทำฉลาก' },
       { id: 'incomplete', label: 'ข้อมูลไม่ครบ', count: countBy('incomplete'), desc: 'ควรเติมข้อมูล' },
       { id: 'camera', label: 'กล้อง', count: countBy('camera'), desc: 'บอดี้/กล้อง' },
@@ -9316,6 +9321,8 @@ function MainApp() {
   const filteredItems = useMemo(() => {
     let result = items.filter(item => {
       if (item && item.isDeleted) return false;
+      // v23.1.43: ของที่อยู่โกดัง/คลังสำรองไม่แสดงในหน้าสต๊อกใช้งานปกติ ต้องไปหน้าโกดังก่อน
+      if (item && item.status === 'warehouse' && filterStatus !== 'warehouse' && smartQuickFilter !== 'warehouse') return false;
       const searchLower = normalizeSmartText(searchTerm);
       const searchTokens = searchLower ? searchLower.split(/\s+/).filter(Boolean) : [];
       const smartText = getItemSmartText(item);
@@ -9968,6 +9975,11 @@ S.N.: ${item.sn || '-'}
       kicker: 'EQUIPMENT INVENTORY',
       title: 'คลังอุปกรณ์',
       desc: 'ค้นหา เพิ่ม แก้ไข ยืม ออกงาน รับคืน และจัดการอุปกรณ์ทั้งหมดแบบหน้าโรงงาน'
+    },
+    warehouse: {
+      kicker: 'WAREHOUSE RESERVE',
+      title: 'โกดัง / คลังสำรอง',
+      desc: 'ของยังไม่แกะกล่อง ของสแปร์ และของรอเบิกเข้าคลัง ต้องกดเบิกเข้าคลังก่อนถึงจะยืม/ออกงานได้'
     },
     borrow: {
       kicker: 'BORROW EQUIPMENT',
@@ -10720,7 +10732,7 @@ S.N.: ${item.sn || '-'}
     if (Array.isArray(value)) return value.flatMap(flattenCameraKitValue);
     if (typeof value === 'object') {
       return [
-        value.id, value.itemId, value.docId, value.lensId, value.linkedLensId,
+        value.id, value.itemId, value.docId, value.lensId, value.linkedLensId, value.memoryId, value.linkedMemoryId,
         value.name, value.label, value.title, value.sn, value.serial, value.shortCode, value.code
       ].flatMap(flattenCameraKitValue);
     }
@@ -10740,6 +10752,15 @@ S.N.: ${item.sn || '-'}
     // v23.1.38: รองรับกรณีผู้ใช้ลิงก์จากฝั่งเลนส์ผ่านช่อง “หมายเหตุเลนส์ / ใช้กับกล้อง”
     'compatibleWith', 'useWith', 'supportedDevices', 'supportCamera', 'supportedCamera', 'forCamera', 'forCameraName', 'cameraCompatibleWith', 'cameraNote', 'internalNote', 'note'
   ];
+  const cameraMemoryLinkKeys = [
+    'linkedMemoryId', 'currentMemoryId', 'attachedMemoryId', 'memoryId', 'defaultMemoryId', 'kitMemoryId', 'cameraMemoryId', 'pairedMemoryId', 'mainMemoryId', 'primaryMemoryId', 'mountedMemoryId', 'memoryItemId', 'memoryDocId',
+    'linkedMemoryName', 'currentMemoryName', 'attachedMemoryName', 'defaultMemoryName', 'kitMemoryName', 'cameraMemoryName', 'pairedMemoryName', 'mainMemoryName', 'primaryMemoryName', 'mountedMemoryName',
+    'currentMemory', 'attachedMemory', 'defaultMemory', 'kitMemory', 'memoryAttached', 'memoryInCamera', 'mountedMemory', 'primaryMemory',
+    'memoryCard', 'memoryInfo', 'cameraKitMemory'
+  ];
+  const getCameraMemoryLinkValues = (camera = {}) => cameraMemoryLinkKeys.flatMap(key => flattenCameraKitValue(camera?.[key])).map(v => String(v || '').trim()).filter(Boolean);
+  const getCameraLegacyMemoryLinkRaw = (camera = {}) => getCameraMemoryLinkValues(camera).find(Boolean) || '';
+
   const getCameraLensLinkValues = (camera = {}) => cameraLensLinkKeys.flatMap(key => flattenCameraKitValue(camera?.[key])).map(v => String(v || '').trim()).filter(Boolean);
   const getCameraLegacyLensLinkRaw = (camera = {}) => getCameraLensLinkValues(camera).find(Boolean) || '';
 
@@ -10800,6 +10821,38 @@ S.N.: ${item.sn || '-'}
     return null;
   };
 
+
+  const getLinkedMemoryItem = (camera = {}) => {
+    if (!camera) return null;
+    const rawValues = getCameraMemoryLinkValues(camera);
+    const memoryItems = items.filter(item => item && !item.isDeleted && inferCameraHelperKind(item) === 'memory');
+
+    for (const raw of rawValues) {
+      const exact = memoryItems.find(item => item.id === raw || String(item.sn || '').trim() === raw || String(item.shortCode || item.localCode || item.assetShortCode || '').trim() === raw);
+      if (exact) return exact;
+    }
+
+    const normalizedRaw = rawValues.map(normalizeLensLinkText).filter(Boolean);
+    for (const raw of normalizedRaw) {
+      const byClean = memoryItems.find(item => {
+        const candidates = [item.name, item.sn, item.shortCode, item.localCode, item.assetShortCode, item.memoryCapacity, item.capacity, item.storageCapacity].flatMap(flattenCameraKitValue).map(normalizeLensLinkText).filter(Boolean);
+        return candidates.some(candidate => candidate && (candidate === raw || candidate.includes(raw) || raw.includes(candidate)));
+      });
+      if (byClean) return byClean;
+    }
+
+    return null;
+  };
+
+  const getCameraLinkedMemoryText = (camera = {}) => {
+    const linkedMemory = getLinkedMemoryItem(camera);
+    if (linkedMemory) {
+      const memorySpec = getCameraSimpleMemoryText(linkedMemory) || linkedMemory.memoryCapacity || linkedMemory.capacity || linkedMemory.storageCapacity || '';
+      return [linkedMemory.name, linkedMemory.sn ? `S.N. ${linkedMemory.sn}` : '', memorySpec].filter(Boolean).join(' • ');
+    }
+    return String(getCameraLegacyMemoryLinkRaw(camera) || '').trim();
+  };
+
   const getCameraLinkedLensText = (camera = {}) => {
     const linkedLens = getLinkedLensItem(camera);
     if (linkedLens) return [linkedLens.name, linkedLens.sn ? `S.N. ${linkedLens.sn}` : ''].filter(Boolean).join(' • ');
@@ -10807,6 +10860,14 @@ S.N.: ${item.sn || '-'}
   };
 
   const getCameraSimpleMemoryText = (camera = {}) => {
+    const linkedMemory = inferCameraHelperKind(camera) === 'camera' ? getLinkedMemoryItem(camera) : null;
+    if (linkedMemory) {
+      return [
+        getCameraKitField(linkedMemory, ['memoryCapacity', 'capacity', 'storageCapacity']),
+        getCameraKitField(linkedMemory, ['memoryType', 'cardType']),
+        getCameraKitField(linkedMemory, ['memorySpeed', 'cardSpeed', 'speedClass'])
+      ].map(v => String(v || '').trim()).filter(Boolean).join(' • ') || linkedMemory.name || '';
+    }
     return [
       getCameraKitField(camera, ['memoryCapacity', 'capacity', 'storageCapacity']),
       getCameraKitField(camera, ['memoryType', 'cardType']),
@@ -10833,6 +10894,13 @@ S.N.: ${item.sn || '-'}
     return linkedLens;
   };
 
+  const getCameraLinkedMemoryAutoItem = (camera = {}) => {
+    if (!camera || inferCameraHelperKind(camera) !== 'camera') return null;
+    const linkedMemory = getLinkedMemoryItem(camera);
+    if (!linkedMemory || linkedMemory.isDeleted) return null;
+    return linkedMemory;
+  };
+
   const expandCameraLinkedLensIdsForOperation = (ids = [], mode = 'borrow') => {
     const baseIds = Array.from(new Set(asArray(ids).filter(Boolean)));
     if (mode === 'return') return baseIds;
@@ -10840,7 +10908,9 @@ S.N.: ${item.sn || '-'}
     baseIds.forEach(id => {
       const camera = items.find(item => item && item.id === id && !item.isDeleted);
       const linkedLens = getCameraLinkedLensAutoItem(camera);
+      const linkedMemory = getCameraLinkedMemoryAutoItem(camera);
       if (linkedLens && linkedLens.status === 'available' && !expanded.includes(linkedLens.id)) expanded.push(linkedLens.id);
+      if (linkedMemory && linkedMemory.status === 'available' && !expanded.includes(linkedMemory.id)) expanded.push(linkedMemory.id);
     });
     return Array.from(new Set(expanded));
   };
@@ -10852,15 +10922,21 @@ S.N.: ${item.sn || '-'}
       const camera = items.find(item => item && item.id === id && !item.isDeleted && inferCameraHelperKind(item) === 'camera');
       if (!camera) return null;
       const linkedLens = getCameraLinkedLensAutoItem(camera);
-      if (!linkedLens || !idSet.has(linkedLens.id)) return null;
+      const linkedMemory = getCameraLinkedMemoryAutoItem(camera);
+      const hasLinkedLens = linkedLens && idSet.has(linkedLens.id);
+      const hasLinkedMemory = linkedMemory && idSet.has(linkedMemory.id);
+      if (!hasLinkedLens && !hasLinkedMemory) return null;
       return {
         type: 'camera-kit',
         cameraId: camera.id,
         cameraName: camera.name || '',
         cameraSn: camera.sn || '',
-        lensId: linkedLens.id,
-        lensName: linkedLens.name || '',
-        lensSn: linkedLens.sn || '',
+        lensId: hasLinkedLens ? linkedLens.id : '',
+        lensName: hasLinkedLens ? (linkedLens.name || '') : '',
+        lensSn: hasLinkedLens ? (linkedLens.sn || '') : '',
+        memoryId: hasLinkedMemory ? linkedMemory.id : '',
+        memoryName: hasLinkedMemory ? (linkedMemory.name || '') : '',
+        memorySn: hasLinkedMemory ? (linkedMemory.sn || '') : '',
         memoryText: getCameraSimpleMemoryText(camera) || ''
       };
     }).filter(Boolean);
@@ -10871,10 +10947,18 @@ S.N.: ${item.sn || '-'}
     return Array.from(new Set(asArray(ids).filter(Boolean))).map(id => {
       const camera = items.find(item => item && item.id === id && !item.isDeleted);
       const linkedLens = getCameraLinkedLensAutoItem(camera);
-      if (!linkedLens) return null;
-      if (linkedLens.status === 'available') return null;
-      const statusLabel = (STATUSES.find(st => st.id === linkedLens.status) || {}).label || linkedLens.status || 'ไม่พร้อมใช้';
-      return `${camera.name || 'กล้อง'} ลิงก์กับ ${linkedLens.name || 'เลนส์'} แต่เลนส์สถานะ ${statusLabel}`;
+      const linkedMemory = getCameraLinkedMemoryAutoItem(camera);
+      const warnings = [];
+      if (linkedLens && linkedLens.status !== 'available') {
+        const statusLabel = (STATUSES.find(st => st.id === linkedLens.status) || {}).label || linkedLens.status || 'ไม่พร้อมใช้';
+        warnings.push(`${camera.name || 'กล้อง'} ลิงก์กับ ${linkedLens.name || 'เลนส์'} แต่เลนส์สถานะ ${statusLabel}`);
+      }
+      if (linkedMemory && linkedMemory.status !== 'available') {
+        const statusLabel = (STATUSES.find(st => st.id === linkedMemory.status) || {}).label || linkedMemory.status || 'ไม่พร้อมใช้';
+        warnings.push(`${camera.name || 'กล้อง'} ลิงก์กับ ${linkedMemory.name || 'เมม'} แต่เมมสถานะ ${statusLabel}`);
+      }
+      return warnings.length ? warnings.join('
+') : null;
     }).filter(Boolean);
   };
 
@@ -11333,7 +11417,7 @@ S.N.: ${item.sn || '-'}
     // v23.1.40: จัดกล้อง + เลนส์ที่ลิงก์ไว้ให้เป็น “กลุ่มชุดกล้อง” ใน flow ยืม/ออกงาน เพื่อให้คนใช้ไม่งงว่าเลนส์ติดไปด้วยหรือไม่
     const getOperationCameraBundleGroups = (targetIds = actionTargetIds) => {
       const idSet = new Set(asArray(targetIds).filter(Boolean));
-      const usedLensIds = new Set();
+      const usedKitChildIds = new Set();
       const bundles = [];
       const looseItems = [];
       asArray(targetIds).forEach(id => {
@@ -11341,19 +11425,29 @@ S.N.: ${item.sn || '-'}
         if (!item) return;
         if (borrowReturnMode !== 'return' && inferCameraHelperKind(item) === 'camera') {
           const linkedLens = getCameraLinkedLensAutoItem(item);
+          const linkedMemory = getCameraLinkedMemoryAutoItem(item);
           const hasLinkedLensInSelection = linkedLens && idSet.has(linkedLens.id);
-          if (hasLinkedLensInSelection) usedLensIds.add(linkedLens.id);
-          bundles.push({ camera: item, lens: hasLinkedLensInSelection ? linkedLens : null, memoryText: getCameraSimpleMemoryText(item), missingLens: linkedLens && !hasLinkedLensInSelection ? linkedLens : null });
+          const hasLinkedMemoryInSelection = linkedMemory && idSet.has(linkedMemory.id);
+          if (hasLinkedLensInSelection) usedKitChildIds.add(linkedLens.id);
+          if (hasLinkedMemoryInSelection) usedKitChildIds.add(linkedMemory.id);
+          bundles.push({
+            camera: item,
+            lens: hasLinkedLensInSelection ? linkedLens : null,
+            memory: hasLinkedMemoryInSelection ? linkedMemory : null,
+            memoryText: getCameraSimpleMemoryText(item),
+            missingLens: linkedLens && !hasLinkedLensInSelection ? linkedLens : null,
+            missingMemory: linkedMemory && !hasLinkedMemoryInSelection ? linkedMemory : null
+          });
         }
       });
       asArray(targetIds).forEach(id => {
-        if (usedLensIds.has(id)) return;
+        if (usedKitChildIds.has(id)) return;
         const item = items.find(entry => entry && entry.id === id && !entry.isDeleted);
         if (!item) return;
         if (borrowReturnMode !== 'return' && inferCameraHelperKind(item) === 'camera') return;
         looseItems.push(item);
       });
-      return { bundles, looseItems, usedLensIds };
+      return { bundles, looseItems, usedLensIds: usedKitChildIds };
     };
     const operationBundleGroups = getOperationCameraBundleGroups(actionTargetIds);
     const operationBundleCount = operationBundleGroups.bundles.filter(bundle => bundle.lens).length;
@@ -11361,7 +11455,8 @@ S.N.: ${item.sn || '-'}
     const removeOperationSelectedItem = (id) => {
       const targetItem = items.find(item => item && item.id === id && !item.isDeleted);
       const linkedLens = borrowReturnMode !== 'return' ? getCameraLinkedLensAutoItem(targetItem) : null;
-      const removeIds = [id, ...(linkedLens && actionTargetIds.includes(linkedLens.id) ? [linkedLens.id] : [])];
+      const linkedMemory = borrowReturnMode !== 'return' ? getCameraLinkedMemoryAutoItem(targetItem) : null;
+      const removeIds = [id, ...(linkedLens && actionTargetIds.includes(linkedLens.id) ? [linkedLens.id] : []), ...(linkedMemory && actionTargetIds.includes(linkedMemory.id) ? [linkedMemory.id] : [])];
       const next = actionTargetIds.filter(x => !removeIds.includes(x));
       setActionTargets(next);
       setActionChecklist(actionChecklist.filter(x => !removeIds.includes(x)));
@@ -11458,10 +11553,12 @@ S.N.: ${item.sn || '-'}
       if (!hasOperationPermission(borrowReturnMode)) { requireOperationalAccess(getOperationPermissionLabel(borrowReturnMode), borrowReturnMode); return; }
       const targetItem = items.find(item => item && item.id === id && !item.isDeleted);
       const linkedLens = borrowReturnMode !== 'return' ? getCameraLinkedLensAutoItem(targetItem) : null;
+      const linkedMemory = borrowReturnMode !== 'return' ? getCameraLinkedMemoryAutoItem(targetItem) : null;
       const linkedLensCanGo = linkedLens && linkedLens.status === 'available';
+      const linkedMemoryCanGo = linkedMemory && linkedMemory.status === 'available';
 
       if (actionTargetIds.includes(id)) {
-        const removeIds = [id, ...(linkedLensCanGo ? [linkedLens.id] : [])];
+        const removeIds = [id, ...(linkedLensCanGo ? [linkedLens.id] : []), ...(linkedMemoryCanGo ? [linkedMemory.id] : [])];
         const next = actionTargetIds.filter(x => !removeIds.includes(x));
         setActionTargets(next);
         setActionChecklist(actionChecklist.filter(x => !removeIds.includes(x)));
@@ -11469,8 +11566,12 @@ S.N.: ${item.sn || '-'}
         const next = expandCameraLinkedLensIdsForOperation([...actionTargetIds, id], borrowReturnMode);
         setActionTargets(next);
         setActionChecklist(expandCameraLinkedLensIdsForOperation([...actionChecklist, id], borrowReturnMode));
-        if (linkedLensCanGo) pushToast('เพิ่มเลนส์ที่ลิงก์ไว้ให้แล้ว', `${targetItem?.name || 'กล้อง'} + ${linkedLens.name || 'เลนส์'}`, 'info');
-        else if (linkedLens && linkedLens.status !== 'available') pushToast('เลนส์ที่ลิงก์ไว้ยังไม่พร้อมใช้', `${linkedLens.name || 'เลนส์'} จะไม่ถูกเพิ่มอัตโนมัติ`, 'warning');
+        if (linkedLensCanGo || linkedMemoryCanGo) {
+          const added = [linkedLensCanGo ? linkedLens.name || 'เลนส์' : '', linkedMemoryCanGo ? linkedMemory.name || 'เมม' : ''].filter(Boolean).join(' + ');
+          pushToast('เพิ่มอุปกรณ์ในชุดกล้องให้แล้ว', `${targetItem?.name || 'กล้อง'} + ${added}`, 'info');
+        }
+        if (linkedLens && linkedLens.status !== 'available') pushToast('เลนส์ที่ลิงก์ไว้ยังไม่พร้อมใช้', `${linkedLens.name || 'เลนส์'} จะไม่ถูกเพิ่มอัตโนมัติ`, 'warning');
+        if (linkedMemory && linkedMemory.status !== 'available') pushToast('เมมที่ลิงก์ไว้ยังไม่พร้อมใช้', `${linkedMemory.name || 'เมม'} จะไม่ถูกเพิ่มอัตโนมัติ`, 'warning');
       }
     };
 
@@ -11958,7 +12059,7 @@ S.N.: ${item.sn || '-'}
                     <div className="min-w-0">
                       <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>ชุดกล้อง</div>
                       <div className={`font-black mt-1 ${theme.textTitle}`}>เลือกกล้องแล้ว ตรวจชุดกล้องจากข้อมูลในคลังได้เลย</div>
-                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ระบบจะพาเลนส์ที่ลิงก์กับกล้องเข้ารายการยืม/ออกงานให้อัตโนมัติ ส่วนเมมที่คากล้องจะแสดงเป็นข้อมูลประกอบตามในคลัง</div>
+                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ระบบจะพาเลนส์และเมมที่ลิงก์กับกล้องเข้ารายการยืม/ออกงานให้อัตโนมัติ</div>
                     </div>
                     <div className="mt-3 space-y-2">
                       {selectedCameraActionItems.slice(0, 3).map(camera => <div key={`kit_nudge_${camera.id}`}>{renderCameraKitInline(camera)}</div>)}
@@ -11970,7 +12071,7 @@ S.N.: ${item.sn || '-'}
                   <div className={`mx-3 mt-3 rounded-[1.35rem] border p-3 sm:p-4 ${isDarkMode ? 'bg-blue-950/18 border-blue-900/60' : 'bg-blue-50 border-blue-200'}`}>
                     <div className="min-w-0">
                       <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>Camera Cabinet</div>
-                      <div className={`font-black mt-1 ${theme.textTitle}`}>ตู้กล้อง: เลือกกล้องหลักได้เลย เลนส์ที่ลิงก์ไว้จะติดรายการไปด้วยอัตโนมัติ</div>
+                      <div className={`font-black mt-1 ${theme.textTitle}`}>ตู้กล้อง: เลือกกล้องหลักได้เลย เลนส์/เมมที่ลิงก์ไว้จะติดรายการไปด้วยอัตโนมัติ</div>
                       <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ในคลังจะแสดงว่ากล้องลิงก์เลนส์อะไรและมีเมมคากล้องเท่าไหร่ เลนส์เสริมหรือเมมเพิ่มยังเลือกแยกได้เหมือนเดิม</div>
                     </div>
                   </div>
@@ -12004,7 +12105,7 @@ S.N.: ${item.sn || '-'}
                               <div className="mt-2 space-y-1.5 text-xs font-bold">
                                 <div className={theme.textMuted}>📷 กล้อง: <span className={theme.textTitle}>{bundle.camera.name || '-'}</span></div>
                                 <div className={bundle.lens ? theme.textMuted : (isDarkMode ? 'text-amber-300' : 'text-amber-700')}>🔭 เลนส์: <span className={theme.textTitle}>{bundle.lens ? `${bundle.lens.name || '-'}${bundle.lens.sn ? ` • S.N. ${bundle.lens.sn}` : ''}` : (bundle.missingLens ? `${bundle.missingLens.name || 'เลนส์ที่ลิงก์ไว้'} ยังไม่ถูกเพิ่ม` : 'ยังไม่ได้ลิงก์เลนส์')}</span></div>
-                                <div className={theme.textMuted}>💾 เมมคากล้อง: <span className={theme.textTitle}>{bundle.memoryText || 'ยังไม่กรอก'}</span></div>
+                                <div className={bundle.memory ? theme.textMuted : (isDarkMode ? 'text-amber-300' : 'text-amber-700')}>💾 เมม: <span className={theme.textTitle}>{bundle.memory ? `${bundle.memory.name || '-'}${bundle.memory.sn ? ` • S.N. ${bundle.memory.sn}` : ''}` : (bundle.missingMemory ? `${bundle.missingMemory.name || 'เมมที่ลิงก์ไว้'} ยังไม่ถูกเพิ่ม` : (bundle.memoryText || 'ยังไม่กรอก'))}</span></div>
                               </div>
                             </div>
                           </div>
@@ -12202,13 +12303,13 @@ S.N.: ${item.sn || '-'}
                       {selectedActionItems.length === 0 ? <div className={`p-4 text-center text-sm font-bold ${theme.textMuted}`}>ยังไม่ได้เลือกอุปกรณ์</div> : (
                         <>
                           {operationBundleGroups.bundles.map(bundle => {
-                            const bundleIds = [bundle.camera.id, bundle.lens?.id].filter(Boolean);
+                            const bundleIds = [bundle.camera.id, bundle.lens?.id, bundle.memory?.id].filter(Boolean);
                             const checkedAll = bundleIds.every(id => actionChecklist.includes(id));
                             return (
                               <div key={`check_bundle_${bundle.camera.id}`} className={`rounded-xl border p-2.5 ${checkedAll ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200')}`}>
                                 <label className="flex items-start gap-3 cursor-pointer">
                                   <input type="checkbox" className="stock-check mt-0.5" checked={checkedAll} onChange={e => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionChecklist(e.target.checked ? Array.from(new Set([...actionChecklist, ...bundleIds])) : actionChecklist.filter(id => !bundleIds.includes(id))); }} />
-                                  <span className={`min-w-0 flex-1 text-sm font-black ${theme.textTitle}`}>ชุดกล้อง: {bundle.camera.name}<span className={`block text-xs font-bold ${theme.textMuted}`}>กล้อง + {bundle.lens ? bundle.lens.name : 'ยังไม่ได้ลิงก์เลนส์'}{bundle.memoryText ? ` • เมม ${bundle.memoryText}` : ''}</span></span>
+                                  <span className={`min-w-0 flex-1 text-sm font-black ${theme.textTitle}`}>ชุดกล้อง: {bundle.camera.name}<span className={`block text-xs font-bold ${theme.textMuted}`}>กล้อง + {bundle.lens ? bundle.lens.name : 'ยังไม่ได้ลิงก์เลนส์'}{bundle.memory ? ` • เมม ${bundle.memory.name}` : (bundle.memoryText ? ` • เมม ${bundle.memoryText}` : '')}</span></span>
                                 </label>
                               </div>
                             );
@@ -12945,36 +13046,40 @@ S.N.: ${item.sn || '-'}
 
   const renderEquipmentInventoryWorkspace = () => {
     const inventoryRows = filteredItems.slice(0, 350);
-    // v23.1.41: ให้เลนส์ที่ลิงก์กับกล้องย้ายมาอยู่ติดกับแถวกล้อง เหมือนเป็นชุดกล้องในคลัง
+    // v23.1.42: ให้เลนส์และเมมที่ลิงก์กับกล้องย้ายมาอยู่ติดกับแถวกล้อง เหมือนเป็นชุดกล้องในคลัง
     const buildInventoryCameraKitRows = (rows = []) => {
       const baseRows = asArray(rows).filter(Boolean);
       const baseIds = new Set(baseRows.map(item => item.id));
-      const usedLensIds = new Set();
+      const usedKitChildIds = new Set();
       const output = [];
       baseRows.forEach((item) => {
-        if (!item || usedLensIds.has(item.id)) return;
-        if (inferCameraHelperKind(item) === 'lens') {
-          const linkedCameraInRows = baseRows.find(camera => camera && inferCameraHelperKind(camera) === 'camera' && getCameraLinkedLensAutoItem(camera)?.id === item.id);
+        if (!item || usedKitChildIds.has(item.id)) return;
+        if (['lens', 'memory'].includes(inferCameraHelperKind(item))) {
+          const linkedCameraInRows = baseRows.find(camera => camera && inferCameraHelperKind(camera) === 'camera' && [getCameraLinkedLensAutoItem(camera)?.id, getCameraLinkedMemoryAutoItem(camera)?.id].filter(Boolean).includes(item.id));
           if (linkedCameraInRows) return;
         }
         if (inferCameraHelperKind(item) === 'camera') {
           const linkedLens = getCameraLinkedLensAutoItem(item);
-          const showLinkedLens = linkedLens && !linkedLens.isDeleted;
+          const linkedMemory = getCameraLinkedMemoryAutoItem(item);
+          const kitChildren = [linkedLens, linkedMemory].filter(child => child && !child.isDeleted);
           output.push({
             ...item,
-            __isCameraKitParent: !!showLinkedLens,
-            __linkedLensInlineId: showLinkedLens ? linkedLens.id : '',
-            __linkedLensInlineName: showLinkedLens ? (linkedLens.name || '') : ''
+            __isCameraKitParent: kitChildren.length > 0,
+            __linkedLensInlineId: linkedLens ? linkedLens.id : '',
+            __linkedLensInlineName: linkedLens ? (linkedLens.name || '') : '',
+            __linkedMemoryInlineId: linkedMemory ? linkedMemory.id : '',
+            __linkedMemoryInlineName: linkedMemory ? (linkedMemory.name || '') : ''
           });
-          if (showLinkedLens) {
-            usedLensIds.add(linkedLens.id);
+          kitChildren.forEach(child => {
+            usedKitChildIds.add(child.id);
             output.push({
-              ...linkedLens,
+              ...child,
               __cameraKitChildOf: item.id,
+              __cameraKitChildType: inferCameraHelperKind(child),
               __cameraKitParentName: item.name || item.sn || 'กล้อง',
-              __shownByCameraKit: !baseIds.has(linkedLens.id)
+              __shownByCameraKit: !baseIds.has(child.id)
             });
-          }
+          });
           return;
         }
         output.push(item);
@@ -13345,14 +13450,14 @@ S.N.: ${item.sn || '-'}
                                   <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || item.assetShortCode || item.localCode || 'ไม่มีรหัสสั้น'}</div>
                                   <div className={`inventory-open-cue text-[11px] font-black mt-1 ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>กดแถวเพื่อเปิดแฟ้มอุปกรณ์</div>
                                   {renderCameraKitInline(item, { compact: true })}
-                                  {item.__isCameraKitParent && item.__linkedLensInlineName && (
+                                  {item.__isCameraKitParent && (item.__linkedLensInlineName || item.__linkedMemoryInlineName) && (
                                     <div className={`mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-cyan-950/25 border-cyan-700/40 text-cyan-200' : 'bg-cyan-50 border-cyan-200 text-cyan-800'}`}>
-                                      <span>ชุดกล้อง</span><span>กล้องนี้พ่วงเลนส์ {item.__linkedLensInlineName}</span>
+                                      <span>ชุดกล้อง</span><span>พ่วง {[item.__linkedLensInlineName ? `เลนส์ ${item.__linkedLensInlineName}` : '', item.__linkedMemoryInlineName ? `เมม ${item.__linkedMemoryInlineName}` : ''].filter(Boolean).join(' + ')}</span>
                                     </div>
                                   )}
                                   {item.__cameraKitChildOf && (
                                     <div className={`mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-violet-950/30 border-violet-700/40 text-violet-200' : 'bg-violet-50 border-violet-200 text-violet-800'}`}>
-                                      <span>↳ เลนส์ในชุด</span><span>ติดกับ {item.__cameraKitParentName}</span>
+                                      <span>↳ {item.__cameraKitChildType === 'memory' ? 'เมมในชุด' : 'เลนส์ในชุด'}</span><span>ติดกับ {item.__cameraKitParentName}</span>
                                     </div>
                                   )}
                                 </div>
@@ -13383,6 +13488,7 @@ S.N.: ${item.sn || '-'}
                                 <button type="button" onClick={() => copyItemSummary(item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${theme.btnCancel}`} title="คัดลอก"><Icons.ClipboardList className="w-4 h-4" /><span>คัดลอก</span></button>
                                 {canUseOperationalTools && <button type="button" onClick={() => openRepairForItem(item)} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-rose-950/30 border border-rose-500/25 text-rose-300 hover:bg-rose-600 hover:border-rose-600 hover:text-white' : 'bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-600 hover:border-rose-600 hover:text-white'}`} title="แจ้งซ่อม"><Icons.Alert className="w-4 h-4" /></button>}
                                 {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-sky-950/30 border border-sky-500/25 text-sky-300 hover:bg-sky-600 hover:border-sky-600 hover:text-white' : 'bg-sky-50 border border-sky-200 text-sky-700 hover:bg-sky-600 hover:border-sky-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>}
+                                {canAddEditItems && item.status === 'available' && <button type="button" onClick={(e) => { e.stopPropagation(); handleMoveItemBackToWarehouse(item); }} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-slate-900 border border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white' : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-700 hover:text-white'}`} title="ส่งกลับโกดัง"><Icons.Folder className="w-4 h-4" /></button>}
                                 {canDeleteItems && <button type="button" onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-red-950/40 border border-red-500/30 text-red-300 hover:bg-red-600 hover:border-red-600 hover:text-white' : 'bg-red-50 border border-red-200 text-red-700 hover:bg-red-600 hover:border-red-600 hover:text-white'}`} title="ลบอุปกรณ์"><Icons.Trash className="w-4 h-4" /></button>}
                               </div>
                             </td>
@@ -13391,7 +13497,7 @@ S.N.: ${item.sn || '-'}
                       })}
                     </tbody>
                   </table>
-                  {filteredItems.length > inventoryRows.length && <div className={`p-4 border-t text-center text-sm font-bold ${theme.textMuted}`}>แสดง 350 รายการแรกจากผลค้นหา และจัดเลนส์ที่ลิงก์ให้ติดกับกล้องโดยอัตโนมัติ กรุณาพิมพ์ค้นหาให้แคบลงถ้าต้องการรายการอื่น</div>}
+                  {filteredItems.length > inventoryRows.length && <div className={`p-4 border-t text-center text-sm font-bold ${theme.textMuted}`}>แสดง 350 รายการแรกจากผลค้นหา และจัดเลนส์/เมมที่ลิงก์ให้ติดกับกล้องโดยอัตโนมัติ กรุณาพิมพ์ค้นหาให้แคบลงถ้าต้องการรายการอื่น</div>}
                 </div>
               )}
             </div>
@@ -14060,8 +14166,136 @@ S.N.: ${item.sn || '-'}
     );
   };
 
+
+  const warehouseItems = useMemo(() => {
+    return items
+      .filter(item => item && !item.isDeleted && item.status === 'warehouse')
+      .slice()
+      .sort((a, b) => String(a.location || '').localeCompare(String(b.location || ''), 'th', { numeric: true, sensitivity: 'base' }) || String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true, sensitivity: 'base' }));
+  }, [items]);
+
+  const handleMoveWarehouseItemToStock = async (item) => {
+    if (!item?.id) return;
+    if (!canAddEditItems) return alert('❌ เฉพาะบัญชีกลาง/ผู้ดูแลที่มีสิทธิ์แก้ไขอุปกรณ์เท่านั้น');
+    const reason = prompt(`เบิก "${item.name || item.sn || 'อุปกรณ์'}" เข้าคลังใช้งาน
+
+ระบุเหตุผลสั้น ๆ เช่น ของหลักเสีย / เปิดกล่องใช้งานจริง / ต้องใช้ในงาน`);
+    if (reason === null) return;
+    const cleanReason = String(reason || '').trim();
+    if (!cleanReason) return alert('กรุณาระบุเหตุผลการเบิกเข้าคลัง');
+    const releasedBy = currentOperator?.name || 'Admin';
+    const history = Array.isArray(item.history) ? [...item.history] : [];
+    history.push({
+      type: 'warehouse-activate',
+      date: new Date().toISOString(),
+      staff: releasedBy,
+      reason: cleanReason,
+      note: `เบิกจากโกดัง/คลังสำรองเข้าคลังใช้งาน โดย ${releasedBy}`
+    });
+    await setDoc(getItemDoc(item.id), {
+      status: 'available',
+      history,
+      warehouseReleasedAt: new Date().toISOString(),
+      warehouseReleasedBy: releasedBy,
+      warehouseReleaseReason: cleanReason,
+      warehouseApprover: '',
+      updatedAt: new Date().toISOString(),
+      updatedBy: releasedBy
+    }, { merge: true });
+    await logAction('เบิกของจากโกดังเข้าคลัง', item.name || item.sn || 'อุปกรณ์', `${cleanReason} / ผู้เบิก: ${releasedBy}`);
+    pushToast('เบิกเข้าคลังใช้งานแล้ว', `${item.name || item.sn || 'อุปกรณ์'} พร้อมใช้งานในสต๊อกแล้ว`, 'success');
+  };
+
+  const handleMoveItemBackToWarehouse = async (item) => {
+    if (!item?.id) return;
+    if (!canAddEditItems) return alert('❌ เฉพาะบัญชีกลาง/ผู้ดูแลที่มีสิทธิ์แก้ไขอุปกรณ์เท่านั้น');
+    if (item.status === 'borrowed' || item.status === 'out-for-event') return alert('❌ ของที่กำลังถูกยืมหรือออกงานอยู่ ต้องรับคืนก่อนส่งกลับโกดัง');
+    const reason = prompt(`ส่ง "${item.name || item.sn || 'อุปกรณ์'}" กลับโกดัง/คลังสำรอง\n\nระบุเหตุผล เช่น สำรองไว้ก่อน / ยังไม่ใช้ประจำ / เก็บรอเปลี่ยนของพัง`);
+    if (reason === null) return;
+    const cleanReason = String(reason || '').trim();
+    if (!cleanReason) return alert('กรุณาระบุเหตุผลการส่งกลับโกดัง');
+    const history = Array.isArray(item.history) ? [...item.history] : [];
+    history.push({
+      type: 'warehouse-return',
+      date: new Date().toISOString(),
+      staff: currentOperator?.name || 'Admin',
+      reason: cleanReason,
+      note: 'ส่งกลับโกดัง/คลังสำรอง'
+    });
+    await setDoc(getItemDoc(item.id), {
+      status: 'warehouse',
+      history,
+      warehouseReturnedAt: new Date().toISOString(),
+      warehouseReturnedBy: currentOperator?.name || 'Admin',
+      warehouseReturnReason: cleanReason,
+      updatedAt: new Date().toISOString(),
+      updatedBy: currentOperator?.name || 'Admin'
+    }, { merge: true });
+    await logAction('ส่งอุปกรณ์กลับโกดัง', item.name || item.sn || 'อุปกรณ์', cleanReason);
+    pushToast('ส่งกลับโกดังแล้ว', `${item.name || item.sn || 'อุปกรณ์'} ถูกซ่อนจากสต๊อกใช้งานแล้ว`, 'success');
+  };
+
+  const renderWarehouseWorkspace = () => {
+    const warehouseCount = warehouseItems.length;
+    const grouped = warehouseItems.reduce((acc, item) => {
+      const key = item.location || 'ไม่ระบุที่เก็บ';
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(item);
+      return acc;
+    }, {});
+    return (
+      <div className="solid-workspace space-y-5">
+        <section className={`rounded-[2rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+          <div className={`p-5 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${theme.divide}`}>
+            <div>
+              <div className={`text-xs font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>WAREHOUSE / RESERVE STOCK</div>
+              <h2 className={`text-2xl font-black mt-1 ${theme.textTitle}`}>โกดัง / คลังสำรอง</h2>
+              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เก็บของยังไม่แกะกล่อง ของสแปร์ หรือของที่ยังไม่เปิดใช้งาน ของในหน้านี้จะไม่โผล่ในสต๊อกใช้งานและหน้ายืม/ออกงาน</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <div className={`px-4 py-3 rounded-2xl border font-black ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>{warehouseCount.toLocaleString('th-TH')} รายการในโกดัง</div>
+              {canAddEditItems && <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'warehouse', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '', equipmentType: '', shortCode: '', ownerDepartment: '', mount: '', compatibleWith: '', linkedLensId: '', linkedLensName: '', currentLens: '', batteryModel: '', memoryCapacity: '', memoryType: '', memorySpeed: '', linkedMemoryId: '', linkedMemoryName: '', memoryAssignMode: '', assignedCamera: '' }); setShowForm(true); }} className="px-4 py-3 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white font-black">เพิ่มของเข้าโกดัง</button>}
+            </div>
+          </div>
+          <div className="p-4 sm:p-5 space-y-4">
+            {warehouseCount === 0 ? (
+              <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ยังไม่มีของในโกดัง / คลังสำรอง</div>
+            ) : Object.entries(grouped).map(([location, list]) => (
+              <div key={location} className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-900/55 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`px-4 py-3 border-b flex items-center justify-between ${theme.divide}`}>
+                  <div className={`font-black ${theme.textTitle}`}>📦 {location}</div>
+                  <div className={`text-xs font-black ${theme.textMuted}`}>{list.length.toLocaleString('th-TH')} รายการ</div>
+                </div>
+                <div className="divide-y divide-slate-700/20">
+                  {list.map(item => {
+                    const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
+                    return (
+                      <div key={item.id} className="p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                        <button type="button" onClick={() => setShowHistory(item.id)} className="text-left min-w-0">
+                          <div className={`font-black text-lg truncate ${theme.textTitle}`}>{item.name || '-'}</div>
+                          <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • {item.project ? projectDisplayName(item.project) : 'ไม่ระบุโครงการ'}</div>
+                          <div className={`inline-flex mt-2 px-2.5 py-1 rounded-xl border text-xs font-black ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>ยังไม่เข้าคลังใช้งาน</div>
+                        </button>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
+                          <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>แฟ้ม</button>
+                          {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>แก้ไข</button>}
+                          {canAddEditItems && <button type="button" onClick={() => handleMoveWarehouseItemToStock(item)} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black col-span-2 sm:col-span-1">เบิกเข้าคลัง</button>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  };
+
   const renderActiveWorkspace = () => {
     if (activeWorkspace === 'inventory') return renderEquipmentInventoryWorkspace();
+    if (activeWorkspace === 'warehouse') return renderWarehouseWorkspace();
     if (['borrow', 'event', 'return', 'borrowReturn'].includes(activeWorkspace)) return renderBorrowReturnWorkspace();
     if (activeWorkspace === 'tracking') return renderTrackingWorkspace();
     if (activeWorkspace === 'records') return renderRecordsWorkspace();
@@ -16245,13 +16479,16 @@ S.N.: ${item.sn || '-'}
 
       const formKind = inferCameraHelperKind({ ...formData, category: finalCategory });
       const selectedLinkedLens = formKind === 'camera' ? getLinkedLensItem(formData) : null;
+      const selectedLinkedMemory = formKind === 'camera' ? getLinkedMemoryItem(formData) : null;
       const normalizedCameraLinkFields = formKind === 'camera'
         ? {
             linkedLensId: selectedLinkedLens?.id || formData.linkedLensId || formData.currentLensId || formData.attachedLensId || formData.lensId || '',
             linkedLensName: selectedLinkedLens?.name || formData.linkedLensName || formData.currentLensName || formData.currentLens || formData.attachedLens || formData.defaultLens || '',
-            currentLens: selectedLinkedLens?.name || formData.currentLens || formData.linkedLensName || formData.attachedLens || formData.defaultLens || ''
+            currentLens: selectedLinkedLens?.name || formData.currentLens || formData.linkedLensName || formData.attachedLens || formData.defaultLens || '',
+            linkedMemoryId: selectedLinkedMemory?.id || formData.linkedMemoryId || formData.currentMemoryId || formData.attachedMemoryId || formData.memoryId || '',
+            linkedMemoryName: selectedLinkedMemory?.name || formData.linkedMemoryName || formData.currentMemoryName || formData.currentMemory || formData.attachedMemory || formData.defaultMemory || ''
           }
-        : (formKind === 'lens' ? { linkedLensId: '', linkedLensName: '', currentLens: '', compatibleWith: '' } : {});
+        : (formKind === 'lens' ? { linkedLensId: '', linkedLensName: '', currentLens: '', compatibleWith: '' } : (formKind === 'memory' ? { linkedMemoryId: '', linkedMemoryName: '', assignedCamera: '' } : {}));
 
       const itemData = { 
         ...formData,
@@ -16464,6 +16701,8 @@ S.N.: ${item.sn || '-'}
       memoryCapacity: '',
       memoryType: '',
       memorySpeed: '',
+      linkedMemoryId: '',
+      linkedMemoryName: '',
       memoryAssignMode: '',
       assignedCamera: ''
     });
@@ -16909,7 +17148,7 @@ S.N.: ${item.sn || '-'}
 
   const openItemEditor = (item) => {
     if (!item) return;
-    setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newProject: '', newOwner: item.owner || '', isPersonalItem: !!item.owner, assetStatus: item.assetStatus || 'active', equipmentType: item.equipmentType || item.subType || item.type || '', shortCode: item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || '', ownerDepartment: item.ownerDepartment || item.ownerTeam || item.mainOwnerTeam || item.responsibleTeam || '', mount: item.mount || item.lensMount || item.cameraMount || '', compatibleWith: item.compatibleWith || item.useWith || item.supportedDevices || '', linkedLensId: item.linkedLensId || item.currentLensId || item.attachedLensId || item.lensId || item.defaultLensId || item.kitLensId || item.cameraLensId || item.pairedLensId || item.mainLensId || '', linkedLensName: item.linkedLensName || item.currentLensName || item.attachedLensName || item.defaultLensName || item.kitLensName || item.cameraLensName || item.pairedLensName || item.mainLensName || item.currentLens || item.attachedLens || item.defaultLens || item.compatibleWith || '', currentLens: item.currentLens || item.currentLensName || item.attachedLens || item.attachedLensName || item.defaultLens || item.defaultLensName || item.linkedLensName || item.compatibleWith || '', batteryModel: item.batteryModel || item.batteryType || item.batteryCode || '', memoryCapacity: item.memoryCapacity || item.capacity || item.storageCapacity || '', memoryType: item.memoryType || item.cardType || '', memorySpeed: item.memorySpeed || item.cardSpeed || item.speedClass || '', memoryAssignMode: item.memoryAssignMode || item.memoryOwnerMode || item.memoryMode || '', assignedCamera: item.assignedCamera || item.assignedCameraName || item.defaultCamera || '' });
+    setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newProject: '', newOwner: item.owner || '', isPersonalItem: !!item.owner, assetStatus: item.assetStatus || 'active', equipmentType: item.equipmentType || item.subType || item.type || '', shortCode: item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || '', ownerDepartment: item.ownerDepartment || item.ownerTeam || item.mainOwnerTeam || item.responsibleTeam || '', mount: item.mount || item.lensMount || item.cameraMount || '', compatibleWith: item.compatibleWith || item.useWith || item.supportedDevices || '', linkedLensId: item.linkedLensId || item.currentLensId || item.attachedLensId || item.lensId || item.defaultLensId || item.kitLensId || item.cameraLensId || item.pairedLensId || item.mainLensId || '', linkedLensName: item.linkedLensName || item.currentLensName || item.attachedLensName || item.defaultLensName || item.kitLensName || item.cameraLensName || item.pairedLensName || item.mainLensName || item.currentLens || item.attachedLens || item.defaultLens || item.compatibleWith || '', currentLens: item.currentLens || item.currentLensName || item.attachedLens || item.attachedLensName || item.defaultLens || item.defaultLensName || item.linkedLensName || item.compatibleWith || '', batteryModel: item.batteryModel || item.batteryType || item.batteryCode || '', memoryCapacity: item.memoryCapacity || item.capacity || item.storageCapacity || '', memoryType: item.memoryType || item.cardType || '', memorySpeed: item.memorySpeed || item.cardSpeed || item.speedClass || '', linkedMemoryId: item.linkedMemoryId || item.currentMemoryId || item.attachedMemoryId || item.memoryId || item.defaultMemoryId || '', linkedMemoryName: item.linkedMemoryName || item.currentMemoryName || item.currentMemory || item.attachedMemory || item.defaultMemory || '', memoryAssignMode: item.memoryAssignMode || item.memoryOwnerMode || item.memoryMode || '', assignedCamera: item.assignedCamera || item.assignedCameraName || item.defaultCamera || '' });
     setShowForm(true);
   };
 
@@ -19864,6 +20103,9 @@ S.N.: ${item.sn || '-'}
           )}
           <button type="button" onClick={() => openWorkspace('inventory')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'inventory' ? 'bg-gradient-to-r from-slate-700 to-emerald-700 text-white shadow-lg shadow-emerald-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
             <Icons.Database className="w-5 h-5" /> สต็อกทั้งหมด
+          </button>
+          <button type="button" onClick={() => openWorkspace('warehouse')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'warehouse' ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-white shadow-lg shadow-slate-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
+            <Icons.Folder className="w-5 h-5" /> โกดัง / คลังสำรอง
           </button>
           <button type="button" onClick={() => openTrackingCenter('today')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'tracking' ? 'bg-gradient-to-r from-slate-700 to-cyan-700 text-white shadow-lg shadow-cyan-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
             <Icons.History className="w-5 h-5" /> ติดตามของรอคืน
@@ -24881,8 +25123,13 @@ S.N.: ${item.sn || '-'}
                   const lensOptions = items
                     .filter(item => item && !item.isDeleted && item.id !== formData.id && inferCameraHelperKind(item) === 'lens')
                     .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true, sensitivity: 'base' }));
+                  const memoryOptions = items
+                    .filter(item => item && !item.isDeleted && item.id !== formData.id && inferCameraHelperKind(item) === 'memory')
+                    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true, sensitivity: 'base' }));
                   const selectedLensId = formData.linkedLensId || formData.currentLensId || formData.attachedLensId || '';
                   const selectedLens = lensOptions.find(item => item.id === selectedLensId);
+                  const selectedMemoryId = formData.linkedMemoryId || formData.currentMemoryId || formData.attachedMemoryId || '';
+                  const selectedMemory = memoryOptions.find(item => item.id === selectedMemoryId);
                   const fieldCardClass = `p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950/50 border-slate-800' : 'bg-white/80 border-sky-100'}`;
                   const setLinkedLens = (lensId) => {
                     const lens = lensOptions.find(item => item.id === lensId);
@@ -24892,6 +25139,17 @@ S.N.: ${item.sn || '-'}
                       linkedLensName: lens ? (lens.name || '') : '',
                       currentLens: lens ? (lens.name || '') : '',
                       compatibleWith: ''
+                    }));
+                  };
+                  const setLinkedMemory = (memoryId) => {
+                    const memory = memoryOptions.find(item => item.id === memoryId);
+                    setFormData(prev => ({
+                      ...prev,
+                      linkedMemoryId: memoryId,
+                      linkedMemoryName: memory ? (memory.name || '') : '',
+                      memoryCapacity: memory ? (getCameraSimpleMemoryText(memory) || memory.memoryCapacity || memory.capacity || memory.storageCapacity || '') : prev.memoryCapacity,
+                      memoryType: '',
+                      memorySpeed: ''
                     }));
                   };
                   return (
@@ -24931,7 +25189,7 @@ S.N.: ${item.sn || '-'}
                           </div>
 
                           {isCamera && (
-                            <div className={`smart-specific-fields grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-3xl border ${isDarkMode ? 'bg-blue-950/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
+                            <div className={`smart-specific-fields grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-3xl border ${isDarkMode ? 'bg-blue-950/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
                               <div>
                                 <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>เลนส์ที่ลิงก์กับกล้องตอนนี้</label>
                                 <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={selectedLensId} onChange={e => setLinkedLens(e.target.value)}>
@@ -24941,12 +25199,20 @@ S.N.: ${item.sn || '-'}
                                 <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>เลือกจากอุปกรณ์หมวดเลนส์ในคลัง ถ้าไม่มีในรายการ ให้เพิ่มเลนส์เป็นอุปกรณ์ก่อน</div>
                               </div>
                               <div>
-                                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>เมมที่คากล้องอยู่</label>
-                                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น 128GB, 256GB V60, SD 64GB" value={formData.memoryCapacity || ''} onChange={e => setFormData({...formData, memoryCapacity: e.target.value, memoryType: '', memorySpeed: ''})} />
-                                <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>กรอกเป็นข้อความเดียวพอ เช่น 128GB หรือ 256GB V60</div>
+                                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>เมมที่ลิงก์กับกล้องตอนนี้</label>
+                                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={selectedMemoryId} onChange={e => setLinkedMemory(e.target.value)}>
+                                  <option value="">-- ไม่ได้ลิงก์เมม --</option>
+                                  {memoryOptions.map(mem => <option key={mem.id} value={mem.id}>{mem.name || 'เมม'}{mem.sn ? ` • S.N. ${mem.sn}` : ''}{getCameraSimpleMemoryText(mem) ? ` • ${getCameraSimpleMemoryText(mem)}` : ''}</option>)}
+                                </select>
+                                <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>เลือกจากอุปกรณ์หมวดเมมในคลัง ถ้าไม่มีในรายการ ให้เพิ่มเมมเป็นอุปกรณ์ก่อน</div>
                               </div>
-                              <div className={`sm:col-span-2 rounded-2xl border px-3 py-2 text-xs font-bold ${isDarkMode ? 'bg-slate-950/50 border-slate-800 text-slate-300' : 'bg-white/80 border-blue-100 text-slate-600'}`}>
-                                จะแสดงในคลังและตอนยืมเป็น: กล้อง + {selectedLens ? (selectedLens.name || 'เลนส์ที่เลือก') : 'เลนส์ที่ลิงก์'} | เมม {formData.memoryCapacity || '...' }
+                              <div>
+                                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>เมมแบบข้อความสำรอง</label>
+                                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น 128GB, 256GB V60" value={formData.memoryCapacity || ''} onChange={e => setFormData({...formData, memoryCapacity: e.target.value, linkedMemoryId: '', linkedMemoryName: '', memoryType: '', memorySpeed: ''})} />
+                                <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>ใช้กรณียังไม่ได้เพิ่มเมมเป็นอุปกรณ์แยก</div>
+                              </div>
+                              <div className={`sm:col-span-3 rounded-2xl border px-3 py-2 text-xs font-bold ${isDarkMode ? 'bg-slate-950/50 border-slate-800 text-slate-300' : 'bg-white/80 border-blue-100 text-slate-600'}`}>
+                                จะแสดงในคลังและตอนยืมเป็น: กล้อง + {selectedLens ? (selectedLens.name || 'เลนส์ที่เลือก') : 'เลนส์ที่ลิงก์'} | เมม {selectedMemory ? (selectedMemory.name || 'เมมที่เลือก') : (formData.memoryCapacity || '...') }
                               </div>
                             </div>
                           )}
@@ -24962,7 +25228,7 @@ S.N.: ${item.sn || '-'}
                             <div className={`smart-specific-fields p-4 rounded-3xl border ${isDarkMode ? 'bg-cyan-950/20 border-cyan-800' : 'bg-cyan-50 border-cyan-200'}`}>
                               <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>ความจุเมม</label>
                               <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น 64GB, 128GB, 256GB V60" value={formData.memoryCapacity || ''} onChange={e => setFormData({...formData, memoryCapacity: e.target.value, memoryType: '', memorySpeed: ''})} />
-                              <div className={`text-xs font-bold mt-2 ${theme.textMuted}`}>ถ้าเมมนี้เป็นของแยก ให้กรอกความจุไว้แค่นี้พอ ไม่ต้องผูกกับกล้องถาวร</div>
+                              <div className={`text-xs font-bold mt-2 ${theme.textMuted}`}>เมมเป็นอุปกรณ์ธรรมดา 1 ชิ้นในคลัง ถ้าจะให้ติดกับกล้อง ให้ไปที่หน้ากล้องแล้วเลือกเมมตัวนี้</div>
                             </div>
                           )}
 
@@ -24974,7 +25240,7 @@ S.N.: ${item.sn || '-'}
                           )}
 
                           <div className={`mt-2 p-3 rounded-2xl border text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950/70 border-slate-800 text-slate-300' : 'bg-white/80 border-sky-200 text-slate-600'}`}>
-                            สรุป: เลนส์ไม่ต้องกรอกข้อมูลใช้กับกล้อง ส่วนกล้องเป็นตัวเลือกว่าจะติดเลนส์ตัวไหนและมีเมมคากล้องเท่าไหร่
+                            สรุป: เลนส์ไม่ต้องกรอกข้อมูลใช้กับกล้อง ส่วนกล้องเป็นตัวเลือกว่าจะติดเลนส์และเมมตัวไหน ถ้ายังไม่เพิ่มเมมเป็นอุปกรณ์ก็กรอกความจุเป็นข้อความสำรองได้
                           </div>
                         </div>
                       )}
