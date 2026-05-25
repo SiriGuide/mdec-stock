@@ -10960,8 +10960,7 @@ S.N.: ${item.sn || '-'}
         const statusLabel = (STATUSES.find(st => st.id === linkedMemory.status) || {}).label || linkedMemory.status || 'ไม่พร้อมใช้';
         warnings.push(`${camera.name || 'กล้อง'} ลิงก์กับ ${linkedMemory.name || 'เมม'} แต่เมมสถานะ ${statusLabel}`);
       }
-      return warnings.length ? warnings.join('
-') : null;
+      return warnings.length ? warnings.join('\n') : null;
     }).filter(Boolean);
   };
 
