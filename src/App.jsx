@@ -75,8 +75,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.56 Inventory Filter Left Compact Popup';
-const APP_UPDATE_NOTE = 'Inventory Filter Left Compact Popup: ย่อ popup ตัวกรองคลังให้เล็กลง ย้ายไปอยู่ด้านซ้าย และพับตัวกรองเพิ่มเติมเพื่อลดความรก';
+const APP_VERSION = 'v23.1.56 Inventory Filter Right Mini Popup';
+const APP_UPDATE_NOTE = 'Inventory Filter Right Mini Popup: ปรับตัวกรองหน้าคลังให้เป็นหน้าต่างเล็กด้านขวา ลดขนาดลง ใช้ง่ายขึ้น และไม่บังพื้นที่มากเกินไป';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -594,7 +594,7 @@ function CompactMultiFilter({
   const pickedClass = isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-800';
 
   return (
-    <div className={`compact-multi-filter rounded-2xl border p-3 ${panelClass}`}>
+    <div className={`compact-multi-filter rounded-[1.1rem] border p-2.5 ${panelClass}`}>
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="min-w-0">
           <div className={`text-sm font-black flex items-center gap-2 ${theme.textTitle || ''}`}><span>{icon}</span><span>{label}</span></div>
@@ -10281,7 +10281,7 @@ S.N.: ${item.sn || '-'}
                       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
                         <div className={`xl:col-span-2 p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                           <div className={`font-black mb-3 ${theme.textTitle}`}>ข้อมูลโครงการ</div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                          <div className="grid grid-cols-1 gap-2.5 text-sm">
                             {[
                               ['ผู้รับผิดชอบ', meta.owner || '-'],
                               ['ปีงบประมาณ', meta.fiscalYear || '-'],
@@ -10516,7 +10516,7 @@ S.N.: ${item.sn || '-'}
               <div className="flex items-center gap-3 min-w-0">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${isDarkMode ? 'bg-cyan-950/40 border-cyan-800/70 text-cyan-200' : 'bg-cyan-50 border-cyan-200 text-cyan-700'}`}><Icons.Package className="w-6 h-6" /></div>
                 <div className="min-w-0">
-                  <div className={`text-lg font-black truncate ${theme.textTitle}`}>{box.name || 'กล่องไม่มีชื่อ'}</div>
+                  <div className={`text-base font-black truncate ${theme.textTitle}`}>{box.name || 'กล่องไม่มีชื่อ'}</div>
                   <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>{box.size === 'large' ? 'กล่องใหญ่ / ตู้' : box.size === 'small' ? 'กล่องเล็ก / ชั้น' : 'กล่อง / จุดเก็บ'} • {box.note || 'ยังไม่มีหมายเหตุ'}</div>
                 </div>
               </div>
@@ -11750,7 +11750,7 @@ S.N.: ${item.sn || '-'}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex items-start gap-3">
-              <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-white/20 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500')}`}>
+              <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-white/20 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500')}`}>
                 <DeptIcon className="w-4 h-4" />
               </div>
               <div className="min-w-0">
@@ -13297,20 +13297,20 @@ S.N.: ${item.sn || '-'}
                 </div>
 
                 {showInventoryFilterPanel && (
-                  <div className="fixed inset-0 z-[90] flex items-start justify-start pointer-events-none">
+                  <div className="fixed inset-0 z-[90] flex items-start justify-end p-2 sm:p-3 md:p-4 pointer-events-none">
                     <button
                       type="button"
                       aria-label="ปิดตัวกรองคลัง"
                       onClick={() => setShowInventoryFilterPanel(false)}
-                      className="absolute inset-0 bg-slate-950/20 backdrop-blur-[1px] pointer-events-auto"
+                      className="absolute inset-0 bg-slate-950/18 backdrop-blur-[1px] pointer-events-auto"
                     />
-                    <aside className={`relative pointer-events-auto mt-3 ml-3 mr-3 w-[min(360px,calc(100vw-24px))] max-h-[calc(100vh-88px)] rounded-[1.35rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
-                      <div className={`px-3 py-3 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
+                    <aside className={`relative pointer-events-auto mt-16 sm:mt-20 mr-0 sm:mr-1 w-[min(360px,calc(100vw-16px))] max-h-[calc(100vh-92px)] rounded-[1.4rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <div className={`px-3.5 py-3 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
                         <div className="min-w-0">
-                          <div className={`text-base font-black ${theme.textTitle}`}>ตัวกรองคลัง</div>
-                          <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>หน้าต่างเล็กด้านซ้าย เลือกเฉพาะที่จำเป็น</div>
+                          <div className={`text-lg font-black ${theme.textTitle}`}>ตัวกรองคลัง</div>
+                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>หน้าต่างย่อด้านขวา เลือกเท่าที่จำเป็น แล้วกดใช้ตัวกรอง</div>
                         </div>
-                        <button type="button" onClick={() => setShowInventoryFilterPanel(false)} className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`} title="ปิดตัวกรอง">×</button>
+                        <button type="button" onClick={() => setShowInventoryFilterPanel(false)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`} title="ปิดตัวกรอง">×</button>
                       </div>
 
                       <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2.5">
@@ -13321,7 +13321,7 @@ S.N.: ${item.sn || '-'}
                           selected={filterDept}
                           onChange={(values) => { setFilterDept(values); if (!values.includes('ห้องประชุม')) setShowRoomView(false); }}
                           placeholder="ค้นหาฝ่าย..."
-                          helper="เลือกได้หลายฝ่าย"
+                          helper="ติ๊กได้หลายฝ่ายพร้อมกัน"
                           theme={theme}
                           isDarkMode={isDarkMode}
                           getOptionLabel={(value) => DEPARTMENTS.find(dep => dep.id === value)?.label || value}
@@ -13344,65 +13344,57 @@ S.N.: ${item.sn || '-'}
                           selected={filterLocation}
                           onChange={setFilterLocation}
                           placeholder="ค้นหาที่เก็บ เช่น ตู้กล้อง / ห้องประชุม"
-                          helper="ดูหลายที่เก็บพร้อมกัน"
+                          helper="เลือกหลายที่เก็บเพื่อดูของหลายจุดพร้อมกัน"
                           theme={theme}
                           isDarkMode={isDarkMode}
                         />
-                        <details className={`rounded-2xl border ${isDarkMode ? 'bg-slate-900/70 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                          <summary className={`list-none cursor-pointer px-3 py-3 flex items-center justify-between gap-2 ${theme.textTitle}`}>
-                            <div>
-                              <div className="text-sm font-black">ตัวกรองเพิ่มเติม</div>
-                              <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>โครงการ / สถานะ / QR / พัสดุ</div>
-                            </div>
-                            <span className={`text-xs font-black ${theme.textMuted}`}>เปิด</span>
-                          </summary>
-                          <div className="px-3 pb-3 space-y-2.5">
-                            <CompactMultiFilter
-                              label="โครงการ"
-                              icon="📁"
-                              options={inventoryProjectFilterOptions}
-                              selected={filterProject}
-                              onChange={setFilterProject}
-                              placeholder="ค้นหาโครงการ..."
-                              helper="กรองของที่ผูกกับโครงการจัดซื้อ"
-                              theme={theme}
-                              isDarkMode={isDarkMode}
-                            />
-                            <div className="grid grid-cols-1 gap-2.5">
-                              <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/70 border-slate-700' : 'bg-white border-slate-200'}`}>
-                                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สถานะใช้งาน</label>
-                                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
-                                  <option value="all">ทุกสถานะ</option>
-                                  {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                                </select>
-                              </div>
-                              <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/70 border-slate-700' : 'bg-white border-slate-200'}`}>
-                                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>QR</label>
-                                <select value={filterQrTagged} onChange={(e) => setFilterQrTagged(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
-                                  <option value="all">QR ทั้งหมด</option>
-                                  <option value="tagged">ติด QR แล้ว</option>
-                                  <option value="untagged">ยังไม่ติด QR</option>
-                                </select>
-                              </div>
-                              <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/70 border-slate-700' : 'bg-white border-slate-200'}`}>
-                                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สถานะพัสดุ</label>
-                                <select value={filterAssetStatus} onChange={(e) => setFilterAssetStatus(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
-                                  <option value="all">สถานะพัสดุทั้งหมด</option>
-                                  {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                                </select>
-                              </div>
-                            </div>
-                          </div>
-                        </details>
+                        <CompactMultiFilter
+                          label="โครงการ"
+                          icon="📁"
+                          options={inventoryProjectFilterOptions}
+                          selected={filterProject}
+                          onChange={setFilterProject}
+                          placeholder="ค้นหาโครงการ..."
+                          helper="กรองของที่ผูกกับโครงการจัดซื้อ"
+                          theme={theme}
+                          isDarkMode={isDarkMode}
+                        />
 
-                        <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-900/70 border-slate-700 text-slate-300' : 'bg-blue-50 border-blue-100 text-blue-800'}`}>
-                          <div className="text-xs font-black">พบ {filteredItems.length.toLocaleString('th-TH')} รายการ</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                            <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สถานะใช้งาน</label>
+                            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
+                              <option value="all">ทุกสถานะ</option>
+                              {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                            </select>
+                          </div>
+                          <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                            <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>QR</label>
+                            <select value={filterQrTagged} onChange={(e) => setFilterQrTagged(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
+                              <option value="all">QR ทั้งหมด</option>
+                              <option value="tagged">ติด QR แล้ว</option>
+                              <option value="untagged">ยังไม่ติด QR</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                          <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สถานะพัสดุ</label>
+                          <select value={filterAssetStatus} onChange={(e) => setFilterAssetStatus(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
+                            <option value="all">สถานะพัสดุทั้งหมด</option>
+                            {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                          </select>
+                        </div>
+
+                        <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/70 border-slate-700 text-slate-300' : 'bg-blue-50 border-blue-100 text-blue-800'}`}>
+                          <div className="text-xs font-black">ตอนนี้พบ {filteredItems.length.toLocaleString('th-TH')} รายการ</div>
+                          <div className="text-[11px] font-bold mt-1 opacity-75">ตัวกรองในหัวข้อเดียวกัน = หรือ • คนละหัวข้อ = และ</div>
                         </div>
                       </div>
 
-                      <div className={`p-3 border-t grid grid-cols-2 gap-2 ${theme.divide}`}>
-                        <button type="button" onClick={clearAllFilters} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>ล้างทั้งหมด</button>
-                        <button type="button" onClick={() => setShowInventoryFilterPanel(false)} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black">ใช้ตัวกรอง</button>
+                      <div className={`p-2.5 border-t flex gap-2 ${theme.divide}`}>
+                        <button type="button" onClick={clearAllFilters} className={`flex-1 px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ล้างทั้งหมด</button>
+                        <button type="button" onClick={() => setShowInventoryFilterPanel(false)} className="flex-1 px-3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm">ใช้ตัวกรอง</button>
                       </div>
                     </aside>
                   </div>
