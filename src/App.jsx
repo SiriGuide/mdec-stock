@@ -75,8 +75,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.57 Operation Picker No Reflow Selection';
-const APP_UPDATE_NOTE = 'Operation Picker No Reflow Selection: แก้อาการการ์ดอุปกรณ์ขยับตอนเลือก โดยซ่อนแถบสรุป/คำแนะนำที่แทรกใน flow และใช้แถบลอยด้านล่างแทน';
+const APP_VERSION = 'v23.1.58 Compact Floating Actions + Filters';
+const APP_UPDATE_NOTE = 'Compact Floating Actions + Filters: ย่อแถบรายการที่เลือกและ popup ตัวกรองให้เล็กลง ใช้แนวเดียวกันทั้งหน้า ยืม/คืน/ออกงาน และสต๊อกอุปกรณ์';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -10161,7 +10161,7 @@ S.N.: ${item.sn || '-'}
 
             <div className={`rounded-[1.5rem] border p-4 sm:p-5 grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-3 items-end ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
               <div>
-                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สร้างโครงการจัดซื้อใหม่</label>
+                <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>สร้างโครงการจัดซื้อใหม่</label>
                 <input
                   id="quick-project-input"
                   className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
@@ -11190,7 +11190,7 @@ S.N.: ${item.sn || '-'}
               <section className={`rounded-3xl border p-4 space-y-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div>
                   <div className={`text-sm font-black mb-2 ${theme.textTitle}`}>1) เลือกกล้องหลัก</div>
-                  <select className={`w-full px-4 py-3 rounded-2xl border font-black ${theme.input}`} value={cameraHelperForm.cameraId} onChange={e => setCameraHelperForm(prev => ({ ...prev, cameraId: e.target.value, lensIds: [] }))}>
+                  <select className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`} value={cameraHelperForm.cameraId} onChange={e => setCameraHelperForm(prev => ({ ...prev, cameraId: e.target.value, lensIds: [] }))}>
                     <option value="">-- เลือกกล้องที่พร้อมใช้งาน --</option>
                     {cameras.map(item => <option key={item.id} value={item.id}>{item.name} • S.N. {item.sn || '-'} • {item.department || 'ไม่ระบุฝ่าย'}</option>)}
                   </select>
@@ -11842,7 +11842,7 @@ S.N.: ${item.sn || '-'}
               </div>
               <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
                 <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; openSelectionScanner({ camera: true, returnWorkspace: activeWorkspace }); }} className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center justify-center gap-2"><Icons.QrCode className="w-5 h-5" /> สแกน QR</button>
-                <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เอกสารย้อนหลัง</button>
+                <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>เอกสารย้อนหลัง</button>
               </div>
             </div>
 
@@ -11913,7 +11913,7 @@ S.N.: ${item.sn || '-'}
                             <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>เลือกจากกล่อง / เซ็ต</div>
                             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>กด “เพิ่ม” เพื่อดึงเฉพาะอุปกรณ์ที่สถานะใช้ได้ในหน้านี้</div>
                           </div>
-                          <button type="button" onClick={() => setShowOperationQuickPick(false)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`} title="ปิด">
+                          <button type="button" onClick={() => setShowOperationQuickPick(false)} className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 text-sm ${theme.btnSecondary}`} title="ปิด">
                             <Icons.X className="w-5 h-5" />
                           </button>
                         </div>
@@ -12121,7 +12121,7 @@ S.N.: ${item.sn || '-'}
                         </div>
                         <button type="button" onClick={() => setShowOperationSelectedPanel(false)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}>×</button>
                       </div>
-                      <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2.5">
+                      <div className="flex-1 overflow-y-auto custom-scrollbar p-2.5 space-y-2">
                         {operationBundleGroups.bundles.map(bundle => (
                           <div key={`selected_bundle_${bundle.camera.id}`} className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-blue-950/20 border-blue-900/60' : 'bg-blue-50 border-blue-200'}`}>
                             <div className="flex items-start justify-between gap-3">
@@ -12210,19 +12210,19 @@ S.N.: ${item.sn || '-'}
               )}
 
               {!isOperationDetailsStep && actionTargetIds.length > 0 && (
-                <div className="fixed left-3 right-3 bottom-3 z-[70] pointer-events-none">
-                  <div className={`pointer-events-auto mx-auto max-w-4xl rounded-[1.35rem] border shadow-2xl px-3 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-950/95 border-slate-700 text-slate-100' : 'bg-white/95 border-slate-200 text-slate-900'} backdrop-blur`}>
+                <div className="fixed left-3 right-3 bottom-4 z-[70] pointer-events-none">
+                  <div className={`pointer-events-auto mx-auto max-w-2xl rounded-2xl border shadow-2xl px-2.5 sm:px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${isDarkMode ? 'bg-slate-950/95 border-slate-700 text-slate-100' : 'bg-white/95 border-slate-200 text-slate-900'} backdrop-blur`}>
                     <div className="min-w-0 flex items-center gap-3">
-                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 font-black ${modeInfo.softClass}`}>{actionTargetIds.length}</div>
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-sm ${modeInfo.softClass}`}>{actionTargetIds.length}</div>
                       <div className="min-w-0">
-                        <div className="font-black text-sm">เลือกแล้ว {actionTargetIds.length.toLocaleString('th-TH')} รายการ</div>
-                        <div className={`text-xs font-bold truncate ${theme.textMuted}`}>{selectedPreview || 'กดดูรายการเพื่อตรวจอีกครั้ง'}</div>
+                        <div className="font-black text-xs sm:text-sm">เลือกแล้ว {actionTargetIds.length.toLocaleString('th-TH')} รายการ</div>
+                        <div className={`text-[11px] font-bold truncate ${theme.textMuted}`}>{selectedPreview || 'กดดูรายการเพื่อตรวจอีกครั้ง'}</div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 sm:flex gap-2 shrink-0">
-                      <button type="button" onClick={() => setShowOperationSelectedPanel(true)} className={`px-3 py-2.5 rounded-2xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>ดูรายการ</button>
-                      <button type="button" onClick={clearOperationSelection} className={`px-3 py-2.5 rounded-2xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>ล้าง</button>
-                      <button type="button" onClick={goToOperationDetails} disabled={!canUseCurrentOperation || actionTargetIds.length === 0} className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black text-white ${toneBtn} disabled:bg-slate-500 disabled:cursor-not-allowed`}>ถัดไป</button>
+                    <div className="grid grid-cols-3 sm:flex gap-1.5 shrink-0">
+                      <button type="button" onClick={() => setShowOperationSelectedPanel(true)} className={`px-2.5 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูรายการ</button>
+                      <button type="button" onClick={clearOperationSelection} className={`px-2.5 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ล้าง</button>
+                      <button type="button" onClick={goToOperationDetails} disabled={!canUseCurrentOperation || actionTargetIds.length === 0} className={`px-3 py-2 rounded-xl text-xs font-black text-white ${toneBtn} disabled:bg-slate-500 disabled:cursor-not-allowed`}>ถัดไป</button>
                     </div>
                   </div>
                 </div>
@@ -13250,10 +13250,10 @@ S.N.: ${item.sn || '-'}
                 <div className="flex flex-wrap gap-2">
                   {selectedItems.length > 0 && canUseOperationalTools && (
                     <>
-                      <button type="button" onClick={handleOpenBatchBorrow} className="px-3.5 py-2.5 rounded-xl bg-purple-600 text-white font-black text-sm">ยืมที่เลือก</button>
-                      <button type="button" onClick={handleOpenBatchEvent} className="px-3.5 py-2.5 rounded-xl bg-orange-500 text-white font-black text-sm">ออกงานที่เลือก</button>
-                      <button type="button" onClick={handleOpenBatchReturn} className="px-3.5 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-sm">รับคืนที่เลือก</button>
-                      <button type="button" onClick={() => setShowพิมพ์Modal(true)} className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm flex items-center gap-2"><Icons.QrCode className="w-4 h-4" /> พิมพ์ QR / ฉลาก</button>
+                      <button type="button" onClick={handleOpenBatchBorrow} className="px-3 py-2 rounded-xl bg-purple-600 text-white font-black text-xs">ยืมที่เลือก</button>
+                      <button type="button" onClick={handleOpenBatchEvent} className="px-3 py-2 rounded-xl bg-orange-500 text-white font-black text-xs">ออกงานที่เลือก</button>
+                      <button type="button" onClick={handleOpenBatchReturn} className="px-3 py-2 rounded-xl bg-emerald-600 text-white font-black text-xs">รับคืนที่เลือก</button>
+                      <button type="button" onClick={() => setShowพิมพ์Modal(true)} className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs flex items-center gap-1.5"><Icons.QrCode className="w-4 h-4" /> พิมพ์ QR / ฉลาก</button>
                       <button type="button" onClick={() => setSelectedItems([])} className={`px-3.5 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ล้างเลือก</button>
                     </>
                   )}
@@ -13277,7 +13277,7 @@ S.N.: ${item.sn || '-'}
                     <button
                       type="button"
                       onClick={() => setShowInventoryFilterPanel(v => !v)}
-                      className={`px-4 py-3 rounded-2xl border font-black flex items-center gap-2 ${hasActiveFilters ? (isDarkMode ? 'bg-blue-950/35 border-blue-700 text-blue-200' : 'bg-slate-50 border-slate-200 text-slate-700') : theme.btnSecondary}`}
+                      className={`px-3 py-2.5 rounded-xl border font-black text-sm flex items-center gap-2 ${hasActiveFilters ? (isDarkMode ? 'bg-blue-950/35 border-blue-700 text-blue-200' : 'bg-slate-50 border-slate-200 text-slate-700') : theme.btnSecondary}`}
                     >
                       <Icons.Settings className="w-4 h-4" />
                       ตัวกรอง
@@ -13304,11 +13304,11 @@ S.N.: ${item.sn || '-'}
                       onClick={() => setShowInventoryFilterPanel(false)}
                       className="absolute inset-0 bg-slate-950/18 backdrop-blur-[1px] pointer-events-auto"
                     />
-                    <aside className={`relative pointer-events-auto mt-16 sm:mt-20 mr-0 sm:mr-1 w-[min(360px,calc(100vw-16px))] max-h-[calc(100vh-92px)] rounded-[1.4rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
-                      <div className={`px-3.5 py-3 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
+                    <aside className={`relative pointer-events-auto mt-16 sm:mt-20 mr-0 sm:mr-1 w-[min(330px,calc(100vw-16px))] max-h-[calc(100vh-96px)] rounded-[1.25rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <div className={`px-3 py-2.5 border-b flex items-start justify-between gap-2 ${theme.divide}`}>
                         <div className="min-w-0">
                           <div className={`text-lg font-black ${theme.textTitle}`}>ตัวกรองคลัง</div>
-                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>หน้าต่างย่อด้านขวา เลือกเท่าที่จำเป็น แล้วกดใช้ตัวกรอง</div>
+                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เลือกเฉพาะที่จำเป็น แล้วกดใช้ตัวกรอง</div>
                         </div>
                         <button type="button" onClick={() => setShowInventoryFilterPanel(false)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`} title="ปิดตัวกรอง">×</button>
                       </div>
@@ -13362,15 +13362,15 @@ S.N.: ${item.sn || '-'}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                            <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สถานะใช้งาน</label>
-                            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
+                            <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>สถานะใช้งาน</label>
+                            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`w-full px-3 py-2 rounded-xl border font-black text-xs ${theme.input}`}>
                               <option value="all">ทุกสถานะ</option>
                               {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                             </select>
                           </div>
                           <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                            <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>QR</label>
-                            <select value={filterQrTagged} onChange={(e) => setFilterQrTagged(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
+                            <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>QR</label>
+                            <select value={filterQrTagged} onChange={(e) => setFilterQrTagged(e.target.value)} className={`w-full px-3 py-2 rounded-xl border font-black text-xs ${theme.input}`}>
                               <option value="all">QR ทั้งหมด</option>
                               <option value="tagged">ติด QR แล้ว</option>
                               <option value="untagged">ยังไม่ติด QR</option>
@@ -13379,8 +13379,8 @@ S.N.: ${item.sn || '-'}
                         </div>
 
                         <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                          <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>สถานะพัสดุ</label>
-                          <select value={filterAssetStatus} onChange={(e) => setFilterAssetStatus(e.target.value)} className={`w-full px-3 py-2.5 rounded-xl border font-black text-sm ${theme.input}`}>
+                          <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>สถานะพัสดุ</label>
+                          <select value={filterAssetStatus} onChange={(e) => setFilterAssetStatus(e.target.value)} className={`w-full px-3 py-2 rounded-xl border font-black text-xs ${theme.input}`}>
                             <option value="all">สถานะพัสดุทั้งหมด</option>
                             {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                           </select>
@@ -13392,9 +13392,9 @@ S.N.: ${item.sn || '-'}
                         </div>
                       </div>
 
-                      <div className={`p-2.5 border-t flex gap-2 ${theme.divide}`}>
-                        <button type="button" onClick={clearAllFilters} className={`flex-1 px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ล้างทั้งหมด</button>
-                        <button type="button" onClick={() => setShowInventoryFilterPanel(false)} className="flex-1 px-3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm">ใช้ตัวกรอง</button>
+                      <div className={`p-2 border-t flex gap-1.5 ${theme.divide}`}>
+                        <button type="button" onClick={clearAllFilters} className={`flex-1 px-3 py-2 rounded-xl border font-black text-xs ${theme.btnSecondary}`}>ล้างทั้งหมด</button>
+                        <button type="button" onClick={() => setShowInventoryFilterPanel(false)} className="flex-1 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs">ใช้ตัวกรอง</button>
                       </div>
                     </aside>
                   </div>
@@ -13403,10 +13403,10 @@ S.N.: ${item.sn || '-'}
             </div>
 
             {selectedItems.length > 0 && canUseOperationalTools && (
-              <div className={`inventory-selected-toolbar rounded-[1.35rem] border p-3 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-950'}`}>
+              <div className={`inventory-selected-toolbar rounded-2xl border px-3 py-2 flex flex-col lg:flex-row lg:items-center justify-between gap-2 ${isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-950'}`}>
                 <div>
-                  <div className="text-sm font-black">เลือกแล้ว {selectedItems.length.toLocaleString('th-TH')} รายการ</div>
-                  <div className="text-xs font-bold opacity-75">ใช้ปุ่มด้านขวาเพื่อทำรายการแบบกลุ่ม หรือกดล้างเลือกเมื่อจบงาน</div>
+                  <div className="text-xs sm:text-sm font-black">เลือกแล้ว {selectedItems.length.toLocaleString('th-TH')} รายการ</div>
+                  <div className="text-[11px] font-bold opacity-75">ทำรายการแบบกลุ่ม หรือกดล้างเลือกเมื่อจบงาน</div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={handleOpenBatchBorrow} className="px-3.5 py-2.5 rounded-xl bg-purple-600 text-white font-black text-sm">ยืมที่เลือก</button>
@@ -24029,7 +24029,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 )}
                 {requiredText && (
                   <div>
-                    <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>พิมพ์ <span className="font-black text-rose-500">{requiredText}</span> เพื่อปลดล็อกปุ่มยืนยัน</label>
+                    <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>พิมพ์ <span className="font-black text-rose-500">{requiredText}</span> เพื่อปลดล็อกปุ่มยืนยัน</label>
                     <input
                       autoFocus
                       value={dangerConfirm.inputValue || ''}
@@ -25516,7 +25516,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                           {isCamera && (
                             <div className={`smart-specific-fields grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-3xl border ${isDarkMode ? 'bg-blue-950/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
                               <div>
-                                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>เลนส์ที่ลิงก์กับกล้องตอนนี้</label>
+                                <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>เลนส์ที่ลิงก์กับกล้องตอนนี้</label>
                                 <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={selectedLensId} onChange={e => setLinkedLens(e.target.value)}>
                                   <option value="">-- ไม่ได้ลิงก์เลนส์ --</option>
                                   {lensOptions.map(lens => <option key={lens.id} value={lens.id}>{lens.name || 'เลนส์'}{lens.sn ? ` • S.N. ${lens.sn}` : ''}</option>)}
@@ -25524,7 +25524,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                                 <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>เลือกจากอุปกรณ์หมวดเลนส์ในคลัง ถ้าไม่มีในรายการ ให้เพิ่มเลนส์เป็นอุปกรณ์ก่อน</div>
                               </div>
                               <div>
-                                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>เมมที่ลิงก์กับกล้องตอนนี้</label>
+                                <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>เมมที่ลิงก์กับกล้องตอนนี้</label>
                                 <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={selectedMemoryId} onChange={e => setLinkedMemory(e.target.value)}>
                                   <option value="">-- ไม่ได้ลิงก์เมม --</option>
                                   {memoryOptions.map(mem => <option key={mem.id} value={mem.id}>{mem.name || 'เมม'}{mem.sn ? ` • S.N. ${mem.sn}` : ''}{getCameraSimpleMemoryText(mem) ? ` • ${getCameraSimpleMemoryText(mem)}` : ''}</option>)}
@@ -25532,7 +25532,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                                 <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>เลือกจากอุปกรณ์หมวดเมมในคลัง ถ้าไม่มีในรายการ ให้เพิ่มเมมเป็นอุปกรณ์ก่อน</div>
                               </div>
                               <div>
-                                <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>เมมแบบข้อความสำรอง</label>
+                                <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>เมมแบบข้อความสำรอง</label>
                                 <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น 128GB, 256GB V60" value={formData.memoryCapacity || ''} onChange={e => setFormData({...formData, memoryCapacity: e.target.value, linkedMemoryId: '', linkedMemoryName: '', memoryType: '', memorySpeed: ''})} />
                                 <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>ใช้กรณียังไม่ได้เพิ่มเมมเป็นอุปกรณ์แยก</div>
                               </div>
@@ -25551,7 +25551,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
                           {isMemory && (
                             <div className={`smart-specific-fields p-4 rounded-3xl border ${isDarkMode ? 'bg-cyan-950/20 border-cyan-800' : 'bg-cyan-50 border-cyan-200'}`}>
-                              <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>ความจุเมม</label>
+                              <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>ความจุเมม</label>
                               <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น 64GB, 128GB, 256GB V60" value={formData.memoryCapacity || ''} onChange={e => setFormData({...formData, memoryCapacity: e.target.value, memoryType: '', memorySpeed: ''})} />
                               <div className={`text-xs font-bold mt-2 ${theme.textMuted}`}>เมมเป็นอุปกรณ์ธรรมดา 1 ชิ้นในคลัง ถ้าจะให้ติดกับกล้อง ให้ไปที่หน้ากล้องแล้วเลือกเมมตัวนี้</div>
                             </div>
@@ -25559,7 +25559,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
                           {!isCamera && !isLens && !isMemory && (
                             <div className={`smart-specific-fields p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-950/50 border-slate-800' : 'bg-white/80 border-sky-100'}`}>
-                              <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>หมายเหตุ / ใช้ร่วมกับ</label>
+                              <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>หมายเหตุ / ใช้ร่วมกับ</label>
                               <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น ใช้กับกล้อง, ไฟ, OB-Live, ห้องประชุม" value={formData.compatibleWith || ''} onChange={e => setFormData({...formData, compatibleWith: e.target.value})} />
                             </div>
                           )}
