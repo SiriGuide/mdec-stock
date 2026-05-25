@@ -1,9 +1,14 @@
+// v23.1.33 Document Filename By Ref Fix - ตั้งชื่อไฟล์เวลาพิมพ์/บันทึก PDF ใบยืม/ออกงาน/รับคืนตามเลขเอกสารแทนชื่อเว็บ
+// v23.1.29 Proof Link Strict Match Hotfix - แก้รูปหลักฐานในประวัติไม่ให้ดึงรูปจากเรื่อง/ผู้เกี่ยวข้องกว้างเกินไป ต้องผูกกับอุปกรณ์หรือเอกสารจริง
+// v23.1.28 Central Admin Permission Fix - บัญชีกลาง username admin ถือเป็น owner เสมอ เพื่อให้ลบ/กู้คืน/จัดการระบบได้ตรงสิทธิ์
 // v23.1.27 Simplified Item Form / Remove Extra Codes - ลดช่องรหัสซ้ำ เหลือ S.N. หลัก + ข้อมูลกล้องเฉพาะเลนส์/เมม
 // v23.1.25 Simple Camera Link / Memory Field - ลดระบบกล้องให้เหลือแค่ลิงก์เลนส์ในคลัง + กรอกเมมที่คากล้องทั่วเว็บ
 // v23.1.24 Camera Kit Info Simple Flow - ตัด popup ตัวช่วยกล้อง และโชว์ข้อมูลชุดกล้อง/เลนส์/เมม/แบตในคลังกับหน้าทำรายการ
 // v23.1.23 Friendly Picker Selection Bar + Camera Helper - เพิ่มแถบรายการที่เลือก ดูรายการแบบ popup และตัวช่วยกล้องที่ขึ้นตามบริบท
 // v23.1.22 Friendly Equipment Picker / Storage First UX - เปลี่ยนหน้าเลือกอุปกรณ์ให้เริ่มจากที่เก็บจริง เลือกหมวด แล้วหยิบของแบบเป็นมิตร
 // v23.1.21 Equipment Picker 2-Pane Folder UX - เปลี่ยน Equipment Picker เป็นแฟ้ม 2 คอลัมน์ ฝ่าย / ที่เก็บ ทางซ้าย และรายการหยิบของทางขวา
+// v23.1.32 Stock Operation Redirect Flow Fix - กดทำรายการจากคลัง/แฟ้ม/สแกนให้ไปหน้าแยก ยืม/ออกงาน/รับคืน แบบใหม่ ไม่เปิด modal เก่า
+// v23.1.31 Camera Linked Lens Auto Borrow - เลือก/ยืมกล้องแล้วพาเลนส์ที่ลิงก์ในคลังไปด้วยอัตโนมัติ
 // v23.1.20 Equipment Picker Folder Structure - เปลี่ยน Equipment Picker เป็นมุมมองแฟ้ม ฝ่าย > ที่เก็บ > หมวดหมู่ พร้อมค้นหาเดิม
 // v23.1.17 Inventory Action Cleanup - คลังอุปกรณ์เป็นหน้าทะเบียน/แฟ้มอุปกรณ์ ตัดปุ่มยืม/ออกงาน/รับคืนออกจากคลัง
 // v23.1.3 Operation Control Compact Layout Polish - จัดหน้า ยืม/ออกงาน/รับคืน ใหม่ แยกเลือกโหมดซ้าย สรุปตัวเลขขวา
@@ -67,8 +72,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.27 Simplified Item Form / Remove Extra Codes';
-const APP_UPDATE_NOTE = 'Simplified Item Form: หน้าเพิ่ม/แก้ไขอุปกรณ์ตัดรหัสสั้นและฝ่ายดูแลหลักซ้ำออก เหลือ S.N. เป็นรหัสหลัก และถ้าเป็นกล้องให้กรอกแค่เลนส์ที่ลิงก์กับเมมที่คากล้อง';
+const APP_VERSION = 'v23.1.33 Document Filename By Ref Fix';
+const APP_UPDATE_NOTE = 'Document Filename By Ref Fix: เวลาพิมพ์/บันทึก PDF เอกสารย้อนหลัง ตั้งชื่อไฟล์จากเลขเอกสาร เช่น BR-25690525-xxxxxx แทนชื่อเว็บ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -8871,7 +8876,15 @@ function MainApp() {
   };
 
   const currentAccountLabel = currentOperator?.name || (isAdmin ? 'แอดมิน' : 'ผู้ใช้งานทั่วไป');
-  const currentAccountRole = currentOperator?.role || (isAdmin ? 'owner' : 'viewer');
+  const rawCurrentAccountRole = currentOperator?.role || (isAdmin ? 'owner' : 'viewer');
+  const currentAccountUsername = String(currentOperator?.username || '').trim().toLowerCase();
+  const isCentralAdminAccount = !!isAdmin && (
+    currentAccountUsername === 'admin' ||
+    currentOperator?.id === 'central_admin' ||
+    rawCurrentAccountRole === 'owner'
+  );
+  // บัญชีกลางของระบบใช้ username admin เสมอ ดังนั้นให้สิทธิ์เป็น owner แม้ข้อมูลบัญชีเก่าจะเคยบันทึก role เพี้ยนไว้
+  const currentAccountRole = isCentralAdminAccount ? 'owner' : rawCurrentAccountRole;
   const isLoggedIn = !!isAdmin;
   const canManageAccounts = isAdmin && (currentAccountRole === 'owner' || currentAccountRole === 'admin');
   const canManageระบบ = isAdmin && (currentAccountRole === 'owner' || currentAccountRole === 'admin');
@@ -10700,17 +10713,42 @@ S.N.: ${item.sn || '-'}
 
   // v23.1.25: ระบบกล้องแบบเรียบง่ายทั่วเว็บ — กล้องลิงก์เลนส์ได้ 1 ตัว และกรอกเมมที่คากล้องเป็นข้อความสั้น ๆ
   const getCameraKitField = (item = {}, keys = []) => keys.map(key => item?.[key]).find(value => String(value || '').trim()) || '';
+  const normalizeLensLinkText = (value = '') => String(value || '').trim().toLowerCase().replace(/s\.?n\.?/g, '').replace(/[^a-z0-9ก-๙]+/gi, '');
+  const getCameraLegacyLensLinkRaw = (camera = {}) => getCameraKitField(camera, [
+    'linkedLensId', 'currentLensId', 'attachedLensId', 'lensId', 'defaultLensId', 'kitLensId', 'cameraLensId', 'pairedLensId', 'mainLensId',
+    'linkedLensName', 'currentLensName', 'attachedLensName', 'defaultLensName', 'kitLensName', 'cameraLensName', 'pairedLensName', 'mainLensName',
+    'currentLens', 'attachedLens', 'defaultLens', 'kitLens', 'lensAttached', 'lensInCamera', 'compatibleWith'
+  ]);
 
   const getLinkedLensItem = (camera = {}) => {
-    const linkedId = String(camera?.linkedLensId || camera?.currentLensId || camera?.attachedLensId || '').trim();
-    if (!linkedId) return null;
-    return items.find(item => item && !item.isDeleted && item.id === linkedId) || null;
+    const rawValues = [
+      camera?.linkedLensId, camera?.currentLensId, camera?.attachedLensId, camera?.lensId, camera?.defaultLensId, camera?.kitLensId, camera?.cameraLensId, camera?.pairedLensId, camera?.mainLensId,
+      camera?.linkedLensName, camera?.currentLensName, camera?.attachedLensName, camera?.defaultLensName, camera?.kitLensName, camera?.cameraLensName, camera?.pairedLensName, camera?.mainLensName,
+      camera?.currentLens, camera?.attachedLens, camera?.defaultLens, camera?.kitLens, camera?.lensAttached, camera?.lensInCamera, camera?.compatibleWith
+    ].map(v => String(v || '').trim()).filter(Boolean);
+    if (rawValues.length === 0) return null;
+    const lensItems = items.filter(item => item && !item.isDeleted && inferCameraHelperKind(item) === 'lens');
+
+    for (const raw of rawValues) {
+      const exact = lensItems.find(item => item.id === raw || String(item.sn || '').trim() === raw || String(item.shortCode || item.localCode || '').trim() === raw);
+      if (exact) return exact;
+    }
+
+    const normalizedRaw = rawValues.map(normalizeLensLinkText).filter(Boolean);
+    for (const raw of normalizedRaw) {
+      const byClean = lensItems.find(item => {
+        const candidates = [item.name, item.sn, item.shortCode, item.localCode, item.assetShortCode].map(normalizeLensLinkText).filter(Boolean);
+        return candidates.some(candidate => candidate && (candidate === raw || candidate.includes(raw) || raw.includes(candidate)));
+      });
+      if (byClean) return byClean;
+    }
+    return null;
   };
 
   const getCameraLinkedLensText = (camera = {}) => {
     const linkedLens = getLinkedLensItem(camera);
     if (linkedLens) return [linkedLens.name, linkedLens.sn ? `S.N. ${linkedLens.sn}` : ''].filter(Boolean).join(' • ');
-    return String(getCameraKitField(camera, ['linkedLensName', 'currentLens', 'attachedLens', 'defaultLens', 'kitLens', 'lensAttached', 'lensInCamera', 'compatibleWith']) || '').trim();
+    return String(getCameraLegacyLensLinkRaw(camera) || '').trim();
   };
 
   const getCameraSimpleMemoryText = (camera = {}) => {
@@ -10730,6 +10768,37 @@ S.N.: ${item.sn || '-'}
       memoryText: memoryText || 'ยังไม่กรอกเมมที่คากล้อง',
       summaryText: `${camera.name || 'กล้อง'}${lensText ? ` + ${lensText}` : ''}${memoryText ? ` | เมม ${memoryText}` : ''}`
     };
+  };
+
+
+  const getCameraLinkedLensAutoItem = (camera = {}) => {
+    if (!camera || inferCameraHelperKind(camera) !== 'camera') return null;
+    const linkedLens = getLinkedLensItem(camera);
+    if (!linkedLens || linkedLens.isDeleted) return null;
+    return linkedLens;
+  };
+
+  const expandCameraLinkedLensIdsForOperation = (ids = [], mode = 'borrow') => {
+    const baseIds = Array.from(new Set(asArray(ids).filter(Boolean)));
+    if (mode === 'return') return baseIds;
+    const expanded = [...baseIds];
+    baseIds.forEach(id => {
+      const camera = items.find(item => item && item.id === id && !item.isDeleted);
+      const linkedLens = getCameraLinkedLensAutoItem(camera);
+      if (linkedLens && linkedLens.status === 'available' && !expanded.includes(linkedLens.id)) expanded.push(linkedLens.id);
+    });
+    return Array.from(new Set(expanded));
+  };
+
+  const getCameraLinkedLensUnavailableWarnings = (ids = []) => {
+    return Array.from(new Set(asArray(ids).filter(Boolean))).map(id => {
+      const camera = items.find(item => item && item.id === id && !item.isDeleted);
+      const linkedLens = getCameraLinkedLensAutoItem(camera);
+      if (!linkedLens) return null;
+      if (linkedLens.status === 'available') return null;
+      const statusLabel = (STATUSES.find(st => st.id === linkedLens.status) || {}).label || linkedLens.status || 'ไม่พร้อมใช้';
+      return `${camera.name || 'กล้อง'} ลิงก์กับ ${linkedLens.name || 'เลนส์'} แต่เลนส์สถานะ ${statusLabel}`;
+    }).filter(Boolean);
   };
 
   const renderCameraKitInline = (item = {}, options = {}) => {
@@ -11252,9 +11321,9 @@ S.N.: ${item.sn || '-'}
       if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return;
       const validIds = Array.from(new Set(asArray(ids))).filter((id) => items.some((item) => item.id === id && !item.isDeleted));
       if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่เลือกได้ใน ' + (label || 'รายการนี้'));
-      const next = Array.from(new Set([...actionTargetIds, ...validIds]));
+      const next = expandCameraLinkedLensIdsForOperation([...actionTargetIds, ...validIds], borrowReturnMode);
       setActionTargets(next);
-      setActionChecklist(actionChecklist.filter(id => next.includes(id)));
+      setActionChecklist(expandCameraLinkedLensIdsForOperation([...actionChecklist, ...validIds], borrowReturnMode).filter(id => next.includes(id)));
       setBorrowReturnStage('select');
     };
 
@@ -11277,14 +11346,22 @@ S.N.: ${item.sn || '-'}
     };
 
     const toggleOperationalItem = (id) => {
-    if (!hasOperationPermission(borrowReturnMode)) { requireOperationalAccess(getOperationPermissionLabel(borrowReturnMode), borrowReturnMode); return; }
+      if (!hasOperationPermission(borrowReturnMode)) { requireOperationalAccess(getOperationPermissionLabel(borrowReturnMode), borrowReturnMode); return; }
+      const targetItem = items.find(item => item && item.id === id && !item.isDeleted);
+      const linkedLens = borrowReturnMode !== 'return' ? getCameraLinkedLensAutoItem(targetItem) : null;
+      const linkedLensCanGo = linkedLens && linkedLens.status === 'available';
+
       if (actionTargetIds.includes(id)) {
-        const next = actionTargetIds.filter(x => x !== id);
+        const removeIds = [id, ...(linkedLensCanGo ? [linkedLens.id] : [])];
+        const next = actionTargetIds.filter(x => !removeIds.includes(x));
         setActionTargets(next);
-        setActionChecklist(actionChecklist.filter(x => x !== id));
+        setActionChecklist(actionChecklist.filter(x => !removeIds.includes(x)));
       } else {
-        setActionTargets([...actionTargetIds, id]);
-        setActionChecklist([...actionChecklist, id]);
+        const next = expandCameraLinkedLensIdsForOperation([...actionTargetIds, id], borrowReturnMode);
+        setActionTargets(next);
+        setActionChecklist(expandCameraLinkedLensIdsForOperation([...actionChecklist, id], borrowReturnMode));
+        if (linkedLensCanGo) pushToast('เพิ่มเลนส์ที่ลิงก์ไว้ให้แล้ว', `${targetItem?.name || 'กล้อง'} + ${linkedLens.name || 'เลนส์'}`, 'info');
+        else if (linkedLens && linkedLens.status !== 'available') pushToast('เลนส์ที่ลิงก์ไว้ยังไม่พร้อมใช้', `${linkedLens.name || 'เลนส์'} จะไม่ถูกเพิ่มอัตโนมัติ`, 'warning');
       }
     };
 
@@ -11293,7 +11370,9 @@ S.N.: ${item.sn || '-'}
         requireOperationalAccess(getOperationPermissionLabel(borrowReturnMode), borrowReturnMode);
         return;
       }
-      setActionTargets(operationalItems.map(item => item.id));
+      const visibleIds = expandCameraLinkedLensIdsForOperation(operationalItems.map(item => item.id), borrowReturnMode);
+      setActionTargets(visibleIds);
+      setActionChecklist(visibleIds);
     };
 
     const normalizeOperationFolderText = (value, fallback = 'ไม่ระบุ') => {
@@ -11354,9 +11433,9 @@ S.N.: ${item.sn || '-'}
       if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return;
       const ids = viewItems.map(item => item.id).filter(Boolean);
       if (ids.length === 0) return;
-      const next = Array.from(new Set([...actionTargetIds, ...ids]));
+      const next = expandCameraLinkedLensIdsForOperation([...actionTargetIds, ...ids], borrowReturnMode);
       setActionTargets(next);
-      setActionChecklist(Array.from(new Set([...actionChecklist, ...ids])));
+      setActionChecklist(expandCameraLinkedLensIdsForOperation([...actionChecklist, ...ids], borrowReturnMode));
     };
 
 
@@ -11770,7 +11849,7 @@ S.N.: ${item.sn || '-'}
                     <div className="min-w-0">
                       <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>ชุดกล้อง</div>
                       <div className={`font-black mt-1 ${theme.textTitle}`}>เลือกกล้องแล้ว ตรวจชุดกล้องจากข้อมูลในคลังได้เลย</div>
-                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ระบบจะแสดงแค่เลนส์ที่ลิงก์กับกล้องและเมมที่คากล้องตามข้อมูลในคลัง ส่วนของเสริมให้เลือกเป็นอุปกรณ์แยก</div>
+                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ระบบจะพาเลนส์ที่ลิงก์กับกล้องเข้ารายการยืม/ออกงานให้อัตโนมัติ ส่วนเมมที่คากล้องจะแสดงเป็นข้อมูลประกอบตามในคลัง</div>
                     </div>
                     <div className="mt-3 space-y-2">
                       {selectedCameraActionItems.slice(0, 3).map(camera => <div key={`kit_nudge_${camera.id}`}>{renderCameraKitInline(camera)}</div>)}
@@ -11782,8 +11861,8 @@ S.N.: ${item.sn || '-'}
                   <div className={`mx-3 mt-3 rounded-[1.35rem] border p-3 sm:p-4 ${isDarkMode ? 'bg-blue-950/18 border-blue-900/60' : 'bg-blue-50 border-blue-200'}`}>
                     <div className="min-w-0">
                       <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>Camera Cabinet</div>
-                      <div className={`font-black mt-1 ${theme.textTitle}`}>ตู้กล้อง: เลือกกล้องหลักก่อน ถ้าต้องใช้เลนส์เสริมหรือเมมเพิ่มค่อยเลือกเป็นรายการแยก</div>
-                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ในคลังจะแสดงข้อมูลง่าย ๆ ว่ากล้องตัวนี้ลิงก์เลนส์อะไร และมีเมมคากล้องเท่าไหร่</div>
+                      <div className={`font-black mt-1 ${theme.textTitle}`}>ตู้กล้อง: เลือกกล้องหลักได้เลย เลนส์ที่ลิงก์ไว้จะติดรายการไปด้วยอัตโนมัติ</div>
+                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ในคลังจะแสดงว่ากล้องลิงก์เลนส์อะไรและมีเมมคากล้องเท่าไหร่ เลนส์เสริมหรือเมมเพิ่มยังเลือกแยกได้เหมือนเดิม</div>
                     </div>
                   </div>
                 )}
@@ -12908,7 +12987,7 @@ S.N.: ${item.sn || '-'}
             <div className="min-w-0">
               <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>FACTORY STYLE INVENTORY</div>
               <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>คลังอุปกรณ์</h2>
-              <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>ค้นหา เปิด เลือกหลายรายการ ยืม ออกงาน รับคืน และจัดการข้อมูลอุปกรณ์จากหน้าเดียว เน้นใช้งานบนคอมให้เร็วและอ่านง่ายขึ้น</p>
+              <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>ค้นหา เปิดแฟ้ม เลือกหลายรายการ แล้วส่งต่อไปหน้า ยืม / ออกงาน / รับคืน แบบใหม่ ไม่เปิดฟอร์มเก่าซ้อนในคลัง</p>
             </div>
             <div className="inventory-header-actions flex flex-wrap gap-2 shrink-0">
               {canAddEditItems && <button type="button" onClick={openAddItemForm} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm"><Icons.Plus className="w-5 h-5 inline-block mr-1" /> เพิ่มอุปกรณ์</button>}
@@ -13464,7 +13543,20 @@ S.N.: ${item.sn || '-'}
                       row.rawHistory?.documentId,
                       row.rawHistory?.ref
                     ]).filter(Boolean).map(v => String(v).toLowerCase().trim()).filter(v => v.length >= 2);
-                    const rowStrongTokens = rowSearchTokens.filter(v => v.length >= 3);
+                    const rowIdentityTokens = rowsInGroup.flatMap((row = {}) => [
+                      row.itemId,
+                      row.sn,
+                      row.rawHistory?.itemId,
+                      row.rawHistory?.sn
+                    ]).filter(Boolean).map(v => String(v).toLowerCase().trim()).filter(v => v.length >= 3);
+                    const rowDocumentTokens = rowsInGroup.flatMap((row = {}) => [
+                      row.rawHistory?.documentRef,
+                      row.rawHistory?.documentId,
+                      row.rawHistory?.ref,
+                      row.documentRef,
+                      row.documentId,
+                      row.ref
+                    ]).filter(Boolean).map(v => String(v).toLowerCase().trim()).filter(v => v.length >= 4);
                     const rowTypeSet = new Set(rowsInGroup.map(row => row.historyType).filter(Boolean));
                     const rowDateMsList = rowsInGroup.map(row => new Date(row.date || 0).getTime()).filter(Number.isFinite);
                     const fallbackProofs = (dedupedProofGroups || []).filter((group = {}) => {
@@ -13473,17 +13565,23 @@ S.N.: ${item.sn || '-'}
                       const typeMatch = groupTypes.length === 0 || groupTypes.some(type => rowTypeSet.has(type)) || (rowTypeSet.has('repair') && groupTypes.some(type => String(type).includes('repair')));
                       if (!typeMatch) return false;
                       const itemMatch = (group.itemRefs || []).some(ref => {
-                        const refText = [ref.itemId, ref.itemName, ref.sn, ref.subject, ref.typeLabel].filter(Boolean).join(' ').toLowerCase();
-                        return rowStrongTokens.some(token => refText.includes(token) || groupText.includes(token));
+                        const refText = [ref.itemId, ref.sn].filter(Boolean).join(' ').toLowerCase();
+                        return rowIdentityTokens.some(token => refText.includes(token) || groupText.includes(token));
                       });
-                      const subjectMatch = rowsInGroup.some(row => {
-                        const subject = String(row.subject || '').toLowerCase().trim();
-                        const staff = String(row.staff || '').toLowerCase().trim();
-                        return (subject.length >= 3 && groupText.includes(subject)) || (staff.length >= 3 && groupText.includes(staff));
+                      // v23.1.29: กันรูปหลักฐานผิดรายการ
+                      // เดิม fallback ใช้ subject/staff เช่น "test" มาช่วย match ทำให้รูปจากรายการอื่นโผล่ในประวัติของอุปกรณ์ได้
+                      // จากนี้ fallback ต้องผูกกับอุปกรณ์จริง หรือเลขเอกสารจริงเท่านั้น
+                      const documentMatch = rowDocumentTokens.some(token => groupText.includes(token));
+                      const snOrIdMatch = (group.itemRefs || []).some(ref => {
+                        const refText = [ref.itemId, ref.sn].filter(Boolean).join(' ').toLowerCase();
+                        return rowsInGroup.some(row => {
+                          const strictTokens = [row.itemId, row.sn].filter(Boolean).map(v => String(v).toLowerCase().trim()).filter(v => v.length >= 3);
+                          return strictTokens.some(token => refText.includes(token) || groupText.includes(token));
+                        });
                       });
                       const dateMs = new Date(group.firstDate || group.representative?.date || group.proof?.createdAt || 0).getTime();
-                      const dateClose = !Number.isFinite(dateMs) || rowDateMsList.length === 0 || rowDateMsList.some(rowMs => Math.abs(rowMs - dateMs) <= 1000 * 60 * 60 * 72);
-                      return (itemMatch || subjectMatch) && dateClose;
+                      const dateClose = !Number.isFinite(dateMs) || rowDateMsList.length === 0 || rowDateMsList.some(rowMs => Math.abs(rowMs - dateMs) <= 1000 * 60 * 60 * 24);
+                      return (snOrIdMatch || itemMatch || documentMatch) && dateClose;
                     }).map(group => group.proof).filter(Boolean);
                     fallbackProofs.forEach((proof, idx) => groupLinkedProofMap.set(String(proof.proofDocId || proof.id || proof.docId || `fallback_${proof.createdAt || 'nodate'}_${idx}`), proof));
 
@@ -15952,8 +16050,19 @@ S.N.: ${item.sn || '-'}
          await setDoc(getSettingsDoc(), currentSettings);
       }
 
+      const formKind = inferCameraHelperKind({ ...formData, category: finalCategory });
+      const selectedLinkedLens = formKind === 'camera' ? getLinkedLensItem(formData) : null;
+      const normalizedCameraLinkFields = formKind === 'camera'
+        ? {
+            linkedLensId: selectedLinkedLens?.id || formData.linkedLensId || formData.currentLensId || formData.attachedLensId || formData.lensId || '',
+            linkedLensName: selectedLinkedLens?.name || formData.linkedLensName || formData.currentLensName || formData.currentLens || formData.attachedLens || formData.defaultLens || '',
+            currentLens: selectedLinkedLens?.name || formData.currentLens || formData.linkedLensName || formData.attachedLens || formData.defaultLens || ''
+          }
+        : {};
+
       const itemData = { 
-        ...formData, 
+        ...formData,
+        ...normalizedCameraLinkFields, 
         category: finalCategory, 
         location: finalLocation,
         project: finalProject,
@@ -16068,22 +16177,38 @@ S.N.: ${item.sn || '-'}
   };
 
   const handleOpenRowBorrow = (e, item) => {
-    e.stopPropagation();
+    e?.stopPropagation?.();
+    if (!requireOperationalAccess('เปิดหน้ายืมอุปกรณ์', 'borrow')) return;
     try {
+      if (!item || item.status !== 'available') return alert('❌ อุปกรณ์นี้ยังไม่พร้อมให้ยืม');
+      const ids = expandCameraLinkedLensIdsForOperation([item.id], 'borrow');
+      setBorrowReturnMode('borrow');
+      setBorrowReturnStage('select');
       setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' }); 
       setBorrowProofFiles([]);
-      setBorrowTargetIds([item.id]);
-      setPackingChecklist([]);
+      setBorrowTargetIds(ids);
+      setPackingChecklist(ids);
+      setSelectedItems([]);
+      setActiveWorkspace('borrow');
+      window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
     } catch (err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
   const handleOpenRowEvent = (e, item) => {
-    e.stopPropagation();
+    e?.stopPropagation?.();
+    if (!requireOperationalAccess('เปิดหน้าออกงาน', 'event')) return;
     try {
+      if (!item || item.status !== 'available') return alert('❌ อุปกรณ์นี้ยังไม่พร้อมนำออกงาน');
+      const ids = expandCameraLinkedLensIdsForOperation([item.id], 'event');
+      setBorrowReturnMode('event');
+      setBorrowReturnStage('select');
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' }); 
       setEventProofFiles([]);
-      setEventTargetIds([item.id]);
-      setEventChecklist([]);
+      setEventTargetIds(ids);
+      setEventChecklist(ids);
+      setSelectedItems([]);
+      setActiveWorkspace('event');
+      window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
     } catch (err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
@@ -16229,7 +16354,10 @@ S.N.: ${item.sn || '-'}
       const uploadedProofs = await uploadProofsOrConfirm(borrowProofFiles, `หลักฐานการยืม • ${borrowData.borrower || ''}`);
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('BR');
-      const selectedBorrowItems = packingChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
+      const linkedLensWarnings = getCameraLinkedLensUnavailableWarnings(packingChecklist);
+      if (linkedLensWarnings.length > 0) return alert('⚠️ กล้องบางตัวมีเลนส์ที่ลิงก์ไว้แต่เลนส์ยังไม่พร้อมใช้งาน:\n' + linkedLensWarnings.join('\n') + '\n\nกรุณาตรวจสถานะเลนส์ก่อนบันทึก เพื่อให้รายการยืมตรงกับของจริง');
+      const finalBorrowChecklist = expandCameraLinkedLensIdsForOperation(packingChecklist, 'borrow');
+      const selectedBorrowItems = finalBorrowChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
       const documentSnapshot = makeBorrowเอกสารSnapshot({
         type: 'borrow',
         ref: docRef,
@@ -16288,7 +16416,10 @@ S.N.: ${item.sn || '-'}
       const uploadedProofs = await uploadProofsOrConfirm(eventProofFiles, `หลักฐานออกงาน • ${eventData.eventName || ''}`);
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('EV');
-      const selectedEventItems = eventChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
+      const linkedLensWarnings = getCameraLinkedLensUnavailableWarnings(eventChecklist);
+      if (linkedLensWarnings.length > 0) return alert('⚠️ กล้องบางตัวมีเลนส์ที่ลิงก์ไว้แต่เลนส์ยังไม่พร้อมใช้งาน:\n' + linkedLensWarnings.join('\n') + '\n\nกรุณาตรวจสถานะเลนส์ก่อนบันทึก เพื่อให้รายการออกงานตรงกับของจริง');
+      const finalEventChecklist = expandCameraLinkedLensIdsForOperation(eventChecklist, 'event');
+      const selectedEventItems = finalEventChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
       const documentSnapshot = makeBorrowเอกสารSnapshot({
         type: 'event',
         ref: docRef,
@@ -16502,11 +16633,15 @@ S.N.: ${item.sn || '-'}
         if (!proceed) return;
       }
       
-      setBorrowTargetIds([...availableIds]);
-      setPackingChecklist([]);
+      const ids = expandCameraLinkedLensIdsForOperation(availableIds, 'borrow');
+      setBorrowReturnMode('borrow');
+      setBorrowReturnStage('select');
+      setBorrowTargetIds(ids);
+      setPackingChecklist(ids);
       setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' });
       setBorrowProofFiles([]);
       setShowBundleModal(false);
+      setActiveWorkspace('borrow');
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
@@ -16520,11 +16655,15 @@ S.N.: ${item.sn || '-'}
         if (!proceed) return;
       }
       
-      setEventTargetIds([...availableIds]);
-      setEventChecklist([]);
+      const ids = expandCameraLinkedLensIdsForOperation(availableIds, 'event');
+      setBorrowReturnMode('event');
+      setBorrowReturnStage('select');
+      setEventTargetIds(ids);
+      setEventChecklist(ids);
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setEventProofFiles([]);
       setShowBundleModal(false);
+      setActiveWorkspace('event');
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
@@ -16536,16 +16675,19 @@ S.N.: ${item.sn || '-'}
       });
       if (outIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ในเซ็ตนี้ที่รอรับคืน');
       
+      setBorrowReturnMode('return');
+      setBorrowReturnStage('select');
       setReturnTargetIds([...outIds]);
-      setReturnChecklist([]);
+      setReturnChecklist([...outIds]);
       setReturnData({ staff: '', newStaff: '' });
       setShowBundleModal(false);
+      setActiveWorkspace('return');
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
   const openItemEditor = (item) => {
     if (!item) return;
-    setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newProject: '', newOwner: item.owner || '', isPersonalItem: !!item.owner, assetStatus: item.assetStatus || 'active', equipmentType: item.equipmentType || item.subType || item.type || '', shortCode: item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || '', ownerDepartment: item.ownerDepartment || item.ownerTeam || item.mainOwnerTeam || item.responsibleTeam || '', mount: item.mount || item.lensMount || item.cameraMount || '', compatibleWith: item.compatibleWith || item.useWith || item.supportedDevices || '', linkedLensId: item.linkedLensId || item.currentLensId || item.attachedLensId || '', linkedLensName: item.linkedLensName || item.currentLens || item.attachedLens || item.defaultLens || item.compatibleWith || '', currentLens: item.currentLens || item.attachedLens || item.defaultLens || item.linkedLensName || item.compatibleWith || '', batteryModel: item.batteryModel || item.batteryType || item.batteryCode || '', memoryCapacity: item.memoryCapacity || item.capacity || item.storageCapacity || '', memoryType: item.memoryType || item.cardType || '', memorySpeed: item.memorySpeed || item.cardSpeed || item.speedClass || '', memoryAssignMode: item.memoryAssignMode || item.memoryOwnerMode || item.memoryMode || '', assignedCamera: item.assignedCamera || item.assignedCameraName || item.defaultCamera || '' });
+    setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newProject: '', newOwner: item.owner || '', isPersonalItem: !!item.owner, assetStatus: item.assetStatus || 'active', equipmentType: item.equipmentType || item.subType || item.type || '', shortCode: item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || '', ownerDepartment: item.ownerDepartment || item.ownerTeam || item.mainOwnerTeam || item.responsibleTeam || '', mount: item.mount || item.lensMount || item.cameraMount || '', compatibleWith: item.compatibleWith || item.useWith || item.supportedDevices || '', linkedLensId: item.linkedLensId || item.currentLensId || item.attachedLensId || item.lensId || item.defaultLensId || item.kitLensId || item.cameraLensId || item.pairedLensId || item.mainLensId || '', linkedLensName: item.linkedLensName || item.currentLensName || item.attachedLensName || item.defaultLensName || item.kitLensName || item.cameraLensName || item.pairedLensName || item.mainLensName || item.currentLens || item.attachedLens || item.defaultLens || item.compatibleWith || '', currentLens: item.currentLens || item.currentLensName || item.attachedLens || item.attachedLensName || item.defaultLens || item.defaultLensName || item.linkedLensName || item.compatibleWith || '', batteryModel: item.batteryModel || item.batteryType || item.batteryCode || '', memoryCapacity: item.memoryCapacity || item.capacity || item.storageCapacity || '', memoryType: item.memoryType || item.cardType || '', memorySpeed: item.memorySpeed || item.cardSpeed || item.speedClass || '', memoryAssignMode: item.memoryAssignMode || item.memoryOwnerMode || item.memoryMode || '', assignedCamera: item.assignedCamera || item.assignedCameraName || item.defaultCamera || '' });
     setShowForm(true);
   };
 
@@ -16594,41 +16736,58 @@ S.N.: ${item.sn || '-'}
   };
 
   const handleOpenBatchBorrow = () => {
-    if (!requireOperationalAccess('เปิดรายการยืม')) return;
+    if (!requireOperationalAccess('เปิดหน้ายืมอุปกรณ์', 'borrow')) return;
     try {
       const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
       if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมให้ยืมในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้")');
+      const ids = expandCameraLinkedLensIdsForOperation(validIds, 'borrow');
+      setBorrowReturnMode('borrow');
+      setBorrowReturnStage('select');
       setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' });
-      
-      setBorrowTargetIds([...validIds]);
-      setPackingChecklist([]);
+      setBorrowProofFiles([]);
+      setBorrowTargetIds(ids);
+      setPackingChecklist(ids);
+      setSelectedItems([]);
+      setActiveWorkspace('borrow');
+      window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
   const handleOpenBatchEvent = () => {
-    if (!requireOperationalAccess('เปิดรายการออกงาน')) return;
+    if (!requireOperationalAccess('เปิดหน้าออกงาน', 'event')) return;
     try {
       const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
       if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมออกงานในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้")');
+      const ids = expandCameraLinkedLensIdsForOperation(validIds, 'event');
+      setBorrowReturnMode('event');
+      setBorrowReturnStage('select');
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
-      
-      setEventTargetIds([...validIds]);
-      setEventChecklist([]);
+      setEventProofFiles([]);
+      setEventTargetIds(ids);
+      setEventChecklist(ids);
+      setSelectedItems([]);
+      setActiveWorkspace('event');
+      window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
   const handleOpenBatchReturn = () => {
-    if (!requireOperationalAccess('เปิดรายการรับคืน')) return;
+    if (!requireOperationalAccess('เปิดหน้ารับคืน', 'return')) return;
     try {
       const validIds = selectedItems.filter(id => {
         const st = items.find(i => i.id === id)?.status;
         return st === 'borrowed' || st === 'out-for-event';
       });
       if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่สามารถคืนได้ในรายการที่คุณเลือก\n(อุปกรณ์ต้องมีสถานะ "ถูกยืม" หรือ "ออกงาน")');
+      setBorrowReturnMode('return');
+      setBorrowReturnStage('select');
       setReturnData({ staff: '', newStaff: '' });
-      
+      setReturnProofFiles([]);
       setReturnTargetIds([...validIds]);
-      setReturnChecklist([]);
+      setReturnChecklist([...validIds]);
+      setSelectedItems([]);
+      setActiveWorkspace('return');
+      window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
@@ -16638,10 +16797,13 @@ S.N.: ${item.sn || '-'}
       const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
       if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมให้ยืมในรายการที่สแกนไว้\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้")');
       setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' });
+      const ids = expandCameraLinkedLensIdsForOperation(validIds, 'borrow');
+      setBorrowReturnMode('borrow');
+      setBorrowReturnStage('select');
       setBorrowProofFiles([]);
-      setBorrowTargetIds([...validIds]);
-      setPackingChecklist([]);
-      closeScannerPage('overview');
+      setBorrowTargetIds(ids);
+      setPackingChecklist(ids);
+      closeScannerPage('borrow');
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
@@ -16651,10 +16813,13 @@ S.N.: ${item.sn || '-'}
       const validIds = selectedItems.filter(id => items.find(i => i.id === id)?.status === 'available');
       if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่พร้อมออกงานในรายการที่สแกนไว้\n(อุปกรณ์ต้องมีสถานะ "พร้อมใช้")');
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
+      const ids = expandCameraLinkedLensIdsForOperation(validIds, 'event');
+      setBorrowReturnMode('event');
+      setBorrowReturnStage('select');
       setEventProofFiles([]);
-      setEventTargetIds([...validIds]);
-      setEventChecklist([]);
-      closeScannerPage('overview');
+      setEventTargetIds(ids);
+      setEventChecklist(ids);
+      closeScannerPage('event');
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
@@ -16667,26 +16832,33 @@ S.N.: ${item.sn || '-'}
       });
       if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่สามารถรับคืนได้ในรายการที่สแกนไว้\n(อุปกรณ์ต้องมีสถานะ "ถูกยืม" หรือ "ออกงาน")');
       setReturnData({ staff: '', newStaff: '' });
+      setBorrowReturnMode('return');
+      setBorrowReturnStage('select');
       setReturnProofFiles([]);
       setReturnTargetIds([...validIds]);
-      setReturnChecklist([]);
-      closeScannerPage('overview');
+      setReturnChecklist([...validIds]);
+      closeScannerPage('return');
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
 
 
 
   const openReturnForItems = (ids = []) => {
-    if (!requireOperationalAccess('รับคืนอุปกรณ์')) return;
+    if (!requireOperationalAccess('รับคืนอุปกรณ์', 'return')) return;
     const validIds = Array.from(new Set((ids || []).filter(id => {
       const st = items.find(i => i.id === id)?.status;
       return st === 'borrowed' || st === 'out-for-event';
     })));
     if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่สามารถรับคืนได้');
+    setBorrowReturnMode('return');
+    setBorrowReturnStage('select');
     setReturnData({ staff: '', newStaff: '' });
     setReturnTargetIds(validIds);
-    setReturnChecklist([]);
+    setReturnChecklist(validIds);
     setReturnProofFiles([]);
+    setSelectedItems([]);
+    setActiveWorkspace('return');
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
   const handleCreateBundleFromSelection = () => {
@@ -17892,11 +18064,12 @@ S.N.: ${item.sn || '-'}
 
     const loginAccount = foundAccount || legacyCentral;
     if (loginAccount) {
+      const safeUsername = loginAccount.username || 'admin';
       const safeAccount = {
         id: loginAccount.id,
-        name: loginAccount.name || loginAccount.username || 'ผู้ใช้งาน',
-        username: loginAccount.username || 'admin',
-        role: loginAccount.role || 'staff'
+        name: loginAccount.name || safeUsername || 'ผู้ใช้งาน',
+        username: safeUsername,
+        role: String(safeUsername || '').trim().toLowerCase() === 'admin' ? 'owner' : (loginAccount.role || 'staff')
       };
       setCurrentOperator(safeAccount);
       setIsAdmin(true);
@@ -18992,6 +19165,33 @@ S.N.: ${item.sn || '-'}
     const staffValue = safeText(printSlipData.staffIn || printSlipData.returnStaff || printSlipData.staffOut || printSlipData.operatorName || printSlipData.createdBy);
     const dueLabel = isReturnSlip ? 'วันที่รับคืน' : isPrepSlip ? 'วันที่ใช้งาน' : 'กำหนดคืน';
     const dueValue = isReturnSlip ? formatSlipDate(printSlipData.date, true) : formatSlipDate(printSlipData.expectedReturn, false);
+    const sanitizeSlipFileName = (value) => String(value || '')
+      .trim()
+      .replace(/[\\/:*?"<>|#%{}$!'@+`=]/g, '-')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 120);
+    const slipRefForFileName = sanitizeSlipFileName(printSlipData.ref || printSlipData.id || makeเอกสารRef(isReturnSlip ? 'RET' : isEventSlip ? 'EVT' : 'BR'));
+    const slipTypeForFileName = isReturnSlip ? 'RETURN' : isEventSlip ? 'EVENT' : isPrepSlip ? 'PREP' : 'BORROW';
+    const slipPrintFileName = sanitizeSlipFileName(`MDEC-STOCK-${slipTypeForFileName}-${slipRefForFileName}`);
+    const printSlipWithFileName = () => {
+      if (typeof window === 'undefined' || typeof document === 'undefined') return;
+      const previousTitle = document.title;
+      document.title = slipPrintFileName;
+      let restored = false;
+      const restoreTitle = () => {
+        if (restored) return;
+        restored = true;
+        document.title = previousTitle || 'MDEC Stock';
+        window.removeEventListener('afterprint', restoreTitle);
+      };
+      window.addEventListener('afterprint', restoreTitle, { once: true });
+      window.setTimeout(() => {
+        window.print();
+        window.setTimeout(restoreTitle, 3000);
+      }, 80);
+    };
 
     return (
       <div className="factory-stock-polish min-h-screen bg-slate-950 text-slate-100 font-sans print:bg-white print:text-slate-950">
@@ -19008,10 +19208,10 @@ S.N.: ${item.sn || '-'}
             <div>
               <div className="text-[11px] font-black tracking-[0.22em] text-blue-300 uppercase">MDEC STOCK DOCUMENT</div>
               <h1 className="text-xl font-black text-white">{docTitle}</h1>
-              <p className="text-xs text-slate-400 font-bold">เอกสารหลังบันทึกรายการ • hotfix ป้องกันหน้าเว็บค้างหลังบันทึก</p>
+              <p className="text-xs text-slate-400 font-bold">เอกสารหลังบันทึกรายการ • ชื่อไฟล์ PDF: {slipPrintFileName}</p>
             </div>
             <div className="flex gap-2">
-              <button type="button" onClick={() => window.print()} className="rounded-2xl bg-blue-600 px-5 py-2.5 text-sm font-black text-white hover:bg-blue-500">พิมพ์เอกสาร</button>
+              <button type="button" onClick={printSlipWithFileName} className="rounded-2xl bg-blue-600 px-5 py-2.5 text-sm font-black text-white hover:bg-blue-500">พิมพ์เอกสาร</button>
               <button type="button" onClick={() => setพิมพ์SlipData(null)} className="rounded-2xl border border-slate-700 bg-slate-800 px-5 py-2.5 text-sm font-black text-white hover:bg-slate-700">ปิด</button>
             </div>
           </div>
@@ -23062,7 +23262,7 @@ S.N.: ${item.sn || '-'}
       })()}
 
       {/* 📋 Borrow Modal */}
-      {borrowTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && !['borrow','event','return'].includes(activeWorkspace) && (
+      {false && borrowTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && !['borrow','event','return'].includes(activeWorkspace) && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`operational-modal-shell borrow-operation-modal rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
@@ -23195,7 +23395,7 @@ S.N.: ${item.sn || '-'}
       )}
 
       {/* 🚚 Event Modal */}
-      {eventTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && !['borrow','event','return'].includes(activeWorkspace) && (
+      {false && eventTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && !['borrow','event','return'].includes(activeWorkspace) && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`operational-modal-shell event-operation-modal rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
@@ -23328,7 +23528,7 @@ S.N.: ${item.sn || '-'}
       )}
 
       {/* 📋 Return Modal */}
-      {returnTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && !['borrow','event','return'].includes(activeWorkspace) && (
+      {false && returnTargetIds.length > 0 && activeWorkspace !== 'borrowReturn' && !['borrow','event','return'].includes(activeWorkspace) && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`operational-modal-shell return-operation-modal rounded-3xl p-4 sm:p-6 max-w-lg w-[calc(100vw-1.5rem)] sm:w-full shadow-2xl max-h-[92vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
