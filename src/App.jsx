@@ -13827,131 +13827,60 @@ S.N.: ${item.sn || '-'}
                     const sampleItems = rowsInGroup.slice(0, 5);
                     const extraItems = Math.max(0, rowsInGroup.length - sampleItems.length);
                     return (
-                    <div key={entry.groupKey || entry.id} className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.9fr)_auto] gap-4 items-stretch">
+                    <div key={entry.groupKey || entry.id} className={`px-3 py-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900/70 border-slate-800 hover:border-slate-700' : 'bg-slate-50 border-slate-200 hover:border-slate-300'} transition-colors`}>
+                      <div className={`grid gap-3 items-start ${canDeleteItems ? 'grid-cols-[auto_minmax(0,1fr)] xl:grid-cols-[auto_minmax(0,1fr)_auto]' : 'grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto]'}`}>
+                        {canDeleteItems && <input type="checkbox" className="stock-checkbox mt-2" checked={rowsInGroup.every(row => isHistorySelected(row.id))} onChange={() => {
+                          const groupIds = rowsInGroup.map(row => row.id);
+                          const allPicked = groupIds.every(id => selectedHistoryRecordIds.includes(id));
+                          setSelectedHistoryRecordIds(prev => allPicked ? prev.filter(id => !groupIds.includes(id)) : Array.from(new Set([...prev, ...groupIds])));
+                        }} />}
+
                         <div className="min-w-0">
-                          <div className="flex items-start gap-3">
-                            {canDeleteItems && <input type="checkbox" className="stock-checkbox mt-1" checked={rowsInGroup.every(row => isHistorySelected(row.id))} onChange={() => {
-                              const groupIds = rowsInGroup.map(row => row.id);
-                              const allPicked = groupIds.every(id => selectedHistoryRecordIds.includes(id));
-                              setSelectedHistoryRecordIds(prev => allPicked ? prev.filter(id => !groupIds.includes(id)) : Array.from(new Set([...prev, ...groupIds])));
-                            }} />}
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className={`px-2.5 py-1 rounded-xl border text-xs font-black ${getHistoryTypeTone(entry.historyType)}`}>{operationLabel}</span>
-                                {isGroup && <span className="px-2.5 py-1 rounded-xl border border-cyan-500/25 bg-cyan-500/10 text-cyan-200 text-xs font-black">{rowsInGroup.length} อุปกรณ์</span>}
-                                {totalProofs > 0 && <span className="px-2.5 py-1 rounded-xl border border-pink-500/25 bg-pink-500/10 text-pink-200 text-xs font-black">หลักฐาน {totalProofs} รูป</span>}
-                              </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded-lg border text-[11px] font-black ${getHistoryTypeTone(entry.historyType)}`}>{operationLabel}</span>
+                            {isGroup && <span className="px-2 py-0.5 rounded-lg border border-cyan-500/25 bg-cyan-500/10 text-cyan-200 text-[11px] font-black">{rowsInGroup.length} อุปกรณ์</span>}
+                            <span className={`text-[11px] font-bold ${theme.textMuted}`}>{entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-'} • โดย {entry.staff || '-'}</span>
+                          </div>
 
-                              <div className="mt-3 flex flex-wrap items-baseline gap-2">
-                                <div className={`text-xs font-black uppercase tracking-wide ${theme.textMuted}`}>{isGroup ? 'รายการแบบกลุ่ม' : 'รายการเดี่ยว'}</div>
-                                <div className={`text-xl font-black leading-tight ${theme.textTitle}`}>{displayTitle}</div>
-                              </div>
+                          <div className="mt-1 flex flex-wrap items-baseline gap-2">
+                            <div className={`text-lg font-black leading-tight truncate ${theme.textTitle}`}>{displayTitle}</div>
+                            {!isGroup && entry.sn && <div className={`text-xs font-bold ${theme.textMuted}`}>S.N. {entry.sn}</div>}
+                          </div>
 
-                              <div className={`mt-2 text-sm font-bold ${theme.textMuted}`}>
-                                {entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-'} • โดย {entry.staff || '-'}
-                              </div>
-
-                              {entry.isAuditLog ? (
-                                <div className={`mt-3 rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-                                  <div className={`text-xs font-black ${theme.textMuted}`}>รายละเอียดการกระทำ</div>
-                                  <div className={`mt-1 text-sm font-black ${theme.textTitle}`}>{entry.subject || '-'}</div>
-                                  <div className={`mt-1 text-xs font-bold whitespace-pre-line ${theme.textMuted}`}>{entry.note || '-'}</div>
-                                </div>
-                              ) : isGroup ? (
-                                <div className={`mt-3 rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-                                  <div className={`text-xs font-black mb-2 ${theme.textMuted}`}>อุปกรณ์ในกลุ่มนี้</div>
-                                  <div className="flex flex-wrap gap-2">
-                                    {sampleItems.map((row, idx) => (
-                                      <span key={row.id || idx} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-slate-800/70 border-slate-700 text-slate-100' : 'bg-slate-100 border-slate-200 text-slate-800'}`}>
-                                        {row.itemName || '-'}{row.sn ? ` • ${row.sn}` : ''}
-                                      </span>
-                                    ))}
-                                    {extraItems > 0 && <span className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>+ อีก {extraItems} รายการ</span>}
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className={`mt-3 rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-white border-slate-200'}`}>
-                                  <div className={`text-xs font-black ${theme.textMuted}`}>อุปกรณ์</div>
-                                  <div className={`mt-1 text-sm font-black ${theme.textTitle}`}>{entry.itemName || '-'}</div>
-                                  <div className={`mt-1 text-xs font-bold ${theme.textMuted}`}>S.N. {entry.sn || '-'}</div>
-                                </div>
-                              )}
-
-                              <div className={`text-xs font-bold mt-3 ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง: {entry.subject || '-'}{isGroup && rowsInGroup.length > 3 ? ` • และอีก ${rowsInGroup.length - 3} รายการ` : ''}</div>
+                          {entry.isAuditLog ? (
+                            <div className="mt-1.5">
+                              <div className={`text-sm font-black ${theme.textTitle}`}>{entry.subject || '-'}</div>
+                              <div className={`mt-1 text-xs font-bold whitespace-pre-line leading-relaxed ${theme.textMuted}`}>{entry.note || '-'}</div>
                             </div>
-                          </div>
-                        </div>
-
-                        <div className={`rounded-2xl border p-3 min-h-[132px] flex flex-col justify-center ${isDarkMode ? 'bg-slate-950/55 border-slate-800' : 'bg-white border-slate-200'}`}>
-                          <div className="flex items-center justify-between gap-2 mb-3">
-                            <div className={`text-xs font-black ${theme.textMuted}`}>หลักฐานที่เกี่ยวข้อง</div>
-                            {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`px-2.5 py-1 rounded-lg border text-[11px] font-black ${theme.btnSecondary}`}>ดูทั้งหมด</button>}
-                          </div>
-                          {previewProofs.length > 0 ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4 gap-2">
-                              {previewProofs.map((proof, idx) => {
-                                const previewSrc = proof?.thumbUrl || proof?.url || proof?.dataUrl || '';
-                                const proofDeleteGroup = {
-                                  groupId: getProofUniqueKey(proof),
-                                  proof,
-                                  representative: entry,
-                                  entries: rowsInGroup,
-                                  itemRefs: rowsInGroup.map((row = {}) => ({
-                                    itemId: row.itemId,
-                                    itemName: row.itemName,
-                                    sn: row.sn,
-                                    subject: row.subject,
-                                    typeLabel: row.typeLabel
-                                  })).filter(ref => ref.itemId || ref.itemName || ref.sn)
-                                };
-                                return (
-                                  <div
-                                    key={proof?.proofDocId || proof?.id || idx}
-                                    className={`relative aspect-[4/3] rounded-2xl border overflow-hidden shrink-0 group ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'}`}
-                                  >
-                                    <button
-                                      type="button"
-                                      onClick={() => openProofImage(proof)}
-                                      className="block w-full h-full"
-                                      title="เปิดรูปหลักฐาน"
-                                    >
-                                      {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-contain p-1" loading="lazy" /> : <div className={`h-full flex items-center justify-center text-[10px] font-black ${theme.textMuted}`}>รูป</div>}
-                                    </button>
-                                    {canDeleteItems && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => { e.stopPropagation(); handleDeleteProofGroup(proofDeleteGroup); }}
-                                        className="absolute right-1.5 bottom-1.5 rounded-lg bg-rose-600/95 px-2 py-1 text-[10px] font-black text-white shadow-lg opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-                                        title="ซ่อน/ลบรูปนี้จากรายการประวัติส่วนกลาง"
-                                      >
-                                        ลบ
-                                      </button>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                              {totalProofs > previewProofs.length && (
-                                <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`aspect-[4/3] rounded-2xl border text-xs font-black ${theme.btnSecondary}`}>+{totalProofs - previewProofs.length}<br />รูป</button>
-                              )}
+                          ) : isGroup ? (
+                            <div className={`mt-1.5 text-xs font-bold ${theme.textMuted}`}>
+                              {sampleItems.map(row => `${row.itemName || '-'}${row.sn ? ` (${row.sn})` : ''}`).join(' • ')}{extraItems > 0 ? ` • +อีก ${extraItems} รายการ` : ''}
                             </div>
                           ) : (
-                            <div className={`rounded-2xl border border-dashed p-5 text-center text-sm font-black ${isDarkMode ? 'border-slate-700 text-slate-500' : 'border-slate-300 text-slate-400'}`}>
-                              <div>ยังไม่มีรูปหลักฐานในรายการนี้</div>
-                              {canUseOperationalTools && (
-                                <div className="mt-3 flex flex-col sm:flex-row gap-2 justify-center">
-                                  <button type="button" onClick={() => handleRecoverMissingProofForHistoryCenter(entry)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>กู้รูปที่ระบบทำหลุด</button>
-                                  <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-xs font-black">อัปโหลดรูปใหม่</button>
-                                </div>
-                              )}
-                            </div>
+                            <div className={`mt-1.5 text-xs font-bold leading-relaxed ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง: {entry.subject || '-'}</div>
                           )}
+
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            {totalProofs > 0 ? (
+                              <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border border-pink-500/25 bg-pink-500/10 text-pink-200 text-[11px] font-black">หลักฐาน {totalProofs} รูป</button>
+                            ) : (
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-[11px] font-black ${isDarkMode ? 'border-slate-700 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-white text-slate-400'}`}>ไม่มีรูปหลักฐาน</span>
+                            )}
+                            {previewProofs.slice(0, 1).map((proof, idx) => {
+                              const previewSrc = proof?.thumbUrl || proof?.url || proof?.dataUrl || '';
+                              return previewSrc ? (
+                                <button key={proof?.proofDocId || proof?.id || idx} type="button" onClick={() => openProofImage(proof)} className={`w-10 h-10 rounded-lg border overflow-hidden ${isDarkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-200 bg-white'}`} title="เปิดรูปหลักฐาน">
+                                  <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-cover" loading="lazy" />
+                                </button>
+                              ) : null;
+                            })}
+                          </div>
                         </div>
 
-                        <div className="flex xl:flex-col gap-2 justify-start shrink-0">
-                          {!entry.isAuditLog && <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-4 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เปิด</button>}
-                          {!entry.isAuditLog && <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-sm font-black">{isGroup ? 'เพิ่มรูปกลุ่ม' : 'เพิ่มรูป'}</button>}
-                          {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`px-4 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>ดูรูป</button>}
+                        <div className={`${canDeleteItems ? 'col-span-2 xl:col-span-1' : ''} flex flex-wrap xl:justify-end gap-2 shrink-0`}>
+                          {!entry.isAuditLog && <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิด</button>}
+                          {!entry.isAuditLog && <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-xs font-black">เพิ่มรูป</button>}
+                          {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูรูป</button>}
                         </div>
                       </div>
                     </div>
@@ -16522,6 +16451,59 @@ S.N.: ${item.sn || '-'}
     if (type === 'deleted') { setShowTrashModal(true); return; }
   };
 
+
+  const formatAuditFieldValue = (value) => {
+    if (value === undefined || value === null || value === '') return 'ไม่มีข้อมูล';
+    if (Array.isArray(value)) return value.filter(Boolean).join(', ') || 'ไม่มีข้อมูล';
+    if (typeof value === 'boolean') return value ? 'ใช่' : 'ไม่ใช่';
+    return String(value);
+  };
+
+  const summarizeItemChangesForAudit = (oldItem = {}, nextItem = {}) => {
+    const fieldMap = [
+      ['name', 'ชื่ออุปกรณ์'],
+      ['sn', 'S.N.'],
+      ['category', 'หมวดหมู่'],
+      ['location', 'ที่เก็บ'],
+      ['department', 'ฝ่ายที่รับผิดชอบ'],
+      ['owner', 'เจ้าของ/ฝ่ายดูแล'],
+      ['project', 'โครงการ'],
+      ['status', 'สถานะใช้งาน'],
+      ['assetStatus', 'สถานะคลัง'],
+      ['qrTagged', 'ติด QR แล้ว'],
+      ['linkedLensId', 'เลนส์ที่ลิงก์ (รหัส)'],
+      ['linkedLensName', 'เลนส์ที่ลิงก์'],
+      ['currentLens', 'เลนส์ที่คากล้อง'],
+      ['linkedMemoryId', 'เมมที่ลิงก์ (รหัส)'],
+      ['linkedMemoryName', 'เมมที่ลิงก์'],
+      ['memoryCapacity', 'ความจุเมม/เมมที่คากล้อง'],
+      ['memoryType', 'ประเภทเมม'],
+      ['memorySpeed', 'ความเร็วเมม'],
+      ['internalNote', 'หมายเหตุภายใน']
+    ];
+
+    const changes = fieldMap
+      .map(([key, label]) => {
+        const before = formatAuditFieldValue(oldItem?.[key]);
+        const after = formatAuditFieldValue(nextItem?.[key]);
+        return before === after ? null : `- ${label}: ${before} → ${after}`;
+      })
+      .filter(Boolean);
+
+    if (changes.length === 0) {
+      return `กดบันทึกข้อมูลอุปกรณ์ ${nextItem.name || oldItem.name || '-'} แต่ไม่มีข้อมูลหลักที่เปลี่ยนแปลง`;
+    }
+
+    return [
+      `แก้ไขข้อมูลอุปกรณ์: ${nextItem.name || oldItem.name || '-'}`,
+      `S.N. ${nextItem.sn || oldItem.sn || '-'}`,
+      '',
+      'รายการที่เปลี่ยน:',
+      ...changes.slice(0, 12),
+      changes.length > 12 ? `- และอีก ${changes.length - 12} รายการ` : ''
+    ].filter(Boolean).join('\n');
+  };
+
   const handleSave = async () => {
     if (!canAddEditItems) return alert('❌ บัญชีนี้ไม่มีสิทธิ์เพิ่มหรือแก้ไขอุปกรณ์');
     const nameInput = formData.name || '';
@@ -16644,7 +16626,10 @@ S.N.: ${item.sn || '-'}
           itemData.history = history;
         }
         await setDoc(getItemDoc(formData.id), itemData, { merge: true });
-        logAction(projectChanged ? 'เปลี่ยนโครงการอุปกรณ์' : 'แก้ไขข้อมูล', itemData.name, projectChanged ? `ย้ายจาก ${projectDisplayName(oldItem?.project)} → ${finalProject || 'ยังไม่ผูกโครงการจัดซื้อ'}` : `แก้ไขรายละเอียดอุปกรณ์ S.N.: ${itemData.sn || '-'}`);
+        const auditChangeSummary = summarizeItemChangesForAudit(oldItem, itemData);
+        logAction(projectChanged ? 'เปลี่ยนโครงการอุปกรณ์' : 'แก้ไขข้อมูล', itemData.name, projectChanged ? `ย้ายจาก ${projectDisplayName(oldItem?.project)} → ${finalProject || 'ยังไม่ผูกโครงการจัดซื้อ'}
+
+${auditChangeSummary}` : auditChangeSummary);
       } else {
         const newId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
         await setDoc(getItemDoc(newId), { ...itemData, createdBy: currentOperator?.name || 'Admin', history: [] });
