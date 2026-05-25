@@ -75,8 +75,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.56 Inventory Filter Right Mini Popup';
-const APP_UPDATE_NOTE = 'Inventory Filter Right Mini Popup: ปรับตัวกรองหน้าคลังให้เป็นหน้าต่างเล็กด้านขวา ลดขนาดลง ใช้ง่ายขึ้น และไม่บังพื้นที่มากเกินไป';
+const APP_VERSION = 'v23.1.57 Operation Picker No Reflow Selection';
+const APP_UPDATE_NOTE = 'Operation Picker No Reflow Selection: แก้อาการการ์ดอุปกรณ์ขยับตอนเลือก โดยซ่อนแถบสรุป/คำแนะนำที่แทรกใน flow และใช้แถบลอยด้านล่างแทน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11746,7 +11746,7 @@ S.N.: ${item.sn || '-'}
           key={`row_${item.id}`}
           type="button"
           onClick={() => toggleOperationalItem(item.id)}
-          className={`w-full rounded-2xl border px-3 py-3 text-left transition-all ${selected ? `${modeInfo.activeClass} ring-2 ring-emerald-400/40 shadow-[0_10px_28px_rgba(16,185,129,0.12)]` : (isDarkMode ? 'bg-slate-900/70 border-slate-800 hover:border-slate-600 hover:bg-slate-900' : 'bg-white border-slate-200 hover:border-blue-200 hover:bg-slate-50')}`}
+          className={`w-full rounded-2xl border px-3 py-3 text-left transition-colors ${selected ? `${modeInfo.activeClass} ring-2 ring-emerald-400/40 shadow-[0_10px_28px_rgba(16,185,129,0.12)]` : (isDarkMode ? 'bg-slate-900/70 border-slate-800 hover:border-slate-600 hover:bg-slate-900' : 'bg-white border-slate-200 hover:border-blue-200 hover:bg-slate-50')}`}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex items-start gap-3">
@@ -12070,7 +12070,7 @@ S.N.: ${item.sn || '-'}
                   )}
                 </div>
 
-                {actionTargetIds.length > 0 && (
+                {false && actionTargetIds.length > 0 && (
                   <div className={`px-3 sm:px-4 py-3 border-b ${theme.divide} ${isDarkMode ? 'bg-slate-950/70' : 'bg-slate-50'}`}> 
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                       <div className="min-w-0">
@@ -12086,7 +12086,7 @@ S.N.: ${item.sn || '-'}
                   </div>
                 )}
 
-                {shouldShowOperationCameraNudge && (
+                {false && shouldShowOperationCameraNudge && (
                   <div className={`mx-3 mt-3 rounded-[1.35rem] border p-3 sm:p-4 ${isDarkMode ? 'bg-blue-950/20 border-blue-900/60' : 'bg-blue-50 border-blue-200'}`}>
                     <div className="min-w-0">
                       <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>ชุดกล้อง</div>
