@@ -75,8 +75,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.46.1 Asset Profile Clean Redesign Build Hotfix';
-const APP_UPDATE_NOTE = 'Asset Profile Clean Redesign Build Hotfix: แก้ JSX closing tag ของหน้าแฟ้มอุปกรณ์ และคงการตัด Quick Action / ปุ่มยืม / ออกงาน / รับคืนออกจากแฟ้มอุปกรณ์';
+const APP_VERSION = 'v23.1.51 Top Bar Minimal Cleanup';
+const APP_UPDATE_NOTE = 'Top Bar Minimal Cleanup: ตัดปุ่มนำทางซ้ำจากแถบบน เอาปุ่มโหมดสีที่ไม่มีฟังก์ชันออก และยุบปุ่มบัญชี/ตั้งค่า/ล็อก/ออกเป็นเมนูระบบ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -20420,55 +20420,40 @@ ${auditChangeSummary}` : auditChangeSummary);
         </div>
 
         <div className="factory-top-actions">
-          <div className="factory-chip">
+          <div className="factory-chip" title={firebaseError ? 'ระบบต้องตรวจสอบการเชื่อมต่อฐานข้อมูล' : 'ระบบเชื่อมต่อฐานข้อมูลอยู่'}>
             <Icons.CheckCircle className="w-4 h-4" /> {firebaseError ? 'ตรวจสอบระบบ' : 'ออนไลน์'}
-          </div>
-
-          <div className="factory-icon-btn cursor-default" title="ระบบล็อกเป็นโหมดมืด">
-            <Icons.Moon className="w-5 h-5" />
           </div>
 
           {isLoggedIn && (
             <>
-              {canUseOperationalTools && (
-                <button type="button" onClick={() => openSelectionScanner()} className="factory-ghost-btn" title="เปิดโหมดสแกน QR Code/Barcode">
-                  <Icons.QrCode className="w-5 h-5" /><span>สแกน</span>
-                </button>
-              )}
-              <button type="button" onClick={() => openWorkspace('inventory')} className="factory-ghost-btn" title="คลังอุปกรณ์">
-                <Icons.Database className="w-5 h-5" /><span className="hidden-mobile">คลัง</span>
-              </button>
-              <button type="button" onClick={() => setShowCommandCenter(true)} className="factory-ghost-btn" title="Dashboard">
-                <Icons.Monitor className="w-5 h-5" /><span className="hidden-mobile">Dashboard</span>
-              </button>
-              <button type="button" onClick={() => openWorkspace('borrow')} className="factory-ghost-btn" title="ยืม-คืนอุปกรณ์">
-                <Icons.UserPlus className="w-5 h-5" /><span className="hidden-mobile">ยืม-คืน</span>
-              </button>
-              <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className="factory-ghost-btn" title="เอกสารย้อนหลัง">
-                <Icons.พิมพ์er className="w-5 h-5" /><span className="hidden-mobile">เอกสาร</span>
-              </button>
-              <button type="button" onClick={() => openTrackingCenter('today')} className="factory-ghost-btn" title="ติดตามการคืน">
-                <Icons.History className="w-5 h-5" /><span>ติดตาม</span>
-              </button>
               {canAddEditItems && (
                 <button type="button" onClick={openAddItemForm} className="factory-primary-btn" title="เพิ่มอุปกรณ์ใหม่">
                   <Icons.Plus className="w-5 h-5" /><span>เพิ่มอุปกรณ์</span>
                 </button>
               )}
-              {canManageระบบ && (
-                <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className="factory-ghost-btn" title="ตั้งค่าระบบ">
-                  <Icons.Settings className="w-5 h-5" /><span>ตั้งค่า</span>
-                </button>
-              )}
-              <button type="button" onClick={() => { setMyPinForm({ oldPin: '', newPin: '', confirmPin: '' }); setShowMyAccountModal(true); }} className="factory-ghost-btn" title={`เข้าสู่ระบบโดย ${currentAccountLabel}`}>
-                👤 <span className="hidden sm:inline">{currentAccountLabel}</span>
-              </button>
-              <button type="button" onClick={handleLockScreen} className="factory-ghost-btn" title="ล็อกหน้าจอชั่วคราว">
-                <Icons.Lock className="w-5 h-5" /><span className="hidden sm:inline">ล็อก</span>
-              </button>
-              <button type="button" onClick={handleLogout} className="factory-danger-btn" title="ออกจากระบบ">
-                <Icons.Unlock className="w-5 h-5" /><span className="hidden sm:inline">ออก</span>
-              </button>
+
+              <details className="relative factory-system-menu">
+                <summary className="factory-ghost-btn list-none cursor-pointer select-none" title={`บัญชี/ระบบ • ${currentAccountLabel}`}>
+                  <span className="text-base">👤</span><span className="hidden sm:inline">บัญชี/ระบบ</span><span className="text-xs opacity-70">▾</span>
+                </summary>
+                <div className={`absolute right-0 mt-2 w-64 rounded-2xl border shadow-2xl z-[80] p-2 ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-900'}`}>
+                  <div className={`px-3 py-2 text-xs font-black ${theme.textMuted}`}>เข้าสู่ระบบโดย</div>
+                  <button type="button" onClick={() => { setMyPinForm({ oldPin: '', newPin: '', confirmPin: '' }); setShowMyAccountModal(true); }} className={`w-full px-3 py-2.5 rounded-xl text-left font-black hover:bg-white/10 flex items-center gap-2 ${theme.textTitle}`} title={`เข้าสู่ระบบโดย ${currentAccountLabel}`}>
+                    <span>👤</span><span className="truncate">{currentAccountLabel}</span>
+                  </button>
+                  {canManageระบบ && (
+                    <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className={`w-full px-3 py-2.5 rounded-xl text-left font-black hover:bg-white/10 flex items-center gap-2 ${theme.textTitle}`} title="ตั้งค่าระบบ">
+                      <Icons.Settings className="w-5 h-5" /><span>ตั้งค่า</span>
+                    </button>
+                  )}
+                  <button type="button" onClick={handleLockScreen} className={`w-full px-3 py-2.5 rounded-xl text-left font-black hover:bg-white/10 flex items-center gap-2 ${theme.textTitle}`} title="ล็อกหน้าจอชั่วคราว">
+                    <Icons.Lock className="w-5 h-5" /><span>ล็อกหน้าจอ</span>
+                  </button>
+                  <button type="button" onClick={handleLogout} className="w-full px-3 py-2.5 rounded-xl text-left font-black bg-rose-600/15 hover:bg-rose-600/25 text-rose-400 flex items-center gap-2" title="ออกจากระบบ">
+                    <Icons.Unlock className="w-5 h-5" /><span>ออกจากระบบ</span>
+                  </button>
+                </div>
+              </details>
             </>
           )}
 
