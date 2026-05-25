@@ -75,8 +75,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.53 One Settings Hub Polish';
-const APP_UPDATE_NOTE = 'One Settings Hub Polish: ปรับตั้งค่าระบบให้เป็นปุ่มเดียวจบ รวมเครื่องมือผู้ดูแลไว้ในหน้าเดียวแบบสวย สะอาด และใช้งานง่าย';
+const APP_VERSION = 'v23.1.54 Settings Hub Click Action Fix';
+const APP_UPDATE_NOTE = 'Settings Hub Click Action Fix: แก้ปุ่มในการ์ดตั้งค่าระบบที่กดแล้วไม่เปิดอะไร ให้เปิด modal/หน้าเป้าหมายจริง และแก้ทางเข้าถังขยะจากตั้งค่าระบบ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7323,15 +7323,28 @@ function MainApp() {
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
-  const openMainHistoryCenter = ({ reset = true } = {}) => {
+  const openMainHistoryCenter = ({ reset = true, tab = 'history' } = {}) => {
     setShowMoreMenu(false);
     setShowCommandCenter(false);
-    setRecordsCenterMode('history');
+    const targetMode = ['docs', 'history', 'proofs', 'trash'].includes(tab) ? tab : 'history';
+    setRecordsCenterMode(targetMode);
     if (reset) {
-      setHistoryCenterFilter('all');
-      setHistoryCenterSearch('');
+      if (targetMode === 'history') {
+        setHistoryCenterFilter('all');
+        setHistoryCenterSearch('');
+      }
+      if (targetMode === 'docs') {
+        setBorrowDocSearch('');
+        setBorrowDocFilter('all');
+      }
+      if (targetMode === 'proofs') {
+        setProofCenterFilter('all');
+        setProofCenterSearch('');
+      }
     }
     setShowHistoryCenterModal(false);
+    setShowBorrowDocsModal(false);
+    setShowProofCenterModal(false);
     setActiveWorkspace('records');
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
@@ -14345,9 +14358,13 @@ S.N.: ${item.sn || '-'}
   const settingsNavGroups = ['เริ่มต้น', 'ข้อมูลพื้นฐาน', 'ผู้ใช้งาน', 'หน้าตาเว็บ', 'เอกสาร', 'หลักฐาน', 'ระบบ'];
 
   const openSettingsTab = (tabId) => {
+    // v23.1.54 Settings Hub Click Action Fix
+    // ปุ่มในการ์ด "ตั้งค่าระบบ" ต้องเปิดหน้าตั้งค่าแบบละเอียดจริง ไม่ใช่แค่เปลี่ยน state อยู่เบื้องหลัง
+    setShowMoreMenu(false);
     setSettingsTab(tabId);
     resetSettingsFormState();
     if (tabId === 'accounts') openNewAccountForm();
+    setShowSettings(true);
   };
 
   const getSettingsOverviewCards = () => [
