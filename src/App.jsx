@@ -7143,8 +7143,25 @@ function MainApp() {
         });
       });
     });
+    asArray(auditLogs).forEach((log, auditIndex) => {
+      if (!log?.deletedFromHistory && !log?.hiddenFromHistory) return;
+      rows.push({
+        id: `audit__deleted__${log.id || auditIndex}`,
+        auditLogId: log.id || '',
+        isAuditLog: true,
+        itemId: '',
+        itemName: log.target || log.targetName || log.itemName || log.action || 'Audit Log',
+        historyIndex: `audit_${auditIndex}`,
+        type: 'system',
+        date: log.timestamp || log.createdAt || log.updatedAt || '',
+        subject: log.action || log.actionType || 'ระบบ',
+        deletedAt: log.deletedAt || '',
+        deletedBy: log.deletedBy || '-',
+        deleteReason: log.deleteReason || '-'
+      });
+    });
     return rows;
-  }, [items]);
+  }, [items, auditLogs]);
   const [historyGroupMode, setHistoryGroupMode] = useState(true);
   const [expandedProofGroupId, setExpandedProofGroupId] = useState(null);
   const [modalReturnStack, setModalReturnStack] = useState([]); // v22.52.8: ['borrowDocs', 'historyCenter', 'proofCenter']
@@ -13722,14 +13739,14 @@ S.N.: ${item.sn || '-'}
             {recordsCenterMode === 'history' && (
               <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className={`p-4 border-b grid grid-cols-1 lg:grid-cols-[1fr_220px_auto] gap-3 ${theme.divide}`}>
-                  <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / การกระทำ / ผู้ใช้งาน" value={historyCenterSearch} onChange={e => setHistoryCenterSearch(e.target.value)} />
+                  <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / ผู้ใช้งาน" value={historyCenterSearch} onChange={e => setHistoryCenterSearch(e.target.value)} />
                   <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={historyCenterFilter} onChange={e => setHistoryCenterFilter(e.target.value)}>
                     <option value="all">ทุกประเภท</option>
                     <option value="borrow">ยืม</option>
                     <option value="event">ออกงาน</option>
                     <option value="return">รับคืน</option>
                     <option value="repair">ซ่อม/ชำรุด</option>
-                    <option value="system">ระบบ/ทุกการกระทำ</option>
+                    <option value="system">ระบบหลัก</option>
                   </select>
                   <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{filteredHistoryCenterEntries.length.toLocaleString('th-TH')} รายการ</div>
                 </div>
@@ -13742,8 +13759,9 @@ S.N.: ${item.sn || '-'}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <div className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เลือกแล้ว {selectedHistoryRecordIds.length.toLocaleString('th-TH')} รายการ</div>
-                      <button type="button" onClick={handleSoftDeleteSelectedHistory} disabled={selectedHistoryRecordIds.length === 0 || isBusy} className={`px-4 py-2 rounded-xl text-sm font-black ${selectedHistoryRecordIds.length === 0 || isBusy ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}>ลบประวัติที่เลือก</button>
-                      <button type="button" onClick={handlePurgeDeletedHistory} disabled={softDeletedHistoryEntries.length === 0 || isBusy} className={`px-4 py-2 rounded-xl text-sm font-black border ${softDeletedHistoryEntries.length === 0 || isBusy ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-red-950/50 border-red-500/40 text-red-200 hover:bg-red-700 hover:text-white'}`}>ลบถาวรที่ซ่อนไว้ {softDeletedHistoryEntries.length.toLocaleString('th-TH')}</button>
+                      <button type="button" onClick={handleSoftDeleteSelectedHistory} disabled={selectedHistoryRecordIds.length === 0 || isBusy} className={`px-4 py-2 rounded-xl text-sm font-black ${selectedHistoryRecordIds.length === 0 || isBusy ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}>ซ่อนประวัติที่เลือก</button>
+                      <button type="button" onClick={handlePurgeNoiseHistoryLogs} disabled={isBusy} className={`px-4 py-2 rounded-xl text-sm font-black border ${isBusy ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-amber-950/45 border-amber-500/40 text-amber-200 hover:bg-amber-700 hover:text-white'}`}>ลบ log จิปาถะ</button>
+                      <button type="button" onClick={handlePurgeDeletedHistory} disabled={softDeletedHistoryEntries.length === 0 || isBusy} className={`px-4 py-2 rounded-xl text-sm font-black border ${softDeletedHistoryEntries.length === 0 || isBusy ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-red-950/50 border-red-500/40 text-red-200 hover:bg-red-700 hover:text-white'}`}>ลบถาวรที่ซ่อน {softDeletedHistoryEntries.length.toLocaleString('th-TH')}</button>
                     </div>
                   </div>
                 )}
@@ -13921,7 +13939,7 @@ S.N.: ${item.sn || '-'}
             {recordsCenterMode === 'proofs' && (
               <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className={`p-4 border-b grid grid-cols-1 xl:grid-cols-[1fr_220px_auto] gap-3 ${theme.divide}`}>
-                  <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / การกระทำ / ผู้ใช้งาน" value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} />
+                  <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / ผู้ใช้งาน" value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} />
                   <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={proofCenterFilter} onChange={e => setProofCenterFilter(e.target.value)}>
                     <option value="all">หลักฐานทั้งหมด</option>
                     <option value="borrow">การยืม</option>
@@ -14704,7 +14722,41 @@ S.N.: ${item.sn || '-'}
     if (t === 'event') return 'bg-orange-500/10 border-orange-500/25 text-orange-200';
     if (t === 'return') return 'bg-emerald-500/10 border-emerald-500/25 text-emerald-200';
     if (t.includes('repair')) return 'bg-rose-500/10 border-rose-500/25 text-rose-200';
+    if (t === 'system') return 'bg-sky-500/10 border-sky-500/25 text-sky-200';
     return 'bg-slate-500/10 border-slate-500/25 text-slate-200';
+  };
+
+  // v23.1.50: ประวัติส่วนกลางให้เหลือเฉพาะเหตุการณ์หลักที่มีความหมายต่อการทำงานจริง
+  // เก็บ: login/logout, export/backup/download, แก้ไข/เพิ่ม/ลบ/กู้คืนอุปกรณ์, ยืม/ออกงาน/รับคืน, ซ่อม, โกดัง, หลักฐาน, โครงการ
+  // ตัดและลบจริงจากฐานข้อมูล: การเลือก/ติ๊ก/เปิดดู/ค้นหา/พิมพ์ preview/ปุ่ม UI/บัญชี/กล่อง/log จิปาถะอื่น ๆ
+  const CORE_HISTORY_ITEM_TYPES = new Set(['borrow', 'event', 'return', 'warehouse-activate', 'warehouse-return', 'projectChange']);
+  const isCoreItemHistoryType = (type = '') => {
+    const t = String(type || '').trim();
+    return CORE_HISTORY_ITEM_TYPES.has(t) || t.includes('repair');
+  };
+  const isMeaningfulAuditLog = (log = {}) => {
+    if (!log || log.deletedFromHistory || log.hiddenFromHistory) return false;
+    const action = String(log.action || log.actionType || '').trim();
+    const lower = action.toLowerCase();
+    if (!action) return false;
+
+    // เก็บตามที่ผู้ใช้ระบุโดยตรง
+    if (action === 'เข้าสู่ระบบ' || action === 'ออกจากระบบ') return true;
+    if (lower.includes('ส่งออก') || lower.includes('export') || lower.includes('csv')) return true;
+    if (lower.includes('สำรอง') || lower.includes('backup') || lower.includes('ดาวน์โหลด') || lower.includes('download')) return true;
+
+    // เก็บเพิ่มตามข้อแนะนำ: เหตุการณ์ที่เปลี่ยนสถานะ/ความจริงของทรัพย์สิน
+    if (action.includes('แก้ไขข้อมูล') || action.includes('แก้ไขรายละเอียดอุปกรณ์') || action.includes('เปลี่ยนโครงการอุปกรณ์')) return true;
+    if (action.includes('เพิ่มอุปกรณ์') || action.includes('นำเข้าข้อมูล')) return true;
+    if (action.includes('ย้ายอุปกรณ์เข้าถังขยะ') || action.includes('กู้คืนอุปกรณ์') || action.includes('ลบอุปกรณ์ถาวร')) return true;
+    if (action.includes('เบิกของจากโกดัง') || action.includes('ส่งอุปกรณ์กลับโกดัง')) return true;
+
+    // v23.1.50: เก็บหลักฐานและโครงการไว้ เพราะเป็นร่องรอยที่ใช้ย้อนงานจริง
+    if (action.includes('หลักฐาน') || action.includes('รูปหลักฐาน')) return true;
+    if (action.includes('โครงการ') || action.includes('project')) return true;
+
+    // ไม่เก็บรายการยืม/ออกงาน/รับคืนซ้ำจาก audit log เพราะมี item.history ที่ละเอียดกว่าอยู่แล้ว
+    return false;
   };
 
   const isHistorySelected = (id) => selectedHistoryRecordIds.includes(id);
@@ -14716,16 +14768,23 @@ S.N.: ${item.sn || '-'}
   const handleSoftDeleteSelectedHistory = async () => {
     if (!canDeleteItems) return alert('บัญชีนี้ไม่มีสิทธิ์ลบประวัติส่วนกลาง');
     if (selectedHistoryRecordIds.length === 0) return alert('กรุณาเลือกรายการประวัติที่ต้องการลบก่อน');
-    const reason = window.prompt('เหตุผลที่ลบประวัติส่วนกลาง เช่น รายการทดสอบ / บันทึกผิด / ซ้ำ', 'รายการทดสอบ');
-    if (reason === null) return;
-    const confirmText = window.prompt(`ยืนยันลบประวัติที่เลือก ${selectedHistoryRecordIds.length} รายการ
-พิมพ์ DELETE เพื่อยืนยัน`);
-    if (confirmText !== 'DELETE') return alert('ยกเลิกการลบประวัติ');
-
     const selectedSet = new Set(selectedHistoryRecordIds);
+    const selectedEntries = allHistoryCenterEntries.filter(entry => selectedSet.has(entry.id));
+    const itemEntries = selectedEntries.filter(entry => !entry.isAuditLog && entry.itemId);
+    const auditEntries = selectedEntries.filter(entry => entry.isAuditLog && entry.auditLogId);
+
+    if (itemEntries.length === 0 && auditEntries.length === 0) {
+      return alert('รายการที่เลือกยังลบไม่ได้ หรือเป็นรายการที่ไม่มีรหัสอ้างอิงในฐานข้อมูล');
+    }
+
+    const reason = window.prompt('เหตุผลที่ซ่อนประวัติ เช่น รายการทดสอบ / บันทึกผิด / ซ้ำ', 'รายการทดสอบ');
+    if (reason === null) return;
+    const confirmText = window.prompt(`ยืนยันซ่อนประวัติที่เลือก ${itemEntries.length + auditEntries.length} รายการ
+พิมพ์ DELETE เพื่อยืนยัน`);
+    if (confirmText !== 'DELETE') return alert('ยกเลิกการซ่อนประวัติ');
+
     const groupedByItem = new Map();
-    allHistoryCenterEntries.forEach(entry => {
-      if (!selectedSet.has(entry.id)) return;
+    itemEntries.forEach(entry => {
       if (!groupedByItem.has(entry.itemId)) groupedByItem.set(entry.itemId, []);
       groupedByItem.get(entry.itemId).push(entry.historyIndex);
     });
@@ -14744,25 +14803,111 @@ S.N.: ${item.sn || '-'}
         );
         tasks.push(setDoc(getItemDoc(item.id), { history: nextHistory, updatedAt: now, updatedBy: currentAccountLabel }, { merge: true }));
       });
+      auditEntries.forEach(entry => {
+        tasks.push(setDoc(doc(getAuditCol(), entry.auditLogId), {
+          deletedFromHistory: true,
+          deletedAt: now,
+          deletedBy: currentAccountLabel,
+          deleteReason: reason || 'ไม่ระบุเหตุผล'
+        }, { merge: true }));
+      });
       await Promise.all(tasks);
       await addDoc(getAuditCol(), {
-        action: 'ลบประวัติส่วนกลางแบบ soft delete',
-        itemName: `${selectedHistoryRecordIds.length} รายการ`,
-        detail: `เหตุผล: ${reason || '-'}
+        action: 'ซ่อนประวัติส่วนกลาง',
+        itemName: `${itemEntries.length + auditEntries.length} รายการ`,
+        detail: `ซ่อน item history ${itemEntries.length} รายการ / audit log ${auditEntries.length} รายการ
+เหตุผล: ${reason || '-'}
 โดย: ${currentAccountLabel}`,
         createdAt: now,
         createdBy: currentAccountLabel,
         role: currentAccountRole
       });
+      const deletedCount = itemEntries.length + auditEntries.length;
       clearHistorySelection();
-      pushToast(`ซ่อนประวัติที่เลือกแล้ว ${selectedHistoryRecordIds.length} รายการ`, 'success');
+      pushToast(`ซ่อนประวัติที่เลือกแล้ว ${deletedCount} รายการ`, 'success');
     } catch (error) {
       console.error(error);
-      alert('❌ ลบประวัติไม่สำเร็จ: ' + error.message);
+      alert('❌ ลบ/ซ่อนประวัติไม่สำเร็จ: ' + error.message);
     } finally {
       setIsBusy(false);
     }
   };
+
+
+  const handlePurgeNoiseHistoryLogs = async () => {
+    if (!canDeleteItems) return alert('บัญชีนี้ไม่มีสิทธิ์ล้างประวัติระบบ');
+    const noisyAuditLogs = (auditLogs || []).filter(log => log?.id && !isMeaningfulAuditLog(log));
+    const affectedItems = (items || []).filter(item => {
+      const historyList = Array.isArray(item?.history) ? item.history : [];
+      return historyList.some(h => h && !h.deletedFromHistory && !isCoreItemHistoryType(h.type || 'other'));
+    });
+    const noisyItemHistoryCount = affectedItems.reduce((sum, item) => {
+      const historyList = Array.isArray(item?.history) ? item.history : [];
+      return sum + historyList.filter(h => h && !h.deletedFromHistory && !isCoreItemHistoryType(h.type || 'other')).length;
+    }, 0);
+
+    if (noisyAuditLogs.length === 0 && noisyItemHistoryCount === 0) {
+      return alert('ตอนนี้ไม่มี log จิปาถะให้ล้างแล้ว');
+    }
+
+    const ok = window.confirm([
+      'ลบ log จิปาถะออกจากฐานข้อมูลจริงหรือไม่?',
+      '',
+      `Audit log ที่ไม่อยู่ในรายการหลัก: ${noisyAuditLogs.length} รายการ`,
+      `ประวัติย่อยในแฟ้มอุปกรณ์ที่ไม่ใช่ ยืม/ออกงาน/รับคืน/ซ่อม/โกดัง/โครงการ: ${noisyItemHistoryCount} รายการ`,
+      '',
+      'รายการที่จะเก็บไว้:',
+      '- เข้าสู่ระบบ / ออกจากระบบ',
+      '- ส่งออก CSV / export',
+      '- สำรองข้อมูล / download',
+      '- แก้ไข / เพิ่ม / ลบ / กู้คืนอุปกรณ์',
+      '- ยืม / ออกงาน / รับคืน',
+      '- ซ่อม / เบิกโกดัง / ส่งกลับโกดัง',
+      '- เพิ่ม/แก้ไข/ลบรูปหลักฐาน',
+      '- เพิ่ม/แก้ไข/ลบโครงการจัดซื้อ',
+      '',
+      'การล้างนี้จะลบ log จิปาถะออกจากฐานข้อมูลจริง ไม่ใช่แค่ซ่อนหน้าเว็บ และจะเก็บหลักฐาน/โครงการไว้'
+    ].join('\n'));
+    if (!ok) return;
+
+    const confirmText = window.prompt('พิมพ์ DELETE LOG เพื่อยืนยันการลบ log จิปาถะออกจากฐานข้อมูลจริง');
+    if (confirmText !== 'DELETE LOG') return alert('ยกเลิกการลบ log');
+
+    try {
+      setIsBusy(true);
+      const now = new Date().toISOString();
+      const tasks = [];
+      noisyAuditLogs.forEach(log => tasks.push(deleteDoc(doc(getAuditCol(), log.id))));
+      affectedItems.forEach(item => {
+        const oldHistory = Array.isArray(item.history) ? item.history : [];
+        const nextHistory = oldHistory.filter(h => !h || h.deletedFromHistory || isCoreItemHistoryType(h.type || 'other'));
+        tasks.push(setDoc(getItemDoc(item.id), {
+          history: nextHistory,
+          updatedAt: now,
+          updatedBy: currentAccountLabel,
+          lastCleanNoiseHistoryAt: now,
+          lastCleanNoiseHistoryBy: currentAccountLabel
+        }, { merge: true }));
+      });
+      await Promise.all(tasks);
+      await addDoc(getAuditCol(), {
+        action: 'ลบ log จิปาถะประวัติส่วนกลาง',
+        target: 'ประวัติส่วนกลาง',
+        details: `ลบ audit log ${noisyAuditLogs.length} รายการ / ลบ item.history จิปาถะ ${noisyItemHistoryCount} รายการ\nโดย: ${currentAccountLabel}`,
+        timestamp: now,
+        user: currentAccountLabel
+      });
+      clearHistorySelection();
+      pushToast('ลบ log จิปาถะออกจากฐานข้อมูลแล้ว', `ลบ audit ${noisyAuditLogs.length} รายการ / ประวัติย่อย ${noisyItemHistoryCount} รายการ`, 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ ลบ log จิปาถะไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+
 
 
   const handlePurgeDeletedHistory = async () => {
@@ -14802,6 +14947,7 @@ S.N.: ${item.sn || '-'}
       setIsBusy(true);
       const now = new Date().toISOString();
       const affectedItems = (items || []).filter(item => (Array.isArray(item?.history) ? item.history : []).some(h => h?.deletedFromHistory));
+      const affectedAuditLogs = (auditLogs || []).filter(log => (log?.deletedFromHistory || log?.hiddenFromHistory) && log.id);
       const tasks = affectedItems.map((item) => {
         const oldHistory = Array.isArray(item.history) ? item.history : [];
         const nextHistory = oldHistory.filter(h => !h?.deletedFromHistory);
@@ -14813,11 +14959,12 @@ S.N.: ${item.sn || '-'}
           lastPurgeHistoryBy: currentAccountLabel
         }, { merge: true });
       });
+      affectedAuditLogs.forEach(log => tasks.push(deleteDoc(doc(getAuditCol(), log.id))));
       await Promise.all(tasks);
       await addDoc(getAuditCol(), {
         action: 'ลบถาวรประวัติส่วนกลางที่ถูกซ่อน',
         itemName: `${softDeletedHistoryEntries.length} รายการ`,
-        detail: `ลบถาวรจาก item.history ${softDeletedHistoryEntries.length} รายการ / อุปกรณ์ที่กระทบ ${affectedItems.length} รายการ\nโดย: ${currentAccountLabel}`,
+        detail: `ลบถาวรจาก item.history/audit log ${softDeletedHistoryEntries.length} รายการ / อุปกรณ์ที่กระทบ ${affectedItems.length} รายการ / audit log ${affectedAuditLogs.length} รายการ\nโดย: ${currentAccountLabel}`,
         createdAt: now,
         createdBy: currentAccountLabel,
         role: currentAccountRole
@@ -14964,7 +15111,8 @@ S.N.: ${item.sn || '-'}
       historyList.forEach((h, historyIndex) => {
         if (h?.deletedFromHistory) return;
         const historyType = h.type || 'other';
-        const typeLabel = historyType === 'borrow' ? 'ยืม' : historyType === 'event' ? 'ออกงาน' : historyType === 'return' ? 'รับคืน' : historyType === 'projectChange' ? 'โครงการ' : String(historyType).includes('repair') ? 'ซ่อม' : 'อื่น ๆ';
+        if (!isCoreItemHistoryType(historyType)) return;
+        const typeLabel = historyType === 'borrow' ? 'ยืม' : historyType === 'event' ? 'ออกงาน' : historyType === 'return' ? 'รับคืน' : historyType === 'warehouse-activate' ? 'เบิกเข้าคลัง' : historyType === 'warehouse-return' ? 'ส่งกลับโกดัง' : String(historyType).includes('repair') ? 'ซ่อม' : 'อื่น ๆ';
         const subject = h.borrower || h.eventName || h.problem || h.staffIn || h.note || '-';
         const staff = h.staffOut || h.staffIn || h.operatorName || '-';
         const groupKey = h.date ? getHistoryGroupKey(h) : '';
@@ -15003,13 +15151,14 @@ S.N.: ${item.sn || '-'}
       historyGroupMap.get(row.groupKey).push(row);
     });
 
-    const auditRows = (auditLogs || []).map((log, auditIndex) => {
+    const auditRows = (auditLogs || []).filter(isMeaningfulAuditLog).map((log, auditIndex) => {
       const actionText = log.action || log.actionType || 'การกระทำในระบบ';
       const targetText = log.target || log.targetName || log.itemName || '-';
       const detailText = log.details || log.detail || log.note || '';
       const userText = log.user || log.createdBy || log.updatedBy || 'Admin';
       return {
         id: `audit__${log.id || auditIndex}`,
+        auditLogId: log.id || '',
         rawHistory: log,
         isAuditLog: true,
         department: 'ระบบ',
@@ -15054,7 +15203,9 @@ S.N.: ${item.sn || '-'}
   const filteredHistoryCenterEntries = useMemo(() => {
     const keyword = String(historyCenterSearch || '').toLowerCase().trim();
     return allHistoryCenterEntries.filter((entry) => {
-      const matchType = historyCenterFilter === 'all' || entry.historyType === historyCenterFilter || (historyCenterFilter === 'repair' && String(entry.historyType || '').includes('repair')) || (historyCenterFilter === 'system' && entry.isAuditLog);
+      const matchType = historyCenterFilter === 'all'
+        ? true
+        : entry.historyType === historyCenterFilter || (historyCenterFilter === 'repair' && String(entry.historyType || '').includes('repair')) || (historyCenterFilter === 'system' && entry.isAuditLog);
       const haystack = `${entry.itemName} ${entry.sn} ${entry.category} ${entry.location} ${entry.subject} ${entry.staff} ${entry.note} ${entry.typeLabel} ${entry.date} ${entry.status} ${entry.department || ''}`.toLowerCase();
       return matchType && (!keyword || haystack.includes(keyword));
     });
@@ -26001,7 +26152,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <option value="event">ออกงาน</option>
                 <option value="return">รับคืน</option>
                 <option value="repair">ซ่อม/ชำรุด</option>
-                    <option value="system">ระบบ/ทุกการกระทำ</option>
+                    <option value="system">ระบบหลัก</option>
                 <option value="projectChange">โครงการ</option>
               </select>
               <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{filteredHistoryCenterEntries.length.toLocaleString('th-TH')} รายการ</div>
