@@ -75,7 +75,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.68 Proof Borrow Return Split Timeline';
+const APP_VERSION = 'v23.1.69 Proof Timeline Compact Fix';
 const APP_UPDATE_NOTE = 'Inventory Main Button Shows All: ปุ่มคลังอุปกรณ์หลักเปิดสต๊อกทั้งหมดทันที และย่อเมนูย่อยให้เหลือพร้อมใช้งาน/กำลังใช้งาน/ชำรุด/โกดัง เพื่อลดจำนวนปุ่ม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -13989,7 +13989,10 @@ S.N.: ${item.sn || '-'}
                           { key: 'return', label: 'ตอนรับคืน', tone: isDarkMode ? 'bg-emerald-950/25 border-emerald-500/25 text-emerald-100' : 'bg-emerald-50 border-emerald-200 text-emerald-800', empty: 'ยังไม่มีรูปตอนคืน' },
                           { key: 'event', label: 'ออกงาน', tone: isDarkMode ? 'bg-orange-950/25 border-orange-500/25 text-orange-100' : 'bg-orange-50 border-orange-200 text-orange-800', empty: 'ยังไม่มีรูปออกงาน' },
                           { key: 'repair', label: 'ซ่อม/ชำรุด', tone: isDarkMode ? 'bg-rose-950/25 border-rose-500/25 text-rose-100' : 'bg-rose-50 border-rose-200 text-rose-800', empty: 'ยังไม่มีรูปซ่อม' }
-                        ].filter(card => proofCenterFilter === 'all' || proofCenterFilter === 'noNote' || card.key === proofCenterFilter || (proofCenterFilter === 'repair' && card.key === 'repair'));
+                        ].filter(card => {
+                            const entries = group.byType?.[card.key] || [];
+                            return entries.length > 0 && (proofCenterFilter === 'all' || proofCenterFilter === 'noNote' || card.key === proofCenterFilter || (proofCenterFilter === 'repair' && card.key === 'repair'));
+                          });
                         const totalImages = group.entries.length;
                         const primarySubject = Array.from(group.subjects || [])[0] || '-';
                         return (
@@ -14014,32 +14017,44 @@ S.N.: ${item.sn || '-'}
                               </div>
                               {(group.borrowEvents?.length || group.returnEvents?.length || group.eventEvents?.length || group.repairEvents?.length) > 0 && (
                                 <div className={`mt-3 rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
-                                  <div className={`text-[11px] font-black tracking-[0.14em] uppercase ${theme.textMuted}`}>รายละเอียดงาน / Timeline</div>
-                                  <div className="mt-2 grid grid-cols-1 lg:grid-cols-2 gap-2">
+                                  <div className="flex flex-wrap items-center gap-2">
                                     {[
-                                      ['ยืม', group.borrowEvents || [], group.totalBorrowItems],
-                                      ['คืน', group.returnEvents || [], group.totalReturnItems],
-                                      ['ออกงาน', group.eventEvents || [], group.totalEventItems],
-                                      ['ซ่อม/ชำรุด', group.repairEvents || [], group.totalRepairItems]
-                                    ].filter(([label, events]) => events.length > 0).map(([label, events, totalItems]) => (
-                                      <div key={`${group.groupId}_${label}_timeline`} className={`rounded-xl border p-2.5 ${isDarkMode ? 'border-slate-700 bg-slate-900/60' : 'border-slate-200 bg-slate-50'}`}>
-                                        <div className="flex items-center justify-between gap-2">
-                                          <div className={`text-xs font-black ${theme.textTitle}`}>{label}</div>
-                                          <div className={`text-[10px] font-black ${theme.textMuted}`}>{Number(totalItems || 0).toLocaleString('th-TH')} อุปกรณ์</div>
+                                      ['ยืม', group.borrowEvents || [], group.totalBorrowItems, 'purple'],
+                                      ['คืน', group.returnEvents || [], group.totalReturnItems, 'emerald'],
+                                      ['ออกงาน', group.eventEvents || [], group.totalEventItems, 'orange'],
+                                      ['ซ่อม', group.repairEvents || [], group.totalRepairItems, 'rose']
+                                    ].filter(([label, events]) => events.length > 0).map(([label, events, totalItems, tone]) => (
+                                      <span key={`${group.groupId}_${label}_summary`} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-black ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                                        {label} {events.length.toLocaleString('th-TH')} ครั้ง • {Number(totalItems || 0).toLocaleString('th-TH')} ชิ้น
+                                      </span>
+                                    ))}
+                                  </div>
+
+                                  <div className={`mt-2 text-[11px] font-bold leading-relaxed ${theme.textMuted}`}>
+                                    {(group.returnEvents || []).length > 1
+                                      ? `มีการคืน ${group.returnEvents.length.toLocaleString('th-TH')} ครั้ง แยกตามเวลาบันทึกด้านล่าง`
+                                      : (group.returnEvents || []).length === 1
+                                        ? 'มีรายการคืน 1 ครั้ง'
+                                        : 'ยังไม่มีรายการคืน'}
+                                    {group.isLegacyBatch ? ' • ข้อมูลนี้รวมจากข้อมูลเก่า อาจต้องตรวจรูปประกอบอีกครั้ง' : ''}
+                                  </div>
+
+                                  <div className="mt-3 space-y-1.5">
+                                    {[
+                                      ...((group.borrowEvents || []).map((event, idx) => ['ยืม', idx, event])),
+                                      ...((group.returnEvents || []).map((event, idx) => ['คืน', idx, event])),
+                                      ...((group.eventEvents || []).map((event, idx) => ['ออกงาน', idx, event])),
+                                      ...((group.repairEvents || []).map((event, idx) => ['ซ่อม', idx, event]))
+                                    ].map(([label, eventIndex, event]) => (
+                                      <details key={`${group.groupId}_${label}_${event.key || eventIndex}`} className={`rounded-xl border ${isDarkMode ? 'bg-slate-900/55 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                                        <summary className="cursor-pointer list-none px-3 py-2 flex items-center justify-between gap-3">
+                                          <span className={`text-xs font-black ${theme.textTitle}`}>{label === 'คืน' ? `คืนครั้งที่ ${eventIndex + 1}` : label === 'ยืม' ? 'ตอนยืม' : label}</span>
+                                          <span className={`text-[11px] font-bold ${theme.textMuted}`}>{event.dateText} • {event.items?.length || 0} ชิ้น • รูป {event.proofs?.length || 0}</span>
+                                        </summary>
+                                        <div className={`px-3 pb-2 text-[11px] font-bold leading-relaxed ${theme.textMuted}`}>
+                                          {(event.items || []).map(it => `${it.itemName || '-'}${it.sn && it.sn !== '-' ? ` (${it.sn})` : ''}`).join(' • ') || '-'}
                                         </div>
-                                        <div className="mt-2 space-y-2">
-                                          {events.map((event, eventIndex) => (
-                                            <div key={event.key || eventIndex} className={`rounded-lg border px-2.5 py-2 ${isDarkMode ? 'border-slate-700 bg-slate-950/50' : 'border-slate-200 bg-white'}`}>
-                                              <div className={`text-[11px] font-black ${theme.textTitle}`}>{label === 'คืน' ? `คืนครั้งที่ ${eventIndex + 1}` : label === 'ยืม' ? 'รายการยืม' : label}</div>
-                                              <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>{event.dateText} • โดย {event.staff || '-'}</div>
-                                              <div className={`text-[11px] font-bold mt-1 leading-relaxed ${theme.textMuted}`}>
-                                                {event.items.map(it => `${it.itemName || '-'}${it.sn && it.sn !== '-' ? ` (${it.sn})` : ''}`).join(' • ') || '-'}
-                                              </div>
-                                              <div className={`text-[10px] font-black mt-1 ${theme.textMuted}`}>รูป {event.proofs.length.toLocaleString('th-TH')} รูป</div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
+                                      </details>
                                     ))}
                                   </div>
                                 </div>
@@ -15868,20 +15883,32 @@ S.N.: ${item.sn || '-'}
         ...sortedEntries.flatMap(entry => [entry.note, entry.typeLabel, entry.proof?.contextLabel, entry.proof?.note, entry.documentRef])
       ].filter(Boolean).join(' ').toLowerCase();
 
+      const normalizeTimelineEventItems = (events = []) => events.map((event = {}) => {
+        // ข้อมูลเก่าบางรายการมีรูปคืนกลุ่ม 1 รูป แต่ entry ผูกมาแค่ 1 รายการ
+        // ถ้าเป็น legacy group และมี itemRefs หลายรายการ ให้ใช้ itemRefs ของแฟ้มช่วยแสดง
+        // เพื่อลดปัญหาคืนกลุ่ม 3 ชิ้น แต่หน้าจอบอก 1 ชิ้น
+        const shouldUseGroupItems = group.isLegacyBatch && itemRefs.length > 1 && (event.items || []).length <= 1 && (event.proofs || []).length <= 1;
+        return { ...event, items: shouldUseGroupItems ? itemRefs : (event.items || []) };
+      });
+      const fixedBorrowEvents = normalizeTimelineEventItems(borrowEvents);
+      const fixedReturnEvents = normalizeTimelineEventItems(returnEvents);
+      const fixedEventEvents = normalizeTimelineEventItems(eventEvents);
+      const fixedRepairEvents = normalizeTimelineEventItems(repairEvents);
+
       return {
         ...group,
         title,
         entries: sortedEntries,
         itemRefs,
         primarySubject,
-        borrowEvents,
-        returnEvents,
-        eventEvents,
-        repairEvents,
-        totalBorrowItems: getUniqueTimelineItems(group.byType.borrow || []).length,
-        totalReturnItems: getUniqueTimelineItems(group.byType.return || []).length,
-        totalEventItems: getUniqueTimelineItems(group.byType.event || []).length,
-        totalRepairItems: getUniqueTimelineItems(group.byType.repair || []).length,
+        borrowEvents: fixedBorrowEvents,
+        returnEvents: fixedReturnEvents,
+        eventEvents: fixedEventEvents,
+        repairEvents: fixedRepairEvents,
+        totalBorrowItems: fixedBorrowEvents.reduce((sum, event) => sum + (event.items?.length || 0), 0),
+        totalReturnItems: fixedReturnEvents.reduce((sum, event) => sum + (event.items?.length || 0), 0),
+        totalEventItems: fixedEventEvents.reduce((sum, event) => sum + (event.items?.length || 0), 0),
+        totalRepairItems: fixedRepairEvents.reduce((sum, event) => sum + (event.items?.length || 0), 0),
         lastDate,
         searchText,
         borrowInfo: borrowEntry ? { dateText: getEntryDateText(borrowEntry), person: borrowEntry.borrower || borrowEntry.subject || primarySubject || '-', staff: borrowEntry.staffOut || borrowEntry.staff || '-' } : null,
