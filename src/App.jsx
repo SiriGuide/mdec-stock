@@ -75,8 +75,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.61 Inventory Status Workspace Tabs';
-const APP_UPDATE_NOTE = 'Inventory Status Workspace Tabs: เพิ่มมุมมองคลังแบบการ์ดอนิเมชั่น เลือกสต๊อกทั้งหมด/พร้อมใช้งาน/กำลังใช้งาน/ชำรุด/โกดัง และให้ค่าเริ่มต้นคลังโชว์ของพร้อมใช้งาน';
+const APP_VERSION = 'v23.1.62 Inventory Sidebar Status Menu Fix';
+const APP_UPDATE_NOTE = 'Inventory Sidebar Status Menu Fix: ย้ายมุมมองสต๊อกทั้งหมด/พร้อมใช้งาน/กำลังใช้งาน/ชำรุด/โกดังไปอยู่ในเมนูซ้ายแบบ dropdown และแก้ตัวกรองสถานะคลังให้ใช้งานจริง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -9379,7 +9379,7 @@ function MainApp() {
       const matchProblem = !quickProblemOnly || isProblemItem(item);
       const matchSmartQuick = matchesSmartQuickFilter(item);
 
-      return matchSearch && matchDept && matchCategory && matchStatus && matchLocation && matchProject && matchAssetStatus && matchQrTagged && matchProblem && matchSmartQuick;
+      return matchInventoryScope && matchSearch && matchDept && matchCategory && matchStatus && matchLocation && matchProject && matchAssetStatus && matchQrTagged && matchProblem && matchSmartQuick;
     });
 
     result.sort((a, b) => {
@@ -13249,40 +13249,13 @@ S.N.: ${item.sn || '-'}
           </div>
 
           <div className="p-4 sm:p-5 space-y-4">
-            <div className={`inventory-status-workspace rounded-[1.6rem] border p-3 sm:p-4 shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
-                <div className="min-w-0">
-                  <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>Stock View</div>
-                  <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>เลือกมุมมองคลัง</div>
-                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ตอนนี้แสดง: {currentInventoryScope.label} • เอาเมาส์ชี้การ์ดเพื่อเลือกมุมมอง</div>
-                </div>
-                <button type="button" onClick={() => { clearAllFilters(); setQuickProblemOnly(true); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ข้อมูลควรเติม {dataQualityAudit.issueItemCount.toLocaleString('th-TH')}</button>
+            <div className={`rounded-[1.35rem] border px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className="min-w-0">
+                <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>Inventory Scope</div>
+                <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>{currentInventoryScope.label}</div>
+                <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เปลี่ยนมุมมองจากเมนูซ้าย: สต๊อกทั้งหมด / พร้อมใช้งาน / กำลังใช้งาน / ชำรุด / โกดัง</div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-2.5">
-                {inventoryStockScopeOptions.map((option) => {
-                  const active = inventoryStockScope === option.id;
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => openInventoryStockScope(option.id)}
-                      className={`group relative overflow-hidden rounded-[1.35rem] border p-3 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(15,23,42,0.18)] ${active ? toneCard(option.tone) : (isDarkMode ? 'bg-slate-900/75 border-slate-800 text-slate-200 hover:border-slate-600' : 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-white')}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-2xl font-black leading-none">{Number(option.count || 0).toLocaleString('th-TH')}</div>
-                          <div className="text-sm font-black mt-2 truncate">{option.label}</div>
-                          <div className="text-[11px] font-bold mt-1 opacity-75 leading-snug">{option.desc}</div>
-                        </div>
-                        <span className={`w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0 font-black ${active ? 'bg-white/15 border-white/25' : (isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200')}`}>{option.emoji}</span>
-                      </div>
-                      <div className={`mt-3 overflow-hidden transition-all duration-200 ${active ? 'max-h-12 opacity-100' : 'max-h-0 opacity-0 group-hover:max-h-12 group-hover:opacity-100'}`}>
-                        <span className={`inline-flex px-3 py-2 rounded-xl border text-xs font-black ${active ? 'bg-white/15 border-white/25' : theme.btnSecondary}`}>{active ? 'กำลังแสดงอยู่' : 'เลือกมุมมองนี้'}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              <div className={`shrink-0 px-3 py-2 rounded-2xl border text-xs font-black ${theme.btnSecondary}`}>พบ {filteredItems.length.toLocaleString('th-TH')} รายการ</div>
             </div>
 
             <div className={`inventory-filter-bar rounded-[1.5rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
@@ -20490,12 +20463,57 @@ ${auditChangeSummary}` : auditChangeSummary);
               <Icons.QrCode className="w-5 h-5" /> สแกน QR
             </button>
           )}
-          <button type="button" onClick={() => openWorkspace('inventory')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'inventory' ? 'bg-gradient-to-r from-slate-700 to-emerald-700 text-white shadow-lg shadow-emerald-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.Database className="w-5 h-5" /> สต็อกทั้งหมด
-          </button>
-          <button type="button" onClick={() => openWorkspace('warehouse')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'warehouse' ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-white shadow-lg shadow-slate-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
-            <Icons.Folder className="w-5 h-5" /> โกดัง / คลังสำรอง
-          </button>
+          {/* v23.1.62 Inventory Sidebar Status Menu: รวมสต๊อกทั้งหมด/พร้อมใช้งาน/กำลังใช้งาน/ชำรุด/โกดังไว้ในเมนูซ้าย */}
+          <div className="group operation-dropdown-wrap">
+            <button
+              type="button"
+              onClick={() => { clearAllFilters(); setInventoryStockScope(inventoryStockScope || 'available'); openWorkspace('inventory'); }}
+              className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'inventory' ? 'bg-gradient-to-r from-slate-700 to-emerald-700 text-white shadow-lg shadow-emerald-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}
+            >
+              <span className="flex items-center gap-3 min-w-0">
+                <Icons.Database className="w-5 h-5 shrink-0" />
+                <span className="min-w-0">
+                  <span className="block truncate">คลังอุปกรณ์</span>
+                  <span className="block text-[10px] font-bold opacity-65 truncate">
+                    {inventoryStockScope === 'all' ? 'สต๊อกทั้งหมด' : inventoryStockScope === 'using' ? 'กำลังใช้งาน' : inventoryStockScope === 'maintenance' ? 'ชำรุด/ซ่อม' : inventoryStockScope === 'warehouse' ? 'โกดัง' : 'พร้อมใช้งาน'}
+                  </span>
+                </span>
+              </span>
+              <span className={`text-xs transition-transform duration-200 ${activeWorkspace === 'inventory' ? 'text-white rotate-180' : 'text-slate-500 group-hover:text-slate-200 group-hover:rotate-180'}`}>▾</span>
+            </button>
+
+            <div className={`operation-dropdown-menu overflow-hidden transition-all duration-200 ease-out ${activeWorkspace === 'inventory' ? 'max-h-[26rem] opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0 group-hover:max-h-[26rem] group-hover:opacity-100 group-hover:mt-2 group-focus-within:max-h-[26rem] group-focus-within:opacity-100 group-focus-within:mt-2'}`}>
+              <div className="ml-4 pl-3 border-l border-white/10 space-y-1">
+                {[
+                  { id: 'all', label: 'สต๊อกทั้งหมด', desc: 'ทุกสถานะ', icon: Icons.Database, count: stats.all, activeClass: 'bg-slate-700 text-white shadow-lg shadow-slate-500/15' },
+                  { id: 'available', label: 'พร้อมใช้งาน', desc: 'หยิบใช้ได้ทันที', icon: Icons.CheckCircle, count: stats.available, activeClass: 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/15' },
+                  { id: 'using', label: 'กำลังใช้งาน', desc: 'ถูกยืม / ออกงาน', icon: Icons.History, count: stats.using, activeClass: 'bg-orange-600 text-white shadow-lg shadow-orange-500/15' },
+                  { id: 'maintenance', label: 'ชำรุด/ซ่อม', desc: 'รอซ่อมหรืองดใช้', icon: Icons.Alert, count: stats.maintenance, activeClass: 'bg-rose-600 text-white shadow-lg shadow-rose-500/15' },
+                  { id: 'warehouse', label: 'โกดัง', desc: 'คลังสำรอง/ยังไม่เปิดใช้', icon: Icons.Folder, count: stats.warehouse, activeClass: 'bg-slate-600 text-white shadow-lg shadow-slate-500/15' }
+                ].map(scope => {
+                  const ScopeIcon = scope.icon;
+                  const isScopeActive = activeWorkspace === 'inventory' && inventoryStockScope === scope.id;
+                  return (
+                    <button
+                      key={`sidebar_inventory_scope_${scope.id}`}
+                      type="button"
+                      onClick={() => { clearAllFilters(); setInventoryStockScope(scope.id); openWorkspace('inventory'); }}
+                      className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-2xl text-left transition-all ${isScopeActive ? `${scope.activeClass} font-black` : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}
+                    >
+                      <span className="flex items-center gap-3 min-w-0">
+                        <ScopeIcon className="w-4 h-4 shrink-0" />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm">{scope.label}</span>
+                          <span className="block text-[10px] font-bold opacity-65 truncate">{scope.desc}</span>
+                        </span>
+                      </span>
+                      <span className={`shrink-0 min-w-7 h-6 px-2 rounded-full inline-flex items-center justify-center text-[10px] font-black ${isScopeActive ? 'bg-white/15 text-white' : 'bg-white/5 text-slate-400'}`}>{Number(scope.count || 0).toLocaleString('th-TH')}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
           <button type="button" onClick={() => openTrackingCenter('today')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'tracking' ? 'bg-gradient-to-r from-slate-700 to-cyan-700 text-white shadow-lg shadow-cyan-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
             <Icons.History className="w-5 h-5" /> ติดตามของรอคืน
           </button>
