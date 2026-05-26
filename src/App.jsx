@@ -75,8 +75,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.59 Settings Workspace Visual Polish';
-const APP_UPDATE_NOTE = 'Settings Workspace Visual Polish: ปรับดีไซน์หน้าตั้งค่าระบบทั้งชุดให้ดูเป็น workspace เดียวกัน สวยขึ้น อ่านง่ายขึ้น และใช้งานต่อเนื่องทุกหมวด';
+const APP_VERSION = 'v23.1.60 Settings Sidebar Beauty Polish';
+const APP_UPDATE_NOTE = 'Settings Sidebar Beauty Polish: ปรับเมนูด้านซ้ายในหน้าตั้งค่าระบบให้ดูสวยขึ้น ชัดขึ้น มีลำดับสายตาดีขึ้น และใช้งานง่ายขึ้น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -22858,29 +22858,62 @@ ${auditChangeSummary}` : auditChangeSummary);
             </div>
 
             <div className={`flex flex-col lg:flex-row flex-1 min-h-0 ${isDarkMode ? 'bg-[radial-gradient(circle_at_top,rgba(30,41,59,0.35),rgba(2,6,23,1))]' : 'bg-slate-50/90'}`}>
-              <aside className={`settings-redesign-sidebar hidden lg:flex w-[300px] shrink-0 border-r ${theme.divide} p-4 flex-col gap-3 overflow-y-auto custom-scrollbar ${isDarkMode ? 'bg-slate-950/70' : 'bg-white/85'}`}>
-                <div className={`px-2 pb-2 text-[11px] font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>หมวดการตั้งค่า</div>
-                {settingsNavItems.map((nav) => {
-                  const Icon = nav.icon || Icons.Settings;
-                  const active = settingsTab === nav.id;
-                  return (
-                    <button
-                      key={nav.id}
-                      type="button"
-                      onClick={() => openSettingsTab(nav.id)}
-                      className={`w-full text-left rounded-[1.35rem] border px-4 py-3.5 transition-all flex items-start gap-3 shadow-sm ${active ? 'bg-[linear-gradient(135deg,rgba(37,99,235,0.24),rgba(30,64,175,0.18))] border-blue-400/55 text-blue-100 shadow-[0_12px_30px_rgba(37,99,235,0.18)]' : `${theme.btnSecondary} hover:-translate-y-[1px]`}`}
-                      title={nav.desc}
-                    >
-                      <span className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${active ? 'bg-blue-500/20 border-blue-300/40' : (isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200')}`}>
-                        <Icon className="w-5 h-5" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-black leading-tight">{nav.label}</span>
-                        <span className={`block text-xs font-bold mt-1 leading-snug ${theme.textMuted}`}>{nav.desc}</span>
-                      </span>
-                    </button>
-                  );
-                })}
+              <aside className={`settings-redesign-sidebar hidden lg:flex w-[320px] shrink-0 border-r ${theme.divide} p-4 flex-col gap-4 overflow-y-auto custom-scrollbar ${isDarkMode ? 'bg-[linear-gradient(180deg,rgba(2,6,23,0.92),rgba(15,23,42,0.85))]' : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.96))]'}`}>
+                <div className={`rounded-[1.7rem] border p-4 shadow-[0_12px_35px_rgba(15,23,42,0.12)] ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-blue-500/12 border-blue-400/25' : 'bg-blue-50 border-blue-200'}`}>
+                      <Icons.Settings className="w-6 h-6 text-blue-500" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>Settings Navigation</div>
+                      <div className={`text-base font-black mt-1 ${theme.textTitle}`}>หมวดการตั้งค่า</div>
+                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>รวมทุกส่วนไว้ทางซ้าย กดเลือกหมวดแล้วทำงานต่อได้ทันที</div>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center gap-2 flex-wrap">
+                    <span className={`inline-flex px-3 py-1.5 rounded-full text-xs font-black border ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>{settingsNavItems.length} หมวด</span>
+                    <span className={`inline-flex px-3 py-1.5 rounded-full text-xs font-black border ${isDarkMode ? 'bg-emerald-500/10 border-emerald-400/20 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>workspace เดียว</span>
+                  </div>
+                </div>
+
+                <div className={`rounded-[1.8rem] border p-3 shadow-[0_16px_40px_rgba(15,23,42,0.12)] ${isDarkMode ? 'bg-slate-900/75 border-slate-800' : 'bg-white/95 border-slate-200'}`}>
+                  <div className={`px-2 pb-3 text-[11px] font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>หมวดการตั้งค่าทั้งหมด</div>
+                  <div className="space-y-2">
+                    {settingsNavItems.map((nav, index) => {
+                      const Icon = nav.icon || Icons.Settings;
+                      const active = settingsTab === nav.id;
+                      return (
+                        <button
+                          key={nav.id}
+                          type="button"
+                          onClick={() => openSettingsTab(nav.id)}
+                          className={`w-full text-left rounded-[1.4rem] border px-3.5 py-3 transition-all duration-200 flex items-start gap-3 shadow-sm ${active ? 'bg-[linear-gradient(135deg,rgba(37,99,235,0.24),rgba(30,64,175,0.18))] border-blue-400/55 text-blue-100 shadow-[0_14px_34px_rgba(37,99,235,0.20)]' : `${theme.btnSecondary} hover:-translate-y-[1px] hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)]`}`}
+                          title={nav.desc}
+                        >
+                          <span className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${active ? 'bg-blue-500/18 border-blue-300/40 text-blue-100' : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700')}`}>
+                            <Icon className="w-5 h-5" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center justify-between gap-2">
+                              <span className="block text-sm font-black leading-tight truncate">{nav.label}</span>
+                              <span className={`inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full text-[11px] font-black border shrink-0 ${active ? 'bg-blue-500/20 border-blue-300/30 text-blue-100' : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-500')}`}>{index + 1}</span>
+                            </span>
+                            <span className={`block text-xs font-bold mt-1 leading-snug ${active ? 'text-blue-100/80' : theme.textMuted}`}>{nav.desc}</span>
+                            <span className="mt-2 flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${active ? 'bg-emerald-400' : (isDarkMode ? 'bg-slate-600' : 'bg-slate-300')}`} />
+                              <span className={`text-[11px] font-black ${active ? 'text-emerald-300' : theme.textMuted}`}>{active ? 'กำลังเปิดอยู่' : 'กดเพื่อเปิดหมวดนี้'}</span>
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className={`rounded-[1.6rem] border p-4 mt-auto ${isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div className={`text-xs font-black ${theme.textTitle}`}>เคล็ดลัดการใช้งาน</div>
+                  <div className={`text-xs font-bold mt-1.5 leading-relaxed ${theme.textMuted}`}>ถ้าต้องการทำงานเร็ว แนะนำให้เริ่มจาก “ภาพรวมระบบ” ก่อน แล้วค่อยไล่แก้หมวดที่เกี่ยวข้องตามงานของวันนั้น</div>
+                </div>
               </aside>
               <div className="flex flex-col flex-1 min-h-0">
                 <div className={`lg:hidden px-4 py-3 border-b ${theme.divide} ${isDarkMode ? 'bg-slate-950/80' : 'bg-white/90'}`}>
