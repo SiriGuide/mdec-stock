@@ -75,7 +75,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.66 Proof Operation Group Timeline';
+const APP_VERSION = 'v23.1.67 Legacy Group Proof Recovery';
 const APP_UPDATE_NOTE = 'Inventory Main Button Shows All: ปุ่มคลังอุปกรณ์หลักเปิดสต๊อกทั้งหมดทันที และย่อเมนูย่อยให้เหลือพร้อมใช้งาน/กำลังใช้งาน/ชำรุด/โกดัง เพื่อลดจำนวนปุ่ม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -13998,7 +13998,7 @@ S.N.: ${item.sn || '-'}
                               <div className="min-w-0">
                                 <div className={`text-lg font-black truncate ${theme.textTitle}`}>{group.title || group.itemName || '-'}</div>
                                 <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>
-                                  {group.itemRefs?.length > 1 ? `${group.itemRefs.length} อุปกรณ์ในชุดนี้` : `S.N. ${group.sn || '-'}`} • หลักฐานรวม {totalImages.toLocaleString('th-TH')} รูป
+                                  {group.itemRefs?.length > 1 ? `${group.itemRefs.length} อุปกรณ์ในชุดนี้` : `S.N. ${group.sn || '-'}`} • หลักฐานรวม {totalImages.toLocaleString('th-TH')} รูป{group.isLegacyBatch ? ' • รวมจากข้อมูลเก่า' : ''}
                                 </div>
                                 <div className={`text-[11px] font-bold mt-1 truncate ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง: {primarySubject}</div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
@@ -15468,6 +15468,7 @@ S.N.: ${item.sn || '-'}
             staff: h.staffOut || h.staffIn || h.operatorName || proof.createdBy || '-',
             note: h.note || h.problem || '',
             documentRef: h.documentRef || h.documentId || h.docId || h.ref || h.borrowDocId || h.borrowDocRef || '',
+            operationGroupId: h.groupId || h.groupKey || h.batchId || h.batchKey || h.transactionId || h.operationId || h.operationGroupId || h.borrowGroupId || h.returnGroupId || h.eventGroupId || '',
             caseSubject: h.borrower || h.eventName || h.subject || h.staffIn || h.staffOut || h.operatorName || '',
             borrower: h.borrower || '',
             eventName: h.eventName || '',
@@ -15513,6 +15514,7 @@ S.N.: ${item.sn || '-'}
             staff: docData.staffOut || docData.staffIn || proof.createdBy || '-',
             note: docData.note || '',
             documentRef: docData.id || docData.ref || docData.documentId || docData.documentRef || docData.docId || '',
+            operationGroupId: docData.groupId || docData.groupKey || docData.batchId || docData.batchKey || docData.transactionId || docData.operationId || docData.operationGroupId || docData.borrowGroupId || docData.returnGroupId || docData.eventGroupId || '',
             caseSubject: docData.borrower || docData.eventName || docData.subject || docData.title || '',
             borrower: docData.borrower || '',
             eventName: docData.eventName || '',
@@ -15644,16 +15646,42 @@ S.N.: ${item.sn || '-'}
       return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString('th-TH', { hour12: false });
     };
     const getEntrySubject = (entry = {}) => String(entry.caseSubject || entry.borrower || entry.eventName || entry.subject || '').trim();
+    const makeLegacyBatchKey = (entry = {}) => {
+      const typeKey = normalizeProofTimelineType(entry.historyType || entry.typeLabel);
+      const family = typeKey === 'return' || typeKey === 'borrow' ? 'borrow-return' : typeKey === 'event' ? 'event' : typeKey === 'repair' ? 'repair' : 'other';
+      const hardRef = String(entry.documentRef || entry.operationGroupId || entry.proof?.documentRef || entry.proof?.groupId || entry.proof?.batchId || entry.proof?.ref || '').trim();
+      if (hardRef) return `${family}__ref__${hardRef}`;
+
+      const ms = getEntryMs(entry);
+      const dateBucket = ms ? new Date(ms).toISOString().slice(0, 16) : String(entry.date || entry.proof?.createdAt || 'no-date').slice(0, 16);
+      const subject = normalizeCaseText(getEntrySubject(entry)) || normalizeCaseText(entry.staff || entry.staffIn || entry.staffOut || '') || 'no-subject';
+      const staff = normalizeCaseText(entry.staffOut || entry.staffIn || entry.staff || entry.proof?.createdBy || '') || 'no-staff';
+      const note = normalizeCaseText(entry.note || entry.proof?.contextLabel || entry.proof?.note || '').slice(0, 48);
+      return `${family}__legacy-batch__${typeKey}__${dateBucket}__${subject}__${staff}__${note}`;
+    };
+
+    const legacyBatchCounts = new Map();
+    filteredProofEntries.forEach((entry = {}) => {
+      const key = makeLegacyBatchKey(entry);
+      legacyBatchCounts.set(key, (legacyBatchCounts.get(key) || 0) + 1);
+    });
+
     const makeCaseKey = (entry = {}) => {
       const typeKey = normalizeProofTimelineType(entry.historyType || entry.typeLabel);
       const family = typeKey === 'return' || typeKey === 'borrow' ? 'borrow-return' : typeKey === 'event' ? 'event' : typeKey === 'repair' ? 'repair' : 'other';
-      const itemSet = String(entry.caseItemSetKey || entry.documentRef || entry.itemId || entry.sn || entry.itemName || 'unknown').trim();
+      const legacyBatchKey = makeLegacyBatchKey(entry);
+      const hardRef = String(entry.documentRef || entry.operationGroupId || entry.proof?.documentRef || entry.proof?.groupId || entry.proof?.batchId || entry.proof?.ref || '').trim();
+
+      // v23.1.67: งานเก่าบางชุดไม่มีเลขเอกสาร แต่มีรูปคืน/ยืม/ออกงานกลุ่มเวลาเดียวกัน
+      // ให้รวมด้วย batch เวลา+ผู้เกี่ยวข้องก่อน ไม่แยกตามอุปกรณ์
+      if (hardRef || (legacyBatchCounts.get(legacyBatchKey) || 0) > 1) {
+        return legacyBatchKey;
+      }
+
+      const itemSet = String(entry.caseItemSetKey || entry.itemId || entry.sn || entry.itemName || 'unknown').trim();
       const subject = normalizeCaseText(getEntrySubject(entry)) || 'no-subject';
-      // ยืม/คืนควรอยู่ชุดเดียวกันถ้าเป็นผู้ยืม/เรื่องเดียวกัน + ชุดอุปกรณ์เดียวกัน
       if (family === 'borrow-return') return `${family}__${subject}__${itemSet}`;
-      // ออกงานแบบกลุ่มควรแยกเป็นชุดงานของตัวเอง
       if (family === 'event') return `${family}__${subject}__${itemSet}`;
-      // ซ่อม/ชำรุดแยกตามอุปกรณ์
       return `${family}__${itemSet}__${subject}`;
     };
 
@@ -15666,6 +15694,7 @@ S.N.: ${item.sn || '-'}
         groups.set(groupKey, {
           groupId: groupKey,
           family,
+          isLegacyBatch: makeLegacyBatchKey(entry) === groupKey && (legacyBatchCounts.get(groupKey) || 0) > 1,
           title: '',
           itemId: entry.itemId || '',
           itemName: entry.itemName || '-',
@@ -15725,13 +15754,18 @@ S.N.: ${item.sn || '-'}
       const eventEntry = (group.byType.event || []).slice().sort((a, b) => getEntryMs(a) - getEntryMs(b))[0] || null;
       const repairEntry = (group.byType.repair || []).slice().sort((a, b) => getEntryMs(b) - getEntryMs(a))[0] || null;
 
+      const borrowCount = group.byType.borrow?.length || 0;
+      const returnCount = group.byType.return?.length || 0;
+      const eventCount = group.byType.event?.length || 0;
+      const repairCount = group.byType.repair?.length || 0;
+      const groupPrefix = itemRefs.length > 1 ? 'กลุ่ม' : '';
       const title = group.family === 'borrow-return'
-        ? `ยืม-คืน${primarySubject && primarySubject !== '-' ? `: ${primarySubject}` : ''}`
+        ? `${borrowCount && returnCount ? 'ยืม-คืน' : returnCount ? 'รับคืน' : 'ยืม'}${groupPrefix}${primarySubject && primarySubject !== '-' ? `: ${primarySubject}` : ''}`
         : group.family === 'event'
-        ? `ออกงาน${primarySubject && primarySubject !== '-' ? `: ${primarySubject}` : ''}`
+        ? `ออกงาน${groupPrefix}${primarySubject && primarySubject !== '-' ? `: ${primarySubject}` : ''}`
         : group.family === 'repair'
-        ? `ซ่อม/ชำรุด: ${group.itemName || '-'}`
-        : `${group.itemName || 'หลักฐาน'}`;
+        ? `ซ่อม/ชำรุด${groupPrefix}: ${itemRefs.length > 1 ? `${itemRefs.length} อุปกรณ์` : (group.itemName || '-')}`
+        : `${itemRefs.length > 1 ? `หลักฐานกลุ่ม ${itemRefs.length} อุปกรณ์` : (group.itemName || 'หลักฐาน')}`;
 
       const searchText = [
         title,
