@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.77 Records Proof Compact Image + Equipment List';
+const APP_VERSION = 'v23.1.76 Records Proof Compact Layout + Vertical Equipment List';
 const APP_UPDATE_NOTE = 'Inventory Main Button Shows All: ปุ่มคลังอุปกรณ์หลักเปิดสต๊อกทั้งหมดทันที และย่อเมนูย่อยให้เหลือพร้อมใช้งาน/กำลังใช้งาน/ชำรุด/โกดัง เพื่อลดจำนวนปุ่ม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -499,7 +499,7 @@ function SmartOptionInput({
             onWheel={containPickerWheel}
             onTouchMove={(e) => e.stopPropagation()}
             style={{ overscrollBehavior: 'contain' }}
-            className="smart-picker-list max-h-56 max-sm:max-h-[46vh] overflow-y-auto custom-scrollbar p-2 space-y-1"
+            className="smart-picker-list max-h-72 max-sm:max-h-[46vh] overflow-y-auto custom-scrollbar p-2 space-y-1"
           >
             {matchedOptions.map(option => (
               <button
@@ -8190,12 +8190,45 @@ function MainApp() {
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
-
-    // v23.1.76 Proof Upload No Watermark
-    // รูปหลักฐานใช้แอป Time Stamp ภายนอกอยู่แล้ว
-    // ดังนั้นระบบจะไม่แปะโลโก้/ลายน้ำ/ข้อความใด ๆ ลงบนรูปอีก
-    // ฟังก์ชันนี้ทำหน้าที่แค่ย่อและบีบอัดรูปให้เหมาะกับฐานข้อมูลเท่านั้น
     ctx.drawImage(img, 0, 0, width, height);
+
+    // Proof images already come from the college timestamp app.
+    // Keep only the MDEC logo mark on the photo and do not add time/GPS/text overlays.
+    if (showเอกสารLogo('proofStamp')) {
+      const badgePad = Math.max(10, Math.round(width * 0.018));
+      const chipW = Math.max(92, Math.round(width * 0.145));
+      const chipH = Math.max(42, Math.round(width * 0.058));
+      const chipRadius = Math.max(7, Math.round(chipH * 0.18));
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.86)';
+      drawRoundedRect(ctx, badgePad, badgePad, chipW, chipH, chipRadius);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(37,99,235,0.32)';
+      ctx.lineWidth = Math.max(1, Math.round(width * 0.0016));
+      ctx.stroke();
+      try {
+        const logoImg = await loadImageFromSrc(ORG_LOGO_SRC);
+        const ratio = (logoImg.width && logoImg.height) ? logoImg.width / logoImg.height : 2.6;
+        let logoW = Math.round(chipW * 0.76);
+        let logoH = Math.round(logoW / ratio);
+        if (logoH > chipH * 0.72) {
+          logoH = Math.round(chipH * 0.72);
+          logoW = Math.round(logoH * ratio);
+        }
+        const logoX = badgePad + Math.round((chipW - logoW) / 2);
+        const logoY = badgePad + Math.round((chipH - logoH) / 2);
+        ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
+      } catch (logoError) {
+        ctx.fillStyle = '#0ea5e9';
+        ctx.font = `900 ${Math.max(14, Math.round(width * 0.018))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('MDEC', badgePad + chipW / 2, badgePad + chipH / 2);
+        ctx.textAlign = 'start';
+        ctx.textBaseline = 'alphabetic';
+      }
+      ctx.restore();
+    }
 
     return canvas;
   };
@@ -13357,7 +13390,7 @@ S.N.: ${item.sn || '-'}
             </div>
           </div>
 
-          <div className="p-4 sm:p-5 space-y-4">
+          <div className="p-2 sm:p-3 space-y-3">
             <div className={`rounded-[1.35rem] border px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
               <div className="min-w-0">
                 <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>Inventory Scope</div>
@@ -13984,10 +14017,10 @@ S.N.: ${item.sn || '-'}
                     const sampleItems = rowsInGroup.slice(0, 5);
                     const extraItems = Math.max(0, rowsInGroup.length - sampleItems.length);
                     return (
-                    <div key={entry.groupKey || entry.id} className={`relative rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-900/72 border-slate-800 hover:border-slate-700' : 'bg-slate-50 border-slate-200 hover:border-slate-300'} transition-colors`}>
-                      <div className="grid grid-cols-1 xl:grid-cols-[auto_minmax(0,1fr)_300px] gap-0">
+                    <div key={entry.groupKey || entry.id} className={`relative rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-900/72 border-slate-800/70 hover:border-slate-700' : 'bg-slate-50 border-slate-200 hover:border-slate-300'} transition-colors`}>
+                      <div className="grid grid-cols-1 xl:grid-cols-[auto_minmax(0,1fr)_260px] gap-0">
                         {canDeleteItems && (
-                          <div className={`px-4 py-4 border-b xl:border-b-0 xl:border-r ${theme.divide}`}>
+                          <div className={`px-4 py-4 border-b xl:border-b-0 xl:border-r ${isDarkMode ? "border-slate-800/45" : "border-slate-200/70"}`}>
                             <input type="checkbox" className="stock-checkbox" checked={rowsInGroup.every(row => isHistorySelected(row.id))} onChange={() => {
                               const groupIds = rowsInGroup.map(row => row.id);
                               const allPicked = groupIds.every(id => selectedHistoryRecordIds.includes(id));
@@ -14031,8 +14064,17 @@ S.N.: ${item.sn || '-'}
                           )}
 
                           {isGroup && (
-                            <div className={`mt-3 rounded-2xl border px-3 py-2.5 text-xs font-bold leading-relaxed ${isDarkMode ? 'bg-slate-950/35 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
-                              {sampleItems.map(row => `${row.itemName || '-'}${row.sn ? ` (${row.sn})` : ''}`).join(' • ')}{extraItems > 0 ? ` • +อีก ${extraItems} รายการ` : ''}
+                            <div className={`mt-3 rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/35 border-slate-700/70' : 'bg-white border-slate-200'}`}>
+                              <div className={`text-[10px] font-black tracking-[0.12em] uppercase ${theme.textMuted}`}>รายการอุปกรณ์</div>
+                              <div className="mt-2 space-y-1">
+                                {sampleItems.map((row, rowIndex) => (
+                                  <div key={`history_item_${entry.groupKey || entry.id}_${row.itemId || row.sn || rowIndex}`} className={`rounded-xl px-2.5 py-2 ${isDarkMode ? 'bg-slate-900/65' : 'bg-slate-50'}`}>
+                                    <div className={`text-xs font-black leading-tight ${theme.textTitle}`}>{row.itemName || '-'}</div>
+                                    {row.sn && <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>S.N. {row.sn}</div>}
+                                  </div>
+                                ))}
+                                {extraItems > 0 && <div className={`text-[11px] font-black px-2.5 py-1.5 ${theme.textMuted}`}>+ อีก {extraItems.toLocaleString('th-TH')} รายการ</div>}
+                              </div>
                             </div>
                           )}
 
@@ -14048,19 +14090,19 @@ S.N.: ${item.sn || '-'}
                           </div>
                         </div>
 
-                        <div className={`min-h-[180px] border-t xl:border-t-0 xl:border-l-0 ${theme.divide} ${isDarkMode ? 'bg-slate-950/45' : 'bg-white/80'}`}>
+                        <div className={`min-h-[150px] p-3 border-t xl:border-t-0 xl:border-l ${isDarkMode ? 'bg-slate-950/35 border-slate-800/45' : 'bg-white/80 border-slate-200/70'}`}>
                           {previewProofs[0] ? (() => {
                             const proof = previewProofs[0];
                             const previewSrc = proof?.thumbUrl || proof?.url || proof?.dataUrl || '';
                             return previewSrc ? (
-                              <button type="button" onClick={() => openProofImage(proof)} className="w-full h-full min-h-[180px] block">
+                              <button type="button" onClick={() => openProofImage(proof)} className="w-full h-full min-h-[150px] max-h-[170px] block rounded-2xl overflow-hidden">
                                 <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-contain" loading="lazy" />
                               </button>
                             ) : (
-                              <div className={`h-full min-h-[180px] flex items-center justify-center text-xs font-black ${theme.textMuted}`}>ไม่มีภาพตัวอย่าง</div>
+                              <div className={`h-full min-h-[150px] max-h-[170px] flex items-center justify-center text-xs font-black ${theme.textMuted}`}>ไม่มีภาพตัวอย่าง</div>
                             );
                           })() : (
-                            <div className={`h-full min-h-[180px] flex items-center justify-center text-xs font-black ${theme.textMuted}`}>ไม่มีรูปหลักฐาน</div>
+                            <div className={`h-full min-h-[150px] max-h-[170px] flex items-center justify-center text-xs font-black ${theme.textMuted}`}>ไม่มีรูปหลักฐาน</div>
                           )}
                         </div>
                       </div>
@@ -14185,7 +14227,7 @@ S.N.: ${item.sn || '-'}
                         const currentTypeLabel = activeFilterKey === 'return' ? 'รับคืน' : activeFilterKey === 'event' ? 'ออกงาน' : activeFilterKey === 'repair' ? 'ซ่อม/ชำรุด' : activeFilterKey === 'borrow' ? 'ยืม' : (previewEntry.typeLabel || 'หลักฐาน');
                         const currentEvents = activeFilterKey === 'return' ? (group.returnEvents || []) : activeFilterKey === 'event' ? (group.eventEvents || []) : activeFilterKey === 'repair' ? (group.repairEvents || []) : activeFilterKey === 'borrow' ? (group.borrowEvents || []) : [];
                         return (
-                          <div key={group.groupId} className={`rounded-3xl border overflow-hidden relative ${isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                          <div key={group.groupId} className={`rounded-3xl border overflow-hidden relative ${isDarkMode ? 'bg-slate-900/80 border-slate-800/70' : 'bg-slate-50 border-slate-200'}`}>
                             {canUseOperationalTools && previewProof && (
                               <button
                                 type="button"
@@ -14202,7 +14244,7 @@ S.N.: ${item.sn || '-'}
                               </button>
                             )}
 
-                            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_460px] gap-0">
+                            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-3 p-3">
                               <div className="p-4 sm:p-5 space-y-4">
                                 <div className="pr-32">
                                   <div className={`text-xl font-black leading-tight ${theme.textTitle}`}>{activeFilterKey ? `${currentTypeLabel}: ${group.primarySubject || primarySubject}` : (group.title || group.itemName || '-')}</div>
@@ -14223,6 +14265,21 @@ S.N.: ${item.sn || '-'}
                                   </div>
                                 </div>
 
+                                {group.itemRefs?.length > 0 && (
+                                  <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/35 border-slate-700/70' : 'bg-white border-slate-200'}`}>
+                                    <div className={`text-[10px] font-black tracking-[0.12em] uppercase ${theme.textMuted}`}>อุปกรณ์ที่เกี่ยวข้อง</div>
+                                    <div className="mt-2 space-y-1">
+                                      {group.itemRefs.slice(0, 10).map((ref, refIndex) => (
+                                        <div key={`proof_item_${group.groupId}_${ref.itemId || ref.sn || refIndex}`} className={`rounded-xl px-2.5 py-2 ${isDarkMode ? 'bg-slate-900/65' : 'bg-slate-50'}`}>
+                                          <div className={`text-xs font-black leading-tight ${theme.textTitle}`}>{ref.itemName || '-'}</div>
+                                          {ref.sn && <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>S.N. {ref.sn}</div>}
+                                        </div>
+                                      ))}
+                                      {group.itemRefs.length > 10 && <div className={`text-[11px] font-black px-2.5 py-1.5 ${theme.textMuted}`}>+ อีก {(group.itemRefs.length - 10).toLocaleString('th-TH')} รายการ</div>}
+                                    </div>
+                                  </div>
+                                )}
+
                                 {currentEvents.length > 0 ? (
                                   <div className="space-y-1.5">
                                     {currentEvents.map((event, eventIndex) => (
@@ -14232,8 +14289,14 @@ S.N.: ${item.sn || '-'}
                                           <div className={`text-[11px] font-bold ${theme.textMuted}`}>{event.dateText} • {event.proofs?.length || 0} รูป</div>
                                         </div>
                                         {event.items?.length > 0 && (
-                                          <div className={`mt-1 text-[11px] font-bold leading-relaxed ${theme.textMuted}`}>
-                                            {event.items.map(it => `${it.itemName || '-'}${it.sn && it.sn !== '-' ? ` (${it.sn})` : ''}`).join(' • ')}
+                                          <div className="mt-2 space-y-1">
+                                            {event.items.slice(0, 8).map((it, itIndex) => (
+                                              <div key={`proof_event_item_${event.key || eventIndex}_${it.itemId || it.sn || itIndex}`} className={`rounded-lg px-2.5 py-1.5 ${isDarkMode ? 'bg-slate-900/60' : 'bg-slate-50'}`}>
+                                                <div className={`text-[11px] font-black leading-tight ${theme.textTitle}`}>{it.itemName || '-'}</div>
+                                                {it.sn && it.sn !== '-' && <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>S.N. {it.sn}</div>}
+                                              </div>
+                                            ))}
+                                            {event.items.length > 8 && <div className={`text-[10px] font-black px-2 ${theme.textMuted}`}>+ อีก {(event.items.length - 8).toLocaleString('th-TH')} รายการ</div>}
                                           </div>
                                         )}
                                       </div>
@@ -14245,30 +14308,17 @@ S.N.: ${item.sn || '-'}
                                   </div>
                                 )}
 
-                                <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/45 border-slate-800/70' : 'bg-white border-slate-200/80'}`}>
-                                  <div className={`text-[11px] font-black tracking-[0.14em] uppercase ${theme.textMuted}`}>อุปกรณ์ที่เกี่ยวข้อง</div>
-                                  <div className="mt-2 space-y-1.5">
-                                    {equipmentList.slice(0, 12).map((it, idx) => (
-                                      <div key={`${group.groupId}_equipment_${idx}`} className={`rounded-xl px-3 py-2 ${isDarkMode ? 'bg-slate-900/70' : 'bg-slate-50'}`}>
-                                        <div className={`text-xs font-black ${theme.textTitle}`}>{it.itemName || '-'}</div>
-                                        <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{it.sn && it.sn !== '-' ? `S.N. ${it.sn}` : 'ไม่มีรหัส'}{it.category && it.category !== '-' ? ` • ${it.category}` : ''}</div>
-                                      </div>
-                                    ))}
-                                    {equipmentList.length > 12 && <div className={`text-[11px] font-bold ${theme.textMuted}`}>และอีก {(equipmentList.length - 12).toLocaleString('th-TH')} รายการ</div>}
-                                  </div>
-                                </div>
-
                                 <div className="flex flex-wrap gap-2 pt-1">
                                   {group.itemId && <button type="button" onClick={() => setShowHistory(group.itemId)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
                                   <button type="button" onClick={() => { setHistoryCenterSearch(group.sn || group.itemName || ''); setRecordsCenterMode('history'); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
                                 </div>
                               </div>
 
-                              <div className={`p-4 border-t xl:border-t-0 xl:border-l-0 ${isDarkMode ? 'border-slate-800/50 bg-slate-950/45' : 'border-slate-200/70 bg-white/80'}`}>
-                                <button type="button" onClick={() => openProofImage(previewProof)} className={`w-full rounded-2xl border overflow-hidden h-[360px] ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+                              <div className={`p-2 sm:p-3 rounded-3xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-800/60' : 'bg-white/80 border-slate-200/70'}`}>
+                                <button type="button" onClick={() => openProofImage(previewProof)} className={`w-full rounded-2xl border overflow-hidden h-[220px] ${isDarkMode ? 'bg-slate-950 border-slate-800/60' : 'bg-slate-100 border-slate-200'}`}>
                                   {previewSrc ? <img src={previewSrc} alt="หลักฐานหลัก" className="w-full h-full object-contain" loading="lazy" /> : <div className={`h-full flex items-center justify-center text-sm font-black ${theme.textMuted}`}>ไม่มีภาพตัวอย่าง</div>}
                                 </button>
-                                <div className={`mt-2 text-[11px] font-bold ${theme.textMuted}`}>รูปหลักฐาน • {currentTypeLabel} • {previewEntry?.date ? new Date(previewEntry.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
+                                <div className={`mt-2 text-[11px] font-bold ${theme.textMuted}`}>รูปหลัก • {currentTypeLabel} • {previewEntry?.date ? new Date(previewEntry.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
                               </div>
                             </div>
                           </div>
@@ -23082,7 +23132,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                           <div className={`font-black ${theme.textTitle}`}>เช็กลิสต์เตรียมของ</div>
                           <button type="button" onClick={() => toggleAllPrepChecklist(prep)} className={`px-3 py-1.5 rounded-lg text-sm font-black ${isDarkMode ? 'bg-sky-900/40 text-sky-400 hover:bg-sky-800' : 'bg-sky-100 text-sky-700 hover:bg-sky-200'}`}>{checkedCount === prepItems.length && prepItems.length > 0 ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}</button>
                         </div>
-                        <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+                        <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
                           {prepItems.map((item) => {
                             const checked = checkedIds.includes(item.id);
                             const s = STATUSES.find((st) => st.id === item.status) || STATUSES[0];
@@ -26970,7 +27020,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                             <div className={`p-6 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ยังไม่มีอุปกรณ์ในโครงการนี้
 กด “จัดอุปกรณ์” เพื่อเลือกอุปกรณ์เข้าโครงการ</div>
                           ) : (
-                            <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+                            <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
                               {project.items.map((item) => {
                                 const assetInfo = getAssetStatusInfo(item.assetStatus);
                                 const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
