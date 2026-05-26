@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.74 Records Proof Detail Layout Polish';
+const APP_VERSION = 'v23.1.75 Records Proof Real Layout Fix';
 const APP_UPDATE_NOTE = 'Inventory Main Button Shows All: ปุ่มคลังอุปกรณ์หลักเปิดสต๊อกทั้งหมดทันที และย่อเมนูย่อยให้เหลือพร้อมใช้งาน/กำลังใช้งาน/ชำรุด/โกดัง เพื่อลดจำนวนปุ่ม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -14017,60 +14017,84 @@ S.N.: ${item.sn || '-'}
                     const sampleItems = rowsInGroup.slice(0, 5);
                     const extraItems = Math.max(0, rowsInGroup.length - sampleItems.length);
                     return (
-                    <div key={entry.groupKey || entry.id} className={`px-3 py-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900/70 border-slate-800 hover:border-slate-700' : 'bg-slate-50 border-slate-200 hover:border-slate-300'} transition-colors`}>
-                      <div className={`grid gap-3 items-start ${canDeleteItems ? 'grid-cols-[auto_minmax(0,1fr)] xl:grid-cols-[auto_minmax(0,1fr)_auto]' : 'grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto]'}`}>
-                        {canDeleteItems && <input type="checkbox" className="stock-checkbox mt-2" checked={rowsInGroup.every(row => isHistorySelected(row.id))} onChange={() => {
-                          const groupIds = rowsInGroup.map(row => row.id);
-                          const allPicked = groupIds.every(id => selectedHistoryRecordIds.includes(id));
-                          setSelectedHistoryRecordIds(prev => allPicked ? prev.filter(id => !groupIds.includes(id)) : Array.from(new Set([...prev, ...groupIds])));
-                        }} />}
+                    <div key={entry.groupKey || entry.id} className={`relative rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-900/72 border-slate-800 hover:border-slate-700' : 'bg-slate-50 border-slate-200 hover:border-slate-300'} transition-colors`}>
+                      <div className="grid grid-cols-1 xl:grid-cols-[auto_minmax(0,1fr)_300px] gap-0">
+                        {canDeleteItems && (
+                          <div className={`px-4 py-4 border-b xl:border-b-0 xl:border-r ${theme.divide}`}>
+                            <input type="checkbox" className="stock-checkbox" checked={rowsInGroup.every(row => isHistorySelected(row.id))} onChange={() => {
+                              const groupIds = rowsInGroup.map(row => row.id);
+                              const allPicked = groupIds.every(id => selectedHistoryRecordIds.includes(id));
+                              setSelectedHistoryRecordIds(prev => allPicked ? prev.filter(id => !groupIds.includes(id)) : Array.from(new Set([...prev, ...groupIds])));
+                            }} />
+                          </div>
+                        )}
 
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={`px-2 py-0.5 rounded-lg border text-[11px] font-black ${getHistoryTypeTone(entry.historyType)}`}>{operationLabel}</span>
-                            {isGroup && <span className="px-2 py-0.5 rounded-lg border border-cyan-500/25 bg-cyan-500/10 text-cyan-200 text-[11px] font-black">{rowsInGroup.length} อุปกรณ์</span>}
+                        <div className="min-w-0 p-4 sm:p-5">
+                          <div className="flex flex-wrap items-center gap-2 pr-28">
+                            <span className={`px-2.5 py-1 rounded-lg border text-[11px] font-black ${getHistoryTypeTone(entry.historyType)}`}>{operationLabel}</span>
+                            {isGroup && <span className="px-2.5 py-1 rounded-lg border border-cyan-500/25 bg-cyan-500/10 text-cyan-200 text-[11px] font-black">{rowsInGroup.length} อุปกรณ์</span>}
                             <span className={`text-[11px] font-bold ${theme.textMuted}`}>{entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-'} • โดย {entry.staff || '-'}</span>
                           </div>
 
-                          <div className="mt-1 flex flex-wrap items-baseline gap-2">
-                            <div className={`text-lg font-black leading-tight truncate ${theme.textTitle}`}>{displayTitle}</div>
+                          <div className="mt-2 flex flex-wrap items-baseline gap-2 pr-28">
+                            <div className={`text-xl font-black leading-tight truncate ${theme.textTitle}`}>{displayTitle}</div>
                             {!isGroup && entry.sn && <div className={`text-xs font-bold ${theme.textMuted}`}>S.N. {entry.sn}</div>}
                           </div>
 
                           {entry.isAuditLog ? (
-                            <div className={`mt-2 rounded-2xl border px-3 py-2.5 ${String(entry.note || '').includes('บันทึกเก่า') ? (isDarkMode ? 'bg-amber-950/18 border-amber-500/25' : 'bg-amber-50 border-amber-200') : (isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200')}`}>
+                            <div className={`mt-3 rounded-2xl border px-3 py-2.5 ${String(entry.note || '').includes('บันทึกเก่า') ? (isDarkMode ? 'bg-amber-950/18 border-amber-500/25' : 'bg-amber-50 border-amber-200') : (isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200')}`}>
                               <div className={`text-sm font-black ${theme.textTitle}`}>{entry.subject || '-'}</div>
                               <div className={`mt-1 text-xs font-bold whitespace-pre-line leading-relaxed ${String(entry.note || '').includes('บันทึกเก่า') ? (isDarkMode ? 'text-amber-100/85' : 'text-amber-800') : theme.textMuted}`}>{entry.note || '-'}</div>
                             </div>
-                          ) : isGroup ? (
-                            <div className={`mt-1.5 text-xs font-bold ${theme.textMuted}`}>
-                              {sampleItems.map(row => `${row.itemName || '-'}${row.sn ? ` (${row.sn})` : ''}`).join(' • ')}{extraItems > 0 ? ` • +อีก ${extraItems} รายการ` : ''}
-                            </div>
                           ) : (
-                            <div className={`mt-1.5 text-xs font-bold leading-relaxed ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง: {entry.subject || '-'}</div>
+                            <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-2">
+                              <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
+                                <div className={`text-[10px] font-black ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง</div>
+                                <div className={`text-xs font-black mt-0.5 truncate ${theme.textTitle}`}>{entry.subject || '-'}</div>
+                              </div>
+                              <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
+                                <div className={`text-[10px] font-black ${theme.textMuted}`}>{operationLabel}</div>
+                                <div className={`text-xs font-black mt-0.5 truncate ${theme.textTitle}`}>
+                                  {isGroup
+                                    ? `${rowsInGroup.length.toLocaleString('th-TH')} อุปกรณ์`
+                                    : `${entry.itemName || '-'}${entry.sn ? ` • ${entry.sn}` : ''}`}
+                                </div>
+                              </div>
+                            </div>
                           )}
 
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                          {isGroup && (
+                            <div className={`mt-3 rounded-2xl border px-3 py-2.5 text-xs font-bold leading-relaxed ${isDarkMode ? 'bg-slate-950/35 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+                              {sampleItems.map(row => `${row.itemName || '-'}${row.sn ? ` (${row.sn})` : ''}`).join(' • ')}{extraItems > 0 ? ` • +อีก ${extraItems} รายการ` : ''}
+                            </div>
+                          )}
+
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
                             {totalProofs > 0 ? (
-                              <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border border-pink-500/25 bg-pink-500/10 text-pink-200 text-[11px] font-black">หลักฐาน {totalProofs} รูป</button>
+                              <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-pink-500/25 bg-pink-500/10 text-pink-200 text-xs font-black">หลักฐาน {totalProofs} รูป</button>
                             ) : (
-                              <span className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-[11px] font-black ${isDarkMode ? 'border-slate-700 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-white text-slate-400'}`}>ไม่มีรูปหลักฐาน</span>
+                              <span className={`inline-flex items-center px-3 py-2 rounded-xl border text-xs font-black ${isDarkMode ? 'border-slate-700 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-white text-slate-400'}`}>ไม่มีรูปหลักฐาน</span>
                             )}
-                            {previewProofs.slice(0, 1).map((proof, idx) => {
-                              const previewSrc = proof?.thumbUrl || proof?.url || proof?.dataUrl || '';
-                              return previewSrc ? (
-                                <button key={proof?.proofDocId || proof?.id || idx} type="button" onClick={() => openProofImage(proof)} className={`w-10 h-10 rounded-lg border overflow-hidden ${isDarkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-200 bg-white'}`} title="เปิดรูปหลักฐาน">
-                                  <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-cover" loading="lazy" />
-                                </button>
-                              ) : null;
-                            })}
+                            {!entry.isAuditLog && <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
+                            {!entry.isAuditLog && <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-xs font-black">เพิ่มรูป</button>}
+                            {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูรูป</button>}
                           </div>
                         </div>
 
-                        <div className={`${canDeleteItems ? 'col-span-2 xl:col-span-1' : ''} flex flex-wrap xl:justify-end gap-2 shrink-0`}>
-                          {!entry.isAuditLog && <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิด</button>}
-                          {!entry.isAuditLog && <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-xs font-black">เพิ่มรูป</button>}
-                          {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูรูป</button>}
+                        <div className={`min-h-[180px] border-t xl:border-t-0 xl:border-l ${theme.divide} ${isDarkMode ? 'bg-slate-950/45' : 'bg-white/80'}`}>
+                          {previewProofs[0] ? (() => {
+                            const proof = previewProofs[0];
+                            const previewSrc = proof?.thumbUrl || proof?.url || proof?.dataUrl || '';
+                            return previewSrc ? (
+                              <button type="button" onClick={() => openProofImage(proof)} className="w-full h-full min-h-[180px] block">
+                                <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-contain" loading="lazy" />
+                              </button>
+                            ) : (
+                              <div className={`h-full min-h-[180px] flex items-center justify-center text-xs font-black ${theme.textMuted}`}>ไม่มีภาพตัวอย่าง</div>
+                            );
+                          })() : (
+                            <div className={`h-full min-h-[180px] flex items-center justify-center text-xs font-black ${theme.textMuted}`}>ไม่มีรูปหลักฐาน</div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -14184,36 +14208,18 @@ S.N.: ${item.sn || '-'}
                     proofTimelineGroups.length === 0 ? <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบหลักฐานรูปภาพ</div> : (
                     <div className="space-y-3">
                       {proofTimelineGroups.slice(0, 80).map(group => {
-                        const typeCards = [
-                          { key: 'borrow', label: 'ตอนยืม', tone: isDarkMode ? 'bg-purple-950/22 border-purple-500/25 text-purple-100' : 'bg-purple-50 border-purple-200 text-purple-800' },
-                          { key: 'return', label: 'ตอนรับคืน', tone: isDarkMode ? 'bg-emerald-950/22 border-emerald-500/25 text-emerald-100' : 'bg-emerald-50 border-emerald-200 text-emerald-800' },
-                          { key: 'event', label: 'ออกงาน', tone: isDarkMode ? 'bg-orange-950/22 border-orange-500/25 text-orange-100' : 'bg-orange-50 border-orange-200 text-orange-800' },
-                          { key: 'repair', label: 'ซ่อม/ชำรุด', tone: isDarkMode ? 'bg-rose-950/22 border-rose-500/25 text-rose-100' : 'bg-rose-50 border-rose-200 text-rose-800' }
-                        ].filter(card => {
-                          const entries = group.byType?.[card.key] || [];
-                          return entries.length > 0 && (proofCenterFilter === 'all' || proofCenterFilter === 'noNote' || card.key === proofCenterFilter || (proofCenterFilter === 'repair' && card.key === 'repair'));
-                        });
                         const totalImages = group.entries.length;
                         const primarySubject = Array.from(group.subjects || [])[0] || '-';
-                        const previewEntries = [
-                          ...(group.byType?.return || []),
-                          ...(group.byType?.borrow || []),
-                          ...(group.byType?.event || []),
-                          ...(group.byType?.repair || []),
-                          ...(group.entries || [])
-                        ];
-                        const previewEntry = previewEntries.find(entry => entry?.proof && (entry.proof.url || entry.proof.thumbUrl || entry.proof.dataUrl)) || previewEntries[0] || {};
+                        const activeFilterKey = proofCenterFilter === 'return' ? 'return' : proofCenterFilter === 'event' ? 'event' : proofCenterFilter === 'repair' ? 'repair' : proofCenterFilter === 'borrow' ? 'borrow' : '';
+                        const scopedEntries = activeFilterKey ? (group.byType?.[activeFilterKey] || []) : (group.entries || []);
+                        const previewEntry = (scopedEntries.find(entry => entry?.proof && (entry.proof.url || entry.proof.thumbUrl || entry.proof.dataUrl)) || scopedEntries[0] || group.entries?.[0] || {});
                         const previewProof = previewEntry.proof || {};
                         const previewSrc = previewProof.url || previewProof.thumbUrl || previewProof.dataUrl || '';
-                        const eventSummary = [
-                          ['ยืม', group.borrowEvents || [], group.totalBorrowItems],
-                          ['คืน', group.returnEvents || [], group.totalReturnItems],
-                          ['ออกงาน', group.eventEvents || [], group.totalEventItems],
-                          ['ซ่อม', group.repairEvents || [], group.totalRepairItems]
-                        ].filter(([label, events]) => events.length > 0);
+                        const currentTypeLabel = activeFilterKey === 'return' ? 'รับคืน' : activeFilterKey === 'event' ? 'ออกงาน' : activeFilterKey === 'repair' ? 'ซ่อม/ชำรุด' : activeFilterKey === 'borrow' ? 'ยืม' : (previewEntry.typeLabel || 'หลักฐาน');
+                        const currentEvents = activeFilterKey === 'return' ? (group.returnEvents || []) : activeFilterKey === 'event' ? (group.eventEvents || []) : activeFilterKey === 'repair' ? (group.repairEvents || []) : activeFilterKey === 'borrow' ? (group.borrowEvents || []) : [];
                         return (
                           <div key={group.groupId} className={`rounded-3xl border overflow-hidden relative ${isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                            {canUseOperationalTools && (
+                            {canUseOperationalTools && previewProof && (
                               <button
                                 type="button"
                                 onClick={() => handleDeleteProofGroup({
@@ -14229,62 +14235,46 @@ S.N.: ${item.sn || '-'}
                               </button>
                             )}
 
-                            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_420px] gap-0">
+                            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_460px] gap-0">
                               <div className="p-4 sm:p-5 space-y-4">
                                 <div className="pr-32">
-                                  <div className={`text-xl font-black leading-tight ${theme.textTitle}`}>{group.title || group.itemName || '-'}</div>
+                                  <div className={`text-xl font-black leading-tight ${theme.textTitle}`}>{activeFilterKey ? `${currentTypeLabel}: ${group.primarySubject || primarySubject}` : (group.title || group.itemName || '-')}</div>
                                   <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>
-                                    {group.itemRefs?.length > 1 ? `${group.itemRefs.length} อุปกรณ์ที่เกี่ยวข้อง` : `S.N. ${group.sn || '-'}`} • รูปหลักฐานจริง {totalImages.toLocaleString('th-TH')} รูป{group.isLegacyBatch ? ' • ข้อมูลเก่า' : ''}
+                                    {group.itemRefs?.length > 1 ? `${group.itemRefs.length} อุปกรณ์ที่เกี่ยวข้อง` : `S.N. ${group.sn || '-'}`} • รูปในมุมมองนี้ {(scopedEntries.length || totalImages).toLocaleString('th-TH')} รูป{group.isLegacyBatch ? ' • ข้อมูลเก่า' : ''}
                                   </div>
                                   <div className={`text-[11px] font-bold mt-1 truncate ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง: {primarySubject}</div>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                  <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-purple-950/15 border-purple-500/20' : 'bg-purple-50 border-purple-200'}`}>
-                                    <div className={`text-[10px] font-black ${theme.textMuted}`}>ยืมเมื่อ / ผู้ยืม</div>
-                                    <div className={`text-xs font-black mt-0.5 ${theme.textTitle}`}>{group.borrowInfo ? `${group.borrowInfo.dateText} • ${group.borrowInfo.person}` : 'ยังไม่มีข้อมูลยืม'}</div>
+                                  <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
+                                    <div className={`text-[10px] font-black ${theme.textMuted}`}>ประเภทหลักฐาน</div>
+                                    <div className={`text-xs font-black mt-0.5 ${theme.textTitle}`}>{currentTypeLabel}</div>
                                   </div>
-                                  <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-emerald-950/15 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'}`}>
-                                    <div className={`text-[10px] font-black ${theme.textMuted}`}>คืนเมื่อ / ผู้รับคืน</div>
-                                    <div className={`text-xs font-black mt-0.5 ${theme.textTitle}`}>{group.returnInfo ? `${group.returnInfo.dateText} • ${group.returnInfo.staff}` : 'ยังไม่มีข้อมูลคืน'}</div>
+                                  <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
+                                    <div className={`text-[10px] font-black ${theme.textMuted}`}>วันที่ / ผู้บันทึก</div>
+                                    <div className={`text-xs font-black mt-0.5 truncate ${theme.textTitle}`}>{previewEntry.date ? new Date(previewEntry.date).toLocaleString('th-TH', { hour12: false }) : '-'} • {previewEntry.staff || '-'}</div>
                                   </div>
                                 </div>
 
-                                {eventSummary.length > 0 && (
-                                  <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {eventSummary.map(([label, events, totalItems]) => (
-                                        <span key={`${group.groupId}_${label}_summary`} className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-[11px] font-black ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
-                                          {label} {events.length.toLocaleString('th-TH')} ชุด • {Number(totalItems || 0).toLocaleString('th-TH')} ชิ้น
-                                        </span>
-                                      ))}
-                                    </div>
-                                    {group.isLegacyBatch && (
-                                      <div className={`mt-2 text-[10px] font-bold leading-relaxed ${theme.textMuted}`}>
-                                        ข้อมูลเก่าบางรายการอาจไม่มีเลขเอกสาร/รหัสกลุ่มครบ ระบบจะแสดงตามรายการที่ผูกกับรูปจริงก่อน หากตัวเลขไม่ตรงให้ยึดรูปประกอบเป็นหลัก
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-
-                                {(eventSummary.length > 0) && (
+                                {currentEvents.length > 0 ? (
                                   <div className="space-y-1.5">
-                                    {[
-                                      ...((group.borrowEvents || []).map((event, idx) => ['ยืม', idx, event])),
-                                      ...((group.returnEvents || []).map((event, idx) => ['คืน', idx, event])),
-                                      ...((group.eventEvents || []).map((event, idx) => ['ออกงาน', idx, event])),
-                                      ...((group.repairEvents || []).map((event, idx) => ['ซ่อม', idx, event]))
-                                    ].map(([label, eventIndex, event]) => (
-                                      <details key={`${group.groupId}_${label}_${event.key || eventIndex}`} className={`rounded-2xl border ${isDarkMode ? 'bg-slate-950/50 border-slate-700' : 'bg-white border-slate-200'}`}>
-                                        <summary className="cursor-pointer list-none px-3 py-2 flex items-center justify-between gap-3">
-                                          <span className={`text-xs font-black ${theme.textTitle}`}>{label === 'คืน' ? `คืนชุดที่ ${eventIndex + 1}` : label === 'ยืม' ? 'รายการยืม' : label}</span>
-                                          <span className={`text-[11px] font-bold ${theme.textMuted}`}>{event.dateText} • {event.items?.length || 0} ชิ้น • รูป {event.proofs?.length || 0}</span>
-                                        </summary>
-                                        <div className={`px-3 pb-2 text-[11px] font-bold leading-relaxed ${theme.textMuted}`}>
-                                          {(event.items || []).map(it => `${it.itemName || '-'}${it.sn && it.sn !== '-' ? ` (${it.sn})` : ''}`).join(' • ') || 'ข้อมูลเก่าไม่ได้ผูกรายการอุปกรณ์ไว้ครบ'}
+                                    {currentEvents.map((event, eventIndex) => (
+                                      <div key={event.key || eventIndex} className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
+                                        <div className="flex items-center justify-between gap-3">
+                                          <div className={`text-xs font-black ${theme.textTitle}`}>{activeFilterKey === 'return' ? `รับคืนชุดที่ ${eventIndex + 1}` : activeFilterKey === 'borrow' ? 'รายการยืม' : currentTypeLabel}</div>
+                                          <div className={`text-[11px] font-bold ${theme.textMuted}`}>{event.dateText} • {event.proofs?.length || 0} รูป</div>
                                         </div>
-                                      </details>
+                                        {event.items?.length > 0 && (
+                                          <div className={`mt-1 text-[11px] font-bold leading-relaxed ${theme.textMuted}`}>
+                                            {event.items.map(it => `${it.itemName || '-'}${it.sn && it.sn !== '-' ? ` (${it.sn})` : ''}`).join(' • ')}
+                                          </div>
+                                        )}
+                                      </div>
                                     ))}
+                                  </div>
+                                ) : (
+                                  <div className={`rounded-2xl border px-3 py-3 text-xs font-bold leading-relaxed ${isDarkMode ? 'bg-slate-950/35 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-600'}`}>
+                                    แสดงเฉพาะหลักฐานประเภทนี้ ไม่ดึงรายการยืม/คืนประเภทอื่นมาปน เพื่อลดความสับสนเวลาไล่สีและดูรูป
                                   </div>
                                 )}
 
@@ -14295,32 +14285,10 @@ S.N.: ${item.sn || '-'}
                               </div>
 
                               <div className={`p-4 border-t xl:border-t-0 xl:border-l ${theme.divide} ${isDarkMode ? 'bg-slate-950/55' : 'bg-white/80'}`}>
-                                <button type="button" onClick={() => openProofImage(previewProof)} className={`w-full rounded-2xl border overflow-hidden h-72 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+                                <button type="button" onClick={() => openProofImage(previewProof)} className={`w-full rounded-2xl border overflow-hidden h-[360px] ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
                                   {previewSrc ? <img src={previewSrc} alt="หลักฐานหลัก" className="w-full h-full object-contain" loading="lazy" /> : <div className={`h-full flex items-center justify-center text-sm font-black ${theme.textMuted}`}>ไม่มีภาพตัวอย่าง</div>}
                                 </button>
-                                <div className={`mt-2 text-[11px] font-bold ${theme.textMuted}`}>รูปหลัก • {previewEntry?.typeLabel || '-'} • {previewEntry?.date ? new Date(previewEntry.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
-
-                                {typeCards.length > 0 && (
-                                  <div className="mt-3 grid grid-cols-2 gap-2">
-                                    {typeCards.map(card => {
-                                      const entries = group.byType?.[card.key] || [];
-                                      const first = entries[0] || {};
-                                      const proof = first.proof || {};
-                                      const src = proof.url || proof.thumbUrl || proof.dataUrl || '';
-                                      return (
-                                        <button key={`${group.groupId}_${card.key}_mini`} type="button" onClick={() => openProofImage(proof)} className={`rounded-2xl border p-2 text-left ${card.tone}`}>
-                                          <div className="text-xs font-black flex items-center justify-between gap-2">
-                                            <span>{card.label}</span>
-                                            <span>{entries.length.toLocaleString('th-TH')} รูป</span>
-                                          </div>
-                                          <div className={`mt-2 h-20 rounded-xl overflow-hidden ${isDarkMode ? 'bg-slate-950/60' : 'bg-white/70'}`}>
-                                            {src ? <img src={src} alt={card.label} className="w-full h-full object-contain" loading="lazy" /> : <div className={`h-full flex items-center justify-center text-[10px] font-bold ${theme.textMuted}`}>ไม่มีภาพ</div>}
-                                          </div>
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                )}
+                                <div className={`mt-2 text-[11px] font-bold ${theme.textMuted}`}>รูปหลัก • {currentTypeLabel} • {previewEntry?.date ? new Date(previewEntry.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
                               </div>
                             </div>
                           </div>
