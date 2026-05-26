@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.75 Records Proof Real Layout Fix';
+const APP_VERSION = 'v23.1.76 Proof Upload No Watermark';
 const APP_UPDATE_NOTE = 'Inventory Main Button Shows All: ปุ่มคลังอุปกรณ์หลักเปิดสต๊อกทั้งหมดทันที และย่อเมนูย่อยให้เหลือพร้อมใช้งาน/กำลังใช้งาน/ชำรุด/โกดัง เพื่อลดจำนวนปุ่ม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -8190,45 +8190,12 @@ function MainApp() {
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, width, height);
 
-    // Proof images already come from the college timestamp app.
-    // Keep only the MDEC logo mark on the photo and do not add time/GPS/text overlays.
-    if (showเอกสารLogo('proofStamp')) {
-      const badgePad = Math.max(10, Math.round(width * 0.018));
-      const chipW = Math.max(92, Math.round(width * 0.145));
-      const chipH = Math.max(42, Math.round(width * 0.058));
-      const chipRadius = Math.max(7, Math.round(chipH * 0.18));
-      ctx.save();
-      ctx.fillStyle = 'rgba(255,255,255,0.86)';
-      drawRoundedRect(ctx, badgePad, badgePad, chipW, chipH, chipRadius);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(37,99,235,0.32)';
-      ctx.lineWidth = Math.max(1, Math.round(width * 0.0016));
-      ctx.stroke();
-      try {
-        const logoImg = await loadImageFromSrc(ORG_LOGO_SRC);
-        const ratio = (logoImg.width && logoImg.height) ? logoImg.width / logoImg.height : 2.6;
-        let logoW = Math.round(chipW * 0.76);
-        let logoH = Math.round(logoW / ratio);
-        if (logoH > chipH * 0.72) {
-          logoH = Math.round(chipH * 0.72);
-          logoW = Math.round(logoH * ratio);
-        }
-        const logoX = badgePad + Math.round((chipW - logoW) / 2);
-        const logoY = badgePad + Math.round((chipH - logoH) / 2);
-        ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
-      } catch (logoError) {
-        ctx.fillStyle = '#0ea5e9';
-        ctx.font = `900 ${Math.max(14, Math.round(width * 0.018))}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('MDEC', badgePad + chipW / 2, badgePad + chipH / 2);
-        ctx.textAlign = 'start';
-        ctx.textBaseline = 'alphabetic';
-      }
-      ctx.restore();
-    }
+    // v23.1.76 Proof Upload No Watermark
+    // รูปหลักฐานใช้แอป Time Stamp ภายนอกอยู่แล้ว
+    // ดังนั้นระบบจะไม่แปะโลโก้/ลายน้ำ/ข้อความใด ๆ ลงบนรูปอีก
+    // ฟังก์ชันนี้ทำหน้าที่แค่ย่อและบีบอัดรูปให้เหมาะกับฐานข้อมูลเท่านั้น
+    ctx.drawImage(img, 0, 0, width, height);
 
     return canvas;
   };
