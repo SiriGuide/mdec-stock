@@ -75,7 +75,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.65 Proof Timeline Pairing Polish';
+const APP_VERSION = 'v23.1.66 Proof Operation Group Timeline';
 const APP_UPDATE_NOTE = 'Inventory Main Button Shows All: ปุ่มคลังอุปกรณ์หลักเปิดสต๊อกทั้งหมดทันที และย่อเมนูย่อยให้เหลือพร้อมใช้งาน/กำลังใช้งาน/ชำรุด/โกดัง เพื่อลดจำนวนปุ่ม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -13971,7 +13971,7 @@ S.N.: ${item.sn || '-'}
                 <div className={`p-4 border-b grid grid-cols-1 xl:grid-cols-[1fr_220px_auto] gap-3 ${theme.divide}`}>
                   <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / ผู้ใช้งาน" value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} />
                   <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={proofCenterFilter} onChange={e => setProofCenterFilter(e.target.value)}>
-                    <option value="all">แฟ้มหลักฐานรายอุปกรณ์</option>
+                    <option value="all">แฟ้มหลักฐานรายงาน/รายกลุ่ม</option>
                     <option value="borrow">เฉพาะรูปตอนยืม</option>
                     <option value="event">เฉพาะรูปออกงาน</option>
                     <option value="return">เฉพาะรูปตอนรับคืน</option>
@@ -13996,11 +13996,21 @@ S.N.: ${item.sn || '-'}
                           <div key={group.groupId} className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                             <div className={`px-4 py-3 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${theme.divide}`}>
                               <div className="min-w-0">
-                                <div className={`text-lg font-black truncate ${theme.textTitle}`}>{group.itemName || '-'}</div>
+                                <div className={`text-lg font-black truncate ${theme.textTitle}`}>{group.title || group.itemName || '-'}</div>
                                 <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>
-                                  S.N. {group.sn || '-'} • {group.category || '-'} • {group.location || '-'} • หลักฐานรวม {totalImages.toLocaleString('th-TH')} รูป
+                                  {group.itemRefs?.length > 1 ? `${group.itemRefs.length} อุปกรณ์ในชุดนี้` : `S.N. ${group.sn || '-'}`} • หลักฐานรวม {totalImages.toLocaleString('th-TH')} รูป
                                 </div>
                                 <div className={`text-[11px] font-bold mt-1 truncate ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง: {primarySubject}</div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                                  <div className={`rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-purple-950/18 border-purple-500/20' : 'bg-purple-50 border-purple-200'}`}>
+                                    <div className={`text-[10px] font-black ${theme.textMuted}`}>ยืมเมื่อ / ผู้ยืม</div>
+                                    <div className={`text-xs font-black mt-0.5 ${theme.textTitle}`}>{group.borrowInfo ? `${group.borrowInfo.dateText} • ${group.borrowInfo.person}` : 'ยังไม่มีข้อมูลยืม'}</div>
+                                  </div>
+                                  <div className={`rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-emerald-950/18 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'}`}>
+                                    <div className={`text-[10px] font-black ${theme.textMuted}`}>คืนเมื่อ / ผู้รับคืน</div>
+                                    <div className={`text-xs font-black mt-0.5 ${theme.textTitle}`}>{group.returnInfo ? `${group.returnInfo.dateText} • ${group.returnInfo.staff}` : 'ยังไม่มีข้อมูลคืน'}</div>
+                                  </div>
+                                </div>
                               </div>
                               <div className="flex flex-wrap gap-2 shrink-0">
                                 {group.itemId && <button type="button" onClick={() => setShowHistory(group.itemId)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
@@ -15457,6 +15467,13 @@ S.N.: ${item.sn || '-'}
             subject: h.borrower || h.eventName || h.problem || h.staffIn || '-',
             staff: h.staffOut || h.staffIn || h.operatorName || proof.createdBy || '-',
             note: h.note || h.problem || '',
+            documentRef: h.documentRef || h.documentId || h.docId || h.ref || h.borrowDocId || h.borrowDocRef || '',
+            caseSubject: h.borrower || h.eventName || h.subject || h.staffIn || h.staffOut || h.operatorName || '',
+            borrower: h.borrower || '',
+            eventName: h.eventName || '',
+            staffOut: h.staffOut || h.operatorName || '',
+            staffIn: h.staffIn || '',
+            caseItemSetKey: String(item.id || item.sn || item.name || '-'),
             proof
           });
         });
@@ -15470,6 +15487,11 @@ S.N.: ${item.sn || '-'}
         .map(id => items.find(item => item.id === id))
         .filter(Boolean);
       const targets = relatedItems.length > 0 ? relatedItems : [docData.items?.[0] || {}];
+      const docItemSetKey = (targets || [])
+        .map(item => String(item?.id || item?.sn || item?.name || '').trim())
+        .filter(Boolean)
+        .sort()
+        .join('|') || String(docData.id || docData.ref || docData.documentRef || docData.subject || docData.borrower || docData.eventName || 'doc');
       proofs.forEach((proof, proofIndex) => {
         targets.forEach((item, itemIndex) => {
           const type = docData.type || 'other';
@@ -15490,6 +15512,13 @@ S.N.: ${item.sn || '-'}
             subject: docData.subject || docData.borrower || docData.eventName || '-',
             staff: docData.staffOut || docData.staffIn || proof.createdBy || '-',
             note: docData.note || '',
+            documentRef: docData.id || docData.ref || docData.documentId || docData.documentRef || docData.docId || '',
+            caseSubject: docData.borrower || docData.eventName || docData.subject || docData.title || '',
+            borrower: docData.borrower || '',
+            eventName: docData.eventName || '',
+            staffOut: docData.staffOut || docData.operatorName || proof.createdBy || '',
+            staffIn: docData.staffIn || '',
+            caseItemSetKey: docItemSetKey,
             proof
           });
         });
@@ -15600,13 +15629,44 @@ S.N.: ${item.sn || '-'}
       if (raw.includes('borrow') || raw.includes('ยืม')) return 'borrow';
       return 'other';
     };
+    const normalizeCaseText = (value = '') => String(value || '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+    const getEntryMs = (entry = {}) => {
+      const parsed = new Date(entry.date || entry.proof?.createdAt || 0);
+      return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+    };
+    const getEntryDateText = (entry = {}) => {
+      const value = entry.date || entry.proof?.createdAt || '';
+      if (!value) return '-';
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString('th-TH', { hour12: false });
+    };
+    const getEntrySubject = (entry = {}) => String(entry.caseSubject || entry.borrower || entry.eventName || entry.subject || '').trim();
+    const makeCaseKey = (entry = {}) => {
+      const typeKey = normalizeProofTimelineType(entry.historyType || entry.typeLabel);
+      const family = typeKey === 'return' || typeKey === 'borrow' ? 'borrow-return' : typeKey === 'event' ? 'event' : typeKey === 'repair' ? 'repair' : 'other';
+      const itemSet = String(entry.caseItemSetKey || entry.documentRef || entry.itemId || entry.sn || entry.itemName || 'unknown').trim();
+      const subject = normalizeCaseText(getEntrySubject(entry)) || 'no-subject';
+      // ยืม/คืนควรอยู่ชุดเดียวกันถ้าเป็นผู้ยืม/เรื่องเดียวกัน + ชุดอุปกรณ์เดียวกัน
+      if (family === 'borrow-return') return `${family}__${subject}__${itemSet}`;
+      // ออกงานแบบกลุ่มควรแยกเป็นชุดงานของตัวเอง
+      if (family === 'event') return `${family}__${subject}__${itemSet}`;
+      // ซ่อม/ชำรุดแยกตามอุปกรณ์
+      return `${family}__${itemSet}__${subject}`;
+    };
 
     const groups = new Map();
     filteredProofEntries.forEach((entry = {}) => {
-      const itemKey = String(entry.itemId || entry.sn || entry.itemName || 'unknown').trim() || 'unknown';
-      if (!groups.has(itemKey)) {
-        groups.set(itemKey, {
-          groupId: itemKey,
+      const groupKey = makeCaseKey(entry);
+      const typeKey = normalizeProofTimelineType(entry.historyType || entry.typeLabel);
+      const family = typeKey === 'return' || typeKey === 'borrow' ? 'borrow-return' : typeKey === 'event' ? 'event' : typeKey === 'repair' ? 'repair' : 'other';
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, {
+          groupId: groupKey,
+          family,
+          title: '',
           itemId: entry.itemId || '',
           itemName: entry.itemName || '-',
           sn: entry.sn || '-',
@@ -15616,19 +15676,34 @@ S.N.: ${item.sn || '-'}
           storageBoxName: entry.storageBoxName || '',
           subjects: new Set(),
           staff: new Set(),
+          itemRefs: new Map(),
           entries: [],
           byType: { borrow: [], return: [], event: [], repair: [], other: [] },
           searchText: '',
-          lastDate: ''
+          lastDate: '',
+          borrowInfo: null,
+          returnInfo: null,
+          eventInfo: null,
+          repairInfo: null
         });
       }
 
-      const group = groups.get(itemKey);
+      const group = groups.get(groupKey);
       group.entries.push(entry);
-      if (entry.subject && entry.subject !== '-') group.subjects.add(entry.subject);
+      const subject = getEntrySubject(entry);
+      if (subject && subject !== '-') group.subjects.add(subject);
       if (entry.staff && entry.staff !== '-') group.staff.add(entry.staff);
+      const itemKey = String(entry.itemId || entry.sn || entry.itemName || `item_${group.entries.length}`);
+      if (!group.itemRefs.has(itemKey)) {
+        group.itemRefs.set(itemKey, {
+          itemId: entry.itemId || '',
+          itemName: entry.itemName || '-',
+          sn: entry.sn || '-',
+          category: entry.category || '-',
+          location: entry.location || '-'
+        });
+      }
 
-      const typeKey = normalizeProofTimelineType(entry.historyType || entry.typeLabel);
       const proofKey = getProofUniqueKey(entry.proof || {});
       const bucket = group.byType[typeKey] || group.byType.other;
       if (!bucket.some(existing => getProofUniqueKey(existing.proof || {}) === proofKey)) {
@@ -15638,24 +15713,58 @@ S.N.: ${item.sn || '-'}
 
     return Array.from(groups.values()).map((group) => {
       Object.keys(group.byType).forEach(key => {
-        group.byType[key] = group.byType[key].sort((a, b) => new Date(b.date || b.proof?.createdAt || 0) - new Date(a.date || a.proof?.createdAt || 0));
+        group.byType[key] = group.byType[key].sort((a, b) => getEntryMs(b) - getEntryMs(a));
       });
-      const sortedEntries = group.entries.slice().sort((a, b) => new Date(b.date || b.proof?.createdAt || 0) - new Date(a.date || a.proof?.createdAt || 0));
+      const sortedEntries = group.entries.slice().sort((a, b) => getEntryMs(b) - getEntryMs(a));
       const lastDate = sortedEntries[0]?.date || sortedEntries[0]?.proof?.createdAt || '';
+      const subjects = Array.from(group.subjects || []);
+      const itemRefs = Array.from(group.itemRefs.values());
+      const primarySubject = subjects[0] || '-';
+      const borrowEntry = (group.byType.borrow || []).slice().sort((a, b) => getEntryMs(a) - getEntryMs(b))[0] || null;
+      const returnEntry = (group.byType.return || []).slice().sort((a, b) => getEntryMs(b) - getEntryMs(a))[0] || null;
+      const eventEntry = (group.byType.event || []).slice().sort((a, b) => getEntryMs(a) - getEntryMs(b))[0] || null;
+      const repairEntry = (group.byType.repair || []).slice().sort((a, b) => getEntryMs(b) - getEntryMs(a))[0] || null;
+
+      const title = group.family === 'borrow-return'
+        ? `ยืม-คืน${primarySubject && primarySubject !== '-' ? `: ${primarySubject}` : ''}`
+        : group.family === 'event'
+        ? `ออกงาน${primarySubject && primarySubject !== '-' ? `: ${primarySubject}` : ''}`
+        : group.family === 'repair'
+        ? `ซ่อม/ชำรุด: ${group.itemName || '-'}`
+        : `${group.itemName || 'หลักฐาน'}`;
+
       const searchText = [
+        title,
         group.itemName,
         group.sn,
         group.department,
         group.category,
         group.location,
         group.storageBoxName,
-        ...Array.from(group.subjects),
+        ...subjects,
         ...Array.from(group.staff),
-        ...sortedEntries.flatMap(entry => [entry.note, entry.typeLabel, entry.proof?.contextLabel, entry.proof?.note])
+        ...itemRefs.flatMap(ref => [ref.itemName, ref.sn, ref.category, ref.location]),
+        ...sortedEntries.flatMap(entry => [entry.note, entry.typeLabel, entry.proof?.contextLabel, entry.proof?.note, entry.documentRef])
       ].filter(Boolean).join(' ').toLowerCase();
-      return { ...group, entries: sortedEntries, lastDate, searchText };
+
+      return {
+        ...group,
+        title,
+        entries: sortedEntries,
+        itemRefs,
+        primarySubject,
+        lastDate,
+        searchText,
+        borrowInfo: borrowEntry ? { dateText: getEntryDateText(borrowEntry), person: borrowEntry.borrower || borrowEntry.subject || primarySubject || '-', staff: borrowEntry.staffOut || borrowEntry.staff || '-' } : null,
+        returnInfo: returnEntry ? { dateText: getEntryDateText(returnEntry), person: returnEntry.staffIn || returnEntry.staff || '-', staff: returnEntry.staffIn || returnEntry.staff || '-' } : null,
+        eventInfo: eventEntry ? { dateText: getEntryDateText(eventEntry), person: eventEntry.eventName || eventEntry.subject || primarySubject || '-', staff: eventEntry.staffOut || eventEntry.staff || '-' } : null,
+        repairInfo: repairEntry ? { dateText: getEntryDateText(repairEntry), person: repairEntry.subject || primarySubject || '-', staff: repairEntry.staff || '-' } : null
+      };
+    }).filter(group => {
+      const keyword = String(proofCenterSearch || '').toLowerCase().trim();
+      return !keyword || group.searchText.includes(keyword);
     }).sort((a, b) => new Date(b.lastDate || 0) - new Date(a.lastDate || 0));
-  }, [filteredProofEntries]);
+  }, [filteredProofEntries, proofCenterSearch]);
 
   const proofDuplicateStats = useMemo(() => {
     const linkCount = filteredProofGroups.reduce((sum, group) => sum + group.entries.length, 0);
