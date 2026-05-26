@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.71 Unified Trash Center';
+const APP_VERSION = 'v23.1.73 Trash Wording Cleanup';
 const APP_UPDATE_NOTE = 'Inventory Main Button Shows All: ปุ่มคลังอุปกรณ์หลักเปิดสต๊อกทั้งหมดทันที และย่อเมนูย่อยให้เหลือพร้อมใช้งาน/กำลังใช้งาน/ชำรุด/โกดัง เพื่อลดจำนวนปุ่ม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -8698,7 +8698,7 @@ function MainApp() {
     const targetKey = group.groupId;
     const proofDocId = group.proof?.proofDocId || group.proof?.id || group.groupId;
     const linkedItems = group.itemRefs?.length || group.entries?.length || 1;
-    const ok = window.confirm(`คุณกำลังซ่อนรูปหลักฐานนี้ออกจากหน้าประวัติ\n\nรูปนี้เกี่ยวข้องกับ ${linkedItems} อุปกรณ์/รายการ\nรอบนี้ระบบจะไม่ลบรูปออกจากฐานข้อมูลทันที แต่จะซ่อนไว้ก่อนเพื่อให้กู้คืนได้ ถ้าลบผิดให้ใช้ปุ่ม “กู้รูปที่ระบบทำหลุด” ในรายการนั้น\n\nต้องการซ่อนรูปนี้หรือไม่?`);
+    const ok = window.confirm(`คุณกำลังย้ายรูปหลักฐานนี้ลงถังขยะกลาง\n\nรูปนี้เกี่ยวข้องกับ ${linkedItems} อุปกรณ์/รายการ\nระบบจะไม่ลบรูปออกจากฐานข้อมูลทันที แต่จะย้ายไปถังขยะกลางก่อน เพื่อให้กู้คืนหรือลบถาวรได้ภายหลัง\n\nต้องการย้ายรูปนี้ลงถังขยะหรือไม่?`);
     if (!ok) return;
 
     try {
@@ -8735,12 +8735,12 @@ function MainApp() {
         console.warn('Proof meta update skipped:', metaError);
       }
 
-      await logAction('ซ่อนรูปหลักฐาน', group.representative?.itemName || 'รูปหลักฐาน', `ซ่อนรูปหลักฐานที่เชื่อมโยงกับ ${affectedItems} อุปกรณ์/รายการ โดยยังไม่ลบถาวร`);
+      await logAction('ย้ายรูปหลักฐานลงถังขยะ', group.representative?.itemName || 'รูปหลักฐาน', `ย้ายรูปหลักฐานลงถังขยะที่เชื่อมโยงกับ ${affectedItems} อุปกรณ์/รายการ โดยยังไม่ลบถาวร`);
       setExpandedProofGroupId(null);
-      pushToast('ซ่อนรูปหลักฐานแล้ว ถ้าต้องการเอาพื้นที่คืนให้กดลบถาวรในศูนย์หลักฐาน', 'success');
+      pushToast('ย้ายรูปหลักฐานลงถังขยะแล้ว ถ้าต้องการเอาพื้นที่คืนให้กดลบถาวรในศูนย์หลักฐาน', 'success');
     } catch (error) {
       console.error(error);
-      alert('❌ ซ่อนรูปหลักฐานไม่สำเร็จ: ' + error.message);
+      alert('❌ ย้ายรูปหลักฐานลงถังขยะไม่สำเร็จ: ' + error.message);
     } finally {
       setIsBusy(false);
     }
@@ -8777,7 +8777,7 @@ function MainApp() {
         console.warn('Proof restore doc skipped:', proofDocError);
       }
 
-      await logAction('กู้คืนรูปหลักฐานที่ซ่อน', group.representative?.itemName || 'รูปหลักฐาน', `กู้คืนรูปหลักฐานที่ซ่อนไว้กลับมา ${affectedRefs} จุดอ้างอิง`);
+      await logAction('กู้คืนรูปหลักฐานจากถังขยะ', group.representative?.itemName || 'รูปหลักฐาน', `กู้คืนรูปหลักฐานจากถังขยะไว้กลับมา ${affectedRefs} จุดอ้างอิง`);
       pushToast('กู้คืนรูปหลักฐานแล้ว', 'success');
     } catch (error) {
       console.error(error);
@@ -8820,7 +8820,7 @@ function MainApp() {
       } else {
         throw new Error('รายการประวัตินี้ไม่มีข้อมูลอ้างอิงครบพอสำหรับกู้คืน');
       }
-      await logAction('กู้คืนประวัติจากถังขยะกลาง', entry.itemName || entry.subject || '-', 'กู้คืนประวัติที่เคยซ่อนไว้');
+      await logAction('กู้คืนประวัติจากถังขยะกลาง', entry.itemName || entry.subject || '-', 'กู้คืนประวัติจากถังขยะกลาง');
       pushToast('กู้คืนประวัติแล้ว', 'success');
     } catch (error) {
       console.error(error);
@@ -13931,9 +13931,9 @@ S.N.: ${item.sn || '-'}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <div className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เลือกแล้ว {selectedHistoryRecordIds.length.toLocaleString('th-TH')} รายการ</div>
-                      <button type="button" onClick={handleSoftDeleteSelectedHistory} disabled={selectedHistoryRecordIds.length === 0 || isBusy} className={`px-4 py-2 rounded-xl text-sm font-black ${selectedHistoryRecordIds.length === 0 || isBusy ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}>ซ่อนประวัติที่เลือก</button>
+                      <button type="button" onClick={handleSoftDeleteSelectedHistory} disabled={selectedHistoryRecordIds.length === 0 || isBusy} className={`px-4 py-2 rounded-xl text-sm font-black ${selectedHistoryRecordIds.length === 0 || isBusy ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}>ย้ายลงถังขยะ</button>
                       <button type="button" onClick={handlePurgeNoiseHistoryLogs} disabled={isBusy} className={`px-4 py-2 rounded-xl text-sm font-black border ${isBusy ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-amber-950/45 border-amber-500/40 text-amber-200 hover:bg-amber-700 hover:text-white'}`}>ลบ log จิปาถะ</button>
-                      <button type="button" onClick={handlePurgeDeletedHistory} disabled={softDeletedHistoryEntries.length === 0 || isBusy} className={`px-4 py-2 rounded-xl text-sm font-black border ${softDeletedHistoryEntries.length === 0 || isBusy ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-red-950/50 border-red-500/40 text-red-200 hover:bg-red-700 hover:text-white'}`}>ลบถาวรที่ซ่อน {softDeletedHistoryEntries.length.toLocaleString('th-TH')}</button>
+                      <button type="button" onClick={handlePurgeDeletedHistory} disabled={softDeletedHistoryEntries.length === 0 || isBusy} className={`px-4 py-2 rounded-xl text-sm font-black border ${softDeletedHistoryEntries.length === 0 || isBusy ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-red-950/50 border-red-500/40 text-red-200 hover:bg-red-700 hover:text-white'}`}>ลบถาวรในถังขยะ {softDeletedHistoryEntries.length.toLocaleString('th-TH')}</button>
                     </div>
                   </div>
                 )}
@@ -14084,7 +14084,7 @@ S.N.: ${item.sn || '-'}
                 <div className={`p-4 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-3 ${theme.divide}`}>
                   <div>
                     <div className={`text-lg font-black ${theme.textTitle}`}>ถังขยะกลาง</div>
-                    <div className={`text-sm font-bold ${theme.textMuted}`}>ทุกอย่างที่ถูกลบ/ซ่อนจะมารวมที่นี่: อุปกรณ์ ประวัติส่วนกลาง และรูปหลักฐาน สามารถกู้คืนหรือลบถาวรเองได้</div>
+                    <div className={`text-sm font-bold ${theme.textMuted}`}>ทุกอย่างที่ย้ายลงถังขยะจะมารวมที่นี่: อุปกรณ์ ประวัติส่วนกลาง และรูปหลักฐาน สามารถกู้คืนหรือลบถาวรเองได้</div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button type="button" onClick={handlePermanentDeleteOldCentralTrash} disabled={oldCentralTrashEntries.length === 0 || isBusy} className={`px-4 py-2.5 rounded-2xl border text-sm font-black ${oldCentralTrashEntries.length === 0 || isBusy ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-amber-950/45 border-amber-500/40 text-amber-200 hover:bg-amber-700 hover:text-white'}`}>ล้างรายการเก่า 30 วัน ({oldCentralTrashEntries.length.toLocaleString('th-TH')})</button>
@@ -14121,7 +14121,7 @@ S.N.: ${item.sn || '-'}
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className={`px-2.5 py-1 rounded-lg border text-[11px] font-black ${entry.kind === 'item' ? 'bg-blue-500/10 border-blue-400/25 text-blue-200' : entry.kind === 'proof' ? 'bg-pink-500/10 border-pink-400/25 text-pink-200' : 'bg-amber-500/10 border-amber-400/25 text-amber-200'}`}>{entry.kindLabel}</span>
-                          <span className={`text-[11px] font-bold ${theme.textMuted}`}>ลบ/ซ่อนเมื่อ {entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12:false }) : '-'} • โดย {entry.deletedBy || '-'}</span>
+                          <span className={`text-[11px] font-bold ${theme.textMuted}`}>ย้ายลงถังขยะเมื่อ {entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12:false }) : '-'} • โดย {entry.deletedBy || '-'}</span>
                         </div>
                         <div className={`mt-2 text-base font-black truncate ${theme.textTitle}`}>{entry.title}</div>
                         <div className={`mt-1 text-xs font-bold leading-relaxed ${theme.textMuted}`}>{entry.subtitle}</div>
@@ -14146,7 +14146,7 @@ S.N.: ${item.sn || '-'}
                     <option value="event">เฉพาะรูปออกงาน</option>
                     <option value="return">เฉพาะรูปตอนรับคืน</option>
                     <option value="repair">เฉพาะรูปซ่อม / ชำรุด</option>
-                    <option value="hiddenProofs">รูปที่ซ่อนแล้ว</option>
+                    <option value="hiddenProofs">รูปในถังขยะ</option>
                     <option value="noNote">ยังไม่มีหมายเหตุ</option>
                   </select>
                   <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{(proofCenterFilter === 'hiddenProofs' ? hiddenProofGroups.length : proofTimelineGroups.length).toLocaleString('th-TH')} แฟ้มหลักฐาน</div>
@@ -14154,7 +14154,7 @@ S.N.: ${item.sn || '-'}
                 <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar">
                   {proofCenterFilter === 'hiddenProofs' ? (
                     hiddenProofGroups.length === 0 ? (
-                      <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ยังไม่มีรูปหลักฐานที่ซ่อนแล้ว</div>
+                      <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ยังไม่มีรูปหลักฐานในถังขยะ</div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                         {hiddenProofGroups.slice(0, 120).map(group => {
@@ -14164,11 +14164,11 @@ S.N.: ${item.sn || '-'}
                           return (
                             <div key={`hidden_${group.groupId}`} className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-rose-900/45' : 'bg-rose-50 border-rose-200'}`}>
                               <button type="button" onClick={() => openProofImage(proof)} className={`block w-full h-40 ${isDarkMode ? 'bg-slate-950' : 'bg-white'}`}>
-                                {previewSrc ? <img src={previewSrc} alt="หลักฐานที่ซ่อน" className="w-full h-full object-contain opacity-75" loading="lazy" /> : <div className={`h-full flex items-center justify-center font-black ${theme.textMuted}`}>ไม่มีภาพตัวอย่าง</div>}
+                                {previewSrc ? <img src={previewSrc} alt="หลักฐานในถังขยะ" className="w-full h-full object-contain opacity-75" loading="lazy" /> : <div className={`h-full flex items-center justify-center font-black ${theme.textMuted}`}>ไม่มีภาพตัวอย่าง</div>}
                               </button>
                               <div className="p-3 space-y-2">
-                                <div className={`font-black truncate ${theme.textTitle}`}>{entry.itemName || 'รูปหลักฐานที่ซ่อน'}</div>
-                                <div className={`text-xs font-bold ${theme.textMuted}`}>ซ่อนเมื่อ {proof.deletedAt ? new Date(proof.deletedAt).toLocaleString('th-TH', { hour12:false }) : '-'} • โดย {proof.deletedBy || entry.staff || '-'}</div>
+                                <div className={`font-black truncate ${theme.textTitle}`}>{entry.itemName || 'รูปหลักฐานในถังขยะ'}</div>
+                                <div className={`text-xs font-bold ${theme.textMuted}`}>ย้ายลงถังขยะเมื่อ {proof.deletedAt ? new Date(proof.deletedAt).toLocaleString('th-TH', { hour12:false }) : '-'} • โดย {proof.deletedBy || entry.staff || '-'}</div>
                                 <div className={`text-xs font-bold truncate ${theme.textMuted}`}>{group.itemRefs?.length || 0} จุดอ้างอิง • {entry.typeLabel || '-'}</div>
                                 <div className="grid grid-cols-2 gap-2">
                                   <button type="button" onClick={() => handleRestoreHiddenProofGroup(group)} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black">กู้คืน</button>
@@ -14299,7 +14299,7 @@ S.N.: ${item.sn || '-'}
                                                 {canUseOperationalTools && (
                                                   <div className="grid grid-cols-2 gap-1 mt-1.5">
                                                     <button type="button" onClick={() => openProofEditModal(miniGroup)} className={`px-2 py-1 rounded-lg border text-[10px] font-black ${theme.btnSecondary}`}>แก้</button>
-                                                    <button type="button" onClick={() => handleDeleteProofGroup(miniGroup)} className={`px-2 py-1 rounded-lg border text-[10px] font-black ${theme.btnSecondary}`}>ซ่อน</button>
+                                                    <button type="button" onClick={() => handleDeleteProofGroup(miniGroup)} className={`px-2 py-1 rounded-lg border text-[10px] font-black ${theme.btnSecondary}`}>ย้ายลงถังขยะ</button>
                                                   </div>
                                                 )}
                                               </div>
@@ -14571,7 +14571,7 @@ S.N.: ${item.sn || '-'}
       updatedBy: currentOperator?.name || 'Admin'
     }, { merge: true });
     await logAction('ส่งอุปกรณ์กลับโกดัง', item.name || item.sn || 'อุปกรณ์', cleanReason);
-    pushToast('ส่งกลับโกดังแล้ว', `${item.name || item.sn || 'อุปกรณ์'} ถูกซ่อนจากสต๊อกใช้งานแล้ว`, 'success');
+    pushToast('ส่งกลับโกดังแล้ว', `${item.name || item.sn || 'อุปกรณ์'} ถูกย้ายออกจากสต๊อกใช้งานไปอยู่ในโกดังแล้ว`, 'success');
   };
 
   const renderWarehouseWorkspace = () => {
@@ -15173,11 +15173,11 @@ S.N.: ${item.sn || '-'}
       return alert('รายการที่เลือกยังลบไม่ได้ หรือเป็นรายการที่ไม่มีรหัสอ้างอิงในฐานข้อมูล');
     }
 
-    const reason = window.prompt('เหตุผลที่ซ่อนประวัติ เช่น รายการทดสอบ / บันทึกผิด / ซ้ำ', 'รายการทดสอบ');
+    const reason = window.prompt('เหตุผลที่ย้ายลงถังขยะ เช่น รายการทดสอบ / บันทึกผิด / ซ้ำ', 'รายการทดสอบ');
     if (reason === null) return;
-    const confirmText = window.prompt(`ยืนยันซ่อนประวัติที่เลือก ${itemEntries.length + auditEntries.length} รายการ
+    const confirmText = window.prompt(`ยืนยันย้ายประวัติลงถังขยะ ${itemEntries.length + auditEntries.length} รายการ
 พิมพ์ DELETE เพื่อยืนยัน`);
-    if (confirmText !== 'DELETE') return alert('ยกเลิกการซ่อนประวัติ');
+    if (confirmText !== 'DELETE') return alert('ยกเลิกการย้ายลงถังขยะ');
 
     const groupedByItem = new Map();
     itemEntries.forEach(entry => {
@@ -15209,9 +15209,9 @@ S.N.: ${item.sn || '-'}
       });
       await Promise.all(tasks);
       await addDoc(getAuditCol(), {
-        action: 'ซ่อนประวัติส่วนกลาง',
+        action: 'ย้ายประวัติลงถังขยะ',
         itemName: `${itemEntries.length + auditEntries.length} รายการ`,
-        detail: `ซ่อน item history ${itemEntries.length} รายการ / audit log ${auditEntries.length} รายการ
+        detail: `ย้าย item history ลงถังขยะ ${itemEntries.length} รายการ / audit log ${auditEntries.length} รายการ
 เหตุผล: ${reason || '-'}
 โดย: ${currentAccountLabel}`,
         createdAt: now,
@@ -15220,10 +15220,10 @@ S.N.: ${item.sn || '-'}
       });
       const deletedCount = itemEntries.length + auditEntries.length;
       clearHistorySelection();
-      pushToast(`ซ่อนประวัติที่เลือกแล้ว ${deletedCount} รายการ`, 'success');
+      pushToast(`ย้ายประวัติลงถังขยะแล้ว ${deletedCount} รายการ`, 'success');
     } catch (error) {
       console.error(error);
-      alert('❌ ลบ/ซ่อนประวัติไม่สำเร็จ: ' + error.message);
+      alert('❌ ย้ายประวัติลงถังขยะไม่สำเร็จ: ' + error.message);
     } finally {
       setIsBusy(false);
     }
@@ -15308,19 +15308,19 @@ S.N.: ${item.sn || '-'}
 
   const handlePurgeDeletedHistory = async () => {
     if (!canDeleteItems) return alert('บัญชีนี้ไม่มีสิทธิ์ลบถาวร');
-    if (softDeletedHistoryEntries.length === 0) return alert('ยังไม่มีประวัติที่ถูกซ่อนให้ล้างออกจากฐานข้อมูล');
+    if (softDeletedHistoryEntries.length === 0) return alert('ยังไม่มีประวัติในถังขยะให้ล้างออกจากฐานข้อมูล');
 
     const previewLines = softDeletedHistoryEntries.slice(0, 8).map((entry, idx) => `${idx + 1}. ${entry.itemName} • ${entry.subject} • ${entry.deleteReason}`).join('\n');
     const firstConfirm = window.confirm(
       [
-        `พบประวัติที่ถูกซ่อนแล้ว ${softDeletedHistoryEntries.length} รายการ`,
+        `พบประวัติในถังขยะ ${softDeletedHistoryEntries.length} รายการ`,
         '',
         'รายการตัวอย่าง:',
         previewLines,
         softDeletedHistoryEntries.length > 8 ? '...และรายการอื่น ๆ' : '',
         '',
         'การลบถาวรจะเอาประวัติเหล่านี้ออกจากฐานข้อมูลจริง',
-        'ไม่ใช่แค่ซ่อนจากหน้าเว็บ และกู้คืนไม่ได้',
+        'ไม่ใช่แค่ย้ายออกจากหน้าเว็บ และกู้คืนไม่ได้',
         '',
         'ต้องการดำเนินการต่อหรือไม่?'
       ].filter(Boolean).join('\n')
@@ -15358,7 +15358,7 @@ S.N.: ${item.sn || '-'}
       affectedAuditLogs.forEach(log => tasks.push(deleteDoc(doc(getAuditCol(), log.id))));
       await Promise.all(tasks);
       await addDoc(getAuditCol(), {
-        action: 'ลบถาวรประวัติส่วนกลางที่ถูกซ่อน',
+        action: 'ลบถาวรประวัติในถังขยะ',
         itemName: `${softDeletedHistoryEntries.length} รายการ`,
         detail: `ลบถาวรจาก item.history/audit log ${softDeletedHistoryEntries.length} รายการ / อุปกรณ์ที่กระทบ ${affectedItems.length} รายการ / audit log ${affectedAuditLogs.length} รายการ\nโดย: ${currentAccountLabel}`,
         createdAt: now,
@@ -15366,7 +15366,7 @@ S.N.: ${item.sn || '-'}
         role: currentAccountRole
       });
       clearHistorySelection();
-      pushToast(`ลบถาวรประวัติที่ถูกซ่อนแล้ว ${softDeletedHistoryEntries.length} รายการ`, 'success');
+      pushToast(`ลบถาวรประวัติในถังขยะ ${softDeletedHistoryEntries.length} รายการ`, 'success');
     } catch (error) {
       console.error(error);
       alert('❌ ลบถาวรไม่สำเร็จ: ' + error.message);
@@ -15922,7 +15922,7 @@ S.N.: ${item.sn || '-'}
       kind: 'history',
       kindLabel: entry.isAuditLog ? 'ประวัติระบบ' : 'ประวัติส่วนกลาง',
       title: entry.itemName || entry.subject || '-',
-      subtitle: `${entry.subject || '-'} • ${entry.deleteReason || 'ซ่อนจากประวัติ'}`,
+      subtitle: `${entry.subject || '-'} • ${entry.deleteReason || 'ย้ายลงถังขยะ'}`,
       date: entry.deletedAt || entry.date || '',
       deletedBy: entry.deletedBy || '-',
       raw: entry,
@@ -15936,7 +15936,7 @@ S.N.: ${item.sn || '-'}
         id: `proof_${group.groupId}`,
         kind: 'proof',
         kindLabel: 'รูปหลักฐาน',
-        title: entry.itemName || proof.contextLabel || 'รูปหลักฐานที่ซ่อน',
+        title: entry.itemName || proof.contextLabel || 'รูปหลักฐานในถังขยะ',
         subtitle: `${entry.typeLabel || '-'} • ${group.itemRefs?.length || 0} จุดอ้างอิง`,
         date: proof.deletedAt || entry.date || proof.createdAt || '',
         deletedBy: proof.deletedBy || entry.staff || '-',
@@ -25807,7 +25807,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                                   })}
                                   className={`w-full border-t px-2 py-2 text-[11px] font-black ${isDarkMode ? 'border-slate-800 text-rose-300 hover:bg-rose-950/35' : 'border-slate-200 text-rose-600 hover:bg-rose-50'}`}
                                 >
-                                  ซ่อน/ลบรูปนี้
+                                  ย้ายรูปลงถังขยะ
                                 </button>
                               )}
                             </div>
@@ -26252,7 +26252,7 @@ ${auditChangeSummary}` : auditChangeSummary);
             <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${isDarkMode ? 'bg-rose-900/40 text-rose-500' : 'bg-rose-100 text-rose-500'}`}><Icons.Trash className="w-9 h-9" /></div>
             <h3 className={`text-2xl font-black mb-2 ${theme.textTitle}`}>ย้ายเข้าถังขยะ?</h3>
             <p className={`mb-6 text-lg ${theme.textMuted}`}>
-              รายการนี้จะถูกซ่อนจากตารางหลัก แต่ยังสามารถกู้คืนได้จากเมนูถังขยะ<br/>
+              รายการนี้จะถูกย้ายออกจากตารางหลักไปอยู่ในถังขยะ และยังสามารถกู้คืนได้จากถังขยะกลาง<br/>
               <span className="font-bold text-rose-500 text-xl block mt-2">"{itemToDelete.name}"</span>
             </p>
             <div className="flex gap-3">
@@ -27375,7 +27375,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                           {canUseOperationalTools && (
                             <div className="grid grid-cols-3 gap-2">
                               <button type="button" onClick={() => openProofEditModal(group)} className={`py-2 rounded-lg border text-xs font-black ${theme.btnSecondary}`}>แก้ไข</button>
-                              <button type="button" onClick={() => handleDeleteProofGroup(group)} className={`py-2 rounded-lg border text-xs font-black ${theme.btnSecondary}`}>ซ่อนรูป</button>
+                              <button type="button" onClick={() => handleDeleteProofGroup(group)} className={`py-2 rounded-lg border text-xs font-black ${theme.btnSecondary}`}>ย้ายลงถังขยะ</button>
                               <button type="button" onClick={() => handlePermanentDeleteProofGroup(group)} className="py-2 rounded-lg border text-xs font-black bg-rose-600 text-white border-rose-600 hover:bg-rose-700">ลบถาวร</button>
                             </div>
                           )}
