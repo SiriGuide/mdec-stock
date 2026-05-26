@@ -66,6 +66,7 @@ const APP_ID = IS_CANVAS ? __app_id : 'default-app-id';
 const getItemsCol = () => IS_CANVAS ? collection(db, 'artifacts', APP_ID, 'public', 'data', 'items') : collection(db, 'mdec_stock', 'shared_data', 'items');
 const getSettingsDoc = () => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'settings', 'global') : doc(db, 'mdec_stock', 'shared_data', 'settings', 'global');
 const getAuditCol = () => IS_CANVAS ? collection(db, 'artifacts', APP_ID, 'public', 'data', 'audit_logs') : collection(db, 'mdec_stock', 'shared_data', 'audit_logs');
+const getAuditDoc = (id) => doc(getAuditCol(), id);
 const getItemDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'items', id) : doc(db, 'mdec_stock', 'shared_data', 'items', id);
 const getProofsCol = () => IS_CANVAS ? collection(db, 'artifacts', APP_ID, 'public', 'data', 'proofs') : collection(db, 'mdec_stock', 'shared_data', 'proofs');
 const getProofDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 'data', 'proofs', id) : doc(db, 'mdec_stock', 'shared_data', 'proofs', id);
@@ -75,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.69 Proof Timeline Compact Fix';
+const APP_VERSION = 'v23.1.71 Unified Trash Center';
 const APP_UPDATE_NOTE = 'Inventory Main Button Shows All: ปุ่มคลังอุปกรณ์หลักเปิดสต๊อกทั้งหมดทันที และย่อเมนูย่อยให้เหลือพร้อมใช้งาน/กำลังใช้งาน/ชำรุด/โกดัง เพื่อลดจำนวนปุ่ม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -7117,6 +7118,7 @@ function MainApp() {
   const [historyCenterFilter, setHistoryCenterFilter] = useState('all');
   const [historyCenterSearch, setHistoryCenterSearch] = useState('');
   const [selectedHistoryRecordIds, setSelectedHistoryRecordIds] = useState([]);
+  const [centralTrashFilter, setCentralTrashFilter] = useState('all');
 
   // v22.58.2 Boot Crash Hotfix
   // ประกาศตัวกรองหลักฐานก่อน useMemo ที่ทำงานทันทีตอน render
@@ -8741,6 +8743,146 @@ function MainApp() {
       alert('❌ ซ่อนรูปหลักฐานไม่สำเร็จ: ' + error.message);
     } finally {
       setIsBusy(false);
+    }
+  };
+
+  const handleRestoreHiddenProofGroup = async (group) => {
+    if (!group) return;
+    if (!canUseOperationalTools) return alert('บัญชีนี้ไม่มีสิทธิ์กู้คืนรูปหลักฐาน');
+    const targetKey = group.groupId;
+    const proofDocId = group.proof?.proofDocId || group.proof?.id || group.groupId;
+    const ok = window.confirm('กู้คืนรูปหลักฐานนี้กลับมาแสดงในศูนย์หลักฐาน / ประวัติ / แฟ้มอุปกรณ์หรือไม่?');
+    if (!ok) return;
+
+    try {
+      setIsBusy(true);
+      const affectedRefs = await updateProofReferencesInItems(targetKey, (proof) => ({
+        ...proof,
+        deletedFromProofCenter: false,
+        softDeleted: false,
+        hiddenFromProofCenter: false,
+        restoredAt: new Date().toISOString(),
+        restoredBy: currentAccountLabel
+      }));
+
+      try {
+        if (proofDocId) await setDoc(getProofDoc(proofDocId), {
+          softDeleted: false,
+          hiddenFromProofCenter: false,
+          deletedFromProofCenter: false,
+          restoredAt: new Date().toISOString(),
+          restoredBy: currentAccountLabel
+        }, { merge: true });
+      } catch (proofDocError) {
+        console.warn('Proof restore doc skipped:', proofDocError);
+      }
+
+      await logAction('กู้คืนรูปหลักฐานที่ซ่อน', group.representative?.itemName || 'รูปหลักฐาน', `กู้คืนรูปหลักฐานที่ซ่อนไว้กลับมา ${affectedRefs} จุดอ้างอิง`);
+      pushToast('กู้คืนรูปหลักฐานแล้ว', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ กู้คืนรูปหลักฐานไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleRestoreDeletedHistoryEntry = async (entry) => {
+    if (!entry) return;
+    if (!canDeleteItems) return alert('บัญชีนี้ไม่มีสิทธิ์กู้คืนประวัติ');
+
+    try {
+      setIsBusy(true);
+      if (entry.isAuditLog && entry.auditLogId) {
+        await setDoc(getAuditDoc(entry.auditLogId), {
+          deletedFromHistory: false,
+          hiddenFromHistory: false,
+          restoredAt: new Date().toISOString(),
+          restoredBy: currentAccountLabel
+        }, { merge: true });
+      } else if (entry.itemId && Number.isFinite(Number(entry.historyIndex))) {
+        const targetItem = items.find(item => item.id === entry.itemId);
+        if (!targetItem) throw new Error('ไม่พบอุปกรณ์ที่ผูกกับประวัตินี้');
+        const history = asArray(targetItem.history).map((h, idx) => idx === Number(entry.historyIndex)
+          ? {
+              ...h,
+              deletedFromHistory: false,
+              hiddenFromHistory: false,
+              deletedAt: null,
+              deletedBy: null,
+              deleteReason: '',
+              restoredAt: new Date().toISOString(),
+              restoredBy: currentAccountLabel
+            }
+          : h
+        );
+        await setDoc(getItemDoc(entry.itemId), { history, updatedAt: new Date().toISOString(), updatedBy: currentAccountLabel }, { merge: true });
+      } else {
+        throw new Error('รายการประวัตินี้ไม่มีข้อมูลอ้างอิงครบพอสำหรับกู้คืน');
+      }
+      await logAction('กู้คืนประวัติจากถังขยะกลาง', entry.itemName || entry.subject || '-', 'กู้คืนประวัติที่เคยซ่อนไว้');
+      pushToast('กู้คืนประวัติแล้ว', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ กู้คืนประวัติไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handlePermanentDeleteHistoryEntry = async (entry) => {
+    if (!entry) return;
+    if (!canDeleteItems) return alert('บัญชีนี้ไม่มีสิทธิ์ลบถาวร');
+
+    const ok = window.confirm(`ลบประวัตินี้ถาวรหรือไม่?\n\n${entry.itemName || entry.subject || '-'}\n${entry.subject || ''}\n\nลบแล้วกู้คืนจากในเว็บไม่ได้`);
+    if (!ok) return;
+
+    try {
+      setIsBusy(true);
+      if (entry.isAuditLog && entry.auditLogId) {
+        await deleteDoc(getAuditDoc(entry.auditLogId));
+      } else if (entry.itemId && Number.isFinite(Number(entry.historyIndex))) {
+        const targetItem = items.find(item => item.id === entry.itemId);
+        if (!targetItem) throw new Error('ไม่พบอุปกรณ์ที่ผูกกับประวัตินี้');
+        const history = asArray(targetItem.history).filter((h, idx) => idx !== Number(entry.historyIndex));
+        await setDoc(getItemDoc(entry.itemId), { history, updatedAt: new Date().toISOString(), updatedBy: currentAccountLabel }, { merge: true });
+      } else {
+        throw new Error('รายการประวัตินี้ไม่มีข้อมูลอ้างอิงครบพอสำหรับลบถาวร');
+      }
+      await logAction('ลบประวัติถาวรจากถังขยะกลาง', entry.itemName || entry.subject || '-', 'ลบประวัติถาวรจากถังขยะกลาง');
+      pushToast('ลบประวัติถาวรแล้ว', 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ ลบประวัติถาวรไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleRestoreCentralTrashEntry = async (entry) => {
+    if (!entry) return;
+    if (entry.kind === 'item') return handleRestoreTrashItem(entry.raw);
+    if (entry.kind === 'proof') return handleRestoreHiddenProofGroup(entry.raw);
+    if (entry.kind === 'history') return handleRestoreDeletedHistoryEntry(entry.raw);
+  };
+
+  const handlePermanentDeleteCentralTrashEntry = async (entry) => {
+    if (!entry) return;
+    if (entry.kind === 'item') return handlePermanentDeleteTrashItem(entry.raw);
+    if (entry.kind === 'proof') return handlePermanentDeleteProofGroup(entry.raw);
+    if (entry.kind === 'history') return handlePermanentDeleteHistoryEntry(entry.raw);
+  };
+
+  const handlePermanentDeleteOldCentralTrash = async () => {
+    if (!canDeleteItems) return alert('บัญชีนี้ไม่มีสิทธิ์ลบถาวร');
+    if (oldCentralTrashEntries.length === 0) return alert('ยังไม่มีรายการที่เก่ากว่า 30 วันในถังขยะกลาง');
+    const ok = window.confirm(`ลบถาวรรายการในถังขยะกลางที่เก่ากว่า 30 วัน จำนวน ${oldCentralTrashEntries.length} รายการหรือไม่?\n\nเหมาะสำหรับทำความสะอาดรายเดือน\nลบแล้วกู้คืนจากเว็บไม่ได้`);
+    if (!ok) return;
+
+    for (const entry of oldCentralTrashEntries) {
+      // ใช้ action เดิมทีละรายการเพื่อคง safety confirm เฉพาะบางชนิด
+      // ถ้ารายการใดติด confirm ซ้ำ ผู้ใช้ยังเลือกหยุดได้
+      await handlePermanentDeleteCentralTrashEntry(entry);
     }
   };
 
@@ -13939,26 +14081,54 @@ S.N.: ${item.sn || '-'}
 
             {recordsCenterMode === 'trash' && (
               <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <div className={`p-4 border-b flex flex-col md:flex-row md:items-center justify-between gap-3 ${theme.divide}`}>
+                <div className={`p-4 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-3 ${theme.divide}`}>
                   <div>
-                    <div className={`text-lg font-black ${theme.textTitle}`}>ถังขยะอุปกรณ์</div>
-                    <div className={`text-sm font-bold ${theme.textMuted}`}>รายการที่ถูกลบแบบย้ายเข้าถังขยะ สามารถกู้คืนหรือลบถาวรได้จากตรงนี้</div>
+                    <div className={`text-lg font-black ${theme.textTitle}`}>ถังขยะกลาง</div>
+                    <div className={`text-sm font-bold ${theme.textMuted}`}>ทุกอย่างที่ถูกลบ/ซ่อนจะมารวมที่นี่: อุปกรณ์ ประวัติส่วนกลาง และรูปหลักฐาน สามารถกู้คืนหรือลบถาวรเองได้</div>
                   </div>
-                  <button type="button" onClick={() => setShowTrashModal(true)} className={`px-4 py-3 rounded-2xl border font-black ${isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}><Icons.Trash className="w-5 h-5 inline-block mr-1" /> เปิดหน้าถังขยะเต็ม</button>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={handlePermanentDeleteOldCentralTrash} disabled={oldCentralTrashEntries.length === 0 || isBusy} className={`px-4 py-2.5 rounded-2xl border text-sm font-black ${oldCentralTrashEntries.length === 0 || isBusy ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-amber-950/45 border-amber-500/40 text-amber-200 hover:bg-amber-700 hover:text-white'}`}>ล้างรายการเก่า 30 วัน ({oldCentralTrashEntries.length.toLocaleString('th-TH')})</button>
+                    <button type="button" onClick={() => setShowTrashModal(true)} className={`px-4 py-2.5 rounded-2xl border text-sm font-black ${theme.btnSecondary}`}>เปิดถังขยะอุปกรณ์เดิม</button>
+                  </div>
                 </div>
+
+                <div className={`p-4 border-b ${theme.divide}`}>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {[
+                      ['all', 'ทั้งหมด', centralTrashEntries.length],
+                      ['item', 'อุปกรณ์', centralTrashEntries.filter(e => e.kind === 'item').length],
+                      ['history', 'ประวัติ', centralTrashEntries.filter(e => e.kind === 'history').length],
+                      ['proof', 'รูปหลักฐาน', centralTrashEntries.filter(e => e.kind === 'proof').length]
+                    ].map(([key, label, count]) => (
+                      <button
+                        key={`central_trash_filter_${key}`}
+                        type="button"
+                        onClick={() => setCentralTrashFilter(key)}
+                        className={`rounded-2xl border px-3 py-3 text-left transition ${centralTrashFilter === key ? 'bg-rose-600/20 border-rose-400/45 text-rose-100' : theme.btnSecondary}`}
+                      >
+                        <div className="text-xs font-black opacity-80">{label}</div>
+                        <div className="text-xl font-black mt-1">{Number(count || 0).toLocaleString('th-TH')}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
-                  {deletedItems.length === 0 ? (
-                    <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ถังขยะว่างอยู่</div>
-                  ) : deletedItems.slice(0, 120).map(item => (
-                    <div key={item.id} className={`p-3 rounded-2xl border flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="min-w-0">
-                        <div className={`font-black text-lg truncate ${theme.textTitle}`}>{item.name || '-'}</div>
-                        <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • ลบโดย {item.deletedBy || '-'}</div>
+                  {filteredCentralTrashEntries.length === 0 ? (
+                    <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ถังขยะกลางว่างอยู่</div>
+                  ) : filteredCentralTrashEntries.slice(0, 220).map(entry => (
+                    <div key={entry.id} className={`rounded-2xl border p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900/75 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`px-2.5 py-1 rounded-lg border text-[11px] font-black ${entry.kind === 'item' ? 'bg-blue-500/10 border-blue-400/25 text-blue-200' : entry.kind === 'proof' ? 'bg-pink-500/10 border-pink-400/25 text-pink-200' : 'bg-amber-500/10 border-amber-400/25 text-amber-200'}`}>{entry.kindLabel}</span>
+                          <span className={`text-[11px] font-bold ${theme.textMuted}`}>ลบ/ซ่อนเมื่อ {entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12:false }) : '-'} • โดย {entry.deletedBy || '-'}</span>
+                        </div>
+                        <div className={`mt-2 text-base font-black truncate ${theme.textTitle}`}>{entry.title}</div>
+                        <div className={`mt-1 text-xs font-bold leading-relaxed ${theme.textMuted}`}>{entry.subtitle}</div>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 shrink-0">
-                        <button type="button" onClick={() => handleRestoreTrashItem(item)} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black">กู้คืน</button>
-                        <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เปิด</button>
-                        <button type="button" onClick={() => handlePermanentDeleteTrashItem(item)} className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-black">ลบถาวร</button>
+                      <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
+                        <button type="button" onClick={() => handleRestoreCentralTrashEntry(entry)} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black">กู้คืน</button>
+                        <button type="button" onClick={() => handlePermanentDeleteCentralTrashEntry(entry)} className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black">ลบถาวร</button>
                       </div>
                     </div>
                   ))}
@@ -13976,12 +14146,42 @@ S.N.: ${item.sn || '-'}
                     <option value="event">เฉพาะรูปออกงาน</option>
                     <option value="return">เฉพาะรูปตอนรับคืน</option>
                     <option value="repair">เฉพาะรูปซ่อม / ชำรุด</option>
+                    <option value="hiddenProofs">รูปที่ซ่อนแล้ว</option>
                     <option value="noNote">ยังไม่มีหมายเหตุ</option>
                   </select>
-                  <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{proofTimelineGroups.length.toLocaleString('th-TH')} แฟ้มหลักฐาน</div>
+                  <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{(proofCenterFilter === 'hiddenProofs' ? hiddenProofGroups.length : proofTimelineGroups.length).toLocaleString('th-TH')} แฟ้มหลักฐาน</div>
                 </div>
                 <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar">
-                  {proofTimelineGroups.length === 0 ? <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบหลักฐานรูปภาพ</div> : (
+                  {proofCenterFilter === 'hiddenProofs' ? (
+                    hiddenProofGroups.length === 0 ? (
+                      <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ยังไม่มีรูปหลักฐานที่ซ่อนแล้ว</div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                        {hiddenProofGroups.slice(0, 120).map(group => {
+                          const proof = group.proof || {};
+                          const entry = group.representative || {};
+                          const previewSrc = proof.url || proof.thumbUrl || proof.dataUrl || '';
+                          return (
+                            <div key={`hidden_${group.groupId}`} className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-rose-900/45' : 'bg-rose-50 border-rose-200'}`}>
+                              <button type="button" onClick={() => openProofImage(proof)} className={`block w-full h-40 ${isDarkMode ? 'bg-slate-950' : 'bg-white'}`}>
+                                {previewSrc ? <img src={previewSrc} alt="หลักฐานที่ซ่อน" className="w-full h-full object-contain opacity-75" loading="lazy" /> : <div className={`h-full flex items-center justify-center font-black ${theme.textMuted}`}>ไม่มีภาพตัวอย่าง</div>}
+                              </button>
+                              <div className="p-3 space-y-2">
+                                <div className={`font-black truncate ${theme.textTitle}`}>{entry.itemName || 'รูปหลักฐานที่ซ่อน'}</div>
+                                <div className={`text-xs font-bold ${theme.textMuted}`}>ซ่อนเมื่อ {proof.deletedAt ? new Date(proof.deletedAt).toLocaleString('th-TH', { hour12:false }) : '-'} • โดย {proof.deletedBy || entry.staff || '-'}</div>
+                                <div className={`text-xs font-bold truncate ${theme.textMuted}`}>{group.itemRefs?.length || 0} จุดอ้างอิง • {entry.typeLabel || '-'}</div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <button type="button" onClick={() => handleRestoreHiddenProofGroup(group)} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black">กู้คืน</button>
+                                  <button type="button" onClick={() => handlePermanentDeleteProofGroup(group)} className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black">ลบถาวร</button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )
+                  ) : (
+                    proofTimelineGroups.length === 0 ? <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบหลักฐานรูปภาพ</div> : (
                     <div className="space-y-4">
                       {proofTimelineGroups.slice(0, 80).map(group => {
                         const typeCards = [
@@ -14116,7 +14316,7 @@ S.N.: ${item.sn || '-'}
                         );
                       })}
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
             )}
@@ -15584,6 +15784,182 @@ S.N.: ${item.sn || '-'}
       return matchType && (!keyword || haystack.includes(keyword));
     });
   }, [allProofEntries, proofCenterFilter, proofCenterSearch]);
+
+  const hiddenProofEntries = useMemo(() => {
+    const entries = [];
+    const isHiddenProof = (proof = {}) => !!proof && !isActiveProof(proof) && (proof.deletedFromProofCenter || proof.softDeleted || proof.hiddenFromProofCenter);
+
+    items.filter(i => i && !i.isDeleted).forEach((item) => {
+      (Array.isArray(item.history) ? item.history : []).forEach((h, historyIndex) => {
+        const proofs = (Array.isArray(h.proofs) ? h.proofs : []).filter(isHiddenProof);
+        proofs.forEach((proof, proofIndex) => {
+          const type = h.type || 'other';
+          const typeLabel = type === 'borrow' ? 'ยืม' : type === 'event' ? 'ออกงาน' : type === 'return' ? 'รับคืน' : type === 'repair' || type === 'repair-done' ? 'ซ่อม' : 'อื่น ๆ';
+          entries.push({
+            id: `hidden_${item.id}_${historyIndex}_${proof.id || proof.proofDocId || proofIndex}`,
+            itemId: item.id,
+            itemName: item.name || '-',
+            sn: item.sn || '-',
+            department: item.department || '-',
+            category: item.category || '-',
+            location: item.location || '-',
+            storageBoxName: item.storageBoxName || '',
+            historyIndex,
+            historyType: type,
+            typeLabel,
+            date: proof.deletedAt || h.date || proof.createdAt || '',
+            subject: h.borrower || h.eventName || h.problem || h.staffIn || '-',
+            staff: proof.deletedBy || h.staffOut || h.staffIn || h.operatorName || proof.createdBy || '-',
+            note: h.note || h.problem || proof.note || '',
+            proof
+          });
+        });
+      });
+    });
+
+    asArray(borrowเอกสารs).forEach((docData, docIndex) => {
+      const proofs = getActiveProofs(docData.proofs || []).length > 0
+        ? []
+        : (Array.isArray(docData.proofs) ? docData.proofs : []).filter(isHiddenProof);
+      if (proofs.length === 0) return;
+      const relatedItems = (docData.itemIds || docData.items?.map(it => it.id) || [])
+        .map(id => items.find(item => item.id === id))
+        .filter(Boolean);
+      const targets = relatedItems.length > 0 ? relatedItems : [docData.items?.[0] || {}];
+      proofs.forEach((proof, proofIndex) => {
+        targets.forEach((item, itemIndex) => {
+          const type = docData.type || 'other';
+          const typeLabel = type === 'borrow' ? 'ยืม' : type === 'event' ? 'ออกงาน' : type === 'return' ? 'รับคืน' : type === 'repair' || type === 'repair-done' ? 'ซ่อม' : 'อื่น ๆ';
+          entries.push({
+            id: `hidden_${item.id || docData.id || docData.ref || 'doc'}_${docIndex}_${itemIndex}_${proof.id || proof.proofDocId || proofIndex}`,
+            itemId: item.id,
+            itemName: item.name || docData.items?.[proofIndex]?.name || docData.subject || docData.title || '-',
+            sn: item.sn || docData.items?.[proofIndex]?.sn || '-',
+            department: item.department || docData.items?.[proofIndex]?.department || '-',
+            category: item.category || docData.items?.[proofIndex]?.category || '-',
+            location: item.location || docData.items?.[proofIndex]?.location || '-',
+            storageBoxName: item.storageBoxName || docData.items?.[proofIndex]?.storageBoxName || '',
+            historyIndex: `doc_${docIndex}_${itemIndex}`,
+            historyType: type,
+            typeLabel,
+            date: proof.deletedAt || docData.date || docData.createdAt || proof.createdAt || '',
+            subject: docData.subject || docData.borrower || docData.eventName || '-',
+            staff: proof.deletedBy || docData.staffOut || docData.staffIn || proof.createdBy || '-',
+            note: docData.note || proof.note || '',
+            proof
+          });
+        });
+      });
+    });
+
+    return entries.sort((a, b) => new Date(b.date || b.proof?.deletedAt || 0) - new Date(a.date || a.proof?.deletedAt || 0));
+  }, [items, borrowเอกสารs]);
+
+  const hiddenProofGroups = useMemo(() => {
+    const keyword = String(proofCenterSearch || '').toLowerCase().trim();
+    const groups = new Map();
+    hiddenProofEntries.forEach((entry) => {
+      const proof = entry.proof || {};
+      const groupKey = getProofUniqueKey(proof);
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, {
+          groupId: groupKey,
+          proof,
+          representative: entry,
+          entries: [],
+          itemRefs: [],
+          itemRefKeys: new Set(),
+          searchText: ''
+        });
+      }
+      const group = groups.get(groupKey);
+      group.entries.push(entry);
+      const itemKey = entry.itemId || entry.sn || entry.itemName || `item_${group.entries.length}`;
+      if (!group.itemRefKeys.has(itemKey)) {
+        group.itemRefKeys.add(itemKey);
+        group.itemRefs.push({
+          itemId: entry.itemId,
+          itemName: entry.itemName || '-',
+          sn: entry.sn || '-',
+          subject: entry.subject || '-',
+          typeLabel: entry.typeLabel || '-',
+          historyType: entry.historyType || 'other',
+          date: entry.date || entry.proof?.createdAt || ''
+        });
+      }
+    });
+    return Array.from(groups.values()).map((group) => {
+      const searchText = [
+        group.representative?.itemName,
+        group.representative?.sn,
+        group.representative?.subject,
+        group.representative?.staff,
+        group.representative?.note,
+        ...group.itemRefs.flatMap(ref => [ref.itemName, ref.sn, ref.subject, ref.typeLabel])
+      ].filter(Boolean).join(' ').toLowerCase();
+      const sortedEntries = group.entries.slice().sort((a, b) => new Date(b.date || b.proof?.deletedAt || 0) - new Date(a.date || a.proof?.deletedAt || 0));
+      return { ...group, entries: sortedEntries, representative: sortedEntries[0] || group.representative, searchText, firstDate: sortedEntries[0]?.date || sortedEntries[0]?.proof?.deletedAt || '' };
+    }).filter(group => !keyword || group.searchText.includes(keyword))
+      .sort((a, b) => new Date(b.firstDate || 0) - new Date(a.firstDate || 0));
+  }, [hiddenProofEntries, proofCenterSearch]);
+
+
+  const centralTrashEntries = useMemo(() => {
+    const itemRows = deletedItems.map((item) => ({
+      id: `item_${item.id}`,
+      kind: 'item',
+      kindLabel: 'อุปกรณ์',
+      title: item.name || '-',
+      subtitle: `S.N. ${item.sn || '-'} • ${item.category || '-'}`,
+      date: item.deletedAt || item.updatedAt || '',
+      deletedBy: item.deletedBy || '-',
+      raw: item,
+      searchText: `${item.name || ''} ${item.sn || ''} ${item.category || ''} ${item.location || ''} ${item.deletedBy || ''}`.toLowerCase()
+    }));
+
+    const historyRows = softDeletedHistoryEntries.map((entry) => ({
+      id: `history_${entry.id}`,
+      kind: 'history',
+      kindLabel: entry.isAuditLog ? 'ประวัติระบบ' : 'ประวัติส่วนกลาง',
+      title: entry.itemName || entry.subject || '-',
+      subtitle: `${entry.subject || '-'} • ${entry.deleteReason || 'ซ่อนจากประวัติ'}`,
+      date: entry.deletedAt || entry.date || '',
+      deletedBy: entry.deletedBy || '-',
+      raw: entry,
+      searchText: `${entry.itemName || ''} ${entry.subject || ''} ${entry.type || ''} ${entry.deletedBy || ''} ${entry.deleteReason || ''}`.toLowerCase()
+    }));
+
+    const proofRows = hiddenProofGroups.map((group) => {
+      const entry = group.representative || {};
+      const proof = group.proof || {};
+      return {
+        id: `proof_${group.groupId}`,
+        kind: 'proof',
+        kindLabel: 'รูปหลักฐาน',
+        title: entry.itemName || proof.contextLabel || 'รูปหลักฐานที่ซ่อน',
+        subtitle: `${entry.typeLabel || '-'} • ${group.itemRefs?.length || 0} จุดอ้างอิง`,
+        date: proof.deletedAt || entry.date || proof.createdAt || '',
+        deletedBy: proof.deletedBy || entry.staff || '-',
+        raw: group,
+        searchText: `${entry.itemName || ''} ${entry.sn || ''} ${entry.subject || ''} ${proof.contextLabel || ''} ${proof.note || ''} ${proof.deletedBy || ''}`.toLowerCase()
+      };
+    });
+
+    return [...itemRows, ...historyRows, ...proofRows]
+      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+  }, [deletedItems, softDeletedHistoryEntries, hiddenProofGroups]);
+
+  const filteredCentralTrashEntries = useMemo(() => {
+    return centralTrashEntries.filter(entry => centralTrashFilter === 'all' || entry.kind === centralTrashFilter);
+  }, [centralTrashEntries, centralTrashFilter]);
+
+  const oldCentralTrashEntries = useMemo(() => {
+    const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    return centralTrashEntries.filter(entry => {
+      const dateMs = new Date(entry.date || 0).getTime();
+      return dateMs && !Number.isNaN(dateMs) && dateMs < cutoff;
+    });
+  }, [centralTrashEntries]);
 
   const dedupedProofGroups = useMemo(() => {
     const groups = new Map();
