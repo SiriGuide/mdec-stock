@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.76 Proof Upload No Watermark';
+const APP_VERSION = 'v23.1.77 Records Proof Compact Image + Equipment List';
 const APP_UPDATE_NOTE = 'Inventory Main Button Shows All: ปุ่มคลังอุปกรณ์หลักเปิดสต๊อกทั้งหมดทันที และย่อเมนูย่อยให้เหลือพร้อมใช้งาน/กำลังใช้งาน/ชำรุด/โกดัง เพื่อลดจำนวนปุ่ม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -499,7 +499,7 @@ function SmartOptionInput({
             onWheel={containPickerWheel}
             onTouchMove={(e) => e.stopPropagation()}
             style={{ overscrollBehavior: 'contain' }}
-            className="smart-picker-list max-h-72 max-sm:max-h-[46vh] overflow-y-auto custom-scrollbar p-2 space-y-1"
+            className="smart-picker-list max-h-56 max-sm:max-h-[46vh] overflow-y-auto custom-scrollbar p-2 space-y-1"
           >
             {matchedOptions.map(option => (
               <button
@@ -14048,7 +14048,7 @@ S.N.: ${item.sn || '-'}
                           </div>
                         </div>
 
-                        <div className={`min-h-[180px] border-t xl:border-t-0 xl:border-l ${theme.divide} ${isDarkMode ? 'bg-slate-950/45' : 'bg-white/80'}`}>
+                        <div className={`min-h-[180px] border-t xl:border-t-0 xl:border-l-0 ${theme.divide} ${isDarkMode ? 'bg-slate-950/45' : 'bg-white/80'}`}>
                           {previewProofs[0] ? (() => {
                             const proof = previewProofs[0];
                             const previewSrc = proof?.thumbUrl || proof?.url || proof?.dataUrl || '';
@@ -14245,17 +14245,30 @@ S.N.: ${item.sn || '-'}
                                   </div>
                                 )}
 
+                                <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/45 border-slate-800/70' : 'bg-white border-slate-200/80'}`}>
+                                  <div className={`text-[11px] font-black tracking-[0.14em] uppercase ${theme.textMuted}`}>อุปกรณ์ที่เกี่ยวข้อง</div>
+                                  <div className="mt-2 space-y-1.5">
+                                    {equipmentList.slice(0, 12).map((it, idx) => (
+                                      <div key={`${group.groupId}_equipment_${idx}`} className={`rounded-xl px-3 py-2 ${isDarkMode ? 'bg-slate-900/70' : 'bg-slate-50'}`}>
+                                        <div className={`text-xs font-black ${theme.textTitle}`}>{it.itemName || '-'}</div>
+                                        <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{it.sn && it.sn !== '-' ? `S.N. ${it.sn}` : 'ไม่มีรหัส'}{it.category && it.category !== '-' ? ` • ${it.category}` : ''}</div>
+                                      </div>
+                                    ))}
+                                    {equipmentList.length > 12 && <div className={`text-[11px] font-bold ${theme.textMuted}`}>และอีก {(equipmentList.length - 12).toLocaleString('th-TH')} รายการ</div>}
+                                  </div>
+                                </div>
+
                                 <div className="flex flex-wrap gap-2 pt-1">
                                   {group.itemId && <button type="button" onClick={() => setShowHistory(group.itemId)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
                                   <button type="button" onClick={() => { setHistoryCenterSearch(group.sn || group.itemName || ''); setRecordsCenterMode('history'); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
                                 </div>
                               </div>
 
-                              <div className={`p-4 border-t xl:border-t-0 xl:border-l ${theme.divide} ${isDarkMode ? 'bg-slate-950/55' : 'bg-white/80'}`}>
+                              <div className={`p-4 border-t xl:border-t-0 xl:border-l-0 ${isDarkMode ? 'border-slate-800/50 bg-slate-950/45' : 'border-slate-200/70 bg-white/80'}`}>
                                 <button type="button" onClick={() => openProofImage(previewProof)} className={`w-full rounded-2xl border overflow-hidden h-[360px] ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
                                   {previewSrc ? <img src={previewSrc} alt="หลักฐานหลัก" className="w-full h-full object-contain" loading="lazy" /> : <div className={`h-full flex items-center justify-center text-sm font-black ${theme.textMuted}`}>ไม่มีภาพตัวอย่าง</div>}
                                 </button>
-                                <div className={`mt-2 text-[11px] font-bold ${theme.textMuted}`}>รูปหลัก • {currentTypeLabel} • {previewEntry?.date ? new Date(previewEntry.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
+                                <div className={`mt-2 text-[11px] font-bold ${theme.textMuted}`}>รูปหลักฐาน • {currentTypeLabel} • {previewEntry?.date ? new Date(previewEntry.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
                               </div>
                             </div>
                           </div>
@@ -23069,7 +23082,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                           <div className={`font-black ${theme.textTitle}`}>เช็กลิสต์เตรียมของ</div>
                           <button type="button" onClick={() => toggleAllPrepChecklist(prep)} className={`px-3 py-1.5 rounded-lg text-sm font-black ${isDarkMode ? 'bg-sky-900/40 text-sky-400 hover:bg-sky-800' : 'bg-sky-100 text-sky-700 hover:bg-sky-200'}`}>{checkedCount === prepItems.length && prepItems.length > 0 ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}</button>
                         </div>
-                        <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
+                        <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
                           {prepItems.map((item) => {
                             const checked = checkedIds.includes(item.id);
                             const s = STATUSES.find((st) => st.id === item.status) || STATUSES[0];
@@ -26957,7 +26970,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                             <div className={`p-6 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ยังไม่มีอุปกรณ์ในโครงการนี้
 กด “จัดอุปกรณ์” เพื่อเลือกอุปกรณ์เข้าโครงการ</div>
                           ) : (
-                            <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
+                            <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
                               {project.items.map((item) => {
                                 const assetInfo = getAssetStatusInfo(item.assetStatus);
                                 const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
