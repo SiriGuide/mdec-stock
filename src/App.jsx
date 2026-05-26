@@ -75,8 +75,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.60 Settings Sidebar Beauty Polish';
-const APP_UPDATE_NOTE = 'Settings Sidebar Beauty Polish: ปรับเมนูด้านซ้ายในหน้าตั้งค่าระบบให้ดูสวยขึ้น ชัดขึ้น มีลำดับสายตาดีขึ้น และใช้งานง่ายขึ้น';
+const APP_VERSION = 'v23.1.61 Inventory Status Workspace Tabs';
+const APP_UPDATE_NOTE = 'Inventory Status Workspace Tabs: เพิ่มมุมมองคลังแบบการ์ดอนิเมชั่น เลือกสต๊อกทั้งหมด/พร้อมใช้งาน/กำลังใช้งาน/ชำรุด/โกดัง และให้ค่าเริ่มต้นคลังโชว์ของพร้อมใช้งาน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6952,6 +6952,7 @@ function MainApp() {
   const [filterDept, setFilterDept] = useState([]);
   const [filterCategory, setFilterCategory] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [inventoryStockScope, setInventoryStockScope] = useState('available');
   const [filterLocation, setFilterLocation] = useState([]);
   const [filterProject, setFilterProject] = useState([]);
   const [filterAssetStatus, setFilterAssetStatus] = useState('all');
@@ -9355,11 +9356,18 @@ function MainApp() {
     let result = items.filter(item => {
       if (item && item.isDeleted) return false;
       // v23.1.43: ของที่อยู่โกดัง/คลังสำรองไม่แสดงในหน้าสต๊อกใช้งานปกติ ต้องไปหน้าโกดังก่อน
-      if (item && item.status === 'warehouse' && filterStatus !== 'warehouse' && smartQuickFilter !== 'warehouse') return false;
+      if (item && item.status === 'warehouse' && inventoryStockScope !== 'all' && inventoryStockScope !== 'warehouse' && filterStatus !== 'warehouse' && smartQuickFilter !== 'warehouse') return false;
       const searchLower = normalizeSmartText(searchTerm);
       const searchTokens = searchLower ? searchLower.split(/\s+/).filter(Boolean) : [];
       const smartText = getItemSmartText(item);
       const matchSearch = searchTokens.length === 0 || searchTokens.every(token => smartText.includes(token));
+
+      const matchInventoryScope =
+        inventoryStockScope === 'all' ||
+        (inventoryStockScope === 'available' && item.status === 'available') ||
+        (inventoryStockScope === 'using' && ['in-use', 'borrowed', 'out-for-event'].includes(item.status)) ||
+        (inventoryStockScope === 'maintenance' && item.status === 'maintenance') ||
+        (inventoryStockScope === 'warehouse' && item.status === 'warehouse');
 
       const matchDept = multiFilterIncludes(filterDept, item.department);
       const matchCategory = multiFilterIncludes(filterCategory, item.category);
@@ -9385,14 +9393,18 @@ function MainApp() {
       } catch (e) { return 0; }
     });
     return result;
-  }, [items, searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterProject, filterAssetStatus, filterQrTagged, quickProblemOnly, smartQuickFilter, todayMs]);
+  }, [items, searchTerm, inventoryStockScope, filterDept, filterCategory, filterStatus, filterLocation, filterProject, filterAssetStatus, filterQrTagged, quickProblemOnly, smartQuickFilter, todayMs]);
 
-  const hasActiveFilters = !!searchTerm || hasMultiFilter(filterDept) || hasMultiFilter(filterCategory) || filterStatus !== 'all' || hasMultiFilter(filterLocation) || hasMultiFilter(filterProject) || filterAssetStatus !== 'all' || filterQrTagged !== 'all' || quickProblemOnly || smartQuickFilter !== 'all';
+  const hasActiveFilters = !!searchTerm || inventoryStockScope !== 'available' || hasMultiFilter(filterDept) || hasMultiFilter(filterCategory) || filterStatus !== 'all' || hasMultiFilter(filterLocation) || hasMultiFilter(filterProject) || filterAssetStatus !== 'all' || filterQrTagged !== 'all' || quickProblemOnly || smartQuickFilter !== 'all';
 
-  const activeFilterCount = [!!searchTerm, ...filterDept, ...filterCategory, filterStatus !== 'all', ...filterLocation, ...filterProject, filterAssetStatus !== 'all', filterQrTagged !== 'all', quickProblemOnly, smartQuickFilter !== 'all'].filter(Boolean).length;
+  const activeFilterCount = [!!searchTerm, inventoryStockScope !== 'available', ...filterDept, ...filterCategory, filterStatus !== 'all', ...filterLocation, ...filterProject, filterAssetStatus !== 'all', filterQrTagged !== 'all', quickProblemOnly, smartQuickFilter !== 'all'].filter(Boolean).length;
 
   const activeFilterChips = useMemo(() => {
     const chips = [];
+    if (inventoryStockScope !== 'available') {
+      const scopeLabel = ({ all: 'สต๊อกทั้งหมด', using: 'กำลังใช้งาน', maintenance: 'ชำรุด/ซ่อม', warehouse: 'โกดัง', available: 'พร้อมใช้งาน' })[inventoryStockScope] || inventoryStockScope;
+      chips.push({ id: 'stockScope', label: `มุมมอง: ${scopeLabel}`, clear: () => setInventoryStockScope('available') });
+    }
     if (searchTerm) chips.push({ id: 'search', label: `ค้นหา: ${searchTerm}`, clear: () => setSearchTerm('') });
     if (smartQuickFilter !== 'all') chips.push({ id: 'smart', label: `ตัวกรองด่วน: ${smartQuickFilterOptions.find(f => f.id === smartQuickFilter)?.label || smartQuickFilter}`, clear: () => setSmartQuickFilter('all') });
     asArray(filterDept).forEach(value => chips.push({ id: `dept_${value}`, label: `ฝ่าย: ${DEPARTMENTS.find(d => d.id === value)?.label || value}`, clear: () => setFilterDept(prev => prev.filter(v => v !== value)) }));
@@ -9404,7 +9416,7 @@ function MainApp() {
     if (filterQrTagged !== 'all') chips.push({ id: 'qr', label: filterQrTagged === 'tagged' ? 'ติด QR แล้ว' : 'ยังไม่ติด QR', clear: () => setFilterQrTagged('all') });
     if (quickProblemOnly) chips.push({ id: 'problem', label: 'ของที่ต้องจัดการ', clear: () => setQuickProblemOnly(false) });
     return chips;
-  }, [searchTerm, filterDept, filterCategory, filterStatus, filterLocation, filterProject, filterAssetStatus, filterQrTagged, quickProblemOnly, smartQuickFilter, smartQuickFilterOptions]);
+  }, [searchTerm, inventoryStockScope, filterDept, filterCategory, filterStatus, filterLocation, filterProject, filterAssetStatus, filterQrTagged, quickProblemOnly, smartQuickFilter, smartQuickFilterOptions]);
 
   const filteredBorrowเอกสารs = useMemo(() => {
     const q = String(borrowDocSearch || '').trim().toLowerCase();
@@ -9431,6 +9443,7 @@ function MainApp() {
     setFilterDept([]);
     setFilterCategory([]);
     setFilterStatus('all');
+    setInventoryStockScope('available');
     setFilterLocation([]);
     setFilterProject([]);
     setFilterAssetStatus('all');
@@ -13120,14 +13133,19 @@ S.N.: ${item.sn || '-'}
     };
     const inventoryDisplayRows = buildInventoryCameraKitRows(inventoryRows);
     const inventoryDisplaySelectionIds = Array.from(new Set(inventoryDisplayRows.map(item => item.id).filter(Boolean)));
-    const inventoryStatusCards = [
-      ['ทั้งหมด', stats.all, 'รายการทั้งหมด', 'slate', () => clearAllFilters()],
-      ['พร้อมใช้', stats.available, 'พร้อมยืม/ออกงาน', 'emerald', () => { clearAllFilters(); setFilterStatus('available'); }],
-      ['ถูกยืม', stats.borrowed, 'รอรับคืน', 'purple', () => { clearAllFilters(); setFilterStatus('borrowed'); }],
-      ['ออกงาน', stats.outForEvent, 'อยู่นอกศูนย์', 'orange', () => { clearAllFilters(); setFilterStatus('out-for-event'); }],
-      ['ซ่อม/ชำรุด', stats.maintenance, 'ติดตามศูนย์ซ่อม', 'rose', () => { clearAllFilters(); setFilterStatus('maintenance'); }],
-      ['ข้อมูลควรเติม', dataQualityAudit.issueItemCount, 'ควรตรวจข้อมูล', 'amber', () => { clearAllFilters(); setQuickProblemOnly(true); }]
+    const inventoryStockScopeOptions = [
+      { id: 'all', label: 'สต๊อกทั้งหมด', count: stats.all, desc: 'อุปกรณ์ทุกสถานะ รวมโกดัง', tone: 'slate', emoji: '▦' },
+      { id: 'available', label: 'พร้อมใช้งาน', count: stats.available, desc: 'ของที่หยิบไปใช้ได้ทันที', tone: 'emerald', emoji: '✓' },
+      { id: 'using', label: 'กำลังใช้งาน', count: stats.using, desc: 'ถูกยืม / ออกงาน / ใช้งานอยู่', tone: 'orange', emoji: '●' },
+      { id: 'maintenance', label: 'ชำรุด/ซ่อม', count: stats.maintenance, desc: 'ของเสีย รอซ่อม หรืองดใช้', tone: 'rose', emoji: '!' },
+      { id: 'warehouse', label: 'โกดัง', count: stats.warehouse, desc: 'ของสำรอง / ยังไม่เปิดใช้', tone: 'purple', emoji: '□' }
     ];
+    const openInventoryStockScope = (scopeId) => {
+      clearAllFilters();
+      setInventoryStockScope(scopeId);
+      setShowInventoryFilterPanel(false);
+    };
+    const currentInventoryScope = inventoryStockScopeOptions.find(opt => opt.id === inventoryStockScope) || inventoryStockScopeOptions[1];
     const toneCard = (tone) => ({
       slate: isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-800',
       emerald: isDarkMode ? 'bg-emerald-950/30 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800',
@@ -13231,21 +13249,47 @@ S.N.: ${item.sn || '-'}
           </div>
 
           <div className="p-4 sm:p-5 space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2.5">
-              {inventoryStatusCards.map(([label, value, desc, tone, action]) => (
-                <button key={label} type="button" onClick={action} className={`page-workspace-card p-4 rounded-2xl border text-left shadow-sm ${toneCard(tone)}`}>
-                  <div className="text-2xl sm:text-3xl font-black leading-none">{Number(value || 0).toLocaleString('th-TH')}</div>
-                  <div className="text-xs sm:text-sm font-black mt-2">{label}</div>
-                  <div className="text-[11px] font-bold mt-1 opacity-75">{desc}</div>
-                </button>
-              ))}
+            <div className={`inventory-status-workspace rounded-[1.6rem] border p-3 sm:p-4 shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
+                <div className="min-w-0">
+                  <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>Stock View</div>
+                  <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>เลือกมุมมองคลัง</div>
+                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ตอนนี้แสดง: {currentInventoryScope.label} • เอาเมาส์ชี้การ์ดเพื่อเลือกมุมมอง</div>
+                </div>
+                <button type="button" onClick={() => { clearAllFilters(); setQuickProblemOnly(true); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ข้อมูลควรเติม {dataQualityAudit.issueItemCount.toLocaleString('th-TH')}</button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-2.5">
+                {inventoryStockScopeOptions.map((option) => {
+                  const active = inventoryStockScope === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => openInventoryStockScope(option.id)}
+                      className={`group relative overflow-hidden rounded-[1.35rem] border p-3 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(15,23,42,0.18)] ${active ? toneCard(option.tone) : (isDarkMode ? 'bg-slate-900/75 border-slate-800 text-slate-200 hover:border-slate-600' : 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-white')}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-2xl font-black leading-none">{Number(option.count || 0).toLocaleString('th-TH')}</div>
+                          <div className="text-sm font-black mt-2 truncate">{option.label}</div>
+                          <div className="text-[11px] font-bold mt-1 opacity-75 leading-snug">{option.desc}</div>
+                        </div>
+                        <span className={`w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0 font-black ${active ? 'bg-white/15 border-white/25' : (isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200')}`}>{option.emoji}</span>
+                      </div>
+                      <div className={`mt-3 overflow-hidden transition-all duration-200 ${active ? 'max-h-12 opacity-100' : 'max-h-0 opacity-0 group-hover:max-h-12 group-hover:opacity-100'}`}>
+                        <span className={`inline-flex px-3 py-2 rounded-xl border text-xs font-black ${active ? 'bg-white/15 border-white/25' : theme.btnSecondary}`}>{active ? 'กำลังแสดงอยู่' : 'เลือกมุมมองนี้'}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className={`inventory-filter-bar rounded-[1.5rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
               <div className={`p-4 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-3 ${theme.divide}`}>
                 <div>
                   <div className={`font-black text-lg ${theme.textTitle}`}>ค้นหาและตัวกรองคลัง</div>
-                  <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>พบ {filteredItems.length.toLocaleString('th-TH')} รายการ • แสดง {inventoryRows.length.toLocaleString('th-TH')} รายการแรก</div>
+                  <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>มุมมอง: {currentInventoryScope.label} • พบ {filteredItems.length.toLocaleString('th-TH')} รายการ • แสดง {inventoryRows.length.toLocaleString('th-TH')} รายการแรก</div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {selectedItems.length > 0 && canUseOperationalTools && (
@@ -13363,7 +13407,7 @@ S.N.: ${item.sn || '-'}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/80 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                             <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>สถานะใช้งาน</label>
-                            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`w-full px-3 py-2 rounded-xl border font-black text-xs ${theme.input}`}>
+                            <select value={filterStatus} onChange={(e) => { setInventoryStockScope('all'); setFilterStatus(e.target.value); }} className={`w-full px-3 py-2 rounded-xl border font-black text-xs ${theme.input}`}>
                               <option value="all">ทุกสถานะ</option>
                               {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                             </select>
@@ -14534,15 +14578,17 @@ S.N.: ${item.sn || '-'}
   }, [filteredItems]);
 
   const stats = useMemo(() => {
-    const s = { all: 0, available: 0, inUse: 0, borrowed: 0, outForEvent: 0, maintenance: 0 };
+    const s = { all: 0, available: 0, using: 0, inUse: 0, borrowed: 0, outForEvent: 0, maintenance: 0, warehouse: 0 };
     items.forEach(item => {
       if (item && item.isDeleted) return;
       const qty = Number(item.quantity) || 1;
       s.all += qty;
       if (item.status === 'available') s.available += qty;
+      if (item.status === 'warehouse') s.warehouse += qty;
       if (item.status === 'in-use') s.inUse += qty;
       if (item.status === 'borrowed') s.borrowed += qty;
       if (item.status === 'out-for-event') s.outForEvent += qty;
+      if (['in-use', 'borrowed', 'out-for-event'].includes(item.status)) s.using += qty;
       if (item.status === 'maintenance') s.maintenance += qty;
     });
     return s;
