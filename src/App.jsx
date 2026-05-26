@@ -75,8 +75,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.62 Inventory Sidebar Status Menu Fix';
-const APP_UPDATE_NOTE = 'Inventory Sidebar Status Menu Fix: ย้ายมุมมองสต๊อกทั้งหมด/พร้อมใช้งาน/กำลังใช้งาน/ชำรุด/โกดังไปอยู่ในเมนูซ้ายแบบ dropdown และแก้ตัวกรองสถานะคลังให้ใช้งานจริง';
+const APP_VERSION = 'v23.1.63 Inventory Main Button Shows All';
+const APP_UPDATE_NOTE = 'Inventory Main Button Shows All: ปุ่มคลังอุปกรณ์หลักเปิดสต๊อกทั้งหมดทันที และย่อเมนูย่อยให้เหลือพร้อมใช้งาน/กำลังใช้งาน/ชำรุด/โกดัง เพื่อลดจำนวนปุ่ม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -20467,7 +20467,7 @@ ${auditChangeSummary}` : auditChangeSummary);
           <div className="group operation-dropdown-wrap">
             <button
               type="button"
-              onClick={() => { clearAllFilters(); setInventoryStockScope(inventoryStockScope || 'available'); openWorkspace('inventory'); }}
+              onClick={() => { clearAllFilters(); setInventoryStockScope('all'); openWorkspace('inventory'); }}
               className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl transition-all text-left ${activeWorkspace === 'inventory' ? 'bg-gradient-to-r from-slate-700 to-emerald-700 text-white shadow-lg shadow-emerald-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}
             >
               <span className="flex items-center gap-3 min-w-0">
@@ -20475,7 +20475,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <span className="min-w-0">
                   <span className="block truncate">คลังอุปกรณ์</span>
                   <span className="block text-[10px] font-bold opacity-65 truncate">
-                    {inventoryStockScope === 'all' ? 'สต๊อกทั้งหมด' : inventoryStockScope === 'using' ? 'กำลังใช้งาน' : inventoryStockScope === 'maintenance' ? 'ชำรุด/ซ่อม' : inventoryStockScope === 'warehouse' ? 'โกดัง' : 'พร้อมใช้งาน'}
+                    ทุกสถานะ
                   </span>
                 </span>
               </span>
@@ -20485,7 +20485,6 @@ ${auditChangeSummary}` : auditChangeSummary);
             <div className={`operation-dropdown-menu overflow-hidden transition-all duration-200 ease-out ${activeWorkspace === 'inventory' ? 'max-h-[26rem] opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0 group-hover:max-h-[26rem] group-hover:opacity-100 group-hover:mt-2 group-focus-within:max-h-[26rem] group-focus-within:opacity-100 group-focus-within:mt-2'}`}>
               <div className="ml-4 pl-3 border-l border-white/10 space-y-1">
                 {[
-                  { id: 'all', label: 'สต๊อกทั้งหมด', desc: 'ทุกสถานะ', icon: Icons.Database, count: stats.all, activeClass: 'bg-slate-700 text-white shadow-lg shadow-slate-500/15' },
                   { id: 'available', label: 'พร้อมใช้งาน', desc: 'หยิบใช้ได้ทันที', icon: Icons.CheckCircle, count: stats.available, activeClass: 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/15' },
                   { id: 'using', label: 'กำลังใช้งาน', desc: 'ถูกยืม / ออกงาน', icon: Icons.History, count: stats.using, activeClass: 'bg-orange-600 text-white shadow-lg shadow-orange-500/15' },
                   { id: 'maintenance', label: 'ชำรุด/ซ่อม', desc: 'รอซ่อมหรืองดใช้', icon: Icons.Alert, count: stats.maintenance, activeClass: 'bg-rose-600 text-white shadow-lg shadow-rose-500/15' },
