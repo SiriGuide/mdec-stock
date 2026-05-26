@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.79 One Click Group Return';
-const APP_UPDATE_NOTE = 'One Click Group Return: เพิ่มปุ่มรับคืนทั้งกลุ่มในหน้ารับคืน ดึงอุปกรณ์ทั้งหมดจากเอกสารยืม/ออกงานเดียวกันเข้ารายการคืนอัตโนมัติ ไม่ต้องติ๊กทีละชิ้น';
+const APP_VERSION = 'v23.1.80 Return Group Cards + Partial Return Flow';
+const APP_UPDATE_NOTE = 'Return Group Cards + Partial Return Flow: จัดรายการรอคืนที่ยืม/ออกงานเป็นกลุ่มให้เป็นการ์ดเดียว เลือกคืนทั้งกลุ่มหรือเลือกคืนบางชิ้นได้ และยังคงเอกสารเป็นคืนบางส่วนถ้าคืนไม่ครบ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11718,6 +11718,164 @@ S.N.: ${item.sn || '-'}
       setShowOperationSelectedPanel(true);
     };
 
+    const buildReturnGroupCards = () => {
+      if (borrowReturnMode !== 'return') return [];
+      const availableReturnIds = new Set(operationalItems.map(item => item.id));
+      const usedIds = new Set();
+      const cards = [];
+
+      asArray(borrowเอกสารs).forEach((docData, docIndex) => {
+        const docIds = asArray(docData.itemIds).filter(Boolean);
+        if (docIds.length === 0) return;
+        const isOpen = !docData.status || docData.status === 'active' || docData.status === 'partial' || docData.status === 'out-for-event';
+        const remainingItems = docIds
+          .map(id => items.find(item => item && item.id === id && !item.isDeleted))
+          .filter(item => item && availableReturnIds.has(item.id) && (item.status === 'borrowed' || item.status === 'out-for-event'));
+        if (!isOpen || remainingItems.length === 0) return;
+
+        const allDocItems = docIds
+          .map(id => items.find(item => item && item.id === id && !item.isDeleted))
+          .filter(Boolean);
+        const returnedIds = new Set(asArray(docData.returnedItemIds).filter(Boolean));
+        const returnedCount = Math.max(returnedIds.size, allDocItems.length - remainingItems.length);
+        remainingItems.forEach(item => usedIds.add(item.id));
+
+        cards.push({
+          id: `doc_${docData.id || docData.ref || docIndex}`,
+          source: 'document',
+          ref: docData.ref || docData.id || '-',
+          title: docData.type === 'event' ? (docData.eventName || docData.subject || 'งานออกงาน') : (docData.borrower || docData.subject || 'รายการยืม'),
+          type: docData.type || 'borrow',
+          typeLabel: docData.type === 'event' ? 'ออกงาน' : 'ยืม',
+          date: docData.date || docData.createdAt || '',
+          expectedReturn: docData.expectedReturn || '',
+          staffOut: docData.staffOut || docData.operatorName || '-',
+          total: Math.max(docIds.length, allDocItems.length, remainingItems.length),
+          returnedCount,
+          remainingCount: remainingItems.length,
+          items: remainingItems,
+          allItems: allDocItems,
+          isPartial: returnedCount > 0 && remainingItems.length > 0
+        });
+      });
+
+      const legacyGroups = {};
+      operationalItems.forEach(item => {
+        if (usedIds.has(item.id)) return;
+        const borrowerKey = String(item.currentBorrower || '').trim();
+        const eventKey = String(item.currentEvent || '').trim();
+        const key = eventKey ? `event_${eventKey}` : borrowerKey ? `borrow_${borrowerKey}` : `single_${item.id}`;
+        if (!legacyGroups[key]) {
+          legacyGroups[key] = {
+            id: `legacy_${key}`,
+            source: 'legacy',
+            ref: 'ข้อมูลเก่า',
+            title: eventKey || borrowerKey || 'รายการรอคืน',
+            type: eventKey ? 'event' : 'borrow',
+            typeLabel: eventKey ? 'ออกงาน' : 'ยืม',
+            date: item.history?.slice?.().reverse?.().find?.(h => h.type === 'borrow' || h.type === 'event')?.date || item.updatedAt || '',
+            expectedReturn: item.expectedReturn || '',
+            staffOut: '-',
+            total: 0,
+            returnedCount: 0,
+            remainingCount: 0,
+            items: [],
+            allItems: [],
+            isPartial: false,
+            isLegacy: true
+          };
+        }
+        legacyGroups[key].items.push(item);
+        legacyGroups[key].allItems.push(item);
+        legacyGroups[key].total += 1;
+        legacyGroups[key].remainingCount += 1;
+      });
+
+      Object.values(legacyGroups).forEach(group => cards.push(group));
+      return cards.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    };
+
+    const returnGroupCards = buildReturnGroupCards();
+
+    const selectReturnGroupCard = (card, ids = null) => {
+      if (!card) return;
+      if (!requireOperationalAccess('รับคืนกลุ่ม', 'return')) return;
+      const sourceIds = Array.from(new Set(asArray(ids || card.items.map(item => item.id)).filter(Boolean)));
+      if (sourceIds.length === 0) return alert('กลุ่มนี้ไม่มีรายการที่ยังรอคืน');
+      const expandedIds = expandCameraLinkedLensIdsForOperation(sourceIds, 'return');
+      setReturnTargetIds(expandedIds);
+      setReturnChecklist(expandedIds);
+      setBorrowReturnStage('select');
+      setShowOperationSelectedPanel(true);
+      pushToast('เตรียมรับคืนกลุ่มแล้ว', `${card.title || 'รายการ'} • ${expandedIds.length} ชิ้น`, 'success');
+    };
+
+    const toggleReturnGroupItem = (card, itemId) => {
+      if (!card || !itemId) return;
+      if (!requireOperationalAccess('เลือกคืนบางชิ้น', 'return')) return;
+      const baseIds = actionTargetIds.includes(itemId)
+        ? actionTargetIds.filter(id => id !== itemId)
+        : [...actionTargetIds, itemId];
+      const expandedIds = expandCameraLinkedLensIdsForOperation(baseIds, 'return');
+      setReturnTargetIds(expandedIds);
+      setReturnChecklist(expandedIds);
+      setBorrowReturnStage('select');
+    };
+
+    const renderReturnGroupCard = (card) => {
+      const selectedIdsInCard = card.items.filter(item => actionTargetIds.includes(item.id)).map(item => item.id);
+      const isSelectedAll = card.items.length > 0 && selectedIdsInCard.length === card.items.length;
+      const toneClass = card.type === 'event'
+        ? (isDarkMode ? 'bg-orange-950/20 border-orange-800/55' : 'bg-orange-50 border-orange-200')
+        : (isDarkMode ? 'bg-emerald-950/20 border-emerald-800/55' : 'bg-emerald-50 border-emerald-200');
+      return (
+        <div key={card.id} className={`rounded-[1.35rem] border overflow-hidden ${toneClass}`}>
+          <div className="p-3 sm:p-4 flex flex-col lg:flex-row lg:items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className={`text-[10px] font-black uppercase tracking-[0.16em] ${theme.textMuted}`}>Return Group</div>
+              <div className={`text-base sm:text-lg font-black mt-1 ${theme.textTitle}`}>{card.typeLabel}: {card.title || '-'}</div>
+              <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>
+                เลขที่ {card.ref || '-'} • ทั้งหมด {card.total.toLocaleString('th-TH')} ชิ้น • คืนแล้ว {card.returnedCount.toLocaleString('th-TH')} • รอคืน {card.remainingCount.toLocaleString('th-TH')}
+              </div>
+              {card.isPartial && <div className="inline-flex mt-2 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25 text-[10px] font-black">คืนบางส่วนแล้ว เหลือ {card.remainingCount.toLocaleString('th-TH')} ชิ้น</div>}
+              {card.isLegacy && <div className={`text-[10px] font-bold mt-2 ${theme.textMuted}`}>ข้อมูลเก่า: รวมจากผู้ยืม/ชื่องานเดียวกัน เพราะอาจไม่มีเลขเอกสารกลุ่มครบ</div>}
+            </div>
+            <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
+              <button type="button" onClick={() => selectReturnGroupCard(card)} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-sm">รับคืนทั้งกลุ่ม</button>
+              <button type="button" onClick={() => { if (isSelectedAll) { const remove = new Set(card.items.map(item => item.id)); const next = actionTargetIds.filter(id => !remove.has(id)); setReturnTargetIds(next); setReturnChecklist(next); } else selectReturnGroupCard(card); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>{isSelectedAll ? 'ยกเลิกกลุ่มนี้' : 'เลือกกลุ่มนี้'}</button>
+            </div>
+          </div>
+          <div className={`px-3 sm:px-4 pb-3 sm:pb-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2`}>
+            {card.items.map(item => {
+              const selected = actionTargetIds.includes(item.id);
+              return (
+                <button
+                  key={`${card.id}_${item.id}`}
+                  type="button"
+                  onClick={() => toggleReturnGroupItem(card, item.id)}
+                  className={`rounded-2xl border px-3 py-2 text-left transition ${selected ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm' : (isDarkMode ? 'bg-slate-950/55 border-slate-700 text-slate-200 hover:border-emerald-600' : 'bg-white/85 border-slate-200 text-slate-700 hover:border-emerald-300')}`}
+                  title="กดเพื่อเลือกคืนเฉพาะชิ้นนี้"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-xs font-black leading-tight truncate">{item.name || '-'}</div>
+                      <div className={`text-[10px] font-bold mt-0.5 truncate ${selected ? 'text-white/80' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || item.storageLocation || '-'}</div>
+                    </div>
+                    <span className={`w-6 h-6 rounded-lg border flex items-center justify-center text-[10px] font-black shrink-0 ${selected ? 'bg-white text-emerald-700 border-white' : (isDarkMode ? 'border-slate-600 text-slate-500' : 'border-slate-300 text-slate-300')}`}>{selected ? '✓' : ''}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {card.remainingCount < card.total && (
+            <div className={`px-4 py-2 border-t text-[11px] font-bold ${isDarkMode ? 'border-white/10 text-slate-400' : 'border-slate-200 text-slate-500'}`}>
+              ถ้าคืนไม่ครบ ระบบจะเก็บเอกสารเป็น “คืนบางส่วน” และการ์ดนี้จะยังเหลือเฉพาะของที่ยังไม่คืนให้จัดการต่อ
+            </div>
+          )}
+        </div>
+      );
+    };
+
     const operationBoxShortcuts = asArray(settingsOptions.storageBoxes)
       .map((box) => {
         const ids = asArray(box.itemIds).filter((id) => {
@@ -12372,6 +12530,16 @@ S.N.: ${item.sn || '-'}
                   </>
                 )}
 
+                {borrowReturnMode === 'return' && !q && returnGroupCards.length > 0 && (
+                  <div className="mx-2.5 sm:mx-3 mt-3 space-y-3">
+                    <div className={`rounded-2xl border px-4 py-3 ${isDarkMode ? 'bg-emerald-950/16 border-emerald-800/50' : 'bg-emerald-50 border-emerald-200'}`}>
+                      <div className={`text-sm font-black ${theme.textTitle}`}>รับคืนแบบกลุ่ม</div>
+                      <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>รายการที่ยืม/ออกงานมาด้วยกันจะถูกจัดเป็นการ์ดเดียว กดรับคืนทั้งกลุ่ม หรือเลือกคืนบางชิ้นได้</div>
+                    </div>
+                    {returnGroupCards.map(renderReturnGroupCard)}
+                  </div>
+                )}
+
                 <div className="operation-folder-picker p-2.5 sm:p-3 max-h-[calc(100vh-330px)] min-h-[420px] overflow-y-auto custom-scrollbar">
                   {operationalItems.length === 0 ? (
                     <div className={`p-8 rounded-2xl border text-center font-bold ${theme.textMuted}`}>ไม่พบรายการในโหมดนี้</div>
@@ -12396,7 +12564,7 @@ S.N.: ${item.sn || '-'}
                       <div className={`rounded-2xl border px-4 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                         <div className="min-w-0">
                           <div className={`text-sm font-black ${theme.textTitle}`}>รายการอุปกรณ์ที่เลือกได้</div>
-                          <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>เรียงเป็นแถวแนวตั้ง เลือกทีละชิ้นหรือใช้ตัวกรองด้านบนให้เหลือเฉพาะของที่ต้องการ</div>
+                          <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{borrowReturnMode === 'return' ? 'ด้านบนคือการ์ดกลุ่ม ส่วนรายการนี้เป็นรายการเดี่ยว/สำรองสำหรับกรณีต้องเลือกเฉพาะชิ้น' : 'เรียงเป็นแถวแนวตั้ง เลือกทีละชิ้นหรือใช้ตัวกรองด้านบนให้เหลือเฉพาะของที่ต้องการ'}</div>
                         </div>
                         <div className="flex flex-wrap gap-2 shrink-0">
                           <button type="button" onClick={() => selectOperationViewItems(operationalItems)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เลือกที่เห็น</button>
@@ -18182,6 +18350,7 @@ ${auditChangeSummary}` : auditChangeSummary);
         note: selectedReturnItems.some(i => i.returnCondition !== 'ปกติ' || i.returnNote) ? 'มีบันทึกสภาพ/หมายเหตุรายชิ้น โปรดตรวจสอบในตาราง' : 'รับคืนสภาพปกติ / ตามที่ระบุรายชิ้น',
         itemIds: selectedReturnItems.map(i => i.id),
         itemGroups: getCameraOperationItemGroups(finalReturnChecklist, 'return'),
+        returnMode: finalReturnChecklist.length < returnTargetIds.length ? 'partial-selected' : 'group-or-full',
         status: 'return-record',
         statusLabel: 'บันทึกรับคืน',
         proofs: uploadedProofs,
@@ -18228,6 +18397,8 @@ ${auditChangeSummary}` : auditChangeSummary);
             returnedItemIds,
             status: isClosed ? 'closed' : 'partial',
             statusLabel: isClosed ? 'คืนครบแล้ว' : 'คืนบางส่วน',
+            returnProgress: { total: ids.length, returned: returnedItemIds.length, remaining: Math.max(0, ids.length - returnedItemIds.length) },
+            remainingItemIds: ids.filter(id => !returnedItemIds.includes(id)),
             returnedAt: isClosed ? new Date().toISOString() : (docData.returnedAt || null),
             returnStaff: finalStaff,
             lastReturnProofs: uploadedProofs,
