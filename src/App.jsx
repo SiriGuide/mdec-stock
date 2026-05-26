@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.78 Return Group + Camera Lens Link Fix';
-const APP_UPDATE_NOTE = 'Return Group + Camera Lens Link Fix: ทำให้รับคืนแบบกลุ่มทำงานชัดขึ้น และถ้าเลือกคืนกล้องที่มีเลนส์/เมมลิงก์อยู่ ระบบจะดึงเลนส์/เมมที่กำลังถูกยืมหรือออกงานมาคืนพร้อมกัน';
+const APP_VERSION = 'v23.1.79 One Click Group Return';
+const APP_UPDATE_NOTE = 'One Click Group Return: เพิ่มปุ่มรับคืนทั้งกลุ่มในหน้ารับคืน ดึงอุปกรณ์ทั้งหมดจากเอกสารยืม/ออกงานเดียวกันเข้ารายการคืนอัตโนมัติ ไม่ต้องติ๊กทีละชิ้น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11664,6 +11664,60 @@ S.N.: ${item.sn || '-'}
       else setPackingChecklist(unique);
     };
 
+    const getReturnGroupIdsFromSelection = (sourceIds = actionTargetIds) => {
+      const selectedIds = Array.from(new Set(asArray(sourceIds).filter(Boolean)));
+      if (selectedIds.length === 0) return [];
+      const selectedSet = new Set(selectedIds);
+      const groupIds = new Set(selectedIds);
+
+      asArray(borrowเอกสารs).forEach((docData) => {
+        const docIds = asArray(docData.itemIds).filter(Boolean);
+        if (docIds.length === 0) return;
+        const isOpen = !docData.status || docData.status === 'active' || docData.status === 'partial' || docData.status === 'out-for-event';
+        if (!isOpen) return;
+        if (!docIds.some(id => selectedSet.has(id))) return;
+
+        const returnedIds = new Set(asArray(docData.returnedItemIds).filter(Boolean));
+        docIds.forEach(id => {
+          if (returnedIds.has(id)) return;
+          const item = items.find(entry => entry && entry.id === id && !entry.isDeleted);
+          if (item && (item.status === 'borrowed' || item.status === 'out-for-event')) groupIds.add(id);
+        });
+      });
+
+      // กรณีข้อมูลเก่าไม่มี doc/itemIds ครบ ให้ใช้ผู้ยืม/ชื่องานเดียวกันช่วยดึงรายการรอคืนในกลุ่มเดียวกัน
+      const selectedItemsForGroup = selectedIds.map(id => items.find(entry => entry && entry.id === id && !entry.isDeleted)).filter(Boolean);
+      selectedItemsForGroup.forEach((selectedItem) => {
+        const borrowerKey = String(selectedItem.currentBorrower || '').trim().toLowerCase();
+        const eventKey = String(selectedItem.currentEvent || '').trim().toLowerCase();
+        if (!borrowerKey && !eventKey) return;
+        items.forEach((item) => {
+          if (!item || item.isDeleted || (item.status !== 'borrowed' && item.status !== 'out-for-event')) return;
+          const sameBorrower = borrowerKey && String(item.currentBorrower || '').trim().toLowerCase() === borrowerKey;
+          const sameEvent = eventKey && String(item.currentEvent || '').trim().toLowerCase() === eventKey;
+          if (sameBorrower || sameEvent) groupIds.add(item.id);
+        });
+      });
+
+      return expandCameraLinkedLensIdsForOperation(Array.from(groupIds), 'return');
+    };
+
+    const expandSelectedReturnGroup = () => {
+      if (borrowReturnMode !== 'return') return;
+      if (!requireOperationalAccess('รับคืนทั้งกลุ่ม', 'return')) return;
+      if (actionTargetIds.length === 0) return alert('เลือกอุปกรณ์ในกลุ่มอย่างน้อย 1 ชิ้นก่อน');
+      const expandedIds = getReturnGroupIdsFromSelection(actionTargetIds);
+      if (expandedIds.length === actionTargetIds.length) {
+        pushToast('ไม่พบรายการอื่นในกลุ่มเดียวกัน', 'รายการนี้อาจไม่มีเอกสารกลุ่ม หรือคืนครบแล้ว', 'info');
+      } else {
+        pushToast('ดึงรายการรับคืนทั้งกลุ่มแล้ว', `เพิ่มจาก ${actionTargetIds.length} เป็น ${expandedIds.length} ชิ้น`, 'success');
+      }
+      setReturnTargetIds(expandedIds);
+      setReturnChecklist(expandedIds);
+      setBorrowReturnStage('select');
+      setShowOperationSelectedPanel(true);
+    };
+
     const operationBoxShortcuts = asArray(settingsOptions.storageBoxes)
       .map((box) => {
         const ids = asArray(box.itemIds).filter((id) => {
@@ -11995,7 +12049,7 @@ S.N.: ${item.sn || '-'}
                     <div className="min-w-0">
                       <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Equipment Picker</div>
                       <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>{borrowReturnMode === 'return' ? 'เลือกรายการรอรับคืน' : 'เลือกของเข้ารายการ'}</h3>
-                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{borrowReturnMode === 'return' ? 'เลือกรายการรอคืนหลายชิ้นได้ในครั้งเดียว ถ้าเป็นกล้องที่ลิงก์เลนส์/เมมไว้ ระบบจะรวมเข้ารายการให้' : 'เลือกจากห้อง/ตู้/ชั้นที่เก็บจริง แล้วเลือกของหลายชิ้นได้ก่อนกดถัดไป'}</p>
+                      <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{borrowReturnMode === 'return' ? 'เลือกรายการรอคืนหลายชิ้นได้ หรือเลือก 1 ชิ้นแล้วกด “รับคืนทั้งกลุ่ม” เพื่อดึงของในเอกสารเดียวกันเข้ามา' : 'เลือกจากห้อง/ตู้/ชั้นที่เก็บจริง แล้วเลือกของหลายชิ้นได้ก่อนกดถัดไป'}</p>
                     </div>
                     <div className="flex flex-wrap gap-2 shrink-0">
                       <button type="button" onClick={() => setShowBorrowReturnFilters(v => !v)} className={`px-3 py-2 rounded-xl text-sm font-black border flex items-center gap-2 ${borrowReturnActiveFilterCount > 0 ? modeInfo.softClass : theme.btnSecondary}`}>
@@ -12004,6 +12058,11 @@ S.N.: ${item.sn || '-'}
                       {(operationBoxShortcuts.length > 0 || operationBundleShortcuts.length > 0) && (
                         <button type="button" onClick={() => setShowOperationQuickPick(true)} className={`px-3 py-2 rounded-xl text-sm font-black border flex items-center gap-2 ${theme.btnSecondary}`}>
                           <Icons.Layers className="w-4 h-4" /> กล่อง/เซ็ต
+                        </button>
+                      )}
+                      {borrowReturnMode === 'return' && actionTargetIds.length > 0 && (
+                        <button type="button" onClick={expandSelectedReturnGroup} className="px-3 py-2 rounded-xl text-sm font-black border bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500 shadow-sm">
+                          รับคืนทั้งกลุ่ม
                         </button>
                       )}
                       <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; selectVisibleItems(); }} className={`px-3 py-2 rounded-xl text-sm font-black border ${canUseCurrentOperation ? theme.btnSecondary : (isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed')}`}>เลือกที่เห็น</button>
@@ -12254,10 +12313,18 @@ S.N.: ${item.sn || '-'}
                         <div className="min-w-0">
                           <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Selected Items</div>
                           <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>รายการที่เลือก {actionTargetIds.length.toLocaleString('th-TH')} ชิ้น • {operationGroupedSelectedCount.toLocaleString('th-TH')} กลุ่ม</div>
-                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>กล้องที่ลิงก์เลนส์ไว้จะแสดงเป็นชุดเดียวกัน และยืม/ออกงานไปพร้อมกัน</div>
+                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{borrowReturnMode === 'return' ? 'ถ้ารายการนี้มาจากเอกสารยืม/ออกงานเดียวกัน กดรับคืนทั้งกลุ่มได้ ไม่ต้องติ๊กทีละชิ้น' : 'กล้องที่ลิงก์เลนส์ไว้จะแสดงเป็นชุดเดียวกัน และยืม/ออกงานไปพร้อมกัน'}</div>
                         </div>
                         <button type="button" onClick={() => setShowOperationSelectedPanel(false)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}>×</button>
                       </div>
+                      {borrowReturnMode === 'return' && (
+                        <div className={`px-4 py-3 border-b ${isDarkMode ? 'border-slate-800 bg-emerald-950/18' : 'border-emerald-100 bg-emerald-50'}`}>
+                          <button type="button" onClick={expandSelectedReturnGroup} className="w-full px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">
+                            รับคืนทั้งกลุ่มจากรายการที่เลือก
+                          </button>
+                          <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>ระบบจะดึงของที่อยู่ในเอกสารยืม/ออกงานเดียวกัน รวมเลนส์/เมมที่ลิงก์กับกล้องเข้ามาให้</div>
+                        </div>
+                      )}
                       <div className="flex-1 overflow-y-auto custom-scrollbar p-2.5 space-y-2">
                         {operationBundleGroups.bundles.map(bundle => (
                           <div key={`selected_bundle_${bundle.camera.id}`} className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-blue-950/20 border-blue-900/60' : 'bg-blue-50 border-blue-200'}`}>
@@ -25314,6 +25381,14 @@ ${auditChangeSummary}` : auditChangeSummary);
                     title="สแกน QR เพื่อเช็กของตอนรับคืนแทนการติ๊กเอง"
                   >
                     <Icons.QrCode className="w-4 h-4" /> สแกนเช็ก
+                  </button>
+                  <button
+                    type="button"
+                    onClick={expandSelectedReturnGroup}
+                    className="text-xs font-black px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
+                    title="ดึงอุปกรณ์ที่อยู่ในเอกสารยืม/ออกงานเดียวกันเข้ามารับคืนพร้อมกัน"
+                  >
+                    รับคืนทั้งกลุ่ม
                   </button>
                   <button 
                     type="button" 
