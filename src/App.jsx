@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.82 Compact Return Group Cards';
-const APP_UPDATE_NOTE = 'Compact Return Group Cards: ปรับการ์ดรับคืนแบบกลุ่มให้เตี้ยลง กระชับขึ้น ใช้หัวการ์ดแบบสรุป ชิปสถานะ และรายการอุปกรณ์ 2 คอลัมน์แบบ compact ตามแบบใหม่';
+const APP_VERSION = 'v23.1.83 Compact Tracking Group Cards';
+const APP_UPDATE_NOTE = 'Compact Tracking Group Cards: ปรับหน้าติดตามของรอคืนให้ใช้การ์ดกลุ่มแบบ compact เหมือนหน้ารับคืน แสดงผู้ยืม/งาน จำนวนทั้งหมด คืนแล้ว รอคืน และรายการอุปกรณ์ 2 คอลัมน์';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -13976,6 +13976,171 @@ S.N.: ${item.sn || '-'}
         ? 'bg-amber-500/10 border-amber-400/25 text-amber-200'
         : 'bg-emerald-500/10 border-emerald-400/25 text-emerald-200';
 
+    const buildTrackingGroupCards = () => {
+      const visibleIds = new Set(visibleList.map(item => item.id));
+      const usedIds = new Set();
+      const cards = [];
+
+      asArray(borrowเอกสารs).forEach((docData, docIndex) => {
+        const docIds = asArray(docData.itemIds).filter(Boolean);
+        if (docIds.length === 0) return;
+        const remainingItems = docIds
+          .map(id => items.find(item => item && item.id === id && !item.isDeleted))
+          .filter(item => item && visibleIds.has(item.id) && (item.status === 'borrowed' || item.status === 'out-for-event'));
+        if (remainingItems.length === 0) return;
+
+        const allDocItems = docIds
+          .map(id => items.find(item => item && item.id === id && !item.isDeleted))
+          .filter(Boolean);
+        const returnedIds = new Set(asArray(docData.returnedItemIds).filter(Boolean));
+        const returnedCount = Math.max(returnedIds.size, allDocItems.length - remainingItems.length);
+        remainingItems.forEach(item => usedIds.add(item.id));
+
+        const anyEvent = docData.type === 'event' || remainingItems.some(item => item.status === 'out-for-event');
+        const dueInfos = remainingItems.map(item => getReturnTrackingDateInfo(item));
+        const mainInfo = dueInfos.find(info => info.tone === 'rose') || dueInfos.find(info => info.tone === 'amber') || dueInfos[0] || { label: 'รอคืน', tone: 'emerald', dueText: '-' };
+
+        cards.push({
+          id: `tracking_doc_${docData.id || docData.ref || docIndex}`,
+          source: 'document',
+          ref: docData.ref || docData.id || '-',
+          title: anyEvent ? (docData.eventName || docData.subject || remainingItems[0]?.currentEvent || 'งานออกงาน') : (docData.borrower || docData.subject || remainingItems[0]?.currentBorrower || 'รายการยืม'),
+          type: anyEvent ? 'event' : 'borrow',
+          typeLabel: anyEvent ? 'ออกงาน' : 'ยืม',
+          date: docData.date || docData.createdAt || remainingItems[0]?.updatedAt || '',
+          dueText: mainInfo.dueText || '-',
+          statusLabel: mainInfo.label || 'รอคืน',
+          statusTone: mainInfo.tone || 'emerald',
+          total: Math.max(docIds.length, allDocItems.length, remainingItems.length),
+          returnedCount,
+          remainingCount: remainingItems.length,
+          items: remainingItems,
+          allItems: allDocItems,
+          isPartial: returnedCount > 0 && remainingItems.length > 0
+        });
+      });
+
+      const legacyGroups = {};
+      visibleList.forEach(item => {
+        if (usedIds.has(item.id)) return;
+        const isEvent = item.status === 'out-for-event' || item._kind === 'event';
+        const ownerText = isEvent ? (item.currentEvent || item.eventName || '-') : (item.currentBorrower || item.borrower || '-');
+        const key = `${isEvent ? 'event' : 'borrow'}_${String(ownerText || item.id).trim().toLowerCase()}`;
+        if (!legacyGroups[key]) {
+          const info = getReturnTrackingDateInfo(item);
+          legacyGroups[key] = {
+            id: `tracking_legacy_${key}`,
+            source: 'legacy',
+            ref: 'ข้อมูลเก่า',
+            title: ownerText || 'รายการรอคืน',
+            type: isEvent ? 'event' : 'borrow',
+            typeLabel: isEvent ? 'ออกงาน' : 'ยืม',
+            date: item.updatedAt || '',
+            dueText: info.dueText || '-',
+            statusLabel: info.label || 'รอคืน',
+            statusTone: info.tone || 'emerald',
+            total: 0,
+            returnedCount: 0,
+            remainingCount: 0,
+            items: [],
+            allItems: [],
+            isPartial: false,
+            isLegacy: true
+          };
+        }
+        const info = getReturnTrackingDateInfo(item);
+        if (info.tone === 'rose' || (info.tone === 'amber' && legacyGroups[key].statusTone !== 'rose')) {
+          legacyGroups[key].statusLabel = info.label || legacyGroups[key].statusLabel;
+          legacyGroups[key].statusTone = info.tone || legacyGroups[key].statusTone;
+          legacyGroups[key].dueText = info.dueText || legacyGroups[key].dueText;
+        }
+        legacyGroups[key].items.push(item);
+        legacyGroups[key].allItems.push(item);
+        legacyGroups[key].total += 1;
+        legacyGroups[key].remainingCount += 1;
+      });
+
+      Object.values(legacyGroups).forEach(group => cards.push(group));
+      return cards.sort((a, b) => {
+        const toneOrder = { rose: 0, amber: 1, emerald: 2, slate: 3 };
+        const toneDiff = (toneOrder[a.statusTone] ?? 9) - (toneOrder[b.statusTone] ?? 9);
+        if (toneDiff !== 0) return toneDiff;
+        return new Date(b.date || 0) - new Date(a.date || 0);
+      });
+    };
+
+    const trackingGroupCards = buildTrackingGroupCards();
+
+    const renderTrackingGroupCard = (card) => {
+      const compactItems = asArray(card.items).slice(0, 8);
+      const extraCount = Math.max(0, asArray(card.items).length - compactItems.length);
+      const isEvent = card.type === 'event';
+      const avatarClass = isEvent
+        ? 'border-orange-400/25 bg-orange-500/10 text-orange-200'
+        : 'border-violet-400/25 bg-violet-500/10 text-violet-200';
+      const itemClass = isDarkMode
+        ? 'bg-slate-900/70 border-slate-700/70 hover:border-slate-600'
+        : 'bg-slate-50 border-slate-200 hover:border-slate-300';
+      const borderTone = card.statusTone === 'rose'
+        ? 'border-rose-500/35'
+        : card.statusTone === 'amber'
+          ? 'border-amber-500/30'
+          : 'border-slate-800/80';
+      return (
+        <div key={card.id} className={`rounded-[1.35rem] border ${borderTone} bg-slate-900/55 overflow-hidden hover:border-slate-700/90 transition-colors`}>
+          <div className="px-3.5 sm:px-4 py-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+            <div className="min-w-0 flex items-start gap-3">
+              <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${avatarClass}`}>
+                {isEvent ? <Icons.Truck className="w-5 h-5" /> : <Icons.UserPlus className="w-5 h-5" />}
+              </div>
+              <div className="min-w-0">
+                <div className={`text-[10px] font-black uppercase tracking-[0.16em] ${theme.textMuted}`}>RETURN TRACKING</div>
+                <div className={`text-base font-black mt-0.5 truncate ${theme.textTitle}`}>{card.typeLabel}: {card.title || '-'}</div>
+                <div className={`text-[11px] font-bold mt-0.5 truncate ${theme.textMuted}`}>เลขที่ {card.ref || '-'} • กำหนด {card.dueText || '-'}</div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <span className="px-3 py-1.5 rounded-xl border text-[11px] font-black bg-blue-950/35 border-blue-800 text-blue-200">ทั้งหมด {card.total.toLocaleString('th-TH')} ชิ้น</span>
+              <span className="px-3 py-1.5 rounded-xl border text-[11px] font-black bg-emerald-950/35 border-emerald-800 text-emerald-200">คืนแล้ว {card.returnedCount.toLocaleString('th-TH')}</span>
+              <span className="px-3 py-1.5 rounded-xl border text-[11px] font-black bg-amber-950/35 border-amber-800 text-amber-200">รอคืน {card.remainingCount.toLocaleString('th-TH')}</span>
+              <span className={`px-3 py-1.5 rounded-xl border text-[11px] font-black ${statusPillClass(card.statusTone)}`}>{card.statusLabel}</span>
+              <button type="button" onClick={() => openReturnForItems(card.items.map(item => item.id))} className="ml-0 xl:ml-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-sm">รับคืนกลุ่มนี้</button>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-800/70" />
+
+          <div className="px-3.5 sm:px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+            {compactItems.map(item => {
+              const info = getReturnTrackingDateInfo(item);
+              return (
+                <div key={`${card.id}_${item.id}`} className={`rounded-2xl border px-3 py-2.5 min-h-[58px] flex items-center justify-between gap-3 ${itemClass}`}>
+                  <div className="min-w-0">
+                    <div className={`text-sm font-black leading-tight truncate ${theme.textTitle}`}>{item.name || '-'}</div>
+                    <div className={`text-[11px] font-bold mt-0.5 truncate ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || item.storageLocation || '-'}</div>
+                  </div>
+                  <span className={`text-[10px] px-2 py-1 rounded-lg border shrink-0 font-black ${statusPillClass(info.tone)}`}>{info.label}</span>
+                </div>
+              );
+            })}
+            {extraCount > 0 && (
+              <div className="rounded-2xl border px-3 py-2.5 min-h-[58px] flex items-center justify-center text-xs font-black bg-slate-900/55 border-slate-700 text-slate-300">
+                + อีก {extraCount.toLocaleString('th-TH')} รายการ
+              </div>
+            )}
+          </div>
+
+          {(card.isPartial || card.isLegacy) && (
+            <div className="px-4 py-2 border-t border-slate-800 text-[11px] font-bold text-slate-400 flex flex-wrap gap-2">
+              {card.isPartial && <span className="text-amber-300">คืนบางส่วนแล้ว เหลือ {card.remainingCount.toLocaleString('th-TH')} ชิ้น</span>}
+              {card.isLegacy && <span>ข้อมูลเก่า: รวมจากผู้ยืม/ชื่องานเดียวกัน</span>}
+            </div>
+          )}
+        </div>
+      );
+    };
+
     return (
       <div className="page-workspace-shell tracking-workspace space-y-5">
         {renderWorkspaceTabs()}
@@ -14024,7 +14189,7 @@ S.N.: ${item.sn || '-'}
                   <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                   <input className={`w-full pl-12 pr-4 py-3 rounded-2xl border font-bold ${theme.input}`} placeholder="ค้นหาชื่ออุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน" value={trackingSearch} onChange={e => setTrackingSearch(e.target.value)} />
                 </div>
-                <div className="px-4 py-3 rounded-2xl border border-slate-700/70 bg-slate-900/70 text-slate-200 font-black text-center min-w-[120px]">{visibleList.length.toLocaleString('th-TH')} รายการ</div>
+                <div className="px-4 py-3 rounded-2xl border border-slate-700/70 bg-slate-900/70 text-slate-200 font-black text-center min-w-[150px]">{trackingGroupCards.length.toLocaleString('th-TH')} กลุ่ม / {visibleList.length.toLocaleString('th-TH')} ชิ้น</div>
               </div>
 
               <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
@@ -14034,42 +14199,7 @@ S.N.: ${item.sn || '-'}
                     <div className={`mt-3 font-black ${theme.textTitle}`}>ไม่มีรายการในหมวดนี้</div>
                     <div className={`mt-1 text-sm font-bold ${theme.textMuted}`}>รายการรอคืนในหมวดนี้ถูกจัดการเรียบร้อยแล้ว</div>
                   </div>
-                ) : visibleList.map(item => {
-                  const info = getReturnTrackingDateInfo(item);
-                  const isEvent = item.status === 'out-for-event' || item._kind === 'event';
-                  const ownerText = isEvent ? (item.currentEvent || item.eventName || '-') : (item.currentBorrower || item.borrower || '-');
-                  return (
-                    <div key={item.id} className="rounded-[22px] border border-slate-800 bg-slate-900/55 p-4 hover:border-slate-700/90 transition-colors">
-                      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-                        <div className="min-w-0 flex items-start gap-3">
-                          <div className={`mt-0.5 h-11 w-11 rounded-2xl border flex items-center justify-center shrink-0 ${isEvent ? 'border-orange-400/25 bg-orange-500/10 text-orange-200' : 'border-violet-400/25 bg-violet-500/10 text-violet-200'}`}>
-                            {isEvent ? <Icons.Truck className="w-5 h-5" /> : <Icons.UserPlus className="w-5 h-5" />}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${isEvent ? 'bg-orange-500/10 border-orange-400/25 text-orange-200' : 'bg-violet-500/10 border-violet-400/25 text-violet-200'}`}>{isEvent ? 'ออกงาน' : 'ยืมอยู่'}</span>
-                              <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${statusPillClass(info.tone)}`}>{info.label}</span>
-                            </div>
-                            <div className={`font-black text-lg mt-2 truncate ${theme.textTitle}`}>{item.name}</div>
-                            <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {ownerText}</div>
-                            <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-bold text-slate-400">
-                              <span className="px-2.5 py-1 rounded-full border border-slate-700/70 bg-slate-950/40">{item.category || item.type || 'ไม่ระบุหมวด'}</span>
-                              <span className="px-2.5 py-1 rounded-full border border-slate-700/70 bg-slate-950/40">{item.location || item.storage || 'ไม่ระบุที่เก็บ'}</span>
-                              <span className="px-2.5 py-1 rounded-full border border-slate-700/70 bg-slate-950/40">{info.dueText}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 shrink-0 xl:w-auto w-full">
-                          <button type="button" onClick={() => openReturnForItems([item.id])} className="px-3 py-2.5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/15 font-black text-sm">รับคืน</button>
-                          <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>เปิด</button>
-                          <button type="button" onClick={() => copyReturnTrackingMessage(item)} className={`px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>คัดลอกสรุป</button>
-                          <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`px-3 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>เอกสาร</button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                ) : trackingGroupCards.map(renderTrackingGroupCard)}
               </div>
             </div>
           </div>
