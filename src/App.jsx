@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.85 Single Proof Evidence Layout';
-const APP_UPDATE_NOTE = 'Single Proof Evidence Layout: ปรับหน้าหลักฐานรูปภาพเป็น Single Proof View ใช้งานจริงกับรูปหลักฐาน 1 รูปต่อรายการ มีรายการหลักฐานซ้าย รายละเอียดกลาง และรูปหลักฐานเดี่ยวด้านขวา';
+const APP_VERSION = 'v23.1.86 Compact Single Proof Evidence Layout';
+const APP_UPDATE_NOTE = 'Compact Single Proof Evidence Layout: ย่อหน้าหลักฐานรูปภาพให้กระชับขึ้น ลดขนาดการ์ด/ช่องรายการ/รูปหลักฐาน และลด padding โดยยังคง Single Proof View';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -12218,7 +12218,7 @@ S.N.: ${item.sn || '-'}
             {/* v23.1.16: ตัด Operation Control / Live Status Summary ออก เพื่อให้หน้า dedicated operation เข้า Equipment Picker ทันที */}
             <div className={`grid grid-cols-1 ${isOperationDetailsStep ? 'xl:grid-cols-[minmax(0,1fr)_minmax(420px,.72fr)]' : ''} gap-5 items-start`}>
               {!isOperationDetailsStep && (
-              <section className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/80 border-slate-800 shadow-[0_18px_55px_rgba(0,0,0,0.18)]' : 'bg-white border-slate-200 shadow-sm'}`}>
+              <section className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/80 border-slate-800 shadow-[0_18px_55px_rgba(0,0,0,0.18)]' : 'bg-white border-slate-200 shadow-sm'}`}>
                 <div className={`p-4 border-b ${theme.divide}`}>
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -12226,7 +12226,7 @@ S.N.: ${item.sn || '-'}
                       <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>{borrowReturnMode === 'return' ? 'เลือกรายการรอรับคืน' : 'เลือกของเข้ารายการ'}</h3>
                       <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{borrowReturnMode === 'return' ? 'เลือกรายการรอคืนหลายชิ้นได้ หรือเลือก 1 ชิ้นแล้วกด “รับคืนทั้งกลุ่ม” เพื่อดึงของในเอกสารเดียวกันเข้ามา' : 'เลือกจากห้อง/ตู้/ชั้นที่เก็บจริง แล้วเลือกของหลายชิ้นได้ก่อนกดถัดไป'}</p>
                     </div>
-                    <div className="flex flex-wrap gap-2 shrink-0">
+                    <div className="flex flex-wrap gap-1.5 shrink-0">
                       <button type="button" onClick={() => setShowBorrowReturnFilters(v => !v)} className={`px-3 py-2 rounded-xl text-sm font-black border flex items-center gap-2 ${borrowReturnActiveFilterCount > 0 ? modeInfo.softClass : theme.btnSecondary}`}>
                         <Icons.Settings className="w-4 h-4" /> ตัวกรอง {borrowReturnActiveFilterCount > 0 ? borrowReturnActiveFilterCount : ''}
                       </button>
@@ -12277,7 +12277,7 @@ S.N.: ${item.sn || '-'}
                         onClick={() => setShowOperationQuickPick(false)}
                         className="fixed inset-0 z-[80] bg-black/20"
                       />
-                      <aside className={`fixed z-[91] right-3 sm:right-5 top-20 bottom-5 w-[min(420px,calc(100vw-1.5rem))] rounded-[1.6rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <aside className={`fixed z-[91] right-3 sm:right-5 top-20 bottom-5 w-[min(420px,calc(100vw-1.5rem))] rounded-[1.35rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
                         <div className={`px-4 py-3 border-b flex items-start justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900/90' : 'border-slate-100 bg-slate-50'}`}>
                           <div className="min-w-0">
                             <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Box / Bundle Picker</div>
@@ -12351,7 +12351,7 @@ S.N.: ${item.sn || '-'}
                         onClick={() => setShowBorrowReturnFilters(false)}
                         className="fixed inset-0 z-[80] bg-black/25"
                       />
-                      <aside className={`fixed z-[90] right-3 sm:right-5 top-20 bottom-5 w-[min(440px,calc(100vw-1.5rem))] rounded-[1.6rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+                      <aside className={`fixed z-[90] right-3 sm:right-5 top-20 bottom-5 w-[min(440px,calc(100vw-1.5rem))] rounded-[1.35rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
                         <div className={`px-4 py-3 border-b flex items-start justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900/90' : 'border-slate-100 bg-slate-50'}`}>
                           <div className="min-w-0">
                             <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Filter Popup</div>
@@ -12449,7 +12449,7 @@ S.N.: ${item.sn || '-'}
                         <div className={`text-sm font-black ${theme.textTitle}`}>เลือกแล้ว {actionTargetIds.length.toLocaleString('th-TH')} ชิ้น • {operationGroupedSelectedCount.toLocaleString('th-TH')} กลุ่ม/รายการ • ชุดกล้อง {operationBundleCount.toLocaleString('th-TH')} ชุด</div>
                         <div className={`text-xs font-bold mt-1 truncate ${theme.textMuted}`}>{selectedPreview || 'รายการที่เลือกจะแสดงในแถบล่างและ popup สรุป'}</div>
                       </div>
-                      <div className="flex flex-wrap gap-2 shrink-0">
+                      <div className="flex flex-wrap gap-1.5 shrink-0">
                         <button type="button" onClick={() => setShowOperationSelectedPanel(true)} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ดูรายการที่เลือก</button>
                         <button type="button" onClick={clearOperationSelection} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ล้างทั้งหมด</button>
                       </div>
@@ -12483,7 +12483,7 @@ S.N.: ${item.sn || '-'}
                 {showOperationSelectedPanel && actionTargetIds.length > 0 && (
                   <>
                     <button type="button" aria-label="ปิดรายการที่เลือก" onClick={() => setShowOperationSelectedPanel(false)} className="fixed inset-0 z-[92] bg-black/30" />
-                    <aside className={`fixed z-[93] right-3 sm:right-5 top-20 bottom-5 w-[min(460px,calc(100vw-1.5rem))] rounded-[1.6rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <aside className={`fixed z-[93] right-3 sm:right-5 top-20 bottom-5 w-[min(460px,calc(100vw-1.5rem))] rounded-[1.35rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'}`}>
                       <div className={`px-4 py-3 border-b flex items-start justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900/90' : 'border-slate-100 bg-slate-50'}`}>
                         <div className="min-w-0">
                           <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Selected Items</div>
@@ -12574,8 +12574,8 @@ S.N.: ${item.sn || '-'}
                           <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>แสดงเป็นรายการตรง ๆ พร้อมบอกที่เก็บและหมวด เพื่อเลือกของได้เร็ว</div>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <button type="button" onClick={() => selectOperationViewItems(operationalItems)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เลือกทั้งหมดที่พบ</button>
-                          <button type="button" onClick={() => setBorrowReturnSearch('')} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>กลับไปเลือกจากที่เก็บ</button>
+                          <button type="button" onClick={() => selectOperationViewItems(operationalItems)} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เลือกทั้งหมดที่พบ</button>
+                          <button type="button" onClick={() => setBorrowReturnSearch('')} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>กลับไปเลือกจากที่เก็บ</button>
                         </div>
                       </div>
                       <div className="space-y-2.5">
@@ -12589,9 +12589,9 @@ S.N.: ${item.sn || '-'}
                           <div className={`text-sm font-black ${theme.textTitle}`}>รายการอุปกรณ์ที่เลือกได้</div>
                           <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{borrowReturnMode === 'return' ? 'ด้านบนคือการ์ดกลุ่ม ส่วนรายการนี้เป็นรายการเดี่ยว/สำรองสำหรับกรณีต้องเลือกเฉพาะชิ้น' : 'เรียงเป็นแถวแนวตั้ง เลือกทีละชิ้นหรือใช้ตัวกรองด้านบนให้เหลือเฉพาะของที่ต้องการ'}</div>
                         </div>
-                        <div className="flex flex-wrap gap-2 shrink-0">
-                          <button type="button" onClick={() => selectOperationViewItems(operationalItems)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เลือกที่เห็น</button>
-                          <button type="button" onClick={clearOperationSelection} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ล้างเลือก</button>
+                        <div className="flex flex-wrap gap-1.5 shrink-0">
+                          <button type="button" onClick={() => selectOperationViewItems(operationalItems)} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เลือกที่เห็น</button>
+                          <button type="button" onClick={clearOperationSelection} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ล้างเลือก</button>
                         </div>
                       </div>
                       <div className="space-y-2.5">
@@ -12625,7 +12625,7 @@ S.N.: ${item.sn || '-'}
               )}
 
               {isOperationDetailsStep && (
-              <section id="operation-details-panel" className={`rounded-[1.6rem] border overflow-hidden ${isOperationDetailsStep ? '' : 'sticky top-4'} ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <section id="operation-details-panel" className={`rounded-[1.35rem] border overflow-hidden ${isOperationDetailsStep ? '' : 'sticky top-4'} ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className={`p-4 border-b ${theme.divide}`}>
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     <div className="min-w-0">
@@ -13249,7 +13249,7 @@ S.N.: ${item.sn || '-'}
               <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>ตรวจนับสต๊อกจริง</h2>
               <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้เดินตรวจของจริง เทียบกับข้อมูลในระบบ ติ๊กพบแล้ว คัดรายการยังไม่พบ และพิมพ์รายงานตรวจนับ</p>
             </div>
-            <div className="flex flex-wrap gap-2 shrink-0">
+            <div className="flex flex-wrap gap-1.5 shrink-0">
               <button type="button" onClick={startNewStockCountSession} className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">เริ่มรอบใหม่</button>
               <button type="button" onClick={openStockCountScanner} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">สแกนตรวจนับ</button>
               <button type="button" onClick={() => exportStockCountCSV('summary')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>Export CSV</button>
@@ -13584,14 +13584,14 @@ S.N.: ${item.sn || '-'}
                 <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>คลังอุปกรณ์ถูกล็อกไว้</h2>
                 <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>หน้านี้มีข้อมูลละเอียดและปุ่มเลือกหลายรายการ จึงเปิดให้เฉพาะเจ้าหน้าที่ที่เข้าสู่ระบบแล้วเท่านั้น เพื่อกันการติ๊กเลือกหรือทำรายการโดยไม่ได้ตั้งใจ</p>
               </div>
-              <div className="flex flex-wrap gap-2 shrink-0">
+              <div className="flex flex-wrap gap-1.5 shrink-0">
                 <button type="button" onClick={() => setShowLogin(true)} className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">เข้าสู่ระบบเจ้าหน้าที่</button>
                 <button type="button" onClick={() => openWorkspace('overview')} className={`px-5 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับภาพรวม</button>
               </div>
             </div>
 
             <div className="p-5 sm:p-6">
-              <div className={`rounded-[1.6rem] border p-5 sm:p-6 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`rounded-[1.35rem] border p-5 sm:p-6 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                   {[
                     ['ดูได้หลังล็อกอิน', 'รายการอุปกรณ์แบบละเอียด / S.N. / ที่เก็บ / โครงการ'],
@@ -13819,7 +13819,7 @@ S.N.: ${item.sn || '-'}
               </div>
             )}
 
-            <div className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <div className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
               <div className={`p-4 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${theme.divide}`}>
                 <div>
                   <div className={`font-black text-lg ${theme.textTitle}`}>รายการอุปกรณ์ในคลัง</div>
@@ -14178,7 +14178,7 @@ S.N.: ${item.sn || '-'}
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมรายการครบกำหนด เลยกำหนด ยืมอยู่ และออกงานอยู่ ให้ดูในหน้าเดียวแบบคุมโทนเดียวกับระบบ</p>
               </div>
 
-              <div className="flex flex-wrap gap-2 shrink-0">
+              <div className="flex flex-wrap gap-1.5 shrink-0">
                 <button type="button" onClick={() => openWorkspace('borrow')} className="px-4 py-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/15 font-black transition-colors">เปิดหน้ายืม-คืน</button>
                 <button type="button" onClick={() => openWorkspace('overview')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับภาพรวม</button>
               </div>
@@ -14265,8 +14265,8 @@ S.N.: ${item.sn || '-'}
             {recordsCenterMode === 'docs' && (
               <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className={`p-4 border-b grid grid-cols-1 lg:grid-cols-[1fr_220px_auto] gap-3 ${theme.divide}`}>
-                  <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาเลขที่เอกสาร / ผู้ยืม / ชื่องาน / อุปกรณ์" value={borrowDocSearch} onChange={e => setBorrowDocSearch(e.target.value)} />
-                  <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={borrowDocFilter} onChange={e => setBorrowDocFilter(e.target.value)}>
+                  <input className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาเลขที่เอกสาร / ผู้ยืม / ชื่องาน / อุปกรณ์" value={borrowDocSearch} onChange={e => setBorrowDocSearch(e.target.value)} />
+                  <select className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} value={borrowDocFilter} onChange={e => setBorrowDocFilter(e.target.value)}>
                     <option value="all">เอกสารทั้งหมด</option>
                     <option value="borrow">ใบยืม</option>
                     <option value="event">ใบออกงาน</option>
@@ -14274,7 +14274,7 @@ S.N.: ${item.sn || '-'}
                     <option value="active">รอคืน</option>
                     <option value="closed">คืนครบแล้ว</option>
                   </select>
-                  <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{filteredBorrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร</div>
+                  <div className={`px-3.5 py-2.5 rounded-xl border font-black text-center text-sm ${theme.btnSecondary}`}>{filteredBorrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร</div>
                 </div>
                 <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
                   {filteredBorrowเอกสารs.length === 0 ? <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบเอกสาร</div> : filteredBorrowเอกสารs.slice(0, 180).map(docData => (
@@ -14302,8 +14302,8 @@ S.N.: ${item.sn || '-'}
             {recordsCenterMode === 'history' && (
               <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                 <div className={`p-4 border-b grid grid-cols-1 lg:grid-cols-[1fr_220px_auto] gap-3 ${theme.divide}`}>
-                  <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / ผู้ใช้งาน" value={historyCenterSearch} onChange={e => setHistoryCenterSearch(e.target.value)} />
-                  <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={historyCenterFilter} onChange={e => setHistoryCenterFilter(e.target.value)}>
+                  <input className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / ผู้ใช้งาน" value={historyCenterSearch} onChange={e => setHistoryCenterSearch(e.target.value)} />
+                  <select className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} value={historyCenterFilter} onChange={e => setHistoryCenterFilter(e.target.value)}>
                     <option value="all">ทุกประเภท</option>
                     <option value="borrow">ยืม</option>
                     <option value="event">ออกงาน</option>
@@ -14311,7 +14311,7 @@ S.N.: ${item.sn || '-'}
                     <option value="repair">ซ่อม/ชำรุด</option>
                     <option value="system">ระบบหลัก</option>
                   </select>
-                  <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{filteredHistoryCenterEntries.length.toLocaleString('th-TH')} รายการ</div>
+                  <div className={`px-3.5 py-2.5 rounded-xl border font-black text-center text-sm ${theme.btnSecondary}`}>{filteredHistoryCenterEntries.length.toLocaleString('th-TH')} รายการ</div>
                 </div>
                 {canDeleteItems && (
                   <div className={`p-3 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-3 ${theme.divide}`}>
@@ -14439,11 +14439,11 @@ S.N.: ${item.sn || '-'}
                             </div>
                           ) : (
                             <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-2">
-                              <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
+                              <div className={`rounded-2xl border px-2.5 py-2 ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
                                 <div className={`text-[10px] font-black ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง</div>
                                 <div className={`text-xs font-black mt-0.5 truncate ${theme.textTitle}`}>{entry.subject || '-'}</div>
                               </div>
-                              <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
+                              <div className={`rounded-2xl border px-2.5 py-2 ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
                                 <div className={`text-[10px] font-black ${theme.textMuted}`}>{operationLabel}</div>
                                 <div className={`text-xs font-black mt-0.5 truncate ${theme.textTitle}`}>
                                   {isGroup
@@ -14475,9 +14475,9 @@ S.N.: ${item.sn || '-'}
                             ) : (
                               <span className={`inline-flex items-center px-3 py-2 rounded-xl border text-xs font-black ${isDarkMode ? 'border-slate-700 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-white text-slate-400'}`}>ไม่มีรูปหลักฐาน</span>
                             )}
-                            {!entry.isAuditLog && <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
+                            {!entry.isAuditLog && <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
                             {!entry.isAuditLog && <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-xs font-black">เพิ่มรูป</button>}
-                            {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูรูป</button>}
+                            {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูรูป</button>}
                           </div>
                         </div>
 
@@ -14562,9 +14562,9 @@ S.N.: ${item.sn || '-'}
 
             {recordsCenterMode === 'proofs' && (
               <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <div className={`p-4 border-b grid grid-cols-1 xl:grid-cols-[1fr_220px_180px_auto] gap-3 ${theme.divide}`}>
-                  <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / ผู้ใช้งาน" value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} />
-                  <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={proofCenterFilter} onChange={e => setProofCenterFilter(e.target.value)}>
+                <div className={`p-3 border-b grid grid-cols-1 xl:grid-cols-[1fr_200px_150px_auto] gap-2.5 ${theme.divide}`}>
+                  <input className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / ผู้ใช้งาน" value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} />
+                  <select className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} value={proofCenterFilter} onChange={e => setProofCenterFilter(e.target.value)}>
                     <option value="all">หลักฐานทั้งหมด</option>
                     <option value="borrow">เฉพาะตอนยืม</option>
                     <option value="event">เฉพาะออกงาน</option>
@@ -14573,11 +14573,11 @@ S.N.: ${item.sn || '-'}
                     <option value="hiddenProofs">รูปในถังขยะ</option>
                     <option value="noNote">ยังไม่มีหมายเหตุ</option>
                   </select>
-                  <button type="button" onClick={() => { setProofCenterFilter('all'); setProofCenterSearch(''); setSelectedProofGroupId(''); }} className={`px-4 py-3 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
-                  <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{(proofCenterFilter === 'hiddenProofs' ? hiddenProofGroups.length : proofTimelineGroups.length).toLocaleString('th-TH')} แฟ้มหลักฐาน</div>
+                  <button type="button" onClick={() => { setProofCenterFilter('all'); setProofCenterSearch(''); setSelectedProofGroupId(''); }} className={`px-3.5 py-2.5 rounded-xl border font-black text-xs ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
+                  <div className={`px-3.5 py-2.5 rounded-xl border font-black text-center text-sm ${theme.btnSecondary}`}>{(proofCenterFilter === 'hiddenProofs' ? hiddenProofGroups.length : proofTimelineGroups.length).toLocaleString('th-TH')} แฟ้มหลักฐาน</div>
                 </div>
 
-                <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar">
+                <div className="p-3 page-mode-list overflow-y-auto custom-scrollbar">
                   {proofCenterFilter === 'hiddenProofs' ? (
                     hiddenProofGroups.length === 0 ? (
                       <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ยังไม่มีรูปหลักฐานในถังขยะ</div>
@@ -14598,7 +14598,7 @@ S.N.: ${item.sn || '-'}
                                 <div className={`text-xs font-bold truncate ${theme.textMuted}`}>{group.itemRefs?.length || 0} จุดอ้างอิง • {entry.typeLabel || '-'}</div>
                                 <div className="grid grid-cols-2 gap-2">
                                   <button type="button" onClick={() => handleRestoreHiddenProofGroup(group)} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black">กู้คืน</button>
-                                  <button type="button" onClick={() => handlePermanentDeleteProofGroup(group)} className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black">ลบถาวร</button>
+                                  <button type="button" onClick={() => handlePermanentDeleteProofGroup(group)} className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black">ลบถาวร</button>
                                 </div>
                               </div>
                             </div>
@@ -14638,16 +14638,16 @@ S.N.: ${item.sn || '-'}
                         return { entry, label, subject, dateText };
                       };
                       return (
-                        <div className="grid grid-cols-1 2xl:grid-cols-[440px_minmax(0,1fr)] gap-4">
-                          <aside className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900/55 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                            <div className={`px-4 py-3 border-b flex items-center justify-between gap-3 ${theme.divide}`}>
+                        <div className="grid grid-cols-1 2xl:grid-cols-[380px_minmax(0,1fr)] gap-3">
+                          <aside className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900/55 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                            <div className={`px-3.5 py-2.5 border-b flex items-center justify-between gap-2 ${theme.divide}`}>
                               <div>
-                                <div className={`text-lg font-black ${theme.textTitle}`}>รายการหลักฐาน</div>
+                                <div className={`text-base font-black ${theme.textTitle}`}>รายการหลักฐาน</div>
                                 <div className={`text-[11px] font-bold ${theme.textMuted}`}>รูปหลักฐานหลัก 1 รูปต่อรายการ • เลือกเพื่อดูรายละเอียด</div>
                               </div>
                               <span className={`px-3 py-1.5 rounded-full border text-xs font-black ${theme.btnSecondary}`}>{visibleGroups.length.toLocaleString('th-TH')} รายการ</span>
                             </div>
-                            <div className="p-3 space-y-2 max-h-[calc(100vh-360px)] overflow-y-auto custom-scrollbar">
+                            <div className="p-2.5 space-y-1.5 max-h-[calc(100vh-350px)] overflow-y-auto custom-scrollbar">
                               {visibleGroups.map(group => {
                                 const summary = getGroupSummary(group);
                                 const isSelected = group.groupId === (selectedGroup.groupId || visibleGroups[0]?.groupId);
@@ -14657,20 +14657,20 @@ S.N.: ${item.sn || '-'}
                                     key={group.groupId}
                                     type="button"
                                     onClick={() => setSelectedProofGroupId(group.groupId)}
-                                    className={`w-full rounded-2xl border p-3 text-left transition ${isSelected ? 'border-blue-500/70 bg-blue-950/22 shadow-[0_0_0_1px_rgba(59,130,246,.22)]' : (isDarkMode ? 'border-slate-800 bg-slate-950/35 hover:border-slate-700' : 'border-slate-200 bg-white hover:border-blue-200')}`}
+                                    className={`w-full rounded-2xl border p-2.5 text-left transition ${isSelected ? 'border-blue-500/70 bg-blue-950/22 shadow-[0_0_0_1px_rgba(59,130,246,.22)]' : (isDarkMode ? 'border-slate-800 bg-slate-950/35 hover:border-slate-700' : 'border-slate-200 bg-white hover:border-blue-200')}`}
                                   >
                                     <div className="flex items-start justify-between gap-3">
                                       <div className="min-w-0">
-                                        <span className={`inline-flex px-2.5 py-1 rounded-xl border text-[11px] font-black ${badgeClass(summary.label)}`}>{summary.label}</span>
-                                        <div className={`mt-2 text-sm font-black truncate ${theme.textTitle}`}>{summary.subject || '-'}</div>
-                                        <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{summary.dateText}</div>
+                                        <span className={`inline-flex px-2 py-0.5 rounded-lg border text-[10px] font-black ${badgeClass(summary.label)}`}>{summary.label}</span>
+                                        <div className={`mt-1.5 text-[13px] font-black truncate ${theme.textTitle}`}>{summary.subject || '-'}</div>
+                                        <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>{summary.dateText}</div>
                                       </div>
                                       <span className={`text-xl ${theme.textMuted}`}>›</span>
                                     </div>
-                                    <div className="mt-3 space-y-1.5">
+                                    <div className="mt-2 space-y-1">
                                       {itemRefs.map((ref, refIndex) => (
-                                        <div key={`proof_list_${group.groupId}_${ref.itemId || ref.sn || refIndex}`} className={`rounded-xl px-2.5 py-1.5 ${isDarkMode ? 'bg-slate-900/70' : 'bg-slate-50'}`}>
-                                          <div className={`text-[12px] font-black truncate ${theme.textTitle}`}>{ref.itemName || '-'}</div>
+                                        <div key={`proof_list_${group.groupId}_${ref.itemId || ref.sn || refIndex}`} className={`rounded-lg px-2 py-1 ${isDarkMode ? 'bg-slate-900/70' : 'bg-slate-50'}`}>
+                                          <div className={`text-[11px] font-black truncate ${theme.textTitle}`}>{ref.itemName || '-'}</div>
                                           {ref.sn && <div className={`text-[10px] font-bold truncate ${theme.textMuted}`}>S.N. {ref.sn}</div>}
                                         </div>
                                       ))}
@@ -14682,16 +14682,16 @@ S.N.: ${item.sn || '-'}
                             </div>
                           </aside>
 
-                          <section className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900/55 border-slate-800' : 'bg-white border-slate-200'}`}>
-                            <div className={`px-4 sm:px-5 py-4 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-3 ${theme.divide}`}>
+                          <section className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900/55 border-slate-800' : 'bg-white border-slate-200'}`}>
+                            <div className={`px-3.5 sm:px-4 py-3 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-2.5 ${theme.divide}`}>
                               <div className="min-w-0">
                                 <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SINGLE PROOF VIEW</div>
-                                <h3 className={`text-xl sm:text-2xl font-black mt-1 leading-tight ${theme.textTitle}`}>{selectedTitle}</h3>
+                                <h3 className={`text-lg sm:text-xl font-black mt-1 leading-tight ${theme.textTitle}`}>{selectedTitle}</h3>
                                 <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{selectedItems.length.toLocaleString('th-TH')} อุปกรณ์ที่เกี่ยวข้อง • รูปหลักฐาน 1 รูป • {selectedGroup.isLegacyBatch ? 'ข้อมูลเก่า' : 'ข้อมูลปัจจุบัน'}</p>
                               </div>
-                              <div className="flex flex-wrap gap-2 shrink-0">
-                                {selectedGroup.itemId && <button type="button" onClick={() => setShowHistory(selectedGroup.itemId)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
-                                <button type="button" onClick={() => { setHistoryCenterSearch(selectedGroup.sn || selectedGroup.itemName || selectedSubject || ''); setRecordsCenterMode('history'); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
+                              <div className="flex flex-wrap gap-1.5 shrink-0">
+                                {selectedGroup.itemId && <button type="button" onClick={() => setShowHistory(selectedGroup.itemId)} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
+                                <button type="button" onClick={() => { setHistoryCenterSearch(selectedGroup.sn || selectedGroup.itemName || selectedSubject || ''); setRecordsCenterMode('history'); }} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
                                 {canUseOperationalTools && previewProof && (
                                   <button
                                     type="button"
@@ -14702,7 +14702,7 @@ S.N.: ${item.sn || '-'}
                                       entries: previewEntry ? [previewEntry] : selectedGroup.entries,
                                       itemRefs: selectedGroup.itemRefs || []
                                     })}
-                                    className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black"
+                                    className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black"
                                   >
                                     ย้ายลงถังขยะ
                                   </button>
@@ -14710,33 +14710,33 @@ S.N.: ${item.sn || '-'}
                               </div>
                             </div>
 
-                            <div className="p-4 sm:p-5 grid grid-cols-1 xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] gap-4">
+                            <div className="p-3 sm:p-4 grid grid-cols-1 xl:grid-cols-[minmax(240px,320px)_minmax(0,1fr)] gap-3">
                               <div className="space-y-4">
                                 <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-1 gap-2">
-                                  <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700/70' : 'bg-slate-50 border-slate-200'}`}>
+                                  <div className={`rounded-2xl border px-2.5 py-2 ${isDarkMode ? 'bg-slate-950/45 border-slate-700/70' : 'bg-slate-50 border-slate-200'}`}>
                                     <div className={`text-[10px] font-black ${theme.textMuted}`}>ประเภทหลักฐาน</div>
-                                    <div className={`text-sm font-black mt-1 ${theme.textTitle}`}>{currentTypeLabel}</div>
+                                    <div className={`text-[13px] font-black mt-1 ${theme.textTitle}`}>{currentTypeLabel}</div>
                                   </div>
-                                  <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700/70' : 'bg-slate-50 border-slate-200'}`}>
+                                  <div className={`rounded-2xl border px-2.5 py-2 ${isDarkMode ? 'bg-slate-950/45 border-slate-700/70' : 'bg-slate-50 border-slate-200'}`}>
                                     <div className={`text-[10px] font-black ${theme.textMuted}`}>วันที่ / ผู้บันทึก</div>
-                                    <div className={`text-sm font-black mt-1 ${theme.textTitle}`}>{selectedDateText}</div>
+                                    <div className={`text-[13px] font-black mt-1 ${theme.textTitle}`}>{selectedDateText}</div>
                                     <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>{previewEntry.staff || previewEntry.operatorName || '-'}</div>
                                   </div>
-                                  <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700/70' : 'bg-slate-50 border-slate-200'}`}>
+                                  <div className={`rounded-2xl border px-2.5 py-2 ${isDarkMode ? 'bg-slate-950/45 border-slate-700/70' : 'bg-slate-50 border-slate-200'}`}>
                                     <div className={`text-[10px] font-black ${theme.textMuted}`}>ผู้ยืม / ผู้เกี่ยวข้อง</div>
-                                    <div className={`text-sm font-black mt-1 truncate ${theme.textTitle}`}>{selectedSubject || '-'}</div>
+                                    <div className={`text-[13px] font-black mt-1 truncate ${theme.textTitle}`}>{selectedSubject || '-'}</div>
                                   </div>
                                 </div>
 
-                                <div className={`rounded-3xl border p-3 ${isDarkMode ? 'bg-slate-950/35 border-slate-700/70' : 'bg-slate-50 border-slate-200'}`}>
-                                  <div className={`text-sm font-black ${theme.textTitle}`}>อุปกรณ์ที่เกี่ยวข้อง</div>
-                                  <div className="mt-2 space-y-2">
+                                <div className={`rounded-3xl border p-2.5 ${isDarkMode ? 'bg-slate-950/35 border-slate-700/70' : 'bg-slate-50 border-slate-200'}`}>
+                                  <div className={`text-[13px] font-black ${theme.textTitle}`}>อุปกรณ์ที่เกี่ยวข้อง</div>
+                                  <div className="mt-2 space-y-1.5">
                                     {selectedItems.length === 0 ? (
                                       <div className={`rounded-2xl border px-3 py-4 text-center text-xs font-bold ${theme.textMuted}`}>ไม่มีรายการอุปกรณ์ที่ผูกไว้</div>
                                     ) : selectedItems.map((ref, refIndex) => (
-                                      <div key={`proof_selected_item_${selectedGroup.groupId}_${ref.itemId || ref.sn || refIndex}`} className={`rounded-2xl border px-3 py-2.5 flex items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                      <div key={`proof_selected_item_${selectedGroup.groupId}_${ref.itemId || ref.sn || refIndex}`} className={`rounded-2xl border px-2.5 py-2 flex items-center justify-between gap-2 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200'}`}>
                                         <div className="min-w-0">
-                                          <div className={`text-sm font-black truncate ${theme.textTitle}`}>{ref.itemName || '-'}</div>
+                                          <div className={`text-[13px] font-black truncate ${theme.textTitle}`}>{ref.itemName || '-'}</div>
                                           {ref.sn && <div className={`text-[11px] font-bold mt-0.5 truncate ${theme.textMuted}`}>S.N. {ref.sn}</div>}
                                         </div>
                                       </div>
@@ -14745,7 +14745,7 @@ S.N.: ${item.sn || '-'}
                                 </div>
                               </div>
 
-                              <div className={`rounded-3xl border p-3 sm:p-4 relative ${isDarkMode ? 'bg-slate-950/45 border-slate-800/80' : 'bg-slate-50 border-slate-200'}`}>
+                              <div className={`rounded-3xl border p-2.5 sm:p-3 relative ${isDarkMode ? 'bg-slate-950/45 border-slate-800/80' : 'bg-slate-50 border-slate-200'}`}>
                                 {canUseOperationalTools && previewProof && (
                                   <button
                                     type="button"
@@ -14756,20 +14756,20 @@ S.N.: ${item.sn || '-'}
                                       entries: previewEntry ? [previewEntry] : selectedGroup.entries,
                                       itemRefs: selectedGroup.itemRefs || []
                                     })}
-                                    className="absolute top-5 right-5 z-10 px-3 py-2 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black shadow-lg"
+                                    className="absolute top-4 right-4 z-10 px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-black shadow-lg"
                                   >
                                     ย้ายลงถังขยะ
                                   </button>
                                 )}
-                                <div className={`text-sm font-black mb-3 ${theme.textTitle}`}>รูปหลักฐาน</div>
-                                <button type="button" onClick={() => openProofImage(previewProof)} className={`w-full rounded-3xl border overflow-hidden h-[360px] 2xl:h-[430px] ${isDarkMode ? 'bg-slate-950 border-slate-800/80' : 'bg-white border-slate-200'}`}>
+                                <div className={`text-[13px] font-black mb-2 ${theme.textTitle}`}>รูปหลักฐาน</div>
+                                <button type="button" onClick={() => openProofImage(previewProof)} className={`w-full rounded-3xl border overflow-hidden h-[300px] 2xl:h-[360px] ${isDarkMode ? 'bg-slate-950 border-slate-800/80' : 'bg-white border-slate-200'}`}>
                                   {previewSrc ? (
                                     <img src={previewSrc} alt="รูปหลักฐาน" className="w-full h-full object-contain" loading="lazy" />
                                   ) : (
                                     <div className={`h-full flex items-center justify-center text-sm font-black ${theme.textMuted}`}>ไม่มีภาพหลักฐาน</div>
                                   )}
                                 </button>
-                                <div className={`mt-3 text-xs font-bold ${theme.textMuted}`}>รูปหลักฐาน • {currentTypeLabel} • {selectedDateText}</div>
+                                <div className={`mt-2 text-[11px] font-bold ${theme.textMuted}`}>รูปหลักฐาน • {currentTypeLabel} • {selectedDateText}</div>
                               </div>
                             </div>
                           </section>
@@ -23095,7 +23095,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     ['อยู่นอกศูนย์', (currentBorrowedItems.length + currentEventItems.length) || 0, 'ยืม/ออกงาน'],
                     ['ต้องติดตาม', (overdueItems.length + dueTodayItems.length) || 0, 'วันนี้']
                   ].map(([label, value, caption]) => (
-                    <button key={label} type="button" onClick={() => label === 'ต้องติดตาม' ? openTrackingCenter('today') : openWorkspace('inventory')} className={`rounded-[1.6rem] border p-4 text-left transition-all hover:-translate-y-0.5 ${isDarkMode ? 'bg-white/[0.045] hover:bg-white/[0.07] border-white/10' : 'bg-white hover:bg-blue-50/60 border-slate-200'}`}>
+                    <button key={label} type="button" onClick={() => label === 'ต้องติดตาม' ? openTrackingCenter('today') : openWorkspace('inventory')} className={`rounded-[1.35rem] border p-4 text-left transition-all hover:-translate-y-0.5 ${isDarkMode ? 'bg-white/[0.045] hover:bg-white/[0.07] border-white/10' : 'bg-white hover:bg-blue-50/60 border-slate-200'}`}>
                       <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>{label}</div>
                       <div className={`mt-2 text-3xl font-black tabular-nums ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
                       <div className={`mt-1 text-xs font-bold ${theme.textMuted}`}>{caption}</div>
@@ -23218,7 +23218,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     ['ยังไม่มี QR', () => { setQrTaggedFilter('no'); openWorkspace('inventory'); }],
                     ['ข้อมูลควรเติม', () => { setQuickProblemOnly(true); openWorkspace('inventory'); }]
                   ].map(([label, action]) => (
-                    <button key={label} type="button" onClick={action} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>{label}</button>
+                    <button key={label} type="button" onClick={action} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>{label}</button>
                   ))}
                 </div>
               </section>
@@ -23229,7 +23229,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <div className={`text-xs font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>Today Monitor</div>
                     <h3 className={`mt-1 text-2xl font-black ${theme.textTitle}`}>ติดตามวันนี้</h3>
                   </div>
-                  <button type="button" onClick={() => openTrackingCenter('today')} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูทั้งหมด</button>
+                  <button type="button" onClick={() => openTrackingCenter('today')} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูทั้งหมด</button>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   {[
@@ -23559,7 +23559,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 const isOpen = prepOpenId === prep.id;
                 const isCancelled = prep.status === 'cancelled';
                 return (
-                  <div key={prep.id} className={`p-5 rounded-[1.6rem] border transition-colors ${isCancelled ? (isDarkMode ? 'bg-slate-800/30 border-slate-700 opacity-75' : 'bg-slate-50 border-slate-200 opacity-75') : (isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200')}`}>
+                  <div key={prep.id} className={`p-5 rounded-[1.35rem] border transition-colors ${isCancelled ? (isDarkMode ? 'bg-slate-800/30 border-slate-700 opacity-75' : 'bg-slate-50 border-slate-200 opacity-75') : (isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200')}`}>
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-2">
@@ -24014,7 +24014,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   ไม่มีอุปกรณ์ที่รอรับคืนในขณะนี้ (สต๊อกครบ)
                 </div>
               ) : activeGroups.map((group, idx) => (
-                <div key={idx} className={`p-5 rounded-[1.6rem] border flex flex-col lg:flex-row lg:items-start justify-between gap-4 transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                <div key={idx} className={`p-5 rounded-[1.35rem] border flex flex-col lg:flex-row lg:items-start justify-between gap-4 transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-3">
                       {group.type === 'event' ? <Icons.Truck className={`w-6 h-6 ${isDarkMode ? 'text-orange-400' : 'text-orange-500'}`} /> : <Icons.Users className={`w-6 h-6 ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`} />}
@@ -24110,7 +24110,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                        <span>📦 อุปกรณ์ส่วนตัวรวม: <span className="text-pink-500">{totalPersonalItems} ชิ้น</span></span>
                     </div>
                     {ownerKeys.map(owner => (
-                      <div key={owner} className={`p-5 rounded-[1.6rem] border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                      <div key={owner} className={`p-5 rounded-[1.35rem] border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                         <div className="flex items-center gap-2 mb-3">
                           <Icons.Users className={`w-6 h-6 ${isDarkMode ? 'text-pink-400' : 'text-pink-500'}`} />
                           <h4 className={`text-xl font-black truncate ${theme.textTitle}`}>
@@ -24234,7 +24234,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </div>
                 </div>
 
-                <div className={`rounded-[1.6rem] border p-4 mt-auto ${isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className={`rounded-[1.35rem] border p-4 mt-auto ${isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200'}`}>
                   <div className={`text-xs font-black ${theme.textTitle}`}>เคล็ดลัดการใช้งาน</div>
                   <div className={`text-xs font-bold mt-1.5 leading-relaxed ${theme.textMuted}`}>ถ้าต้องการทำงานเร็ว แนะนำให้เริ่มจาก “ภาพรวมระบบ” ก่อน แล้วค่อยไล่แก้หมวดที่เกี่ยวข้องตามงานของวันนั้น</div>
                 </div>
@@ -24283,7 +24283,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
                             {settingsTab !== 'overview' && (
                 <div className={`settings-back-toolbar px-4 sm:px-6 pt-4 pb-0 sticky top-0 z-[4] ${isDarkMode ? 'bg-slate-950/92 backdrop-blur-xl' : 'bg-slate-50/92 backdrop-blur-xl'}`}>
-                  <div className={`px-4 py-4 rounded-[1.6rem] border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm ${isDarkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div className={`px-4 py-4 rounded-[1.35rem] border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm ${isDarkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white border-slate-200'}`}>
                     <div className="min-w-0">
                       <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>CURRENT SECTION</div>
                       <div className={`text-base sm:text-lg font-black mt-1 ${theme.textTitle}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.label || 'ตั้งค่าระบบ'}</div>
@@ -24357,14 +24357,14 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </div>
               ) : settingsTab === 'accounts' ? (
                 <div className="p-5 sm:p-6 lg:p-7 space-y-5">
-                  <div className={`p-5 rounded-[1.6rem] border ${isDarkMode ? 'bg-indigo-900/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
+                  <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-indigo-900/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
                     <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Users className="w-6 h-6 text-indigo-500"/> จัดการบัญชีพนักงาน</h4>
                     <p className={`text-sm font-bold ${theme.textMuted}`}>บัญชีกลางสามารถเพิ่ม แก้ไข ปิดใช้งาน หรือลบบัญชีพนักงานได้ ใช้สำหรับระบุตัวผู้ทำรายการในระบบและ Audit Log</p>
                     <p className={`text-xs mt-2 font-bold ${isDarkMode ? 'text-amber-300' : 'text-amber-700'}`}>* เวอร์ชันทดลองนี้เป็นระบบล็อกอินภายในของเว็บ ยังไม่ใช่ Firebase Auth แบบองค์กร</p>
                     <p className={`text-xs mt-1 font-bold ${isDarkMode ? 'text-indigo-200' : 'text-indigo-700'}`}>* ระบบจะกัน PIN ที่เดาง่ายเกินไป ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง และไม่แสดง PIN เดิมบนหน้าจอ</p>
                   </div>
 
-                  <div className={`p-5 rounded-[1.6rem] border shadow-[0_12px_35px_rgba(15,23,42,0.10)] ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`p-5 rounded-[1.35rem] border shadow-[0_12px_35px_rgba(15,23,42,0.10)] ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                     <h5 className={`font-black text-lg mb-4 ${theme.textTitle}`}>{editingAccountId ? 'แก้ไขบัญชี' : 'เพิ่มบัญชีพนักงานใหม่'}</h5>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
@@ -24428,12 +24428,12 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </div>
               ) : settingsTab === 'display' ? (
                 <div className="p-5 sm:p-6 lg:p-7 space-y-5">
-                  <div className={`p-5 rounded-[1.6rem] border ${isDarkMode ? 'bg-teal-900/20 border-teal-800' : 'bg-teal-50 border-teal-200'}`}>
+                  <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-teal-900/20 border-teal-800' : 'bg-teal-50 border-teal-200'}`}>
                     <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.ViewGrid className="w-6 h-6 text-teal-500"/> ตั้งค่าการแสดงผล</h4>
                     <p className={`text-sm font-bold ${theme.textMuted}`}>ปรับหน้าเว็บให้เหมาะกับการใช้งานจริง เลือกได้ว่าจะเน้นโล่งสบายตาหรือเห็นข้อมูลเยอะขึ้น</p>
                   </div>
 
-                  <div className={`p-5 rounded-[1.6rem] border shadow-[0_12px_35px_rgba(15,23,42,0.10)] ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div className={`p-5 rounded-[1.35rem] border shadow-[0_12px_35px_rgba(15,23,42,0.10)] ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
                     <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>ความแน่นของหน้าจอ</div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {[
@@ -24474,19 +24474,19 @@ ${auditChangeSummary}` : auditChangeSummary);
                     ))}
                   </div>
 
-                  <div className={`p-5 rounded-[1.6rem] border ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
+                  <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
                     <div className={`font-black mb-2 ${theme.textTitle}`}>แนะนำสำหรับศูนย์ MDEC</div>
                     <div className={`text-sm font-bold ${theme.textMuted}`}>ใช้ Comfortable + Card View บนมือถือ สำหรับเจ้าหน้าที่ทั่วไป และใช้ Compact บนคอมของบัญชีกลางเมื่อต้องInventory Managementจำนวนมาก</div>
                   </div>
                 </div>
               ) : settingsTab === 'documents' ? (
                 <div className="p-5 sm:p-6 lg:p-7 space-y-5">
-                  <div className={`p-5 rounded-[1.6rem] border ${isDarkMode ? 'bg-sky-900/20 border-sky-800' : 'bg-sky-50 border-sky-200'}`}>
+                  <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-sky-900/20 border-sky-800' : 'bg-sky-50 border-sky-200'}`}>
                     <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.พิมพ์er className="w-6 h-6 text-sky-500"/> เอกสารและการพิมพ์</h4>
                     <p className={`text-sm font-bold ${theme.textMuted}`}>ใบยืม ใบออกงาน และใบรับคืนใช้ดีไซน์ A4 มาตรฐานของระบบแล้ว ไม่เปิดให้ปรับลายน้ำหรือขนาดโลโก้ก่อนพิมพ์ เพื่อให้เอกสารออกมาสวยและคงที่ทุกครั้ง</p>
                   </div>
 
-                  <div className={`p-5 rounded-[1.6rem] border shadow-[0_12px_35px_rgba(15,23,42,0.10)] ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  <div className={`p-5 rounded-[1.35rem] border shadow-[0_12px_35px_rgba(15,23,42,0.10)] ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
                     <div className={`font-black text-lg mb-2 ${theme.textTitle}`}>มาตรฐานเอกสารปฏิบัติงาน</div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {[
@@ -24523,7 +24523,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     ))}
                   </div>
 
-                  <div className={`p-5 rounded-[1.6rem] border ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
+                  <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
                     <div className={`font-black mb-2 ${theme.textTitle}`}>หมายเหตุ</div>
                     <div className={`text-sm font-bold ${theme.textMuted}`}>ระบบล็อกดีไซน์ใบยืม/ใบออกงาน/ใบรับคืนให้เรียบร้อยแล้ว ถ้าจะปรับดีไซน์เอกสารให้แก้ผ่านโค้ดเป็นแพ็กอัปเดต ไม่ให้ผู้ใช้ปลายทางเลือกโลโก้/ลายน้ำจนหน้าพิมพ์เพี้ยน</div>
                   </div>
@@ -24705,12 +24705,12 @@ ${auditChangeSummary}` : auditChangeSummary);
                                                 setShowHistory(target.id);
                                               }
                                             }}
-                                            className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}
+                                            className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}
                                           >เปิด</button>
                                           <button
                                             type="button"
                                             onClick={() => target && copyItemSummary(target)}
-                                            className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}
+                                            className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}
                                           >คัดลอกสรุป</button>
                                         </div>
                                       </div>
@@ -26096,7 +26096,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
 
               <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 space-y-4">
-                <div className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                   <div className={`p-5 sm:p-6 border-b ${isDarkMode ? 'border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950' : 'border-slate-200 bg-gradient-to-br from-sky-50 to-white'}`}>
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                       <div className="min-w-0 flex-1">
@@ -27155,7 +27155,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมอุปกรณ์ชำรุด ส่งซ่อม เสียซ้ำ และประวัติบำรุงรักษาไว้ในหน้าเดียว</p>
               </div>
-              <div className="flex flex-wrap gap-2 shrink-0">
+              <div className="flex flex-wrap gap-1.5 shrink-0">
                 <button type="button" onClick={exportRepairCenterCSV} className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">Export CSV</button>
                 <button type="button" onClick={printRepairCenterReport} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>พิมพ์รายงาน</button>
                 <button type="button" onClick={() => setShowRepairCenterModal(false)} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnCancel}`}>ปิด</button>
@@ -27444,7 +27444,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
 
               <div className={`p-2.5 rounded-lg border grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาชื่อโครงการ / ชื่ออุปกรณ์ / S.N. / ห้องเก็บ" value={projectManagerSearch} onChange={e => setProjectManagerSearch(e.target.value)} />
+                <input className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาชื่อโครงการ / ชื่ออุปกรณ์ / S.N. / ห้องเก็บ" value={projectManagerSearch} onChange={e => setProjectManagerSearch(e.target.value)} />
                 <button type="button" onClick={() => setProjectManagerSearch('')} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างค้นหา</button>
               </div>
 
@@ -27472,7 +27472,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                               <div className={`font-black text-xl truncate ${theme.textTitle}`}>{project.name}</div>
                               <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ทั้งหมด {project.total} รายการ • ใช้งานอยู่ {project.active || 0} • จำหน่ายแล้ว {project.disposed || 0} • สูญหาย {project.lost || 0}</div>
                             </div>
-                            <div className="flex flex-wrap gap-2 shrink-0">
+                            <div className="flex flex-wrap gap-1.5 shrink-0">
                               {canAddEditItems && project.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectAssign(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-600 hover:bg-blue-500 text-white">จัดอุปกรณ์</button>}
                               <button type="button" onClick={() => openProjectพิมพ์(project.name)} className="px-3 py-2 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 text-white">พิมพ์รายงาน</button>
                               <button type="button" onClick={() => { setFilterProject([project.name]); setShowProjectsModal(false); }} className="px-3 py-2 rounded-xl text-sm font-black bg-indigo-600 hover:bg-indigo-500 text-white">ดูเฉพาะโครงการนี้</button>
@@ -27546,9 +27546,9 @@ ${auditChangeSummary}` : auditChangeSummary);
               <button type="button" onClick={() => setShowProjectAssignModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="p-4 border-b grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3">
-              <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / หมวดหมู่ / ห้องเก็บ / โครงการเดิม" value={projectAssignSearch} onChange={e => setProjectAssignSearch(e.target.value)} />
+              <input className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / หมวดหมู่ / ห้องเก็บ / โครงการเดิม" value={projectAssignSearch} onChange={e => setProjectAssignSearch(e.target.value)} />
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>เลือกแล้ว {projectAssignSelectedIds.length.toLocaleString('th-TH')} รายการ</div>
+                <div className={`px-3.5 py-2.5 rounded-xl border font-black text-center text-sm ${theme.btnSecondary}`}>เลือกแล้ว {projectAssignSelectedIds.length.toLocaleString('th-TH')} รายการ</div>
                 <button type="button" onClick={() => setProjectAssignSelectedIds(prev => [...new Set([...prev, ...projectAssignCandidateItems.map(item => item.id)])])} className="px-4 py-3 rounded-xl bg-blue-600 text-white font-black">เลือกที่ค้นหาทั้งหมด</button>
                 <button type="button" onClick={() => { const visibleIds = new Set(projectAssignCandidateItems.map(item => item.id)); setProjectAssignSelectedIds(prev => prev.filter(id => !visibleIds.has(id))); }} className={`px-4 py-3 rounded-xl border font-black ${theme.btnCancel}`}>ล้างที่ค้นหา</button>
               </div>
@@ -27622,8 +27622,8 @@ ${auditChangeSummary}` : auditChangeSummary);
             </div>
 
             <div className={`p-4 border-b grid grid-cols-1 lg:grid-cols-[1fr_220px_auto] gap-3 ${theme.divide}`}>
-              <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / ผู้รับคืน / วันที่ / หมายเหตุ" value={historyCenterSearch} onChange={e => setHistoryCenterSearch(e.target.value)} />
-              <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={historyCenterFilter} onChange={e => setHistoryCenterFilter(e.target.value)}>
+              <input className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / ผู้รับคืน / วันที่ / หมายเหตุ" value={historyCenterSearch} onChange={e => setHistoryCenterSearch(e.target.value)} />
+              <select className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} value={historyCenterFilter} onChange={e => setHistoryCenterFilter(e.target.value)}>
                 <option value="all">ทุกประเภท</option>
                 <option value="borrow">ยืม</option>
                 <option value="event">ออกงาน</option>
@@ -27632,7 +27632,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <option value="system">ระบบหลัก</option>
                 <option value="projectChange">โครงการ</option>
               </select>
-              <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{filteredHistoryCenterEntries.length.toLocaleString('th-TH')} รายการ</div>
+              <div className={`px-3.5 py-2.5 rounded-xl border font-black text-center text-sm ${theme.btnSecondary}`}>{filteredHistoryCenterEntries.length.toLocaleString('th-TH')} รายการ</div>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5">
@@ -27738,7 +27738,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   onChange={e => setProofCenterSearch(e.target.value)}
                 />
               </div>
-              <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={proofCenterFilter} onChange={e => setProofCenterFilter(e.target.value)}>
+              <select className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} value={proofCenterFilter} onChange={e => setProofCenterFilter(e.target.value)}>
                 <option value="all">หลักฐานทั้งหมด</option>
                 <option value="borrow">การยืม</option>
                 <option value="event">ออกงาน</option>
