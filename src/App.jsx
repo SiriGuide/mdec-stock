@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.83 Compact Tracking Group Cards';
-const APP_UPDATE_NOTE = 'Compact Tracking Group Cards: ปรับหน้าติดตามของรอคืนให้ใช้การ์ดกลุ่มแบบ compact เหมือนหน้ารับคืน แสดงผู้ยืม/งาน จำนวนทั้งหมด คืนแล้ว รอคืน และรายการอุปกรณ์ 2 คอลัมน์';
+const APP_VERSION = 'v23.1.84 Tracking Group Data Dedup Fix';
+const APP_UPDATE_NOTE = 'Tracking Group Data Dedup Fix: แก้หน้าติดตามของรอคืนที่นับกลุ่ม/จำนวนผิดจากเอกสารซ้ำหรือเอกสารเก่า โดยกัน item ซ้ำข้ามเอกสาร และคำนวณทั้งหมด/คืนแล้ว/รอคืนจากรายการที่ยังรอคืนจริง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -13981,19 +13981,34 @@ S.N.: ${item.sn || '-'}
       const usedIds = new Set();
       const cards = [];
 
-      asArray(borrowเอกสารs).forEach((docData, docIndex) => {
-        const docIds = asArray(docData.itemIds).filter(Boolean);
+      const openDocs = asArray(borrowเอกสารs)
+        .filter((docData) => {
+          const status = docData?.status || 'active';
+          return !['closed', 'return-record', 'deleted', 'cancelled'].includes(status);
+        })
+        .map((docData, docIndex) => ({ docData, docIndex }))
+        .sort((a, b) => new Date(b.docData?.date || b.docData?.createdAt || 0) - new Date(a.docData?.date || a.docData?.createdAt || 0));
+
+      openDocs.forEach(({ docData, docIndex }) => {
+        const docIds = Array.from(new Set(asArray(docData.itemIds).filter(Boolean)));
         if (docIds.length === 0) return;
+
+        // กันข้อมูลซ้ำจากเอกสารเก่าหรือเอกสารซ้ำ: ถ้า item ถูกจับเข้า group ไปแล้ว จะไม่เอามานับซ้ำอีก
         const remainingItems = docIds
           .map(id => items.find(item => item && item.id === id && !item.isDeleted))
-          .filter(item => item && visibleIds.has(item.id) && (item.status === 'borrowed' || item.status === 'out-for-event'));
+          .filter(item => item && !usedIds.has(item.id) && visibleIds.has(item.id) && (item.status === 'borrowed' || item.status === 'out-for-event'));
         if (remainingItems.length === 0) return;
 
         const allDocItems = docIds
           .map(id => items.find(item => item && item.id === id && !item.isDeleted))
           .filter(Boolean);
         const returnedIds = new Set(asArray(docData.returnedItemIds).filter(Boolean));
-        const returnedCount = Math.max(returnedIds.size, allDocItems.length - remainingItems.length);
+        const returnedInDocCount = docIds.filter(id => returnedIds.has(id)).length;
+
+        // ในหน้าติดตาม ให้ยึด “ของที่ยังรอคืนจริงในหน้าปัจจุบัน” เป็นหลัก
+        // ป้องกันเคสเอกสารเก่า/ข้อมูลซ้ำทำให้ 3 ชิ้น กลายเป็น 4 กลุ่ม หรือจำนวนคืนแล้วเพี้ยน
+        const returnedCount = returnedInDocCount;
+        const totalCount = Math.max(remainingItems.length + returnedCount, remainingItems.length);
         remainingItems.forEach(item => usedIds.add(item.id));
 
         const anyEvent = docData.type === 'event' || remainingItems.some(item => item.status === 'out-for-event');
@@ -14011,12 +14026,13 @@ S.N.: ${item.sn || '-'}
           dueText: mainInfo.dueText || '-',
           statusLabel: mainInfo.label || 'รอคืน',
           statusTone: mainInfo.tone || 'emerald',
-          total: Math.max(docIds.length, allDocItems.length, remainingItems.length),
+          total: totalCount,
           returnedCount,
           remainingCount: remainingItems.length,
           items: remainingItems,
           allItems: allDocItems,
-          isPartial: returnedCount > 0 && remainingItems.length > 0
+          isPartial: returnedCount > 0 && remainingItems.length > 0,
+          isDeduped: docIds.length > remainingItems.length + returnedCount
         });
       });
 
@@ -14058,15 +14074,18 @@ S.N.: ${item.sn || '-'}
         legacyGroups[key].allItems.push(item);
         legacyGroups[key].total += 1;
         legacyGroups[key].remainingCount += 1;
+        usedIds.add(item.id);
       });
 
       Object.values(legacyGroups).forEach(group => cards.push(group));
-      return cards.sort((a, b) => {
-        const toneOrder = { rose: 0, amber: 1, emerald: 2, slate: 3 };
-        const toneDiff = (toneOrder[a.statusTone] ?? 9) - (toneOrder[b.statusTone] ?? 9);
-        if (toneDiff !== 0) return toneDiff;
-        return new Date(b.date || 0) - new Date(a.date || 0);
-      });
+      return cards
+        .filter(card => card.remainingCount > 0 && card.items.length > 0)
+        .sort((a, b) => {
+          const toneOrder = { rose: 0, amber: 1, emerald: 2, slate: 3 };
+          const toneDiff = (toneOrder[a.statusTone] ?? 9) - (toneOrder[b.statusTone] ?? 9);
+          if (toneDiff !== 0) return toneDiff;
+          return new Date(b.date || 0) - new Date(a.date || 0);
+        });
     };
 
     const trackingGroupCards = buildTrackingGroupCards();
@@ -14131,10 +14150,11 @@ S.N.: ${item.sn || '-'}
             )}
           </div>
 
-          {(card.isPartial || card.isLegacy) && (
+          {(card.isPartial || card.isLegacy || card.isDeduped) && (
             <div className="px-4 py-2 border-t border-slate-800 text-[11px] font-bold text-slate-400 flex flex-wrap gap-2">
               {card.isPartial && <span className="text-amber-300">คืนบางส่วนแล้ว เหลือ {card.remainingCount.toLocaleString('th-TH')} ชิ้น</span>}
               {card.isLegacy && <span>ข้อมูลเก่า: รวมจากผู้ยืม/ชื่องานเดียวกัน</span>}
+              {card.isDeduped && <span>มีรายการซ้ำจากเอกสารเก่า ระบบไม่นับซ้ำในหน้านี้</span>}
             </div>
           )}
         </div>
