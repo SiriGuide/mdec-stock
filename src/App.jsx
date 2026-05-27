@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.86 Compact Single Proof Evidence Layout';
-const APP_UPDATE_NOTE = 'Compact Single Proof Evidence Layout: ย่อหน้าหลักฐานรูปภาพให้กระชับขึ้น ลดขนาดการ์ด/ช่องรายการ/รูปหลักฐาน และลด padding โดยยังคง Single Proof View';
+const APP_VERSION = 'v23.1.87 Records Docs History Cleanup';
+const APP_UPDATE_NOTE = 'Records Docs History Cleanup: ซ่อนใบรับคืนออกจากเอกสารย้อนหลัง ไม่เด้งพิมพ์ใบคืนหลังรับคืน แก้ปุ่มดูประวัติให้ค้นหาด้วยผู้ยืม/ชื่องาน/อุปกรณ์แทนเลขเอกสาร และเอาปุ่มเปิดแฟ้มในหลักฐานรูปภาพออก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -9532,6 +9532,9 @@ function MainApp() {
   const filteredBorrowเอกสารs = useMemo(() => {
     const q = String(borrowDocSearch || '').trim().toLowerCase();
     return (borrowเอกสารs || []).filter(doc => {
+      // v23.1.87: ใบรับคืนไม่จำเป็นในเอกสารย้อนหลังแล้ว
+      // รับคืนยังถูกเก็บในประวัติส่วนกลาง/หลักฐานรูปภาพ/สถานะเอกสารเดิม แต่ไม่สร้างความรกในรายการเอกสาร
+      if (doc.type === 'return' || doc.status === 'return-record') return false;
       const status = doc.status || 'active';
       const matchFilter = borrowDocFilter === 'all' || status === borrowDocFilter || doc.type === borrowDocFilter;
       if (!matchFilter) return false;
@@ -14270,7 +14273,6 @@ S.N.: ${item.sn || '-'}
                     <option value="all">เอกสารทั้งหมด</option>
                     <option value="borrow">ใบยืม</option>
                     <option value="event">ใบออกงาน</option>
-                    <option value="return">ใบรับคืน</option>
                     <option value="active">รอคืน</option>
                     <option value="closed">คืนครบแล้ว</option>
                   </select>
@@ -14287,7 +14289,22 @@ S.N.: ${item.sn || '-'}
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 shrink-0">
                           <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-black">พิมพ์/Preview</button>
-                          <button type="button" onClick={() => { setHistoryCenterSearch(docData.ref || docData.borrower || ''); setRecordsCenterMode('history'); }} className={`px-3 py-2 rounded-lg border text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
+                          <button type="button" onClick={() => {
+                            const firstItem = asArray(docData.items)[0] || {};
+                            const historyKey = String(
+                              docData.borrower ||
+                              docData.eventName ||
+                              docData.subject ||
+                              docData.staffOut ||
+                              docData.operatorName ||
+                              firstItem.sn ||
+                              firstItem.name ||
+                              ''
+                            ).trim();
+                            setHistoryCenterSearch(historyKey);
+                            setHistoryCenterFilter('all');
+                            setRecordsCenterMode('history');
+                          }} className={`px-3 py-2 rounded-lg border text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
                           {canDeleteItems && (
                             <button type="button" onClick={() => handleDeleteBorrowเอกสาร(docData)} className={`col-span-2 lg:col-span-1 px-3 py-2 rounded-lg border text-sm font-black ${isDarkMode ? 'bg-rose-950/35 border-rose-800/70 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>ลบ</button>
                           )}
@@ -14690,7 +14707,6 @@ S.N.: ${item.sn || '-'}
                                 <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{selectedItems.length.toLocaleString('th-TH')} อุปกรณ์ที่เกี่ยวข้อง • รูปหลักฐาน 1 รูป • {selectedGroup.isLegacyBatch ? 'ข้อมูลเก่า' : 'ข้อมูลปัจจุบัน'}</p>
                               </div>
                               <div className="flex flex-wrap gap-1.5 shrink-0">
-                                {selectedGroup.itemId && <button type="button" onClick={() => setShowHistory(selectedGroup.itemId)} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
                                 <button type="button" onClick={() => { setHistoryCenterSearch(selectedGroup.sn || selectedGroup.itemName || selectedSubject || ''); setRecordsCenterMode('history'); }} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
                                 {canUseOperationalTools && previewProof && (
                                   <button
@@ -17584,7 +17600,7 @@ S.N.: ${item.sn || '-'}
       summaryCards: [
         { label: 'อุปกรณ์ใช้งานอยู่', value: activeItems.length, desc: 'ไม่รวมรายการในถังขยะ', tone: 'blue' },
         { label: 'ประวัติทั้งหมด', value: historyCount, desc: 'ยืม/คืน/ออกงาน/ซ่อม', tone: 'purple' },
-        { label: 'เอกสารย้อนหลัง', value: (borrowเอกสารs || []).length, desc: 'ใบยืม/ใบออกงาน/ใบรับคืน', tone: 'sky' },
+        { label: 'เอกสารย้อนหลัง', value: (borrowเอกสารs || []).length, desc: 'ใบยืม/ใบออกงาน', tone: 'sky' },
         { label: 'รูปหลักฐาน', value: historyProofCount, desc: 'จากประวัติอุปกรณ์', tone: 'pink' },
         { label: 'ของค้างคืน/ออกงาน', value: outsideCount, desc: 'ควรปิดก่อนสิ้นปี', tone: outsideCount > 0 ? 'rose' : 'emerald' },
         { label: 'ยังไม่พบจากตรวจนับ', value: stockCountStats.notFound.length, desc: 'จากรอบตรวจนับล่าสุด', tone: stockCountStats.notFound.length > 0 ? 'amber' : 'emerald' }
@@ -18646,14 +18662,14 @@ ${auditChangeSummary}` : auditChangeSummary);
 
       logAction('รับคืนอุปกรณ์', `ทำรายการ ${finalReturnChecklist.length} ชิ้น / ชุดกล้อง ${getCameraOperationItemGroups(finalReturnChecklist, 'return').length} ชุด`, `จนท.ผู้รับคืน: ${finalStaff}\nเลขที่เอกสารรับคืน: ${returnDocRef}\nรายการ: ${returnedNames.join(', ')}`);
 
-      setพิมพ์SlipData(returnDocumentSnapshot);
+      // v23.1.87: ไม่เปิด/สร้างใบรับคืนให้พิมพ์แล้ว ใช้ประวัติส่วนกลาง + หลักฐานรูปภาพแทน
       setReturnTargetIds([]);
       setReturnChecklist([]);
       setSelectedItems([]); 
       setReturnData({ staff: '', newStaff: '' });
       setReturnInspection({});
       setReturnProofFiles([]);
-      pushToast(finalReturnChecklist.length < returnTargetIds.length ? 'รับคืนบางส่วนสำเร็จ' : 'รับคืนสำเร็จ', `สร้างเอกสาร ${returnDocRef} • รับคืน ${finalReturnChecklist.length} รายการ`, finalReturnChecklist.length < returnTargetIds.length ? 'warning' : 'success');
+      pushToast(finalReturnChecklist.length < returnTargetIds.length ? 'รับคืนบางส่วนสำเร็จ' : 'รับคืนสำเร็จ', `บันทึกรับคืน ${finalReturnChecklist.length} รายการ`, finalReturnChecklist.length < returnTargetIds.length ? 'warning' : 'success');
       alert('✅ รับคืนอุปกรณ์เรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
