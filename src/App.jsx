@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.81 Return Group Cards Only';
-const APP_UPDATE_NOTE = 'Return Group Cards Only: หน้ารับคืนจะแสดงเป็นการ์ดกลุ่มก่อน ไม่ซ้อนรายการอุปกรณ์เดี่ยว ถ้าจะคืนบางชิ้นให้กดรับคืนกลุ่มแล้วไปติ๊กออกในขั้นตอนถัดไป';
+const APP_VERSION = 'v23.1.82 Compact Return Group Cards';
+const APP_UPDATE_NOTE = 'Compact Return Group Cards: ปรับการ์ดรับคืนแบบกลุ่มให้เตี้ยลง กระชับขึ้น ใช้หัวการ์ดแบบสรุป ชิปสถานะ และรายการอุปกรณ์ 2 คอลัมน์แบบ compact ตามแบบใหม่';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11823,43 +11823,69 @@ S.N.: ${item.sn || '-'}
     };
 
     const renderReturnGroupCard = (card) => {
-      const selectedIdsInCard = card.items.filter(item => actionTargetIds.includes(item.id)).map(item => item.id);
-      const isSelectedAll = card.items.length > 0 && selectedIdsInCard.length === card.items.length;
-      const toneClass = card.type === 'event'
-        ? (isDarkMode ? 'bg-orange-950/20 border-orange-800/55' : 'bg-orange-50 border-orange-200')
-        : (isDarkMode ? 'bg-emerald-950/20 border-emerald-800/55' : 'bg-emerald-50 border-emerald-200');
+      const compactItems = asArray(card.items).slice(0, 8);
+      const extraCount = Math.max(0, asArray(card.items).length - compactItems.length);
+      const isEvent = card.type === 'event';
+      const avatarClass = isEvent
+        ? (isDarkMode ? 'bg-orange-500/18 text-orange-200 border-orange-400/25' : 'bg-orange-100 text-orange-700 border-orange-200')
+        : (isDarkMode ? 'bg-emerald-500/18 text-emerald-200 border-emerald-400/25' : 'bg-emerald-100 text-emerald-700 border-emerald-200');
+      const cardClass = isDarkMode
+        ? 'bg-slate-950/55 border-slate-800/80 hover:border-emerald-700/50'
+        : 'bg-white/90 border-slate-200 hover:border-emerald-300';
+      const itemClass = isDarkMode
+        ? 'bg-slate-900/70 border-slate-700/70 hover:border-slate-600'
+        : 'bg-slate-50 border-slate-200 hover:border-slate-300';
       return (
-        <div key={card.id} className={`rounded-[1.35rem] border overflow-hidden ${toneClass}`}>
-          <div className="p-3 sm:p-4 flex flex-col lg:flex-row lg:items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className={`text-[10px] font-black uppercase tracking-[0.16em] ${theme.textMuted}`}>Return Group</div>
-              <div className={`text-base sm:text-lg font-black mt-1 ${theme.textTitle}`}>{card.typeLabel}: {card.title || '-'}</div>
-              <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>
-                เลขที่ {card.ref || '-'} • ทั้งหมด {card.total.toLocaleString('th-TH')} ชิ้น • คืนแล้ว {card.returnedCount.toLocaleString('th-TH')} • รอคืน {card.remainingCount.toLocaleString('th-TH')}
+        <div key={card.id} className={`rounded-[1.35rem] border overflow-hidden transition-colors ${cardClass}`}>
+          <div className="px-3.5 sm:px-4 py-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+            <div className="min-w-0 flex items-start gap-3">
+              <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 text-lg font-black ${avatarClass}`}>
+                {isEvent ? '🎬' : '👥'}
               </div>
-              {card.isPartial && <div className="inline-flex mt-2 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25 text-[10px] font-black">คืนบางส่วนแล้ว เหลือ {card.remainingCount.toLocaleString('th-TH')} ชิ้น</div>}
-              {card.isLegacy && <div className={`text-[10px] font-bold mt-2 ${theme.textMuted}`}>ข้อมูลเก่า: รวมจากผู้ยืม/ชื่องานเดียวกัน เพราะอาจไม่มีเลขเอกสารกลุ่มครบ</div>}
+              <div className="min-w-0">
+                <div className={`text-[10px] font-black uppercase tracking-[0.16em] ${theme.textMuted}`}>RETURN GROUP</div>
+                <div className={`text-base font-black mt-0.5 truncate ${theme.textTitle}`}>{card.typeLabel}: {card.title || '-'}</div>
+                <div className={`text-[11px] font-bold mt-0.5 truncate ${theme.textMuted}`}>เลขที่ {card.ref || '-'}{card.staffOut && card.staffOut !== '-' ? ` • ผู้ทำรายการ ${card.staffOut}` : ''}</div>
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:flex gap-2 shrink-0">
-              <button type="button" onClick={() => selectReturnGroupCard(card)} className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-sm">
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <span className={`px-3 py-1.5 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>ทั้งหมด {card.total.toLocaleString('th-TH')} ชิ้น</span>
+              <span className={`px-3 py-1.5 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>คืนแล้ว {card.returnedCount.toLocaleString('th-TH')}</span>
+              <span className={`px-3 py-1.5 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>รอคืน {card.remainingCount.toLocaleString('th-TH')}</span>
+              <button type="button" onClick={() => selectReturnGroupCard(card)} className="ml-0 xl:ml-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-sm">
                 รับคืนกลุ่มนี้
               </button>
             </div>
           </div>
-          <div className={`px-3 sm:px-4 pb-3 sm:pb-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2`}>
-            {card.items.map(item => (
+
+          <div className={`border-t ${isDarkMode ? 'border-slate-800/70' : 'border-slate-200'}`} />
+
+          <div className="px-3.5 sm:px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+            {compactItems.map(item => (
               <div
                 key={`${card.id}_${item.id}`}
-                className={`rounded-2xl border px-3 py-2 ${isDarkMode ? 'bg-slate-950/55 border-slate-700 text-slate-200' : 'bg-white/85 border-slate-200 text-slate-700'}`}
+                className={`rounded-2xl border px-3 py-2.5 min-h-[58px] flex items-center justify-between gap-3 ${itemClass}`}
               >
-                <div className="text-xs font-black leading-tight truncate">{item.name || '-'}</div>
-                <div className={`text-[10px] font-bold mt-0.5 truncate ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || item.storageLocation || '-'}</div>
+                <div className="min-w-0">
+                  <div className={`text-sm font-black leading-tight truncate ${theme.textTitle}`}>{item.name || '-'}</div>
+                  <div className={`text-[11px] font-bold mt-0.5 truncate ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || item.storageLocation || '-'}</div>
+                </div>
+                <span className={`text-lg shrink-0 ${theme.textMuted}`}>›</span>
               </div>
             ))}
+            {extraCount > 0 && (
+              <div className={`rounded-2xl border px-3 py-2.5 min-h-[58px] flex items-center justify-center text-xs font-black ${isDarkMode ? 'bg-slate-900/55 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                + อีก {extraCount.toLocaleString('th-TH')} รายการ
+              </div>
+            )}
           </div>
-          {card.remainingCount < card.total && (
-            <div className={`px-4 py-2 border-t text-[11px] font-bold ${isDarkMode ? 'border-white/10 text-slate-400' : 'border-slate-200 text-slate-500'}`}>
-              ถ้าคืนไม่ครบ: กด “รับคืนกลุ่มนี้” ก่อน แล้วไปติ๊กออกในขั้นตอนเช็กของ ระบบจะบันทึกเป็น “คืนบางส่วน” และรอบหน้าการ์ดนี้จะเหลือเฉพาะของที่ยังไม่คืน
+
+          {(card.isPartial || card.isLegacy) && (
+            <div className={`px-4 py-2 border-t flex flex-wrap gap-2 text-[11px] font-bold ${isDarkMode ? 'border-slate-800 text-slate-400' : 'border-slate-200 text-slate-500'}`}>
+              {card.isPartial && <span className="text-amber-300">คืนบางส่วนแล้ว เหลือ {card.remainingCount.toLocaleString('th-TH')} ชิ้น</span>}
+              {card.isLegacy && <span>ข้อมูลเก่า: รวมจากผู้ยืม/ชื่องานเดียวกัน</span>}
+              <span>ถ้าคืนไม่ครบ ให้กดรับคืนกลุ่มนี้ แล้วติ๊กออกในขั้นตอนถัดไป</span>
             </div>
           )}
         </div>
@@ -12521,10 +12547,15 @@ S.N.: ${item.sn || '-'}
                 )}
 
                 {borrowReturnMode === 'return' && !q && returnGroupCards.length > 0 && (
-                  <div className="mx-2.5 sm:mx-3 mt-3 space-y-3">
-                    <div className={`rounded-2xl border px-4 py-3 ${isDarkMode ? 'bg-emerald-950/16 border-emerald-800/50' : 'bg-emerald-50 border-emerald-200'}`}>
-                      <div className={`text-sm font-black ${theme.textTitle}`}>รับคืนแบบกลุ่ม</div>
-                      <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>แสดงเป็นการ์ดกลุ่มเท่านั้น ไม่ซ้อนรายการอุปกรณ์เดี่ยว ถ้าจะคืนไม่ครบ ให้กดรับคืนกลุ่มแล้วไปติ๊กออกในขั้นตอนถัดไป</div>
+                  <div className="mx-2.5 sm:mx-3 mt-3 space-y-2.5">
+                    <div className={`rounded-2xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${isDarkMode ? 'bg-slate-950/55 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div>
+                        <div className={`text-sm font-black ${theme.textTitle}`}>รับคืนแบบกลุ่ม</div>
+                        <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>แสดงเฉพาะการ์ดกลุ่ม ลดรายการซ้ำ คืนไม่ครบให้ไปติ๊กออกในขั้นตอนถัดไป</div>
+                      </div>
+                      <div className={`text-xs font-black px-3 py-1.5 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+                        {returnGroupCards.length.toLocaleString('th-TH')} กลุ่ม
+                      </div>
                     </div>
                     {returnGroupCards.map(renderReturnGroupCard)}
                   </div>
