@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.84 Tracking Group Data Dedup Fix';
-const APP_UPDATE_NOTE = 'Tracking Group Data Dedup Fix: แก้หน้าติดตามของรอคืนที่นับกลุ่ม/จำนวนผิดจากเอกสารซ้ำหรือเอกสารเก่า โดยกัน item ซ้ำข้ามเอกสาร และคำนวณทั้งหมด/คืนแล้ว/รอคืนจากรายการที่ยังรอคืนจริง';
+const APP_VERSION = 'v23.1.85 Single Proof Evidence Layout';
+const APP_UPDATE_NOTE = 'Single Proof Evidence Layout: ปรับหน้าหลักฐานรูปภาพเป็น Single Proof View ใช้งานจริงกับรูปหลักฐาน 1 รูปต่อรายการ มีรายการหลักฐานซ้าย รายละเอียดกลาง และรูปหลักฐานเดี่ยวด้านขวา';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7114,6 +7114,7 @@ function MainApp() {
   const [showProofCenterModal, setShowProofCenterModal] = useState(false);
   const [proofCenterFilter, setProofCenterFilter] = useState('all');
   const [proofCenterSearch, setProofCenterSearch] = useState('');
+  const [selectedProofGroupId, setSelectedProofGroupId] = useState('');
   const [showHistoryCenterModal, setShowHistoryCenterModal] = useState(false);
   const [historyCenterFilter, setHistoryCenterFilter] = useState('all');
   const [historyCenterSearch, setHistoryCenterSearch] = useState('');
@@ -14561,19 +14562,21 @@ S.N.: ${item.sn || '-'}
 
             {recordsCenterMode === 'proofs' && (
               <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <div className={`p-4 border-b grid grid-cols-1 xl:grid-cols-[1fr_220px_auto] gap-3 ${theme.divide}`}>
+                <div className={`p-4 border-b grid grid-cols-1 xl:grid-cols-[1fr_220px_180px_auto] gap-3 ${theme.divide}`}>
                   <input className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน / ผู้ใช้งาน" value={proofCenterSearch} onChange={e => setProofCenterSearch(e.target.value)} />
                   <select className={`px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={proofCenterFilter} onChange={e => setProofCenterFilter(e.target.value)}>
-                    <option value="all">แฟ้มหลักฐานรายงาน/รายกลุ่ม</option>
-                    <option value="borrow">เฉพาะรูปตอนยืม</option>
-                    <option value="event">เฉพาะรูปออกงาน</option>
-                    <option value="return">เฉพาะรูปตอนรับคืน</option>
-                    <option value="repair">เฉพาะรูปซ่อม / ชำรุด</option>
+                    <option value="all">หลักฐานทั้งหมด</option>
+                    <option value="borrow">เฉพาะตอนยืม</option>
+                    <option value="event">เฉพาะออกงาน</option>
+                    <option value="return">เฉพาะรับคืน</option>
+                    <option value="repair">เฉพาะซ่อม / ชำรุด</option>
                     <option value="hiddenProofs">รูปในถังขยะ</option>
                     <option value="noNote">ยังไม่มีหมายเหตุ</option>
                   </select>
+                  <button type="button" onClick={() => { setProofCenterFilter('all'); setProofCenterSearch(''); setSelectedProofGroupId(''); }} className={`px-4 py-3 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
                   <div className={`px-4 py-3 rounded-xl border font-black text-center ${theme.btnSecondary}`}>{(proofCenterFilter === 'hiddenProofs' ? hiddenProofGroups.length : proofTimelineGroups.length).toLocaleString('th-TH')} แฟ้มหลักฐาน</div>
                 </div>
+
                 <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar">
                   {proofCenterFilter === 'hiddenProofs' ? (
                     hiddenProofGroups.length === 0 ? (
@@ -14604,121 +14607,180 @@ S.N.: ${item.sn || '-'}
                       </div>
                     )
                   ) : (
-                    proofTimelineGroups.length === 0 ? <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบหลักฐานรูปภาพ</div> : (
-                    <div className="space-y-3">
-                      {proofTimelineGroups.slice(0, 80).map(group => {
-                        const totalImages = group.entries.length;
-                        const primarySubject = Array.from(group.subjects || [])[0] || '-';
-                        const activeFilterKey = proofCenterFilter === 'return' ? 'return' : proofCenterFilter === 'event' ? 'event' : proofCenterFilter === 'repair' ? 'repair' : proofCenterFilter === 'borrow' ? 'borrow' : '';
-                        const scopedEntries = activeFilterKey ? (group.byType?.[activeFilterKey] || []) : (group.entries || []);
-                        const previewEntry = (scopedEntries.find(entry => entry?.proof && (entry.proof.url || entry.proof.thumbUrl || entry.proof.dataUrl)) || scopedEntries[0] || group.entries?.[0] || {});
-                        const previewProof = previewEntry.proof || {};
-                        const previewSrc = previewProof.url || previewProof.thumbUrl || previewProof.dataUrl || '';
-                        const currentTypeLabel = activeFilterKey === 'return' ? 'รับคืน' : activeFilterKey === 'event' ? 'ออกงาน' : activeFilterKey === 'repair' ? 'ซ่อม/ชำรุด' : activeFilterKey === 'borrow' ? 'ยืม' : (previewEntry.typeLabel || 'หลักฐาน');
-                        const currentEvents = activeFilterKey === 'return' ? (group.returnEvents || []) : activeFilterKey === 'event' ? (group.eventEvents || []) : activeFilterKey === 'repair' ? (group.repairEvents || []) : activeFilterKey === 'borrow' ? (group.borrowEvents || []) : [];
-                        return (
-                          <div key={group.groupId} className={`rounded-3xl border overflow-hidden relative ${isDarkMode ? 'bg-slate-900/80 border-slate-800/70' : 'bg-slate-50 border-slate-200'}`}>
-                            {canUseOperationalTools && previewProof && (
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteProofGroup({
-                                  groupId: getProofUniqueKey(previewProof) || group.groupId,
-                                  proof: previewProof,
-                                  representative: previewEntry,
-                                  entries: previewEntry ? [previewEntry] : group.entries,
-                                  itemRefs: group.itemRefs || []
-                                })}
-                                className="absolute top-3 right-3 z-10 px-3 py-2 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black shadow-lg"
-                              >
-                                ย้ายลงถังขยะ
-                              </button>
-                            )}
-
-                            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-3 p-3">
-                              <div className="p-4 sm:p-5 space-y-4">
-                                <div className="pr-32">
-                                  <div className={`text-xl font-black leading-tight ${theme.textTitle}`}>{activeFilterKey ? `${currentTypeLabel}: ${group.primarySubject || primarySubject}` : (group.title || group.itemName || '-')}</div>
-                                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>
-                                    {group.itemRefs?.length > 1 ? `${group.itemRefs.length} อุปกรณ์ที่เกี่ยวข้อง` : `S.N. ${group.sn || '-'}`} • รูปในมุมมองนี้ {(scopedEntries.length || totalImages).toLocaleString('th-TH')} รูป{group.isLegacyBatch ? ' • ข้อมูลเก่า' : ''}
-                                  </div>
-                                  <div className={`text-[11px] font-bold mt-1 truncate ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง: {primarySubject}</div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                  <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
-                                    <div className={`text-[10px] font-black ${theme.textMuted}`}>ประเภทหลักฐาน</div>
-                                    <div className={`text-xs font-black mt-0.5 ${theme.textTitle}`}>{currentTypeLabel}</div>
-                                  </div>
-                                  <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
-                                    <div className={`text-[10px] font-black ${theme.textMuted}`}>วันที่ / ผู้บันทึก</div>
-                                    <div className={`text-xs font-black mt-0.5 truncate ${theme.textTitle}`}>{previewEntry.date ? new Date(previewEntry.date).toLocaleString('th-TH', { hour12: false }) : '-'} • {previewEntry.staff || '-'}</div>
-                                  </div>
-                                </div>
-
-                                {group.itemRefs?.length > 0 && (
-                                  <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/35 border-slate-700/70' : 'bg-white border-slate-200'}`}>
-                                    <div className={`text-[10px] font-black tracking-[0.12em] uppercase ${theme.textMuted}`}>อุปกรณ์ที่เกี่ยวข้อง</div>
-                                    <div className="mt-2 space-y-1">
-                                      {group.itemRefs.slice(0, 10).map((ref, refIndex) => (
-                                        <div key={`proof_item_${group.groupId}_${ref.itemId || ref.sn || refIndex}`} className={`rounded-xl px-2.5 py-2 ${isDarkMode ? 'bg-slate-900/65' : 'bg-slate-50'}`}>
-                                          <div className={`text-xs font-black leading-tight ${theme.textTitle}`}>{ref.itemName || '-'}</div>
-                                          {ref.sn && <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>S.N. {ref.sn}</div>}
+                    proofTimelineGroups.length === 0 ? (
+                      <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบหลักฐานรูปภาพ</div>
+                    ) : (() => {
+                      const visibleGroups = proofTimelineGroups.slice(0, 80);
+                      const selectedGroup = visibleGroups.find(group => group.groupId === selectedProofGroupId) || visibleGroups[0] || {};
+                      const activeFilterKey = proofCenterFilter === 'return' ? 'return' : proofCenterFilter === 'event' ? 'event' : proofCenterFilter === 'repair' ? 'repair' : proofCenterFilter === 'borrow' ? 'borrow' : '';
+                      const getScopedEntries = (group) => activeFilterKey ? (group.byType?.[activeFilterKey] || []) : (group.entries || []);
+                      const selectedScopedEntries = getScopedEntries(selectedGroup);
+                      const previewEntry = (selectedScopedEntries.find(entry => entry?.proof && (entry.proof.url || entry.proof.thumbUrl || entry.proof.dataUrl)) || selectedScopedEntries[0] || selectedGroup.entries?.[0] || {});
+                      const previewProof = previewEntry.proof || {};
+                      const previewSrc = previewProof.url || previewProof.thumbUrl || previewProof.dataUrl || '';
+                      const currentTypeLabel = previewEntry.typeLabel || (activeFilterKey === 'return' ? 'รับคืน' : activeFilterKey === 'borrow' ? 'ยืม' : activeFilterKey === 'event' ? 'ออกงาน' : activeFilterKey === 'repair' ? 'ซ่อม' : 'หลักฐาน');
+                      const selectedSubject = selectedGroup.primarySubject || Array.from(selectedGroup.subjects || [])[0] || previewEntry.subject || previewEntry.staff || '-';
+                      const selectedTitle = `${currentTypeLabel}${selectedSubject && selectedSubject !== '-' ? `: ${selectedSubject}` : ''}`;
+                      const selectedItems = asArray(selectedGroup.itemRefs).slice(0, 12);
+                      const selectedDateText = previewEntry?.date ? new Date(previewEntry.date).toLocaleString('th-TH', { hour12: false }) : '-';
+                      const badgeClass = (type = '') => {
+                        if (type.includes('คืน') || type === 'return') return 'bg-emerald-600/16 border-emerald-500/30 text-emerald-200';
+                        if (type.includes('ออก') || type === 'event') return 'bg-orange-600/16 border-orange-500/30 text-orange-200';
+                        if (type.includes('ซ่อม') || type === 'repair') return 'bg-rose-600/16 border-rose-500/30 text-rose-200';
+                        return 'bg-blue-600/16 border-blue-500/30 text-blue-200';
+                      };
+                      const getGroupSummary = (group) => {
+                        const scoped = getScopedEntries(group);
+                        const entry = scoped.find(e => e?.proof && (e.proof.url || e.proof.thumbUrl || e.proof.dataUrl)) || scoped[0] || group.entries?.[0] || {};
+                        const label = entry.typeLabel || (activeFilterKey === 'return' ? 'รับคืน' : activeFilterKey === 'borrow' ? 'ยืม' : activeFilterKey === 'event' ? 'ออกงาน' : activeFilterKey === 'repair' ? 'ซ่อม' : 'หลักฐาน');
+                        const subject = group.primarySubject || Array.from(group.subjects || [])[0] || entry.subject || entry.staff || '-';
+                        const dateText = entry?.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-';
+                        return { entry, label, subject, dateText };
+                      };
+                      return (
+                        <div className="grid grid-cols-1 2xl:grid-cols-[440px_minmax(0,1fr)] gap-4">
+                          <aside className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900/55 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                            <div className={`px-4 py-3 border-b flex items-center justify-between gap-3 ${theme.divide}`}>
+                              <div>
+                                <div className={`text-lg font-black ${theme.textTitle}`}>รายการหลักฐาน</div>
+                                <div className={`text-[11px] font-bold ${theme.textMuted}`}>รูปหลักฐานหลัก 1 รูปต่อรายการ • เลือกเพื่อดูรายละเอียด</div>
+                              </div>
+                              <span className={`px-3 py-1.5 rounded-full border text-xs font-black ${theme.btnSecondary}`}>{visibleGroups.length.toLocaleString('th-TH')} รายการ</span>
+                            </div>
+                            <div className="p-3 space-y-2 max-h-[calc(100vh-360px)] overflow-y-auto custom-scrollbar">
+                              {visibleGroups.map(group => {
+                                const summary = getGroupSummary(group);
+                                const isSelected = group.groupId === (selectedGroup.groupId || visibleGroups[0]?.groupId);
+                                const itemRefs = asArray(group.itemRefs).slice(0, 4);
+                                return (
+                                  <button
+                                    key={group.groupId}
+                                    type="button"
+                                    onClick={() => setSelectedProofGroupId(group.groupId)}
+                                    className={`w-full rounded-2xl border p-3 text-left transition ${isSelected ? 'border-blue-500/70 bg-blue-950/22 shadow-[0_0_0_1px_rgba(59,130,246,.22)]' : (isDarkMode ? 'border-slate-800 bg-slate-950/35 hover:border-slate-700' : 'border-slate-200 bg-white hover:border-blue-200')}`}
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <span className={`inline-flex px-2.5 py-1 rounded-xl border text-[11px] font-black ${badgeClass(summary.label)}`}>{summary.label}</span>
+                                        <div className={`mt-2 text-sm font-black truncate ${theme.textTitle}`}>{summary.subject || '-'}</div>
+                                        <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{summary.dateText}</div>
+                                      </div>
+                                      <span className={`text-xl ${theme.textMuted}`}>›</span>
+                                    </div>
+                                    <div className="mt-3 space-y-1.5">
+                                      {itemRefs.map((ref, refIndex) => (
+                                        <div key={`proof_list_${group.groupId}_${ref.itemId || ref.sn || refIndex}`} className={`rounded-xl px-2.5 py-1.5 ${isDarkMode ? 'bg-slate-900/70' : 'bg-slate-50'}`}>
+                                          <div className={`text-[12px] font-black truncate ${theme.textTitle}`}>{ref.itemName || '-'}</div>
+                                          {ref.sn && <div className={`text-[10px] font-bold truncate ${theme.textMuted}`}>S.N. {ref.sn}</div>}
                                         </div>
                                       ))}
-                                      {group.itemRefs.length > 10 && <div className={`text-[11px] font-black px-2.5 py-1.5 ${theme.textMuted}`}>+ อีก {(group.itemRefs.length - 10).toLocaleString('th-TH')} รายการ</div>}
+                                      {asArray(group.itemRefs).length > 4 && <div className={`text-[10px] font-black px-2 ${theme.textMuted}`}>+ อีก {(asArray(group.itemRefs).length - 4).toLocaleString('th-TH')} รายการ</div>}
                                     </div>
-                                  </div>
-                                )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </aside>
 
-                                {currentEvents.length > 0 ? (
-                                  <div className="space-y-1.5">
-                                    {currentEvents.map((event, eventIndex) => (
-                                      <div key={event.key || eventIndex} className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
-                                        <div className="flex items-center justify-between gap-3">
-                                          <div className={`text-xs font-black ${theme.textTitle}`}>{activeFilterKey === 'return' ? `รับคืนชุดที่ ${eventIndex + 1}` : activeFilterKey === 'borrow' ? 'รายการยืม' : currentTypeLabel}</div>
-                                          <div className={`text-[11px] font-bold ${theme.textMuted}`}>{event.dateText} • {event.proofs?.length || 0} รูป</div>
+                          <section className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900/55 border-slate-800' : 'bg-white border-slate-200'}`}>
+                            <div className={`px-4 sm:px-5 py-4 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-3 ${theme.divide}`}>
+                              <div className="min-w-0">
+                                <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SINGLE PROOF VIEW</div>
+                                <h3 className={`text-xl sm:text-2xl font-black mt-1 leading-tight ${theme.textTitle}`}>{selectedTitle}</h3>
+                                <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{selectedItems.length.toLocaleString('th-TH')} อุปกรณ์ที่เกี่ยวข้อง • รูปหลักฐาน 1 รูป • {selectedGroup.isLegacyBatch ? 'ข้อมูลเก่า' : 'ข้อมูลปัจจุบัน'}</p>
+                              </div>
+                              <div className="flex flex-wrap gap-2 shrink-0">
+                                {selectedGroup.itemId && <button type="button" onClick={() => setShowHistory(selectedGroup.itemId)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
+                                <button type="button" onClick={() => { setHistoryCenterSearch(selectedGroup.sn || selectedGroup.itemName || selectedSubject || ''); setRecordsCenterMode('history'); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
+                                {canUseOperationalTools && previewProof && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteProofGroup({
+                                      groupId: getProofUniqueKey(previewProof) || selectedGroup.groupId,
+                                      proof: previewProof,
+                                      representative: previewEntry,
+                                      entries: previewEntry ? [previewEntry] : selectedGroup.entries,
+                                      itemRefs: selectedGroup.itemRefs || []
+                                    })}
+                                    className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black"
+                                  >
+                                    ย้ายลงถังขยะ
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="p-4 sm:p-5 grid grid-cols-1 xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] gap-4">
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-1 gap-2">
+                                  <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700/70' : 'bg-slate-50 border-slate-200'}`}>
+                                    <div className={`text-[10px] font-black ${theme.textMuted}`}>ประเภทหลักฐาน</div>
+                                    <div className={`text-sm font-black mt-1 ${theme.textTitle}`}>{currentTypeLabel}</div>
+                                  </div>
+                                  <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700/70' : 'bg-slate-50 border-slate-200'}`}>
+                                    <div className={`text-[10px] font-black ${theme.textMuted}`}>วันที่ / ผู้บันทึก</div>
+                                    <div className={`text-sm font-black mt-1 ${theme.textTitle}`}>{selectedDateText}</div>
+                                    <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>{previewEntry.staff || previewEntry.operatorName || '-'}</div>
+                                  </div>
+                                  <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-700/70' : 'bg-slate-50 border-slate-200'}`}>
+                                    <div className={`text-[10px] font-black ${theme.textMuted}`}>ผู้ยืม / ผู้เกี่ยวข้อง</div>
+                                    <div className={`text-sm font-black mt-1 truncate ${theme.textTitle}`}>{selectedSubject || '-'}</div>
+                                  </div>
+                                </div>
+
+                                <div className={`rounded-3xl border p-3 ${isDarkMode ? 'bg-slate-950/35 border-slate-700/70' : 'bg-slate-50 border-slate-200'}`}>
+                                  <div className={`text-sm font-black ${theme.textTitle}`}>อุปกรณ์ที่เกี่ยวข้อง</div>
+                                  <div className="mt-2 space-y-2">
+                                    {selectedItems.length === 0 ? (
+                                      <div className={`rounded-2xl border px-3 py-4 text-center text-xs font-bold ${theme.textMuted}`}>ไม่มีรายการอุปกรณ์ที่ผูกไว้</div>
+                                    ) : selectedItems.map((ref, refIndex) => (
+                                      <div key={`proof_selected_item_${selectedGroup.groupId}_${ref.itemId || ref.sn || refIndex}`} className={`rounded-2xl border px-3 py-2.5 flex items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                        <div className="min-w-0">
+                                          <div className={`text-sm font-black truncate ${theme.textTitle}`}>{ref.itemName || '-'}</div>
+                                          {ref.sn && <div className={`text-[11px] font-bold mt-0.5 truncate ${theme.textMuted}`}>S.N. {ref.sn}</div>}
                                         </div>
-                                        {event.items?.length > 0 && (
-                                          <div className="mt-2 space-y-1">
-                                            {event.items.slice(0, 8).map((it, itIndex) => (
-                                              <div key={`proof_event_item_${event.key || eventIndex}_${it.itemId || it.sn || itIndex}`} className={`rounded-lg px-2.5 py-1.5 ${isDarkMode ? 'bg-slate-900/60' : 'bg-slate-50'}`}>
-                                                <div className={`text-[11px] font-black leading-tight ${theme.textTitle}`}>{it.itemName || '-'}</div>
-                                                {it.sn && it.sn !== '-' && <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>S.N. {it.sn}</div>}
-                                              </div>
-                                            ))}
-                                            {event.items.length > 8 && <div className={`text-[10px] font-black px-2 ${theme.textMuted}`}>+ อีก {(event.items.length - 8).toLocaleString('th-TH')} รายการ</div>}
-                                          </div>
-                                        )}
                                       </div>
                                     ))}
                                   </div>
-                                ) : (
-                                  <div className={`rounded-2xl border px-3 py-3 text-xs font-bold leading-relaxed ${isDarkMode ? 'bg-slate-950/35 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-600'}`}>
-                                    แสดงเฉพาะหลักฐานประเภทนี้ ไม่ดึงรายการยืม/คืนประเภทอื่นมาปน เพื่อลดความสับสนเวลาไล่สีและดูรูป
-                                  </div>
-                                )}
-
-                                <div className="flex flex-wrap gap-2 pt-1">
-                                  {group.itemId && <button type="button" onClick={() => setShowHistory(group.itemId)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
-                                  <button type="button" onClick={() => { setHistoryCenterSearch(group.sn || group.itemName || ''); setRecordsCenterMode('history'); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
                                 </div>
                               </div>
 
-                              <div className={`p-2 sm:p-3 rounded-3xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-800/60' : 'bg-white/80 border-slate-200/70'}`}>
-                                <button type="button" onClick={() => openProofImage(previewProof)} className={`w-full rounded-2xl border overflow-hidden h-[220px] ${isDarkMode ? 'bg-slate-950 border-slate-800/60' : 'bg-slate-100 border-slate-200'}`}>
-                                  {previewSrc ? <img src={previewSrc} alt="หลักฐานหลัก" className="w-full h-full object-contain" loading="lazy" /> : <div className={`h-full flex items-center justify-center text-sm font-black ${theme.textMuted}`}>ไม่มีภาพตัวอย่าง</div>}
+                              <div className={`rounded-3xl border p-3 sm:p-4 relative ${isDarkMode ? 'bg-slate-950/45 border-slate-800/80' : 'bg-slate-50 border-slate-200'}`}>
+                                {canUseOperationalTools && previewProof && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteProofGroup({
+                                      groupId: getProofUniqueKey(previewProof) || selectedGroup.groupId,
+                                      proof: previewProof,
+                                      representative: previewEntry,
+                                      entries: previewEntry ? [previewEntry] : selectedGroup.entries,
+                                      itemRefs: selectedGroup.itemRefs || []
+                                    })}
+                                    className="absolute top-5 right-5 z-10 px-3 py-2 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black shadow-lg"
+                                  >
+                                    ย้ายลงถังขยะ
+                                  </button>
+                                )}
+                                <div className={`text-sm font-black mb-3 ${theme.textTitle}`}>รูปหลักฐาน</div>
+                                <button type="button" onClick={() => openProofImage(previewProof)} className={`w-full rounded-3xl border overflow-hidden h-[360px] 2xl:h-[430px] ${isDarkMode ? 'bg-slate-950 border-slate-800/80' : 'bg-white border-slate-200'}`}>
+                                  {previewSrc ? (
+                                    <img src={previewSrc} alt="รูปหลักฐาน" className="w-full h-full object-contain" loading="lazy" />
+                                  ) : (
+                                    <div className={`h-full flex items-center justify-center text-sm font-black ${theme.textMuted}`}>ไม่มีภาพหลักฐาน</div>
+                                  )}
                                 </button>
-                                <div className={`mt-2 text-[11px] font-bold ${theme.textMuted}`}>รูปหลัก • {currentTypeLabel} • {previewEntry?.date ? new Date(previewEntry.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
+                                <div className={`mt-3 text-xs font-bold ${theme.textMuted}`}>รูปหลักฐาน • {currentTypeLabel} • {selectedDateText}</div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
+                          </section>
+                        </div>
+                      );
+                    })()
+                  )}
                 </div>
               </div>
             )}
+
           </div>
         </div>
       </div>
