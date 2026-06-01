@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.91 Basic Lists Inline Edit Polish';
-const APP_UPDATE_NOTE = 'Basic Lists Inline Edit Polish: ปรับรายการพื้นฐานให้อ่านชื่อเต็ม ไม่ตัดเป็น ห้อง... และเปลี่ยนการแก้ไขเป็น inline edit บนการ์ดนั้นโดยตรง ไม่ต้องไปแก้ในช่องเพิ่มด้านบน';
+const APP_VERSION = 'v23.1.92 Settings Current Section CSS Sticky Fix';
+const APP_UPDATE_NOTE = 'Settings Current Section CSS Sticky Fix: แก้ CURRENT SECTION ที่ยังเลื่อนตาม เพราะมี CSS บังคับ sticky อยู่ เปลี่ยนเป็น static ทั้งจาก class และ CSS จริง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6418,9 +6418,9 @@ button[class*="orange"]:not(:disabled) {
   min-height: 42px;
 }
 .factory-stock-polish .settings-back-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 3;
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
   backdrop-filter: none !important;
 }
 .factory-stock-polish .settings-shell .settings-nav-groups {
@@ -24305,7 +24305,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
                 <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
                             {settingsTab !== 'overview' && (
-                <div className={`settings-back-toolbar px-4 sm:px-6 pt-4 pb-0 ${isDarkMode ? 'bg-slate-950/92 backdrop-blur-xl' : 'bg-slate-50/92 backdrop-blur-xl'}`}>
+                <div className={`settings-back-toolbar px-4 sm:px-6 pt-4 pb-0`}>
                   <div className={`px-4 py-4 rounded-[1.35rem] border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm ${isDarkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white border-slate-200'}`}>
                     <div className="min-w-0">
                       <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>CURRENT SECTION</div>
