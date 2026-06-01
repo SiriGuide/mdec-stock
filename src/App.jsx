@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.88 Basic Lists Settings Merge';
-const APP_UPDATE_NOTE = 'Basic Lists Settings Merge: รวมหมวดหมู่ สถานที่/ห้อง และเจ้าหน้าที่เป็นเมนูเดียวชื่อ รายการพื้นฐาน พร้อมแท็บสลับข้อมูลและดีไซน์ Settings ให้ล้ำขึ้น ลดเมนูซ้ำและความรก';
+const APP_VERSION = 'v23.1.89 Basic Lists Compact Polish';
+const APP_UPDATE_NOTE = 'Basic Lists Compact Polish: ปรับหน้า รายการพื้นฐาน ให้กระชับ อ่านง่าย และล้ำขึ้น ลด hero ใหญ่/กล่องอธิบายที่กินพื้นที่ เหลือแท็บสวย ๆ รายการ compact และสรุปขวาแบบพอดี';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -24937,27 +24937,36 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </div>
                 </div>
               ) : settingsTab === 'basicLists' ? (
-                <div className="p-4 sm:p-5 lg:p-6 space-y-4">
-                  <div className={`relative overflow-hidden rounded-[1.65rem] border p-5 shadow-[0_18px_55px_rgba(15,23,42,0.18)] ${isDarkMode ? 'bg-[radial-gradient(circle_at_18%_0%,rgba(37,99,235,.24),transparent_34%),linear-gradient(135deg,rgba(15,23,42,.98),rgba(2,6,23,.98))] border-blue-900/60' : 'bg-[radial-gradient(circle_at_18%_0%,rgba(59,130,246,.16),transparent_36%),linear-gradient(135deg,#ffffff,#f8fafc)] border-blue-100'}`}>
-                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>BASIC LISTS HUB</div>
-                        <h4 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>รายการพื้นฐาน</h4>
-                        <p className={`text-sm font-bold mt-2 max-w-3xl ${theme.textMuted}`}>รวมหมวดหมู่ สถานที่/ห้อง และเจ้าหน้าที่ไว้ในหน้าเดียว วิธีใช้งานเหมือนกัน สลับแท็บแล้วเพิ่ม แก้ไข หรือลบรายการได้ทันที</p>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 shrink-0">
-                        {basicListTabs.map(tab => (
-                          <div key={`basic_count_${tab.id}`} className={`px-3 py-2.5 rounded-2xl border text-center ${isDarkMode ? 'bg-slate-950/70 border-slate-700' : 'bg-white/80 border-slate-200'}`}>
-                            <div className={`text-xl font-black ${theme.textTitle}`}>{(settingsOptions[tab.id] || []).filter(v => v !== 'อื่นๆ').length.toLocaleString('th-TH')}</div>
-                            <div className={`text-[10px] font-black ${theme.textMuted}`}>{tab.short}</div>
-                          </div>
-                        ))}
+                <div className="p-3 sm:p-4 lg:p-5 space-y-3">
+                  <div className={`rounded-[1.35rem] border overflow-hidden shadow-[0_18px_55px_rgba(2,6,23,0.16)] ${isDarkMode ? 'bg-[linear-gradient(135deg,rgba(15,23,42,.94),rgba(2,6,23,.98))] border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className="p-3 sm:p-4">
+                      <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className={`text-[10px] font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>BASIC LISTS</div>
+                          <div className={`text-xl sm:text-2xl font-black mt-0.5 ${theme.textTitle}`}>รายการพื้นฐาน</div>
+                          <div className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>รวมหมวดหมู่ สถานที่/ห้อง และเจ้าหน้าที่ไว้ที่เดียว ลดเมนูซ้ำ แต่ยังแยกข้อมูลชัดเจนด้วยแท็บ</div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 shrink-0">
+                          {basicListTabs.map(tab => (
+                            <button
+                              key={`top_basic_${tab.id}`}
+                              type="button"
+                              onClick={() => { setBasicListTab(tab.id); setNewSettingItem(''); setEditingSettingItem(null); }}
+                              className={`rounded-2xl border px-3 py-2.5 text-left transition-all ${basicListTab === tab.id ? 'bg-blue-600 border-blue-500 text-white shadow-[0_10px_28px_rgba(37,99,235,.30)]' : theme.btnSecondary}`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[11px] font-black truncate">{tab.short}</span>
+                                <span className={`text-sm font-black ${basicListTab === tab.id ? 'text-white' : theme.textTitle}`}>{(settingsOptions[tab.id] || []).filter(v => v !== 'อื่นๆ').length.toLocaleString('th-TH')}</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className={`rounded-[1.6rem] border p-2.5 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className={`border-t ${theme.divide}`} />
+
+                    <div className="p-2.5 sm:p-3 grid grid-cols-1 md:grid-cols-3 gap-2">
                       {basicListTabs.map(tab => {
                         const Icon = tab.icon;
                         const active = basicListTab === tab.id;
@@ -24966,16 +24975,16 @@ ${auditChangeSummary}` : auditChangeSummary);
                             key={tab.id}
                             type="button"
                             onClick={() => { setBasicListTab(tab.id); setNewSettingItem(''); setEditingSettingItem(null); }}
-                            className={`group relative overflow-hidden rounded-[1.35rem] border px-4 py-3 text-left transition-all ${active ? 'text-white border-transparent shadow-[0_16px_35px_rgba(37,99,235,0.25)]' : theme.btnSecondary}`}
+                            className={`group relative overflow-hidden rounded-[1.2rem] border px-3 py-2.5 text-left transition-all ${active ? 'text-white border-transparent' : theme.btnSecondary}`}
                           >
                             {active && <span className={`absolute inset-0 bg-gradient-to-br ${tab.color}`} />}
-                            <span className="relative z-10 flex items-start gap-3">
-                              <span className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border ${active ? 'bg-white/18 border-white/30 text-white' : (isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700')}`}>
-                                <Icon className="w-5 h-5" />
+                            <span className="relative z-10 flex items-center gap-3">
+                              <span className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 border ${active ? 'bg-white/18 border-white/30 text-white' : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700')}`}>
+                                <Icon className="w-4.5 h-4.5" />
                               </span>
                               <span className="min-w-0">
                                 <span className="block text-sm font-black truncate">{tab.label}</span>
-                                <span className={`block text-[11px] font-bold mt-1 leading-snug ${active ? 'text-white/82' : theme.textMuted}`}>{tab.desc}</span>
+                                <span className={`block text-[11px] font-bold mt-0.5 truncate ${active ? 'text-white/80' : theme.textMuted}`}>{tab.desc}</span>
                               </span>
                             </span>
                           </button>
@@ -24984,66 +24993,72 @@ ${auditChangeSummary}` : auditChangeSummary);
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4">
-                    <section className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                      <div className={`px-4 sm:px-5 py-4 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${theme.divide}`}>
+                  <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_260px] gap-3">
+                    <section className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                      <div className={`px-4 py-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${theme.divide}`}>
                         <div className="min-w-0">
-                          <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>CURRENT BASIC LIST</div>
-                          <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{activeBasicListTab.label}</div>
-                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{activeBasicListTab.desc}</div>
+                          <div className={`text-[10px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>CURRENT LIST</div>
+                          <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>{activeBasicListTab.label}</div>
+                          <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>{activeBasicListTab.desc}</div>
                         </div>
                         <div className={`px-3 py-2 rounded-2xl border text-xs font-black ${theme.btnSecondary}`}>{(settingsOptions[basicListTab] || []).filter(v => v !== 'อื่นๆ').length.toLocaleString('th-TH')} รายการ</div>
                       </div>
 
-                      <div className="p-4 sm:p-5">
-                        <div className={`rounded-[1.35rem] border p-3 mb-4 ${isDarkMode ? 'bg-slate-900/70 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="p-3 sm:p-4">
+                        <div className={`rounded-[1.2rem] border p-2.5 mb-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                           <div className="flex flex-col sm:flex-row gap-2">
-                            <input type="text" className={`flex-1 px-4 py-3 rounded-2xl font-bold outline-none text-base border ${theme.input}`} placeholder={activeBasicListTab.placeholder} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} />
-                            <button type="button" onClick={handleSaveSetting} className="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl shadow-lg shadow-blue-600/20">{editingSettingItem !== null ? 'บันทึก' : 'เพิ่ม'}</button>
-                            {editingSettingItem !== null && <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-4 py-3 font-black rounded-2xl ${theme.btnCancel}`}><Icons.X className="w-5 h-5" /></button>}
+                            <input type="text" className={`flex-1 px-3.5 py-2.5 rounded-2xl font-bold outline-none text-sm border ${theme.input}`} placeholder={activeBasicListTab.placeholder} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} />
+                            <button type="button" onClick={handleSaveSetting} className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl shadow-lg shadow-blue-600/20">{editingSettingItem !== null ? 'บันทึก' : 'เพิ่ม'}</button>
+                            {editingSettingItem !== null && <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-3.5 py-2.5 font-black rounded-2xl ${theme.btnCancel}`}><Icons.X className="w-4 h-4" /></button>}
                           </div>
-                          <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>รายการนี้จะถูกใช้เป็นตัวเลือกในฟอร์มต่าง ๆ ของระบบ เช่น เพิ่มอุปกรณ์ ยืม ออกงาน รับคืน และค้นหา</div>
                         </div>
 
-                        <div className="max-h-[48vh] overflow-y-auto custom-scrollbar pr-1">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                            {(settingsOptions[basicListTab] || []).filter(c => c !== 'อื่นๆ').map((item, index) => (
-                              <div key={`${basicListTab}_${item}_${index}`} className={`group rounded-2xl border px-3 py-2.5 flex items-center justify-between gap-3 transition-all hover:-translate-y-[1px] ${isDarkMode ? 'bg-slate-900/70 border-slate-800 hover:border-blue-700' : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-blue-300'}`}>
-                                <div className="min-w-0 flex items-center gap-3">
-                                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black ${isDarkMode ? 'bg-blue-500/12 text-blue-300 border border-blue-500/20' : 'bg-blue-50 text-blue-700 border border-blue-100'}`}>{index + 1}</div>
-                                  <div className="min-w-0">
-                                    <div className={`font-black text-sm truncate ${theme.textTitle}`}>{item}</div>
-                                    <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>{activeBasicListTab.short}</div>
+                        <div className="max-h-[43vh] overflow-y-auto custom-scrollbar pr-1">
+                          {(settingsOptions[basicListTab] || []).filter(c => c !== 'อื่นๆ').length === 0 ? (
+                            <div className={`p-8 rounded-3xl border text-center font-black ${theme.textMuted}`}>ยังไม่มีรายการในหมวดนี้</div>
+                          ) : (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                              {(settingsOptions[basicListTab] || []).filter(c => c !== 'อื่นๆ').map((item, index) => (
+                                <div key={`${basicListTab}_${item}_${index}`} className={`group rounded-2xl border px-3 py-2.5 flex items-center justify-between gap-3 transition-all hover:-translate-y-[1px] ${isDarkMode ? 'bg-slate-900/70 border-slate-800 hover:border-blue-700' : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-blue-300'}`}>
+                                  <div className="min-w-0 flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${isDarkMode ? 'bg-blue-500/12 text-blue-300 border border-blue-500/20' : 'bg-blue-50 text-blue-700 border border-blue-100'}`}>{index + 1}</div>
+                                    <div className="min-w-0">
+                                      <div className={`font-black text-sm truncate ${theme.textTitle}`}>{item}</div>
+                                      <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>{activeBasicListTab.short}</div>
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                    <button type="button" onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-300 hover:bg-blue-600 hover:text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>
+                                    <button type="button" onClick={() => setDeleteSettingConfirm(item)} className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-300 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="ลบ"><Icons.Trash className="w-4 h-4" /></button>
                                   </div>
                                 </div>
-                                <div className="flex gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                  <button type="button" onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-300 hover:bg-blue-600 hover:text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>
-                                  <button type="button" onClick={() => setDeleteSettingConfirm(item)} className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-300 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="ลบ"><Icons.Trash className="w-4 h-4" /></button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </section>
 
-                    <aside className={`rounded-[1.6rem] border p-4 ${isDarkMode ? 'bg-[linear-gradient(180deg,rgba(15,23,42,.9),rgba(2,6,23,.92))] border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>WHY MERGED?</div>
-                      <div className={`text-lg font-black mt-1 ${theme.textTitle}`}>รวมเพราะวิธีใช้เหมือนกัน</div>
-                      <div className={`text-sm font-bold mt-2 leading-relaxed ${theme.textMuted}`}>หมวดหมู่ สถานที่ และเจ้าหน้าที่เป็นข้อมูลพื้นฐานที่ใช้เป็นตัวเลือกในระบบเหมือนกัน เลยรวมไว้หน้าเดียวเพื่อลดเมนูซ้ายและลดความซ้ำ</div>
-                      <div className="mt-4 space-y-2">
+                    <aside className={`rounded-[1.35rem] border p-3.5 h-fit ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className={`text-[10px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SUMMARY</div>
+                      <div className={`text-base font-black mt-1 ${theme.textTitle}`}>สรุปรายการพื้นฐาน</div>
+                      <div className="mt-3 space-y-2">
                         {basicListTabs.map(tab => {
                           const Icon = tab.icon;
+                          const active = basicListTab === tab.id;
                           return (
-                            <button key={`aside_${tab.id}`} type="button" onClick={() => { setBasicListTab(tab.id); setNewSettingItem(''); setEditingSettingItem(null); }} className={`w-full rounded-2xl border px-3 py-2.5 flex items-center justify-between gap-3 text-left ${basicListTab === tab.id ? 'bg-blue-600 border-blue-500 text-white' : theme.btnSecondary}`}>
+                            <button key={`aside_${tab.id}`} type="button" onClick={() => { setBasicListTab(tab.id); setNewSettingItem(''); setEditingSettingItem(null); }} className={`w-full rounded-2xl border px-3 py-2.5 flex items-center justify-between gap-3 text-left transition ${active ? 'bg-blue-600 border-blue-500 text-white shadow-[0_10px_28px_rgba(37,99,235,.25)]' : theme.btnSecondary}`}>
                               <span className="flex items-center gap-2 min-w-0">
                                 <Icon className="w-4 h-4 shrink-0" />
-                                <span className="text-sm font-black truncate">{tab.label}</span>
+                                <span className="text-xs font-black truncate">{tab.label}</span>
                               </span>
                               <span className="text-xs font-black">{(settingsOptions[tab.id] || []).filter(v => v !== 'อื่นๆ').length}</span>
                             </button>
                           );
                         })}
+                      </div>
+                      <div className={`mt-3 rounded-2xl border p-3 text-[11px] font-bold leading-relaxed ${isDarkMode ? 'bg-slate-900/70 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+                        ใช้หน้านี้เหมือน “ตัวเลือกกลาง” ของระบบ เพิ่มครั้งเดียวแล้วนำไปใช้ในฟอร์มต่าง ๆ ได้เลย
                       </div>
                     </aside>
                   </div>
