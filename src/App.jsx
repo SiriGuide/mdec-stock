@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.94 Backup Settings Restore Hotfix';
-const APP_UPDATE_NOTE = 'Backup Settings Restore Hotfix: คืนหน้า ฐานข้อมูล / สำรอง ในตั้งค่าระบบ หลังตัดตรวจคุณภาพ/ตรวจนับแล้ว branch สำรองข้อมูลหายไป พร้อมปุ่มเปิดศูนย์สำรองข้อมูล';
+const APP_VERSION = 'v23.1.95 Database Usage Meter Polish';
+const APP_UPDATE_NOTE = 'Database Usage Meter Polish: เพิ่มหลอดสถานะพื้นที่ฐานข้อมูลในหน้า Current Session และฐานข้อมูล/สำรอง พร้อมปุ่มตรวจจริงจาก Firestore เพื่อให้ประเมินใกล้เคียงที่สุดเท่าที่เว็บทำได้';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -17342,6 +17342,12 @@ S.N.: ${item.sn || '-'}
       textTone = isDarkMode ? 'text-blue-300' : 'text-blue-700';
     }
 
+    const remainingBytes = Math.max(0, limitBytes - effectiveEstimatedBytes);
+    const percentWidth = effectiveEstimatedBytes > 0 ? `${Math.max(0.8, Math.min(100, percent)).toFixed(1)}%` : '0%';
+    const sourceLabel = databaseDeepScan?.source === 'deep-scan' ? 'ตรวจจริงจาก Firestore' : 'ประเมินจากข้อมูลที่โหลดอยู่';
+    const scannedAtText = databaseDeepScan?.scannedAt ? new Date(databaseDeepScan.scannedAt).toLocaleString('th-TH', { hour12: false }) : 'ยังไม่ได้กดตรวจจริง';
+    const safetyText = percent >= 90 ? 'ใกล้เต็มมาก ควรสำรองและเคลียร์ข้อมูลทันที' : percent >= 75 ? 'เริ่มเสี่ยง ควรสำรองและลดรูป/ประวัติเก่า' : percent >= 50 ? 'เริ่มเยอะ ควรติดตามเป็นระยะ' : 'ยังปลอดภัยมาก';
+
     return {
       level,
       label,
@@ -17349,6 +17355,11 @@ S.N.: ${item.sn || '-'}
       cardTone,
       textTone,
       percent,
+      percentWidth,
+      sourceLabel,
+      scannedAtText,
+      safetyText,
+      remainingText: formatDatabaseBytes(remainingBytes),
       percentText: percent < 0.1 && estimatedBytes > 0 ? '<0.1%' : percent.toFixed(1) + '%',
       estimatedText: formatDatabaseBytes(effectiveEstimatedBytes),
       rawText: databaseDeepScan?.rawText || formatDatabaseBytes(rawBytes),
@@ -23105,6 +23116,25 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </div>
                 </div>
 
+                <div className={`rounded-2xl border p-3.5 ${databaseStorageEstimate.cardTone}`}>
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="min-w-0">
+                      <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${databaseStorageEstimate.textTone}`}>DATABASE USAGE</div>
+                      <div className={`text-sm font-black mt-0.5 ${theme.textTitle}`}>พื้นที่ฐานข้อมูล {databaseStorageEstimate.percentText}</div>
+                    </div>
+                    <div className={`text-xs font-black px-2.5 py-1 rounded-xl border ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white/75 border-white'}`}>{databaseStorageEstimate.label}</div>
+                  </div>
+                  <div className={`h-3 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-950/70' : 'bg-white/80'}`}>
+                    <div className={`h-full ${databaseStorageEstimate.barClass} transition-all duration-500`} style={{ width: databaseStorageEstimate.percentWidth }} />
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mt-2">
+                    <div className={`text-[11px] font-bold ${theme.textMuted}`}>{databaseStorageEstimate.estimatedText} / {databaseStorageEstimate.limitText} • เหลือ {databaseStorageEstimate.remainingText}</div>
+                    <button type="button" onClick={scanDatabaseStorageNow} disabled={isScanningDatabaseStorage} className={`text-[11px] font-black underline underline-offset-4 disabled:opacity-50 ${databaseStorageEstimate.textTone}`}>
+                      {isScanningDatabaseStorage ? 'กำลังตรวจ...' : 'ตรวจจริงจาก Firestore'}
+                    </button>
+                  </div>
+                </div>
+
                 {!canUseOperationalTools ? (
                   <div className="space-y-3">
                     <button type="button" onClick={() => setShowLogin(true)} className="w-full px-6 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg transition-colors">เข้าสู่ระบบเจ้าหน้าที่</button>
@@ -24332,10 +24362,13 @@ ${auditChangeSummary}` : auditChangeSummary);
                       <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{currentAccountLabel}</div>
                       <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สิทธิ์: {currentAccountRole}</div>
                     </div>
-                    <div className={`p-2.5 rounded-lg border ${theme.btnSecondary}`}>
-                      <div className={`text-xs font-black ${theme.textMuted}`}>พื้นที่ฐานข้อมูลโดยประมาณ</div>
+                    <div className={`p-2.5 rounded-lg border ${databaseStorageEstimate.cardTone}`}>
+                      <div className={`text-xs font-black ${databaseStorageEstimate.textTone}`}>พื้นที่ฐานข้อมูล</div>
                       <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.percentText}</div>
-                      <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{databaseStorageEstimate.estimatedText} / {databaseStorageEstimate.limitText}</div>
+                      <div className={`h-2.5 rounded-full overflow-hidden mt-2 ${isDarkMode ? 'bg-slate-950/70' : 'bg-white/80'}`}>
+                        <div className={`h-full ${databaseStorageEstimate.barClass}`} style={{ width: databaseStorageEstimate.percentWidth }} />
+                      </div>
+                      <div className={`text-xs font-bold mt-1.5 ${theme.textMuted}`}>{databaseStorageEstimate.estimatedText} / {databaseStorageEstimate.limitText}</div>
                     </div>
                     <div className={`p-2.5 rounded-lg border ${theme.btnSecondary}`}>
                       <div className={`text-xs font-black ${theme.textMuted}`}>รูปหลักฐาน</div>
@@ -24566,12 +24599,46 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <p className={`text-sm font-bold ${theme.textMuted}`}>สำรองข้อมูล ส่งออกไฟล์ และเตรียมข้อมูลสิ้นปี ใช้เป็นศูนย์กลางเรื่องความปลอดภัยของฐานข้อมูล</p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className={`p-4 rounded-2xl border ${theme.btnSecondary}`}>
-                      <div className={`text-xs font-black ${theme.textMuted}`}>พื้นที่ฐานข้อมูลโดยประมาณ</div>
-                      <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.percentText}</div>
-                      <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{databaseStorageEstimate.estimatedText} / {databaseStorageEstimate.limitText}</div>
+                  <div className={`p-5 rounded-[1.35rem] border ${databaseStorageEstimate.cardTone}`}>
+                    <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${databaseStorageEstimate.textTone}`}>DATABASE CAPACITY METER</div>
+                        <div className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.percentText} ของพื้นที่ฐานข้อมูล</div>
+                        <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{databaseStorageEstimate.safetyText}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={scanDatabaseStorageNow}
+                        disabled={isScanningDatabaseStorage}
+                        className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 text-white font-black shadow-lg shadow-blue-600/20"
+                      >
+                        {isScanningDatabaseStorage ? 'กำลังตรวจจริง...' : 'ตรวจจริงจาก Firestore'}
+                      </button>
                     </div>
+
+                    <div className={`h-5 rounded-full overflow-hidden mt-4 ${isDarkMode ? 'bg-slate-950/75' : 'bg-white/85'}`}>
+                      <div className={`h-full ${databaseStorageEstimate.barClass} transition-all duration-500`} style={{ width: databaseStorageEstimate.percentWidth }} />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+                      <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-white/70 border-white'}`}>
+                        <div className={`text-xs font-black ${theme.textMuted}`}>ใช้ไปแล้ว</div>
+                        <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.estimatedText}</div>
+                      </div>
+                      <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-white/70 border-white'}`}>
+                        <div className={`text-xs font-black ${theme.textMuted}`}>พื้นที่สูงสุดที่อิงไว้</div>
+                        <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.limitText}</div>
+                      </div>
+                      <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-white/70 border-white'}`}>
+                        <div className={`text-xs font-black ${theme.textMuted}`}>ยังเหลือประมาณ</div>
+                        <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.remainingText}</div>
+                      </div>
+                    </div>
+                    <div className={`text-xs font-bold mt-3 ${theme.textMuted}`}>
+                      แหล่งข้อมูล: {databaseStorageEstimate.sourceLabel} • ตรวจล่าสุด: {databaseStorageEstimate.scannedAtText}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className={`p-4 rounded-2xl border ${theme.btnSecondary}`}>
                       <div className={`text-xs font-black ${theme.textMuted}`}>รูปหลักฐาน</div>
                       <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.proofImageCount.toLocaleString('th-TH')} รูป</div>
