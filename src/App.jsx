@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.95 Database Usage Meter Polish';
-const APP_UPDATE_NOTE = 'Database Usage Meter Polish: เพิ่มหลอดสถานะพื้นที่ฐานข้อมูลในหน้า Current Session และฐานข้อมูล/สำรอง พร้อมปุ่มตรวจจริงจาก Firestore เพื่อให้ประเมินใกล้เคียงที่สุดเท่าที่เว็บทำได้';
+const APP_VERSION = 'v23.1.96 Dedicated Trash Page + Empty All';
+const APP_UPDATE_NOTE = 'Dedicated Trash Page + Empty All: แยกถังขยะเป็นหน้าของตัวเองในตั้งค่าระบบ พร้อมปุ่มล้างถังขยะทั้งหมดแบบลบถาวร ลดการปนกับหน้าเอกสาร/ประวัติ/หลักฐาน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -8843,6 +8843,70 @@ function MainApp() {
     if (entry.kind === 'history') return handlePermanentDeleteHistoryEntry(entry.raw);
   };
 
+  const permanentDeleteCentralTrashEntryNoPrompt = async (entry) => {
+    if (!entry) return;
+    if (entry.kind === 'item') {
+      const item = entry.raw;
+      if (item?.id) await deleteDoc(getItemDoc(item.id));
+      return;
+    }
+
+    if (entry.kind === 'history') {
+      const historyEntry = entry.raw;
+      if (historyEntry?.isAuditLog && historyEntry?.auditLogId) {
+        await deleteDoc(getAuditDoc(historyEntry.auditLogId));
+      } else if (historyEntry?.itemId && Number.isFinite(Number(historyEntry.historyIndex))) {
+        const targetItem = items.find(item => item.id === historyEntry.itemId);
+        if (targetItem) {
+          const history = asArray(targetItem.history).filter((h, idx) => idx !== Number(historyEntry.historyIndex));
+          await setDoc(getItemDoc(historyEntry.itemId), { history, updatedAt: new Date().toISOString(), updatedBy: currentAccountLabel }, { merge: true });
+        }
+      }
+      return;
+    }
+
+    if (entry.kind === 'proof') {
+      const group = entry.raw;
+      const targetKey = group?.groupId;
+      const proofDocId = group?.proof?.proofDocId || group?.proof?.id || group?.groupId;
+      if (targetKey) await updateProofReferencesInItems(targetKey, () => null);
+      try {
+        if (proofDocId) await deleteDoc(getProofDoc(proofDocId));
+      } catch (proofDocError) {
+        console.warn('Proof doc permanent delete skipped during empty trash:', proofDocError);
+      }
+    }
+  };
+
+  const handleEmptyCentralTrashAll = async () => {
+    if (!canDeleteItems) return alert('บัญชีนี้ไม่มีสิทธิ์ลบถาวร');
+    if (centralTrashEntries.length === 0) return alert('ถังขยะว่างอยู่แล้ว');
+    const ok1 = window.confirm(`⚠️ ล้างถังขยะทั้งหมด ${centralTrashEntries.length} รายการหรือไม่?\n\nจะลบถาวรทั้งอุปกรณ์ ประวัติ และรูปหลักฐานที่อยู่ในถังขยะ`);
+    if (!ok1) return;
+    const typed = window.prompt('พิมพ์คำว่า DELETE เพื่อยืนยันการล้างถังขยะทั้งหมด');
+    if (typed !== 'DELETE') return alert('ยกเลิกแล้ว เพราะพิมพ์คำยืนยันไม่ตรง');
+    try {
+      setIsBusy(true);
+      const snapshot = centralTrashEntries.slice();
+      let success = 0;
+      for (const entry of snapshot) {
+        try {
+          await permanentDeleteCentralTrashEntryNoPrompt(entry);
+          success += 1;
+        } catch (entryError) {
+          console.warn('Empty trash entry skipped:', entryError, entry);
+        }
+      }
+      await logAction('ล้างถังขยะทั้งหมด', 'ถังขยะกลาง', `ลบถาวร ${success}/${snapshot.length} รายการจากถังขยะกลาง`);
+      pushToast('ล้างถังขยะทั้งหมดแล้ว', `ลบถาวร ${success}/${snapshot.length} รายการ`, 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ ล้างถังขยะไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const handlePermanentDeleteOldCentralTrash = async () => {
     if (!canDeleteItems) return alert('บัญชีนี้ไม่มีสิทธิ์ลบถาวร');
     if (oldCentralTrashEntries.length === 0) return alert('ยังไม่มีรายการที่เก่ากว่า 30 วันในถังขยะกลาง');
@@ -14237,8 +14301,7 @@ S.N.: ${item.sn || '-'}
     const recordTabs = [
       ['docs', 'เอกสารย้อนหลัง', borrowเอกสารs.length],
       ['history', 'ประวัติส่วนกลาง', filteredHistoryCenterEntries.length],
-      ['proofs', 'หลักฐานรูปภาพ', filteredProofGroups.length],
-      ['trash', 'ถังขยะ', centralTrashEntries.length]
+      ['proofs', 'หลักฐานรูปภาพ', filteredProofGroups.length]
     ];
     return (
       <div className="page-workspace-shell records-workspace space-y-5">
@@ -14251,13 +14314,12 @@ S.N.: ${item.sn || '-'}
               <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ย้ายงานค้นย้อนหลังจาก popup หลายอันมาอยู่หน้าเดียว ลดการเด้งหน้าต่างซ้อนกัน</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {canDeleteItems && <button type="button" onClick={() => setRecordsCenterMode('trash')} className={`px-4 py-3 rounded-2xl border font-black ${isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}><Icons.Trash className="w-5 h-5 inline-block mr-1" /> ถังขยะ</button>}
               <button type="button" onClick={() => openWorkspace('overview')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับภาพรวม</button>
             </div>
           </div>
 
           <div className="p-4 sm:p-5 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {recordTabs.map(([id, label, count]) => (
                 <button key={id} type="button" onClick={() => setRecordsCenterMode(id)} className={`p-3 rounded-2xl border text-left font-black ${recordsCenterMode === id ? 'bg-blue-600 text-white border-blue-600 shadow-md' : theme.btnSecondary}`}>
                   <div>{label}</div>
@@ -14854,7 +14916,7 @@ S.N.: ${item.sn || '-'}
         desc: 'ดูแลบัญชี สิทธิ์ และงานที่ต้องระวัง',
         items: [
           ['บัญชีผู้ใช้', 'PIN บทบาท สิทธิ์ และบัญชีกลาง', Icons.UserPlus, () => openSettingsTab('accounts')],
-          ['ถังขยะ', 'กู้คืนหรือลบถาวรรายการที่ถูกลบ', Icons.Alert, () => openMainHistoryCenter({ reset: true, tab: 'trash' })],        ]
+          ['ถังขยะ', 'กู้คืนหรือลบถาวรรายการที่ถูกลบ', Icons.Trash, () => openSettingsTab('trash')],        ]
       },
       {
         title: 'เอกสารและการแสดงผล',
@@ -15125,6 +15187,7 @@ S.N.: ${item.sn || '-'}
     { id: 'documents', label: 'เอกสาร / โลโก้', desc: 'ใบยืม ฉลาก QR และโลโก้', icon: Icons.พิมพ์er, group: 'เอกสาร' },
     { id: 'proofs', label: 'หลักฐานรูปภาพ', desc: 'กติกาการแนบรูป', icon: Icons.Camera, group: 'หลักฐาน' },
     { id: 'database', label: 'ฐานข้อมูล / สำรอง', desc: 'Backup, Restore, Cleanup', icon: Icons.Database, group: 'ระบบ' },
+    { id: 'trash', label: 'ถังขยะ', desc: 'กู้คืน / ลบถาวร', icon: Icons.Trash, group: 'ระบบ' },
   ];
 
   const settingsNavGroups = ['เริ่มต้น', 'ข้อมูลพื้นฐาน', 'ผู้ใช้งาน', 'หน้าตาเว็บ', 'เอกสาร', 'หลักฐาน', 'ระบบ'];
@@ -16415,6 +16478,13 @@ S.N.: ${item.sn || '-'}
   const filteredCentralTrashEntries = useMemo(() => {
     return centralTrashEntries.filter(entry => centralTrashFilter === 'all' || entry.kind === centralTrashFilter);
   }, [centralTrashEntries, centralTrashFilter]);
+
+  const centralTrashCounts = useMemo(() => ({
+    all: centralTrashEntries.length,
+    item: centralTrashEntries.filter(e => e.kind === 'item').length,
+    history: centralTrashEntries.filter(e => e.kind === 'history').length,
+    proof: centralTrashEntries.filter(e => e.kind === 'proof').length
+  }), [centralTrashEntries]);
 
   const oldCentralTrashEntries = useMemo(() => {
     const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
@@ -24587,6 +24657,78 @@ ${auditChangeSummary}` : auditChangeSummary);
                       <div className={`p-2.5 rounded-lg border ${theme.btnSecondary}`}><div className={`text-xs font-bold ${theme.textMuted}`}>ยังพอเพิ่มได้ประมาณ</div><div className={`text-2xl font-black ${theme.textTitle}`}>{proofStorageForecast.remainingByAvg.toLocaleString('th-TH')} รูป</div></div>
                     </div>
                     <p className={`text-xs font-bold mt-3 ${theme.textMuted}`}>แนะนำถ่ายภาพรวมต่อรายการยืม/คืน/ออกงาน ไม่ถ่ายทุกชิ้น เพื่อให้พื้นที่อยู่ได้ทั้งปี</p>
+                  </div>
+                </div>
+              ) : settingsTab === 'trash' ? (
+                <div className="p-5 sm:p-6 lg:p-7 space-y-5">
+                  <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-rose-950/25 border-rose-800' : 'bg-rose-50 border-rose-200'}`}>
+                    <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <h4 className={`text-xl sm:text-2xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}>
+                          <Icons.Trash className="w-6 h-6 text-rose-500" />
+                          ถังขยะ
+                        </h4>
+                        <p className={`text-sm font-bold ${theme.textMuted}`}>รวมรายการที่ถูกย้ายลงถังขยะทั้งหมดไว้หน้านี้ กู้คืนหรือลบถาวรได้จากจุดเดียว</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleEmptyCentralTrashAll}
+                        disabled={centralTrashEntries.length === 0 || isBusy}
+                        className={`px-5 py-3 rounded-2xl border font-black shadow-sm ${centralTrashEntries.length === 0 || isBusy ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-rose-600 border-rose-500 text-white hover:bg-rose-500'}`}
+                      >
+                        ล้างถังขยะทั้งหมด
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                    {[
+                      ['all', 'ทั้งหมด', centralTrashCounts.all],
+                      ['item', 'อุปกรณ์', centralTrashCounts.item],
+                      ['history', 'ประวัติ', centralTrashCounts.history],
+                      ['proof', 'รูปหลักฐาน', centralTrashCounts.proof]
+                    ].map(([key, label, count]) => (
+                      <button
+                        key={`settings_trash_filter_${key}`}
+                        type="button"
+                        onClick={() => setCentralTrashFilter(key)}
+                        className={`rounded-2xl border px-4 py-3 text-left transition ${centralTrashFilter === key ? 'bg-rose-600/20 border-rose-400/45 text-rose-100' : theme.btnSecondary}`}
+                      >
+                        <div className="text-xs font-black opacity-80">{label}</div>
+                        <div className="text-2xl font-black mt-1">{Number(count || 0).toLocaleString('th-TH')}</div>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className={`p-4 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-3 ${theme.divide}`}>
+                      <div>
+                        <div className={`font-black text-lg ${theme.textTitle}`}>รายการในถังขยะ</div>
+                        <div className={`text-sm font-bold ${theme.textMuted}`}>ลบถาวรแล้วจะกู้คืนจากในเว็บไม่ได้ แนะนำสำรองข้อมูลก่อนล้างทั้งหมด</div>
+                      </div>
+                      <button type="button" onClick={handlePermanentDeleteOldCentralTrash} disabled={oldCentralTrashEntries.length === 0 || isBusy} className={`px-4 py-2.5 rounded-2xl border text-sm font-black ${oldCentralTrashEntries.length === 0 || isBusy ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-amber-950/45 border-amber-500/40 text-amber-200 hover:bg-amber-700 hover:text-white'}`}>ล้างรายการเก่า 30 วัน ({oldCentralTrashEntries.length.toLocaleString('th-TH')})</button>
+                    </div>
+
+                    <div className="p-4 max-h-[48vh] overflow-y-auto custom-scrollbar space-y-3">
+                      {filteredCentralTrashEntries.length === 0 ? (
+                        <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ถังขยะว่างในหมวดนี้</div>
+                      ) : filteredCentralTrashEntries.map(entry => (
+                        <div key={`settings_trash_${entry.id}`} className={`rounded-2xl border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${entry.kind === 'item' ? 'bg-blue-950/35 border-blue-800 text-blue-200' : entry.kind === 'proof' ? 'bg-pink-950/35 border-pink-800 text-pink-200' : 'bg-amber-950/35 border-amber-800 text-amber-200'}`}>{entry.kindLabel}</span>
+                              <span className={`text-xs font-bold ${theme.textMuted}`}>{entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12:false }) : '-'} • โดย {entry.deletedBy || '-'}</span>
+                            </div>
+                            <div className={`mt-2 text-base font-black break-words ${theme.textTitle}`}>{entry.title}</div>
+                            <div className={`mt-1 text-xs font-bold leading-relaxed break-words ${theme.textMuted}`}>{entry.subtitle}</div>
+                          </div>
+                          <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
+                            <button type="button" onClick={() => handleRestoreCentralTrashEntry(entry)} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black">กู้คืน</button>
+                            <button type="button" onClick={() => handlePermanentDeleteCentralTrashEntry(entry)} className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black">ลบถาวร</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ) : settingsTab === 'database' ? (
