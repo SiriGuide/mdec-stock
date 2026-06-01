@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.92 Settings Current Section CSS Sticky Fix';
-const APP_UPDATE_NOTE = 'Settings Current Section CSS Sticky Fix: แก้ CURRENT SECTION ที่ยังเลื่อนตาม เพราะมี CSS บังคับ sticky อยู่ เปลี่ยนเป็น static ทั้งจาก class และ CSS จริง';
+const APP_VERSION = 'v23.1.93 Remove Quality And Stock Count';
+const APP_UPDATE_NOTE = 'Remove Quality And Stock Count: ตัดเมนูตรวจคุณภาพข้อมูลและตรวจนับสต๊อกจริงออกจากระบบ UI หลักทั้งหมด ลดความรกและคงเว็บให้เป็น STOCK ใช้งานประจำวันแบบเรียบง่าย';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -10198,9 +10198,9 @@ S.N.: ${item.sn || '-'}
       desc: 'หน้ารายงานแยกสำหรับดูสรุป ส่งออก CSV และพิมพ์เฉพาะเอกสารรายงาน'
     },
     stockCount: {
-      kicker: 'PHYSICAL AUDIT',
-      title: 'ตรวจนับสต๊อกจริง',
-      desc: 'สร้างรอบตรวจนับ ติ๊กพบแล้ว ตรวจของหาย และพิมพ์รายงานตรวจนับ'
+      kicker: 'STOCK',
+      title: 'คลังอุปกรณ์',
+      desc: 'กลับไปหน้าคลังอุปกรณ์'
     }
   };
   const currentWorkspaceMeta = workspaceMeta[activeWorkspace] || workspaceMeta.overview;
@@ -14854,10 +14854,7 @@ S.N.: ${item.sn || '-'}
         desc: 'ดูแลบัญชี สิทธิ์ และงานที่ต้องระวัง',
         items: [
           ['บัญชีผู้ใช้', 'PIN บทบาท สิทธิ์ และบัญชีกลาง', Icons.UserPlus, () => openSettingsTab('accounts')],
-          ['ถังขยะ', 'กู้คืนหรือลบถาวรรายการที่ถูกลบ', Icons.Alert, () => openMainHistoryCenter({ reset: true, tab: 'trash' })],
-          ['ตรวจคุณภาพข้อมูล', 'เช็กข้อมูลอุปกรณ์ที่ยังไม่ครบ', Icons.CheckCircle, () => openSettingsTab('quality')],
-          ['สถานะระบบ', 'ตรวจสุขภาพระบบและพื้นที่ฐานข้อมูล', Icons.Monitor, () => setShowระบบHealthModal(true)]
-        ]
+          ['ถังขยะ', 'กู้คืนหรือลบถาวรรายการที่ถูกลบ', Icons.Alert, () => openMainHistoryCenter({ reset: true, tab: 'trash' })],        ]
       },
       {
         title: 'เอกสารและการแสดงผล',
@@ -14871,12 +14868,10 @@ S.N.: ${item.sn || '-'}
       },
       {
         title: 'คลังและงานจัดเตรียม',
-        desc: 'ของสำรอง กล่อง เซ็ต และการตรวจนับของจริง',
+        desc: 'ของสำรอง กล่อง และเซ็ตใช้งาน',
         items: [
           ['โกดัง / คลังสำรอง', 'ของยังไม่เปิดใช้และของสแปร์ที่ต้องเบิกก่อน', Icons.Folder, () => openWorkspace('warehouse')],
-          ['กล่อง / เซ็ตอุปกรณ์', 'จัดกล่องจริง เซ็ตใช้งาน และเช็กลิสต์', Icons.Layers, () => openWorkspace('organize')],
-          ['ตรวจนับสต๊อกจริง', 'Physical Audit / ตรวจของจริงตามรอบ', Icons.CheckCircle, () => openWorkspace('stockCount')],
-          ['ประวัติส่วนกลาง', 'เหตุการณ์สำคัญของระบบทั้งหมด', Icons.ClipboardList, () => openMainHistoryCenter({ reset: true, tab: 'history' })]
+          ['กล่อง / เซ็ตอุปกรณ์', 'จัดกล่องจริง เซ็ตใช้งาน และเช็กลิสต์', Icons.Layers, () => openWorkspace('organize')],          ['ประวัติส่วนกลาง', 'เหตุการณ์สำคัญของระบบทั้งหมด', Icons.ClipboardList, () => openMainHistoryCenter({ reset: true, tab: 'history' })]
         ]
       }
     ];
@@ -15117,7 +15112,7 @@ S.N.: ${item.sn || '-'}
     if (activeWorkspace === 'tools') return renderToolsWorkspace();
     if (activeWorkspace === 'projects') return renderProjectWorkspace();
     if (activeWorkspace === 'organize') return renderOrganizeWorkspace();
-    if (activeWorkspace === 'stockCount') return renderStockCountWorkspace();
+    if (activeWorkspace === 'stockCount') return renderEquipmentInventoryWorkspace();
     if (activeWorkspace === 'reports') return renderReportsWorkspace();
     return null;
   };
@@ -15130,7 +15125,6 @@ S.N.: ${item.sn || '-'}
     { id: 'documents', label: 'เอกสาร / โลโก้', desc: 'ใบยืม ฉลาก QR และโลโก้', icon: Icons.พิมพ์er, group: 'เอกสาร' },
     { id: 'proofs', label: 'หลักฐานรูปภาพ', desc: 'กติกาการแนบรูป', icon: Icons.Camera, group: 'หลักฐาน' },
     { id: 'database', label: 'ฐานข้อมูล / สำรอง', desc: 'Backup, Restore, Cleanup', icon: Icons.Database, group: 'ระบบ' },
-    { id: 'quality', label: 'ตรวจคุณภาพ', desc: 'ข้อมูลที่ควรเติม', icon: Icons.CheckCircle, group: 'ระบบ' },
   ];
 
   const settingsNavGroups = ['เริ่มต้น', 'ข้อมูลพื้นฐาน', 'ผู้ใช้งาน', 'หน้าตาเว็บ', 'เอกสาร', 'หลักฐาน', 'ระบบ'];
@@ -15195,24 +15189,11 @@ S.N.: ${item.sn || '-'}
     {
       id: 'database',
       title: 'สำรองข้อมูล / ปิดปี',
-      desc: 'สำรอง กู้คืน ส่งออก CSV และตรวจพื้นที่ก่อนล้างข้อมูลสิ้นปี',
+      desc: 'สำรอง กู้คืน ส่งออก CSV และเตรียมข้อมูลสิ้นปี',
       icon: Icons.Database,
       tone: isDarkMode ? 'bg-amber-950/25 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800',
       stats: `${databaseStorageEstimate.percentText} ของพื้นที่ประมาณการ`,
       action: () => openSettingsTab('database')
-    },
-    {
-      id: 'quality',
-      title: 'ตรวจคุณภาพข้อมูล',
-      desc: 'หาอุปกรณ์ที่ยังขาด S.N., ที่เก็บ, QR, ฝ่ายดูแล หรือข้อมูลกล้อง/เลนส์/เมมที่จำเป็น',
-      icon: Icons.CheckCircle,
-      tone: dataQualityAudit.scoreTone === 'emerald'
-        ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
-        : dataQualityAudit.scoreTone === 'amber'
-          ? (isDarkMode ? 'bg-amber-950/25 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800')
-          : (isDarkMode ? 'bg-rose-950/25 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-800'),
-      stats: `${dataQualityAudit.qualityScore}% • ${dataQualityAudit.issueItemCount.toLocaleString('th-TH')} รายการควรเติม`,
-      action: () => openSettingsTab('quality')
     },
   ];
 
@@ -15533,9 +15514,7 @@ S.N.: ${item.sn || '-'}
   };
 
   const openDailyDataQuality = () => {
-    setShowSettings(true);
-    openSettingsTab('quality');
-    pushToast('เปิดหน้าตรวจคุณภาพข้อมูลแล้ว', 'ดูรายการที่ควรเติม S.N. / ที่เก็บ / QR / ฝ่ายดูแล', 'info');
+    pushToast('ตัดหน้าตรวจคุณภาพข้อมูลออกแล้ว', 'ใช้คลังอุปกรณ์และแฟ้มอุปกรณ์เป็นหลัก', 'info');
   };
 
   const openReturnFromTracking = (item) => {
@@ -17551,14 +17530,6 @@ S.N.: ${item.sn || '-'}
           desc: prepTodayLists.length ? nextPrep.map(p => p.name || 'เซ็ตใช้งาน').join(' • ') : 'ยังไม่มี checklist วันนี้',
           tone: prepTodayLists.length ? 'blue' : 'slate',
           action: () => openWorkspace('organize')
-        },
-        {
-          id: 'quality',
-          title: 'ตรวจข้อมูล/ตรวจซ้ำ',
-          value: issueCount,
-          desc: `${dataQualityAudit.issueItemCount} ข้อมูลควรเติม • ${stockCountStats.recheck.length} ควรตรวจซ้ำ`,
-          tone: issueCount ? 'amber' : 'emerald',
-          action: openDailyDataQuality
         }
       ]
     };
@@ -22993,12 +22964,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดกลุ่มตามแหล่งที่มา</p>
                   </button>
                   {isFullMode && canUseOperationalTools && (
-                    <>
-                      <button type="button" onClick={() => { setShowMoreMenu(false); openWorkspace('stockCount'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                        <div className="font-black text-lg flex items-center gap-2"><Icons.CheckCircle className="w-5 h-5" /> ตรวจนับสต๊อก</div>
-                        <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รอบตรวจนับ / รายงาน A4 / CSV</p>
-                      </button>
-                      <button type="button" onClick={() => { setShowMoreMenu(false); openRepairCenter('open'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                    <><button type="button" onClick={() => { setShowMoreMenu(false); openRepairCenter('open'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                         <div className="font-black text-lg flex items-center gap-2"><Icons.Settings className="w-5 h-5" /> ศูนย์ซ่อม</div>
                         <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>งานซ่อม / บำรุงรักษา / รายงาน</p>
                       </button>
@@ -24549,352 +24515,6 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
                     <div className={`font-black mb-2 ${theme.textTitle}`}>หมายเหตุ</div>
                     <div className={`text-sm font-bold ${theme.textMuted}`}>ระบบล็อกดีไซน์ใบยืม/ใบออกงาน/ใบรับคืนให้เรียบร้อยแล้ว ถ้าจะปรับดีไซน์เอกสารให้แก้ผ่านโค้ดเป็นแพ็กอัปเดต ไม่ให้ผู้ใช้ปลายทางเลือกโลโก้/ลายน้ำจนหน้าพิมพ์เพี้ยน</div>
-                  </div>
-                </div>
-              ) : settingsTab === 'quality' ? (
-                <div className="p-4 sm:p-6 space-y-5 data-quality-center">
-                  <div className={`data-quality-health-card p-5 sm:p-6 rounded-3xl border overflow-hidden relative ${dataQualityAudit.scoreTone === 'emerald' ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : dataQualityAudit.scoreTone === 'blue' ? (isDarkMode ? 'bg-blue-950/25 border-blue-800' : 'bg-blue-50 border-blue-200') : dataQualityAudit.scoreTone === 'amber' ? (isDarkMode ? 'bg-amber-950/25 border-amber-800' : 'bg-amber-50 border-amber-200') : (isDarkMode ? 'bg-rose-950/25 border-rose-800' : 'bg-rose-50 border-rose-200')}`}>
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-[1]">
-                      <div className="min-w-0">
-                        <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-500">DATA QUALITY CENTER</div>
-                        <h4 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>ตรวจสุขภาพข้อมูลอุปกรณ์</h4>
-                        <p className={`text-sm font-bold mt-2 max-w-3xl ${theme.textMuted}`}>เช็กข้อมูลที่ควรเติมก่อนใช้งานยาว ๆ เพื่อให้ค้นหา ยืมคืน รายงาน เอกสารพิมพ์ ฉลาก QR และตัวช่วยกล้องทำงานแม่นขึ้น</p>
-                      </div>
-                      <div className={`data-quality-score-ring shrink-0 px-5 py-4 rounded-[1.3rem] text-center ${isDarkMode ? 'bg-slate-950/70 border border-slate-800' : 'bg-white/90 border border-white shadow-sm'}`}>
-                        <div className={`text-xs font-black ${theme.textMuted}`}>คะแนนความครบถ้วน</div>
-                        <div className={`text-5xl font-black leading-none mt-1 ${theme.textTitle}`}>{dataQualityAudit.qualityScore}%</div>
-                        <div className={`text-sm font-black mt-2 ${dataQualityAudit.scoreTone === 'emerald' ? 'text-emerald-500' : dataQualityAudit.scoreTone === 'blue' ? 'text-blue-500' : dataQualityAudit.scoreTone === 'amber' ? 'text-amber-500' : 'text-rose-500'}`}>{dataQualityAudit.scoreLabel}</div>
-                      </div>
-                    </div>
-                    <div className={`mt-5 h-3 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-950/80' : 'bg-white/80'}`}>
-                      <div className={`h-full rounded-full ${dataQualityAudit.scoreTone === 'emerald' ? 'bg-emerald-500' : dataQualityAudit.scoreTone === 'blue' ? 'bg-blue-500' : dataQualityAudit.scoreTone === 'amber' ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${dataQualityAudit.qualityScore}%` }}></div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                    {[
-                      ['อุปกรณ์ทั้งหมด', dataQualityAudit.activeCount, 'รายการในระบบ'],
-                      ['ควรเติมข้อมูล', dataQualityAudit.issueItemCount, 'รายการไม่ซ้ำ'],
-                      ['หัวข้อที่พบ', dataQualityAudit.totalIssueTopics, 'หมวดปัญหา'],
-                      ['เร่งแก้ก่อน', dataQualityAudit.highPriorityCount, 'หัวข้อสำคัญ'],
-                      ['คะแนน', `${dataQualityAudit.qualityScore}%`, dataQualityAudit.scoreLabel]
-                    ].map(([label,value,sub]) => (
-                      <div key={label} className={`p-2.5 rounded-lg border ${theme.btnSecondary}`}>
-                        <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
-                        <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{typeof value === 'number' ? Number(value || 0).toLocaleString('th-TH') : value}</div>
-                        <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>{sub}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-950/50 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-start">
-                      <div>
-                        <div className={`font-black text-lg ${theme.textTitle}`}>ตัวกรองรายการที่ควรเติม</div>
-                        <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกหมวดแล้วกด “แก้ไข” เพื่อเปิดฟอร์มอุปกรณ์โดยตรง หรือ “เปิด” เพื่อดูประวัติชิ้นนั้น</p>
-                      </div>
-                      <input
-                        value={dataQualitySearch}
-                        onChange={e => setDataQualitySearch(e.target.value)}
-                        className={`w-full lg:w-80 px-4 py-3 rounded-2xl border font-bold ${theme.input}`}
-                        placeholder="ค้นหาอุปกรณ์ / S.N. / ที่เก็บ / หมวดหมู่"
-                      />
-                    </div>
-                    <div className="data-quality-filter-row mt-4 flex gap-2 overflow-x-auto pb-1">
-                      {[
-                        ['all', 'ทั้งหมด'],
-                        ['core', 'ข้อมูลหลัก'],
-                        ['qr', 'QR / ฉลาก'],
-                        ['small', 'ของชิ้นเล็ก'],
-                        ['camera', 'กล้อง'],
-                        ['lens', 'เลนส์'],
-                        ['battery', 'แบต'],
-                        ['memory', 'เมม'],
-                        ['high', 'เร่งแก้ก่อน']
-                      ].map(([id,label]) => (
-                        <button
-                          key={id}
-                          type="button"
-                          onClick={() => setDataQualityFilter(id)}
-                          className={`px-4 py-2 rounded-2xl border text-sm font-black transition-colors ${dataQualityFilter === id ? 'bg-blue-600 text-white border-blue-500 shadow-sm' : theme.btnSecondary}`}
-                        >{label}</button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {(() => {
-                    const q = String(dataQualitySearch || '').trim().toLowerCase();
-                    const matchText = (item) => String([item.name, item.sn, item.shortCode, item.category, item.location, item.department, item.project, item.equipmentType].filter(Boolean).join(' ')).toLowerCase();
-                    const issueCards = (dataQualityAudit.issueCards || [])
-                      .filter(card => card.count > 0)
-                      .filter(card => dataQualityFilter === 'all' || (dataQualityFilter === 'high' ? card.priority === 'high' : card.group === dataQualityFilter))
-                      .map(card => ({ ...card, visibleItems: (card.items || []).filter(item => !q || matchText(item).includes(q)) }))
-                      .filter(card => !q || card.visibleItems.length > 0 || String(card.title + ' ' + card.desc).toLowerCase().includes(q));
-
-                    if (dataQualityAudit.activeCount === 0) {
-                      return (
-                        <div className={`p-8 rounded-3xl border text-center ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                          <div className="text-4xl mb-2">📦</div>
-                          <div className="text-xl font-black">ยังไม่มีอุปกรณ์ให้ตรวจคุณภาพข้อมูล</div>
-                          <div className="text-sm font-bold mt-1 opacity-80">เมื่อเพิ่มอุปกรณ์แล้ว ระบบจะช่วยเช็กข้อมูลที่ควรเติมให้อัตโนมัติ</div>
-                        </div>
-                      );
-                    }
-
-                    if (dataQualityAudit.issueItemCount === 0) {
-                      return (
-                        <div className={`p-8 rounded-3xl border text-center ${isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
-                          <div className="text-4xl mb-2">✅</div>
-                          <div className="text-xl font-black">ข้อมูลอุปกรณ์ครบถ้วนดีแล้ว</div>
-                          <div className="text-sm font-bold mt-1 opacity-80">พร้อมใช้งานยืม/คืน รายงาน เอกสารพิมพ์ และฉลาก QR ได้อย่างมั่นใจ</div>
-                        </div>
-                      );
-                    }
-
-                    if (issueCards.length === 0) {
-                      return (
-                        <div className={`p-8 rounded-3xl border text-center ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                          <div className="text-4xl mb-2">🔎</div>
-                          <div className="text-xl font-black">ไม่พบรายการตามตัวกรองนี้</div>
-                          <div className="text-sm font-bold mt-1 opacity-80">ลองล้างคำค้นหา หรือกลับไปดูทั้งหมด</div>
-                          <button type="button" onClick={() => { setDataQualityFilter('all'); setDataQualitySearch(''); }} className="mt-4 px-5 py-3 rounded-2xl bg-blue-600 text-white font-black">ล้างตัวกรอง</button>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                        {issueCards.map(card => {
-                          const visibleItems = card.visibleItems && card.visibleItems.length ? card.visibleItems : card.items || [];
-                          const toneClass = card.tone === 'rose'
-                            ? (isDarkMode ? 'bg-rose-950/20 border-rose-800' : 'bg-rose-50 border-rose-200')
-                            : card.tone === 'amber'
-                              ? (isDarkMode ? 'bg-amber-950/20 border-amber-800' : 'bg-amber-50 border-amber-200')
-                              : card.tone === 'cyan'
-                                ? (isDarkMode ? 'bg-cyan-950/20 border-cyan-800' : 'bg-cyan-50 border-cyan-200')
-                                : card.tone === 'emerald'
-                                  ? (isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200')
-                                  : card.tone === 'blue'
-                                    ? (isDarkMode ? 'bg-blue-950/20 border-blue-800' : 'bg-blue-50 border-blue-200')
-                                    : card.tone === 'indigo'
-                                      ? (isDarkMode ? 'bg-indigo-950/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200')
-                                      : (isDarkMode ? 'bg-slate-950/45 border-slate-800' : 'bg-white border-slate-200 shadow-sm');
-                          return (
-                            <div key={card.id} className={`data-quality-issue-card p-4 rounded-3xl border ${toneClass}`}>
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <div className={`font-black text-lg ${theme.textTitle}`}>{card.title}</div>
-                                    {card.priority === 'high' && <span className="px-2 py-1 rounded-lg text-[10px] font-black bg-rose-600 text-white">ควรแก้ก่อน</span>}
-                                  </div>
-                                  <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{card.desc}</div>
-                                  <div className={`text-xs font-black mt-2 ${theme.textMuted}`}>คำแนะนำ: {card.actionHint}</div>
-                                </div>
-                                <div className="shrink-0 px-3 py-2 rounded-2xl bg-blue-600 text-white font-black text-center min-w-16">
-                                  <div className="text-xl leading-none">{card.count.toLocaleString('th-TH')}</div>
-                                  <div className="text-[10px] opacity-90">รายการ</div>
-                                </div>
-                              </div>
-
-                              <div className="mt-4 space-y-2">
-                                {visibleItems.slice(0, 8).map(item => {
-                                  const target = items.find(i => i.id === item.id);
-                                  return (
-                                    <div key={item.id} className={`data-quality-item-card p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950/45 border-slate-800' : 'bg-white/90 border-slate-200'}`}>
-                                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                                        <div className="min-w-0 flex-1">
-                                          <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
-                                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>
-                                            {item.sn ? `S.N. ${item.sn}` : 'S.N. -'}{item.shortCode ? ` • ${item.shortCode}` : ''}{item.category ? ` • ${item.category}` : ' • หมวด -'}{item.location ? ` • ${item.location}` : ' • ที่เก็บ -'}
-                                          </div>
-                                          <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>{item.department || 'ฝ่าย -'} {item.project ? `• ${item.project}` : ''}</div>
-                                        </div>
-                                        <div className="grid grid-cols-3 sm:grid-cols-1 gap-2 shrink-0">
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              if (target) {
-                                                setShowSettings(false);
-                                                openItemEditor(target);
-                                              }
-                                            }}
-                                            className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black shadow-sm"
-                                          >แก้ไข</button>
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              if (target) {
-                                                setShowSettings(false);
-                                                setShowHistory(target.id);
-                                              }
-                                            }}
-                                            className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}
-                                          >เปิด</button>
-                                          <button
-                                            type="button"
-                                            onClick={() => target && copyItemSummary(target)}
-                                            className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}
-                                          >คัดลอกสรุป</button>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                                {card.count > visibleItems.slice(0, 8).length && (
-                                  <div className={`text-xs font-black text-center pt-1 ${theme.textMuted}`}>แสดงตัวอย่าง {visibleItems.slice(0, 8).length.toLocaleString('th-TH')} จาก {card.count.toLocaleString('th-TH')} รายการ • ใช้ช่องค้นหาเพื่อเจาะจงรายการ</div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
-
-                  <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-                    <div className="font-black mb-1">ลำดับแนะนำสำหรับเก็บข้อมูล</div>
-                    <div className="text-sm font-bold opacity-90">เริ่มจาก S.N. → ที่เก็บ → หมวดหมู่ → QR/รหัสสั้น → ฝ่ายดูแล → metadata เฉพาะกล้อง/เลนส์/แบต/เมม จะช่วยให้ค้นหา รายงาน เอกสารพิมพ์ และตัวช่วยเลือกอุปกรณ์แม่นขึ้นมาก</div>
-                  </div>
-                </div>
-              ) : settingsTab === 'database' ? (
-                <div className="p-5 sm:p-6 lg:p-7 space-y-5">
-                  <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
-                    <div className="font-black text-base mb-1">คำแนะนำก่อนจัดการฐานข้อมูล</div>
-                    <div className="text-sm font-bold">แนะนำให้ใช้ “ศูนย์สำรองข้อมูล” เพื่อดาวน์ดาวน์โหลด JSON สำหรับกู้คืน, CSV สำหรับเปิดใน Google Sheets และ HTML สำหรับดูรูปหลักฐาน ก่อนล้างประวัติทุกครั้ง</div>
-                  </div>
-                  <div className={`p-6 rounded-2xl border shadow-sm ${databaseStorageEstimate.cardTone}`}>
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-                      <div>
-                        <h4 className={`text-xl font-black mb-1 flex items-center gap-2 ${theme.textTitle}`}><Icons.Signal className={`w-6 h-6 ${databaseStorageEstimate.textTone}`}/> สถานะพื้นที่ฐานข้อมูล</h4>
-                        <p className={`text-sm font-bold ${theme.textMuted}`}>{databaseStorageEstimate.scanSource === 'deep-scan' ? 'สแกนจาก Firestore collections หลักล่าสุด เทียบกับพื้นที่ 1GB' : 'ประเมินจากข้อมูลที่เว็บโหลดอยู่ เทียบกับพื้นที่ 1GB — กดตรวจละเอียดเพื่อสแกนจริง'}</p>
-                      </div>
-                      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                        <button type="button" onClick={scanDatabaseStorageNow} disabled={isScanningDatabaseStorage} className={`px-3 py-2 rounded-xl text-sm font-black border transition-colors ${isScanningDatabaseStorage ? 'opacity-60 cursor-not-allowed' : ''} ${theme.btnSecondary}`}>
-                          {isScanningDatabaseStorage ? 'กำลังตรวจ...' : 'ตรวจพื้นที่จริงตอนนี้'}
-                        </button>
-                        <span className={`px-3 py-1.5 rounded-xl text-sm font-black border ${databaseStorageEstimate.cardTone} ${databaseStorageEstimate.textTone}`}>
-                          {databaseStorageEstimate.label}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className={`w-full h-5 rounded-full overflow-hidden border shadow-inner ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                      <div className={`h-full rounded-full transition-all duration-500 ${databaseStorageEstimate.barClass}`} style={{ width: `${Math.max(databaseStorageEstimate.percent, databaseStorageEstimate.percent > 0 ? 1 : 0)}%` }}></div>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 mt-4">
-                      <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        <div className={`text-xs font-bold ${theme.textMuted}`}>ใช้ไปประมาณ</div>
-                        <div className={`text-lg font-black ${databaseStorageEstimate.textTone}`}>{databaseStorageEstimate.percentText}</div>
-                      </div>
-                      <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        <div className={`text-xs font-bold ${theme.textMuted}`}>ขนาดประเมิน</div>
-                        <div className={`text-lg font-black ${theme.textTitle}`}>{databaseStorageEstimate.estimatedText}</div>
-                      </div>
-                      <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        <div className={`text-xs font-bold ${theme.textMuted}`}>ข้อมูลดิบ</div>
-                        <div className={`text-lg font-black ${theme.textTitle}`}>{databaseStorageEstimate.rawText}</div>
-                      </div>
-                      <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        <div className={`text-xs font-bold ${theme.textMuted}`}>อุปกรณ์</div>
-                        <div className={`text-lg font-black ${theme.textTitle}`}>{databaseStorageEstimate.itemCount} ชิ้น</div>
-                      </div>
-                      <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        <div className={`text-xs font-bold ${theme.textMuted}`}>ประวัติยืม-คืน</div>
-                        <div className={`text-lg font-black ${theme.textTitle}`}>{databaseStorageEstimate.historyCount} รายการ</div>
-                      </div>
-                      <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        <div className={`text-xs font-bold ${theme.textMuted}`}>รูปหลักฐาน</div>
-                        <div className={`text-lg font-black ${theme.textTitle}`}>{databaseStorageEstimate.proofImageCount} รูป</div>
-                        <div className={`text-[10px] font-bold ${theme.textMuted}`}>{databaseStorageEstimate.proofStorageText}</div>
-                      </div>
-                    </div>
-
-                    <p className={`text-xs mt-3 font-bold ${theme.textMuted}`}>
-                      * โหมดตรวจละเอียดจะอ่านทุก document ใน collections หลักของเว็บ: items, proofs, borrow_documents, audit_logs และ settings แล้วบวก overhead/index เผื่อความปลอดภัย จึงแม่นกว่า estimate เดิมมาก แต่ Firebase ยังไม่เปิดให้เว็บอ่าน Usage จริงจาก Console แบบ 100% ได้โดยตรง
-                      {databaseDeepScan?.scannedAt ? ` • ตรวจล่าสุด: ${new Date(databaseDeepScan.scannedAt).toLocaleString('th-TH', { hour12: false })}` : ''}
-                    </p>
-                    {databaseDeepScan?.collections?.length ? (
-                      <div className={`mt-4 rounded-xl border overflow-hidden ${isDarkMode ? 'border-slate-700 bg-slate-950/40' : 'border-slate-200 bg-white'}`}>
-                        <div className={`px-3 py-2 text-xs font-black ${theme.textMuted}`}>รายละเอียดจากการสแกนฐานข้อมูลจริง</div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-3">
-                          {databaseDeepScan.collections.map((row) => (
-                            <div key={row.label} className={`p-2 rounded-lg border ${isDarkMode ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
-                              <div className={`text-sm font-black ${theme.textTitle}`}>{row.label}</div>
-                              <div className={`text-xs font-bold ${theme.textMuted}`}>{row.count.toLocaleString('th-TH')} docs • {formatDatabaseBytes(row.rawBytes)} raw{row.embeddedImageBytes ? ` • รูปฝัง ${formatDatabaseBytes(row.embeddedImageBytes)}` : ''}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className={`p-6 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
-                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-6 h-6 text-blue-500"/> ศูนย์สำรองข้อมูล / ปิดปี</h4>
-                    <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>ปุ่มหลักจะดาวน์ดาวน์โหลดครบทั้ง JSON สำหรับกู้คืน, CSV สำหรับ Google Sheets และ HTML สำหรับเปิดดูรูปหลักฐาน</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <button type="button" onClick={() => setShowBackupCenterModal(true)} className="sm:col-span-2 w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
-                        <Icons.Database className="w-5 h-5"/> เปิดศูนย์สำรองข้อมูล
-                      </button>
-                      <button type="button" onClick={exportFullBackupJSON} className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
-                        <Icons.Download className="w-5 h-5"/> เฉพาะ JSON
-                      </button>
-                      <button type="button" onClick={exportSheetsCSVPack} className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
-                        <Icons.History className="w-5 h-5"/> เฉพาะ CSV
-                      </button>
-                    </div>
-                    <p className={`text-xs mt-3 font-bold ${theme.textMuted}`}>* CSV เปิดใน Google Sheets ได้แต่ไม่มีรูปจริง ส่วนไฟล์ HTML Gallery ใช้เปิดดูรูปหลักฐานจริงได้ทันที</p>
-                    <div className={`mt-3 p-2.5 rounded-lg border text-xs font-bold ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-white border-blue-100 text-slate-600'}`}>
-                      สำรองล่าสุด: {settingsOptions.backupMeta?.latest ? new Date(settingsOptions.backupMeta.latest).toLocaleString('th-TH', { hour12: false }) : 'ยังยังไม่มีข้อมูลการสำรองในระบบ'}
-                    </div>
-                    <div className={`mt-4 p-4 rounded-xl border ${isDarkMode ? 'bg-amber-900/20 border-amber-800' : 'bg-amber-50 border-amber-200'}`}>
-                      <h5 className={`text-base font-black mb-1 flex items-center gap-2 ${isDarkMode ? 'text-amber-300' : 'text-amber-700'}`}>
-                        <Icons.Upload className="w-4 h-4" /> กู้คืนข้อมูลจาก JSON
-                      </h5>
-                      <p className={`text-xs mb-3 font-bold ${isDarkMode ? 'text-amber-300/80' : 'text-amber-700/80'}`}>
-                        ใช้เมื่อจำเป็นเท่านั้น ระบบจะเขียนทับ/เพิ่มข้อมูลจากไฟล์ JSON แต่จะไม่ลบอุปกรณ์ที่ไม่มีในไฟล์สำรอง
-                      </p>
-                      <input type="file" accept=".json,application/json" className="hidden" ref={restoreInputRef} onChange={handleRestoreBackupJSON} />
-                      <button type="button" onClick={requestRestoreBackupJSON} className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
-                        <Icons.Upload className="w-5 h-5"/> เลือกไฟล์ JSON เพื่อกู้คืน
-                      </button>
-                    </div>
-
-                    <div className={`mt-5 p-4 rounded-xl border ${isDarkMode ? 'bg-slate-900/30 border-slate-700' : 'bg-white border-slate-200'}`}>
-                      <h5 className={`text-base font-black mb-1 flex items-center gap-2 ${theme.textTitle}`}>
-                        <Icons.CheckCircle className="w-4 h-4 text-emerald-500" /> Checklist ปิดปีการศึกษา
-                      </h5>
-                      <p className={`text-xs mb-3 font-bold ${theme.textMuted}`}>ใช้เช็กก่อนสำรองและล้างประวัติรายปี เพื่อกันพลาด</p>
-                      <button type="button" onClick={() => setShowAnnualCleanupModal(true)} className={`w-full py-2.5 rounded-lg font-black border ${theme.btnSecondary}`}>เปิด Checklist ปิดปีการศึกษา</button>
-                    </div>
-
-                    <div className={`mt-5 p-4 rounded-xl border ${isDarkMode ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-200'}`}>
-                      <h5 className={`text-base font-black mb-1 flex items-center gap-2 ${isDarkMode ? 'text-rose-300' : 'text-rose-700'}`}>
-                        <Icons.Trash className="w-4 h-4" /> ล้างประวัติยืม-คืนทั้งหมด
-                      </h5>
-                      <p className={`text-xs mb-3 font-bold ${isDarkMode ? 'text-rose-300/80' : 'text-rose-700/80'}`}>
-                        ใช้หลังจากสำรองข้อมูลรายปีแล้ว ระบบจะล้างเฉพาะประวัติใน history ของอุปกรณ์ทุกชิ้น ไม่ลบรายการอุปกรณ์และไม่เปลี่ยนสถานะปัจจุบัน
-                      </p>
-                      <button type="button" onClick={clearAllBorrowReturnHistory} className="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-base">
-                        <Icons.Trash className="w-5 h-5"/> ล้างประวัติยืม-คืนทั้งหมด
-                      </button>
-                    </div>
-                  </div>
-                  <div className={`p-6 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Download className="w-6 h-6 text-emerald-500"/> สำรองข้อมูล (ส่งออก)</h4>
-                    <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>ดาวน์ดาวน์โหลดข้อมูลสต๊อกทั้งหมดออกมาเป็นไฟล์ Excel (.csv) เพื่อเก็บสำรองไว้ในคอมพิวเตอร์ของคุณ</p>
-                    <button onClick={exportToCSV} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-lg">
-                      <Icons.Download className="w-5 h-5"/> ดาวน์โหลดไฟล์ CSV
-                    </button>
-                  </div>
-
-                  <div className={`p-6 rounded-2xl border shadow-sm ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.Upload className="w-6 h-6 text-blue-500"/> นำเข้าข้อมูล (Import)</h4>
-                    <p className={`text-sm mb-4 font-medium ${theme.textMuted}`}>อัปดาวน์โหลดไฟล์ .csv เพื่อเพิ่มอุปกรณ์ทีละหลายๆ ชิ้น (Format: ชื่อ, S.N., หมวดหมู่, ฝ่าย, สถานที่, จำนวน)</p>
-                    <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleImportCSV} />
-                    <button onClick={() => fileInputRef.current?.click()} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 text-lg">
-                      <Icons.Upload className="w-5 h-5"/> เลือกไฟล์ CSV
-                    </button>
                   </div>
                 </div>
               ) : settingsTab === 'proofs' ? (
@@ -27304,7 +26924,6 @@ ${auditChangeSummary}` : auditChangeSummary);
             <p className={`text-sm font-bold mt-2 ${theme.textMuted}`}>แพ็ก v22.53.35 เปลี่ยนจาก popup เดิมเป็นหน้าเต็ม เพื่อให้เดินตรวจของบนมือถือได้สะดวกขึ้น</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-5">
               <button type="button" onClick={() => setShowStockCountModal(false)} className={`py-2 rounded-lg border font-black ${theme.btnCancel}`}>ปิด</button>
-              <button type="button" onClick={() => { setShowStockCountModal(false); openWorkspace('stockCount'); }} className="py-3 rounded-2xl bg-emerald-600 text-white font-black">เปิดหน้าเต็ม</button>
             </div>
           </div>
         </div>
