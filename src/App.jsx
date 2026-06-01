@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.87 Records Docs History Cleanup';
-const APP_UPDATE_NOTE = 'Records Docs History Cleanup: ซ่อนใบรับคืนออกจากเอกสารย้อนหลัง ไม่เด้งพิมพ์ใบคืนหลังรับคืน แก้ปุ่มดูประวัติให้ค้นหาด้วยผู้ยืม/ชื่องาน/อุปกรณ์แทนเลขเอกสาร และเอาปุ่มเปิดแฟ้มในหลักฐานรูปภาพออก';
+const APP_VERSION = 'v23.1.88 Basic Lists Settings Merge';
+const APP_UPDATE_NOTE = 'Basic Lists Settings Merge: รวมหมวดหมู่ สถานที่/ห้อง และเจ้าหน้าที่เป็นเมนูเดียวชื่อ รายการพื้นฐาน พร้อมแท็บสลับข้อมูลและดีไซน์ Settings ให้ล้ำขึ้น ลดเมนูซ้ำและความรก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7018,7 +7018,8 @@ function MainApp() {
   const [showHistory, setShowHistory] = useState(null);
 
   const [showSettings, setShowSettings] = useState(false);
-  const [settingsTab, setSettingsTab] = useState('categories');
+  const [settingsTab, setSettingsTab] = useState('overview');
+  const [basicListTab, setBasicListTab] = useState('categories');
   const [dataQualityFilter, setDataQualityFilter] = useState('all');
   const [dataQualitySearch, setDataQualitySearch] = useState('');
   const [newSettingItem, setNewSettingItem] = useState('');
@@ -14844,9 +14845,7 @@ S.N.: ${item.sn || '-'}
         title: 'ข้อมูลพื้นฐาน',
         desc: 'ตั้งค่าข้อมูลที่ใช้ซ้ำในฟอร์มทั้งเว็บ',
         items: [
-          ['หมวดหมู่', 'ประเภทอุปกรณ์ เช่น กล้อง เลนส์ ไมค์ ไฟ', Icons.Tag, () => openSettingsTab('categories')],
-          ['สถานที่ / ห้อง', 'ที่เก็บ ตู้ ห้องประชุม และพื้นที่ใช้งาน', Icons.Folder, () => openSettingsTab('locations')],
-          ['เจ้าหน้าที่', 'รายชื่อคนทำรายการและผู้เกี่ยวข้อง', Icons.Users, () => openSettingsTab('staff')],
+          ['รายการพื้นฐาน', 'รวมหมวดหมู่ สถานที่/ห้อง และเจ้าหน้าที่ไว้ในหน้าเดียว', Icons.Layers, () => openSettingsTab('basicLists')],
           ['โครงการ', 'โครงการจัดซื้อ / ที่มาของอุปกรณ์', Icons.Folder, () => openWorkspace('projects')]
         ]
       },
@@ -15125,9 +15124,7 @@ S.N.: ${item.sn || '-'}
 
   const settingsNavItems = [
     { id: 'overview', label: 'ภาพรวมระบบ', desc: 'ภาพรวมตั้งค่าระบบทั้งหมด', icon: Icons.ViewGrid, group: 'เริ่มต้น' },
-    { id: 'categories', label: 'หมวดหมู่', desc: 'รายการหมวดอุปกรณ์', icon: Icons.Tag, group: 'ข้อมูลพื้นฐาน' },
-    { id: 'locations', label: 'สถานที่ / ห้อง', desc: 'ที่เก็บและห้องประชุม', icon: Icons.Folder, group: 'ข้อมูลพื้นฐาน' },
-    { id: 'staff', label: 'เจ้าหน้าที่', desc: 'รายชื่อผู้ทำรายการ', icon: Icons.Users, group: 'ข้อมูลพื้นฐาน' },
+    { id: 'basicLists', label: 'รายการพื้นฐาน', desc: 'หมวดหมู่ สถานที่ และเจ้าหน้าที่', icon: Icons.Layers, group: 'ข้อมูลพื้นฐาน' },
     { id: 'accounts', label: 'บัญชีผู้ใช้', desc: 'ล็อกอินและสิทธิ์', icon: Icons.UserPlus, group: 'ผู้ใช้งาน' },
     { id: 'display', label: 'การแสดงผล', desc: 'ความแน่น / การ์ด / เอฟเฟกต์', icon: Icons.Monitor, group: 'หน้าตาเว็บ' },
     { id: 'documents', label: 'เอกสาร / โลโก้', desc: 'ใบยืม ฉลาก QR และโลโก้', icon: Icons.พิมพ์er, group: 'เอกสาร' },
@@ -15138,13 +15135,23 @@ S.N.: ${item.sn || '-'}
 
   const settingsNavGroups = ['เริ่มต้น', 'ข้อมูลพื้นฐาน', 'ผู้ใช้งาน', 'หน้าตาเว็บ', 'เอกสาร', 'หลักฐาน', 'ระบบ'];
 
+  const basicListTabs = [
+    { id: 'categories', label: 'หมวดหมู่', short: 'หมวด', desc: 'ประเภทอุปกรณ์ เช่น กล้อง เลนส์ ไมค์ ไฟ', icon: Icons.Tag, placeholder: 'พิมพ์หมวดหมู่ใหม่...', color: 'from-blue-600 to-cyan-500' },
+    { id: 'locations', label: 'สถานที่ / ห้อง', short: 'ที่เก็บ', desc: 'ที่เก็บ ตู้ ห้องประชุม และพื้นที่ใช้งาน', icon: Icons.Folder, placeholder: 'พิมพ์สถานที่หรือห้องใหม่...', color: 'from-violet-600 to-blue-500' },
+    { id: 'staff', label: 'เจ้าหน้าที่', short: 'เจ้าหน้าที่', desc: 'รายชื่อคนทำรายการและผู้เกี่ยวข้อง', icon: Icons.Users, placeholder: 'พิมพ์ชื่อเจ้าหน้าที่ใหม่...', color: 'from-emerald-600 to-teal-500' }
+  ];
+  const activeBasicListTab = basicListTabs.find(tab => tab.id === basicListTab) || basicListTabs[0];
+
   const openSettingsTab = (tabId) => {
-    // v23.1.54 Settings Hub Click Action Fix
-    // ปุ่มในการ์ด "ตั้งค่าระบบ" ต้องเปิดหน้าตั้งค่าแบบละเอียดจริง ไม่ใช่แค่เปลี่ยน state อยู่เบื้องหลัง
+    // v23.1.88 Basic Lists Settings Merge
+    // หมวดหมู่ / สถานที่ / เจ้าหน้าที่ รวมเป็นเมนูเดียวชื่อ รายการพื้นฐาน
+    const legacyBasicTabs = ['categories', 'locations', 'staff'];
+    const nextTab = legacyBasicTabs.includes(tabId) ? 'basicLists' : tabId;
+    if (legacyBasicTabs.includes(tabId)) setBasicListTab(tabId);
     setShowMoreMenu(false);
-    setSettingsTab(tabId);
+    setSettingsTab(nextTab);
     resetSettingsFormState();
-    if (tabId === 'accounts') openNewAccountForm();
+    if (nextTab === 'accounts') openNewAccountForm();
     setShowSettings(true);
   };
 
@@ -15155,8 +15162,8 @@ S.N.: ${item.sn || '-'}
       desc: 'จัดหมวดหมู่ สถานที่ และรายชื่อเจ้าหน้าที่ให้ค้นหาง่าย ลดการพิมพ์ซ้ำ',
       icon: Icons.Tag,
       tone: isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800',
-      stats: `${(settingsOptions.categories || []).filter(v => v !== 'อื่นๆ').length} หมวด • ${(settingsOptions.locations || []).filter(v => v !== 'อื่นๆ').length} ที่เก็บ`,
-      action: () => openSettingsTab('categories')
+      stats: `${(settingsOptions.categories || []).filter(v => v !== 'อื่นๆ').length} หมวด • ${(settingsOptions.locations || []).filter(v => v !== 'อื่นๆ').length} ที่เก็บ • ${(settingsOptions.staff || []).filter(v => v !== 'อื่นๆ').length} คน`,
+      action: () => openSettingsTab('basicLists')
     },
     {
       id: 'accounts',
@@ -19213,7 +19220,7 @@ ${auditChangeSummary}` : auditChangeSummary);
   const handleSaveSetting = async () => {
     const newSetting = newSettingItem || '';
     if (!user || !newSetting.trim()) return;
-    const key = settingsTab;
+    const key = settingsTab === 'basicLists' ? basicListTab : settingsTab;
     let newOptions = [...(settingsOptions[key] || [])];
     let oldName = editingSettingItem;
     let newName = newSetting.trim();
@@ -19253,7 +19260,7 @@ ${auditChangeSummary}` : auditChangeSummary);
   const handleDeleteSetting = async () => {
     if (!user || deleteSettingConfirm === null) return;
     try {
-      const key = settingsTab;
+      const key = settingsTab === 'basicLists' ? basicListTab : settingsTab;
       const newOptions = (settingsOptions[key] || []).filter(item => item !== deleteSettingConfirm);
       const updatedSettings = { ...settingsOptions, [key]: newOptions };
       setSettingsOptions(updatedSettings);
@@ -24929,24 +24936,121 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <p className={`text-xs font-bold mt-3 ${theme.textMuted}`}>แนะนำถ่ายภาพรวมต่อรายการยืม/คืน/ออกงาน ไม่ถ่ายทุกชิ้น เพื่อให้พื้นที่อยู่ได้ทั้งปี</p>
                   </div>
                 </div>
-              ) : (
-                <div className="p-5 sm:p-6 lg:p-7">
-                  <div className="flex gap-2 mb-6">
-                    <input type="text" className={`flex-1 px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder={`พิมพ์${settingsTab === 'categories' ? 'หมวดหมู่' : settingsTab === 'locations' ? 'สถานที่' : 'ชื่อเจ้าหน้าที่'}ใหม่...`} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} />
-                    <button type="button" onClick={handleSaveSetting} className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-lg">{editingSettingItem !== null ? 'บันทึก' : 'เพิ่ม'}</button>
-                    {editingSettingItem !== null && <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-4 py-3 font-bold rounded-xl ${theme.btnCancel}`}><Icons.X className="w-5 h-5" /></button>}
+              ) : settingsTab === 'basicLists' ? (
+                <div className="p-4 sm:p-5 lg:p-6 space-y-4">
+                  <div className={`relative overflow-hidden rounded-[1.65rem] border p-5 shadow-[0_18px_55px_rgba(15,23,42,0.18)] ${isDarkMode ? 'bg-[radial-gradient(circle_at_18%_0%,rgba(37,99,235,.24),transparent_34%),linear-gradient(135deg,rgba(15,23,42,.98),rgba(2,6,23,.98))] border-blue-900/60' : 'bg-[radial-gradient(circle_at_18%_0%,rgba(59,130,246,.16),transparent_36%),linear-gradient(135deg,#ffffff,#f8fafc)] border-blue-100'}`}>
+                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>BASIC LISTS HUB</div>
+                        <h4 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>รายการพื้นฐาน</h4>
+                        <p className={`text-sm font-bold mt-2 max-w-3xl ${theme.textMuted}`}>รวมหมวดหมู่ สถานที่/ห้อง และเจ้าหน้าที่ไว้ในหน้าเดียว วิธีใช้งานเหมือนกัน สลับแท็บแล้วเพิ่ม แก้ไข หรือลบรายการได้ทันที</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 shrink-0">
+                        {basicListTabs.map(tab => (
+                          <div key={`basic_count_${tab.id}`} className={`px-3 py-2.5 rounded-2xl border text-center ${isDarkMode ? 'bg-slate-950/70 border-slate-700' : 'bg-white/80 border-slate-200'}`}>
+                            <div className={`text-xl font-black ${theme.textTitle}`}>{(settingsOptions[tab.id] || []).filter(v => v !== 'อื่นๆ').length.toLocaleString('th-TH')}</div>
+                            <div className={`text-[10px] font-black ${theme.textMuted}`}>{tab.short}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div className="max-h-[50vh] overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-2">
-                    {(settingsOptions[settingsTab] || []).filter(c => c !== 'อื่นๆ').map((item, index) => (
-                      <div key={index} className={`flex justify-between items-center p-4 border rounded-xl group transition-colors ${theme.btnSecondary}`}>
-                        <span className={`font-bold text-lg ${theme.textTitle}`}>{item}</span>
-                        <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button type="button" onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-400 hover:bg-blue-600 hover:text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`}><Icons.Edit className="w-4 h-4" /></button>
-                          <button type="button" onClick={() => setDeleteSettingConfirm(item)} className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`}><Icons.Trash className="w-4 h-4" /></button>
+
+                  <div className={`rounded-[1.6rem] border p-2.5 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {basicListTabs.map(tab => {
+                        const Icon = tab.icon;
+                        const active = basicListTab === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => { setBasicListTab(tab.id); setNewSettingItem(''); setEditingSettingItem(null); }}
+                            className={`group relative overflow-hidden rounded-[1.35rem] border px-4 py-3 text-left transition-all ${active ? 'text-white border-transparent shadow-[0_16px_35px_rgba(37,99,235,0.25)]' : theme.btnSecondary}`}
+                          >
+                            {active && <span className={`absolute inset-0 bg-gradient-to-br ${tab.color}`} />}
+                            <span className="relative z-10 flex items-start gap-3">
+                              <span className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border ${active ? 'bg-white/18 border-white/30 text-white' : (isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700')}`}>
+                                <Icon className="w-5 h-5" />
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block text-sm font-black truncate">{tab.label}</span>
+                                <span className={`block text-[11px] font-bold mt-1 leading-snug ${active ? 'text-white/82' : theme.textMuted}`}>{tab.desc}</span>
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4">
+                    <section className={`rounded-[1.6rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                      <div className={`px-4 sm:px-5 py-4 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${theme.divide}`}>
+                        <div className="min-w-0">
+                          <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>CURRENT BASIC LIST</div>
+                          <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{activeBasicListTab.label}</div>
+                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{activeBasicListTab.desc}</div>
+                        </div>
+                        <div className={`px-3 py-2 rounded-2xl border text-xs font-black ${theme.btnSecondary}`}>{(settingsOptions[basicListTab] || []).filter(v => v !== 'อื่นๆ').length.toLocaleString('th-TH')} รายการ</div>
+                      </div>
+
+                      <div className="p-4 sm:p-5">
+                        <div className={`rounded-[1.35rem] border p-3 mb-4 ${isDarkMode ? 'bg-slate-900/70 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <input type="text" className={`flex-1 px-4 py-3 rounded-2xl font-bold outline-none text-base border ${theme.input}`} placeholder={activeBasicListTab.placeholder} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} />
+                            <button type="button" onClick={handleSaveSetting} className="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl shadow-lg shadow-blue-600/20">{editingSettingItem !== null ? 'บันทึก' : 'เพิ่ม'}</button>
+                            {editingSettingItem !== null && <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-4 py-3 font-black rounded-2xl ${theme.btnCancel}`}><Icons.X className="w-5 h-5" /></button>}
+                          </div>
+                          <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>รายการนี้จะถูกใช้เป็นตัวเลือกในฟอร์มต่าง ๆ ของระบบ เช่น เพิ่มอุปกรณ์ ยืม ออกงาน รับคืน และค้นหา</div>
+                        </div>
+
+                        <div className="max-h-[48vh] overflow-y-auto custom-scrollbar pr-1">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                            {(settingsOptions[basicListTab] || []).filter(c => c !== 'อื่นๆ').map((item, index) => (
+                              <div key={`${basicListTab}_${item}_${index}`} className={`group rounded-2xl border px-3 py-2.5 flex items-center justify-between gap-3 transition-all hover:-translate-y-[1px] ${isDarkMode ? 'bg-slate-900/70 border-slate-800 hover:border-blue-700' : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-blue-300'}`}>
+                                <div className="min-w-0 flex items-center gap-3">
+                                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black ${isDarkMode ? 'bg-blue-500/12 text-blue-300 border border-blue-500/20' : 'bg-blue-50 text-blue-700 border border-blue-100'}`}>{index + 1}</div>
+                                  <div className="min-w-0">
+                                    <div className={`font-black text-sm truncate ${theme.textTitle}`}>{item}</div>
+                                    <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>{activeBasicListTab.short}</div>
+                                  </div>
+                                </div>
+                                <div className="flex gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                  <button type="button" onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-300 hover:bg-blue-600 hover:text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>
+                                  <button type="button" onClick={() => setDeleteSettingConfirm(item)} className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-300 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="ลบ"><Icons.Trash className="w-4 h-4" /></button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                    ))}
+                    </section>
+
+                    <aside className={`rounded-[1.6rem] border p-4 ${isDarkMode ? 'bg-[linear-gradient(180deg,rgba(15,23,42,.9),rgba(2,6,23,.92))] border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>WHY MERGED?</div>
+                      <div className={`text-lg font-black mt-1 ${theme.textTitle}`}>รวมเพราะวิธีใช้เหมือนกัน</div>
+                      <div className={`text-sm font-bold mt-2 leading-relaxed ${theme.textMuted}`}>หมวดหมู่ สถานที่ และเจ้าหน้าที่เป็นข้อมูลพื้นฐานที่ใช้เป็นตัวเลือกในระบบเหมือนกัน เลยรวมไว้หน้าเดียวเพื่อลดเมนูซ้ายและลดความซ้ำ</div>
+                      <div className="mt-4 space-y-2">
+                        {basicListTabs.map(tab => {
+                          const Icon = tab.icon;
+                          return (
+                            <button key={`aside_${tab.id}`} type="button" onClick={() => { setBasicListTab(tab.id); setNewSettingItem(''); setEditingSettingItem(null); }} className={`w-full rounded-2xl border px-3 py-2.5 flex items-center justify-between gap-3 text-left ${basicListTab === tab.id ? 'bg-blue-600 border-blue-500 text-white' : theme.btnSecondary}`}>
+                              <span className="flex items-center gap-2 min-w-0">
+                                <Icon className="w-4 h-4 shrink-0" />
+                                <span className="text-sm font-black truncate">{tab.label}</span>
+                              </span>
+                              <span className="text-xs font-black">{(settingsOptions[tab.id] || []).filter(v => v !== 'อื่นๆ').length}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </aside>
                   </div>
+                </div>
+              ) : (
+                <div className="p-5 sm:p-6 lg:p-7">
+                  <div className={`p-6 rounded-3xl border text-center font-black ${theme.btnSecondary}`}>ยังไม่มีหน้าตั้งค่าสำหรับหมวดนี้</div>
                 </div>
               )}
               </div>
