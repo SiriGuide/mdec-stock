@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.96 Dedicated Trash Page + Empty All';
-const APP_UPDATE_NOTE = 'Dedicated Trash Page + Empty All: แยกถังขยะเป็นหน้าของตัวเองในตั้งค่าระบบ พร้อมปุ่มล้างถังขยะทั้งหมดแบบลบถาวร ลดการปนกับหน้าเอกสาร/ประวัติ/หลักฐาน';
+const APP_VERSION = 'v23.1.97 Remove Settings Overview Page';
+const APP_UPDATE_NOTE = 'Remove Settings Overview Page: ตัดหน้า ภาพรวมระบบ ในตั้งค่าระบบออก เพราะซ้ำและไม่จำเป็นแล้ว ให้เปิดตั้งค่าระบบแล้วเข้าหน้ารายการพื้นฐานทันที ลดความรกและจำนวนคลิก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7018,7 +7018,7 @@ function MainApp() {
   const [showHistory, setShowHistory] = useState(null);
 
   const [showSettings, setShowSettings] = useState(false);
-  const [settingsTab, setSettingsTab] = useState('overview');
+  const [settingsTab, setSettingsTab] = useState('basicLists');
   const [basicListTab, setBasicListTab] = useState('categories');
   const [dataQualityFilter, setDataQualityFilter] = useState('all');
   const [dataQualitySearch, setDataQualitySearch] = useState('');
@@ -7257,7 +7257,7 @@ function MainApp() {
   const openControlCenter = () => {
     // v22.58.0: หลังบ้าน / Admin Center เดิมซ้ำกับ Sidebar แล้ว จึง redirect ไปหลังบ้าน/ตั้งค่าระบบแทน
     setShowMoreMenu(false);
-    setSettingsTab('overview');
+    setSettingsTab('basicLists');
     setShowSettings(true);
   };
   const openTrackingCenter = (tab = 'today') => {
@@ -15031,7 +15031,7 @@ S.N.: ${item.sn || '-'}
                 <div className={`text-sm font-black ${theme.textTitle}`}>แนวคิดใหม่</div>
                 <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เมนูซ้ายใช้ทำงานประจำวัน ส่วนหน้านี้คือศูนย์รวมงานตั้งค่าและผู้ดูแลทั้งหมด กดปุ่มเดียวแล้วจบ</div>
               </div>
-              <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black">เปิดหน้าตั้งค่าแบบละเอียด</button>
+              <button type="button" onClick={() => { setSettingsTab('basicLists'); setShowSettings(true); }} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black">เปิดหน้าตั้งค่าแบบละเอียด</button>
             </div>
           </div>
         </div>
@@ -15180,7 +15180,6 @@ S.N.: ${item.sn || '-'}
   };
 
   const settingsNavItems = [
-    { id: 'overview', label: 'ภาพรวมระบบ', desc: 'ภาพรวมตั้งค่าระบบทั้งหมด', icon: Icons.ViewGrid, group: 'เริ่มต้น' },
     { id: 'basicLists', label: 'รายการพื้นฐาน', desc: 'หมวดหมู่ สถานที่ และเจ้าหน้าที่', icon: Icons.Layers, group: 'ข้อมูลพื้นฐาน' },
     { id: 'accounts', label: 'บัญชีผู้ใช้', desc: 'ล็อกอินและสิทธิ์', icon: Icons.UserPlus, group: 'ผู้ใช้งาน' },
     { id: 'display', label: 'การแสดงผล', desc: 'ความแน่น / การ์ด / เอฟเฟกต์', icon: Icons.Monitor, group: 'หน้าตาเว็บ' },
@@ -15190,7 +15189,7 @@ S.N.: ${item.sn || '-'}
     { id: 'trash', label: 'ถังขยะ', desc: 'กู้คืน / ลบถาวร', icon: Icons.Trash, group: 'ระบบ' },
   ];
 
-  const settingsNavGroups = ['เริ่มต้น', 'ข้อมูลพื้นฐาน', 'ผู้ใช้งาน', 'หน้าตาเว็บ', 'เอกสาร', 'หลักฐาน', 'ระบบ'];
+  const settingsNavGroups = ['ข้อมูลพื้นฐาน', 'ผู้ใช้งาน', 'หน้าตาเว็บ', 'เอกสาร', 'หลักฐาน', 'ระบบ'];
 
   const basicListTabs = [
     { id: 'categories', label: 'หมวดหมู่', short: 'หมวด', desc: 'ประเภทอุปกรณ์ เช่น กล้อง เลนส์ ไมค์ ไฟ', icon: Icons.Tag, placeholder: 'พิมพ์หมวดหมู่ใหม่...', color: 'from-blue-600 to-cyan-500' },
@@ -23346,7 +23345,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => openWorkspace('tools')} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เปิดตั้งค่าระบบ</button>
                   <button type="button" onClick={() => openMainHistoryCenter({ reset: true })} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>เอกสาร/หลักฐาน</button>
-                  <button type="button" onClick={() => { setSettingsTab('overview'); setShowSettings(true); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>หมวดการตั้งค่า</button>
+                  <button type="button" onClick={() => { setSettingsTab('basicLists'); setShowSettings(true); }} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>หมวดการตั้งค่า</button>
                 </div>
               </div>
             </section>
@@ -24343,7 +24342,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <div className="settings-section-switcher flex items-center gap-2 overflow-x-auto custom-scrollbar">
                       <button
                         type="button"
-                        onClick={() => openSettingsTab('overview')}
+                        onClick={() => openSettingsTab('basicLists')}
                         className={`px-4 py-2 rounded-2xl border text-sm font-black whitespace-nowrap ${theme.btnCancel}`}
                         title="กลับไปเลือกหมวดตั้งค่า"
                       >
@@ -24378,17 +24377,13 @@ ${auditChangeSummary}` : auditChangeSummary);
                       <div className={`text-base sm:text-lg font-black mt-1 ${theme.textTitle}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.label || 'ตั้งค่าระบบ'}</div>
                       <div className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.desc || 'จัดการระบบ'}</div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => openSettingsTab('overview')}
-                      className={`px-4 py-2.5 rounded-2xl border font-black text-sm shrink-0 shadow-sm ${theme.btnSecondary}`}
-                    >
-                      ← กลับหน้ารวมตั้งค่า
-                    </button>
+                    <div className={`px-4 py-2.5 rounded-2xl border font-black text-sm shrink-0 shadow-sm ${theme.btnSecondary}`}>
+                      ตั้งค่าระบบ
+                    </div>
                   </div>
                 </div>
               )}
-              {settingsTab === 'overview' ? (
+              {settingsTab === '__removed_overview__' ? (
                 <div className="p-5 sm:p-6 lg:p-7 space-y-5 settings-center-overview">
                   <div className={`p-6 rounded-[1.9rem] border shadow-[0_18px_50px_rgba(15,23,42,0.16)] ${isDarkMode ? 'bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))] border-slate-800' : 'bg-[linear-gradient(135deg,rgba(255,255,255,1),rgba(248,250,252,1))] border-slate-200 shadow-sm'}`}>
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
