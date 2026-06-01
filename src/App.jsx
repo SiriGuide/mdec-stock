@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.89 Basic Lists Compact Polish';
-const APP_UPDATE_NOTE = 'Basic Lists Compact Polish: ปรับหน้า รายการพื้นฐาน ให้กระชับ อ่านง่าย และล้ำขึ้น ลด hero ใหญ่/กล่องอธิบายที่กินพื้นที่ เหลือแท็บสวย ๆ รายการ compact และสรุปขวาแบบพอดี';
+const APP_VERSION = 'v23.1.91 Basic Lists Inline Edit Polish';
+const APP_UPDATE_NOTE = 'Basic Lists Inline Edit Polish: ปรับรายการพื้นฐานให้อ่านชื่อเต็ม ไม่ตัดเป็น ห้อง... และเปลี่ยนการแก้ไขเป็น inline edit บนการ์ดนั้นโดยตรง ไม่ต้องไปแก้ในช่องเพิ่มด้านบน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -24305,7 +24305,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
                 <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
                             {settingsTab !== 'overview' && (
-                <div className={`settings-back-toolbar px-4 sm:px-6 pt-4 pb-0 sticky top-0 z-[4] ${isDarkMode ? 'bg-slate-950/92 backdrop-blur-xl' : 'bg-slate-50/92 backdrop-blur-xl'}`}>
+                <div className={`settings-back-toolbar px-4 sm:px-6 pt-4 pb-0 ${isDarkMode ? 'bg-slate-950/92 backdrop-blur-xl' : 'bg-slate-50/92 backdrop-blur-xl'}`}>
                   <div className={`px-4 py-4 rounded-[1.35rem] border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm ${isDarkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white border-slate-200'}`}>
                     <div className="min-w-0">
                       <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>CURRENT SECTION</div>
@@ -25006,33 +25006,66 @@ ${auditChangeSummary}` : auditChangeSummary);
 
                       <div className="p-3 sm:p-4">
                         <div className={`rounded-[1.2rem] border p-2.5 mb-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <input type="text" className={`flex-1 px-3.5 py-2.5 rounded-2xl font-bold outline-none text-sm border ${theme.input}`} placeholder={activeBasicListTab.placeholder} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} />
-                            <button type="button" onClick={handleSaveSetting} className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl shadow-lg shadow-blue-600/20">{editingSettingItem !== null ? 'บันทึก' : 'เพิ่ม'}</button>
-                            {editingSettingItem !== null && <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-3.5 py-2.5 font-black rounded-2xl ${theme.btnCancel}`}><Icons.X className="w-4 h-4" /></button>}
-                          </div>
+                          {editingSettingItem !== null ? (
+                            <div className={`px-3.5 py-2.5 rounded-2xl border text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+                              <span>กำลังแก้ไขรายการ “{editingSettingItem}” ที่การ์ดด้านล่าง</span>
+                              <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-3 py-1.5 rounded-xl border font-black ${theme.btnSecondary}`}>ยกเลิกแก้ไข</button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <input type="text" className={`flex-1 px-3.5 py-2.5 rounded-2xl font-bold outline-none text-sm border ${theme.input}`} placeholder={activeBasicListTab.placeholder} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleSaveSetting(); }} />
+                              <button type="button" onClick={handleSaveSetting} className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl shadow-lg shadow-blue-600/20">เพิ่ม</button>
+                            </div>
+                          )}
                         </div>
 
-                        <div className="max-h-[43vh] overflow-y-auto custom-scrollbar pr-1">
+                        <div className="max-h-[46vh] overflow-y-auto custom-scrollbar pr-1">
                           {(settingsOptions[basicListTab] || []).filter(c => c !== 'อื่นๆ').length === 0 ? (
                             <div className={`p-8 rounded-3xl border text-center font-black ${theme.textMuted}`}>ยังไม่มีรายการในหมวดนี้</div>
                           ) : (
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-                              {(settingsOptions[basicListTab] || []).filter(c => c !== 'อื่นๆ').map((item, index) => (
-                                <div key={`${basicListTab}_${item}_${index}`} className={`group rounded-2xl border px-3 py-2.5 flex items-center justify-between gap-3 transition-all hover:-translate-y-[1px] ${isDarkMode ? 'bg-slate-900/70 border-slate-800 hover:border-blue-700' : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-blue-300'}`}>
-                                  <div className="min-w-0 flex items-center gap-3">
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${isDarkMode ? 'bg-blue-500/12 text-blue-300 border border-blue-500/20' : 'bg-blue-50 text-blue-700 border border-blue-100'}`}>{index + 1}</div>
-                                    <div className="min-w-0">
-                                      <div className={`font-black text-sm truncate ${theme.textTitle}`}>{item}</div>
-                                      <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>{activeBasicListTab.short}</div>
+                            <div className="grid grid-cols-1 gap-2">
+                              {(settingsOptions[basicListTab] || []).filter(c => c !== 'อื่นๆ').map((item, index) => {
+                                const isEditingThis = editingSettingItem === item;
+                                return (
+                                  <div key={`${basicListTab}_${item}_${index}`} className={`group rounded-2xl border px-3 py-2.5 transition-all ${isEditingThis ? (isDarkMode ? 'bg-blue-950/22 border-blue-500/60 shadow-[0_0_0_1px_rgba(59,130,246,.18)]' : 'bg-blue-50 border-blue-300') : (isDarkMode ? 'bg-slate-900/70 border-slate-800 hover:border-blue-700' : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-blue-300')}`}>
+                                    <div className="flex items-start gap-3">
+                                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${isEditingThis ? 'bg-blue-600 text-white border border-blue-400' : (isDarkMode ? 'bg-blue-500/12 text-blue-300 border border-blue-500/20' : 'bg-blue-50 text-blue-700 border border-blue-100')}`}>{index + 1}</div>
+                                      <div className="min-w-0 flex-1">
+                                        {isEditingThis ? (
+                                          <div className="space-y-2">
+                                            <input
+                                              type="text"
+                                              autoFocus
+                                              className={`w-full px-3.5 py-2.5 rounded-2xl font-bold outline-none text-sm border ${theme.input}`}
+                                              value={newSettingItem}
+                                              onChange={e => setNewSettingItem(e.target.value)}
+                                              onKeyDown={e => {
+                                                if (e.key === 'Enter') handleSaveSetting();
+                                                if (e.key === 'Escape') { setEditingSettingItem(null); setNewSettingItem(''); }
+                                              }}
+                                            />
+                                            <div className="flex flex-wrap gap-2">
+                                              <button type="button" onClick={handleSaveSetting} className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black">บันทึกชื่อใหม่</button>
+                                              <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-3.5 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ยกเลิก</button>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div>
+                                            <div className={`font-black text-sm leading-relaxed whitespace-normal break-words ${theme.textTitle}`}>{item}</div>
+                                            <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>{activeBasicListTab.short}</div>
+                                          </div>
+                                        )}
+                                      </div>
+                                      {!isEditingThis && (
+                                        <div className="flex gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                          <button type="button" onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-300 hover:bg-blue-600 hover:text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>
+                                          <button type="button" onClick={() => setDeleteSettingConfirm(item)} className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-300 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="ลบ"><Icons.Trash className="w-4 h-4" /></button>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
-                                  <div className="flex gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                    <button type="button" onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-300 hover:bg-blue-600 hover:text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>
-                                    <button type="button" onClick={() => setDeleteSettingConfirm(item)} className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-300 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="ลบ"><Icons.Trash className="w-4 h-4" /></button>
-                                  </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
                         </div>
