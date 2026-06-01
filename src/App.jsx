@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.1.93 Remove Quality And Stock Count';
-const APP_UPDATE_NOTE = 'Remove Quality And Stock Count: ตัดเมนูตรวจคุณภาพข้อมูลและตรวจนับสต๊อกจริงออกจากระบบ UI หลักทั้งหมด ลดความรกและคงเว็บให้เป็น STOCK ใช้งานประจำวันแบบเรียบง่าย';
+const APP_VERSION = 'v23.1.94 Backup Settings Restore Hotfix';
+const APP_UPDATE_NOTE = 'Backup Settings Restore Hotfix: คืนหน้า ฐานข้อมูล / สำรอง ในตั้งค่าระบบ หลังตัดตรวจคุณภาพ/ตรวจนับแล้ว branch สำรองข้อมูลหายไป พร้อมปุ่มเปิดศูนย์สำรองข้อมูล';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -14832,7 +14832,7 @@ S.N.: ${item.sn || '-'}
       },
       {
         title: 'ฐานข้อมูล / Backup',
-        desc: 'สำรองข้อมูล ตรวจพื้นที่ ล้าง log จิปาถะ และเตรียมปิดรอบปี',
+        desc: 'สำรองข้อมูล ส่งออกไฟล์ และเตรียมปิดรอบปี',
         icon: Icons.Database,
         badge: databaseStorageEstimate.percentText || 'DB',
         actionLabel: 'จัดการฐานข้อมูล',
@@ -24554,6 +24554,69 @@ ${auditChangeSummary}` : auditChangeSummary);
                       <div className={`p-2.5 rounded-lg border ${theme.btnSecondary}`}><div className={`text-xs font-bold ${theme.textMuted}`}>ยังพอเพิ่มได้ประมาณ</div><div className={`text-2xl font-black ${theme.textTitle}`}>{proofStorageForecast.remainingByAvg.toLocaleString('th-TH')} รูป</div></div>
                     </div>
                     <p className={`text-xs font-bold mt-3 ${theme.textMuted}`}>แนะนำถ่ายภาพรวมต่อรายการยืม/คืน/ออกงาน ไม่ถ่ายทุกชิ้น เพื่อให้พื้นที่อยู่ได้ทั้งปี</p>
+                  </div>
+                </div>
+              ) : settingsTab === 'database' ? (
+                <div className="p-5 sm:p-6 lg:p-7 space-y-5">
+                  <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-amber-900/20 border-amber-800' : 'bg-amber-50 border-amber-200'}`}>
+                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}>
+                      <Icons.Database className="w-6 h-6 text-amber-500" />
+                      ฐานข้อมูล / สำรอง
+                    </h4>
+                    <p className={`text-sm font-bold ${theme.textMuted}`}>สำรองข้อมูล ส่งออกไฟล์ และเตรียมข้อมูลสิ้นปี ใช้เป็นศูนย์กลางเรื่องความปลอดภัยของฐานข้อมูล</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className={`p-4 rounded-2xl border ${theme.btnSecondary}`}>
+                      <div className={`text-xs font-black ${theme.textMuted}`}>พื้นที่ฐานข้อมูลโดยประมาณ</div>
+                      <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.percentText}</div>
+                      <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{databaseStorageEstimate.estimatedText} / {databaseStorageEstimate.limitText}</div>
+                    </div>
+                    <div className={`p-4 rounded-2xl border ${theme.btnSecondary}`}>
+                      <div className={`text-xs font-black ${theme.textMuted}`}>รูปหลักฐาน</div>
+                      <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.proofImageCount.toLocaleString('th-TH')} รูป</div>
+                      <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ประมาณ {databaseStorageEstimate.proofStorageText}</div>
+                    </div>
+                    <div className={`p-4 rounded-2xl border ${theme.btnSecondary}`}>
+                      <div className={`text-xs font-black ${theme.textMuted}`}>สำรองล่าสุด</div>
+                      <div className={`text-lg font-black mt-1 ${theme.textTitle}`}>{yearEndHelperData.lastBackupText || 'ยังไม่เคยสำรอง'}</div>
+                      <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>แนะนำสำรองก่อนแก้ข้อมูลจำนวนมาก</div>
+                    </div>
+                  </div>
+
+                  <div className={`p-5 rounded-[1.35rem] border shadow-[0_12px_35px_rgba(15,23,42,0.10)] ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className={`font-black text-lg ${theme.textTitle}`}>ศูนย์สำรองข้อมูล</div>
+                        <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Export ข้อมูลหลักเป็น JSON / CSV และสรุปข้อมูลก่อนปิดปี โดยไม่มีปุ่มล้างข้อมูลจริง เพื่อลดความเสี่ยงกดพลาด</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowBackupCenterModal(true)}
+                        className="px-5 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black shadow-lg shadow-amber-600/20"
+                      >
+                        เปิดศูนย์สำรองข้อมูล
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>รายการที่ควรสำรอง</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
+                      {[
+                        ['อุปกรณ์ทั้งหมด', items.filter(item => item && !item.isDeleted).length],
+                        ['เอกสารย้อนหลัง', asArray(borrowเอกสารs).length],
+                        ['ประวัติส่วนกลาง', auditLogs.length],
+                        ['หลักฐานรูปภาพ', databaseStorageEstimate.proofImageCount],
+                        ['รายการในถังขยะ', deletedItems.length],
+                        ['บัญชีผู้ใช้', getEffectiveAccounts().length]
+                      ].map(([label, value]) => (
+                        <div key={label} className={`px-4 py-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
+                          <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
+                          <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ) : settingsTab === 'basicLists' ? (
