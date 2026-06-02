@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.2.2 Single History Source Cleanup';
-const APP_UPDATE_NOTE = 'Single History Source Cleanup: ลดประวัติซ้ำโดยให้ปุ่มประวัติการใช้งานไปเปิดหน้า เอกสาร / ประวัติ / หลักฐาน > ประวัติส่วนกลาง แทน Audit Log popup ใช้ข้อมูล audit_logs เดิมชุดเดียว ไม่เพิ่มฐานข้อมูลซ้ำ';
+const APP_VERSION = 'v23.2.3 Account Editor Reveal Fix';
+const APP_UPDATE_NOTE = 'Account Editor Reveal Fix: แก้ปุ่มเพิ่มผู้ใช้ในหน้าบัญชีผู้ใช้ให้เปิดฟอร์ม NEW ACCOUNT ชัดเจน และให้ฟอร์มเพิ่ม/แก้ไขปรากฏเฉพาะตอนกดเพิ่มหรือแก้ไขเท่านั้น ลดความแปลกของหน้า';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -6988,6 +6988,7 @@ function MainApp() {
   });
   const [accountForm, setAccountForm] = useState({ id: null, name: '', username: '', pin: '', role: 'staff', active: true });
   const [editingAccountId, setEditingAccountId] = useState(null);
+  const [accountEditorOpen, setAccountEditorOpen] = useState(false);
   const [firebaseError, setFirebaseError] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
@@ -9215,9 +9216,17 @@ function MainApp() {
   const openNewAccountForm = () => {
     setEditingAccountId(null);
     setAccountForm({ id: null, name: '', username: '', pin: '', role: 'staff', active: true });
+    setAccountEditorOpen(true);
+  };
+
+  const closeAccountEditor = () => {
+    setEditingAccountId(null);
+    setAccountForm({ id: null, name: '', username: '', pin: '', role: 'staff', active: true });
+    setAccountEditorOpen(false);
   };
 
   const openEditAccountForm = (account) => {
+    if (!account) return;
     setEditingAccountId(account.id);
     setAccountForm({
       id: account.id,
@@ -9228,6 +9237,7 @@ function MainApp() {
       active: account.active !== false,
       builtIn: !!account.builtIn
     });
+    setAccountEditorOpen(true);
   };
 
   const handleSaveAccount = async () => {
@@ -9278,7 +9288,7 @@ function MainApp() {
     setSettingsOptions(updatedSettings);
     await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
     await logAction(editingAccountId ? 'แก้ไขบัญชีผู้ใช้' : 'เพิ่มบัญชีผู้ใช้', name, `Username: ${username} / สิทธิ์: ${roleLabel(accountForm.role)}`);
-    openNewAccountForm();
+    closeAccountEditor();
     alert(editingAccountId ? '✅ แก้ไขบัญชีเรียบร้อยแล้ว' : '✅ เพิ่มบัญชีพนักงานเรียบร้อยแล้ว');
   };
 
@@ -24512,6 +24522,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                       </div>
                     </section>
 
+                    {accountEditorOpen ? (
                     <aside className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
                       <div className={`px-4 py-3 border-b ${theme.divide}`}>
                         <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>{editingAccountId ? 'EDIT ACCOUNT' : 'NEW ACCOUNT'}</div>
@@ -24551,10 +24562,25 @@ ${auditChangeSummary}` : auditChangeSummary);
                         </label>
                         <div className="grid grid-cols-1 gap-2 pt-1">
                           <button type="button" onClick={handleSaveAccount} disabled={!canManageAccounts} className={`px-4 py-3 font-black rounded-2xl text-white ${canManageAccounts ? 'bg-blue-600 hover:bg-blue-500' : 'bg-slate-400 cursor-not-allowed'}`}>{editingAccountId ? 'บันทึกการแก้ไข' : 'เพิ่มผู้ใช้'}</button>
-                          {editingAccountId && <button type="button" onClick={openNewAccountForm} className={`px-4 py-3 font-black rounded-2xl border ${theme.btnSecondary}`}>ยกเลิกแก้ไข</button>}
+                          <button type="button" onClick={closeAccountEditor} className={`px-4 py-3 font-black rounded-2xl border ${theme.btnSecondary}`}>{editingAccountId ? 'ยกเลิกแก้ไข' : 'ปิดฟอร์ม'}</button>
                         </div>
                       </div>
                     </aside>
+                    ) : (
+                    <aside className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/55 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                      <div className="p-5 min-h-[320px] flex flex-col justify-center text-center">
+                        <div className={`w-16 h-16 mx-auto rounded-3xl flex items-center justify-center mb-4 ${isDarkMode ? 'bg-blue-500/15 text-blue-300 border border-blue-500/25' : 'bg-blue-50 text-blue-700 border border-blue-100'}`}>
+                          <Icons.Users className="w-7 h-7" />
+                        </div>
+                        <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>ACCOUNT EDITOR</div>
+                        <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>ยังไม่ได้เลือกบัญชี</div>
+                        <div className={`text-sm font-bold mt-2 leading-relaxed ${theme.textMuted}`}>กด “+ เพิ่มผู้ใช้” เพื่อสร้างบัญชีใหม่ หรือกด “แก้ไข” ที่แถวบัญชีด้านซ้าย เพื่อเปิดฟอร์มแก้ไขตรงนี้</div>
+                        <button type="button" onClick={openNewAccountForm} disabled={!canManageAccounts} className={`mt-5 px-4 py-3 rounded-2xl font-black ${canManageAccounts ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}>
+                          + เพิ่มผู้ใช้ใหม่
+                        </button>
+                      </div>
+                    </aside>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
