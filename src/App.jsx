@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.2.4 Account Page Form On Demand';
-const APP_UPDATE_NOTE = 'Account Page Form On Demand: ปรับหน้าบัญชีผู้ใช้ให้ฟอร์มเพิ่ม/แก้ไขซ่อนจริงจนกว่าจะกดเพิ่มหรือแก้ไข และถอดปุ่มประวัติส่วนกลางออกจากหน้าบัญชี/เมนูหลักเพื่อลดความรก';
+const APP_VERSION = 'v23.2.5 Remove Display Docs Proof Settings + Mobile Bottom Bar';
+const APP_UPDATE_NOTE = 'Remove Display Docs Proof Settings + Mobile Bottom Bar: ตัดเมนูตั้งค่าการแสดงผล เอกสาร/โลโก้ และรูปหลักฐานออกจาก Settings พร้อมถอดแถบเมนูล่างมือถือ ลดความรกและคงค่าระบบให้เป็นค่าเริ่มต้นที่เว็บจัดการให้เอง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -1001,7 +1001,13 @@ function FactoryPolishStyle({ isDarkMode }) {
         background: var(--factory-card);
       }
       /* v22.49.4 definitive compact modal sizing */
-      @media (min-width: 1024px) {
+      
+      /* v23.2.5: ตัดแถบเมนูล่างมือถือออกจากระบบ */
+      .factory-stock-polish .mobile-bottom-nav,
+      .factory-stock-polish .bottom-mobile-nav {
+        display: none !important;
+      }
+@media (min-width: 1024px) {
         .factory-stock-polish .compact-modal-shell.item-form-shell,
         .factory-stock-polish .compact-modal-shell.item-detail-shell {
           width: min(900px, calc(100vw - 112px)) !important;
@@ -5937,6 +5943,13 @@ function FactoryPolishStyle({ isDarkMode }) {
         .factory-stock-polish *, .factory-stock-polish *::before, .factory-stock-polish *::after { transition: none !important; animation: none !important; }
       }
 
+      
+      /* v23.2.5: ตัดแถบเมนูล่างมือถือออกจากระบบ */
+      .factory-stock-polish .mobile-bottom-nav,
+      .factory-stock-polish .bottom-mobile-nav {
+        display: none !important;
+      }
+
       /* v22.51.5 Mobile & Desktop Responsive QA
          Scope: layout/UI only. No QR scanner, camera permission, Firebase path, or data logic changes. */
       .factory-stock-polish {
@@ -8024,7 +8037,7 @@ function MainApp() {
 ⚠️ เอกสารนี้ยังมีสถานะ "${docData.statusLabel || status || 'รอคืน'}" การลบนี้จะลบเฉพาะเอกสารย้อนหลัง ไม่ได้เปลี่ยนสถานะอุปกรณ์และไม่ได้ลบประวัติในแฟ้มอุปกรณ์`
       : `
 
-การลบนี้จะลบเฉพาะเอกสารย้อนหลัง ไม่ได้ลบประวัติในแฟ้มอุปกรณ์หรือหลักฐานรูปภาพ`;
+การลบนี้จะลบเฉพาะเอกสารย้อนหลัง ไม่ได้ลบประวัติในแฟ้มอุปกรณ์หรือรูปหลักฐาน`;
     const ok = window.confirm(`ยืนยันลบเอกสารย้อนหลัง ${label} ?
 รายการในเอกสาร: ${itemCount.toLocaleString('th-TH')} ชิ้น${warning}`);
     if (!ok) return;
@@ -8344,7 +8357,7 @@ function MainApp() {
       return await uploadProofFiles(selected, contextLabel);
     } catch (error) {
       console.error('Proof upload failed:', error);
-      const proceed = window.confirm(`อัปดาวน์โหลดหลักฐานรูปภาพไม่สำเร็จ\n${error.message || ''}\n\nต้องการบันทึกรายการต่อโดยไม่มีรูปหลักฐานหรือไม่?`);
+      const proceed = window.confirm(`อัปดาวน์โหลดรูปหลักฐานไม่สำเร็จ\n${error.message || ''}\n\nต้องการบันทึกรายการต่อโดยไม่มีรูปหลักฐานหรือไม่?`);
       if (!proceed) throw error;
       return [];
     }
@@ -8445,7 +8458,7 @@ function MainApp() {
             {previewSrc ? <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-contain bg-slate-100" /> : <div className={`w-full h-full flex items-center justify-center text-xs font-black ${theme.textMuted}`}>รูป</div>}
           </button>
           <div className="min-w-0 flex-1">
-            <div className={`text-sm font-black ${theme.textTitle}`}>มีหลักฐานรูปภาพ {list.length.toLocaleString('th-TH')} รูป</div>
+            <div className={`text-sm font-black ${theme.textTitle}`}>มีรูปหลักฐาน {list.length.toLocaleString('th-TH')} รูป</div>
             <div className={`text-xs font-bold truncate ${theme.textMuted}`}>{first.timestampText || (first.createdAt ? new Date(first.createdAt).toLocaleString('th-TH') : 'ไม่ระบุเวลา')} • โดย {first.createdBy || '-'}</div>
           </div>
         </div>
@@ -8505,9 +8518,9 @@ function MainApp() {
 
       history[historyIndex] = { ...targetHistory, proofs: [...(targetHistory.proofs || []), ...uploadedProofs] };
       await setDoc(getItemDoc(item.id), { history, updatedAt: new Date().toISOString(), updatedBy: currentAccountLabel }, { merge: true });
-      await logAction('เพิ่มหลักฐานรูปภาพ', item.name || '-', `เพิ่มหลักฐาน ${uploadedProofs.length} รูป ในประวัติรายการที่ ${historyIndex + 1}`);
+      await logAction('เพิ่มรูปหลักฐาน', item.name || '-', `เพิ่มหลักฐาน ${uploadedProofs.length} รูป ในประวัติรายการที่ ${historyIndex + 1}`);
       closeProofAttachModal();
-      pushToast('เพิ่มหลักฐานรูปภาพเรียบร้อยแล้ว', 'success');
+      pushToast('เพิ่มรูปหลักฐานเรียบร้อยแล้ว', 'success');
     } catch (error) {
       console.error(error);
       alert('❌ เพิ่มหลักฐานไม่สำเร็จ: ' + error.message);
@@ -9618,7 +9631,7 @@ function MainApp() {
     const q = String(borrowDocSearch || '').trim().toLowerCase();
     return (borrowเอกสารs || []).filter(doc => {
       // v23.1.87: ใบรับคืนไม่จำเป็นในเอกสารย้อนหลังแล้ว
-      // รับคืนยังถูกเก็บในประวัติส่วนกลาง/หลักฐานรูปภาพ/สถานะเอกสารเดิม แต่ไม่สร้างความรกในรายการเอกสาร
+      // รับคืนยังถูกเก็บในประวัติส่วนกลาง/รูปหลักฐาน/สถานะเอกสารเดิม แต่ไม่สร้างความรกในรายการเอกสาร
       if (doc.type === 'return' || doc.status === 'return-record') return false;
       const status = doc.status || 'active';
       const matchFilter = borrowDocFilter === 'all' || status === borrowDocFilter || doc.type === borrowDocFilter;
@@ -10259,7 +10272,7 @@ S.N.: ${item.sn || '-'}
     records: {
       kicker: 'RECORDS CENTER',
       title: 'เอกสาร / ประวัติ / หลักฐาน',
-      desc: 'รวมงานค้นเอกสารย้อนหลัง ประวัติส่วนกลาง และหลักฐานรูปภาพไว้เป็นหน้าเดียว'
+      desc: 'รวมงานค้นเอกสารย้อนหลัง ประวัติส่วนกลาง และรูปหลักฐานไว้เป็นหน้าเดียว'
     },
     tools: {
       kicker: 'SYSTEM SETTINGS',
@@ -13008,7 +13021,7 @@ S.N.: ${item.sn || '-'}
                     <div className="report-doc-note-title">สรุปภาพรวมประจำเดือน</div>
                     <p className="report-doc-note-text">
                       รายงานนี้รวบรวมข้อมูลจากประวัติการทำรายการในระบบ MDEC Stock เฉพาะเดือนที่เลือก
-                      เพื่อช่วยตรวจสอบความเคลื่อนไหวของอุปกรณ์ เอกสารย้อนหลัง หลักฐานรูปภาพ และรายการที่ต้องติดตามต่อ
+                      เพื่อช่วยตรวจสอบความเคลื่อนไหวของอุปกรณ์ เอกสารย้อนหลัง รูปหลักฐาน และรายการที่ต้องติดตามต่อ
                     </p>
                   </div>
                   <div className="report-doc-total-box">
@@ -14292,7 +14305,7 @@ S.N.: ${item.sn || '-'}
     const recordTabs = [
       ['docs', 'เอกสารย้อนหลัง', borrowเอกสารs.length],
       ['history', 'ประวัติส่วนกลาง', filteredHistoryCenterEntries.length],
-      ['proofs', 'หลักฐานรูปภาพ', filteredProofGroups.length]
+      ['proofs', 'รูปหลักฐาน', filteredProofGroups.length]
     ];
     return (
       <div className="page-workspace-shell records-workspace space-y-5">
@@ -14679,7 +14692,7 @@ S.N.: ${item.sn || '-'}
                     )
                   ) : (
                     proofTimelineGroups.length === 0 ? (
-                      <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบหลักฐานรูปภาพ</div>
+                      <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ไม่พบรูปหลักฐาน</div>
                     ) : (() => {
                       const visibleGroups = proofTimelineGroups.slice(0, 80);
                       const selectedGroup = visibleGroups.find(group => group.groupId === selectedProofGroupId) || visibleGroups[0] || {};
@@ -14913,9 +14926,9 @@ S.N.: ${item.sn || '-'}
         title: 'เอกสารและการแสดงผล',
         desc: 'จัดหน้าตาเอกสาร รูปหลักฐาน และความสบายตาของเว็บ',
         items: [
-          ['เอกสาร / โลโก้ / QR', 'หัวเอกสาร ลายน้ำ โลโก้ และฉลาก QR', Icons.พิมพ์er, () => openSettingsTab('documents')],
-          ['หลักฐานรูปภาพ', 'กติกาการแนบรูป ย่อรูป และจัดการหลักฐาน', Icons.Camera, () => openSettingsTab('proofs')],
-          ['การแสดงผล', 'ความแน่นของหน้า การ์ด และเอฟเฟกต์', Icons.Monitor, () => openSettingsTab('display')],
+          ['เอกสาร / QR', 'หัวเอกสาร ลายน้ำ โลโก้ และฉลาก QR', Icons.พิมพ์er, () => openSettingsTab('database')],
+          ['รูปหลักฐาน', 'กติกาการแนบรูป ย่อรูป และจัดการหลักฐาน', Icons.Camera, () => openSettingsTab('database')],
+          ['การแสดงผล', 'ความแน่นของหน้า การ์ด และเอฟเฟกต์', Icons.Monitor, () => openSettingsTab('database')],
           ['รายงาน', 'สรุปรายเดือน รายงาน A4 และ Export CSV', Icons.ViewGrid, () => openMonthlyReportPage()]
         ]
       },
@@ -15173,14 +15186,11 @@ S.N.: ${item.sn || '-'}
   const settingsNavItems = [
     { id: 'basicLists', label: 'รายการพื้นฐาน', desc: 'หมวดหมู่ สถานที่ และเจ้าหน้าที่', icon: Icons.Layers, group: 'ข้อมูลพื้นฐาน' },
     { id: 'accounts', label: 'บัญชีผู้ใช้', desc: 'ล็อกอินและสิทธิ์', icon: Icons.UserPlus, group: 'ผู้ใช้งาน' },
-    { id: 'display', label: 'การแสดงผล', desc: 'ความแน่น / การ์ด / เอฟเฟกต์', icon: Icons.Monitor, group: 'หน้าตาเว็บ' },
-    { id: 'documents', label: 'เอกสาร / โลโก้', desc: 'ใบยืม ฉลาก QR และโลโก้', icon: Icons.พิมพ์er, group: 'เอกสาร' },
-    { id: 'proofs', label: 'หลักฐานรูปภาพ', desc: 'กติกาการแนบรูป', icon: Icons.Camera, group: 'หลักฐาน' },
     { id: 'database', label: 'ฐานข้อมูล / สำรอง', desc: 'Backup, Restore, Cleanup', icon: Icons.Database, group: 'ระบบ' },
     { id: 'trash', label: 'ถังขยะ', desc: 'กู้คืน / ลบถาวร', icon: Icons.Trash, group: 'ระบบ' },
   ];
 
-  const settingsNavGroups = ['ข้อมูลพื้นฐาน', 'ผู้ใช้งาน', 'หน้าตาเว็บ', 'เอกสาร', 'หลักฐาน', 'ระบบ'];
+  const settingsNavGroups = ['ข้อมูลพื้นฐาน', 'ผู้ใช้งาน', 'ระบบ'];
 
   const basicListTabs = [
     { id: 'categories', label: 'หมวดหมู่', short: 'หมวด', desc: 'ประเภทอุปกรณ์ เช่น กล้อง เลนส์ ไมค์ ไฟ', icon: Icons.Tag, placeholder: 'พิมพ์หมวดหมู่ใหม่...', color: 'from-blue-600 to-cyan-500' },
@@ -15193,7 +15203,8 @@ S.N.: ${item.sn || '-'}
     // v23.1.88 Basic Lists Settings Merge
     // หมวดหมู่ / สถานที่ / เจ้าหน้าที่ รวมเป็นเมนูเดียวชื่อ รายการพื้นฐาน
     const legacyBasicTabs = ['categories', 'locations', 'staff'];
-    const nextTab = legacyBasicTabs.includes(tabId) ? 'basicLists' : tabId;
+    const removedSettingsTabs = ['display', 'documents', 'proofs'];
+    const nextTab = legacyBasicTabs.includes(tabId) ? 'basicLists' : (removedSettingsTabs.includes(tabId) ? 'database' : tabId);
     if (legacyBasicTabs.includes(tabId)) setBasicListTab(tabId);
     setShowMoreMenu(false);
     setSettingsTab(nextTab);
@@ -15228,16 +15239,7 @@ S.N.: ${item.sn || '-'}
       icon: Icons.พิมพ์er,
       tone: isDarkMode ? 'bg-sky-950/25 border-sky-800 text-sky-200' : 'bg-sky-50 border-sky-200 text-sky-800',
       stats: `${documentBrandSettings.printTone === 'ink' ? 'ประหยัดหมึก' : 'เอกสารทางการ'} • โลโก้ ${documentBrandSettings.logoSize || 'normal'}`,
-      action: () => openSettingsTab('documents')
-    },
-    {
-      id: 'proofs',
-      title: 'หลักฐานรูปภาพ',
-      desc: 'คุมขนาดรูป กติกาการแนบหลักฐาน และพื้นที่ฐานข้อมูล',
-      icon: Icons.Camera,
-      tone: isDarkMode ? 'bg-pink-950/25 border-pink-800 text-pink-200' : 'bg-pink-50 border-pink-200 text-pink-800',
-      stats: `${databaseStorageEstimate.proofImageCount.toLocaleString('th-TH')} รูป • ${databaseStorageEstimate.proofStorageText}`,
-      action: () => openSettingsTab('proofs')
+      action: () => openSettingsTab('database')
     },
     {
       id: 'database',
@@ -18711,7 +18713,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
       logAction('รับคืนอุปกรณ์', `ทำรายการ ${finalReturnChecklist.length} ชิ้น / ชุดกล้อง ${getCameraOperationItemGroups(finalReturnChecklist, 'return').length} ชุด`, `จนท.ผู้รับคืน: ${finalStaff}\nเลขที่เอกสารรับคืน: ${returnDocRef}\nรายการ: ${returnedNames.join(', ')}`);
 
-      // v23.1.87: ไม่เปิด/สร้างใบรับคืนให้พิมพ์แล้ว ใช้ประวัติส่วนกลาง + หลักฐานรูปภาพแทน
+      // v23.1.87: ไม่เปิด/สร้างใบรับคืนให้พิมพ์แล้ว ใช้ประวัติส่วนกลาง + รูปหลักฐานแทน
       setReturnTargetIds([]);
       setReturnChecklist([]);
       setSelectedItems([]); 
@@ -19382,7 +19384,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       ['สรุปเดือน', 'รับคืน', monthlyReportData.return, ''],
       ['สรุปเดือน', 'แจ้งซ่อม', monthlyReportData.repairs, ''],
       ['สรุปเดือน', 'เอกสารย้อนหลัง', monthlyReportData.documents, 'ใบยืม/ใบออกงานที่สร้างในเดือนนี้'],
-      ['สรุปเดือน', 'หลักฐานรูปภาพ', monthlyReportData.proofs, 'จำนวนรูปที่ผูกกับประวัติเดือนนี้'],
+      ['สรุปเดือน', 'รูปหลักฐาน', monthlyReportData.proofs, 'จำนวนรูปที่ผูกกับประวัติเดือนนี้'],
       ['สถานะปัจจุบัน', 'เลยกำหนดคืน', monthlyReportData.overdueNow, 'จำนวน ณ วันที่ส่งออก'],
       ['สถานะปัจจุบัน', 'ซ่อม/ชำรุด', monthlyReportData.maintenanceNow, 'จำนวน ณ วันที่ส่งออก'],
       ['สถานะปัจจุบัน', 'อยู่นอกศูนย์', reportDashboardData.outsideCount, 'ยืม + ออกงาน'],
@@ -19761,7 +19763,7 @@ ${auditChangeSummary}` : auditChangeSummary);
     const cards = groups.map(group => {
       const proof = group.proof || {};
       const imgSrc = proof.dataUrl || proof.url || proof.thumbUrl || '';
-      const type = backupHtmlEscape(proof.contextLabel || 'หลักฐานรูปภาพ');
+      const type = backupHtmlEscape(proof.contextLabel || 'รูปหลักฐาน');
       const created = backupHtmlEscape(proof.timestampText || formatBackupDateTime(proof.createdAt));
       const by = backupHtmlEscape(proof.createdBy || '-');
       const note = backupHtmlEscape(proof.note || '');
@@ -19868,7 +19870,7 @@ ${auditChangeSummary}` : auditChangeSummary);
     const proofCards = proofGroups.map(group => {
       const proof = group.proof || {};
       const imgSrc = proof.dataUrl || proof.url || proof.thumbUrl || '';
-      const type = backupHtmlEscape(proof.contextLabel || 'หลักฐานรูปภาพ');
+      const type = backupHtmlEscape(proof.contextLabel || 'รูปหลักฐาน');
       const created = backupHtmlEscape(proof.timestampText || formatBackupDateTime(proof.createdAt));
       const by = backupHtmlEscape(proof.createdBy || '-');
       const note = backupHtmlEscape(proof.note || '');
@@ -24576,220 +24578,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </div>
                 </div>
                 );
-              })() : settingsTab === 'display' ? (
-                <div className="p-5 sm:p-6 lg:p-7 space-y-5">
-                  <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-teal-900/20 border-teal-800' : 'bg-teal-50 border-teal-200'}`}>
-                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.ViewGrid className="w-6 h-6 text-teal-500"/> ตั้งค่าการแสดงผล</h4>
-                    <p className={`text-sm font-bold ${theme.textMuted}`}>ปรับหน้าเว็บให้เหมาะกับการใช้งานจริง เลือกได้ว่าจะเน้นโล่งสบายตาหรือเห็นข้อมูลเยอะขึ้น</p>
-                  </div>
-
-                  <div className={`p-5 rounded-[1.35rem] border shadow-[0_12px_35px_rgba(15,23,42,0.10)] ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
-                    <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>ความแน่นของหน้าจอ</div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {[
-                        ['comfortable', 'Comfortable', 'ช่องว่างเยอะ ปุ่มใหญ่ ใช้งานสบาย'],
-                        ['compact', 'Compact', 'เห็นข้อมูลมากขึ้น เหมาะกับคอม']
-                      ].map(([value, title, desc]) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => saveUiSettings({ density: value })}
-                          className={`text-left p-4 rounded-2xl border transition-all ${uiDisplaySettings.density === value ? 'bg-teal-600 text-white border-teal-600 shadow-lg' : theme.btnSecondary}`}
-                        >
-                          <div className="font-black text-lg">{title}</div>
-                          <div className={`text-xs font-bold mt-1 ${uiDisplaySettings.density === value ? 'text-teal-50' : theme.textMuted}`}>{desc}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3">
-                    {[
-                      ['mobileCards', 'ใช้ Card View บนมือถือ', 'เปลี่ยนรายการอุปกรณ์จากตารางเป็นการ์ด อ่านง่ายและกดปุ่มง่ายขึ้นบนมือถือ'],
-                      ['cleanMode', 'โหมดสะอาดตา', 'ลดความรู้สึกรกของหน้าแรกและเน้นปุ่มหลักที่ใช้บ่อย'],
-                      ['reduceEffects', 'ลดเงา/เอฟเฟกต์', 'เหมาะกับเครื่องที่ช้าหรืออยากได้หน้าตาเรียบกว่าเดิม']
-                    ].map(([key, title, desc]) => (
-                      <label key={key} className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        <input
-                          type="checkbox"
-                          className="w-5 h-5 mt-1 accent-teal-600 shrink-0"
-                          checked={uiDisplaySettings[key] !== false}
-                          onChange={(e) => saveUiSettings({ [key]: e.target.checked })}
-                        />
-                        <span className="min-w-0">
-                          <span className={`block font-black ${theme.textTitle}`}>{title}</span>
-                          <span className={`block text-sm font-bold mt-1 ${theme.textMuted}`}>{desc}</span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-
-                  <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
-                    <div className={`font-black mb-2 ${theme.textTitle}`}>แนะนำสำหรับศูนย์ MDEC</div>
-                    <div className={`text-sm font-bold ${theme.textMuted}`}>ใช้ Comfortable + Card View บนมือถือ สำหรับเจ้าหน้าที่ทั่วไป และใช้ Compact บนคอมของบัญชีกลางเมื่อต้องInventory Managementจำนวนมาก</div>
-                  </div>
-                </div>
-              ) : settingsTab === 'documents' ? (
-                <div className="p-5 sm:p-6 lg:p-7 space-y-5">
-                  <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-sky-900/20 border-sky-800' : 'bg-sky-50 border-sky-200'}`}>
-                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}><Icons.พิมพ์er className="w-6 h-6 text-sky-500"/> เอกสารและการพิมพ์</h4>
-                    <p className={`text-sm font-bold ${theme.textMuted}`}>ใบยืม ใบออกงาน และใบรับคืนใช้ดีไซน์ A4 มาตรฐานของระบบแล้ว ไม่เปิดให้ปรับลายน้ำหรือขนาดโลโก้ก่อนพิมพ์ เพื่อให้เอกสารออกมาสวยและคงที่ทุกครั้ง</p>
-                  </div>
-
-                  <div className={`p-5 rounded-[1.35rem] border shadow-[0_12px_35px_rgba(15,23,42,0.10)] ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
-                    <div className={`font-black text-lg mb-2 ${theme.textTitle}`}>มาตรฐานเอกสารปฏิบัติงาน</div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {[
-                        ['ใบยืม', 'ฟอร์ม A4 สำหรับส่งมอบอุปกรณ์และกำหนดคืน'],
-                        ['ใบออกงาน', 'ฟอร์ม A4 สำหรับนำอุปกรณ์ออกใช้นอกศูนย์'],
-                        ['ใบรับคืน', 'ฟอร์ม A4 สำหรับตรวจรับและบันทึกสภาพคืน']
-                      ].map(([title, desc]) => (
-                        <div key={title} className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-950/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                          <div className={`font-black ${theme.textTitle}`}>{title}</div>
-                          <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3">
-                    {[
-                      ['qrLogo', 'แสดงโลโก้บน QR และฉลาก QR', 'เหมาะกับการยืนยันว่า QR นี้เป็นทรัพย์สินของศูนย์'],
-                      ['boxLabelLogo', 'แสดงโลโก้บนฉลากกล่อง', 'เหมาะกับฉลากกล่องหรือบรรจุภัณฑ์'],
-                      ['proofStamp', 'ไม่ใช้แล้ว: รูปหลักฐานไม่มีลายน้ำเว็บ', 'ระบบปิดการประทับตราบนรูปหลักฐานแล้ว เพราะใช้แอป Time Stamp ภายนอก']
-                    ].map(([key, title, desc]) => (
-                      <label key={key} className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
-                        <input
-                          type="checkbox"
-                          className="w-5 h-5 mt-1 accent-sky-600 shrink-0"
-                          checked={documentBrandSettings[key] !== false}
-                          onChange={(e) => saveเอกสารSettings({ [key]: e.target.checked })}
-                        />
-                        <span className="min-w-0">
-                          <span className={`block font-black ${theme.textTitle}`}>{title}</span>
-                          <span className={`block text-sm font-bold mt-1 ${theme.textMuted}`}>{desc}</span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-
-                  <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
-                    <div className={`font-black mb-2 ${theme.textTitle}`}>หมายเหตุ</div>
-                    <div className={`text-sm font-bold ${theme.textMuted}`}>ระบบล็อกดีไซน์ใบยืม/ใบออกงาน/ใบรับคืนให้เรียบร้อยแล้ว ถ้าจะปรับดีไซน์เอกสารให้แก้ผ่านโค้ดเป็นแพ็กอัปเดต ไม่ให้ผู้ใช้ปลายทางเลือกโลโก้/ลายน้ำจนหน้าพิมพ์เพี้ยน</div>
-                  </div>
-                </div>
-              ) : settingsTab === 'proofs' ? (
-                <div className="p-6 space-y-5">
-                  <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-pink-900/20 border-pink-800' : 'bg-pink-50 border-pink-200'}`}>
-                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}>📷 กติกาหลักฐานรูปภาพ</h4>
-                    <p className={`text-sm font-bold ${theme.textMuted}`}>ใช้ควบคุมการย่อรูปและการบังคับแนบหลักฐาน เพื่อให้ฐานข้อมูล 1GB อยู่ได้ยาวขึ้น</p>
-                  </div>
-
-                  <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 rounded-2xl border ${theme.cardBg}`}>
-                    <label className="block"><span className={`block text-sm font-bold mb-1 ${theme.textMuted}`}>ขนาดเป้าหมายต่อรูป (KB)</span><input type="number" min="60" max="300" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={activeProofSettings.targetKB} onChange={e => updateProofSettings({ targetKB: e.target.value })} /></label>
-                    <label className="block"><span className={`block text-sm font-bold mb-1 ${theme.textMuted}`}>เตือนเมื่อเกิน (KB)</span><input type="number" min="80" max="600" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={activeProofSettings.warnKB} onChange={e => updateProofSettings({ warnKB: e.target.value })} /></label>
-                    <label className="block"><span className={`block text-sm font-bold mb-1 ${theme.textMuted}`}>ห้ามบันทึกถ้าเกิน (KB)</span><input type="number" min="120" max="900" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={activeProofSettings.maxKB} onChange={e => updateProofSettings({ maxKB: e.target.value })} /></label>
-                    <label className="block"><span className={`block text-sm font-bold mb-1 ${theme.textMuted}`}>จำนวนรูปสูงสุดต่อครั้ง</span><input type="number" min="1" max="5" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={activeProofSettings.maxImagesPerAction} onChange={e => updateProofSettings({ maxImagesPerAction: e.target.value })} /></label>
-                  </div>
-
-                  <div className={`p-5 rounded-2xl border ${theme.cardBg}`}>
-                    <h5 className={`font-black text-lg mb-3 ${theme.textTitle}`}>บังคับ/แนะนำหลักฐานตามประเภทงาน</h5>
-                    {[['borrowRequirement','ยืมอุปกรณ์'], ['eventRequirement','นำออกงาน'], ['returnRequirement','รับคืน']].map(([key,label]) => (
-                      <div key={key} className="flex items-center justify-between gap-3 py-2">
-                        <div className={`font-bold ${theme.textTitle}`}>{label}</div>
-                        <select className={`px-3 py-2 rounded-xl border font-bold ${theme.input}`} value={activeProofSettings[key]} onChange={e => updateProofSettings({ [key]: e.target.value })}>
-                          <option value="optional">ไม่บังคับ</option>
-                          <option value="recommended">แนะนำแต่ไม่บังคับ</option>
-                          <option value="required">บังคับแนบรูป</option>
-                        </select>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/30 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <h5 className={`font-black text-lg mb-3 ${theme.textTitle}`}>สถานะรูปหลักฐาน</h5>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className={`p-2.5 rounded-lg border ${theme.btnSecondary}`}><div className={`text-xs font-bold ${theme.textMuted}`}>จำนวนรูป</div><div className={`text-2xl font-black ${theme.textTitle}`}>{databaseStorageEstimate.proofImageCount}</div></div>
-                      <div className={`p-2.5 rounded-lg border ${theme.btnSecondary}`}><div className={`text-xs font-bold ${theme.textMuted}`}>พื้นที่รูป</div><div className={`text-2xl font-black ${theme.textTitle}`}>{databaseStorageEstimate.proofStorageText}</div></div>
-                      <div className={`p-2.5 rounded-lg border ${theme.btnSecondary}`}><div className={`text-xs font-bold ${theme.textMuted}`}>เฉลี่ย/รูป</div><div className={`text-2xl font-black ${theme.textTitle}`}>{formatProofBytes(proofStorageForecast.avgBytes || 0)}</div></div>
-                      <div className={`p-2.5 rounded-lg border ${theme.btnSecondary}`}><div className={`text-xs font-bold ${theme.textMuted}`}>ยังพอเพิ่มได้ประมาณ</div><div className={`text-2xl font-black ${theme.textTitle}`}>{proofStorageForecast.remainingByAvg.toLocaleString('th-TH')} รูป</div></div>
-                    </div>
-                    <p className={`text-xs font-bold mt-3 ${theme.textMuted}`}>แนะนำถ่ายภาพรวมต่อรายการยืม/คืน/ออกงาน ไม่ถ่ายทุกชิ้น เพื่อให้พื้นที่อยู่ได้ทั้งปี</p>
-                  </div>
-                </div>
-              ) : settingsTab === 'trash' ? (
-                <div className="p-5 sm:p-6 lg:p-7 space-y-5">
-                  <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-rose-950/25 border-rose-800' : 'bg-rose-50 border-rose-200'}`}>
-                    <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <h4 className={`text-xl sm:text-2xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}>
-                          <Icons.Trash className="w-6 h-6 text-rose-500" />
-                          ถังขยะ
-                        </h4>
-                        <p className={`text-sm font-bold ${theme.textMuted}`}>รวมรายการที่ถูกย้ายลงถังขยะทั้งหมดไว้หน้านี้ กู้คืนหรือลบถาวรได้จากจุดเดียว</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleEmptyCentralTrashAll}
-                        disabled={centralTrashEntries.length === 0 || isBusy}
-                        className={`px-5 py-3 rounded-2xl border font-black shadow-sm ${centralTrashEntries.length === 0 || isBusy ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-rose-600 border-rose-500 text-white hover:bg-rose-500'}`}
-                      >
-                        ล้างถังขยะทั้งหมด
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-                    {[
-                      ['all', 'ทั้งหมด', centralTrashCounts.all],
-                      ['item', 'อุปกรณ์', centralTrashCounts.item],
-                      ['history', 'ประวัติ', centralTrashCounts.history],
-                      ['proof', 'รูปหลักฐาน', centralTrashCounts.proof]
-                    ].map(([key, label, count]) => (
-                      <button
-                        key={`settings_trash_filter_${key}`}
-                        type="button"
-                        onClick={() => setCentralTrashFilter(key)}
-                        className={`rounded-2xl border px-4 py-3 text-left transition ${centralTrashFilter === key ? 'bg-rose-600/20 border-rose-400/45 text-rose-100' : theme.btnSecondary}`}
-                      >
-                        <div className="text-xs font-black opacity-80">{label}</div>
-                        <div className="text-2xl font-black mt-1">{Number(count || 0).toLocaleString('th-TH')}</div>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                    <div className={`p-4 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-3 ${theme.divide}`}>
-                      <div>
-                        <div className={`font-black text-lg ${theme.textTitle}`}>รายการในถังขยะ</div>
-                        <div className={`text-sm font-bold ${theme.textMuted}`}>ลบถาวรแล้วจะกู้คืนจากในเว็บไม่ได้ แนะนำสำรองข้อมูลก่อนล้างทั้งหมด</div>
-                      </div>
-                      <button type="button" onClick={handlePermanentDeleteOldCentralTrash} disabled={oldCentralTrashEntries.length === 0 || isBusy} className={`px-4 py-2.5 rounded-2xl border text-sm font-black ${oldCentralTrashEntries.length === 0 || isBusy ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' : 'bg-amber-950/45 border-amber-500/40 text-amber-200 hover:bg-amber-700 hover:text-white'}`}>ล้างรายการเก่า 30 วัน ({oldCentralTrashEntries.length.toLocaleString('th-TH')})</button>
-                    </div>
-
-                    <div className="p-4 max-h-[48vh] overflow-y-auto custom-scrollbar space-y-3">
-                      {filteredCentralTrashEntries.length === 0 ? (
-                        <div className={`p-10 rounded-3xl border text-center font-black ${theme.textMuted}`}>ถังขยะว่างในหมวดนี้</div>
-                      ) : filteredCentralTrashEntries.map(entry => (
-                        <div key={`settings_trash_${entry.id}`} className={`rounded-2xl border p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${entry.kind === 'item' ? 'bg-blue-950/35 border-blue-800 text-blue-200' : entry.kind === 'proof' ? 'bg-pink-950/35 border-pink-800 text-pink-200' : 'bg-amber-950/35 border-amber-800 text-amber-200'}`}>{entry.kindLabel}</span>
-                              <span className={`text-xs font-bold ${theme.textMuted}`}>{entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12:false }) : '-'} • โดย {entry.deletedBy || '-'}</span>
-                            </div>
-                            <div className={`mt-2 text-base font-black break-words ${theme.textTitle}`}>{entry.title}</div>
-                            <div className={`mt-1 text-xs font-bold leading-relaxed break-words ${theme.textMuted}`}>{entry.subtitle}</div>
-                          </div>
-                          <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
-                            <button type="button" onClick={() => handleRestoreCentralTrashEntry(entry)} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black">กู้คืน</button>
-                            <button type="button" onClick={() => handlePermanentDeleteCentralTrashEntry(entry)} className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black">ลบถาวร</button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : settingsTab === 'database' ? (
+              })() : settingsTab === 'database' ? (
                 <div className="p-5 sm:p-6 lg:p-7 space-y-5">
                   <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-amber-900/20 border-amber-800' : 'bg-amber-50 border-amber-200'}`}>
                     <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}>
@@ -24874,7 +24663,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                         ['อุปกรณ์ทั้งหมด', items.filter(item => item && !item.isDeleted).length],
                         ['เอกสารย้อนหลัง', asArray(borrowเอกสารs).length],
                         ['ประวัติส่วนกลาง', auditLogs.length],
-                        ['หลักฐานรูปภาพ', databaseStorageEstimate.proofImageCount],
+                        ['รูปหลักฐาน', databaseStorageEstimate.proofImageCount],
                         ['รายการในถังขยะ', deletedItems.length],
                         ['บัญชีผู้ใช้', getEffectiveAccounts().length]
                       ].map(([label, value]) => (
@@ -27801,7 +27590,7 @@ ${auditChangeSummary}` : auditChangeSummary);
         </div>
       )}
 
-      {/* ศูนย์หลักฐานรูปภาพทั้งหมด */}
+      {/* ศูนย์รูปหลักฐานทั้งหมด */}
       {showProofCenterModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-2 sm:p-4 z-[9990] mdec-history-proof-safe`}>
           <div className={`rounded-[1.75rem] sm:rounded-[2rem] shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[94vh] border ${isDarkMode ? 'bg-slate-900 border-slate-700 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
@@ -27811,7 +27600,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <div className={`text-xs font-black tracking-[0.16em] uppercase ${isDarkMode ? 'text-pink-300' : 'text-pink-600'}`}>EVIDENCE CENTER</div>
                   <h3 className={`text-2xl sm:text-3xl font-black flex items-center gap-3 mt-1 ${theme.textTitle}`}>
                     <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white flex items-center justify-center shadow-lg">📷</span>
-                    ศูนย์หลักฐานรูปภาพ
+                    ศูนย์รูปหลักฐาน
                   </h3>
                   <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>คลังหลักฐานจากการยืม / ออกงาน / รับคืน / ซ่อม พร้อมค้นหาและเปิดอุปกรณ์ที่เกี่ยวข้องได้ทันที</p>
                 </div>
@@ -27889,7 +27678,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               {filteredProofGroups.length === 0 ? (
                 <div className={`rounded-[2rem] border p-6 sm:p-10 text-center ${isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                   <div className="text-5xl mb-4">📷</div>
-                  <div className={`text-2xl font-black ${theme.textTitle}`}>{allProofEntries.length === 0 ? 'ยังไม่มีหลักฐานรูปภาพ' : 'ไม่พบหลักฐานตามตัวกรอง'}</div>
+                  <div className={`text-2xl font-black ${theme.textTitle}`}>{allProofEntries.length === 0 ? 'ยังไม่มีรูปหลักฐาน' : 'ไม่พบหลักฐานตามตัวกรอง'}</div>
                   <p className={`text-sm font-bold mt-2 max-w-2xl mx-auto ${theme.textMuted}`}>
                     {allProofEntries.length === 0
                       ? 'เมื่อมีการแนบรูปตอนยืม / ออกงาน / รับคืน ระบบจะแสดงหลักฐานไว้ที่นี่เพื่อย้อนตรวจสอบได้ภายหลัง'
@@ -28063,7 +27852,7 @@ ${auditChangeSummary}` : auditChangeSummary);
             <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
-                  ['เริ่มDaily Operations', 'เปิด Daily Workflow เพื่อสแกน QR, เพิ่มอุปกรณ์, ดูของรอคืน และหลักฐานรูปภาพ'],
+                  ['เริ่มDaily Operations', 'เปิด Daily Workflow เพื่อสแกน QR, เพิ่มอุปกรณ์, ดูของรอคืน และรูปหลักฐาน'],
                   ['ยืม / ออกงาน', 'เลือกอุปกรณ์ → กดยืมหรือออกงาน → กรอกผู้รับผิดชอบ → แนบรูปหลักฐานถ้าต้องการ → บันทึก'],
                   ['รับคืน', 'เปิดติดตามการคืนงานหรือรายละเอียดอุปกรณ์ → กดรับคืน → ตรวจสภาพ → แนบหลักฐานรับคืนได้']
                 ].map(([title, desc], idx) => (
@@ -28088,7 +27877,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200'}`}>
                 <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>✅ วิธีลบรูปทดลองที่อัปดาวน์โหลดผิด</h4>
                 <ol className={`list-decimal pl-5 space-y-2 text-sm font-bold ${theme.textMuted}`}>
-                  <li>เปิดเมนู <b>เพิ่มเติม → หลักฐานรูปภาพ</b></li>
+                  <li>เปิดเมนู <b>เพิ่มเติม → รูปหลักฐาน</b></li>
                   <li>ค้นหารูปจากชื่ออุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน</li>
                   <li>กดปุ่ม <b>ลบรูปนี้</b> ใต้รูปที่ต้องการลบ</li>
                   <li>ยืนยันการลบ ระบบจะถอดรูปออกจากประวัติอุปกรณ์ที่เกี่ยวข้องทั้งหมด</li>
@@ -28109,7 +27898,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>🧭 ชื่อเมนูหลักที่ใช้ในระบบ</h4>
                 <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-bold ${theme.textMuted}`}>
                   <div><b>ติดตามการคืนงาน</b> = ดูของรอคืน ออกงานอยู่ วันนี้ และเลยกำหนด</div>
-                  <div><b>ศูนย์หลักฐานรูปภาพ</b> = ดู แก้ไข แทนที่ หรือลบรูปหลักฐาน</div>
+                  <div><b>ศูนย์รูปหลักฐาน</b> = ดู แก้ไข แทนที่ หรือลบรูปหลักฐาน</div>
                   <div><b>จัดเก็บและจัดชุด</b> = กล่องเก็บของ เซ็ตอุปกรณ์ และเซ็ตใช้งาน</div>
                   <div><b>เอกสารและฉลาก</b> = QR ฉลากกล่อง ใบยืม และตั้งค่าโลโก้เอกสาร</div>
                 </div>
@@ -28286,7 +28075,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ใช้เมื่อต้องหาจากทุกอุปกรณ์หรือจำชื่อชิ้นงานไม่ได้</div>
                 </button>
                 <button type="button" onClick={openProofCenterFromBorrowDocs} className={`p-2.5 rounded-lg border text-left font-black transition-all ${theme.btnSecondary}`}>
-                  <div className={theme.textTitle}>ศูนย์หลักฐานรูปภาพ</div>
+                  <div className={theme.textTitle}>ศูนย์รูปหลักฐาน</div>
                   <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ดู/แก้ไข/แทนที่รูปหลักฐานจากส่วนกลาง</div>
                 </button>
                 <div className={`p-2.5 rounded-lg border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
@@ -28355,7 +28144,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                         ค้นประวัติส่วนกลาง
                       </button>
                       <button type="button" onClick={openProofCenterFromBorrowDocs} className={`borrow-docs-empty-action px-4 py-3 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
-                        ศูนย์หลักฐานรูปภาพ
+                        ศูนย์รูปหลักฐาน
                       </button>
                       <button type="button" onClick={() => setShowBorrowDocsModal(false)} className={`borrow-docs-empty-action px-4 py-3 rounded-2xl border font-black transition-all ${theme.btnCancel}`}>
                         กลับไปหน้าหลัก
@@ -28449,63 +28238,6 @@ ${auditChangeSummary}` : auditChangeSummary);
         </div>
       )}
 
-      {/* v22.53.43 Mobile Essential Bottom Navigation */}
-      <div className={`mobile-bottom-nav lg:hidden fixed bottom-0 inset-x-0 z-40 border-t shadow-[0_-16px_40px_rgba(15,23,42,0.14)] ${isDarkMode ? 'bg-slate-950/95 border-slate-800' : 'bg-white/95 border-slate-200'}`}>
-        <div className="mobile-bottom-nav-grid">
-          <button
-            type="button"
-            onClick={() => { setShowMoreMenu(false); openWorkspace('overview'); }}
-            className={`mobile-bottom-nav-btn ${activeWorkspace === 'overview' && !showBorrowDocsModal && !showMoreMenu ? 'is-active' : theme.textMuted}`}
-            title="กลับหน้าแรก"
-          >
-            <Icons.Package className="w-5 h-5" />
-            <span>หน้าแรก</span>
-            {(dueTodayItems.length + overdueItems.length) > 0 && <span className="mobile-bottom-dot" title="มีงานที่ควรดูวันนี้"></span>}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { if (!requireOperationalAccess('ยืม/ออกงาน')) return; setShowMoreMenu(false); openWorkspace('borrow'); }}
-            className={`mobile-bottom-nav-btn ${['borrow','event'].includes(activeWorkspace) ? 'is-active' : theme.textMuted}`}
-            title="ยืม / ออกงาน"
-          >
-            <Icons.UserPlus className="w-5 h-5" />
-            <span>ยืม/ออก</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => openSelectionScanner({ camera: true })}
-            className="mobile-bottom-nav-btn mobile-bottom-nav-scan bg-slate-900 text-white"
-            title="สแกน QR"
-          >
-            <Icons.QrCode className="w-6 h-6" />
-            <span>สแกน</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { if (!requireOperationalAccess('รับคืน')) return; setShowMoreMenu(false); openWorkspace('return'); }}
-            className={`mobile-bottom-nav-btn ${activeWorkspace === 'return' ? 'is-active' : theme.textMuted}`}
-            title="รับคืน"
-          >
-            <Icons.CheckCircle className="w-5 h-5" />
-            <span>คืน</span>
-            {(currentBorrowedItems.length + currentEventItems.length) > 0 && <span className="mobile-bottom-badge">{(currentBorrowedItems.length + currentEventItems.length) > 99 ? '99+' : (currentBorrowedItems.length + currentEventItems.length)}</span>}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { setShowMoreMenu(false); openBorrowDocsArchive({ reset: false }); }}
-            className={`mobile-bottom-nav-btn ${showBorrowDocsModal ? 'is-active' : theme.textMuted}`}
-            title="เอกสารย้อนหลัง"
-          >
-            <Icons.พิมพ์er className="w-5 h-5" />
-            <span>เอกสาร</span>
-            {borrowเอกสารs.length > 0 && <span className="mobile-bottom-badge">{borrowเอกสารs.length > 99 ? '99+' : borrowเอกสารs.length}</span>}
-          </button>
-        </div>
-      </div>
 
       {/* Toast แจ้งเตือนแบบไม่ขัดจังหวะ */}
       <div className="fixed top-4 right-4 z-[12000] space-y-3 w-[92vw] max-w-sm pointer-events-none">
