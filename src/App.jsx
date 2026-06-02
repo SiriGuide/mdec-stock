@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.2.0 User Accounts Clean Layout';
-const APP_UPDATE_NOTE = 'User Accounts Clean Layout: ปรับหน้า บัญชีผู้ใช้ ใหม่ให้เรียบกว่าเดิม ไม่แบ่งคอลัมน์แปลก ๆ ใช้รายการผู้ใช้แบบเต็มกว้าง ฟอร์มเพิ่ม/แก้ไขอยู่ด้านขวาแบบพอดี และลดพื้นที่ว่างเกินจำเป็น';
+const APP_VERSION = 'v23.2.1 User Accounts Simple Rows Layout';
+const APP_UPDATE_NOTE = 'User Accounts Simple Rows Layout: ปรับหน้า บัญชีผู้ใช้ ให้เรียบและอ่านง่ายขึ้น ใช้รายการแบบแถวเต็มกว้าง ไม่ทำการ์ดสูงแปลก ๆ ฟอร์มเพิ่ม/แก้ไขอยู่ขวาแบบกระชับ และลดพื้นที่ว่างเกินจำเป็น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -24419,79 +24419,79 @@ ${auditChangeSummary}` : auditChangeSummary);
                 const inactiveAccounts = accounts.filter(acc => acc.active === false);
                 const adminAccounts = accounts.filter(acc => ['owner', 'admin'].includes(acc.role));
                 const staffAccounts = accounts.filter(acc => acc.role === 'staff');
+                const viewerAccounts = accounts.filter(acc => acc.role === 'viewer');
                 return (
                 <div className="p-4 sm:p-5 lg:p-6 space-y-4">
-                  <div className={`rounded-[1.45rem] border p-4 sm:p-5 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                  <div className={`rounded-[1.35rem] border p-4 ${isDarkMode ? 'bg-slate-950/72 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
                       <div className="min-w-0">
                         <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>USER ACCOUNTS</div>
-                        <h4 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>บัญชีผู้ใช้</h4>
-                        <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดการบัญชีที่ใช้เข้าสู่ระบบ สิทธิ์ และสถานะการใช้งาน</p>
+                        <h4 className={`text-2xl sm:text-3xl font-black mt-0.5 ${theme.textTitle}`}>บัญชีผู้ใช้</h4>
+                        <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เพิ่ม แก้ไข รีเซ็ต PIN และกำหนดสิทธิ์ผู้ใช้งานในระบบ</p>
                       </div>
                       <div className="flex flex-wrap gap-2 shrink-0">
-                        <button type="button" onClick={openNewAccountForm} disabled={!canManageAccounts} className={`px-4 py-3 rounded-2xl font-black ${canManageAccounts ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}>
-                          + เพิ่มผู้ใช้ใหม่
+                        <button type="button" onClick={openNewAccountForm} disabled={!canManageAccounts} className={`px-4 py-2.5 rounded-2xl font-black ${canManageAccounts ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}>
+                          + เพิ่มผู้ใช้
                         </button>
-                        <button type="button" onClick={() => setShowAuditModal(true)} disabled={!canViewAudit} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>
+                        <button type="button" onClick={() => setShowAuditModal(true)} disabled={!canViewAudit} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>
                           ประวัติการใช้งาน
                         </button>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5">
+                  <div className="grid grid-cols-2 xl:grid-cols-5 gap-2">
                     {[
-                      ['ผู้ใช้ทั้งหมด', accounts.length, 'บัญชี'],
-                      ['ใช้งานอยู่', activeAccounts.length, 'บัญชี'],
-                      ['ผู้ดูแลระบบ', adminAccounts.length, 'บัญชี'],
-                      ['ปิดใช้งาน', inactiveAccounts.length, 'บัญชี']
-                    ].map(([label, value, unit]) => (
-                      <div key={label} className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                      ['ทั้งหมด', accounts.length],
+                      ['ใช้งานอยู่', activeAccounts.length],
+                      ['ผู้ดูแล', adminAccounts.length],
+                      ['เจ้าหน้าที่', staffAccounts.length],
+                      ['ดูอย่างเดียว', viewerAccounts.length]
+                    ].map(([label, value]) => (
+                      <div key={label} className={`rounded-2xl border px-4 py-3 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
                         <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
-                        <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
-                        <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>{unit}</div>
+                        <div className={`text-2xl font-black mt-0.5 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
                       </div>
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
-                    <section className={`rounded-[1.45rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/72 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                      <div className={`p-4 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${theme.divide}`}>
+                  <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_340px] gap-4 items-start">
+                    <section className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                      <div className={`px-4 py-3 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 ${theme.divide}`}>
                         <div className="min-w-0">
                           <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>ACCOUNT LIST</div>
-                          <div className={`text-xl font-black mt-0.5 ${theme.textTitle}`}>รายชื่อบัญชี</div>
-                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>แก้ไข รีเซ็ต PIN หรือปิดใช้งานได้จากรายการนี้</div>
+                          <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>รายชื่อผู้ใช้</div>
                         </div>
-                        <div className={`px-3 py-2 rounded-2xl border text-xs font-black ${theme.btnSecondary}`}>{accounts.length.toLocaleString('th-TH')} บัญชี</div>
+                        <div className={`px-3 py-1.5 rounded-2xl border text-xs font-black ${theme.btnSecondary}`}>{accounts.length.toLocaleString('th-TH')} บัญชี</div>
                       </div>
 
-                      <div className="p-3 sm:p-4 space-y-2 max-h-[56vh] overflow-y-auto custom-scrollbar">
+                      <div className="max-h-[52vh] overflow-y-auto custom-scrollbar">
                         {accounts.map((acc) => {
                           const isEditing = editingAccountId === acc.id;
                           const initial = String(acc.name || acc.username || '?').trim().slice(0, 1).toUpperCase();
                           const disabledDelete = !canManageAccounts || String(acc.username || '').toLowerCase() === 'admin' || acc.active === false;
                           const disabledReset = !canManageAccounts || (acc.role === 'owner' && currentAccountRole !== 'owner');
                           return (
-                            <div key={acc.id} className={`rounded-2xl border p-3 transition-all ${isEditing ? 'bg-blue-600/16 border-blue-500/60' : (isDarkMode ? 'bg-slate-900/68 border-slate-800 hover:border-blue-700' : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-blue-300')}`}>
+                            <div key={acc.id} className={`px-4 py-3 border-b last:border-b-0 ${theme.divide} ${isEditing ? (isDarkMode ? 'bg-blue-950/22' : 'bg-blue-50') : ''}`}>
                               <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:items-center">
-                                <div className="min-w-0 flex items-start gap-3">
-                                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 text-base font-black ${acc.active === false ? 'bg-slate-700 text-slate-400' : isEditing ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-blue-500/15 text-blue-300' : 'bg-blue-50 text-blue-700')}`}>
+                                <button type="button" onClick={() => openEditAccountForm(acc)} className="min-w-0 text-left flex items-center gap-3">
+                                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 text-sm font-black ${acc.active === false ? 'bg-slate-700 text-slate-400' : isEditing ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-blue-500/15 text-blue-300' : 'bg-blue-50 text-blue-700')}`}>
                                     {initial}
                                   </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex flex-wrap items-center gap-2">
+                                  <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-1.5">
                                       <span className={`font-black text-base break-words ${theme.textTitle}`}>{acc.name || acc.username}</span>
-                                      <span className={`text-[11px] px-2 py-1 rounded-lg border font-black ${roleBadgeClass(acc.role)}`}>{roleLabel(acc.role)}</span>
-                                      {acc.active === false && <span className="text-[11px] px-2 py-1 rounded-lg bg-rose-100 text-rose-700 border border-rose-200 font-black">ปิดใช้งาน</span>}
-                                      {currentOperator?.id === acc.id && <span className="text-[11px] px-2 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-black">กำลังใช้งาน</span>}
-                                      {String(acc.username || '').toLowerCase() === 'admin' && <span className="text-[11px] px-2 py-1 rounded-lg bg-blue-500/15 text-blue-300 border border-blue-500/30 font-black">บัญชีกลาง</span>}
+                                      <span className={`text-[10px] px-2 py-0.5 rounded-lg border font-black ${roleBadgeClass(acc.role)}`}>{roleLabel(acc.role)}</span>
+                                      {acc.active === false && <span className="text-[10px] px-2 py-0.5 rounded-lg bg-rose-100 text-rose-700 border border-rose-200 font-black">ปิดใช้งาน</span>}
+                                      {currentOperator?.id === acc.id && <span className="text-[10px] px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-black">กำลังใช้</span>}
+                                      {String(acc.username || '').toLowerCase() === 'admin' && <span className="text-[10px] px-2 py-0.5 rounded-lg bg-blue-500/15 text-blue-300 border border-blue-500/30 font-black">บัญชีกลาง</span>}
                                     </div>
-                                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>Username: {acc.username || '-'} • {acc.role === 'viewer' ? 'ดูอย่างเดียว' : acc.role === 'staff' ? 'ทำรายการได้' : 'จัดการระบบได้'}</div>
+                                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>Username: {acc.username || '-'} • {acc.role === 'viewer' ? 'ดูข้อมูลอย่างเดียว' : acc.role === 'staff' ? 'ทำรายการประจำวัน' : 'จัดการระบบ'}</div>
                                   </div>
-                                </div>
+                                </button>
 
                                 <div className="grid grid-cols-3 sm:flex gap-2 shrink-0">
-                                  <button type="button" onClick={() => openEditAccountForm(acc)} className={`px-3 py-2 rounded-xl text-xs font-black ${isDarkMode ? 'bg-blue-900/40 text-blue-300 hover:bg-blue-800' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>{isEditing ? 'กำลังแก้' : 'แก้ไข'}</button>
+                                  <button type="button" onClick={() => openEditAccountForm(acc)} className={`px-3 py-2 rounded-xl text-xs font-black ${isEditing ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-slate-800 text-slate-200 hover:bg-blue-900/40 hover:text-blue-300' : 'bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-600')}`}>{isEditing ? 'กำลังแก้' : 'แก้ไข'}</button>
                                   <button type="button" onClick={() => handleResetAccountPin(acc)} disabled={disabledReset} className={`px-3 py-2 rounded-xl text-xs font-black ${disabledReset ? (isDarkMode ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed') : (isDarkMode ? 'bg-amber-900/40 text-amber-300 hover:bg-amber-800' : 'bg-amber-50 text-amber-600 hover:bg-amber-100')}`}>รีเซ็ต PIN</button>
                                   <button type="button" onClick={() => handleDeleteAccount(acc)} disabled={disabledDelete} className={`px-3 py-2 rounded-xl text-xs font-black ${disabledDelete ? (isDarkMode ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed') : (isDarkMode ? 'bg-rose-900/40 text-rose-300 hover:bg-rose-800' : 'bg-rose-50 text-rose-600 hover:bg-rose-100')}`}>ปิดใช้งาน</button>
                                 </div>
@@ -24502,11 +24502,10 @@ ${auditChangeSummary}` : auditChangeSummary);
                       </div>
                     </section>
 
-                    <aside className={`rounded-[1.45rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/72 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                      <div className={`p-4 border-b ${theme.divide}`}>
+                    <aside className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                      <div className={`px-4 py-3 border-b ${theme.divide}`}>
                         <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>{editingAccountId ? 'EDIT ACCOUNT' : 'NEW ACCOUNT'}</div>
-                        <div className={`text-xl font-black mt-0.5 ${theme.textTitle}`}>{editingAccountId ? 'แก้ไขบัญชี' : 'เพิ่มผู้ใช้ใหม่'}</div>
-                        <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>กรอกข้อมูลให้ครบ แล้วกดบันทึกด้านล่าง</div>
+                        <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>{editingAccountId ? 'แก้ไขบัญชี' : 'เพิ่มผู้ใช้'}</div>
                       </div>
                       <div className="p-4 space-y-3">
                         <div>
@@ -24524,7 +24523,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                           </div>
                         ) : (
                           <div className={`p-3 rounded-2xl border text-xs font-bold ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                            PIN ถูกซ่อนไว้ หากต้องการเปลี่ยนให้กด “รีเซ็ต PIN” ที่รายการบัญชี
+                            PIN ถูกซ่อนไว้ ถ้าต้องการเปลี่ยนให้กด “รีเซ็ต PIN” จากแถวรายชื่อผู้ใช้
                           </div>
                         )}
                         <div>
@@ -24548,22 +24547,19 @@ ${auditChangeSummary}` : auditChangeSummary);
                     </aside>
                   </div>
 
-                  <div className={`rounded-[1.45rem] border p-4 ${isDarkMode ? 'bg-slate-950/55 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className={`font-black mb-3 ${theme.textTitle}`}>บทบาทในระบบ</div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5">
-                      {[
-                        ['บัญชีกลาง', adminAccounts.length, 'จัดการระบบและข้อมูลสำคัญ'],
-                        ['เจ้าหน้าที่', staffAccounts.length, 'ทำรายการยืม คืน ออกงาน'],
-                        ['ดูอย่างเดียว', accounts.filter(acc => acc.role === 'viewer').length, 'ค้นหาและดูสถานะเท่านั้น'],
-                        ['ปิดใช้งาน', inactiveAccounts.length, 'เก็บประวัติไว้ แต่เข้าไม่ได้']
-                      ].map(([title, count, desc]) => (
-                        <div key={title} className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-800' : 'bg-white border-slate-200'}`}>
-                          <div className={`font-black text-sm ${theme.textTitle}`}>{title}</div>
-                          <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{Number(count || 0).toLocaleString('th-TH')}</div>
-                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                    {[
+                      ['บัญชีกลาง', adminAccounts.length, 'จัดการระบบและข้อมูลสำคัญ'],
+                      ['เจ้าหน้าที่', staffAccounts.length, 'ทำรายการใช้งานประจำวัน'],
+                      ['ดูอย่างเดียว', viewerAccounts.length, 'ดูข้อมูลแต่แก้ไขไม่ได้'],
+                      ['ปิดใช้งาน', inactiveAccounts.length, 'เก็บประวัติไว้ แต่เข้าไม่ได้']
+                    ].map(([title, count, desc]) => (
+                      <div key={title} className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                        <div className={`font-black text-sm ${theme.textTitle}`}>{title}</div>
+                        <div className={`text-2xl font-black mt-0.5 ${theme.textTitle}`}>{Number(count || 0).toLocaleString('th-TH')}</div>
+                        <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>{desc}</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 );
