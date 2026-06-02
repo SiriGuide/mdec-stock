@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.2.5 Remove Display Docs Proof Settings + Mobile Bottom Bar';
-const APP_UPDATE_NOTE = 'Remove Display Docs Proof Settings + Mobile Bottom Bar: ตัดเมนูตั้งค่าการแสดงผล เอกสาร/โลโก้ และรูปหลักฐานออกจาก Settings พร้อมถอดแถบเมนูล่างมือถือ ลดความรกและคงค่าระบบให้เป็นค่าเริ่มต้นที่เว็บจัดการให้เอง';
+const APP_VERSION = 'v23.2.7 Remove Prep Set From UI';
+const APP_UPDATE_NOTE = 'Remove Prep Set From UI: ตัดแนวเซ็ตใช้งานออกจาก UI เหลือเฉพาะกล่องจริงและเซ็ตใช้งาน ลดความซับซ้อนให้หน้า Box/Set เป็นงาน STOCK อย่างเดียว';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -1381,14 +1381,14 @@ function FactoryPolishStyle({ isDarkMode }) {
         box-shadow: none !important;
       }
       .factory-stock-polish .checkbox-clean,
-      .factory-stock-polish .checklist-row,
+      .factory-stock-polish .set-row,
       .factory-stock-polish .prep-check-row {
         position: relative;
       }
       .factory-stock-polish .checkbox-clean::before,
       .factory-stock-polish .checkbox-clean::after,
-      .factory-stock-polish .checklist-row::before,
-      .factory-stock-polish .checklist-row::after,
+      .factory-stock-polish .set-row::before,
+      .factory-stock-polish .set-row::after,
       .factory-stock-polish .prep-check-row::before,
       .factory-stock-polish .prep-check-row::after {
         content: none !important;
@@ -3334,7 +3334,7 @@ function FactoryPolishStyle({ isDarkMode }) {
         line-height: 1.15;
         font-weight: 950;
       }
-      .factory-stock-polish .operation-checklist-panel { position: relative; }
+      .factory-stock-polish .operation-set-panel { position: relative; }
       .factory-stock-polish .operation-sticky-actions {
         position: sticky;
         bottom: -2px;
@@ -3383,7 +3383,7 @@ function FactoryPolishStyle({ isDarkMode }) {
         .factory-stock-polish .operation-step-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
         .factory-stock-polish .operation-step-card { padding: 8px; border-radius: 14px; }
         .factory-stock-polish .operation-step-card .operation-step-value { font-size: 14px; }
-        .factory-stock-polish .operation-checklist-panel { margin-bottom: 12px !important; padding: 12px !important; border-radius: 20px !important; }
+        .factory-stock-polish .operation-set-panel { margin-bottom: 12px !important; padding: 12px !important; border-radius: 20px !important; }
         .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal) .space-y-2.max-h-40,
         .factory-stock-polish .return-operation-modal .space-y-2.max-h-\[34vh\] { max-height: 31dvh !important; }
         .factory-stock-polish .operation-sticky-actions { bottom: -14px; padding: 14px 2px 14px; }
@@ -3395,9 +3395,9 @@ function FactoryPolishStyle({ isDarkMode }) {
         }
       }
 
-      /* v22.51.12 Mobile Return Checklist Final Hotfix: กันเช็กลิสต์รับคืนบนมือถือโดนบีบจนข้อความเรียงแนวตั้ง */
+      /* v22.51.12 Mobile Return Set Final Hotfix: กันเซ็ตใช้งานรับคืนบนมือถือโดนบีบจนข้อความเรียงแนวตั้ง */
       @media (max-width: 767px) {
-        .factory-stock-polish .return-operation-modal label.return-checklist-card {
+        .factory-stock-polish .return-operation-modal label.return-set-card {
           display: block !important;
           grid-template-columns: none !important;
           width: 100% !important;
@@ -3406,7 +3406,7 @@ function FactoryPolishStyle({ isDarkMode }) {
           padding: 12px !important;
           overflow: hidden !important;
         }
-        .factory-stock-polish .return-operation-modal label.return-checklist-card > .return-checklist-row {
+        .factory-stock-polish .return-operation-modal label.return-set-card > .return-set-row {
           display: flex !important;
           flex-direction: row !important;
           align-items: flex-start !important;
@@ -3414,13 +3414,13 @@ function FactoryPolishStyle({ isDarkMode }) {
           width: 100% !important;
           min-width: 0 !important;
         }
-        .factory-stock-polish .return-operation-modal label.return-checklist-card input[type="checkbox"] {
+        .factory-stock-polish .return-operation-modal label.return-set-card input[type="checkbox"] {
           flex: 0 0 20px !important;
           width: 20px !important;
           height: 20px !important;
           margin-top: 2px !important;
         }
-        .factory-stock-polish .return-operation-modal .return-checklist-main {
+        .factory-stock-polish .return-operation-modal .return-set-main {
           display: block !important;
           flex: 1 1 auto !important;
           min-width: 0 !important;
@@ -3432,10 +3432,10 @@ function FactoryPolishStyle({ isDarkMode }) {
           line-height: 1.35 !important;
           writing-mode: horizontal-tb !important;
         }
-        .factory-stock-polish .return-operation-modal .return-checklist-main span {
+        .factory-stock-polish .return-operation-modal .return-set-main span {
           writing-mode: horizontal-tb !important;
         }
-        .factory-stock-polish .return-operation-modal label.return-checklist-card > .return-inspection-fields,
+        .factory-stock-polish .return-operation-modal label.return-set-card > .return-inspection-fields,
         .factory-stock-polish .return-operation-modal .return-inspection-fields {
           display: grid !important;
           grid-template-columns: 1fr !important;
@@ -6141,23 +6141,23 @@ function FactoryPolishStyle({ isDarkMode }) {
           padding: 12px !important;
           overflow-x: hidden !important;
         }
-        .return-operation-modal .return-checklist-card,
-        .return-operation-modal .return-checklist-card * {
+        .return-operation-modal .return-set-card,
+        .return-operation-modal .return-set-card * {
           box-sizing: border-box !important;
           max-width: 100% !important;
           writing-mode: horizontal-tb !important;
           text-orientation: mixed !important;
         }
-        .return-operation-modal .return-checklist-card {
+        .return-operation-modal .return-set-card {
           display: block !important;
           width: 100% !important;
           min-width: 0 !important;
           overflow: hidden !important;
           contain: layout paint !important;
         }
-        .return-operation-modal .return-checklist-main,
-        .return-operation-modal .return-checklist-card div,
-        .return-operation-modal .return-checklist-card span {
+        .return-operation-modal .return-set-main,
+        .return-operation-modal .return-set-card div,
+        .return-operation-modal .return-set-card span {
           white-space: normal !important;
           word-break: keep-all !important;
           overflow-wrap: anywhere !important;
@@ -6191,7 +6191,7 @@ function FactoryPolishStyle({ isDarkMode }) {
           padding: 12px !important;
           overflow-x: hidden !important;
         }
-        .factory-stock-polish .return-operation-modal label.return-checklist-card {
+        .factory-stock-polish .return-operation-modal label.return-set-card {
           display: block !important;
           grid-template-columns: none !important;
           width: 100% !important;
@@ -6200,7 +6200,7 @@ function FactoryPolishStyle({ isDarkMode }) {
           padding: 10px !important;
           overflow: hidden !important;
         }
-        .factory-stock-polish .return-operation-modal label.return-checklist-card > .return-checklist-row {
+        .factory-stock-polish .return-operation-modal label.return-set-card > .return-set-row {
           display: grid !important;
           grid-template-columns: 24px minmax(0, 1fr) !important;
           grid-auto-flow: row !important;
@@ -6211,7 +6211,7 @@ function FactoryPolishStyle({ isDarkMode }) {
           min-width: 0 !important;
           max-width: 100% !important;
         }
-        .factory-stock-polish .return-operation-modal label.return-checklist-card input[type="checkbox"] {
+        .factory-stock-polish .return-operation-modal label.return-set-card input[type="checkbox"] {
           grid-column: 1 !important;
           grid-row: 1 !important;
           flex: none !important;
@@ -6219,7 +6219,7 @@ function FactoryPolishStyle({ isDarkMode }) {
           height: 20px !important;
           margin: 2px 0 0 0 !important;
         }
-        .factory-stock-polish .return-operation-modal .return-checklist-main {
+        .factory-stock-polish .return-operation-modal .return-set-main {
           grid-column: 2 !important;
           grid-row: 1 !important;
           display: block !important;
@@ -6233,13 +6233,13 @@ function FactoryPolishStyle({ isDarkMode }) {
           writing-mode: horizontal-tb !important;
           line-height: 1.35 !important;
         }
-        .factory-stock-polish .return-operation-modal .return-checklist-main * {
+        .factory-stock-polish .return-operation-modal .return-set-main * {
           white-space: normal !important;
           word-break: keep-all !important;
           overflow-wrap: break-word !important;
           writing-mode: horizontal-tb !important;
         }
-        .factory-stock-polish .return-operation-modal .return-checklist-row > span:not(.return-checklist-main) {
+        .factory-stock-polish .return-operation-modal .return-set-row > span:not(.return-set-main) {
           grid-column: 2 !important;
           grid-row: auto !important;
           justify-self: start !important;
@@ -6380,8 +6380,8 @@ button[class*="orange"]:not(:disabled) {
 .safety-card h3 {
   letter-spacing: -0.02em;
 }
-.safety-checklist li,
-.backup-checklist li {
+.safety-set li,
+.backup-set li {
   break-inside: avoid;
 }
 @media (max-width: 768px) {
@@ -7022,12 +7022,12 @@ function MainApp() {
   const [cameraHelperContext, setCameraHelperContext] = useState('borrow'); // borrow | event
   const [cameraHelperForm, setCameraHelperForm] = useState({ cameraId: '', kitMode: 'body', lensIds: [], batteryIds: [], memoryIds: [] });
   
-  const [packingChecklist, setPackingChecklist] = useState([]);
-  const [eventChecklist, setEventChecklist] = useState([]);
+  const [packingSet, setPackingSet] = useState([]);
+  const [eventSet, setEventSet] = useState([]);
   
   const [returnTargetIds, setReturnTargetIds] = useState([]);
   const [returnData, setReturnData] = useState({ staff: '', newStaff: '' });
-  const [returnChecklist, setReturnChecklist] = useState([]);
+  const [returnSet, setReturnSet] = useState([]);
   
   const [showHistory, setShowHistory] = useState(null);
 
@@ -7652,7 +7652,7 @@ function MainApp() {
   const [scannerReturnWorkspace, setScannerReturnWorkspace] = useState('overview');
   const [scanInput, setScanInput] = useState('');
   const [scanMessage, setScanMessage] = useState({ text: '', type: '' });
-  const [scanMode, setScanMode] = useState('select'); // select | borrowChecklist | eventChecklist | returnChecklist
+  const [scanMode, setScanMode] = useState('select'); // select | borrowSet | eventSet | returnSet
   const [lastScannedItemId, setLastScannedItemId] = useState(null);
   const scanInputRef = useRef(null);
   const scanCooldownRef = useRef(false);
@@ -8122,8 +8122,8 @@ function MainApp() {
     finally { setIsBusy(false); }
   };
 
-  const openDangerConfirm = ({ title, subtitle = 'ตรวจสอบก่อนดำเนินการ', message = '', confirmText = '', actionLabel = 'ยืนยันดำเนินการ', tone = 'rose', checklist = [], onConfirm }) => {
-    setDangerConfirm({ title, subtitle, message, confirmText, actionLabel, tone, checklist, onConfirm, inputValue: '' });
+  const openDangerConfirm = ({ title, subtitle = 'ตรวจสอบก่อนดำเนินการ', message = '', confirmText = '', actionLabel = 'ยืนยันดำเนินการ', tone = 'rose', set = [], onConfirm }) => {
+    setDangerConfirm({ title, subtitle, message, confirmText, actionLabel, tone, set, onConfirm, inputValue: '' });
   };
 
   const closeDangerConfirm = () => setDangerConfirm(null);
@@ -8149,7 +8149,7 @@ function MainApp() {
       confirmText: 'RESTORE',
       actionLabel: 'เลือกไฟล์ JSON เพื่อกู้คืน',
       message: 'ระบบจะเขียนทับ/เพิ่มข้อมูลที่มี ID ตรงกับไฟล์สำรอง แต่จะไม่ลบอุปกรณ์ที่ไม่มีในไฟล์ เพื่อความปลอดภัย',
-      checklist: ['ควรใช้เฉพาะกรณีต้องกู้ข้อมูลกลับจากไฟล์สำรอง', 'แนะนำให้มีไฟล์สำรองล่าสุดอยู่ในเครื่องก่อน', 'ต้องพิมพ์ RESTORE ก่อน ระบบจึงจะเปิดหน้าต่างเลือกไฟล์'],
+      set: ['ควรใช้เฉพาะกรณีต้องกู้ข้อมูลกลับจากไฟล์สำรอง', 'แนะนำให้มีไฟล์สำรองล่าสุดอยู่ในเครื่องก่อน', 'ต้องพิมพ์ RESTORE ก่อน ระบบจึงจะเปิดหน้าต่างเลือกไฟล์'],
       onConfirm: () => restoreInputRef.current?.click()
     });
   };
@@ -11316,11 +11316,11 @@ S.N.: ${item.sn || '-'}
     if (availableIds.length === 0) return alert('ไม่มีอุปกรณ์ที่พร้อมใช้งานในรายการที่เลือก');
     if (cameraHelperContext === 'event') {
       setEventTargetIds(prev => Array.from(new Set([...(prev || []), ...availableIds])));
-      setEventChecklist(prev => Array.from(new Set([...(prev || []), ...availableIds])));
+      setEventSet(prev => Array.from(new Set([...(prev || []), ...availableIds])));
       setBorrowReturnMode('event');
     } else {
       setBorrowTargetIds(prev => Array.from(new Set([...(prev || []), ...availableIds])));
-      setPackingChecklist(prev => Array.from(new Set([...(prev || []), ...availableIds])));
+      setPackingSet(prev => Array.from(new Set([...(prev || []), ...availableIds])));
       setBorrowReturnMode('borrow');
     }
     setShowCameraHelper(false);
@@ -11650,7 +11650,7 @@ S.N.: ${item.sn || '-'}
       .slice(0, 160);
 
     const actionTargetIds = borrowReturnMode === 'event' ? eventTargetIds : borrowReturnMode === 'return' ? returnTargetIds : borrowTargetIds;
-    const actionChecklist = borrowReturnMode === 'event' ? eventChecklist : borrowReturnMode === 'return' ? returnChecklist : packingChecklist;
+    const actionSet = borrowReturnMode === 'event' ? eventSet : borrowReturnMode === 'return' ? returnSet : packingSet;
     const selectedActionItems = actionTargetIds.map(id => items.find(item => item.id === id)).filter(Boolean);
     const selectedCameraActionItems = selectedActionItems.filter(item => inferCameraHelperKind(item) === 'camera');
     const shouldShowOperationCameraNudge = borrowReturnMode !== 'return' && selectedCameraActionItems.length > 0 && borrowReturnStage === 'select';
@@ -11701,7 +11701,7 @@ S.N.: ${item.sn || '-'}
       const removeIds = [id, ...(linkedLens && actionTargetIds.includes(linkedLens.id) ? [linkedLens.id] : []), ...(linkedMemory && actionTargetIds.includes(linkedMemory.id) ? [linkedMemory.id] : [])];
       const next = actionTargetIds.filter(x => !removeIds.includes(x));
       setActionTargets(next);
-      setActionChecklist(actionChecklist.filter(x => !removeIds.includes(x)));
+      setActionSet(actionSet.filter(x => !removeIds.includes(x)));
       if (next.length === 0) setShowOperationSelectedPanel(false);
     };
     const ActionIcon = modeInfo.icon;
@@ -11720,21 +11720,21 @@ S.N.: ${item.sn || '-'}
       const unique = Array.from(new Set(ids || []));
       if (borrowReturnMode === 'event') {
         setEventTargetIds(unique);
-        setEventChecklist(unique);
+        setEventSet(unique);
       } else if (borrowReturnMode === 'return') {
         setReturnTargetIds(unique);
-        setReturnChecklist(unique);
+        setReturnSet(unique);
       } else {
         setBorrowTargetIds(unique);
-        setPackingChecklist(unique);
+        setPackingSet(unique);
       }
     };
 
-    const setActionChecklist = (ids) => {
+    const setActionSet = (ids) => {
       const unique = Array.from(new Set(ids || []));
-      if (borrowReturnMode === 'event') setEventChecklist(unique);
-      else if (borrowReturnMode === 'return') setReturnChecklist(unique);
-      else setPackingChecklist(unique);
+      if (borrowReturnMode === 'event') setEventSet(unique);
+      else if (borrowReturnMode === 'return') setReturnSet(unique);
+      else setPackingSet(unique);
     };
 
     const getReturnGroupIdsFromSelection = (sourceIds = actionTargetIds) => {
@@ -11786,7 +11786,7 @@ S.N.: ${item.sn || '-'}
         pushToast('ดึงรายการรับคืนทั้งกลุ่มแล้ว', `เพิ่มจาก ${actionTargetIds.length} เป็น ${expandedIds.length} ชิ้น`, 'success');
       }
       setReturnTargetIds(expandedIds);
-      setReturnChecklist(expandedIds);
+      setReturnSet(expandedIds);
       setBorrowReturnStage('select');
       setShowOperationSelectedPanel(true);
     };
@@ -11877,7 +11877,7 @@ S.N.: ${item.sn || '-'}
       if (sourceIds.length === 0) return alert('กลุ่มนี้ไม่มีรายการที่ยังรอคืน');
       const expandedIds = expandCameraLinkedLensIdsForOperation(sourceIds, 'return');
       setReturnTargetIds(expandedIds);
-      setReturnChecklist(expandedIds);
+      setReturnSet(expandedIds);
       setBorrowReturnStage('select');
       setShowOperationSelectedPanel(true);
       pushToast('เตรียมรับคืนกลุ่มแล้ว', `${card.title || 'รายการ'} • ${expandedIds.length} ชิ้น`, 'success');
@@ -11891,7 +11891,7 @@ S.N.: ${item.sn || '-'}
         : [...actionTargetIds, itemId];
       const expandedIds = expandCameraLinkedLensIdsForOperation(baseIds, 'return');
       setReturnTargetIds(expandedIds);
-      setReturnChecklist(expandedIds);
+      setReturnSet(expandedIds);
       setBorrowReturnStage('select');
     };
 
@@ -11997,7 +11997,7 @@ S.N.: ${item.sn || '-'}
       if (validIds.length === 0) return alert('❌ ไม่มีอุปกรณ์ที่เลือกได้ใน ' + (label || 'รายการนี้'));
       const next = expandCameraLinkedLensIdsForOperation([...actionTargetIds, ...validIds], borrowReturnMode);
       setActionTargets(next);
-      setActionChecklist(expandCameraLinkedLensIdsForOperation([...actionChecklist, ...validIds], borrowReturnMode).filter(id => next.includes(id)));
+      setActionSet(expandCameraLinkedLensIdsForOperation([...actionSet, ...validIds], borrowReturnMode).filter(id => next.includes(id)));
       setBorrowReturnStage('select');
     };
 
@@ -12005,16 +12005,16 @@ S.N.: ${item.sn || '-'}
       setBorrowReturnStage('select');
       if (borrowReturnMode === 'event') {
         setEventTargetIds([]);
-        setEventChecklist([]);
+        setEventSet([]);
         setEventProofFiles([]);
       } else if (borrowReturnMode === 'return') {
         setReturnTargetIds([]);
-        setReturnChecklist([]);
+        setReturnSet([]);
         setReturnProofFiles([]);
         setReturnInspection({});
       } else {
         setBorrowTargetIds([]);
-        setPackingChecklist([]);
+        setPackingSet([]);
         setBorrowProofFiles([]);
       }
     };
@@ -12031,11 +12031,11 @@ S.N.: ${item.sn || '-'}
         const removeIds = [id, ...(linkedLens && actionTargetIds.includes(linkedLens.id) ? [linkedLens.id] : []), ...(linkedMemory && actionTargetIds.includes(linkedMemory.id) ? [linkedMemory.id] : [])];
         const next = actionTargetIds.filter(x => !removeIds.includes(x));
         setActionTargets(next);
-        setActionChecklist(actionChecklist.filter(x => !removeIds.includes(x)));
+        setActionSet(actionSet.filter(x => !removeIds.includes(x)));
       } else {
         const next = expandCameraLinkedLensIdsForOperation([...actionTargetIds, id], borrowReturnMode);
         setActionTargets(next);
-        setActionChecklist(expandCameraLinkedLensIdsForOperation([...actionChecklist, id], borrowReturnMode));
+        setActionSet(expandCameraLinkedLensIdsForOperation([...actionSet, id], borrowReturnMode));
         if (linkedLensCanGo || linkedMemoryCanGo) {
           const added = [linkedLensCanGo ? linkedLens.name || 'เลนส์' : '', linkedMemoryCanGo ? linkedMemory.name || 'เมม' : ''].filter(Boolean).join(' + ');
           pushToast(borrowReturnMode === 'return' ? 'เพิ่มอุปกรณ์ชุดกล้องเข้ารับคืนแล้ว' : 'เพิ่มอุปกรณ์ในชุดกล้องให้แล้ว', `${targetItem?.name || 'กล้อง'} + ${added}`, 'info');
@@ -12052,7 +12052,7 @@ S.N.: ${item.sn || '-'}
       }
       const visibleIds = expandCameraLinkedLensIdsForOperation(operationalItems.map(item => item.id), borrowReturnMode);
       setActionTargets(visibleIds);
-      setActionChecklist(visibleIds);
+      setActionSet(visibleIds);
     };
 
     const normalizeOperationFolderText = (value, fallback = 'ไม่ระบุ') => {
@@ -12115,7 +12115,7 @@ S.N.: ${item.sn || '-'}
       if (ids.length === 0) return;
       const next = expandCameraLinkedLensIdsForOperation([...actionTargetIds, ...ids], borrowReturnMode);
       setActionTargets(next);
-      setActionChecklist(expandCameraLinkedLensIdsForOperation([...actionChecklist, ...ids], borrowReturnMode));
+      setActionSet(expandCameraLinkedLensIdsForOperation([...actionSet, ...ids], borrowReturnMode));
     };
 
 
@@ -12216,20 +12216,20 @@ S.N.: ${item.sn || '-'}
     if (borrowReturnMode === 'borrow') {
       if (!borrowData.staff) missingSteps.push('เลือกผู้ให้ยืม');
       if (!borrowData.borrower) missingSteps.push('กรอกชื่อผู้ยืม');
-      if (packingChecklist.length === 0) missingSteps.push('เลือก/เช็กอุปกรณ์');
+      if (packingSet.length === 0) missingSteps.push('เลือก/เช็กอุปกรณ์');
     } else if (borrowReturnMode === 'event') {
       if (!eventData.staff) missingSteps.push('เลือกผู้รับผิดชอบ');
       if (!eventData.eventName) missingSteps.push('กรอกชื่องาน');
-      if (eventChecklist.length === 0) missingSteps.push('เลือก/เช็กอุปกรณ์');
+      if (eventSet.length === 0) missingSteps.push('เลือก/เช็กอุปกรณ์');
     } else {
       if (!returnData.staff) missingSteps.push('เลือกผู้รับคืน');
-      if (returnChecklist.length === 0) missingSteps.push('เลือก/เช็กอุปกรณ์ที่รับคืน');
+      if (returnSet.length === 0) missingSteps.push('เลือก/เช็กอุปกรณ์ที่รับคืน');
     }
     const isReadyToSubmit = missingSteps.length === 0;
-    const checklistPercent = actionTargetIds.length > 0 ? Math.round((actionChecklist.length / actionTargetIds.length) * 100) : 0;
+    const setPercent = actionTargetIds.length > 0 ? Math.round((actionSet.length / actionTargetIds.length) * 100) : 0;
     const selectedPreview = selectedActionItems.slice(0, 3).map(i => i.name || i.sn || i.id).join(' • ');
     const isOperationDetailsStep = borrowReturnStage === 'details' && actionTargetIds.length > 0;
-    const currentChecklistScanMode = borrowReturnMode === 'event' ? 'eventChecklist' : borrowReturnMode === 'return' ? 'returnChecklist' : 'borrowChecklist';
+    const currentSetScanMode = borrowReturnMode === 'event' ? 'eventSet' : borrowReturnMode === 'return' ? 'returnSet' : 'borrowSet';
     const goToOperationDetails = () => {
       if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return;
       if (actionTargetIds.length === 0) return alert('เลือกอุปกรณ์อย่างน้อย 1 รายการก่อนกดถัดไป');
@@ -12247,7 +12247,7 @@ S.N.: ${item.sn || '-'}
       ['1', 'เลือกโหมดงาน', modeInfo.shortTitle, true],
       ['2', 'เลือกอุปกรณ์', actionTargetIds.length > 0 ? `${actionTargetIds.length} รายการ` : 'ยังไม่เลือก', actionTargetIds.length > 0],
       ['3', 'กรอกรายละเอียด', missingSteps.filter(x => !x.includes('อุปกรณ์')).length === 0 ? 'ครบแล้ว' : 'ยังขาดข้อมูล', missingSteps.filter(x => !x.includes('อุปกรณ์')).length === 0],
-      ['4', 'สแกน/เช็กของ', actionTargetIds.length > 0 ? `${checklistPercent}%` : 'รอเลือกของ', actionTargetIds.length > 0 && actionChecklist.length === actionTargetIds.length],
+      ['4', 'สแกน/เช็กของ', actionTargetIds.length > 0 ? `${setPercent}%` : 'รอเลือกของ', actionTargetIds.length > 0 && actionSet.length === actionTargetIds.length],
       ['5', 'ยืนยันรายการ', isReadyToSubmit ? 'พร้อมบันทึก' : 'ยังไม่พร้อม', isReadyToSubmit]
     ];
 
@@ -12718,16 +12718,16 @@ S.N.: ${item.sn || '-'}
                         <div className="text-xs font-bold mt-1 opacity-75 truncate">{selectedPreview || 'เลือกจากรายการด้านซ้าย หรือสแกน QR เพื่อยืม / คืน / ออกงาน'}</div>
                       </div>
                       {actionTargetIds.length > 0 && (
-                        <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionChecklist(actionTargetIds); }} className="shrink-0 px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">เช็กครบ</button>
+                        <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionSet(actionTargetIds); }} className="shrink-0 px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">เช็กครบ</button>
                       )}
                     </div>
                     {actionTargetIds.length > 0 && (
                       <div className="mt-3">
                         <div className="flex items-center justify-between text-[11px] font-black opacity-75 mb-1">
-                          <span>เช็กของแล้ว</span><span>{checklistPercent}%</span>
+                          <span>เช็กของแล้ว</span><span>{setPercent}%</span>
                         </div>
                         <div className={`h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-white/100'}`}>
-                          <div className="h-full bg-emerald-500 transition-all" style={{ width: `${checklistPercent}%` }} />
+                          <div className="h-full bg-emerald-500 transition-all" style={{ width: `${setPercent}%` }} />
                         </div>
                       </div>
                     )}
@@ -12792,11 +12792,11 @@ S.N.: ${item.sn || '-'}
 
                   <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="flex items-center justify-between gap-3 mb-3">
-                      <div className={`font-black ${theme.textTitle}`}>เช็กลิสต์ ({actionChecklist.length}/{actionTargetIds.length})</div>
+                      <div className={`font-black ${theme.textTitle}`}>เซ็ตใช้งาน ({actionSet.length}/{actionTargetIds.length})</div>
                       <div className="flex flex-wrap gap-2 justify-end">
-                        <button type="button" onClick={() => openChecklistScanner(currentChecklistScanMode)} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>สแกน QR เช็ก</button>
-                        <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionChecklist(actionTargetIds); }} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>เช็กครบ</button>
-                        <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionChecklist([]); }} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ล้างเช็ก</button>
+                        <button type="button" onClick={() => openSetScanner(currentSetScanMode)} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>สแกน QR เช็ก</button>
+                        <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionSet(actionTargetIds); }} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>เช็กครบ</button>
+                        <button type="button" onClick={() => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionSet([]); }} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ล้างเช็ก</button>
                       </div>
                     </div>
                     <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
@@ -12804,21 +12804,21 @@ S.N.: ${item.sn || '-'}
                         <>
                           {operationBundleGroups.bundles.map(bundle => {
                             const bundleIds = [bundle.camera.id, bundle.lens?.id, bundle.memory?.id].filter(Boolean);
-                            const checkedAll = bundleIds.every(id => actionChecklist.includes(id));
+                            const checkedAll = bundleIds.every(id => actionSet.includes(id));
                             return (
                               <div key={`check_bundle_${bundle.camera.id}`} className={`rounded-xl border p-2.5 ${checkedAll ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200')}`}>
                                 <label className="flex items-start gap-3 cursor-pointer">
-                                  <input type="checkbox" className="stock-check mt-0.5" checked={checkedAll} onChange={e => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionChecklist(e.target.checked ? Array.from(new Set([...actionChecklist, ...bundleIds])) : actionChecklist.filter(id => !bundleIds.includes(id))); }} />
+                                  <input type="checkbox" className="stock-check mt-0.5" checked={checkedAll} onChange={e => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionSet(e.target.checked ? Array.from(new Set([...actionSet, ...bundleIds])) : actionSet.filter(id => !bundleIds.includes(id))); }} />
                                   <span className={`min-w-0 flex-1 text-sm font-black ${theme.textTitle}`}>ชุดกล้อง: {bundle.camera.name}<span className={`block text-xs font-bold ${theme.textMuted}`}>กล้อง + {bundle.lens ? bundle.lens.name : 'ยังไม่ได้ลิงก์เลนส์'}{bundle.memory ? ` • เมม ${bundle.memory.name}` : (bundle.memoryText ? ` • เมม ${bundle.memoryText}` : '')}</span></span>
                                 </label>
                               </div>
                             );
                           })}
                           {operationBundleGroups.looseItems.map(item => {
-                            const checked = actionChecklist.includes(item.id);
+                            const checked = actionSet.includes(item.id);
                             return (
                               <label key={item.id} className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer ${checked ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200')}`}>
-                                <input type="checkbox" className="stock-check mt-0.5" checked={checked} onChange={e => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionChecklist(e.target.checked ? [...actionChecklist, item.id] : actionChecklist.filter(id => id !== item.id)); }} />
+                                <input type="checkbox" className="stock-check mt-0.5" checked={checked} onChange={e => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionSet(e.target.checked ? [...actionSet, item.id] : actionSet.filter(id => id !== item.id)); }} />
                                 <span className={`min-w-0 flex-1 text-sm font-black ${theme.textTitle}`}>{item.name}<span className={`block text-xs font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'}</span></span>
                               </label>
                             );
@@ -14923,21 +14923,11 @@ S.N.: ${item.sn || '-'}
           ['ถังขยะ', 'กู้คืนหรือลบถาวรรายการที่ถูกลบ', Icons.Trash, () => openSettingsTab('trash')],        ]
       },
       {
-        title: 'เอกสารและการแสดงผล',
-        desc: 'จัดหน้าตาเอกสาร รูปหลักฐาน และความสบายตาของเว็บ',
-        items: [
-          ['เอกสาร / QR', 'หัวเอกสาร ลายน้ำ โลโก้ และฉลาก QR', Icons.พิมพ์er, () => openSettingsTab('database')],
-          ['รูปหลักฐาน', 'กติกาการแนบรูป ย่อรูป และจัดการหลักฐาน', Icons.Camera, () => openSettingsTab('database')],
-          ['การแสดงผล', 'ความแน่นของหน้า การ์ด และเอฟเฟกต์', Icons.Monitor, () => openSettingsTab('database')],
-          ['รายงาน', 'สรุปรายเดือน รายงาน A4 และ Export CSV', Icons.ViewGrid, () => openMonthlyReportPage()]
-        ]
-      },
-      {
         title: 'คลังและงานจัดเตรียม',
         desc: 'ของสำรอง กล่อง และเซ็ตใช้งาน',
         items: [
           ['โกดัง / คลังสำรอง', 'ของยังไม่เปิดใช้และของสแปร์ที่ต้องเบิกก่อน', Icons.Folder, () => openWorkspace('warehouse')],
-          ['กล่อง / เซ็ตอุปกรณ์', 'จัดกล่องจริง เซ็ตใช้งาน และเช็กลิสต์', Icons.Layers, () => openWorkspace('organize')],          ['ประวัติส่วนกลาง', 'เหตุการณ์สำคัญของระบบทั้งหมด', Icons.ClipboardList, () => openMainHistoryCenter({ reset: true, tab: 'history' })]
+          ['กล่อง / เซ็ตอุปกรณ์', 'จัดกล่องจริงและเซ็ตใช้งาน', Icons.Layers, () => openWorkspace('organize')]
         ]
       }
     ];
@@ -15233,15 +15223,6 @@ S.N.: ${item.sn || '-'}
       action: () => openSettingsTab('accounts')
     },
     {
-      id: 'documents',
-      title: 'เอกสาร / ฉลาก / โลโก้',
-      desc: 'ตั้งค่าหัวเอกสาร ลายน้ำ โลโก้ และโทนการพิมพ์ให้เป็นภาษาเดียวกัน',
-      icon: Icons.พิมพ์er,
-      tone: isDarkMode ? 'bg-sky-950/25 border-sky-800 text-sky-200' : 'bg-sky-50 border-sky-200 text-sky-800',
-      stats: `${documentBrandSettings.printTone === 'ink' ? 'ประหยัดหมึก' : 'เอกสารทางการ'} • โลโก้ ${documentBrandSettings.logoSize || 'normal'}`,
-      action: () => openSettingsTab('database')
-    },
-    {
       id: 'database',
       title: 'สำรองข้อมูล / ปิดปี',
       desc: 'สำรอง กู้คืน ส่งออก CSV และเตรียมข้อมูลสิ้นปี',
@@ -15327,14 +15308,6 @@ S.N.: ${item.sn || '-'}
       desc: `${item.currentBorrower || item.currentEvent || '-'} • ${item.sn || '-'}`,
       action: () => openTrackingCenter('today')
     }));
-    prepTodayLists.slice(0, 2).forEach(prep => tasks.push({
-      id: `prep_${prep.id || prep.name}`,
-      tone: 'blue',
-      label: 'เตรียมของวันนี้',
-      title: prep.name || 'เซ็ตใช้งาน',
-      desc: `${(prep.checkedIds || []).length}/${(prep.itemIds || []).length} รายการ • ${prep.staff || '-'}`,
-      action: () => openWorkspace('organize')
-    }));
     dailyIssueItems.slice(0, 2).forEach(item => tasks.push({
       id: `issue_${item.id}`,
       tone: item.status === 'maintenance' ? 'rose' : 'slate',
@@ -15344,7 +15317,7 @@ S.N.: ${item.sn || '-'}
       action: () => setShowHistory(item.id)
     }));
     return tasks.slice(0, 5);
-  }, [overdueItems, dueTodayItems, prepTodayLists, dailyIssueItems]);
+  }, [overdueItems, dueTodayItems, dailyIssueItems]);
 
   const recentActivity = useMemo(() => {
     return (auditLogs || [])
@@ -15534,7 +15507,6 @@ S.N.: ${item.sn || '-'}
       `- เลยกำหนดคืน: ${overdueItems.length} รายการ`,
       `- รอคืนทั้งหมด: ${(currentBorrowedItems.length + currentEventItems.length)} รายการ`,
       `- ออกงานอยู่: ${currentEventItems.length} รายการ`,
-      `- เตรียมของวันนี้: ${prepTodayLists.length} รายการ`,
       `- ข้อมูลควรเติม: ${dataQualityAudit.issueItemCount} รายการ`,
       '',
       'ตรวจสอบรายละเอียดได้ที่ Dashboard / ศูนย์ติดตามของรอคืน'
@@ -15561,7 +15533,7 @@ S.N.: ${item.sn || '-'}
     }
     setReturnData({ staff: '', newStaff: '' });
     setReturnTargetIds(ids);
-    setReturnChecklist([]);
+    setReturnSet([]);
     setReturnProofFiles([]);
     setReturnInspection({});
     openWorkspace('return');
@@ -15576,7 +15548,7 @@ S.N.: ${item.sn || '-'}
     if (!item || !item.id) return;
     setReturnData({ staff: '', newStaff: '' });
     setReturnTargetIds([item.id]);
-    setReturnChecklist([]);
+    setReturnSet([]);
     setReturnProofFiles([]);
     setReturnInspection({});
     setShowTrackingCenterModal(false);
@@ -17595,18 +17567,10 @@ S.N.: ${item.sn || '-'}
           desc: overdueItems.length ? 'เปิดรายการเลยกำหนดและคัดลอกข้อความตามของ' : 'ไม่มีรายการเลยกำหนด',
           tone: overdueItems.length ? 'rose' : 'emerald',
           action: () => openTrackingCenter('overdue')
-        },
-        {
-          id: 'prep',
-          title: 'เตรียมของวันนี้',
-          value: prepTodayLists.length,
-          desc: prepTodayLists.length ? nextPrep.map(p => p.name || 'เซ็ตใช้งาน').join(' • ') : 'ยังไม่มี checklist วันนี้',
-          tone: prepTodayLists.length ? 'blue' : 'slate',
-          action: () => openWorkspace('organize')
         }
       ]
     };
-  }, [overdueItems, dueTodayItems, prepTodayLists, dataQualityAudit, stockCountStats.recheck.length]);
+  }, [overdueItems, dueTodayItems, dataQualityAudit, stockCountStats.recheck.length]);
 
   const yearEndHelperData = useMemo(() => {
     const activeItems = items.filter(item => item && !item.isDeleted);
@@ -17625,7 +17589,7 @@ S.N.: ${item.sn || '-'}
     if (partialDocs > 0) warnings.push(`มีเอกสารคืนบางส่วน ${partialDocs} ใบ`);
     if (dataQualityAudit.issueItemCount > 0) warnings.push(`มีอุปกรณ์ข้อมูลควรเติม ${dataQualityAudit.issueItemCount} รายการ`);
     if (!latestBackup) warnings.push('ยังไม่พบประวัติการสำรองข้อมูลล่าสุด');
-    const checklist = [
+    const set = [
       { id: 'stock', label: 'ตรวจนับสต๊อกแล้ว', ok: stockCountStats.found.length > 0 || stockCountStats.percent >= 80, note: `${stockCountStats.percent}%` },
       { id: 'backup', label: 'สำรองข้อมูลหลักแล้ว', ok: !!latestBackup, note: lastBackupText },
       { id: 'outside', label: 'ไม่มีของยืม/ออกงานค้าง', ok: outsideCount === 0, note: `${outsideCount} รายการค้าง` },
@@ -17633,7 +17597,7 @@ S.N.: ${item.sn || '-'}
       { id: 'docs', label: 'เอกสารไม่ปิดครบถูกตรวจแล้ว', ok: (activeDocs + partialDocs) === 0, note: `${activeDocs + partialDocs} เอกสาร` },
       { id: 'trash', label: 'ตรวจถังขยะแล้ว', ok: deletedItemsCount === 0, note: `${deletedItemsCount} รายการในถังขยะ` }
     ];
-    const readyScore = Math.round((checklist.filter(c => c.ok).length / checklist.length) * 100);
+    const readyScore = Math.round((set.filter(c => c.ok).length / set.length) * 100);
     return {
       activeItems,
       deletedItemsCount,
@@ -17645,7 +17609,7 @@ S.N.: ${item.sn || '-'}
       latestBackup,
       lastBackupText,
       warnings,
-      checklist,
+      set,
       readyScore,
       readyLabel: readyScore >= 85 ? 'ค่อนข้างพร้อม' : readyScore >= 60 ? 'ควรเช็กอีกนิด' : 'ยังควรสำรอง/ตรวจเพิ่ม',
       summaryCards: [
@@ -18301,7 +18265,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       confirmText: 'DELETE',
       actionLabel: 'ยืนยันลบถาวร',
       message: `ต้องการลบ "${item.name || '-'}" ออกจากฐานข้อมูลถาวรหรือไม่? แนะนำให้ใช้เฉพาะรายการที่แน่ใจว่าไม่ต้องการเก็บแล้ว`,
-      checklist: ['รายการนี้จะหายจากถังขยะและกู้คืนจากในเว็บไม่ได้', 'ประวัติที่ผูกกับอุปกรณ์นี้อาจค้นย้อนกลับไม่ได้ครบเหมือนเดิม', 'ต้องพิมพ์ DELETE ให้ถูกต้องก่อนยืนยัน'],
+      set: ['รายการนี้จะหายจากถังขยะและกู้คืนจากในเว็บไม่ได้', 'ประวัติที่ผูกกับอุปกรณ์นี้อาจค้นย้อนกลับไม่ได้ครบเหมือนเดิม', 'ต้องพิมพ์ DELETE ให้ถูกต้องก่อนยืนยัน'],
       onConfirm: async () => {
         try {
           await deleteDoc(getItemDoc(item.id));
@@ -18326,7 +18290,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' }); 
       setBorrowProofFiles([]);
       setBorrowTargetIds(ids);
-      setPackingChecklist(ids);
+      setPackingSet(ids);
       setSelectedItems([]);
       setActiveWorkspace('borrow');
       window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
@@ -18344,7 +18308,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' }); 
       setEventProofFiles([]);
       setEventTargetIds(ids);
-      setEventChecklist(ids);
+      setEventSet(ids);
       setSelectedItems([]);
       setActiveWorkspace('event');
       window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
@@ -18406,43 +18370,43 @@ ${auditChangeSummary}` : auditChangeSummary);
   const getStaffDisplay = (data = {}) => data.staff === 'อื่นๆ' ? ((data.newStaff || '').trim() || 'อื่นๆ') : (data.staff || '-');
   const buildOperationConfirmData = (type) => {
     if (type === 'event') {
-      const selected = getOperationItemList(eventChecklist);
+      const selected = getOperationItemList(eventSet);
       return {
         type,
         title: 'ตรวจสอบก่อนบันทึกออกงาน',
         subtitle: 'ระบบจะเปลี่ยนสถานะอุปกรณ์ที่เช็กแล้วเป็น “ออกงาน”',
         tone: 'orange', icon: '🚚', subjectLabel: 'ชื่องาน', subject: eventData.eventName || '-',
         staffLabel: 'ผู้รับผิดชอบ', staff: getStaffDisplay(eventData), expectedReturn: eventData.returnDate || '-',
-        note: eventData.note || '-', totalCount: eventTargetIds.length, actionCount: eventChecklist.length,
-        skippedCount: Math.max(0, eventTargetIds.length - eventChecklist.length), proofCount: eventProofFiles.length,
+        note: eventData.note || '-', totalCount: eventTargetIds.length, actionCount: eventSet.length,
+        skippedCount: Math.max(0, eventTargetIds.length - eventSet.length), proofCount: eventProofFiles.length,
         items: selected
       };
     }
     if (type === 'return') {
-      const selected = getOperationItemList(returnChecklist);
-      const problemCount = returnChecklist.filter(id => ['มีรอย/ต้องตรวจเพิ่ม', 'ชำรุด', 'คืนไม่ครบ'].includes(returnInspection[id]?.condition)).length;
+      const selected = getOperationItemList(returnSet);
+      const problemCount = returnSet.filter(id => ['มีรอย/ต้องตรวจเพิ่ม', 'ชำรุด', 'คืนไม่ครบ'].includes(returnInspection[id]?.condition)).length;
       return {
         type,
         title: 'ตรวจสอบก่อนบันทึกรับคืน',
         subtitle: 'ระบบจะรับคืนเฉพาะอุปกรณ์ที่ติ๊กหรือสแกนเช็กแล้วเท่านั้น',
         tone: 'emerald', icon: '📥', subjectLabel: 'รายการรับคืน',
-        subject: returnChecklist.length === returnTargetIds.length ? 'รับคืนครบชุด' : 'รับคืนบางส่วน',
+        subject: returnSet.length === returnTargetIds.length ? 'รับคืนครบชุด' : 'รับคืนบางส่วน',
         staffLabel: 'ผู้รับคืน', staff: getStaffDisplay(returnData), expectedReturn: '-',
         note: problemCount > 0 ? `มีรายการต้องตรวจเพิ่ม ${problemCount} ชิ้น` : 'สภาพปกติ / ตามที่ระบุรายชิ้น',
-        totalCount: returnTargetIds.length, actionCount: returnChecklist.length,
-        skippedCount: Math.max(0, returnTargetIds.length - returnChecklist.length), proofCount: returnProofFiles.length,
+        totalCount: returnTargetIds.length, actionCount: returnSet.length,
+        skippedCount: Math.max(0, returnTargetIds.length - returnSet.length), proofCount: returnProofFiles.length,
         problemCount, items: selected
       };
     }
-    const selected = getOperationItemList(packingChecklist);
+    const selected = getOperationItemList(packingSet);
     return {
       type: 'borrow',
       title: 'ตรวจสอบก่อนบันทึกการยืม',
       subtitle: 'ระบบจะเปลี่ยนสถานะอุปกรณ์ที่เช็กแล้วเป็น “ถูกยืม”',
       tone: 'purple', icon: '📤', subjectLabel: 'ผู้ยืม', subject: borrowData.borrower || '-',
       staffLabel: 'ผู้ให้ยืม', staff: getStaffDisplay(borrowData), expectedReturn: borrowData.returnDate || '-',
-      note: borrowData.note || '-', totalCount: borrowTargetIds.length, actionCount: packingChecklist.length,
-      skippedCount: Math.max(0, borrowTargetIds.length - packingChecklist.length), proofCount: borrowProofFiles.length,
+      note: borrowData.note || '-', totalCount: borrowTargetIds.length, actionCount: packingSet.length,
+      skippedCount: Math.max(0, borrowTargetIds.length - packingSet.length), proofCount: borrowProofFiles.length,
       items: selected
     };
   };
@@ -18450,11 +18414,11 @@ ${auditChangeSummary}` : auditChangeSummary);
   const requestOperationConfirm = (type = 'borrow') => {
     if (!requireOperationalAccess(type === 'return' ? 'รับคืนอุปกรณ์' : type === 'event' ? 'นำอุปกรณ์ออกงาน' : 'ยืมอุปกรณ์', type)) return;
     if (type === 'borrow') {
-      if (!borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return alert('❌ กรุณากรอกผู้ยืม เลือกเจ้าหน้าที่ และติ๊ก/สแกนเช็กอุปกรณ์อย่างน้อย 1 ชิ้น');
+      if (!borrowData.borrower || !borrowData.staff || packingSet.length === 0) return alert('❌ กรุณากรอกผู้ยืม เลือกเจ้าหน้าที่ และติ๊ก/สแกนเช็กอุปกรณ์อย่างน้อย 1 ชิ้น');
     } else if (type === 'event') {
-      if (!eventData.eventName || !eventData.staff || eventChecklist.length === 0) return alert('❌ กรุณากรอกชื่องาน เลือกผู้รับผิดชอบ และติ๊ก/สแกนเช็กอุปกรณ์อย่างน้อย 1 ชิ้น');
+      if (!eventData.eventName || !eventData.staff || eventSet.length === 0) return alert('❌ กรุณากรอกชื่องาน เลือกผู้รับผิดชอบ และติ๊ก/สแกนเช็กอุปกรณ์อย่างน้อย 1 ชิ้น');
     } else if (type === 'return') {
-      if (!returnData.staff || returnChecklist.length === 0) return alert('❌ กรุณาเลือกผู้รับคืน และติ๊ก/สแกนเช็กอุปกรณ์ที่รับคืนอย่างน้อย 1 ชิ้น');
+      if (!returnData.staff || returnSet.length === 0) return alert('❌ กรุณาเลือกผู้รับคืน และติ๊ก/สแกนเช็กอุปกรณ์ที่รับคืนอย่างน้อย 1 ชิ้น');
     }
     setOperationConfirm(buildOperationConfirmData(type));
   };
@@ -18473,9 +18437,9 @@ ${auditChangeSummary}` : auditChangeSummary);
 
   const handleBorrow = async () => {
     if (!requireOperationalAccess('บันทึกการยืม', 'borrow')) return;
-    if (!borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) return;
+    if (!borrowData.borrower || !borrowData.staff || packingSet.length === 0) return;
     
-    if (!checkPersonalItemsWarning(packingChecklist)) return; 
+    if (!checkPersonalItemsWarning(packingSet)) return; 
 
     let finalStaff = borrowData.staff;
     try {
@@ -18495,10 +18459,10 @@ ${auditChangeSummary}` : auditChangeSummary);
       const uploadedProofs = await uploadProofsOrConfirm(borrowProofFiles, `หลักฐานการยืม • ${borrowData.borrower || ''}`);
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('BR');
-      const linkedLensWarnings = getCameraLinkedLensUnavailableWarnings(packingChecklist);
+      const linkedLensWarnings = getCameraLinkedLensUnavailableWarnings(packingSet);
       if (linkedLensWarnings.length > 0) return alert('⚠️ กล้องบางตัวมีเลนส์ที่ลิงก์ไว้แต่เลนส์ยังไม่พร้อมใช้งาน:\n' + linkedLensWarnings.join('\n') + '\n\nกรุณาตรวจสถานะเลนส์ก่อนบันทึก เพื่อให้รายการยืมตรงกับของจริง');
-      const finalBorrowChecklist = expandCameraLinkedLensIdsForOperation(packingChecklist, 'borrow');
-      const selectedBorrowItems = finalBorrowChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
+      const finalBorrowSet = expandCameraLinkedLensIdsForOperation(packingSet, 'borrow');
+      const selectedBorrowItems = finalBorrowSet.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
       const documentSnapshot = makeBorrowเอกสารSnapshot({
         type: 'borrow',
         ref: docRef,
@@ -18508,7 +18472,7 @@ ${auditChangeSummary}` : auditChangeSummary);
         expectedReturn: borrowData.returnDate,
         note: borrowData.note,
         selectedItems: selectedBorrowItems,
-        itemGroups: getCameraOperationItemGroups(finalBorrowChecklist, 'borrow'),
+        itemGroups: getCameraOperationItemGroups(finalBorrowSet, 'borrow'),
         proofs: uploadedProofs
       });
       const newHistoryEntry = { type: 'borrow', date: docDate, documentId: docRef, documentRef: docRef, borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff, note: borrowData.note, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
@@ -18519,10 +18483,10 @@ ${auditChangeSummary}` : auditChangeSummary);
       });
       await Promise.all([setDoc(getBorrowDoc(docRef), documentSnapshot, { merge: true }), ...promises]);
 
-      logAction('ให้ยืมอุปกรณ์', `ทำรายการ ${selectedBorrowItems.length} ชิ้น / ชุดกล้อง ${getCameraOperationItemGroups(finalBorrowChecklist, 'borrow').length} ชุด`, `เลขที่เอกสาร: ${docRef}\nยืมโดย: ${borrowData.borrower} (จนท.ผู้ให้ยืม: ${finalStaff})\nรายการ: ${borrowedNames.join(', ')}`);
+      logAction('ให้ยืมอุปกรณ์', `ทำรายการ ${selectedBorrowItems.length} ชิ้น / ชุดกล้อง ${getCameraOperationItemGroups(finalBorrowSet, 'borrow').length} ชุด`, `เลขที่เอกสาร: ${docRef}\nยืมโดย: ${borrowData.borrower} (จนท.ผู้ให้ยืม: ${finalStaff})\nรายการ: ${borrowedNames.join(', ')}`);
       setพิมพ์SlipData(documentSnapshot);
       setBorrowTargetIds([]);
-      setPackingChecklist([]);
+      setPackingSet([]);
       setSelectedItems([]); 
       setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setBorrowProofFiles([]);
@@ -18536,9 +18500,9 @@ ${auditChangeSummary}` : auditChangeSummary);
 
   const handleEventOut = async () => {
     if (!requireOperationalAccess('บันทึกการออกงาน', 'event')) return;
-    if (!eventData.eventName || !eventData.staff || eventChecklist.length === 0) return;
+    if (!eventData.eventName || !eventData.staff || eventSet.length === 0) return;
 
-    if (!checkPersonalItemsWarning(eventChecklist)) return;
+    if (!checkPersonalItemsWarning(eventSet)) return;
 
     let finalStaff = eventData.staff;
     try {
@@ -18558,10 +18522,10 @@ ${auditChangeSummary}` : auditChangeSummary);
       const uploadedProofs = await uploadProofsOrConfirm(eventProofFiles, `หลักฐานออกงาน • ${eventData.eventName || ''}`);
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('EV');
-      const linkedLensWarnings = getCameraLinkedLensUnavailableWarnings(eventChecklist);
+      const linkedLensWarnings = getCameraLinkedLensUnavailableWarnings(eventSet);
       if (linkedLensWarnings.length > 0) return alert('⚠️ กล้องบางตัวมีเลนส์ที่ลิงก์ไว้แต่เลนส์ยังไม่พร้อมใช้งาน:\n' + linkedLensWarnings.join('\n') + '\n\nกรุณาตรวจสถานะเลนส์ก่อนบันทึก เพื่อให้รายการออกงานตรงกับของจริง');
-      const finalEventChecklist = expandCameraLinkedLensIdsForOperation(eventChecklist, 'event');
-      const selectedEventItems = finalEventChecklist.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
+      const finalEventSet = expandCameraLinkedLensIdsForOperation(eventSet, 'event');
+      const selectedEventItems = finalEventSet.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
       const documentSnapshot = makeBorrowเอกสารSnapshot({
         type: 'event',
         ref: docRef,
@@ -18571,7 +18535,7 @@ ${auditChangeSummary}` : auditChangeSummary);
         expectedReturn: eventData.returnDate,
         note: eventData.note,
         selectedItems: selectedEventItems,
-        itemGroups: getCameraOperationItemGroups(finalEventChecklist, 'event'),
+        itemGroups: getCameraOperationItemGroups(finalEventSet, 'event'),
         proofs: uploadedProofs
       });
       const newHistoryEntry = { type: 'event', date: docDate, documentId: docRef, documentRef: docRef, eventName: eventData.eventName, expectedReturn: eventData.returnDate, staffOut: finalStaff, note: eventData.note, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
@@ -18582,10 +18546,10 @@ ${auditChangeSummary}` : auditChangeSummary);
       });
       await Promise.all([setDoc(getBorrowDoc(docRef), documentSnapshot, { merge: true }), ...promises]);
 
-      logAction('นำออกงาน', `ทำรายการ ${selectedEventItems.length} ชิ้น / ชุดกล้อง ${getCameraOperationItemGroups(finalEventChecklist, 'event').length} ชุด`, `เลขที่เอกสาร: ${docRef}\nชื่องาน: ${eventData.eventName} (ผู้นำออก: ${finalStaff})\nรายการ: ${eventNames.join(', ')}`);
+      logAction('นำออกงาน', `ทำรายการ ${selectedEventItems.length} ชิ้น / ชุดกล้อง ${getCameraOperationItemGroups(finalEventSet, 'event').length} ชุด`, `เลขที่เอกสาร: ${docRef}\nชื่องาน: ${eventData.eventName} (ผู้นำออก: ${finalStaff})\nรายการ: ${eventNames.join(', ')}`);
       setพิมพ์SlipData(documentSnapshot);
       setEventTargetIds([]);
-      setEventChecklist([]);
+      setEventSet([]);
       setSelectedItems([]); 
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setEventProofFiles([]);
@@ -18599,7 +18563,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
   const handleReturn = async () => {
     if (!requireOperationalAccess('บันทึกรับคืน', 'return')) return;
-    if (!returnData.staff || returnChecklist.length === 0) return;
+    if (!returnData.staff || returnSet.length === 0) return;
     let finalStaff = returnData.staff;
     try {
       if (returnData.staff === 'อื่นๆ' && (returnData.newStaff || '').trim()) {
@@ -18618,8 +18582,8 @@ ${auditChangeSummary}` : auditChangeSummary);
       const uploadedProofs = await uploadProofsOrConfirm(returnProofFiles, `หลักฐานรับคืน • ${finalStaff || ''}`);
       const returnDocDate = new Date().toISOString();
       const returnDocRef = makeเอกสารRef('RT');
-      const finalReturnChecklist = expandCameraLinkedLensIdsForOperation(returnChecklist, 'return');
-      const selectedReturnItems = finalReturnChecklist.map(id => {
+      const finalReturnSet = expandCameraLinkedLensIdsForOperation(returnSet, 'return');
+      const selectedReturnItems = finalReturnSet.map(id => {
         const item = items.find(i => i.id === id);
         const inspection = returnInspection[id] || { condition: 'ปกติ', note: '' };
         return item ? {
@@ -18651,8 +18615,8 @@ ${auditChangeSummary}` : auditChangeSummary);
         expectedReturn: '',
         note: selectedReturnItems.some(i => i.returnCondition !== 'ปกติ' || i.returnNote) ? 'มีบันทึกสภาพ/หมายเหตุรายชิ้น โปรดตรวจสอบในตาราง' : 'รับคืนสภาพปกติ / ตามที่ระบุรายชิ้น',
         itemIds: selectedReturnItems.map(i => i.id),
-        itemGroups: getCameraOperationItemGroups(finalReturnChecklist, 'return'),
-        returnMode: finalReturnChecklist.length < returnTargetIds.length ? 'partial-selected' : 'group-or-full',
+        itemGroups: getCameraOperationItemGroups(finalReturnSet, 'return'),
+        returnMode: finalReturnSet.length < returnTargetIds.length ? 'partial-selected' : 'group-or-full',
         status: 'return-record',
         statusLabel: 'บันทึกรับคืน',
         proofs: uploadedProofs,
@@ -18662,7 +18626,7 @@ ${auditChangeSummary}` : auditChangeSummary);
         source: 'MDEC-Stock'
       };
       const newHistoryEntry = { type: 'return', date: returnDocDate, documentId: returnDocRef, documentRef: returnDocRef, staffIn: finalStaff, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
-      const promises = finalReturnChecklist.map(id => {
+      const promises = finalReturnSet.map(id => {
         const item = items.find(i => i.id === id);
         if (!item || (item.status !== 'borrowed' && item.status !== 'out-for-event')) return Promise.resolve();
         returnedNames.push(item.name);
@@ -18682,7 +18646,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       });
       await Promise.all(promises);
 
-      const returnedSet = new Set(finalReturnChecklist);
+      const returnedSet = new Set(finalReturnSet);
       const activeArchiveDocs = (borrowเอกสารs || []).filter(doc => {
         const ids = Array.isArray(doc.itemIds) ? doc.itemIds : [];
         const isOpen = !doc.status || doc.status === 'active' || doc.status === 'partial';
@@ -18711,16 +18675,16 @@ ${auditChangeSummary}` : auditChangeSummary);
         await Promise.all(archiveUpdates);
       }
 
-      logAction('รับคืนอุปกรณ์', `ทำรายการ ${finalReturnChecklist.length} ชิ้น / ชุดกล้อง ${getCameraOperationItemGroups(finalReturnChecklist, 'return').length} ชุด`, `จนท.ผู้รับคืน: ${finalStaff}\nเลขที่เอกสารรับคืน: ${returnDocRef}\nรายการ: ${returnedNames.join(', ')}`);
+      logAction('รับคืนอุปกรณ์', `ทำรายการ ${finalReturnSet.length} ชิ้น / ชุดกล้อง ${getCameraOperationItemGroups(finalReturnSet, 'return').length} ชุด`, `จนท.ผู้รับคืน: ${finalStaff}\nเลขที่เอกสารรับคืน: ${returnDocRef}\nรายการ: ${returnedNames.join(', ')}`);
 
       // v23.1.87: ไม่เปิด/สร้างใบรับคืนให้พิมพ์แล้ว ใช้ประวัติส่วนกลาง + รูปหลักฐานแทน
       setReturnTargetIds([]);
-      setReturnChecklist([]);
+      setReturnSet([]);
       setSelectedItems([]); 
       setReturnData({ staff: '', newStaff: '' });
       setReturnInspection({});
       setReturnProofFiles([]);
-      pushToast(finalReturnChecklist.length < returnTargetIds.length ? 'รับคืนบางส่วนสำเร็จ' : 'รับคืนสำเร็จ', `บันทึกรับคืน ${finalReturnChecklist.length} รายการ`, finalReturnChecklist.length < returnTargetIds.length ? 'warning' : 'success');
+      pushToast(finalReturnSet.length < returnTargetIds.length ? 'รับคืนบางส่วนสำเร็จ' : 'รับคืนสำเร็จ', `บันทึกรับคืน ${finalReturnSet.length} รายการ`, finalReturnSet.length < returnTargetIds.length ? 'warning' : 'success');
       alert('✅ รับคืนอุปกรณ์เรียบร้อยแล้ว!');
     } catch (error) {
       console.error(error);
@@ -18785,7 +18749,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       setBorrowReturnMode('borrow');
       setBorrowReturnStage('select');
       setBorrowTargetIds(ids);
-      setPackingChecklist(ids);
+      setPackingSet(ids);
       setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' });
       setBorrowProofFiles([]);
       setShowBundleModal(false);
@@ -18807,7 +18771,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       setBorrowReturnMode('event');
       setBorrowReturnStage('select');
       setEventTargetIds(ids);
-      setEventChecklist(ids);
+      setEventSet(ids);
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setEventProofFiles([]);
       setShowBundleModal(false);
@@ -18827,7 +18791,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       setBorrowReturnStage('select');
       const expandedOutIds = expandCameraLinkedLensIdsForOperation(outIds, 'return');
       setReturnTargetIds(expandedOutIds);
-      setReturnChecklist(expandedOutIds);
+      setReturnSet(expandedOutIds);
       setReturnData({ staff: '', newStaff: '' });
       setShowBundleModal(false);
       setActiveWorkspace('return');
@@ -18852,10 +18816,10 @@ ${auditChangeSummary}` : auditChangeSummary);
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
   };
 
-  const openChecklistScanner = (mode) => {
+  const openSetScanner = (mode) => {
     if (!requireOperationalAccess('สแกนเช็กอุปกรณ์')) return;
     setShowMoreMenu(false);
-    setScannerReturnWorkspace(mode === 'eventChecklist' ? 'event' : mode === 'returnChecklist' ? 'return' : 'borrow');
+    setScannerReturnWorkspace(mode === 'eventSet' ? 'event' : mode === 'returnSet' ? 'return' : 'borrow');
     setScanMode(mode);
     setUseCamera(true);
     setShowScanModal(true);
@@ -18866,8 +18830,8 @@ ${auditChangeSummary}` : auditChangeSummary);
   const closeScannerPage = (targetWorkspace = null) => {
     const fallbackWorkspace = targetWorkspace || scannerReturnWorkspace || (scanMode === 'stockCount'
       ? 'stockCount'
-      : ['borrowChecklist', 'eventChecklist', 'returnChecklist'].includes(scanMode)
-        ? (scanMode === 'eventChecklist' ? 'event' : scanMode === 'returnChecklist' ? 'return' : 'borrow')
+      : ['borrowSet', 'eventSet', 'returnSet'].includes(scanMode)
+        ? (scanMode === 'eventSet' ? 'event' : scanMode === 'returnSet' ? 'return' : 'borrow')
         : 'overview');
     setShowScanModal(false);
     setUseCamera(false);
@@ -18877,9 +18841,9 @@ ${auditChangeSummary}` : auditChangeSummary);
   };
 
   const getScanModeInfo = () => {
-    if (scanMode === 'borrowChecklist') return { title: 'สแกนเช็กก่อนปล่อยยืม', desc: 'สแกน QR ของอุปกรณ์ในรายการยืม เพื่อเช็กแทนการติ๊กเอง', tone: 'purple' };
-    if (scanMode === 'eventChecklist') return { title: 'สแกนเช็กของขึ้นงาน', desc: 'สแกน QR ของอุปกรณ์ในรายการออกงาน เพื่อเช็กแทนการติ๊กเอง', tone: 'orange' };
-    if (scanMode === 'returnChecklist') return { title: 'สแกนเช็กตอนรับคืน', desc: 'สแกน QR ของอุปกรณ์ที่นำมาคืน เพื่อเช็กแทนการติ๊กเอง', tone: 'emerald' };
+    if (scanMode === 'borrowSet') return { title: 'สแกนเช็กก่อนปล่อยยืม', desc: 'สแกน QR ของอุปกรณ์ในรายการยืม เพื่อเช็กแทนการติ๊กเอง', tone: 'purple' };
+    if (scanMode === 'eventSet') return { title: 'สแกนเช็กของขึ้นงาน', desc: 'สแกน QR ของอุปกรณ์ในรายการออกงาน เพื่อเช็กแทนการติ๊กเอง', tone: 'orange' };
+    if (scanMode === 'returnSet') return { title: 'สแกนเช็กตอนรับคืน', desc: 'สแกน QR ของอุปกรณ์ที่นำมาคืน เพื่อเช็กแทนการติ๊กเอง', tone: 'emerald' };
     if (scanMode === 'stockCount') return { title: 'สแกนตรวจนับสต๊อก', desc: 'ใช้กล้องชุดเดิมเพื่อ mark พบแล้วในรอบตรวจนับ โดยไม่เปลี่ยนสถานะอุปกรณ์จริง', tone: 'blue' };
     return { title: 'สแกน QR', desc: 'สแกนเพื่อเลือกอุปกรณ์หลายรายการ หรือดูสแกนล่าสุดแบบรวดเร็ว', tone: 'amber' };
   };
@@ -18895,7 +18859,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       setBorrowData({ borrower: '', borrowDate: new Date().toISOString().split('T')[0], returnDate: '', staff: '', newStaff: '', note: '' });
       setBorrowProofFiles([]);
       setBorrowTargetIds(ids);
-      setPackingChecklist(ids);
+      setPackingSet(ids);
       setSelectedItems([]);
       setActiveWorkspace('borrow');
       window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
@@ -18913,7 +18877,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setEventProofFiles([]);
       setEventTargetIds(ids);
-      setEventChecklist(ids);
+      setEventSet(ids);
       setSelectedItems([]);
       setActiveWorkspace('event');
       window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
@@ -18934,7 +18898,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       setReturnProofFiles([]);
       const expandedValidIds = expandCameraLinkedLensIdsForOperation(validIds, 'return');
       setReturnTargetIds(expandedValidIds);
-      setReturnChecklist(expandedValidIds);
+      setReturnSet(expandedValidIds);
       setSelectedItems([]);
       setActiveWorkspace('return');
       window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
@@ -18952,7 +18916,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       setBorrowReturnStage('select');
       setBorrowProofFiles([]);
       setBorrowTargetIds(ids);
-      setPackingChecklist(ids);
+      setPackingSet(ids);
       closeScannerPage('borrow');
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
@@ -18968,7 +18932,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       setBorrowReturnStage('select');
       setEventProofFiles([]);
       setEventTargetIds(ids);
-      setEventChecklist(ids);
+      setEventSet(ids);
       closeScannerPage('event');
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
@@ -18986,7 +18950,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       setBorrowReturnStage('select');
       setReturnProofFiles([]);
       setReturnTargetIds([...validIds]);
-      setReturnChecklist([...validIds]);
+      setReturnSet([...validIds]);
       closeScannerPage('return');
     } catch(err) { alert("ระบบขัดข้อง: " + err.message); }
   };
@@ -19005,7 +18969,7 @@ ${auditChangeSummary}` : auditChangeSummary);
     setReturnData({ staff: '', newStaff: '' });
     const expandedValidIds = expandCameraLinkedLensIdsForOperation(validIds, 'return');
     setReturnTargetIds(expandedValidIds);
-    setReturnChecklist(expandedValidIds);
+    setReturnSet(expandedValidIds);
     setReturnProofFiles([]);
     setSelectedItems([]);
     setActiveWorkspace('return');
@@ -19092,21 +19056,21 @@ ${auditChangeSummary}` : auditChangeSummary);
 
     if (foundItem) {
       setLastScannedItemId(foundItem.id);
-      const markChecklist = (targetIds, currentChecklist, setChecklist, label) => {
+      const markSet = (targetIds, currentSet, setSet, label) => {
         if (!targetIds.includes(foundItem.id)) {
-          setScanMessage({ text: `⚠️ "${foundItem.name}" ไม่ได้อยู่ในเช็กลิสต์${label}`, type: 'error' });
+          setScanMessage({ text: `⚠️ "${foundItem.name}" ไม่ได้อยู่ในเซ็ตใช้งาน${label}`, type: 'error' });
           try { if (navigator?.vibrate) navigator.vibrate([70, 45, 70]); } catch(e){}
           playScanErrorSound();
           return;
         }
-        if (currentChecklist.includes(foundItem.id)) {
+        if (currentSet.includes(foundItem.id)) {
           setScanMessage({ text: `✅ "${foundItem.name}" เช็กไว้แล้ว ไม่ต้องสแกนซ้ำ`, type: 'success' });
           try { if (navigator?.vibrate) navigator.vibrate(50); } catch(e){}
           return;
         }
-        const nextCount = Math.min(targetIds.length, currentChecklist.length + 1);
+        const nextCount = Math.min(targetIds.length, currentSet.length + 1);
         const isComplete = nextCount >= targetIds.length;
-        setChecklist(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
+        setSet(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
         setScanMessage({
           text: isComplete ? `🎉 เช็กครบแล้ว พร้อมยืนยันรายการ` : `✅ เช็ก "${foundItem.name}" แล้ว (${nextCount}/${targetIds.length})`,
           type: 'success'
@@ -19120,12 +19084,12 @@ ${auditChangeSummary}` : auditChangeSummary);
         setScanMessage({ text: `✅ ตรวจนับพบแล้ว: "${foundItem.name}"`, type: 'success' });
         try { if (navigator?.vibrate) navigator.vibrate(90); } catch(e){}
         playScanSuccessSound();
-      } else if (scanMode === 'borrowChecklist') {
-        markChecklist(borrowTargetIds, packingChecklist, setPackingChecklist, 'ก่อนปล่อยยืม');
-      } else if (scanMode === 'eventChecklist') {
-        markChecklist(eventTargetIds, eventChecklist, setEventChecklist, 'ออกงาน');
-      } else if (scanMode === 'returnChecklist') {
-        markChecklist(returnTargetIds, returnChecklist, setReturnChecklist, 'รับคืน');
+      } else if (scanMode === 'borrowSet') {
+        markSet(borrowTargetIds, packingSet, setPackingSet, 'ก่อนปล่อยยืม');
+      } else if (scanMode === 'eventSet') {
+        markSet(eventTargetIds, eventSet, setEventSet, 'ออกงาน');
+      } else if (scanMode === 'returnSet') {
+        markSet(returnTargetIds, returnSet, setReturnSet, 'รับคืน');
       } else {
         setSelectedItems(prev => prev.includes(foundItem.id) ? prev : [...prev, foundItem.id]);
         setScanMessage({ text: `✅ สแกนสำเร็จ: "${foundItem.name}" เพิ่มเข้ารายการแล้ว`, type: 'success' });
@@ -19478,7 +19442,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       ['สรุป', 'สำรองล่าสุด', yearEndHelperData.lastBackupText, 'จาก backupMeta.latest'],
       ['ความพร้อม', 'คะแนนความพร้อมปิดปี', `${yearEndHelperData.readyScore}%`, yearEndHelperData.readyLabel]
     ];
-    yearEndHelperData.checklist.forEach((item, index) => rows.push(['Checklist', `${index + 1}. ${item.label}`, item.ok ? 'ผ่าน' : 'ควรตรวจ', item.note || '']));
+    yearEndHelperData.set.forEach((item, index) => rows.push(['Set', `${index + 1}. ${item.label}`, item.ok ? 'ผ่าน' : 'ควรตรวจ', item.note || '']));
     yearEndHelperData.warnings.forEach((warning, index) => rows.push(['คำเตือน', `${index + 1}`, warning, 'ควรตรวจสอบก่อนปิดปี']));
     backupDownloadCSV(`MDEC_Year_End_Summary_${getBackupFileTag()}.csv`, headers, rows);
     await logAction('ส่งออกสรุปก่อนปิดปี CSV', 'Year-End Summary', `ส่งออก ${rows.length} แถว`);
@@ -20170,7 +20134,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       confirmText: 'CLEAR',
       actionLabel: 'ยืนยันล้างประวัติ',
       message: `ระบบจะล้างเฉพาะ history ของอุปกรณ์ทุกชิ้น รวมประมาณ ${historyCount.toLocaleString('th-TH')} รายการ โดยไม่ลบรายการอุปกรณ์ ไม่เปลี่ยนสถานะปัจจุบัน และไม่ลบหมวดหมู่/สถานที่`,
-      checklist: ['ควรกด “สำรองครบชุดไฟล์เดียว” ก่อน', 'ควรกด “JSON กู้คืนระบบ” เก็บแยกไว้ด้วย', 'ต้องพิมพ์ CLEAR ให้ถูกต้องก่อนปุ่มยืนยันจะใช้งานได้'],
+      set: ['ควรกด “สำรองครบชุดไฟล์เดียว” ก่อน', 'ควรกด “JSON กู้คืนระบบ” เก็บแยกไว้ด้วย', 'ต้องพิมพ์ CLEAR ให้ถูกต้องก่อนปุ่มยืนยันจะใช้งานได้'],
       onConfirm: async () => {
         try {
           await Promise.all(items.map((item) => setDoc(getItemDoc(item.id), { history: [] }, { merge: true })));
@@ -20241,13 +20205,13 @@ ${auditChangeSummary}` : auditChangeSummary);
   const resetOperationalDrafts = () => {
     setSelectedItems([]);
     setBorrowTargetIds([]);
-    setPackingChecklist([]);
+    setPackingSet([]);
     setBorrowProofFiles([]);
     setEventTargetIds([]);
-    setEventChecklist([]);
+    setEventSet([]);
     setEventProofFiles([]);
     setReturnTargetIds([]);
-    setReturnChecklist([]);
+    setReturnSet([]);
     setReturnInspection({});
     setReturnProofFiles([]);
     setOperationConfirm(null);
@@ -20513,17 +20477,17 @@ ${auditChangeSummary}` : auditChangeSummary);
       await savePrepLists(newPrepLists);
     } catch (error) {
       console.error(error);
-      alert('❌ อัปเดตเช็กลิสต์ไม่สำเร็จ: ' + error.message);
+      alert('❌ อัปเดตเซ็ตใช้งานไม่สำเร็จ: ' + error.message);
     }
   };
 
-  const togglePrepChecklistItem = async (prep, itemId) => {
+  const togglePrepSetItem = async (prep, itemId) => {
     const current = prep.checkedIds || [];
     const next = current.includes(itemId) ? current.filter((id) => id !== itemId) : [...current, itemId];
     await updatePrepCheckedIds(prep, next);
   };
 
-  const toggleAllPrepChecklist = async (prep) => {
+  const toggleAllPrepSet = async (prep) => {
     const itemIds = (prep.itemIds || []).filter((id) => items.some((item) => item.id === id));
     const checkedIds = prep.checkedIds || [];
     const allChecked = itemIds.length > 0 && itemIds.every((id) => checkedIds.includes(id));
@@ -20584,7 +20548,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       if (!proceed) return;
     }
     setEventTargetIds([...availableIds]);
-    setEventChecklist([]);
+    setEventSet([]);
     setEventData({
       eventName: prep.name || '',
       returnDate: '',
@@ -22004,33 +21968,33 @@ ${auditChangeSummary}` : auditChangeSummary);
       {/* 📷 หน้าสแกน QR Code แบบใหม่: ใช้งานหน้างาน / มือถือ / เครื่องยิงบาร์โค้ด */}
       {showScanModal && activeWorkspace === 'scanner' && (() => {
         const scanInfo = getScanModeInfo();
-        const isChecklistMode = scanMode !== 'select' && scanMode !== 'stockCount';
-        const targetIds = scanMode === 'borrowChecklist' ? borrowTargetIds : scanMode === 'eventChecklist' ? eventTargetIds : scanMode === 'returnChecklist' ? returnTargetIds : scanMode === 'stockCount' ? stockCountStats.auditTarget.map(i => i.id) : [];
-        const checkedIds = scanMode === 'borrowChecklist' ? packingChecklist : scanMode === 'eventChecklist' ? eventChecklist : scanMode === 'returnChecklist' ? returnChecklist : scanMode === 'stockCount' ? stockCountFoundIds : [];
+        const isSetMode = scanMode !== 'select' && scanMode !== 'stockCount';
+        const targetIds = scanMode === 'borrowSet' ? borrowTargetIds : scanMode === 'eventSet' ? eventTargetIds : scanMode === 'returnSet' ? returnTargetIds : scanMode === 'stockCount' ? stockCountStats.auditTarget.map(i => i.id) : [];
+        const checkedIds = scanMode === 'borrowSet' ? packingSet : scanMode === 'eventSet' ? eventSet : scanMode === 'returnSet' ? returnSet : scanMode === 'stockCount' ? stockCountFoundIds : [];
         const total = targetIds.length || 0;
         const checked = checkedIds.length || 0;
         const percent = total === 0 ? 0 : Math.min(100, Math.round((checked / total) * 100));
         const isComplete = total > 0 && checked >= total;
-        const pendingIds = isChecklistMode ? targetIds.filter(id => !checkedIds.includes(id)).slice(0, 4) : [];
+        const pendingIds = isSetMode ? targetIds.filter(id => !checkedIds.includes(id)).slice(0, 4) : [];
         const recentItem = lastScannedItemId ? items.find(i => i.id === lastScannedItemId) : null;
         const recentStatus = recentItem ? (STATUSES.find(s => s.id === recentItem.status) || STATUSES[0]) : null;
         const scannedSelection = scanMode === 'select' ? selectedItems.map(id => items.find(i => i.id === id)).filter(Boolean) : [];
         const scannedAvailableCount = scannedSelection.filter(item => item.status === 'available').length;
         const scannedReturnableCount = scannedSelection.filter(item => item.status === 'borrowed' || item.status === 'out-for-event').length;
-        const toneClass = scanMode === 'borrowChecklist'
+        const toneClass = scanMode === 'borrowSet'
           ? 'from-purple-600 to-violet-700'
-          : scanMode === 'eventChecklist'
+          : scanMode === 'eventSet'
             ? 'from-orange-500 to-red-600'
-            : scanMode === 'returnChecklist'
+            : scanMode === 'returnSet'
               ? 'from-emerald-500 to-teal-600'
               : scanMode === 'stockCount'
                 ? 'from-blue-600 to-cyan-600'
                 : 'from-amber-500 to-orange-600';
-        const softToneClass = scanMode === 'borrowChecklist'
+        const softToneClass = scanMode === 'borrowSet'
           ? (isDarkMode ? 'bg-purple-950/30 border-purple-800 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-800')
-          : scanMode === 'eventChecklist'
+          : scanMode === 'eventSet'
             ? (isDarkMode ? 'bg-orange-950/30 border-orange-800 text-orange-200' : 'bg-orange-50 border-orange-200 text-orange-800')
-            : scanMode === 'returnChecklist'
+            : scanMode === 'returnSet'
               ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800')
               : scanMode === 'stockCount'
                 ? (isDarkMode ? 'bg-blue-950/30 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800')
@@ -22711,20 +22675,20 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <button type="button" onClick={() => setUseCamera(false)} className={`min-h-[38px] px-3 rounded-lg font-black border transition ${!useCamera ? `bg-gradient-to-br ${toneClass} text-white border-transparent shadow-lg` : theme.btnSecondary}`}>
                       ⌨️ พิมพ์/ยิงรหัส
                     </button>
-                    {isChecklistMode && (
+                    {isSetMode && (
                       <div className={`col-span-2 sm:ml-auto min-h-[38px] px-3 rounded-lg border flex items-center justify-between sm:justify-center gap-3 font-black ${softToneClass}`}>
                         <span>เช็กแล้ว {checked}/{total}</span>
                         <span>{percent}%</span>
                       </div>
                     )}
-                    {!isChecklistMode && (
+                    {!isSetMode && (
                       <div className={`col-span-2 sm:ml-auto min-h-[38px] px-3 rounded-lg border flex items-center justify-center gap-2 font-black ${theme.btnSecondary}`}>
                         เลือกแล้ว {selectedItems.length} รายการ
                       </div>
                     )}
                   </div>
 
-                  {isChecklistMode && (
+                  {isSetMode && (
                     <div className="mt-3">
                       <div className="w-full h-2.5 rounded-full bg-slate-300/60 dark:bg-slate-800 overflow-hidden">
                         <div className={`h-full rounded-full transition-all duration-500 ${isComplete ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${percent}%` }}></div>
@@ -22904,7 +22868,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                         </div>
                       )}
 
-                      {isChecklistMode && (
+                      {isSetMode && (
                         <div className={`p-4 rounded-[1.8rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
                           <div className="flex items-center justify-between mb-3">
                             <div className={`font-black ${theme.textTitle}`}>ยังรอสแกน</div>
@@ -22929,7 +22893,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                       )}
 
                       <div className={`grid grid-cols-3 gap-2 text-xs font-black ${theme.textMuted}`}>
-                        <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>{isChecklistMode ? 'เช็กของ' : 'เลือกของ'}</div>
+                        <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>{isSetMode ? 'เช็กของ' : 'เลือกของ'}</div>
                         <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>กันสแกนซ้ำ</div>
                         <div className={`p-3 text-center rounded-2xl border ${theme.btnSecondary}`}>สั่น/เสียง</div>
                       </div>
@@ -23651,7 +23615,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                         {prep.note && <p className={`text-sm font-bold mt-2 ${theme.textMuted}`}>หมายเหตุ: {prep.note}</p>}
                       </div>
                       <div className="flex flex-col gap-2 w-full lg:w-56 shrink-0">
-                        <button type="button" onClick={() => setPrepOpenId(isOpen ? null : prep.id)} className={`px-4 py-3 font-black rounded-xl border flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.CheckCircle className="w-5 h-5"/> {isOpen ? 'ซ่อนเช็กลิสต์' : 'เช็กของ'}</button>
+                        <button type="button" onClick={() => setPrepOpenId(isOpen ? null : prep.id)} className={`px-4 py-3 font-black rounded-xl border flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.CheckCircle className="w-5 h-5"/> {isOpen ? 'ซ่อนเซ็ตใช้งาน' : 'เช็กของ'}</button>
                         <button type="button" onClick={() => openPrepพิมพ์(prep)} className={`px-4 py-3 font-black rounded-xl border flex items-center justify-center gap-2 ${theme.btnSecondary}`}><Icons.พิมพ์er className="w-5 h-5"/> พิมพ์ใบเตรียมของ</button>
                         <button type="button" onClick={() => startPrepAsEvent(prep)} disabled={isCancelled} className={`px-4 py-3 font-black rounded-xl shadow-md flex items-center justify-center gap-2 ${isCancelled ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-500 text-white'}`}><Icons.Truck className="w-5 h-5"/> ยืนยันนำออกงาน</button>
                         <button type="button" onClick={() => openPrepEditor(prep)} className="px-4 py-3 bg-sky-600 hover:bg-sky-500 text-white font-black rounded-xl shadow-md flex items-center justify-center gap-2"><Icons.Edit className="w-4 h-4"/> แก้ไข</button>
@@ -23664,8 +23628,8 @@ ${auditChangeSummary}` : auditChangeSummary);
                     {isOpen && (
                       <div className={`mt-4 p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
                         <div className="flex items-center justify-between gap-3 mb-3">
-                          <div className={`font-black ${theme.textTitle}`}>เช็กลิสต์เตรียมของ</div>
-                          <button type="button" onClick={() => toggleAllPrepChecklist(prep)} className={`px-3 py-1.5 rounded-lg text-sm font-black ${isDarkMode ? 'bg-sky-900/40 text-sky-400 hover:bg-sky-800' : 'bg-sky-100 text-sky-700 hover:bg-sky-200'}`}>{checkedCount === prepItems.length && prepItems.length > 0 ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}</button>
+                          <div className={`font-black ${theme.textTitle}`}>เซ็ตใช้งานเตรียมของ</div>
+                          <button type="button" onClick={() => toggleAllPrepSet(prep)} className={`px-3 py-1.5 rounded-lg text-sm font-black ${isDarkMode ? 'bg-sky-900/40 text-sky-400 hover:bg-sky-800' : 'bg-sky-100 text-sky-700 hover:bg-sky-200'}`}>{checkedCount === prepItems.length && prepItems.length > 0 ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}</button>
                         </div>
                         <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
                           {prepItems.map((item) => {
@@ -23673,7 +23637,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                             const s = STATUSES.find((st) => st.id === item.status) || STATUSES[0];
                             return (
                               <label key={item.id} className={`flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer ${checked ? (isDarkMode ? 'bg-sky-900/30 border-sky-800' : 'bg-sky-50 border-sky-200') : (isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200')}`}>
-                                <input type="checkbox" checked={checked} onChange={() => togglePrepChecklistItem(prep, item.id)} className="w-5 h-5 mt-1 accent-sky-600 rounded cursor-pointer shrink-0" />
+                                <input type="checkbox" checked={checked} onChange={() => togglePrepSetItem(prep, item.id)} className="w-5 h-5 mt-1 accent-sky-600 rounded cursor-pointer shrink-0" />
                                 <div className="flex-1 min-w-0">
                                   <div className={`font-bold truncate ${theme.textTitle}`}>{item.name}</div>
                                   <div className={`text-xs font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'} {item.storageBoxName ? `• กล่อง: ${item.storageBoxName}` : ''}</div>
@@ -24125,7 +24089,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <button 
                       onClick={() => {
                         setReturnTargetIds([...group.ids]);
-                        setReturnChecklist([]);
+                        setReturnSet([]);
                         setReturnData({ staff: '', newStaff: '' });
                         setShowQuickReturnModal(false);
                       }}
@@ -24962,9 +24926,9 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </div>
 
                   <div className={`p-5 rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                    <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>Checklist เบา ๆ ก่อนปิดปี</h4>
+                    <h4 className={`font-black text-lg mb-3 ${theme.textTitle}`}>Set เบา ๆ ก่อนปิดปี</h4>
                     <div className="space-y-2">
-                      {yearEndHelperData.checklist.map(item => (
+                      {yearEndHelperData.set.map(item => (
                         <div key={item.id} className={`p-3 rounded-2xl border flex items-start gap-3 ${item.ok ? (isDarkMode ? 'bg-emerald-950/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200')}`}>
                           <span className={`mt-0.5 font-black ${item.ok ? 'text-emerald-500' : 'text-amber-500'}`}>{item.ok ? '✓' : '!'}</span>
                           <span className="min-w-0">
@@ -24996,11 +24960,11 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <div>
                     <h4 className="text-xl font-black">รอบนี้ไม่มีปุ่มล้างข้อมูลจริงเพิ่ม</h4>
                     <p className="text-sm font-bold mt-1 opacity-85">
-                      แพ็กนี้มีเฉพาะสรุป / Export / Checklist เพื่อกันกดพลาด ถ้าจะล้างข้อมูลจริงให้ใช้ระบบเดิมที่มี Safety Confirm เท่านั้น
+                      แพ็กนี้มีเฉพาะสรุป / Export / Set เพื่อกันกดพลาด ถ้าจะล้างข้อมูลจริงให้ใช้ระบบเดิมที่มี Safety Confirm เท่านั้น
                     </p>
                   </div>
                   <button type="button" onClick={() => setShowAnnualCleanupModal(true)} className="px-5 py-3 rounded-2xl border border-rose-300 bg-white/100 text-rose-700 font-black">
-                    ดู Checklist ปิดปี
+                    ดู Set ปิดปี
                   </button>
                 </div>
               </div>
@@ -25013,12 +24977,12 @@ ${auditChangeSummary}` : auditChangeSummary);
         </div>
       )}
 
-      {/* Checklist ปิดปีการศึกษา */}
+      {/* Set ปิดปีการศึกษา */}
       {showAnnualCleanupModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9999]`}>
           <div className={`rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-5">
-              <h3 className={`text-2xl font-black ${theme.textTitle}`}>Checklist ปิดปีการศึกษา</h3>
+              <h3 className={`text-2xl font-black ${theme.textTitle}`}>Set ปิดปีการศึกษา</h3>
               <button type="button" onClick={() => setShowAnnualCleanupModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-3">
@@ -25029,7 +24993,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </label>
               ))}
             </div>
-            <div className={`mt-5 p-2.5 rounded-lg border text-sm font-bold ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>Checklist นี้เป็นตัวช่วยเตือนเท่านั้น รอบนี้ไม่ได้เพิ่มปุ่มล้างข้อมูลจริงใหม่ เพื่อความปลอดภัย</div>
+            <div className={`mt-5 p-2.5 rounded-lg border text-sm font-bold ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>Set นี้เป็นตัวช่วยเตือนเท่านั้น รอบนี้ไม่ได้เพิ่มปุ่มล้างข้อมูลจริงใหม่ เพื่อความปลอดภัย</div>
           </div>
         </div>
       )}
@@ -25285,11 +25249,11 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
               <div className="p-5 space-y-4">
                 {dangerConfirm.message && <div className={`p-2.5 rounded-lg border text-sm font-bold leading-relaxed ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>{dangerConfirm.message}</div>}
-                {(dangerConfirm.checklist || []).length > 0 && (
+                {(dangerConfirm.set || []).length > 0 && (
                   <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
                     <div className={`px-4 py-3 font-black border-b ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>เช็กก่อนกดยืนยัน</div>
                     <div className="p-4 space-y-2">
-                      {(dangerConfirm.checklist || []).map((item, idx) => (
+                      {(dangerConfirm.set || []).map((item, idx) => (
                         <div key={idx} className={`flex items-start gap-2 text-sm font-bold ${theme.textMain}`}><span className="mt-0.5 text-emerald-500">✓</span><span>{item}</span></div>
                       ))}
                     </div>
@@ -25387,14 +25351,14 @@ ${auditChangeSummary}` : auditChangeSummary);
           <div className={`operational-modal-shell borrow-operation-modal rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.UserPlus className="text-purple-500 w-6 h-6" /> บันทึกการให้ยืม</h3>
-              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); setBorrowProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingSet([]); setBorrowProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             
             <div className={`operation-mobile-summary ${isDarkMode ? 'bg-purple-950/25 border-purple-900/50' : 'bg-purple-50 border-purple-200'}`}>
               <div className="flex items-start justify-between gap-3 mb-3"><div><div className={`text-[11px] font-black tracking-[0.16em] uppercase ${isDarkMode ? 'text-purple-300' : 'text-purple-600'}`}>BORROW FLOW</div><div className={`text-base font-black ${theme.textTitle}`}>เช็กของก่อนปล่อยยืม</div></div><span className={`px-3 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-purple-900 text-purple-200' : 'bg-white text-purple-700 border border-purple-200'}`}>{borrowTargetIds.length} รายการ</span></div>
               <div className="operation-step-row">
                 <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">ผู้ยืม</div><div className="operation-step-value truncate">{borrowData.borrower || 'ยังไม่กรอก'}</div></div>
-                <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">เช็กแล้ว</div><div className="operation-step-value">{packingChecklist.length}/{borrowTargetIds.length}</div></div>
+                <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">เช็กแล้ว</div><div className="operation-step-value">{packingSet.length}/{borrowTargetIds.length}</div></div>
                 <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">หลักฐาน</div><div className="operation-step-value">{borrowProofFiles.length}</div></div>
               </div>
             </div>
@@ -25430,15 +25394,15 @@ ${auditChangeSummary}` : auditChangeSummary);
               {renderProofUploader('หลักฐานการยืม', borrowProofFiles, setBorrowProofFiles, 'purple')}
             </div>
 
-            <div className={`operation-checklist-panel mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+            <div className={`operation-set-panel mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                 <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                  <Icons.ClipboardList className="w-5 h-5" /> เช็คลิสต์ก่อนปล่อยยืม ({packingChecklist.length}/{borrowTargetIds.length})
+                  <Icons.ClipboardList className="w-5 h-5" /> เช็คลิสต์ก่อนปล่อยยืม ({packingSet.length}/{borrowTargetIds.length})
                 </h4>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => openChecklistScanner('borrowChecklist')}
+                    onClick={() => openSetScanner('borrowSet')}
                     className={`text-xs font-black px-3 py-2 rounded-xl transition-colors flex items-center gap-1 shadow-sm ${isDarkMode ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
                     title="สแกน QR เพื่อเช็กของแทนการติ๊กเอง"
                   >
@@ -25447,36 +25411,36 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <button 
                     type="button" 
                     onClick={() => {
-                      if (packingChecklist.length === borrowTargetIds.length) setPackingChecklist([]);
-                      else setPackingChecklist([...borrowTargetIds]);
+                      if (packingSet.length === borrowTargetIds.length) setPackingSet([]);
+                      else setPackingSet([...borrowTargetIds]);
                     }}
                     className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-purple-900/40 hover:bg-purple-800 text-purple-400' : 'bg-purple-100 hover:bg-purple-200 text-purple-700'}`}
                   >
-                    {packingChecklist.length === borrowTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                    {packingSet.length === borrowTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
                   </button>
                 </div>
               </div>
-              <div className={`mb-3 p-3 rounded-2xl border ${packingChecklist.length === borrowTargetIds.length ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700') : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700')}`}>
+              <div className={`mb-3 p-3 rounded-2xl border ${packingSet.length === borrowTargetIds.length ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700') : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700')}`}>
                 <div className="flex items-center justify-between gap-3 text-xs font-black mb-2">
-                  <span>{packingChecklist.length === borrowTargetIds.length ? 'เช็กครบแล้ว พร้อมยืนยันการยืม' : `เช็กแล้ว ${packingChecklist.length}/${borrowTargetIds.length} ชิ้น`}</span>
-                  <span>{borrowTargetIds.length === 0 ? 0 : Math.round((packingChecklist.length / borrowTargetIds.length) * 100)}%</span>
+                  <span>{packingSet.length === borrowTargetIds.length ? 'เช็กครบแล้ว พร้อมยืนยันการยืม' : `เช็กแล้ว ${packingSet.length}/${borrowTargetIds.length} ชิ้น`}</span>
+                  <span>{borrowTargetIds.length === 0 ? 0 : Math.round((packingSet.length / borrowTargetIds.length) * 100)}%</span>
                 </div>
                 <div className="w-full h-2.5 rounded-full bg-slate-200/70 overflow-hidden">
-                  <div className={`h-full rounded-full transition-all duration-500 ${packingChecklist.length === borrowTargetIds.length ? 'bg-emerald-500' : 'bg-purple-500'}`} style={{ width: `${borrowTargetIds.length === 0 ? 0 : Math.round((packingChecklist.length / borrowTargetIds.length) * 100)}%` }}></div>
+                  <div className={`h-full rounded-full transition-all duration-500 ${packingSet.length === borrowTargetIds.length ? 'bg-emerald-500' : 'bg-purple-500'}`} style={{ width: `${borrowTargetIds.length === 0 ? 0 : Math.round((packingSet.length / borrowTargetIds.length) * 100)}%` }}></div>
                 </div>
               </div>
               <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
                 {borrowTargetIds.map(id => {
                   const item = items.find(i => i.id === id);
                   if(!item) return null;
-                  const isChecked = packingChecklist.includes(id);
+                  const isChecked = packingSet.includes(id);
                   return (
                     <label key={id} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${isChecked ? (isDarkMode ? 'bg-purple-900/40 border-purple-800' : 'bg-purple-50 border-purple-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
                       <input type="checkbox" className="w-5 h-5 accent-purple-600 rounded mt-0.5 cursor-pointer shrink-0"
                         checked={isChecked}
                         onChange={(e) => {
-                          if(e.target.checked) setPackingChecklist([...packingChecklist, id]);
-                          else setPackingChecklist(packingChecklist.filter(c => c !== id));
+                          if(e.target.checked) setPackingSet([...packingSet, id]);
+                          else setPackingSet(packingSet.filter(c => c !== id));
                         }}
                       />
                       <span className={`font-bold text-sm leading-tight flex-1 ${isChecked ? (isDarkMode ? 'text-purple-400 line-through opacity-70' : 'text-purple-700 line-through opacity-70') : theme.textMain}`}>
@@ -25491,23 +25455,23 @@ ${auditChangeSummary}` : auditChangeSummary);
             </div>
 
             <div className="operation-sticky-actions flex gap-3">
-              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingChecklist([]); setBorrowProofFiles([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={() => { setBorrowTargetIds([]); setPackingSet([]); setBorrowProofFiles([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button 
                 type="button" 
                 onClick={() => requestOperationConfirm('borrow')} 
-                disabled={!borrowData.borrower || !borrowData.staff || packingChecklist.length === 0} 
-                className={`flex-1 py-4 font-bold rounded-xl text-lg transition-colors ${(!borrowData.borrower || !borrowData.staff || packingChecklist.length === 0) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-purple-600 text-white hover:bg-purple-500 shadow-lg shadow-purple-500/20'}`}
+                disabled={!borrowData.borrower || !borrowData.staff || packingSet.length === 0} 
+                className={`flex-1 py-4 font-bold rounded-xl text-lg transition-colors ${(!borrowData.borrower || !borrowData.staff || packingSet.length === 0) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-purple-600 text-white hover:bg-purple-500 shadow-lg shadow-purple-500/20'}`}
               >
-                {packingChecklist.length > 0 && packingChecklist.length < borrowTargetIds.length ? `ยืนยันการยืม (${packingChecklist.length} ชิ้น)` : 'ยืนยันการยืม'}
+                {packingSet.length > 0 && packingSet.length < borrowTargetIds.length ? `ยืนยันการยืม (${packingSet.length} ชิ้น)` : 'ยืนยันการยืม'}
               </button>
             </div>
-            {packingChecklist.length === borrowTargetIds.length && borrowTargetIds.length > 0 && (
+            {packingSet.length === borrowTargetIds.length && borrowTargetIds.length > 0 && (
                <p className={`text-xs text-center mt-3 font-black ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>✅ เช็กครบแล้ว พร้อมยืนยันการยืม</p>
             )}
-            {packingChecklist.length < borrowTargetIds.length && packingChecklist.length > 0 && (
+            {packingSet.length < borrowTargetIds.length && packingSet.length > 0 && (
                <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-500'}`}>* อุปกรณ์ที่ไม่ได้ติ๊กหรือไม่ได้สแกนเช็ก จะไม่ถูกยืมออกไป (ทำรายการบางส่วน)</p>
             )}
-            {packingChecklist.length === 0 && (
+            {packingSet.length === 0 && (
                <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>* กรุณาติ๊กเลือกอุปกรณ์อย่างน้อย 1 ชิ้นเพื่อทำรายการ</p>
             )}
           </div>
@@ -25520,14 +25484,14 @@ ${auditChangeSummary}` : auditChangeSummary);
           <div className={`operational-modal-shell event-operation-modal rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.Truck className="text-orange-500 w-6 h-6" /> นำอุปกรณ์ออกงาน</h3>
-              <button type="button" onClick={() => { setEventTargetIds([]); setEventChecklist([]); setEventProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+              <button type="button" onClick={() => { setEventTargetIds([]); setEventSet([]); setEventProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             
             <div className={`operation-mobile-summary ${isDarkMode ? 'bg-orange-950/25 border-orange-900/50' : 'bg-orange-50 border-orange-200'}`}>
               <div className="flex items-start justify-between gap-3 mb-3"><div><div className={`text-[11px] font-black tracking-[0.16em] uppercase ${isDarkMode ? 'text-orange-300' : 'text-orange-600'}`}>EVENT FLOW</div><div className={`text-base font-black ${theme.textTitle}`}>เช็กของขึ้นงานก่อนบันทึก</div></div><span className={`px-3 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-orange-900 text-orange-200' : 'bg-white text-orange-700 border border-orange-200'}`}>{eventTargetIds.length} รายการ</span></div>
               <div className="operation-step-row">
                 <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">ชื่องาน</div><div className="operation-step-value truncate">{eventData.eventName || 'ยังไม่กรอก'}</div></div>
-                <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">เช็กแล้ว</div><div className="operation-step-value">{eventChecklist.length}/{eventTargetIds.length}</div></div>
+                <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">เช็กแล้ว</div><div className="operation-step-value">{eventSet.length}/{eventTargetIds.length}</div></div>
                 <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">หลักฐาน</div><div className="operation-step-value">{eventProofFiles.length}</div></div>
               </div>
             </div>
@@ -25563,15 +25527,15 @@ ${auditChangeSummary}` : auditChangeSummary);
               {renderProofUploader('หลักฐานการนำออกงาน', eventProofFiles, setEventProofFiles, 'orange')}
             </div>
 
-            <div className={`operation-checklist-panel mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+            <div className={`operation-set-panel mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                 <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                  <Icons.ClipboardList className="w-5 h-5" /> เช็คของขึ้นรถ ({eventChecklist.length}/{eventTargetIds.length})
+                  <Icons.ClipboardList className="w-5 h-5" /> เช็คของขึ้นรถ ({eventSet.length}/{eventTargetIds.length})
                 </h4>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => openChecklistScanner('eventChecklist')}
+                    onClick={() => openSetScanner('eventSet')}
                     className={`text-xs font-black px-3 py-2 rounded-xl transition-colors flex items-center gap-1 shadow-sm ${isDarkMode ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
                     title="สแกน QR เพื่อเช็กของขึ้นงานแทนการติ๊กเอง"
                   >
@@ -25580,36 +25544,36 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <button 
                     type="button" 
                     onClick={() => {
-                      if (eventChecklist.length === eventTargetIds.length) setEventChecklist([]);
-                      else setEventChecklist([...eventTargetIds]);
+                      if (eventSet.length === eventTargetIds.length) setEventSet([]);
+                      else setEventSet([...eventTargetIds]);
                     }}
                     className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-orange-900/40 hover:bg-orange-800 text-orange-400' : 'bg-orange-100 hover:bg-orange-200 text-orange-700'}`}
                   >
-                    {eventChecklist.length === eventTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                    {eventSet.length === eventTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
                   </button>
                 </div>
               </div>
-              <div className={`mb-3 p-3 rounded-2xl border ${eventChecklist.length === eventTargetIds.length ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700') : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700')}`}>
+              <div className={`mb-3 p-3 rounded-2xl border ${eventSet.length === eventTargetIds.length ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700') : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700')}`}>
                 <div className="flex items-center justify-between gap-3 text-xs font-black mb-2">
-                  <span>{eventChecklist.length === eventTargetIds.length ? 'เช็กครบแล้ว พร้อมยืนยันออกงาน' : `เช็กแล้ว ${eventChecklist.length}/${eventTargetIds.length} ชิ้น`}</span>
-                  <span>{eventTargetIds.length === 0 ? 0 : Math.round((eventChecklist.length / eventTargetIds.length) * 100)}%</span>
+                  <span>{eventSet.length === eventTargetIds.length ? 'เช็กครบแล้ว พร้อมยืนยันออกงาน' : `เช็กแล้ว ${eventSet.length}/${eventTargetIds.length} ชิ้น`}</span>
+                  <span>{eventTargetIds.length === 0 ? 0 : Math.round((eventSet.length / eventTargetIds.length) * 100)}%</span>
                 </div>
                 <div className="w-full h-2.5 rounded-full bg-slate-200/70 overflow-hidden">
-                  <div className={`h-full rounded-full transition-all duration-500 ${eventChecklist.length === eventTargetIds.length ? 'bg-emerald-500' : 'bg-orange-500'}`} style={{ width: `${eventTargetIds.length === 0 ? 0 : Math.round((eventChecklist.length / eventTargetIds.length) * 100)}%` }}></div>
+                  <div className={`h-full rounded-full transition-all duration-500 ${eventSet.length === eventTargetIds.length ? 'bg-emerald-500' : 'bg-orange-500'}`} style={{ width: `${eventTargetIds.length === 0 ? 0 : Math.round((eventSet.length / eventTargetIds.length) * 100)}%` }}></div>
                 </div>
               </div>
               <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
                 {eventTargetIds.map(id => {
                   const item = items.find(i => i.id === id);
                   if(!item) return null;
-                  const isChecked = eventChecklist.includes(id);
+                  const isChecked = eventSet.includes(id);
                   return (
                     <label key={id} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${isChecked ? (isDarkMode ? 'bg-orange-900/40 border-orange-800' : 'bg-orange-50 border-orange-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
                       <input type="checkbox" className="w-5 h-5 accent-orange-600 rounded mt-0.5 cursor-pointer shrink-0"
                         checked={isChecked}
                         onChange={(e) => {
-                          if(e.target.checked) setEventChecklist([...eventChecklist, id]);
-                          else setEventChecklist(eventChecklist.filter(c => c !== id));
+                          if(e.target.checked) setEventSet([...eventSet, id]);
+                          else setEventSet(eventSet.filter(c => c !== id));
                         }}
                       />
                       <span className={`font-bold text-sm leading-tight flex-1 ${isChecked ? (isDarkMode ? 'text-orange-400 line-through opacity-70' : 'text-orange-700 line-through opacity-70') : theme.textMain}`}>
@@ -25624,23 +25588,23 @@ ${auditChangeSummary}` : auditChangeSummary);
             </div>
 
             <div className="operation-sticky-actions flex gap-3">
-              <button type="button" onClick={() => { setEventTargetIds([]); setEventChecklist([]); setEventProofFiles([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={() => { setEventTargetIds([]); setEventSet([]); setEventProofFiles([]); }} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button 
                 type="button" 
                 onClick={() => requestOperationConfirm('event')} 
-                disabled={!eventData.eventName || !eventData.staff || eventChecklist.length === 0} 
-                className={`flex-1 py-4 font-bold rounded-xl text-lg transition-colors ${(!eventData.eventName || !eventData.staff || eventChecklist.length === 0) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-orange-600 text-white hover:bg-orange-500 shadow-lg shadow-orange-500/20'}`}
+                disabled={!eventData.eventName || !eventData.staff || eventSet.length === 0} 
+                className={`flex-1 py-4 font-bold rounded-xl text-lg transition-colors ${(!eventData.eventName || !eventData.staff || eventSet.length === 0) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-orange-600 text-white hover:bg-orange-500 shadow-lg shadow-orange-500/20'}`}
               >
-                {eventChecklist.length > 0 && eventChecklist.length < eventTargetIds.length ? `ยืนยันนำออก (${eventChecklist.length} ชิ้น)` : 'ยืนยันการนำออกงาน'}
+                {eventSet.length > 0 && eventSet.length < eventTargetIds.length ? `ยืนยันนำออก (${eventSet.length} ชิ้น)` : 'ยืนยันการนำออกงาน'}
               </button>
             </div>
-            {eventChecklist.length === eventTargetIds.length && eventTargetIds.length > 0 && (
+            {eventSet.length === eventTargetIds.length && eventTargetIds.length > 0 && (
                <p className={`text-xs text-center mt-3 font-black ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>✅ เช็กครบแล้ว พร้อมยืนยันการนำออกงาน</p>
             )}
-            {eventChecklist.length < eventTargetIds.length && eventChecklist.length > 0 && (
+            {eventSet.length < eventTargetIds.length && eventSet.length > 0 && (
                <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-500'}`}>* อุปกรณ์ที่ไม่ได้ติ๊กหรือไม่ได้สแกนเช็ก จะไม่ถูกนำออกไป (ทำรายการบางส่วน)</p>
             )}
-            {eventChecklist.length === 0 && (
+            {eventSet.length === 0 && (
                <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>* กรุณาติ๊กเลือกอุปกรณ์อย่างน้อย 1 ชิ้นเพื่อทำรายการ</p>
             )}
           </div>
@@ -25653,14 +25617,14 @@ ${auditChangeSummary}` : auditChangeSummary);
           <div className={`operational-modal-shell return-operation-modal rounded-3xl p-4 sm:p-6 max-w-lg w-[calc(100vw-1.5rem)] sm:w-full shadow-2xl max-h-[92vh] overflow-y-auto custom-scrollbar ${theme.cardBg}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-2xl font-black flex items-center gap-2 ${theme.textTitle}`}><Icons.CheckCircle className="text-emerald-500 w-6 h-6" /> บันทึกรับคืนอุปกรณ์</h3>
-              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); setReturnProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
+              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnSet([]); setReturnProofFiles([]); }} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             
             <div className={`operation-mobile-summary ${isDarkMode ? 'bg-emerald-950/25 border-emerald-900/50' : 'bg-emerald-50 border-emerald-200'}`}>
               <div className="flex items-start justify-between gap-3 mb-3"><div><div className={`text-[11px] font-black tracking-[0.16em] uppercase ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>RETURN FLOW</div><div className={`text-base font-black ${theme.textTitle}`}>เช็กของเข้ากล่องก่อนรับคืน</div></div><span className={`px-3 py-1 rounded-full text-xs font-black ${isDarkMode ? 'bg-emerald-900 text-emerald-200' : 'bg-white text-emerald-700 border border-emerald-200'}`}>{returnTargetIds.length} รายการ</span></div>
               <div className="operation-step-row">
                 <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">ผู้รับคืน</div><div className="operation-step-value truncate">{returnData.staff || 'ยังไม่เลือก'}</div></div>
-                <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">เช็กแล้ว</div><div className="operation-step-value">{returnChecklist.length}/{returnTargetIds.length}</div></div>
+                <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">เช็กแล้ว</div><div className="operation-step-value">{returnSet.length}/{returnTargetIds.length}</div></div>
                 <div className={`operation-step-card ${isDarkMode ? 'bg-slate-950/60' : 'bg-white'}`}><div className="operation-step-label">หลักฐาน</div><div className="operation-step-value">{returnProofFiles.length}</div></div>
               </div>
             </div>
@@ -25681,15 +25645,15 @@ ${auditChangeSummary}` : auditChangeSummary);
               {renderProofUploader('หลักฐานการรับคืน', returnProofFiles, setReturnProofFiles, 'emerald')}
             </div>
 
-            <div className={`operation-checklist-panel mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+            <div className={`operation-set-panel mb-8 p-4 border rounded-xl ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                 <h4 className={`font-bold flex items-center gap-2 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                  <Icons.ClipboardList className="w-5 h-5" /> เช็คลิสต์ของเข้ากล่อง ({returnChecklist.length}/{returnTargetIds.length})
+                  <Icons.ClipboardList className="w-5 h-5" /> เช็คลิสต์ของเข้ากล่อง ({returnSet.length}/{returnTargetIds.length})
                 </h4>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => openChecklistScanner('returnChecklist')}
+                    onClick={() => openSetScanner('returnSet')}
                     className={`text-xs font-black px-3 py-2 rounded-xl transition-colors flex items-center gap-1 shadow-sm ${isDarkMode ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
                     title="สแกน QR เพื่อเช็กของตอนรับคืนแทนการติ๊กเอง"
                   >
@@ -25706,35 +25670,35 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <button 
                     type="button" 
                     onClick={() => {
-                      if (returnChecklist.length === returnTargetIds.length) setReturnChecklist([]);
-                      else setReturnChecklist([...returnTargetIds]);
+                      if (returnSet.length === returnTargetIds.length) setReturnSet([]);
+                      else setReturnSet([...returnTargetIds]);
                     }}
                     className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${isDarkMode ? 'bg-emerald-900/40 hover:bg-emerald-800 text-emerald-400' : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700'}`}
                   >
-                    {returnChecklist.length === returnTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                    {returnSet.length === returnTargetIds.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
                   </button>
                 </div>
               </div>
-              <div className={`mb-3 p-3 rounded-2xl border ${returnChecklist.length === returnTargetIds.length ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700') : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700')}`}>
+              <div className={`mb-3 p-3 rounded-2xl border ${returnSet.length === returnTargetIds.length ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700') : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700')}`}>
                 <div className="flex items-center justify-between gap-3 text-xs font-black mb-2">
-                  <span>{returnChecklist.length === returnTargetIds.length ? 'เช็กครบแล้ว พร้อมยืนยันรับคืน' : `เช็กแล้ว ${returnChecklist.length}/${returnTargetIds.length} ชิ้น`}</span>
-                  <span>{returnTargetIds.length === 0 ? 0 : Math.round((returnChecklist.length / returnTargetIds.length) * 100)}%</span>
+                  <span>{returnSet.length === returnTargetIds.length ? 'เช็กครบแล้ว พร้อมยืนยันรับคืน' : `เช็กแล้ว ${returnSet.length}/${returnTargetIds.length} ชิ้น`}</span>
+                  <span>{returnTargetIds.length === 0 ? 0 : Math.round((returnSet.length / returnTargetIds.length) * 100)}%</span>
                 </div>
                 <div className="w-full h-2.5 rounded-full bg-slate-200/70 overflow-hidden">
-                  <div className={`h-full rounded-full transition-all duration-500 ${returnChecklist.length === returnTargetIds.length ? 'bg-emerald-500' : 'bg-emerald-500'}`} style={{ width: `${returnTargetIds.length === 0 ? 0 : Math.round((returnChecklist.length / returnTargetIds.length) * 100)}%` }}></div>
+                  <div className={`h-full rounded-full transition-all duration-500 ${returnSet.length === returnTargetIds.length ? 'bg-emerald-500' : 'bg-emerald-500'}`} style={{ width: `${returnTargetIds.length === 0 ? 0 : Math.round((returnSet.length / returnTargetIds.length) * 100)}%` }}></div>
                 </div>
               </div>
               <div className="space-y-2 max-h-[34vh] sm:max-h-40 overflow-y-auto custom-scrollbar pr-1">
                 {returnTargetIds.map(id => {
                   const item = items.find(i => i.id === id);
                   if(!item) return null;
-                  const isChecked = returnChecklist.includes(id);
+                  const isChecked = returnSet.includes(id);
                   const toggleReturnItem = (checked) => {
-                    if (checked) setReturnChecklist(prev => prev.includes(id) ? prev : [...prev, id]);
-                    else setReturnChecklist(prev => prev.filter(c => c !== id));
+                    if (checked) setReturnSet(prev => prev.includes(id) ? prev : [...prev, id]);
+                    else setReturnSet(prev => prev.filter(c => c !== id));
                   };
                   return (
-                    <div key={id} className={`return-checklist-card p-3 rounded-2xl border transition-colors overflow-hidden ${isChecked ? (isDarkMode ? 'bg-emerald-950/45 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
+                    <div key={id} className={`return-set-card p-3 rounded-2xl border transition-colors overflow-hidden ${isChecked ? (isDarkMode ? 'bg-emerald-950/45 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200')}`}>
                       <div className="flex items-start gap-3 min-w-0 w-full">
                         <input
                           type="checkbox"
@@ -25776,20 +25740,20 @@ ${auditChangeSummary}` : auditChangeSummary);
             </div>
 
             <div className="operation-sticky-actions grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnChecklist([]); setReturnProofFiles([]); }} className={`w-full py-3.5 sm:py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={() => { setReturnTargetIds([]); setReturnSet([]); setReturnProofFiles([]); }} className={`w-full py-3.5 sm:py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button 
                 type="button" 
                 onClick={() => requestOperationConfirm('return')} 
-                disabled={!returnData.staff || returnChecklist.length === 0} 
-                className={`w-full py-3.5 sm:py-4 font-bold rounded-xl text-base sm:text-lg transition-colors ${(!returnData.staff || returnChecklist.length === 0) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20'}`}
+                disabled={!returnData.staff || returnSet.length === 0} 
+                className={`w-full py-3.5 sm:py-4 font-bold rounded-xl text-base sm:text-lg transition-colors ${(!returnData.staff || returnSet.length === 0) ? (isDarkMode ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20'}`}
               >
-                {returnChecklist.length > 0 && returnChecklist.length < returnTargetIds.length ? `ยืนยันรับคืน (${returnChecklist.length} ชิ้น)` : 'ยืนยันการรับคืน'}
+                {returnSet.length > 0 && returnSet.length < returnTargetIds.length ? `ยืนยันรับคืน (${returnSet.length} ชิ้น)` : 'ยืนยันการรับคืน'}
               </button>
             </div>
-            {returnChecklist.length < returnTargetIds.length && returnChecklist.length > 0 && (
+            {returnSet.length < returnTargetIds.length && returnSet.length > 0 && (
                <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-500'}`}>* อุปกรณ์ที่ไม่ได้ติ๊ก จะยังคงถูกยืม/ออกงานต่อไป (รับคืนบางส่วน)</p>
             )}
-            {returnChecklist.length === 0 && (
+            {returnSet.length === 0 && (
                <p className={`text-xs text-center mt-3 font-bold ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>* กรุณาติ๊กเลือกอุปกรณ์อย่างน้อย 1 ชิ้นเพื่อทำรายการ</p>
             )}
           </div>
