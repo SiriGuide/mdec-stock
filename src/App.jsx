@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.2.1 User Accounts Simple Rows Layout';
-const APP_UPDATE_NOTE = 'User Accounts Simple Rows Layout: ปรับหน้า บัญชีผู้ใช้ ให้เรียบและอ่านง่ายขึ้น ใช้รายการแบบแถวเต็มกว้าง ไม่ทำการ์ดสูงแปลก ๆ ฟอร์มเพิ่ม/แก้ไขอยู่ขวาแบบกระชับ และลดพื้นที่ว่างเกินจำเป็น';
+const APP_VERSION = 'v23.2.2 Single History Source Cleanup';
+const APP_UPDATE_NOTE = 'Single History Source Cleanup: ลดประวัติซ้ำโดยให้ปุ่มประวัติการใช้งานไปเปิดหน้า เอกสาร / ประวัติ / หลักฐาน > ประวัติส่วนกลาง แทน Audit Log popup ใช้ข้อมูล audit_logs เดิมชุดเดียว ไม่เพิ่มฐานข้อมูลซ้ำ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7352,6 +7352,16 @@ function MainApp() {
     setShowProofCenterModal(false);
     setActiveWorkspace('records');
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+  };
+
+  const openUnifiedSystemHistory = ({ keyword = '' } = {}) => {
+    // v23.2.2 Single History Source Cleanup
+    // ไม่เปิด Audit Log popup แยกแล้ว ให้ใช้หน้า ประวัติส่วนกลาง ที่อ่าน audit_logs เดิมเป็นแหล่งเดียว
+    setShowAuditModal(false);
+    setAuditFilter('all');
+    setHistoryCenterFilter('system');
+    setHistoryCenterSearch(keyword);
+    openMainHistoryCenter({ reset: false, tab: 'history' });
   };
 
   const openItemHistoryFromHistoryCenter = (itemId) => {
@@ -16153,7 +16163,7 @@ S.N.: ${item.sn || '-'}
       const matchType = historyCenterFilter === 'all'
         ? true
         : entry.historyType === historyCenterFilter || (historyCenterFilter === 'repair' && String(entry.historyType || '').includes('repair')) || (historyCenterFilter === 'system' && entry.isAuditLog);
-      const haystack = `${entry.itemName} ${entry.sn} ${entry.category} ${entry.location} ${entry.subject} ${entry.staff} ${entry.note} ${entry.typeLabel} ${entry.date} ${entry.status} ${entry.department || ''}`.toLowerCase();
+      const haystack = `${entry.itemName} ${entry.sn} ${entry.category} ${entry.location} ${entry.subject} ${entry.staff} ${entry.note} ${entry.typeLabel} ${entry.date} ${entry.status} ${entry.department || ''} ${entry.rawHistory?.action || ''} ${entry.rawHistory?.detail || ''} ${entry.rawHistory?.details || ''}`.toLowerCase();
       return matchType && (!keyword || haystack.includes(keyword));
     });
   }, [allHistoryCenterEntries, historyCenterFilter, historyCenterSearch]);
@@ -23060,9 +23070,9 @@ ${auditChangeSummary}` : auditChangeSummary);
                     </button>
                   )}
                   {isFullMode && canViewAudit && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowAuditModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ประวัติการทำงาน</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Audit log ของระบบ</p>
+                    <button type="button" onClick={() => openUnifiedSystemHistory({ keyword: '' })} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                      <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ประวัติส่วนกลาง</div>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมประวัติระบบจากแหล่งเดียว ไม่เปิด popup ซ้ำ</p>
                     </button>
                   )}
                   {isFullMode && canManageระบบ && (
@@ -24433,8 +24443,8 @@ ${auditChangeSummary}` : auditChangeSummary);
                         <button type="button" onClick={openNewAccountForm} disabled={!canManageAccounts} className={`px-4 py-2.5 rounded-2xl font-black ${canManageAccounts ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}>
                           + เพิ่มผู้ใช้
                         </button>
-                        <button type="button" onClick={() => setShowAuditModal(true)} disabled={!canViewAudit} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>
-                          ประวัติการใช้งาน
+                        <button type="button" onClick={() => openUnifiedSystemHistory({ keyword: 'บัญชี' })} disabled={!canViewAudit} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>
+                          ประวัติส่วนกลาง
                         </button>
                       </div>
                     </div>
@@ -25999,7 +26009,7 @@ ${auditChangeSummary}` : auditChangeSummary);
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
           <div className={`rounded-3xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[85vh] ${theme.cardBg}`}>
             <div className={`flex justify-between items-center p-6 border-b ${theme.divide}`}>
-              <h3 className={`text-xl sm:text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.ClipboardList className="w-6 h-6 text-blue-500"/> ประวัติการทำงานส่วนกลาง</h3>
+              <h3 className={`text-xl sm:text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}><Icons.ClipboardList className="w-6 h-6 text-blue-500"/> Audit Log เดิม (ซ่อนจากเมนูหลัก)</h3>
               <button type="button" onClick={() => setShowAuditModal(false)} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-5 h-5" /></button>
             </div>
             <div className="p-4 border-b flex flex-wrap gap-2 items-center">
