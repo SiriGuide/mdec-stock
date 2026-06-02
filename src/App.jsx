@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.2.7 Remove Prep Set From UI';
-const APP_UPDATE_NOTE = 'Remove Prep Set From UI: ตัดแนวเซ็ตใช้งานออกจาก UI เหลือเฉพาะกล่องจริงและเซ็ตใช้งาน ลดความซับซ้อนให้หน้า Box/Set เป็นงาน STOCK อย่างเดียว';
+const APP_VERSION = 'v23.2.8 Box Set Two Column Real UI Polish';
+const APP_UPDATE_NOTE = 'Box Set Two Column Real UI Polish: ปรับหน้ากล่อง/เซ็ตอุปกรณ์ใหม่จริงเป็น 2 คอลัมน์ มีแท็บกล่องจริง/เซ็ตใช้งาน รายการซ้าย รายละเอียดขวา และตัดเช็กลิสต์เตรียมงานออกทั้งหมด';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7040,7 +7040,9 @@ function MainApp() {
   const [editingSettingItem, setEditingSettingItem] = useState(null);
 
   const [showBundleModal, setShowBundleModal] = useState(false);
-  const [showBundleManager, setShowBundleManager] = useState(false); 
+  const [showBundleManager, setShowBundleManager] = useState(false);
+  const [organizeViewMode, setOrganizeViewMode] = useState('boxes');
+  const [selectedOrganizeId, setSelectedOrganizeId] = useState(''); 
   const [bundleForm, setBundleForm] = useState({ id: null, name: '', itemIds: [] });
   const [bundleSearchTerm, setBundleSearchTerm] = useState(''); 
   
@@ -10631,10 +10633,15 @@ S.N.: ${item.sn || '-'}
       const available = collectionItems.filter((item) => item.status === 'available').length;
       const borrowed = collectionItems.filter((item) => item.status === 'borrowed').length;
       const event = collectionItems.filter((item) => item.status === 'out-for-event').length;
-      const repair = collectionItems.filter((item) => item.status === 'repair').length;
+      const repair = collectionItems.filter((item) => item.status === 'repair' || item.status === 'maintenance').length;
       const unavailable = Math.max(0, total - available);
       return { total, available, borrowed, event, repair, unavailable, items: collectionItems };
     };
+
+    const activeCollections = organizeViewMode === 'bundles' ? bundles : boxes;
+    const activeType = organizeViewMode === 'bundles' ? 'bundle' : 'box';
+    const selectedCollection = activeCollections.find((entry) => String(entry.id || entry.name) === String(selectedOrganizeId)) || activeCollections[0] || null;
+    const selectedStats = selectedCollection ? getCollectionStats(selectedCollection) : { total: 0, available: 0, borrowed: 0, event: 0, repair: 0, unavailable: 0, items: [] };
     const boxItemTotal = boxes.reduce((sum, box) => sum + getCollectionStats(box).total, 0);
     const bundleItemTotal = bundles.reduce((sum, bundle) => sum + getCollectionStats(bundle).total, 0);
     const readyBoxCount = boxes.filter((box) => {
@@ -10667,109 +10674,36 @@ S.N.: ${item.sn || '-'}
       alert(`✅ เพิ่มเข้ารายการแล้ว ${ids.length} ชิ้น`);
     };
 
-    const collectionBadge = (label, value, tone = 'slate') => {
-      const toneClass = tone === 'emerald'
-        ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700')
-        : tone === 'amber'
-          ? (isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700')
-          : tone === 'rose'
-            ? (isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700')
-            : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600');
-      return <span className={`px-2.5 py-1 rounded-full border text-[11px] font-black ${toneClass}`}>{label} {Number(value || 0).toLocaleString('th-TH')}</span>;
+    const statusPill = (item) => {
+      const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
+      return <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{getOperationHumanStatusLabel(item)}</span>;
     };
 
-    const CollectionPreview = ({ collection, type }) => {
-      const stats = getCollectionStats(collection);
-      const sample = stats.items.slice(0, type === 'box' ? 5 : 6);
-      return (
-        <div className="mt-3 space-y-2">
-          <div className="flex flex-wrap gap-1.5">
-            {collectionBadge('ทั้งหมด', stats.total)}
-            {collectionBadge('พร้อมใช้', stats.available, 'emerald')}
-            {stats.borrowed ? collectionBadge('ถูกยืม', stats.borrowed, 'amber') : null}
-            {stats.event ? collectionBadge('ออกงาน', stats.event, 'amber') : null}
-            {stats.repair ? collectionBadge('ซ่อม', stats.repair, 'rose') : null}
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {sample.length === 0 ? (
-              <span className={`px-3 py-1.5 rounded-full text-xs font-black border ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>ยังไม่มีอุปกรณ์ในรายการนี้</span>
-            ) : sample.map((item) => (
-              <span key={item.id} className={`px-3 py-1.5 rounded-full text-xs font-black border max-w-full truncate ${isDarkMode ? 'bg-slate-950/80 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>{item.name || '-'} <span className="opacity-60">• {item.sn || '-'}</span></span>
-            ))}
-            {stats.total > sample.length ? <span className={`px-3 py-1.5 rounded-full text-xs font-black ${theme.textMuted}`}>+{stats.total - sample.length} รายการ</span> : null}
-          </div>
-        </div>
-      );
+    const openActiveEditor = () => {
+      if (organizeViewMode === 'bundles') {
+        setBundleForm({ id: null, name: '', itemIds: [] });
+        setBundleSearchTerm('');
+        setShowBundleManager(true);
+      } else {
+        openStorageBoxEditor();
+      }
     };
 
-    const renderBoxCard = (box) => {
-      const stats = getCollectionStats(box);
-      const readyPercent = stats.total ? Math.round((stats.available / stats.total) * 100) : 0;
-      return (
-        <div key={box.id || box.name} className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200'}`}>
-          <div className="p-4 sm:p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${isDarkMode ? 'bg-cyan-950/40 border-cyan-800/70 text-cyan-200' : 'bg-cyan-50 border-cyan-200 text-cyan-700'}`}><Icons.Package className="w-6 h-6" /></div>
-                <div className="min-w-0">
-                  <div className={`text-base font-black truncate ${theme.textTitle}`}>{box.name || 'กล่องไม่มีชื่อ'}</div>
-                  <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>{box.size === 'large' ? 'กล่องใหญ่ / ตู้' : box.size === 'small' ? 'กล่องเล็ก / ชั้น' : 'กล่อง / จุดเก็บ'} • {box.note || 'ยังไม่มีหมายเหตุ'}</div>
-                </div>
-              </div>
-              <span className={`shrink-0 px-3 py-1 rounded-full border text-xs font-black ${stats.total > 0 && stats.available === stats.total ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700') : (isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700')}`}>{stats.available}/{stats.total} พร้อมใช้</span>
-            </div>
-
-            <div className="mt-4">
-              <div className={`h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}><div className="h-full bg-cyan-500" style={{ width: `${readyPercent}%` }} /></div>
-            </div>
-
-            <CollectionPreview collection={box} type="box" />
-          </div>
-
-          <div className={`px-4 sm:px-5 py-3 border-t grid grid-cols-2 lg:grid-cols-5 gap-2 ${theme.divide}`}>
-            <button type="button" onClick={() => { setSelectedItems(stats.items.map((item) => item.id)); }} className={`px-3 py-2.5 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>เปิดดูของ</button>
-            <button type="button" onClick={() => addCollectionToOperation(box, 'borrow')} className="px-3 py-2.5 rounded-xl text-sm font-black bg-blue-700 hover:bg-blue-600 text-white">ยืมทั้งกล่อง</button>
-            <button type="button" onClick={() => addCollectionToOperation(box, 'event')} className="px-3 py-2.5 rounded-xl text-sm font-black bg-orange-700 hover:bg-orange-600 text-white">ออกงาน</button>
-            <button type="button" onClick={() => openStorageBoxLabel(box)} className={`px-3 py-2.5 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>พิมพ์ QR</button>
-            <button type="button" onClick={() => openStorageBoxEditor(box)} className={`px-3 py-2.5 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>แก้ไข</button>
-          </div>
-        </div>
-      );
+    const editSelected = () => {
+      if (!selectedCollection) return;
+      if (organizeViewMode === 'bundles') {
+        setBundleForm({ id: selectedCollection.id, name: selectedCollection.name, itemIds: asArray(selectedCollection.itemIds) });
+        setBundleSearchTerm('');
+        setShowBundleManager(true);
+      } else {
+        openStorageBoxEditor(selectedCollection);
+      }
     };
 
-    const renderBundleCard = (bundle) => {
-      const stats = getCollectionStats(bundle);
-      const readyPercent = stats.total ? Math.round((stats.available / stats.total) * 100) : 0;
-      return (
-        <div key={bundle.id || bundle.name} className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200'}`}>
-          <div className="p-4 sm:p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${isDarkMode ? 'bg-violet-950/40 border-violet-800/70 text-violet-200' : 'bg-violet-50 border-violet-200 text-violet-700'}`}><Icons.Layers className="w-6 h-6" /></div>
-                <div className="min-w-0">
-                  <div className={`text-lg font-black truncate ${theme.textTitle}`}>{bundle.name || 'เซ็ตไม่มีชื่อ'}</div>
-                  <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>ชุดใช้งานที่หยิบใช้บ่อย • ไม่ล็อกถาวรกับอุปกรณ์</div>
-                </div>
-              </div>
-              <span className={`shrink-0 px-3 py-1 rounded-full border text-xs font-black ${stats.total > 0 && stats.available === stats.total ? (isDarkMode ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700') : (isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700')}`}>{stats.available}/{stats.total} พร้อมใช้</span>
-            </div>
-
-            <div className="mt-4">
-              <div className={`h-2 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}><div className="h-full bg-violet-500" style={{ width: `${readyPercent}%` }} /></div>
-            </div>
-
-            <CollectionPreview collection={bundle} type="bundle" />
-          </div>
-
-          <div className={`px-4 sm:px-5 py-3 border-t grid grid-cols-2 lg:grid-cols-5 gap-2 ${theme.divide}`}>
-            <button type="button" onClick={() => { setSelectedItems(stats.items.map((item) => item.id)); }} className={`px-3 py-2.5 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>เปิดดูเซ็ต</button>
-            <button type="button" onClick={() => addCollectionToOperation(bundle, 'borrow')} className="px-3 py-2.5 rounded-xl text-sm font-black bg-blue-700 hover:bg-blue-600 text-white">ยืมเซ็ตนี้</button>
-            <button type="button" onClick={() => addCollectionToOperation(bundle, 'event')} className="px-3 py-2.5 rounded-xl text-sm font-black bg-orange-700 hover:bg-orange-600 text-white">ออกงาน</button>
-            <button type="button" onClick={() => { setBundleForm({ id: bundle.id, name: bundle.name, itemIds: asArray(bundle.itemIds) }); setBundleSearchTerm(''); setShowBundleManager(true); }} className={`px-3 py-2.5 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>แก้ไข</button>
-            <button type="button" onClick={() => handleDeleteBundle(bundle.id)} className="px-3 py-2.5 rounded-xl text-sm font-black bg-rose-950/60 hover:bg-rose-800/80 border border-rose-800 text-rose-200">ลบ</button>
-          </div>
-        </div>
-      );
+    const deleteSelected = () => {
+      if (!selectedCollection) return;
+      if (organizeViewMode === 'bundles') return handleDeleteBundle(selectedCollection.id);
+      return alert('ถ้าต้องการลบกล่องจริง ให้ใช้ปุ่มแก้ไขกล่องก่อน เพื่อกันลบผิด');
     };
 
     return (
@@ -10779,88 +10713,177 @@ S.N.: ${item.sn || '-'}
         <div className={`rounded-[1.75rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
           <div className={`p-5 sm:p-6 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-4 ${theme.divide}`}>
             <div>
-              <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>BOX & SET CONTROL</div>
+              <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-cyan-600'}`}>BOX / SET WORKSPACE</div>
               <h2 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>กล่อง / เซ็ตอุปกรณ์</h2>
-              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แยก “ที่เก็บจริง” กับ “ชุดใช้งาน” ให้ชัด ใช้ช่วยเลือกของเข้ารายการยืม/ออกงานได้ทันที โดยไม่เปลี่ยนฐานข้อมูลเดิม</p>
+              <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดของเป็นกล่องจริง และจัดเซ็ตใช้งานที่หยิบใช้บ่อย แบบเรียบง่ายสำหรับงาน STOCK</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => openStorageBoxEditor()} className="px-4 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black shadow-lg shadow-cyan-900/20">+ เพิ่มกล่อง / ตู้</button>
-              <button type="button" onClick={() => { setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className="px-4 py-3 rounded-2xl bg-violet-700 hover:bg-violet-600 text-white font-black shadow-lg shadow-violet-900/20">+ สร้างเซ็ตใช้งาน</button>
+              <button type="button" onClick={openActiveEditor} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg shadow-blue-900/20">
+                + {organizeViewMode === 'bundles' ? 'สร้างเซ็ตใช้งาน' : 'เพิ่มกล่องจริง'}
+              </button>
+              <button type="button" onClick={() => selectedCollection && addCollectionToOperation(selectedCollection, 'borrow')} disabled={!selectedCollection} className="px-4 py-3 rounded-2xl bg-emerald-700 hover:bg-emerald-600 disabled:bg-slate-700 disabled:text-slate-500 text-white font-black">
+                ยืมรายการที่เลือก
+              </button>
             </div>
           </div>
 
-          <div className="p-5 sm:p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="p-4 sm:p-5 space-y-4">
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5">
               {[
-                ['กล่อง / ตู้ / ชั้น', boxes.length, `${boxItemTotal.toLocaleString('th-TH')} รายการ`, 'ที่เก็บของจริง'],
-                ['กล่องพร้อมใช้ครบ', readyBoxCount, 'พร้อมหยิบทั้งกล่อง', 'เช็กจากสถานะอุปกรณ์'],
-                ['เซ็ตใช้งาน', bundles.length, `${bundleItemTotal.toLocaleString('th-TH')} รายการ`, 'ชุดงานที่ใช้บ่อย'],
-                ['เซ็ตพร้อมใช้ครบ', readyBundleCount, 'พร้อมหยิบทั้งชุด', 'ช่วยลดเวลาจัดของ']
-              ].map(([label, value, desc, note]) => (
-                <div key={label} className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                ['กล่องจริง', boxes.length, `${boxItemTotal.toLocaleString('th-TH')} อุปกรณ์`],
+                ['กล่องพร้อมครบ', readyBoxCount, 'พร้อมหยิบทั้งกล่อง'],
+                ['เซ็ตใช้งาน', bundles.length, `${bundleItemTotal.toLocaleString('th-TH')} อุปกรณ์`],
+                ['เซ็ตพร้อมครบ', readyBundleCount, 'พร้อมหยิบทั้งเซ็ต']
+              ].map(([label, value, desc]) => (
+                <div key={label} className={`rounded-2xl border px-4 py-3 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                   <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
-                  <div className={`text-3xl font-black mt-2 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
-                  <div className={`text-xs font-black mt-2 ${theme.textMuted}`}>{desc}</div>
-                  <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>{note}</div>
+                  <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
                 </div>
               ))}
             </div>
 
-            <div className={`rounded-[1.5rem] border p-4 sm:p-5 ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                {[
-                  ['1', 'เลือกจากกล่อง/เซ็ต', 'กด “ยืมทั้งกล่อง” หรือ “ยืมเซ็ตนี้” ระบบจะสรุปก่อนเพิ่มเฉพาะของที่พร้อมใช้'],
-                  ['2', 'ไปต่อที่หน้าทำรายการ', 'รายการที่เลือกจะถูกใส่เข้า flow ยืม/ออกงาน ปรับเพิ่มหรือลบได้เหมือนเลือกทีละชิ้น'],
-                  ['3', 'เอกสารและประวัติยังครบ', 'ระบบไม่ได้สร้างฐานใหม่ ไม่ต้องกรอกข้อมูลใหม่ และยังใช้ประวัติ/เอกสารเดิมทั้งหมด']
-                ].map(([no, title, desc]) => (
-                  <div key={no} className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                    <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black mb-3">{no}</div>
-                    <div className={`font-black ${theme.textTitle}`}>{title}</div>
-                    <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>{desc}</div>
+            <div className={`rounded-[1.45rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+              <div className={`p-3 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${theme.divide}`}>
+                <div className="inline-grid grid-cols-2 gap-1 p-1 rounded-2xl border bg-slate-950/35 border-slate-800 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => { setOrganizeViewMode('boxes'); setSelectedOrganizeId(''); }}
+                    className={`px-4 py-2.5 rounded-xl text-sm font-black transition ${organizeViewMode === 'boxes' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : theme.textMuted}`}
+                  >
+                    กล่องจริง
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setOrganizeViewMode('bundles'); setSelectedOrganizeId(''); }}
+                    className={`px-4 py-2.5 rounded-xl text-sm font-black transition ${organizeViewMode === 'bundles' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : theme.textMuted}`}
+                  >
+                    เซ็ตใช้งาน
+                  </button>
+                </div>
+
+                <div className={`text-sm font-black ${theme.textMuted}`}>
+                  {activeCollections.length.toLocaleString('th-TH')} รายการ
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 2xl:grid-cols-[380px_minmax(0,1fr)] min-h-[560px]">
+                <aside className={`border-b 2xl:border-b-0 2xl:border-r ${theme.divide}`}>
+                  <div className="p-3 space-y-2 max-h-[560px] overflow-y-auto custom-scrollbar">
+                    {activeCollections.length === 0 ? (
+                      <div className={`p-8 rounded-2xl border text-center ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="text-3xl mb-2">{organizeViewMode === 'bundles' ? '🧩' : '📦'}</div>
+                        <div className={`font-black ${theme.textTitle}`}>{organizeViewMode === 'bundles' ? 'ยังไม่มีเซ็ตใช้งาน' : 'ยังไม่มีกล่องจริง'}</div>
+                        <button type="button" onClick={openActiveEditor} className="mt-4 px-4 py-2 rounded-xl bg-blue-600 text-white font-black">เพิ่มรายการแรก</button>
+                      </div>
+                    ) : activeCollections.map((collection) => {
+                      const stats = getCollectionStats(collection);
+                      const id = collection.id || collection.name;
+                      const selected = selectedCollection && String(selectedCollection.id || selectedCollection.name) === String(id);
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => setSelectedOrganizeId(id)}
+                          className={`w-full text-left rounded-2xl border p-3 transition ${selected ? 'bg-blue-600/20 border-blue-500/70' : (isDarkMode ? 'bg-slate-900/60 border-slate-800 hover:border-blue-700' : 'bg-slate-50 border-slate-200 hover:bg-white')}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border ${organizeViewMode === 'bundles' ? (isDarkMode ? 'bg-violet-950/35 border-violet-800 text-violet-200' : 'bg-violet-50 border-violet-200 text-violet-700') : (isDarkMode ? 'bg-cyan-950/35 border-cyan-800 text-cyan-200' : 'bg-cyan-50 border-cyan-200 text-cyan-700')}`}>
+                              {organizeViewMode === 'bundles' ? <Icons.Layers className="w-5 h-5" /> : <Icons.Package className="w-5 h-5" />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className={`font-black truncate ${theme.textTitle}`}>{collection.name || '-'}</div>
+                              <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>{stats.total.toLocaleString('th-TH')} อุปกรณ์ • พร้อม {stats.available}/{stats.total}</div>
+                            </div>
+                            <span className={`shrink-0 w-2.5 h-2.5 rounded-full ${stats.total && stats.available === stats.total ? 'bg-emerald-400' : stats.available ? 'bg-amber-400' : 'bg-rose-400'}`} />
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
-                ))}
+                </aside>
+
+                <section className="min-w-0">
+                  {!selectedCollection ? (
+                    <div className="h-full min-h-[420px] flex items-center justify-center p-8 text-center">
+                      <div>
+                        <div className="text-4xl mb-3">📦</div>
+                        <div className={`text-xl font-black ${theme.textTitle}`}>เลือกกล่องหรือเซ็ตด้านซ้าย</div>
+                        <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หรือกดเพิ่มรายการใหม่เพื่อเริ่มจัดกล่อง/เซ็ต</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 sm:p-5 space-y-4">
+                      <div className={`rounded-[1.35rem] border p-4 sm:p-5 ${isDarkMode ? 'bg-slate-900/65 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${organizeViewMode === 'bundles' ? 'text-violet-300' : 'text-cyan-300'}`}>
+                              {organizeViewMode === 'bundles' ? 'WORKING SET' : 'REAL BOX'}
+                            </div>
+                            <h3 className={`text-2xl font-black mt-1 break-words ${theme.textTitle}`}>{selectedCollection.name || '-'}</h3>
+                            <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>
+                              {organizeViewMode === 'bundles' ? 'เซ็ตใช้งานที่หยิบใช้บ่อย ไม่บังคับว่าต้องอยู่กล่องเดียวกัน' : `${selectedCollection.size === 'large' ? 'กล่องใหญ่ / ตู้' : selectedCollection.size === 'small' ? 'กล่องเล็ก / ชั้น' : 'กล่อง / จุดเก็บ'} • ${selectedCollection.note || 'ยังไม่มีหมายเหตุ'}`}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
+                            <button type="button" onClick={editSelected} className={`px-4 py-2.5 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>แก้ไข</button>
+                            <button type="button" onClick={() => addCollectionToOperation(selectedCollection, 'borrow')} className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-black">ยืม</button>
+                            <button type="button" onClick={() => addCollectionToOperation(selectedCollection, 'event')} className="px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-sm font-black">ออกงาน</button>
+                            {organizeViewMode === 'boxes' ? (
+                              <button type="button" onClick={() => openStorageBoxLabel(selectedCollection)} className={`px-4 py-2.5 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>พิมพ์ QR</button>
+                            ) : (
+                              <button type="button" onClick={deleteSelected} className="px-4 py-2.5 rounded-xl bg-rose-950/60 hover:bg-rose-800/80 border border-rose-800 text-rose-200 text-sm font-black">ลบ</button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mt-4">
+                          {[
+                            ['ทั้งหมด', selectedStats.total],
+                            ['พร้อมใช้', selectedStats.available],
+                            ['กำลังใช้', selectedStats.borrowed + selectedStats.event],
+                            ['ซ่อม/ไม่พร้อม', selectedStats.repair + Math.max(0, selectedStats.unavailable - selectedStats.borrowed - selectedStats.event)]
+                          ].map(([label, value]) => (
+                            <div key={label} className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/55 border-slate-800' : 'bg-white border-slate-200'}`}>
+                              <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
+                              <div className={`text-xl font-black mt-0.5 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200'}`}>
+                        <div className={`px-4 py-3 border-b flex items-center justify-between gap-3 ${theme.divide}`}>
+                          <div>
+                            <div className={`font-black ${theme.textTitle}`}>อุปกรณ์ภายใน</div>
+                            <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>{selectedStats.total.toLocaleString('th-TH')} รายการ</div>
+                          </div>
+                          <button type="button" onClick={editSelected} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>จัดการรายการ</button>
+                        </div>
+
+                        <div className="divide-y divide-slate-800/70 max-h-[420px] overflow-y-auto custom-scrollbar">
+                          {selectedStats.items.length === 0 ? (
+                            <div className={`p-8 text-center font-black ${theme.textMuted}`}>ยังไม่มีอุปกรณ์ในรายการนี้</div>
+                          ) : selectedStats.items.map((item) => (
+                            <div key={item.id} className="px-4 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className={`font-black break-words ${theme.textTitle}`}>{item.name || '-'}</div>
+                                <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'} • {item.category || '-'}</div>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                                {statusPill(item)}
+                                <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </section>
               </div>
             </div>
-
-            <section className={`rounded-[1.5rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/65 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div className={`p-4 sm:p-5 border-b flex flex-col md:flex-row md:items-center justify-between gap-3 ${theme.divide}`}>
-                <div>
-                  <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-cyan-300' : 'text-cyan-700'}`}>REAL STORAGE</div>
-                  <h3 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>ที่เก็บจริง: กล่อง / ตู้ / ชั้น</h3>
-                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้บอกตำแหน่งของจริงในศูนย์ และสามารถเลือกยืม/ออกงานแบบทั้งกล่องได้</p>
-                </div>
-                <button type="button" onClick={() => openStorageBoxEditor()} className="px-4 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black shrink-0">เพิ่มกล่อง / ตู้</button>
-              </div>
-              <div className="p-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {boxes.length === 0 ? (
-                  <div className={`xl:col-span-2 p-8 rounded-2xl border text-center ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className="text-3xl mb-2">📦</div>
-                    <div className={`text-lg font-black ${theme.textTitle}`}>ยังไม่มีกล่อง / ตู้ / ชั้น</div>
-                    <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เริ่มจากสร้างกล่องจริง เช่น กล่อง OB CONCERT, ตู้กล้อง, ชั้นสายสัญญาณ</div>
-                  </div>
-                ) : boxes.map(renderBoxCard)}
-              </div>
-            </section>
-
-            <section className={`rounded-[1.5rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/65 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div className={`p-4 sm:p-5 border-b flex flex-col md:flex-row md:items-center justify-between gap-3 ${theme.divide}`}>
-                <div>
-                  <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-violet-300' : 'text-violet-700'}`}>WORKING SETS</div>
-                  <h3 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>เซ็ตใช้งาน</h3>
-                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>รวมของที่มักหยิบพร้อมกัน เช่น เซ็ตประชุม เซ็ตไลฟ์ เซ็ตถ่ายภาพ โดยไม่ต้องอยู่กล่องเดียวกัน</p>
-                </div>
-                <button type="button" onClick={() => { setBundleForm({ id: null, name: '', itemIds: [] }); setBundleSearchTerm(''); setShowBundleManager(true); }} className="px-4 py-3 rounded-2xl bg-violet-700 hover:bg-violet-600 text-white font-black shrink-0">สร้างเซ็ตใหม่</button>
-              </div>
-              <div className="p-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {bundles.length === 0 ? (
-                  <div className={`xl:col-span-2 p-8 rounded-2xl border text-center ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className="text-3xl mb-2">🧩</div>
-                    <div className={`text-lg font-black ${theme.textTitle}`}>ยังไม่มีเซ็ตใช้งาน</div>
-                    <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เหมาะกับชุดงานที่หยิบซ้ำบ่อย เช่น เซ็ตห้องประชุม เซ็ตเสียงเล็ก เซ็ตกล้องสัมภาษณ์</div>
-                  </div>
-                ) : bundles.map(renderBundleCard)}
-              </div>
-            </section>
           </div>
         </div>
       </div>
