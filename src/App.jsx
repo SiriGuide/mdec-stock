@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.3.3 Box Set Editor White Line Hard Fix';
-const APP_UPDATE_NOTE = 'Box Set Editor White Line Hard Fix: แก้เส้นขาวใน popup กล่อง/เซ็ตแบบจริงจัง โดยลด border/divider/table line ใน editor ให้เป็นเส้นมืดจาง และคุมผ่าน class เฉพาะ box-set-unified-editor';
+const APP_VERSION = 'v23.3.4 Box Set Border Rollback Safe Fix';
+const APP_UPDATE_NOTE = 'Box Set Border Rollback Safe Fix: ย้อนแก้จาก v23.3.3 ที่ทำเส้นขาวกระทบทั้งเว็บ กลับมาใช้ฐาน v23.3.2 แล้วแก้เส้นเฉพาะ popup กล่อง/เซ็ตแบบปลอดภัย ไม่ใช้ selector กว้าง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -259,8 +259,8 @@ const getInventoryDeptIdentity = (item = {}) => {
     key: 'default',
     label: item.department || 'ไม่ระบุฝ่าย',
     iconName: 'Package',
-    iconWrap: 'bg-slate-500/15 border-slate-800/60/20 text-slate-300',
-    badge: 'bg-slate-500/15 border-slate-800/60/20 text-slate-200',
+    iconWrap: 'bg-slate-500/15 border-slate-400/20 text-slate-300',
+    badge: 'bg-slate-500/15 border-slate-400/20 text-slate-200',
     accent: '#64748b'
   };
 };
@@ -1046,61 +1046,20 @@ function FactoryPolishStyle({ isDarkMode }) {
         display: none !important;
       }
 
-      /* v23.3.3: hard-fix เส้นขาวใน popup กล่อง/เซ็ต */
-      .box-set-unified-editor,
-      .box-set-unified-editor * {
-        --tw-divide-opacity: 1 !important;
-        --tw-border-opacity: 1 !important;
-      }
-
-      .box-set-unified-editor .border,
-      .box-set-unified-editor [class*="border-"],
-      .box-set-unified-editor .divide-y > :not([hidden]) ~ :not([hidden]),
-      .box-set-unified-editor .divide-x > :not([hidden]) ~ :not([hidden]) {
-        border-color: rgba(30, 41, 59, .72) !important;
-      }
-
-      .box-set-unified-editor .border-b,
-      .box-set-unified-editor .border-t,
-      .box-set-unified-editor .border-l,
-      .box-set-unified-editor .border-r,
-      .box-set-unified-editor .xl\:border-r,
-      .box-set-unified-editor .xl\:border-l {
-        border-color: rgba(30, 41, 59, .62) !important;
-      }
-
+      /* v23.3.4: safe border fix เฉพาะ popup กล่อง/เซ็ต */
       .box-set-unified-editor .editor-divider,
       .box-set-unified-editor .editor-footer,
       .box-set-unified-editor .editor-panel,
       .box-set-unified-editor .editor-card,
       .box-set-unified-editor .editor-row,
       .box-set-unified-editor .editor-chip {
-        border-color: rgba(30, 41, 59, .62) !important;
+        border-color: rgba(51, 65, 85, .48) !important;
       }
-
-      .box-set-unified-editor table,
-      .box-set-unified-editor tr,
-      .box-set-unified-editor td,
-      .box-set-unified-editor th {
-        border-color: rgba(30, 41, 59, .55) !important;
+      .box-set-unified-editor .soft-editor-line {
+        border-color: rgba(51, 65, 85, .42) !important;
       }
-
-      .box-set-unified-editor hr {
-        border-color: rgba(30, 41, 59, .5) !important;
-        opacity: .7 !important;
-      }
-
-      .box-set-unified-editor .editor-row,
-      .box-set-unified-editor .editor-card {
-        box-shadow: none !important;
-      }
-
-      .box-set-unified-editor .editor-row.is-selected,
-      .box-set-unified-editor .editor-card.is-selected,
-      .box-set-unified-editor [class*="bg-blue-950/35"],
-      .box-set-unified-editor [class*="bg-violet-950/35"],
-      .box-set-unified-editor [class*="bg-cyan-950/35"] {
-        border-color: rgba(96, 165, 250, .42) !important;
+      .box-set-unified-editor .editor-list > * + * {
+        border-top: 1px solid rgba(51, 65, 85, .42) !important;
       }
 
 @media (min-width: 1024px) {
@@ -10864,7 +10823,7 @@ S.N.: ${item.sn || '-'}
               </div>
 
               <div className="grid grid-cols-1 2xl:grid-cols-[380px_minmax(0,1fr)] min-h-[560px]">
-                <aside className={`border-b 2xl:border-b-0 2xl:border-r editor-divider ${theme.divide}`}>
+                <aside className={`border-b 2xl:border-b-0 2xl:border-r editor-divider editor-divider ${theme.divide}`}>
                   <div className="p-3 space-y-2 max-h-[560px] overflow-y-auto custom-scrollbar">
                     {activeCollections.length === 0 ? (
                       <div className={`p-8 rounded-2xl border text-center ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
@@ -10958,7 +10917,7 @@ S.N.: ${item.sn || '-'}
                           <button type="button" onClick={editSelected} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>จัดการรายการ</button>
                         </div>
 
-                        <div className="divide-y divide-slate-800/70 max-h-[420px] overflow-y-auto custom-scrollbar">
+                        <div className="editor-list max-h-[420px] overflow-y-auto custom-scrollbar">
                           {selectedStats.items.length === 0 ? (
                             <div className={`p-8 text-center font-black ${theme.textMuted}`}>ยังไม่มีอุปกรณ์ในรายการนี้</div>
                           ) : selectedStats.items.map((item) => (
@@ -11692,7 +11651,7 @@ S.N.: ${item.sn || '-'}
           icon: Icons.Truck,
           status: 'out-for-event',
           primaryBtn: 'bg-orange-600 hover:bg-orange-500',
-          activeClass: isDarkMode ? 'bg-slate-800/95 border-slate-800/60 text-white' : 'bg-slate-100 border-slate-300 text-slate-900',
+          activeClass: isDarkMode ? 'bg-slate-800/95 border-slate-500 text-white' : 'bg-slate-100 border-slate-300 text-slate-900',
           softClass: isDarkMode ? 'bg-slate-800/80 border-slate-800/55 text-slate-100' : 'bg-slate-100 border-slate-300 text-slate-800',
           stepLabel: 'กรอกชื่องานและผู้รับผิดชอบ'
         }
@@ -11706,7 +11665,7 @@ S.N.: ${item.sn || '-'}
             icon: Icons.CheckCircle,
             status: 'available',
             primaryBtn: 'bg-emerald-600 hover:bg-emerald-500',
-            activeClass: isDarkMode ? 'bg-slate-800/95 border-slate-800/60 text-white' : 'bg-slate-100 border-slate-300 text-slate-900',
+            activeClass: isDarkMode ? 'bg-slate-800/95 border-slate-500 text-white' : 'bg-slate-100 border-slate-300 text-slate-900',
             softClass: isDarkMode ? 'bg-slate-800/80 border-slate-800/55 text-slate-100' : 'bg-slate-100 border-slate-300 text-slate-800',
             stepLabel: 'เลือกผู้รับคืนและเช็กของกลับ'
           }
@@ -11719,7 +11678,7 @@ S.N.: ${item.sn || '-'}
             icon: Icons.UserPlus,
             status: 'borrowed',
             primaryBtn: 'bg-blue-600 hover:bg-blue-500',
-            activeClass: isDarkMode ? 'bg-slate-800/95 border-slate-800/60 text-white' : 'bg-slate-100 border-slate-300 text-slate-900',
+            activeClass: isDarkMode ? 'bg-slate-800/95 border-slate-500 text-white' : 'bg-slate-100 border-slate-300 text-slate-900',
             softClass: isDarkMode ? 'bg-slate-800/80 border-slate-800/55 text-slate-100' : 'bg-slate-100 border-slate-300 text-slate-800',
             stepLabel: 'กรอกผู้ยืมและกำหนดคืน'
           };
@@ -12261,7 +12220,7 @@ S.N.: ${item.sn || '-'}
           key={item.id}
           type="button"
           onClick={() => toggleOperationalItem(item.id)}
-          className={`operation-picker-card group relative w-full p-2.5 rounded-2xl border text-left transition-all overflow-hidden ${selected ? `${modeInfo.activeClass} ring-2 ring-emerald-400/45 shadow-[0_12px_30px_rgba(16,185,129,0.14)]` : (isDarkMode ? 'bg-slate-900/85 border-slate-800 hover:border-slate-800/60 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-blue-200 hover:bg-white')}`}
+          className={`operation-picker-card group relative w-full p-2.5 rounded-2xl border text-left transition-all overflow-hidden ${selected ? `${modeInfo.activeClass} ring-2 ring-emerald-400/45 shadow-[0_12px_30px_rgba(16,185,129,0.14)]` : (isDarkMode ? 'bg-slate-900/85 border-slate-800 hover:border-slate-500 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:border-blue-200 hover:bg-white')}`}
           style={{ minHeight: compact ? '96px' : '118px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
         >
           <div>
@@ -14152,7 +14111,7 @@ S.N.: ${item.sn || '-'}
 
     const toneClass = (tone, active = false) => {
       const map = {
-        slate: active ? 'border-slate-800/60/55 bg-slate-800/80 text-slate-50' : 'border-slate-800/55/70 bg-slate-900/55 text-slate-300 hover:border-slate-800/55/90 hover:bg-slate-900/85',
+        slate: active ? 'border-slate-500/55 bg-slate-800/80 text-slate-50' : 'border-slate-800/55/70 bg-slate-900/55 text-slate-300 hover:border-slate-800/55/90 hover:bg-slate-900/85',
         amber: active ? 'border-amber-400/45 bg-amber-500/10 text-amber-100' : 'border-slate-800/55/70 bg-slate-900/55 text-slate-300 hover:border-amber-400/30 hover:bg-amber-500/5',
         rose: active ? 'border-rose-400/45 bg-rose-500/10 text-rose-100' : 'border-slate-800/55/70 bg-slate-900/55 text-slate-300 hover:border-rose-400/30 hover:bg-rose-500/5',
         violet: active ? 'border-violet-400/45 bg-violet-500/10 text-violet-100' : 'border-slate-800/55/70 bg-slate-900/55 text-slate-300 hover:border-violet-400/30 hover:bg-violet-500/5',
@@ -14614,7 +14573,7 @@ S.N.: ${item.sn || '-'}
                     <div key={entry.groupKey || entry.id} className={`relative rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-900/72 border-slate-800/70 hover:border-slate-800/55' : 'bg-slate-50 border-slate-200 hover:border-slate-300'} transition-colors`}>
                       <div className="grid grid-cols-1 xl:grid-cols-[auto_minmax(0,1fr)_260px] gap-0">
                         {canDeleteItems && (
-                          <div className={`px-4 py-4 border-b xl:border-b-0 xl:border-r editor-divider ${isDarkMode ? "border-slate-800/45" : "border-slate-200/70"}`}>
+                          <div className={`px-4 py-4 border-b xl:border-b-0 xl:border-r editor-divider editor-divider ${isDarkMode ? "border-slate-800/45" : "border-slate-200/70"}`}>
                             <input type="checkbox" className="stock-checkbox" checked={rowsInGroup.every(row => isHistorySelected(row.id))} onChange={() => {
                               const groupIds = rowsInGroup.map(row => row.id);
                               const allPicked = groupIds.every(id => selectedHistoryRecordIds.includes(id));
@@ -15069,7 +15028,7 @@ S.N.: ${item.sn || '-'}
                   ['หลักฐาน', databaseStorageEstimate.proofImageCount || 0],
                   ['บัญชี', getEffectiveAccounts().length]
                 ].map(([label, value]) => (
-                  <div key={label} className="rounded-2xl border border-slate-800/60/10 bg-white/10 px-4 py-3 text-center min-w-[94px]">
+                  <div key={label} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-center min-w-[94px]">
                     <div className="text-2xl font-black">{Number(value || 0).toLocaleString('th-TH')}</div>
                     <div className="text-[11px] font-bold text-slate-300">{label}</div>
                   </div>
@@ -15106,7 +15065,7 @@ S.N.: ${item.sn || '-'}
                     <button key={card.title} type="button" onClick={card.action} className={`group p-5 rounded-[1.5rem] border text-left transition overflow-hidden relative ${isDarkMode ? 'bg-slate-900/80 border-slate-800 hover:border-blue-700 hover:bg-slate-900' : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-md'}`}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="w-12 h-12 rounded-2xl bg-blue-950/35 text-blue-100 border border-blue-500/50 flex items-center justify-center shadow-lg shadow-blue-600/20"><Icon className="w-6 h-6" /></div>
-                        <span className={`px-2.5 py-1 rounded-full border text-[11px] font-black ${isDarkMode ? 'bg-white/5 border-slate-800/60/10 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>{card.badge}</span>
+                        <span className={`px-2.5 py-1 rounded-full border text-[11px] font-black ${isDarkMode ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>{card.badge}</span>
                       </div>
                       <div className={`mt-4 text-lg font-black ${theme.textTitle}`}>{card.title}</div>
                       <div className={`mt-1 text-sm font-bold leading-relaxed ${theme.textMuted}`}>{card.desc}</div>
@@ -15728,7 +15687,7 @@ S.N.: ${item.sn || '-'}
     if (t === 'return') return 'bg-emerald-500/10 border-emerald-500/25 text-emerald-200';
     if (t.includes('repair')) return 'bg-rose-500/10 border-rose-500/25 text-rose-200';
     if (t === 'system') return 'bg-sky-500/10 border-sky-500/25 text-sky-200';
-    return 'bg-slate-500/10 border-slate-800/60/25 text-slate-200';
+    return 'bg-slate-500/10 border-slate-500/25 text-slate-200';
   };
 
   // v23.1.50: ประวัติส่วนกลางให้เหลือเฉพาะเหตุการณ์หลักที่มีความหมายต่อการทำงานจริง
@@ -21190,14 +21149,14 @@ ${auditChangeSummary}` : auditChangeSummary);
                 const item = items.find(i => i.id === id);
                 if(!item) return null;
                 return (
-                   <div key={id} className={`qr-plain-card border border-slate-300 flex flex-col items-center text-center break-inside-avoid print:border-solid print:border-slate-800/60 rounded-xl print:rounded-none relative print:min-h-0 bg-white ${qrPreset.card}`}>
+                   <div key={id} className={`qr-plain-card border border-slate-300 flex flex-col items-center text-center break-inside-avoid print:border-solid print:border-slate-400 rounded-xl print:rounded-none relative print:min-h-0 bg-white ${qrPreset.card}`}>
                       <div className="w-full flex items-center justify-between gap-2 mb-2 print:mb-1">
                         <div className="qr-brand-logo">
                           {showเอกสารLogo('qrLogo') && renderOrgLogoBox({ className: 'w-12 h-7 print:w-10 print:h-6 rounded-lg border border-slate-200 px-1.5 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
                         </div>
                         <div className="text-[9px] print:text-[6.5px] font-black tracking-wide text-blue-700 border border-blue-200 bg-blue-50 rounded-lg px-2 py-1">MDEC ASSET</div>
                       </div>
-                      <div className="qr-safe-zone bg-white p-2.5 print:p-1.5 rounded-xl border border-slate-800/60 shadow-none">
+                      <div className="qr-safe-zone bg-white p-2.5 print:p-1.5 rounded-xl border border-white shadow-none">
                         <img src={`https://api.qrserver.com/v1/create-qr-code/?size=${qrPreset.qrServer}x${qrPreset.qrServer}&margin=4&data=${encodeURIComponent(item.id)}`} alt="QR" className={`qr-code-image ${qrPreset.qrClass} object-contain block`} />
                       </div>
                       <span className={`${qrPreset.nameClass} font-black leading-tight line-clamp-2 w-full mt-1.5`}>{item.name}</span>
@@ -21232,7 +21191,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                             <div className="text-[9px] print:text-[6.4pt] font-bold text-slate-500 truncate">ศูนย์มัลติมีเดียทางการศึกษา</div>
                           </div>
                         </div>
-                        <div className="text-[9px] print:text-[6.2pt] font-black border border-slate-800/60 bg-slate-100 text-slate-900 px-1.5 py-0.5 rounded-md shrink-0">{labelPrimaryCode}</div>
+                        <div className="text-[9px] print:text-[6.2pt] font-black border border-slate-400 bg-slate-100 text-slate-900 px-1.5 py-0.5 rounded-md shrink-0">{labelPrimaryCode}</div>
                       </div>
 
                       <div className="flex gap-2.5 print:gap-1.5 items-stretch min-h-0">
@@ -21481,11 +21440,11 @@ ${auditChangeSummary}` : auditChangeSummary);
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-slate-900 text-white">
-                    <th className="border border-slate-800/60 px-2 py-2 text-center w-12">ลำดับ</th>
-                    <th className="border border-slate-800/60 px-2 py-2 text-left">อุปกรณ์</th>
-                    <th className="border border-slate-800/60 px-2 py-2 text-left w-36">S.N.</th>
-                    <th className="border border-slate-800/60 px-2 py-2 text-left w-40">หมวด / ฝ่าย</th>
-                    <th className="border border-slate-800/60 px-2 py-2 text-left w-44">หมายเหตุ</th>
+                    <th className="border border-slate-400 px-2 py-2 text-center w-12">ลำดับ</th>
+                    <th className="border border-slate-400 px-2 py-2 text-left">อุปกรณ์</th>
+                    <th className="border border-slate-400 px-2 py-2 text-left w-36">S.N.</th>
+                    <th className="border border-slate-400 px-2 py-2 text-left w-40">หมวด / ฝ่าย</th>
+                    <th className="border border-slate-400 px-2 py-2 text-left w-44">หมายเหตุ</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -21565,7 +21524,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               <div className="text-3xl sm:text-4xl lg:text-[2.55rem] leading-none font-black mt-2 tabular-nums">{value}</div>
               <div className="text-[10px] sm:text-[11px] font-bold opacity-70 mt-1 truncate">{caption}</div>
             </div>
-            <div className="w-9 h-9 rounded-xl bg-white/8 border border-slate-800/60/10 flex items-center justify-center shrink-0 text-base">{icon}</div>
+            <div className="w-9 h-9 rounded-xl bg-white/8 border border-white/10 flex items-center justify-center shrink-0 text-base">{icon}</div>
           </div>
         </div>
       );
@@ -21721,7 +21680,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <div className="min-w-0">
                     <div className="text-xs font-black tracking-[.18em] text-emerald-300/80 uppercase">STOCK HEALTH</div>
                     <div className="text-2xl font-black text-white mt-1">ความพร้อมของสต๊อก</div>
-                    <div className="mt-3 h-2 rounded-full bg-slate-800 overflow-hidden border border-slate-800/60/5">
+                    <div className="mt-3 h-2 rounded-full bg-slate-800 overflow-hidden border border-white/5">
                       <div className="h-full bg-gradient-to-r from-emerald-400 to-cyan-300" style={{ width: `${Math.max(0, Math.min(100, healthPercentage))}%` }}></div>
                     </div>
                     <div className="text-xs font-bold text-slate-400 mt-2">พร้อมใช้ {stats.available} จาก {stats.all} รายการ</div>
@@ -21812,8 +21771,8 @@ ${auditChangeSummary}` : auditChangeSummary);
     <div data-polish-theme="dark" className={`factory-stock-polish desktop-overview-clean min-h-screen font-sans ${pagePaddingClass} lg:pl-80 pb-32 lg:pb-8 transition-colors duration-300 selection:bg-blue-500/20 antialiased ${theme.mainBg} ${theme.textMain} ${homeCompactMode ? 'home-comfort-compact' : ''}`}>
       <FactoryPolishStyle isDarkMode={isDarkMode} />
       {/* FactoryStock Desktop Sidebar */}
-      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-72 bg-slate-950 text-white flex-col border-r border-slate-800/60/10">
-        <div className="p-6 border-b border-slate-800/60/10">
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-72 bg-slate-950 text-white flex-col border-r border-white/10">
+        <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
               <Icons.Package className="w-7 h-7" />
@@ -21845,7 +21804,7 @@ ${auditChangeSummary}` : auditChangeSummary);
             </button>
 
             <div className={`operation-dropdown-menu overflow-hidden transition-all duration-200 ease-out ${['borrow','event','return'].includes(activeWorkspace) ? 'max-h-64 opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0 group-hover:max-h-64 group-hover:opacity-100 group-hover:mt-2 group-focus-within:max-h-64 group-focus-within:opacity-100 group-focus-within:mt-2'}`}>
-              <div className="ml-4 pl-3 border-l border-slate-800/60/10 space-y-1">
+              <div className="ml-4 pl-3 border-l border-white/10 space-y-1">
                 <button type="button" onClick={() => openWorkspace('borrow')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-all ${activeWorkspace === 'borrow' ? 'bg-blue-950/35 text-blue-100 border border-blue-500/50 font-black shadow-lg shadow-blue-500/15' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
                   <Icons.UserPlus className="w-4 h-4 shrink-0" />
                   <span className="min-w-0">
@@ -21895,7 +21854,7 @@ ${auditChangeSummary}` : auditChangeSummary);
             </button>
 
             <div className={`operation-dropdown-menu overflow-hidden transition-all duration-200 ease-out ${activeWorkspace === 'inventory' ? 'max-h-[26rem] opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0 group-hover:max-h-[26rem] group-hover:opacity-100 group-hover:mt-2 group-focus-within:max-h-[26rem] group-focus-within:opacity-100 group-focus-within:mt-2'}`}>
-              <div className="ml-4 pl-3 border-l border-slate-800/60/10 space-y-1">
+              <div className="ml-4 pl-3 border-l border-white/10 space-y-1">
                 {[
                   { id: 'available', label: 'พร้อมใช้งาน', desc: 'หยิบใช้ได้ทันที', icon: Icons.CheckCircle, count: stats.available, activeClass: 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/15' },
                   { id: 'using', label: 'กำลังใช้งาน', desc: 'ถูกยืม / ออกงาน', icon: Icons.History, count: stats.using, activeClass: 'bg-orange-600 text-white shadow-lg shadow-orange-500/15' },
@@ -21929,7 +21888,7 @@ ${auditChangeSummary}` : auditChangeSummary);
             <Icons.History className="w-5 h-5" /> ติดตามของรอคืน
           </button>
 
-          <div className="pt-4 mt-4 border-t border-slate-800/60/10 space-y-2">
+          <div className="pt-4 mt-4 border-t border-white/10 space-y-2">
             <div className="px-3 pb-1 text-[10px] font-black tracking-[0.22em] uppercase text-slate-500">System</div>
             <button type="button" onClick={() => openWorkspace('tools')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl transition-all text-left ${activeWorkspace === 'tools' ? 'bg-gradient-to-r from-slate-700 to-indigo-700 text-white shadow-lg shadow-indigo-500/15 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}>
               <Icons.Settings className="w-5 h-5" /> ตั้งค่าระบบ
@@ -21940,8 +21899,8 @@ ${auditChangeSummary}` : auditChangeSummary);
           </div>
         </nav>
 
-        <div className="p-4 border-t border-slate-800/60/10 space-y-3">
-          <div className="rounded-2xl bg-white/5 border border-slate-800/60/10 p-4">
+        <div className="p-4 border-t border-white/10 space-y-3">
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
             <div className="text-xs text-slate-400 mb-1 font-bold">สถานะระบบ</div>
             <div className="text-sm font-black text-emerald-300">● พร้อมใช้งาน {stats.available.toLocaleString('th-TH')} / {stats.all.toLocaleString('th-TH')}</div>
           </div>
@@ -23034,7 +22993,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       {/* v22.58.0: เมนูรวมเดิมถูกถอดจากทางเข้าหลักแล้ว เหลือไว้เป็น fallback ภายในเท่านั้น */}
       {showMoreMenu && (
         <div className={`mobile-more-menu-overlay fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
-          <div className={`mobile-more-menu-shell rounded-[2rem] shadow-2xl w-full max-w-6xl overflow-hidden border ring-1 ring-white/10 ${isDarkMode ? 'bg-slate-900 border-slate-800/55 shadow-black/40' : 'bg-white border-slate-800/60 shadow-slate-200/80'}`}>
+          <div className={`mobile-more-menu-shell rounded-[2rem] shadow-2xl w-full max-w-6xl overflow-hidden border ring-1 ring-white/10 ${isDarkMode ? 'bg-slate-900 border-slate-800/55 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
             <div className={`flex justify-between items-start gap-3 p-6 border-b ${theme.divide}`}>
               <div>
                 <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
@@ -23209,7 +23168,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               <div className="flex flex-col justify-between gap-8">
                 <div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <div className={`w-20 h-20 rounded-[1.75rem] border flex items-center justify-center p-3 shadow-lg ${isDarkMode ? 'bg-white/6 border-slate-800/60/10' : 'bg-white border-slate-200'}`}>
+                    <div className={`w-20 h-20 rounded-[1.75rem] border flex items-center justify-center p-3 shadow-lg ${isDarkMode ? 'bg-white/6 border-white/10' : 'bg-white border-slate-200'}`}>
                       {renderOrgLogoBox({ className: 'w-full h-full rounded-2xl border-0 bg-transparent p-0', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-9 h-9' })}
                     </div>
                     <div className="min-w-0">
@@ -23235,7 +23194,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     ['อยู่นอกศูนย์', (currentBorrowedItems.length + currentEventItems.length) || 0, 'ยืม/ออกงาน'],
                     ['ต้องติดตาม', (overdueItems.length + dueTodayItems.length) || 0, 'วันนี้']
                   ].map(([label, value, caption]) => (
-                    <button key={label} type="button" onClick={() => label === 'ต้องติดตาม' ? openTrackingCenter('today') : openWorkspace('inventory')} className={`rounded-[1.35rem] border p-4 text-left transition-all hover:-translate-y-0.5 ${isDarkMode ? 'bg-white/[0.045] hover:bg-white/[0.07] border-slate-800/60/10' : 'bg-white hover:bg-blue-50/60 border-slate-200'}`}>
+                    <button key={label} type="button" onClick={() => label === 'ต้องติดตาม' ? openTrackingCenter('today') : openWorkspace('inventory')} className={`rounded-[1.35rem] border p-4 text-left transition-all hover:-translate-y-0.5 ${isDarkMode ? 'bg-white/[0.045] hover:bg-white/[0.07] border-white/10' : 'bg-white hover:bg-blue-50/60 border-slate-200'}`}>
                       <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>{label}</div>
                       <div className={`mt-2 text-3xl font-black tabular-nums ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
                       <div className={`mt-1 text-xs font-bold ${theme.textMuted}`}>{caption}</div>
@@ -23244,7 +23203,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </div>
               </div>
 
-              <div className={`rounded-[2rem] border p-4 sm:p-5 flex flex-col justify-between gap-5 ${isDarkMode ? 'bg-slate-900/78 border-slate-800/60/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+              <div className={`rounded-[2rem] border p-4 sm:p-5 flex flex-col justify-between gap-5 ${isDarkMode ? 'bg-slate-900/78 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className={`text-xs font-black tracking-[0.2em] uppercase ${theme.textMuted}`}>Current Session</div>
@@ -23262,7 +23221,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                       <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${databaseStorageEstimate.textTone}`}>DATABASE USAGE</div>
                       <div className={`text-sm font-black mt-0.5 ${theme.textTitle}`}>พื้นที่ฐานข้อมูล {databaseStorageEstimate.percentText}</div>
                     </div>
-                    <div className={`text-xs font-black px-2.5 py-1 rounded-xl border ${isDarkMode ? 'bg-slate-950/45 border-slate-800/55' : 'bg-white/75 border-slate-800/60'}`}>{databaseStorageEstimate.label}</div>
+                    <div className={`text-xs font-black px-2.5 py-1 rounded-xl border ${isDarkMode ? 'bg-slate-950/45 border-slate-800/55' : 'bg-white/75 border-white'}`}>{databaseStorageEstimate.label}</div>
                   </div>
                   <div className={`h-3 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-950/70' : 'bg-white/80'}`}>
                     <div className={`h-full ${databaseStorageEstimate.barClass} transition-all duration-500`} style={{ width: databaseStorageEstimate.percentWidth }} />
@@ -23984,7 +23943,7 @@ ${auditChangeSummary}` : auditChangeSummary);
             </div>
 
             <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[330px_minmax(0,1fr)]">
-              <aside className={`min-h-0 p-4 border-b xl:border-b-0 xl:border-r editor-divider flex flex-col gap-3 ${theme.divide} ${isDarkMode ? 'bg-slate-950/25' : 'bg-slate-50/80'}`}>
+              <aside className={`min-h-0 p-4 border-b xl:border-b-0 xl:border-r editor-divider editor-divider flex flex-col gap-3 ${theme.divide} ${isDarkMode ? 'bg-slate-950/25' : 'bg-slate-50/80'}`}>
                 <div className={`editor-card rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/70 border-slate-800/55' : 'bg-white border-slate-200'}`}>
                   <label className="block">
                     <span className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>ชื่อกล่อง / ตู้ / ชั้น <span className="text-rose-500">*</span></span>
@@ -24097,7 +24056,7 @@ ${auditChangeSummary}` : auditChangeSummary);
             </div>
 
             <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[330px_minmax(0,1fr)]">
-              <aside className={`min-h-0 p-4 border-b xl:border-b-0 xl:border-r editor-divider flex flex-col gap-3 ${theme.divide} ${isDarkMode ? 'bg-slate-950/25' : 'bg-slate-50/80'}`}>
+              <aside className={`min-h-0 p-4 border-b xl:border-b-0 xl:border-r editor-divider editor-divider flex flex-col gap-3 ${theme.divide} ${isDarkMode ? 'bg-slate-950/25' : 'bg-slate-50/80'}`}>
                 <div className="flex items-center justify-between gap-3 shrink-0">
                   <div>
                     <div className={`text-[11px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Sets</div>
@@ -25293,7 +25252,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                                   {subName && <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ผู้เกี่ยวข้อง/เจ้าหน้าที่: {subName}</div>}
                                   {(h.operatorName || h.performedBy) && <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ผู้ทำรายการในระบบ: {h.operatorName || h.performedBy}</div>}
                                   {h.expectedReturn && <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>กำหนดคืน: {new Date(h.expectedReturn).toLocaleDateString('th-TH')}</div>}
-                                  {h.note && <div className={`mt-2.5 p-2.5 rounded-xl border text-sm font-bold ${isDarkMode ? 'bg-slate-950/60 border-slate-800/55 text-slate-300' : 'bg-white/100 border-slate-800/60 text-slate-700'}`}>หมายเหตุ: {h.note}</div>}
+                                  {h.note && <div className={`mt-2.5 p-2.5 rounded-xl border text-sm font-bold ${isDarkMode ? 'bg-slate-950/60 border-slate-800/55 text-slate-300' : 'bg-white/100 border-white text-slate-700'}`}>หมายเหตุ: {h.note}</div>}
                                 </div>
                                 <div className="shrink-0 sm:text-right">
                                   <div className={`text-xs font-black ${theme.textMuted}`}>หลักฐาน</div>
@@ -25406,7 +25365,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       {/* 👤 Modal บัญชีของฉัน */}
       {showMyAccountModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[10000]`}>
-          <div className={`rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900 border-slate-800/55 shadow-black/40' : 'bg-white border-slate-800/60 shadow-slate-200/80'}`}>
+          <div className={`rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900 border-slate-800/55 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
             <div className={`p-6 border-b flex justify-between items-start gap-3 ${theme.divide}`}>
               <div>
                 <h3 className={`text-2xl font-black flex items-center gap-3 ${theme.textTitle}`}>
@@ -26297,7 +26256,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       {/* 🗂️ Legacy Project Manager (เก็บไว้เผื่อปุ่มเก่าเรียก แต่เมนูหลักใช้หน้าโครงการจัดซื้อแบบเต็มหน้าแล้ว) */}
       {showProjectsModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990] mdec-history-proof-safe`}>
-          <div className={`borrow-docs-archive-shell rounded-[2rem] shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900 border-slate-800/55 shadow-black/40' : 'bg-white border-slate-800/60 shadow-slate-200/80'}`}>
+          <div className={`borrow-docs-archive-shell rounded-[2rem] shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900 border-slate-800/55 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
             <div className={`p-6 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${theme.divide}`}>
               <div>
                 <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}>
@@ -26522,7 +26481,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
             <div className={`px-4 sm:px-6 py-4 border-b grid grid-cols-2 md:grid-cols-5 gap-2 ${theme.divide}`}>
               {[
-                ['ทั้งหมด', allHistoryCenterEntries.length, 'bg-slate-500/10 text-slate-600 border-slate-800/60/20'],
+                ['ทั้งหมด', allHistoryCenterEntries.length, 'bg-slate-500/10 text-slate-600 border-slate-500/20'],
                 ['ยืม', allHistoryCenterEntries.filter(e => e.historyType === 'borrow').length, 'bg-purple-500/10 text-purple-600 border-purple-500/20'],
                 ['ออกงาน', allHistoryCenterEntries.filter(e => e.historyType === 'event').length, 'bg-orange-500/10 text-orange-600 border-orange-500/20'],
                 ['รับคืน', allHistoryCenterEntries.filter(e => e.historyType === 'return').length, 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'],
@@ -26606,7 +26565,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       {/* ศูนย์รูปหลักฐานทั้งหมด */}
       {showProofCenterModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-2 sm:p-4 z-[9990] mdec-history-proof-safe`}>
-          <div className={`rounded-[1.75rem] sm:rounded-[2rem] shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[94vh] border ${isDarkMode ? 'bg-slate-900 border-slate-800/55 shadow-black/40' : 'bg-white border-slate-800/60 shadow-slate-200/80'}`}>
+          <div className={`rounded-[1.75rem] sm:rounded-[2rem] shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[94vh] border ${isDarkMode ? 'bg-slate-900 border-slate-800/55 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
             <div className={`p-4 sm:p-6 border-b ${theme.divide}`}>
               <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -26625,7 +26584,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
               <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2 mt-5">
                 {[
-                  ['all', 'ทั้งหมด', proofCenterSummaryStats.total, 'bg-slate-500/10 text-slate-700 border-slate-800/60/20'],
+                  ['all', 'ทั้งหมด', proofCenterSummaryStats.total, 'bg-slate-500/10 text-slate-700 border-slate-500/20'],
                   ['borrow', 'ยืม', proofCenterSummaryStats.borrow, 'bg-purple-500/10 text-purple-700 border-purple-500/20'],
                   ['event', 'ออกงาน', proofCenterSummaryStats.event, 'bg-orange-500/10 text-orange-700 border-orange-500/20'],
                   ['return', 'รับคืน', proofCenterSummaryStats.return, 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'],
@@ -26725,7 +26684,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                               <div className={`w-full h-56 flex items-center justify-center font-black ${theme.textMuted}`}>ไม่มีภาพตัวอย่าง</div>
                             )}
                           </button>
-                          <div className="absolute right-3 top-3 px-2.5 py-1 rounded-xl bg-white text-slate-800 text-xs font-black border border-slate-800/60/70 shadow-sm">
+                          <div className="absolute right-3 top-3 px-2.5 py-1 rounded-xl bg-white text-slate-800 text-xs font-black border border-white/70 shadow-sm">
                             ภาพเต็ม
                           </div>
                           {group.itemRefs.length > 1 && (
@@ -26974,7 +26933,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <div className={`font-black text-lg ${theme.textTitle}`}>ตรวจคุณภาพข้อมูลอุปกรณ์</div>
                     <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ช่วยหาอุปกรณ์ที่ยังข้อมูลไม่ครบ โดยเฉพาะกล้อง เลนส์ แบต และเมม</div>
                   </div>
-                  <div className={`px-4 py-2.5 rounded-2xl text-center ${isDarkMode ? 'bg-slate-950/60' : 'bg-white/80 border border-slate-800/60'}`}>
+                  <div className={`px-4 py-2.5 rounded-2xl text-center ${isDarkMode ? 'bg-slate-950/60' : 'bg-white/80 border border-white'}`}>
                     <div className={`text-xs font-black ${theme.textMuted}`}>คะแนนความครบถ้วน</div>
                     <div className={`text-3xl font-black ${theme.textTitle}`}>{dataQualityAudit.qualityScore}%</div>
                   </div>
@@ -26986,7 +26945,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {dataQualityAudit.priorityCards.map(card => (
-                      <div key={card.id} className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-950/50 border-slate-800' : 'bg-white/90 border-slate-800/60'}`}>
+                      <div key={card.id} className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-950/50 border-slate-800' : 'bg-white/90 border-white'}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className={`font-black ${theme.textTitle}`}>{card.title}</div>
