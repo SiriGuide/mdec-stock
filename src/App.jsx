@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.3.4 Box Set Border Rollback Safe Fix';
-const APP_UPDATE_NOTE = 'Box Set Border Rollback Safe Fix: ย้อนแก้จาก v23.3.3 ที่ทำเส้นขาวกระทบทั้งเว็บ กลับมาใช้ฐาน v23.3.2 แล้วแก้เส้นเฉพาะ popup กล่อง/เซ็ตแบบปลอดภัย ไม่ใช้ selector กว้าง';
+const APP_VERSION = 'v23.3.5 Box Set No White Divider Fix';
+const APP_UPDATE_NOTE = 'Box Set No White Divider Fix: เอาเส้นแบ่งขาวในหน้า Box/Set และ popup แก้ไขกล่อง/เซ็ตออกจริง โดยไม่ใช้ CSS กว้าง ไม่กระทบทั้งเว็บ และให้ใช้ gap/background แทนเส้นแข็ง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -1060,6 +1060,31 @@ function FactoryPolishStyle({ isDarkMode }) {
       }
       .box-set-unified-editor .editor-list > * + * {
         border-top: 1px solid rgba(51, 65, 85, .42) !important;
+      }
+
+
+      /* v23.3.5: remove white divider lines in Box/Set only */
+      .box-set-unified-editor .modal-hard-line,
+      .box-set-unified-editor .editor-divider {
+        border-color: transparent !important;
+      }
+      .box-set-unified-editor .editor-list > * + * {
+        border-top: 0 !important;
+      }
+      .box-set-unified-editor .editor-row {
+        border-color: transparent !important;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, .45);
+        margin-bottom: 6px;
+      }
+      .box-set-unified-editor .editor-footer {
+        border-top-color: rgba(15, 23, 42, .85) !important;
+      }
+      .organize-workspace-panel .boxset-main-split {
+        border-color: transparent !important;
+      }
+      .organize-workspace-panel .boxset-side-list {
+        border-right: 0 !important;
       }
 
 @media (min-width: 1024px) {
@@ -10400,7 +10425,7 @@ S.N.: ${item.sn || '-'}
         : (isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700');
 
     return (
-      <div className="solid-workspace space-y-5">
+      <div className="solid-workspace organize-workspace-panel space-y-5">
         {renderWorkspaceTabs()}
         <div className={`rounded-[1.75rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
           <div className={`p-4 sm:p-5 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-3 ${theme.divide}`}>
@@ -10665,7 +10690,7 @@ S.N.: ${item.sn || '-'}
                 <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>รายละเอียดสั้น ๆ</span><textarea rows={3} className={`w-full px-4 py-3 rounded-xl border font-bold resize-none ${theme.input}`} placeholder="เช่น ปรับปรุงประสิทธิภาพการถ่ายภาพกิจกรรมของวิทยาลัย" value={projectMetaForm.objective} onChange={e => setProjectMetaForm(prev => ({ ...prev, objective: e.target.value }))} /></label>
                 <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>หมายเหตุ</span><textarea rows={3} className={`w-full px-4 py-3 rounded-xl border font-bold resize-none ${theme.input}`} placeholder="หมายเหตุ / เลขที่เอกสาร / แหล่งที่มา" value={projectMetaForm.note} onChange={e => setProjectMetaForm(prev => ({ ...prev, note: e.target.value }))} /></label>
               </div>
-              <div className={`p-4 border-t editor-footer flex flex-col sm:flex-row justify-end gap-2 ${theme.divide}`}>
+              <div className={`p-4 border-t flex flex-col sm:flex-row justify-end gap-2 ${theme.divide}`}>
                 <button type="button" onClick={closeProjectMetaEditor} className={`px-5 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ยกเลิก</button>
                 <button type="button" onClick={() => runWithBusy(handleSaveProjectMeta)} disabled={isBusy} className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black disabled:opacity-60">บันทึกโครงการ</button>
               </div>
@@ -10822,8 +10847,8 @@ S.N.: ${item.sn || '-'}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 2xl:grid-cols-[380px_minmax(0,1fr)] min-h-[560px]">
-                <aside className={`border-b 2xl:border-b-0 2xl:border-r editor-divider editor-divider ${theme.divide}`}>
+              <div className="grid grid-cols-1 2xl:grid-cols-[380px_minmax(0,1fr)] gap-3 min-h-[560px]">
+                <aside className={`2xl:border-r-0`}>
                   <div className="p-3 space-y-2 max-h-[560px] overflow-y-auto custom-scrollbar">
                     {activeCollections.length === 0 ? (
                       <div className={`p-8 rounded-2xl border text-center ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
@@ -10921,7 +10946,7 @@ S.N.: ${item.sn || '-'}
                           {selectedStats.items.length === 0 ? (
                             <div className={`p-8 text-center font-black ${theme.textMuted}`}>ยังไม่มีอุปกรณ์ในรายการนี้</div>
                           ) : selectedStats.items.map((item) => (
-                            <div key={item.id} className="px-4 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+                            <div key={item.id} className="editor-row px-4 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-2">
                               <div className="min-w-0">
                                 <div className={`font-black break-words ${theme.textTitle}`}>{item.name || '-'}</div>
                                 <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || '-'} • {item.category || '-'}</div>
@@ -14573,7 +14598,7 @@ S.N.: ${item.sn || '-'}
                     <div key={entry.groupKey || entry.id} className={`relative rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-900/72 border-slate-800/70 hover:border-slate-800/55' : 'bg-slate-50 border-slate-200 hover:border-slate-300'} transition-colors`}>
                       <div className="grid grid-cols-1 xl:grid-cols-[auto_minmax(0,1fr)_260px] gap-0">
                         {canDeleteItems && (
-                          <div className={`px-4 py-4 border-b xl:border-b-0 xl:border-r editor-divider editor-divider ${isDarkMode ? "border-slate-800/45" : "border-slate-200/70"}`}>
+                          <div className={`px-4 py-4 border-b xl:border-b-0 xl:border-r ${isDarkMode ? "border-slate-800/45" : "border-slate-200/70"}`}>
                             <input type="checkbox" className="stock-checkbox" checked={rowsInGroup.every(row => isHistorySelected(row.id))} onChange={() => {
                               const groupIds = rowsInGroup.map(row => row.id);
                               const allPicked = groupIds.every(id => selectedHistoryRecordIds.includes(id));
@@ -15210,7 +15235,7 @@ S.N.: ${item.sn || '-'}
                   <div className={`font-black ${theme.textTitle}`}>📦 {location}</div>
                   <div className={`text-xs font-black ${theme.textMuted}`}>{list.length.toLocaleString('th-TH')} รายการ</div>
                 </div>
-                <div className="divide-y divide-slate-800/45/20">
+                <div className="divide-y divide-slate-800/20">
                   {list.map(item => {
                     const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
                     return (
@@ -23563,7 +23588,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
             </div>
 
-            <div className={`p-4 border-t editor-footer flex flex-col sm:flex-row gap-3 ${theme.divide}`}>
+            <div className={`p-4 border-t flex flex-col sm:flex-row gap-3 ${theme.divide}`}>
               <button type="button" onClick={() => setShowStorageBoxAssignModal(false)} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button type="button" onClick={saveSelectedAsStorageBox} className="flex-[2] py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl text-lg shadow-md">บันทึกเป็นกล่องเก็บของ</button>
             </div>
@@ -23634,7 +23659,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
             </div>
 
-            <div className={`p-4 border-t editor-footer flex flex-col sm:flex-row gap-3 ${theme.divide}`}>
+            <div className={`p-4 border-t flex flex-col sm:flex-row gap-3 ${theme.divide}`}>
               <button type="button" onClick={() => { setShowPrepAssignModal(false); openWorkspace('organize'); }} className={`flex-1 py-4 font-bold rounded-xl text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button type="button" onClick={handleSavePrepList} className="flex-[2] py-4 bg-sky-600 hover:bg-sky-500 text-white font-black rounded-xl text-lg shadow-md">บันทึกใช้งาน</button>
             </div>
@@ -23942,8 +23967,8 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[330px_minmax(0,1fr)]">
-              <aside className={`min-h-0 p-4 border-b xl:border-b-0 xl:border-r editor-divider editor-divider flex flex-col gap-3 ${theme.divide} ${isDarkMode ? 'bg-slate-950/25' : 'bg-slate-50/80'}`}>
+            <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[330px_minmax(0,1fr)] gap-3">
+              <aside className={`min-h-0 p-4 flex flex-col gap-3 ${theme.divide} ${isDarkMode ? 'bg-slate-950/25' : 'bg-slate-50/80'}`}>
                 <div className={`editor-card rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/70 border-slate-800/55' : 'bg-white border-slate-200'}`}>
                   <label className="block">
                     <span className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>ชื่อกล่อง / ตู้ / ชั้น <span className="text-rose-500">*</span></span>
@@ -23997,7 +24022,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     const selected = selectedBoxIds.includes(item.id);
                     const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
                     return (
-                      <button key={item.id} type="button" onClick={() => toggleBoxItem(item.id)} className={`w-full text-left px-4 py-3 border-b last:border-b-0 ${theme.divide} transition ${selected ? (isDarkMode ? 'bg-cyan-500/12' : 'bg-cyan-50') : ''}`}>
+                      <button key={item.id} type="button" onClick={() => toggleBoxItem(item.id)} className={`w-full text-left px-4 py-3  ${theme.divide} transition ${selected ? (isDarkMode ? 'bg-cyan-500/12' : 'bg-cyan-50') : ''}`}>
                         <div className="flex items-center gap-3">
                           <div className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 ${selected ? 'bg-cyan-500 border-cyan-400 text-white' : (isDarkMode ? 'border-slate-800/55' : 'border-slate-300')}`}>{selected ? '✓' : ''}</div>
                           <div className="min-w-0 flex-1">
@@ -24055,8 +24080,8 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[330px_minmax(0,1fr)]">
-              <aside className={`min-h-0 p-4 border-b xl:border-b-0 xl:border-r editor-divider editor-divider flex flex-col gap-3 ${theme.divide} ${isDarkMode ? 'bg-slate-950/25' : 'bg-slate-50/80'}`}>
+            <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[330px_minmax(0,1fr)] gap-3">
+              <aside className={`min-h-0 p-4 flex flex-col gap-3 ${theme.divide} ${isDarkMode ? 'bg-slate-950/25' : 'bg-slate-50/80'}`}>
                 <div className="flex items-center justify-between gap-3 shrink-0">
                   <div>
                     <div className={`text-[11px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Sets</div>
@@ -24121,7 +24146,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     const selected = selectedBundleIds.includes(item.id);
                     const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
                     return (
-                      <button key={item.id} type="button" onClick={() => toggleBundleItem(item.id)} className={`w-full text-left px-4 py-3 border-b last:border-b-0 ${theme.divide} transition ${selected ? (isDarkMode ? 'bg-violet-500/12' : 'bg-violet-50') : ''}`}>
+                      <button key={item.id} type="button" onClick={() => toggleBundleItem(item.id)} className={`w-full text-left px-4 py-3  ${theme.divide} transition ${selected ? (isDarkMode ? 'bg-violet-500/12' : 'bg-violet-50') : ''}`}>
                         <div className="flex items-center gap-3">
                           <div className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 ${selected ? 'bg-violet-500 border-violet-400 text-white' : (isDarkMode ? 'border-slate-800/55' : 'border-slate-300')}`}>{selected ? '✓' : ''}</div>
                           <div className="min-w-0 flex-1">
@@ -25593,7 +25618,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               )}
             </div>
 
-            <div className={`p-4 border-t editor-footer flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
+            <div className={`p-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
               <div className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>ถ้าลบผิด ให้กด “กู้คืน” รายการจะกลับไปอยู่ในหน้ารายการอุปกรณ์หลักทันที</div>
               <button type="button" onClick={() => setShowTrashModal(false)} className={`px-5 py-2.5 rounded-2xl border font-black ${theme.btnCancel}`}>ปิดถังขยะ</button>
             </div>
@@ -26171,7 +26196,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
             </div>
 
-            <div className={`p-4 border-t editor-footer flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
+            <div className={`p-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
               <div className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>ศูนย์ซ่อมเป็นหน้ารวมข้อมูล ไม่เปลี่ยน flow ยืม/คืนเดิม การปิดงานซ่อมทำผ่านปุ่มอัปเดตซ่อมเท่านั้น</div>
               <button type="button" onClick={() => setShowRepairCenterModal(false)} className={`px-6 py-2.5 rounded-2xl font-black ${theme.btnCancel}`}>ปิดศูนย์ซ่อม</button>
             </div>
@@ -27202,7 +27227,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               )}
             </div>
 
-            <div className={`borrow-docs-footer p-4 border-t editor-footer flex flex-col sm:flex-row justify-between items-center gap-3 ${theme.divide}`}>
+            <div className={`borrow-docs-footer p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-3 ${theme.divide}`}>
               <div className={`text-sm font-bold ${theme.textMuted}`}>{borrowเอกสารs.length === 0 ? 'ยังไม่มีเอกสารในระบบ' : `กำลังแสดง ${filteredBorrowเอกสารs.length.toLocaleString('th-TH')} จาก ${borrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร`}</div>
               <button type="button" onClick={() => setShowBorrowDocsModal(false)} className={`w-full sm:w-auto px-6 py-2.5 rounded-2xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
             </div>
