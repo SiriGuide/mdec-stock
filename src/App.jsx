@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.2.3 Account Editor Reveal Fix';
-const APP_UPDATE_NOTE = 'Account Editor Reveal Fix: แก้ปุ่มเพิ่มผู้ใช้ในหน้าบัญชีผู้ใช้ให้เปิดฟอร์ม NEW ACCOUNT ชัดเจน และให้ฟอร์มเพิ่ม/แก้ไขปรากฏเฉพาะตอนกดเพิ่มหรือแก้ไขเท่านั้น ลดความแปลกของหน้า';
+const APP_VERSION = 'v23.2.4 Account Page Form On Demand';
+const APP_UPDATE_NOTE = 'Account Page Form On Demand: ปรับหน้าบัญชีผู้ใช้ให้ฟอร์มเพิ่ม/แก้ไขซ่อนจริงจนกว่าจะกดเพิ่มหรือแก้ไข และถอดปุ่มประวัติส่วนกลางออกจากหน้าบัญชี/เมนูหลักเพื่อลดความรก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -23079,12 +23079,6 @@ ${auditChangeSummary}` : auditChangeSummary);
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>JSON / Google Sheets CSV / HTML รูปหลักฐาน</p>
                     </button>
                   )}
-                  {isFullMode && canViewAudit && (
-                    <button type="button" onClick={() => openUnifiedSystemHistory({ keyword: '' })} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.History className="w-5 h-5" /> ประวัติส่วนกลาง</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมประวัติระบบจากแหล่งเดียว ไม่เปิด popup ซ้ำ</p>
-                    </button>
-                  )}
                   {isFullMode && canManageระบบ && (
                     <button type="button" onClick={() => { setShowMoreMenu(false); setShowTrashModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.Trash className="w-5 h-5" /> ถังขยะ</div>
@@ -24451,11 +24445,9 @@ ${auditChangeSummary}` : auditChangeSummary);
                       </div>
                       <div className="flex flex-wrap gap-2 shrink-0">
                         <button type="button" onClick={openNewAccountForm} disabled={!canManageAccounts} className={`px-4 py-2.5 rounded-2xl font-black ${canManageAccounts ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}>
-                          + เพิ่มผู้ใช้
+                          + เพิ่มผู้ใช้ใหม่
                         </button>
-                        <button type="button" onClick={() => openUnifiedSystemHistory({ keyword: 'บัญชี' })} disabled={!canViewAudit} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>
-                          ประวัติส่วนกลาง
-                        </button>
+
                       </div>
                     </div>
                   </div>
@@ -24475,7 +24467,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_340px] gap-4 items-start">
+                  <div className={`grid grid-cols-1 ${accountEditorOpen ? '2xl:grid-cols-[minmax(0,1fr)_340px]' : ''} gap-4 items-start`}>
                     <section className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
                       <div className={`px-4 py-3 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 ${theme.divide}`}>
                         <div className="min-w-0">
@@ -24521,8 +24513,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                         })}
                       </div>
                     </section>
-
-                    {accountEditorOpen ? (
+                    {accountEditorOpen && (
                     <aside className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
                       <div className={`px-4 py-3 border-b ${theme.divide}`}>
                         <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>{editingAccountId ? 'EDIT ACCOUNT' : 'NEW ACCOUNT'}</div>
@@ -24564,20 +24555,6 @@ ${auditChangeSummary}` : auditChangeSummary);
                           <button type="button" onClick={handleSaveAccount} disabled={!canManageAccounts} className={`px-4 py-3 font-black rounded-2xl text-white ${canManageAccounts ? 'bg-blue-600 hover:bg-blue-500' : 'bg-slate-400 cursor-not-allowed'}`}>{editingAccountId ? 'บันทึกการแก้ไข' : 'เพิ่มผู้ใช้'}</button>
                           <button type="button" onClick={closeAccountEditor} className={`px-4 py-3 font-black rounded-2xl border ${theme.btnSecondary}`}>{editingAccountId ? 'ยกเลิกแก้ไข' : 'ปิดฟอร์ม'}</button>
                         </div>
-                      </div>
-                    </aside>
-                    ) : (
-                    <aside className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/55 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                      <div className="p-5 min-h-[320px] flex flex-col justify-center text-center">
-                        <div className={`w-16 h-16 mx-auto rounded-3xl flex items-center justify-center mb-4 ${isDarkMode ? 'bg-blue-500/15 text-blue-300 border border-blue-500/25' : 'bg-blue-50 text-blue-700 border border-blue-100'}`}>
-                          <Icons.Users className="w-7 h-7" />
-                        </div>
-                        <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>ACCOUNT EDITOR</div>
-                        <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>ยังไม่ได้เลือกบัญชี</div>
-                        <div className={`text-sm font-bold mt-2 leading-relaxed ${theme.textMuted}`}>กด “+ เพิ่มผู้ใช้” เพื่อสร้างบัญชีใหม่ หรือกด “แก้ไข” ที่แถวบัญชีด้านซ้าย เพื่อเปิดฟอร์มแก้ไขตรงนี้</div>
-                        <button type="button" onClick={openNewAccountForm} disabled={!canManageAccounts} className={`mt-5 px-4 py-3 rounded-2xl font-black ${canManageAccounts ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}>
-                          + เพิ่มผู้ใช้ใหม่
-                        </button>
                       </div>
                     </aside>
                     )}
