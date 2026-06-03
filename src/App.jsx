@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.3 Restore Asset Profile Modal Hotfix';
-const APP_UPDATE_NOTE = 'Restore Asset Profile Modal Hotfix: กู้คืน popup แฟ้มอุปกรณ์ที่หายไปจากรอบ cleanup ทำให้ปุ่มเปิดแฟ้มกลับมาใช้งานได้ พร้อมคง openItemProfile เป็นตัวเปิดกลาง';
+const APP_VERSION = 'v23.4.5 Unified Box Set Delete Flow';
+const APP_UPDATE_NOTE = 'Unified Box Set Delete Flow: ปรับการลบกล่องจริงให้ใช้ pattern เดียวกับเซ็ตใช้งาน มีปุ่มลบในตำแหน่งเดียวกัน ลบเฉพาะแฟ้มกล่อง ไม่ลบอุปกรณ์จริง และหน้าตา editor สอดคล้องกันมากขึ้น';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -10844,7 +10844,7 @@ S.N.: ${item.sn || '-'}
     const deleteSelected = () => {
       if (!selectedCollection) return;
       if (organizeViewMode === 'bundles') return handleDeleteBundle(selectedCollection.id);
-      return alert('ถ้าต้องการลบกล่องจริง ให้ใช้ปุ่มแก้ไขกล่องก่อน เพื่อกันลบผิด');
+      return editSelected();
     };
 
     return (
@@ -18889,12 +18889,22 @@ ${auditChangeSummary}` : auditChangeSummary);
 
   const handleDeleteBundle = async (bundleId) => {
     if (!user) return;
-    if(!confirm('ยืนยันการลบเซ็ตอุปกรณ์นี้? (ไม่ส่งผลกระทบต่ออุปกรณ์จริง)')) return;
+    const targetBundle = (settingsOptions.bundles || []).find(b => b.id === bundleId);
+    if (!targetBundle) return alert('ไม่พบเซ็ตนี้ในระบบ อาจถูกลบไปแล้ว');
+    if(!confirm(`ยืนยันการลบเซ็ตนี้?\n\n${targetBundle.name || 'เซ็ตใช้งาน'}\n\nลบเฉพาะแฟ้มเซ็ต ไม่ลบอุปกรณ์จริง`)) return;
     try {
       const newBundles = (settingsOptions.bundles || []).filter(b => b.id !== bundleId);
       const newSettings = { ...settingsOptions, bundles: newBundles };
       setSettingsOptions(newSettings);
       await setDoc(getSettingsDoc(), newSettings);
+      await logAction('ลบเซ็ต', targetBundle.name || 'เซ็ตใช้งาน', `ลบเฉพาะแฟ้มเซ็ต ไม่ลบอุปกรณ์จริง / ${asArray(targetBundle.itemIds).length} รายการ`);
+      if (bundleForm.id === bundleId) {
+        setShowBundleManager(false);
+        setBundleForm({ id: null, name: '', itemIds: [] });
+      }
+      setSelectedOrganizeId('');
+      setOrganizeViewMode('bundles');
+      pushToast('ลบเซ็ตแล้ว', 'อุปกรณ์จริงยังอยู่ในคลังตามเดิม', 'success');
     } catch (error) {
       console.error(error);
       alert(`❌ ลบเซ็ตไม่สำเร็จ: ${error.message}`);
@@ -20554,6 +20564,44 @@ ${auditChangeSummary}` : auditChangeSummary);
     } catch (error) {
       console.error(error);
       alert('❌ บันทึกไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  const handleDeleteStorageBoxEditor = async () => {
+    if (!user) return;
+    if (!storageBoxForm.id) return alert('ยังไม่ได้เลือกกล่องที่ต้องการลบ');
+
+    const existingBoxes = settingsOptions.storageBoxes || [];
+    const targetBox = existingBoxes.find((box) => box.id === storageBoxForm.id);
+    if (!targetBox) return alert('ไม่พบกล่องนี้ในระบบ อาจถูกลบไปแล้ว');
+
+    const linkedItemIds = [...new Set([...(targetBox.itemIds || []), ...(storageBoxForm.itemIds || [])])]
+      .filter((id) => items.some((item) => item && item.id === id && !item.isDeleted));
+    const boxName = targetBox.name || storageBoxForm.name || 'กล่อง';
+
+    if (!confirm(`ยืนยันการลบกล่องนี้?\n\n${boxName}\n\nลบเฉพาะแฟ้มกล่อง ไม่ลบอุปกรณ์จริง\nอุปกรณ์ ${linkedItemIds.length} ชิ้นจะถูกนำออกจากชื่อกล่องนี้เท่านั้น`)) return;
+
+    try {
+      const now = new Date().toISOString();
+      const newBoxes = existingBoxes.filter((box) => box.id !== storageBoxForm.id);
+      const newSettings = { ...settingsOptions, storageBoxes: newBoxes };
+      setSettingsOptions(newSettings);
+      await setDoc(getSettingsDoc(), newSettings);
+
+      await Promise.all(linkedItemIds.map((id) => setDoc(getItemDoc(id), {
+        storageBoxId: null,
+        storageBoxName: null,
+        storageBoxUpdatedAt: now
+      }, { merge: true })));
+
+      await logAction('ลบกล่อง', boxName, `ลบเฉพาะแฟ้มกล่อง ไม่ลบอุปกรณ์จริง / นำอุปกรณ์ออกจากกล่อง ${linkedItemIds.length} รายการ`);
+      setShowStorageBoxEditor(false);
+      setSelectedOrganizeId('');
+      setOrganizeViewMode('boxes');
+      pushToast('ลบกล่องแล้ว', `อุปกรณ์ ${linkedItemIds.length} รายการยังอยู่ในคลังตามเดิม`, 'success');
+    } catch (error) {
+      console.error(error);
+      alert('❌ ลบกล่องไม่สำเร็จ: ' + error.message);
     }
   };
 
@@ -23693,7 +23741,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <div className="min-w-0">
                     <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>BOX EDITOR</div>
                     <h3 className={`text-xl font-black ${theme.textTitle}`}>{storageBoxForm.id ? 'แก้ไขกล่อง' : 'สร้างกล่องจริง'}</h3>
-                    <p className={`text-sm font-bold mt-0.5 ${theme.textMuted}`}>เลือกอุปกรณ์เข้ากล่องด้วยรายการแบบเดียวกันกับเซ็ต</p>
+                    <p className={`text-sm font-bold mt-0.5 ${theme.textMuted}`}>เลือกอุปกรณ์ด้วยรายการแบบเดียวกัน</p>
                   </div>
                 </div>
                 <button type="button" onClick={() => setShowStorageBoxEditor(false)} className={`w-10 h-10 rounded-2xl flex items-center justify-center ${theme.btnSecondary}`}><Icons.X className="w-5 h-5" /></button>
@@ -23767,9 +23815,14 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </section>
               </div>
 
-              <div className={`boxset-modal-footer p-3 border-t flex gap-2 ${theme.divide}`}>
+              <div className={`boxset-modal-footer p-3 border-t flex flex-col sm:flex-row gap-2 ${theme.divide}`}>
                 <button type="button" onClick={() => setShowStorageBoxEditor(false)} className={`px-5 py-2.5 rounded-xl font-black ${theme.btnCancel}`}>ยกเลิก</button>
-                <button type="button" onClick={handleSaveStorageBoxEditor} className="flex-1 px-5 py-2.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white font-black">บันทึกกล่อง</button>
+                {storageBoxForm.id && (
+                  <button type="button" onClick={handleDeleteStorageBoxEditor} className="px-5 py-2.5 rounded-xl font-black border bg-rose-950/45 border-rose-500/35 text-rose-200 hover:bg-rose-700 hover:text-white">
+                    ลบ
+                  </button>
+                )}
+                <button type="button" onClick={handleSaveStorageBoxEditor} className="flex-1 px-5 py-2.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white font-black">บันทึก</button>
               </div>
             </div>
           </div>
@@ -23804,7 +23857,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <div className="min-w-0">
                     <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>SET EDITOR</div>
                     <h3 className={`text-xl font-black ${theme.textTitle}`}>{bundleForm.id ? 'แก้ไขเซ็ต' : 'สร้างเซ็ตใช้งาน'}</h3>
-                    <p className={`text-sm font-bold mt-0.5 ${theme.textMuted}`}>เลือกอุปกรณ์ที่ใช้พร้อมกัน ไม่จำเป็นต้องอยู่กล่องเดียวกัน</p>
+                    <p className={`text-sm font-bold mt-0.5 ${theme.textMuted}`}>เลือกอุปกรณ์ด้วยรายการแบบเดียวกัน</p>
                   </div>
                 </div>
                 <button type="button" onClick={() => setShowBundleManager(false)} className={`w-10 h-10 rounded-2xl flex items-center justify-center ${theme.btnSecondary}`}><Icons.X className="w-5 h-5" /></button>
