@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.3.6 Dead Menu Cleanup Hotfix';
-const APP_UPDATE_NOTE = 'Dead Menu Cleanup Hotfix: เก็บปุ่ม/เมนูที่ชี้ไปหน้าที่ตัดออกแล้ว เช่น เช็กลิสต์เตรียมงาน/Prep List และทางเข้าเก่า ให้ไม่เกิดอาการกดแล้วเงียบ พร้อม redirect ไปหน้าที่ถูกต้อง';
+const APP_VERSION = 'v23.3.7 Restore Basic Lists Settings Modal Hotfix';
+const APP_UPDATE_NOTE = 'Restore Basic Lists Settings Modal Hotfix: กู้คืนหน้าต่างตั้งค่าระบบที่หายไป ทำให้เมนูรายการพื้นฐานกดติดอีกครั้ง หลังรอบลบ modal เก่าตัดกิน settings modal ไป';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -23614,6 +23614,633 @@ ${auditChangeSummary}` : auditChangeSummary);
       )}
 
       {/* Add/Edit Form */}
+      {/* Settings Modal (การตั้งค่าทั่วไป + ฐานข้อมูล) */}
+      {showSettings && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990]`}>
+          <div className={`settings-shell settings-shell-redesign rounded-[2.2rem] shadow-[0_28px_90px_rgba(2,6,23,0.55)] w-full max-w-7xl overflow-hidden flex flex-col h-[90vh] max-h-[90vh] transition-all duration-300 border backdrop-blur-xl ${theme.cardBg} ${isDarkMode ? 'bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] border-slate-700/80' : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] border-slate-200/90'}`}>
+            <div className={`p-5 sm:p-6 border-b shrink-0 flex items-start justify-between gap-4 ${theme.divide} ${isDarkMode ? 'bg-[linear-gradient(135deg,rgba(15,23,42,.98),rgba(2,6,23,.98))]' : 'bg-[linear-gradient(135deg,rgba(255,255,255,.98),rgba(241,245,249,.98))]'}`}>
+              <div className="min-w-0 flex items-start gap-4">
+                <div className={`w-14 h-14 rounded-[1.35rem] border flex items-center justify-center shrink-0 shadow-lg ${isDarkMode ? 'bg-blue-500/12 border-blue-400/30' : 'bg-blue-50 border-blue-200'}`}>
+                  <Icons.Settings className="w-7 h-7 text-blue-500" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`inline-flex px-3 py-1 rounded-full text-[11px] font-black tracking-[0.16em] uppercase ${isDarkMode ? 'bg-blue-500/15 text-blue-200 border border-blue-400/20' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>Settings Workspace</span>
+                    <span className={`inline-flex px-3 py-1 rounded-full text-[11px] font-black ${isDarkMode ? 'bg-slate-900 text-slate-300 border border-slate-700' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.label || 'ภาพรวมระบบ'}</span>
+                  </div>
+                  <h3 className={`text-2xl sm:text-3xl font-black mt-2 ${theme.textTitle}`}>ตั้งค่าระบบ</h3>
+                  <p className={`text-xs sm:text-sm font-bold mt-1.5 max-w-3xl ${theme.textMuted}`}>ปรับให้ทุกหมวดอยู่ใน workspace เดียวกัน ดูเรียบร้อยขึ้น อ่านง่ายขึ้น และเข้าไปจัดการระบบได้ต่อเนื่องโดยไม่รู้สึกว่าคนละหน้า</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowSettings(false); resetSettingsFormState(); }}
+                className={`w-11 h-11 rounded-2xl border inline-flex items-center justify-center shrink-0 transition-colors hover:text-rose-500 ${theme.btnSecondary}`}
+                title="ปิดตั้งค่าระบบ"
+              >
+                <Icons.X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className={`flex flex-col lg:flex-row flex-1 min-h-0 ${isDarkMode ? 'bg-[radial-gradient(circle_at_top,rgba(30,41,59,0.35),rgba(2,6,23,1))]' : 'bg-slate-50/90'}`}>
+              <aside className={`settings-redesign-sidebar hidden lg:flex w-[320px] shrink-0 border-r ${theme.divide} p-4 flex-col gap-4 overflow-y-auto custom-scrollbar ${isDarkMode ? 'bg-[linear-gradient(180deg,rgba(2,6,23,0.92),rgba(15,23,42,0.85))]' : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.96))]'}`}>
+                <div className={`rounded-[1.7rem] border p-4 shadow-[0_12px_35px_rgba(15,23,42,0.12)] ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-blue-500/12 border-blue-400/25' : 'bg-blue-50 border-blue-200'}`}>
+                      <Icons.Settings className="w-6 h-6 text-blue-500" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>Settings Navigation</div>
+                      <div className={`text-base font-black mt-1 ${theme.textTitle}`}>หมวดการตั้งค่า</div>
+                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>รวมทุกส่วนไว้ทางซ้าย กดเลือกหมวดแล้วทำงานต่อได้ทันที</div>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center gap-2 flex-wrap">
+                    <span className={`inline-flex px-3 py-1.5 rounded-full text-xs font-black border ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>{settingsNavItems.length} หมวด</span>
+                    <span className={`inline-flex px-3 py-1.5 rounded-full text-xs font-black border ${isDarkMode ? 'bg-emerald-500/10 border-emerald-400/20 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>workspace เดียว</span>
+                  </div>
+                </div>
+
+                <div className={`rounded-[1.8rem] border p-3 shadow-[0_16px_40px_rgba(15,23,42,0.12)] ${isDarkMode ? 'bg-slate-900/75 border-slate-800' : 'bg-white/95 border-slate-200'}`}>
+                  <div className={`px-2 pb-3 text-[11px] font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>หมวดการตั้งค่าทั้งหมด</div>
+                  <div className="space-y-2">
+                    {settingsNavItems.map((nav, index) => {
+                      const Icon = nav.icon || Icons.Settings;
+                      const active = settingsTab === nav.id;
+                      return (
+                        <button
+                          key={nav.id}
+                          type="button"
+                          onClick={() => openSettingsTab(nav.id)}
+                          className={`w-full text-left rounded-[1.4rem] border px-3.5 py-3 transition-all duration-200 flex items-start gap-3 shadow-sm ${active ? 'bg-[linear-gradient(135deg,rgba(37,99,235,0.24),rgba(30,64,175,0.18))] border-blue-400/55 text-blue-100 shadow-[0_14px_34px_rgba(37,99,235,0.20)]' : `${theme.btnSecondary} hover:-translate-y-[1px] hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)]`}`}
+                          title={nav.desc}
+                        >
+                          <span className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${active ? 'bg-blue-500/18 border-blue-300/40 text-blue-100' : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700')}`}>
+                            <Icon className="w-5 h-5" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center justify-between gap-2">
+                              <span className="block text-sm font-black leading-tight truncate">{nav.label}</span>
+                              <span className={`inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full text-[11px] font-black border shrink-0 ${active ? 'bg-blue-500/20 border-blue-300/30 text-blue-100' : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-500')}`}>{index + 1}</span>
+                            </span>
+                            <span className={`block text-xs font-bold mt-1 leading-snug ${active ? 'text-blue-100/80' : theme.textMuted}`}>{nav.desc}</span>
+                            <span className="mt-2 flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${active ? 'bg-emerald-400' : (isDarkMode ? 'bg-slate-600' : 'bg-slate-300')}`} />
+                              <span className={`text-[11px] font-black ${active ? 'text-emerald-300' : theme.textMuted}`}>{active ? 'กำลังเปิดอยู่' : 'กดเพื่อเปิดหมวดนี้'}</span>
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className={`rounded-[1.35rem] border p-4 mt-auto ${isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div className={`text-xs font-black ${theme.textTitle}`}>เคล็ดลัดการใช้งาน</div>
+                  <div className={`text-xs font-bold mt-1.5 leading-relaxed ${theme.textMuted}`}>ถ้าต้องการทำงานเร็ว แนะนำให้เริ่มจาก “ภาพรวมระบบ” ก่อน แล้วค่อยไล่แก้หมวดที่เกี่ยวข้องตามงานของวันนั้น</div>
+                </div>
+              </aside>
+              <div className="flex flex-col flex-1 min-h-0">
+                <div className={`lg:hidden px-4 py-3 border-b ${theme.divide} ${isDarkMode ? 'bg-slate-950/80' : 'bg-white/90'}`}>
+                  <select
+                    value={settingsTab}
+                    onChange={(e) => openSettingsTab(e.target.value)}
+                    className={`w-full rounded-2xl px-4 py-3 border font-black ${theme.input}`}
+                  >
+                    {settingsNavItems.map(nav => <option key={nav.id} value={nav.id}>{nav.label}</option>)}
+                  </select>
+                </div>
+                {settingsTab !== 'overview' && (
+                  <div className={`hidden px-4 sm:px-6 py-3 border-b ${theme.divide}`}>
+                    <div className="settings-section-switcher flex items-center gap-2 overflow-x-auto custom-scrollbar">
+                      <button
+                        type="button"
+                        onClick={() => openSettingsTab('basicLists')}
+                        className={`px-4 py-2 rounded-2xl border text-sm font-black whitespace-nowrap ${theme.btnCancel}`}
+                        title="กลับไปเลือกหมวดตั้งค่า"
+                      >
+                        ← กลับหน้ารวม
+                      </button>
+                      {settingsNavItems.filter(nav => nav.id !== 'overview').map((nav) => {
+                        const Icon = nav.icon || Icons.Settings;
+                        const active = settingsTab === nav.id;
+                        return (
+                          <button
+                            key={nav.id}
+                            type="button"
+                            onClick={() => openSettingsTab(nav.id)}
+                            className={`px-3 py-2 rounded-2xl border inline-flex items-center gap-2 text-sm font-black whitespace-nowrap transition-colors ${active ? 'bg-blue-600 border-blue-600 text-white shadow-md' : theme.btnSecondary}`}
+                            title={nav.desc}
+                          >
+                            <Icon className="w-4 h-4 shrink-0" />
+                            {nav.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="overflow-y-auto custom-scrollbar flex-1 flex flex-col min-h-0">
+                            {settingsTab !== 'overview' && (
+                <div className={`settings-back-toolbar px-4 sm:px-6 pt-4 pb-0`}>
+                  <div className={`px-4 py-4 rounded-[1.35rem] border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm ${isDarkMode ? 'bg-slate-900/95 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className="min-w-0">
+                      <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>CURRENT SECTION</div>
+                      <div className={`text-base sm:text-lg font-black mt-1 ${theme.textTitle}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.label || 'ตั้งค่าระบบ'}</div>
+                      <div className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.desc || 'จัดการระบบ'}</div>
+                    </div>
+                    <div className={`px-4 py-2.5 rounded-2xl border font-black text-sm shrink-0 shadow-sm ${theme.btnSecondary}`}>
+                      ตั้งค่าระบบ
+                    </div>
+                  </div>
+                </div>
+              )}
+              {settingsTab === '__removed_overview__' ? (
+                <div className="p-5 sm:p-6 lg:p-7 space-y-5 settings-center-overview">
+                  <div className={`p-6 rounded-[1.9rem] border shadow-[0_18px_50px_rgba(15,23,42,0.16)] ${isDarkMode ? 'bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))] border-slate-800' : 'bg-[linear-gradient(135deg,rgba(255,255,255,1),rgba(248,250,252,1))] border-slate-200 shadow-sm'}`}>
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-500">SETTINGS COMMAND CENTER</div>
+                        <h4 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>ตั้งค่าระบบ MDEC Stock</h4>
+                        <p className={`text-sm font-bold mt-2 ${theme.textMuted}`}>รวมงานตั้งค่าระบบ ผู้ใช้งาน เอกสาร หลักฐาน สำรองข้อมูล และคุณภาพข้อมูลไว้ในหน้าเดียว เพื่อเตรียมทดสอบเพิ่ม/ลบอุปกรณ์รอบใหม่</p>
+                      </div>
+                      <div className={`shrink-0 p-4 rounded-2xl border text-center ${dataQualityAudit.scoreTone === 'emerald' ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : dataQualityAudit.scoreTone === 'amber' ? (isDarkMode ? 'bg-amber-950/30 border-amber-800' : 'bg-amber-50 border-amber-200') : (isDarkMode ? 'bg-rose-950/30 border-rose-800' : 'bg-rose-50 border-rose-200')}`}>
+                        <div className={`text-xs font-black ${theme.textMuted}`}>DATA QUALITY</div>
+                        <div className={`text-4xl font-black leading-none mt-1 ${theme.textTitle}`}>{dataQualityAudit.qualityScore}%</div>
+                        <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{dataQualityAudit.issueItemCount.toLocaleString('th-TH')} รายการควรเติม</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {getSettingsOverviewCards().map(card => {
+                      const Icon = card.icon || Icons.Settings;
+                      return (
+                        <button key={card.id} type="button" onClick={card.action} className={`text-left p-5 rounded-[1.7rem] border transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_45px_rgba(15,23,42,0.18)] ${card.tone}`}>
+                          <div className="flex items-start gap-3">
+                            <span className="w-12 h-12 rounded-2xl bg-white/100 text-slate-900 flex items-center justify-center shrink-0 shadow-sm"><Icon className="w-6 h-6" /></span>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-black text-lg leading-tight">{card.title}</div>
+                              <div className="text-sm font-bold mt-1 opacity-80 leading-snug">{card.desc}</div>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <span className="inline-flex px-3 py-1.5 rounded-full bg-white/100 text-slate-900 text-xs font-black border border-white/60">{card.stats}</span>
+                                <span className="inline-flex px-3 py-1.5 rounded-full bg-white/100 text-slate-900 text-xs font-black border border-white/60">เข้าไปแก้ไข →</span>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                    <div className={`p-2.5 rounded-lg border ${theme.btnSecondary}`}>
+                      <div className={`text-xs font-black ${theme.textMuted}`}>บัญชีที่ใช้งาน</div>
+                      <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{currentAccountLabel}</div>
+                      <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สิทธิ์: {currentAccountRole}</div>
+                    </div>
+                    <div className={`p-2.5 rounded-lg border ${databaseStorageEstimate.cardTone}`}>
+                      <div className={`text-xs font-black ${databaseStorageEstimate.textTone}`}>พื้นที่ฐานข้อมูล</div>
+                      <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.percentText}</div>
+                      <div className={`h-2.5 rounded-full overflow-hidden mt-2 ${isDarkMode ? 'bg-slate-950/70' : 'bg-white/80'}`}>
+                        <div className={`h-full ${databaseStorageEstimate.barClass}`} style={{ width: databaseStorageEstimate.percentWidth }} />
+                      </div>
+                      <div className={`text-xs font-bold mt-1.5 ${theme.textMuted}`}>{databaseStorageEstimate.estimatedText} / {databaseStorageEstimate.limitText}</div>
+                    </div>
+                    <div className={`p-2.5 rounded-lg border ${theme.btnSecondary}`}>
+                      <div className={`text-xs font-black ${theme.textMuted}`}>รูปหลักฐาน</div>
+                      <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.proofImageCount.toLocaleString('th-TH')} รูป</div>
+                      <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ประมาณ {databaseStorageEstimate.proofStorageText}</div>
+                    </div>
+                  </div>
+                </div>
+              ) : settingsTab === 'accounts' ? (() => {
+                const accounts = getEffectiveAccounts();
+                const activeAccounts = accounts.filter(acc => acc.active !== false);
+                const inactiveAccounts = accounts.filter(acc => acc.active === false);
+                const adminAccounts = accounts.filter(acc => ['owner', 'admin'].includes(acc.role));
+                const staffAccounts = accounts.filter(acc => acc.role === 'staff');
+                const viewerAccounts = accounts.filter(acc => acc.role === 'viewer');
+                return (
+                <div className="p-4 sm:p-5 lg:p-6 space-y-4">
+                  <div className={`rounded-[1.35rem] border p-4 ${isDarkMode ? 'bg-slate-950/72 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>USER ACCOUNTS</div>
+                        <h4 className={`text-2xl sm:text-3xl font-black mt-0.5 ${theme.textTitle}`}>บัญชีผู้ใช้</h4>
+                        <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เพิ่ม แก้ไข รีเซ็ต PIN และกำหนดสิทธิ์ผู้ใช้งานในระบบ</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 shrink-0">
+                        <button type="button" onClick={openNewAccountForm} disabled={!canManageAccounts} className={`px-4 py-2.5 rounded-2xl font-black ${canManageAccounts ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}>
+                          + เพิ่มผู้ใช้ใหม่
+                        </button>
+
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 xl:grid-cols-5 gap-2">
+                    {[
+                      ['ทั้งหมด', accounts.length],
+                      ['ใช้งานอยู่', activeAccounts.length],
+                      ['ผู้ดูแล', adminAccounts.length],
+                      ['เจ้าหน้าที่', staffAccounts.length],
+                      ['ดูอย่างเดียว', viewerAccounts.length]
+                    ].map(([label, value]) => (
+                      <div key={label} className={`rounded-2xl border px-4 py-3 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                        <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
+                        <div className={`text-2xl font-black mt-0.5 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className={`grid grid-cols-1 ${accountEditorOpen ? '2xl:grid-cols-[minmax(0,1fr)_340px]' : ''} gap-4 items-start`}>
+                    <section className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                      <div className={`px-4 py-3 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 ${theme.divide}`}>
+                        <div className="min-w-0">
+                          <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>ACCOUNT LIST</div>
+                          <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>รายชื่อผู้ใช้</div>
+                        </div>
+                        <div className={`px-3 py-1.5 rounded-2xl border text-xs font-black ${theme.btnSecondary}`}>{accounts.length.toLocaleString('th-TH')} บัญชี</div>
+                      </div>
+
+                      <div className="max-h-[52vh] overflow-y-auto custom-scrollbar">
+                        {accounts.map((acc) => {
+                          const isEditing = editingAccountId === acc.id;
+                          const initial = String(acc.name || acc.username || '?').trim().slice(0, 1).toUpperCase();
+                          const disabledDelete = !canManageAccounts || String(acc.username || '').toLowerCase() === 'admin' || acc.active === false;
+                          const disabledReset = !canManageAccounts || (acc.role === 'owner' && currentAccountRole !== 'owner');
+                          return (
+                            <div key={acc.id} className={`px-4 py-3 border-b last:border-b-0 ${theme.divide} ${isEditing ? (isDarkMode ? 'bg-blue-950/22' : 'bg-blue-50') : ''}`}>
+                              <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:items-center">
+                                <button type="button" onClick={() => openEditAccountForm(acc)} className="min-w-0 text-left flex items-center gap-3">
+                                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 text-sm font-black ${acc.active === false ? 'bg-slate-700 text-slate-400' : isEditing ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-blue-500/15 text-blue-300' : 'bg-blue-50 text-blue-700')}`}>
+                                    {initial}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      <span className={`font-black text-base break-words ${theme.textTitle}`}>{acc.name || acc.username}</span>
+                                      <span className={`text-[10px] px-2 py-0.5 rounded-lg border font-black ${roleBadgeClass(acc.role)}`}>{roleLabel(acc.role)}</span>
+                                      {acc.active === false && <span className="text-[10px] px-2 py-0.5 rounded-lg bg-rose-100 text-rose-700 border border-rose-200 font-black">ปิดใช้งาน</span>}
+                                      {currentOperator?.id === acc.id && <span className="text-[10px] px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-black">กำลังใช้</span>}
+                                      {String(acc.username || '').toLowerCase() === 'admin' && <span className="text-[10px] px-2 py-0.5 rounded-lg bg-blue-500/15 text-blue-300 border border-blue-500/30 font-black">บัญชีกลาง</span>}
+                                    </div>
+                                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>Username: {acc.username || '-'} • {acc.role === 'viewer' ? 'ดูข้อมูลอย่างเดียว' : acc.role === 'staff' ? 'ทำรายการประจำวัน' : 'จัดการระบบ'}</div>
+                                  </div>
+                                </button>
+
+                                <div className="grid grid-cols-3 sm:flex gap-2 shrink-0">
+                                  <button type="button" onClick={() => openEditAccountForm(acc)} className={`px-3 py-2 rounded-xl text-xs font-black ${isEditing ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-slate-800 text-slate-200 hover:bg-blue-900/40 hover:text-blue-300' : 'bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-600')}`}>{isEditing ? 'กำลังแก้' : 'แก้ไข'}</button>
+                                  <button type="button" onClick={() => handleResetAccountPin(acc)} disabled={disabledReset} className={`px-3 py-2 rounded-xl text-xs font-black ${disabledReset ? (isDarkMode ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed') : (isDarkMode ? 'bg-amber-900/40 text-amber-300 hover:bg-amber-800' : 'bg-amber-50 text-amber-600 hover:bg-amber-100')}`}>รีเซ็ต PIN</button>
+                                  <button type="button" onClick={() => handleDeleteAccount(acc)} disabled={disabledDelete} className={`px-3 py-2 rounded-xl text-xs font-black ${disabledDelete ? (isDarkMode ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed') : (isDarkMode ? 'bg-rose-900/40 text-rose-300 hover:bg-rose-800' : 'bg-rose-50 text-rose-600 hover:bg-rose-100')}`}>ปิดใช้งาน</button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                    {accountEditorOpen && (
+                    <aside className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                      <div className={`px-4 py-3 border-b ${theme.divide}`}>
+                        <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>{editingAccountId ? 'EDIT ACCOUNT' : 'NEW ACCOUNT'}</div>
+                        <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>{editingAccountId ? 'แก้ไขบัญชี' : 'เพิ่มผู้ใช้'}</div>
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div>
+                          <label className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>ชื่อผู้ใช้</label>
+                          <input type="text" className={`w-full px-3.5 py-2.5 rounded-2xl font-bold outline-none border ${theme.input}`} placeholder="เช่น ครูศิริชัย" value={accountForm.name} onChange={e => setAccountForm({...accountForm, name: e.target.value})} disabled={!canManageAccounts} />
+                        </div>
+                        <div>
+                          <label className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>Username</label>
+                          <input type="text" className={`w-full px-3.5 py-2.5 rounded-2xl font-bold outline-none border ${theme.input}`} placeholder="เช่น sirichai" value={accountForm.username} onChange={e => setAccountForm({...accountForm, username: e.target.value})} disabled={!canManageAccounts} />
+                        </div>
+                        {!editingAccountId ? (
+                          <div>
+                            <label className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>PIN</label>
+                            <input type="password" className={`w-full px-3.5 py-2.5 rounded-2xl font-bold outline-none border ${theme.input}`} placeholder="อย่างน้อย 4 ตัว" value={accountForm.pin} onChange={e => setAccountForm({...accountForm, pin: e.target.value})} disabled={!canManageAccounts} />
+                          </div>
+                        ) : (
+                          <div className={`p-3 rounded-2xl border text-xs font-bold ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                            PIN ถูกซ่อนไว้ ถ้าต้องการเปลี่ยนให้กด “รีเซ็ต PIN” จากแถวรายชื่อผู้ใช้
+                          </div>
+                        )}
+                        <div>
+                          <label className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>สิทธิ์</label>
+                          <select className={`w-full px-3.5 py-2.5 rounded-2xl font-bold outline-none border ${theme.input}`} value={accountForm.role} onChange={e => setAccountForm({...accountForm, role: e.target.value})} disabled={!canManageAccounts}>
+                            <option value="owner">บัญชีกลาง - จัดการได้ทุกอย่าง</option>
+                            <option value="admin">ผู้ดูแล - จัดการระบบ/บัญชี/ลบข้อมูลได้</option>
+                            <option value="staff">เจ้าหน้าที่ - เพิ่ม/แก้ไข/ยืม/คืน/ออกงานได้</option>
+                            <option value="viewer">ดูอย่างเดียว - ค้นหาและดูสถานะเท่านั้น</option>
+                          </select>
+                        </div>
+                        <label className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                          <input type="checkbox" className="w-5 h-5 accent-blue-600" checked={accountForm.active !== false} onChange={e => setAccountForm({...accountForm, active: e.target.checked})} disabled={!canManageAccounts} />
+                          <span className={`font-black text-sm ${theme.textMain}`}>เปิดใช้งานบัญชีนี้</span>
+                        </label>
+                        <div className="grid grid-cols-1 gap-2 pt-1">
+                          <button type="button" onClick={handleSaveAccount} disabled={!canManageAccounts} className={`px-4 py-3 font-black rounded-2xl text-white ${canManageAccounts ? 'bg-blue-600 hover:bg-blue-500' : 'bg-slate-400 cursor-not-allowed'}`}>{editingAccountId ? 'บันทึกการแก้ไข' : 'เพิ่มผู้ใช้'}</button>
+                          <button type="button" onClick={closeAccountEditor} className={`px-4 py-3 font-black rounded-2xl border ${theme.btnSecondary}`}>{editingAccountId ? 'ยกเลิกแก้ไข' : 'ปิดฟอร์ม'}</button>
+                        </div>
+                      </div>
+                    </aside>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                    {[
+                      ['บัญชีกลาง', adminAccounts.length, 'จัดการระบบและข้อมูลสำคัญ'],
+                      ['เจ้าหน้าที่', staffAccounts.length, 'ทำรายการใช้งานประจำวัน'],
+                      ['ดูอย่างเดียว', viewerAccounts.length, 'ดูข้อมูลแต่แก้ไขไม่ได้'],
+                      ['ปิดใช้งาน', inactiveAccounts.length, 'เก็บประวัติไว้ แต่เข้าไม่ได้']
+                    ].map(([title, count, desc]) => (
+                      <div key={title} className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                        <div className={`font-black text-sm ${theme.textTitle}`}>{title}</div>
+                        <div className={`text-2xl font-black mt-0.5 ${theme.textTitle}`}>{Number(count || 0).toLocaleString('th-TH')}</div>
+                        <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>{desc}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                );
+              })() : settingsTab === 'database' ? (
+                <div className="p-5 sm:p-6 lg:p-7 space-y-5">
+                  <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-amber-900/20 border-amber-800' : 'bg-amber-50 border-amber-200'}`}>
+                    <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}>
+                      <Icons.Database className="w-6 h-6 text-amber-500" />
+                      ฐานข้อมูล / สำรอง
+                    </h4>
+                    <p className={`text-sm font-bold ${theme.textMuted}`}>สำรองข้อมูล ส่งออกไฟล์ และเตรียมข้อมูลสิ้นปี ใช้เป็นศูนย์กลางเรื่องความปลอดภัยของฐานข้อมูล</p>
+                  </div>
+
+                  <div className={`p-5 rounded-[1.35rem] border ${databaseStorageEstimate.cardTone}`}>
+                    <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${databaseStorageEstimate.textTone}`}>DATABASE CAPACITY METER</div>
+                        <div className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.percentText} ของพื้นที่ฐานข้อมูล</div>
+                        <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{databaseStorageEstimate.safetyText}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={scanDatabaseStorageNow}
+                        disabled={isScanningDatabaseStorage}
+                        className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 text-white font-black shadow-lg shadow-blue-600/20"
+                      >
+                        {isScanningDatabaseStorage ? 'กำลังตรวจจริง...' : 'ตรวจจริงจาก Firestore'}
+                      </button>
+                    </div>
+
+                    <div className={`h-5 rounded-full overflow-hidden mt-4 ${isDarkMode ? 'bg-slate-950/75' : 'bg-white/85'}`}>
+                      <div className={`h-full ${databaseStorageEstimate.barClass} transition-all duration-500`} style={{ width: databaseStorageEstimate.percentWidth }} />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+                      <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-white/70 border-white'}`}>
+                        <div className={`text-xs font-black ${theme.textMuted}`}>ใช้ไปแล้ว</div>
+                        <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.estimatedText}</div>
+                      </div>
+                      <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-white/70 border-white'}`}>
+                        <div className={`text-xs font-black ${theme.textMuted}`}>พื้นที่สูงสุดที่อิงไว้</div>
+                        <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.limitText}</div>
+                      </div>
+                      <div className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950/35 border-slate-700' : 'bg-white/70 border-white'}`}>
+                        <div className={`text-xs font-black ${theme.textMuted}`}>ยังเหลือประมาณ</div>
+                        <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.remainingText}</div>
+                      </div>
+                    </div>
+                    <div className={`text-xs font-bold mt-3 ${theme.textMuted}`}>
+                      แหล่งข้อมูล: {databaseStorageEstimate.sourceLabel} • ตรวจล่าสุด: {databaseStorageEstimate.scannedAtText}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className={`p-4 rounded-2xl border ${theme.btnSecondary}`}>
+                      <div className={`text-xs font-black ${theme.textMuted}`}>รูปหลักฐาน</div>
+                      <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.proofImageCount.toLocaleString('th-TH')} รูป</div>
+                      <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ประมาณ {databaseStorageEstimate.proofStorageText}</div>
+                    </div>
+                    <div className={`p-4 rounded-2xl border ${theme.btnSecondary}`}>
+                      <div className={`text-xs font-black ${theme.textMuted}`}>สำรองล่าสุด</div>
+                      <div className={`text-lg font-black mt-1 ${theme.textTitle}`}>{yearEndHelperData.lastBackupText || 'ยังไม่เคยสำรอง'}</div>
+                      <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>แนะนำสำรองก่อนแก้ข้อมูลจำนวนมาก</div>
+                    </div>
+                  </div>
+
+                  <div className={`p-5 rounded-[1.35rem] border shadow-[0_12px_35px_rgba(15,23,42,0.10)] ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className={`font-black text-lg ${theme.textTitle}`}>ศูนย์สำรองข้อมูล</div>
+                        <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Export ข้อมูลหลักเป็น JSON / CSV และสรุปข้อมูลก่อนปิดปี โดยไม่มีปุ่มล้างข้อมูลจริง เพื่อลดความเสี่ยงกดพลาด</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowBackupCenterModal(true)}
+                        className="px-5 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black shadow-lg shadow-amber-600/20"
+                      >
+                        เปิดศูนย์สำรองข้อมูล
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>รายการที่ควรสำรอง</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
+                      {[
+                        ['อุปกรณ์ทั้งหมด', items.filter(item => item && !item.isDeleted).length],
+                        ['เอกสารย้อนหลัง', asArray(borrowเอกสารs).length],
+                        ['ประวัติส่วนกลาง', auditLogs.length],
+                        ['รูปหลักฐาน', databaseStorageEstimate.proofImageCount],
+                        ['รายการในถังขยะ', deletedItems.length],
+                        ['บัญชีผู้ใช้', getEffectiveAccounts().length]
+                      ].map(([label, value]) => (
+                        <div key={label} className={`px-4 py-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950/45 border-slate-700' : 'bg-white border-slate-200'}`}>
+                          <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
+                          <div className={`text-xl font-black mt-1 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : settingsTab === 'basicLists' ? (
+                <div className="p-3 sm:p-4 lg:p-5 space-y-3">
+                  <div className={`rounded-[1.35rem] border overflow-hidden shadow-[0_18px_55px_rgba(2,6,23,0.16)] ${isDarkMode ? 'bg-[linear-gradient(135deg,rgba(15,23,42,.94),rgba(2,6,23,.98))] border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className="p-3 sm:p-4">
+                      <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className={`text-[10px] font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>BASIC LISTS</div>
+                          <div className={`text-xl sm:text-2xl font-black mt-0.5 ${theme.textTitle}`}>รายการพื้นฐาน</div>
+                          <div className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>รวมหมวดหมู่ สถานที่/ห้อง และเจ้าหน้าที่ไว้ที่เดียว ลดเมนูซ้ำ แต่ยังแยกข้อมูลชัดเจนด้วยแท็บ</div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 shrink-0">
+                          {basicListTabs.map(tab => (
+                            <button
+                              key={`top_basic_${tab.id}`}
+                              type="button"
+                              onClick={() => { setBasicListTab(tab.id); setNewSettingItem(''); setEditingSettingItem(null); }}
+                              className={`rounded-2xl border px-3 py-2.5 text-left transition-all ${basicListTab === tab.id ? 'bg-blue-600 border-blue-500 text-white shadow-[0_10px_28px_rgba(37,99,235,.30)]' : theme.btnSecondary}`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[11px] font-black truncate">{tab.short}</span>
+                                <span className={`text-sm font-black ${basicListTab === tab.id ? 'text-white' : theme.textTitle}`}>{(settingsOptions[tab.id] || []).filter(v => v !== 'อื่นๆ').length.toLocaleString('th-TH')}</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={`border-t ${theme.divide}`} />
+
+                    <div className="p-2.5 sm:p-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+                      {basicListTabs.map(tab => {
+                        const Icon = tab.icon;
+                        const active = basicListTab === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => { setBasicListTab(tab.id); setNewSettingItem(''); setEditingSettingItem(null); }}
+                            className={`group relative overflow-hidden rounded-[1.2rem] border px-3 py-2.5 text-left transition-all ${active ? 'text-white border-transparent' : theme.btnSecondary}`}
+                          >
+                            {active && <span className={`absolute inset-0 bg-gradient-to-br ${tab.color}`} />}
+                            <span className="relative z-10 flex items-center gap-3">
+                              <span className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 border ${active ? 'bg-white/18 border-white/30 text-white' : (isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700')}`}>
+                                <Icon className="w-4.5 h-4.5" />
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block text-sm font-black truncate">{tab.label}</span>
+                                <span className={`block text-[11px] font-bold mt-0.5 truncate ${active ? 'text-white/80' : theme.textMuted}`}>{tab.desc}</span>
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_260px] gap-3">
+                    <section className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/75 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                      <div className={`px-4 py-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${theme.divide}`}>
+                        <div className="min-w-0">
+                          <div className={`text-[10px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>CURRENT LIST</div>
+                          <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>{activeBasicListTab.label}</div>
+                          <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>{activeBasicListTab.desc}</div>
+                        </div>
+                        <div className={`px-3 py-2 rounded-2xl border text-xs font-black ${theme.btnSecondary}`}>{(settingsOptions[basicListTab] || []).filter(v => v !== 'อื่นๆ').length.toLocaleString('th-TH')} รายการ</div>
+                      </div>
+
+                      <div className="p-3 sm:p-4">
+                        <div className={`rounded-[1.2rem] border p-2.5 mb-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                          {editingSettingItem !== null ? (
+                            <div className={`px-3.5 py-2.5 rounded-2xl border text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+                              <span>กำลังแก้ไขรายการ “{editingSettingItem}” ที่การ์ดด้านล่าง</span>
+                              <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-3 py-1.5 rounded-xl border font-black ${theme.btnSecondary}`}>ยกเลิกแก้ไข</button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <input type="text" className={`flex-1 px-3.5 py-2.5 rounded-2xl font-bold outline-none text-sm border ${theme.input}`} placeholder={activeBasicListTab.placeholder} value={newSettingItem} onChange={e => setNewSettingItem(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleSaveSetting(); }} />
+                              <button type="button" onClick={handleSaveSetting} className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl shadow-lg shadow-blue-600/20">เพิ่ม</button>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="max-h-[46vh] overflow-y-auto custom-scrollbar pr-1">
+                          {(settingsOptions[basicListTab] || []).filter(c => c !== 'อื่นๆ').length === 0 ? (
+                            <div className={`p-8 rounded-3xl border text-center font-black ${theme.textMuted}`}>ยังไม่มีรายการในหมวดนี้</div>
+                          ) : (
+                            <div className="grid grid-cols-1 gap-2">
+                              {(settingsOptions[basicListTab] || []).filter(c => c !== 'อื่นๆ').map((item, index) => {
+                                const isEditingThis = editingSettingItem === item;
+                                return (
+                                  <div key={`${basicListTab}_${item}_${index}`} className={`group rounded-2xl border px-3 py-2.5 transition-all ${isEditingThis ? (isDarkMode ? 'bg-blue-950/22 border-blue-500/60 shadow-[0_0_0_1px_rgba(59,130,246,.18)]' : 'bg-blue-50 border-blue-300') : (isDarkMode ? 'bg-slate-900/70 border-slate-800 hover:border-blue-700' : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-blue-300')}`}>
+                                    <div className="flex items-start gap-3">
+                                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${isEditingThis ? 'bg-blue-600 text-white border border-blue-400' : (isDarkMode ? 'bg-blue-500/12 text-blue-300 border border-blue-500/20' : 'bg-blue-50 text-blue-700 border border-blue-100')}`}>{index + 1}</div>
+                                      <div className="min-w-0 flex-1">
+                                        {isEditingThis ? (
+                                          <div className="space-y-2">
+                                            <input
+                                              type="text"
+                                              autoFocus
+                                              className={`w-full px-3.5 py-2.5 rounded-2xl font-bold outline-none text-sm border ${theme.input}`}
+                                              value={newSettingItem}
+                                              onChange={e => setNewSettingItem(e.target.value)}
+                                              onKeyDown={e => {
+                                                if (e.key === 'Enter') handleSaveSetting();
+                                                if (e.key === 'Escape') { setEditingSettingItem(null); setNewSettingItem(''); }
+                                              }}
+                                            />
+                                            <div className="flex flex-wrap gap-2">
+                                              <button type="button" onClick={handleSaveSetting} className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black">บันทึกชื่อใหม่</button>
+                                              <button type="button" onClick={() => { setEditingSettingItem(null); setNewSettingItem(''); }} className={`px-3.5 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ยกเลิก</button>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div>
+                                            <div className={`font-black text-sm leading-relaxed whitespace-normal break-words ${theme.textTitle}`}>{item}</div>
+                                            <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>{activeBasicListTab.short}</div>
+                                          </div>
+                                        )}
+                                      </div>
+                                      {!isEditingThis && (
+                                        <div className="flex gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                          <button type="button" onClick={() => { setEditingSettingItem(item); setNewSettingItem(item); }} className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-blue-900/40 text-blue-300 hover:bg-blue-600 hover:text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>
+                                          <button type="button" onClick={() => setDeleteSettingConfirm(item)} className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${isDarkMode ? 'bg-rose-900/40 text-rose-300 hover:bg-rose-600 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white'}`} title="ลบ"><Icons.Trash className="w-4 h-4" /></button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </section>
+
+                    <aside className={`rounded-[1.35rem] border p-3.5 h-fit ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className={`text-[10px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SUMMARY</div>
+                      <div className={`text-base font-black mt-1 ${theme.textTitle}`}>สรุปรายการพื้นฐาน</div>
+                      <div className="mt-3 space-y-2">
+                        {basicListTabs.map(tab => {
+                          const Icon = tab.icon;
+                          const active = basicListTab === tab.id;
+                          return (
+                            <button key={`aside_${tab.id}`} type="button" onClick={() => { setBasicListTab(tab.id); setNewSettingItem(''); setEditingSettingItem(null); }} className={`w-full rounded-2xl border px-3 py-2.5 flex items-center justify-between gap-3 text-left transition ${active ? 'bg-blue-600 border-blue-500 text-white shadow-[0_10px_28px_rgba(37,99,235,.25)]' : theme.btnSecondary}`}>
+                              <span className="flex items-center gap-2 min-w-0">
+                                <Icon className="w-4 h-4 shrink-0" />
+                                <span className="text-xs font-black truncate">{tab.label}</span>
+                              </span>
+                              <span className="text-xs font-black">{(settingsOptions[tab.id] || []).filter(v => v !== 'อื่นๆ').length}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className={`mt-3 rounded-2xl border p-3 text-[11px] font-bold leading-relaxed ${isDarkMode ? 'bg-slate-900/70 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+                        ใช้หน้านี้เหมือน “ตัวเลือกกลาง” ของระบบ เพิ่มครั้งเดียวแล้วนำไปใช้ในฟอร์มต่าง ๆ ได้เลย
+                      </div>
+                    </aside>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-5 sm:p-6 lg:p-7">
+                  <div className={`p-6 rounded-3xl border text-center font-black ${theme.btnSecondary}`}>ยังไม่มีหน้าตั้งค่าสำหรับหมวดนี้</div>
+                </div>
+              )}
+              </div>
+              </div>
+            </div>
+
+            <div className={`p-4 border-t shrink-0 ${theme.divide}`}>
+              <button type="button" onClick={() => { setShowSettings(false); resetSettingsFormState(); }} className={`px-6 py-3 font-black rounded-2xl text-sm sm:text-base shadow-sm ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* v22.53.36 Simple Backup / Year-End Helper */}
+
+
       {showForm && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-5 z-[9999]`}>
           <div className={`item-form-shell compact-modal-shell rounded-3xl p-2.5 sm:p-3 lg:p-5 max-w-[900px] w-full max-h-[84vh] overflow-y-auto custom-scrollbar shadow-2xl border ${theme.cardBg}`}>
