@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.7 Box Set Editor Header Actions Fix';
-const APP_UPDATE_NOTE = 'Box Set Editor Header Actions Fix: ย้ายปุ่ม บันทึก/ลบ/ยกเลิก ของ popup กล่องและเซ็ตขึ้นไปไว้ด้านบนของแผงซ้าย ไม่อยู่ท้ายแผงที่ต้องเลื่อนหา และไม่บังรายการอุปกรณ์';
+const APP_VERSION = 'v23.4.8 Inventory Workspace Compact Polish';
+const APP_UPDATE_NOTE = 'Inventory Workspace Compact Polish: ลดความรกหน้า คลังอุปกรณ์ รวมปุ่มรองไว้ในเพิ่มเติม ลดความสูงกล่องค้นหา/ตัวกรอง และให้ action หลักอยู่กับแถบรายการที่เลือกเพียงจุดเดียว';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -1115,6 +1115,18 @@ function FactoryPolishStyle({ isDarkMode }) {
       }
       .box-set-unified-editor .boxset-item-row.is-selected {
         box-shadow: inset 0 0 0 1px rgba(96, 165, 250, .42);
+      }
+
+
+      /* v23.4.8 Inventory compact polish */
+      .inventory-selected-toolbar {
+        position: sticky;
+        top: 78px;
+        z-index: 12;
+        backdrop-filter: blur(12px);
+      }
+      .inventory-filter-bar {
+        scroll-margin-top: 88px;
       }
 
 @media (min-width: 1024px) {
@@ -7082,6 +7094,7 @@ function MainApp() {
   const [filterAssetStatus, setFilterAssetStatus] = useState('all');
   const [filterQrTagged, setFilterQrTagged] = useState('all');
   const [showInventoryFilterPanel, setShowInventoryFilterPanel] = useState(false);
+  const [showInventoryMoreActions, setShowInventoryMoreActions] = useState(false);
   const [smartQuickFilter, setSmartQuickFilter] = useState('all');
 
   const [isAdmin, setIsAdmin] = useState(() => {
@@ -7343,6 +7356,7 @@ function MainApp() {
     };
     workspace = removedWorkspaceRedirects[workspace] || workspace;
     setShowMoreMenu(false);
+    setShowInventoryMoreActions(false);
     setShowProjectsModal(false);
     setShowStorageBoxesModal(false);
     setShowBundleManager(false);
@@ -12513,7 +12527,7 @@ S.N.: ${item.sn || '-'}
                         onClick={() => setShowOperationQuickPick(false)}
                         className="fixed inset-0 z-[80] bg-black/20"
                       />
-                      <aside className={`fixed z-[91] right-3 sm:right-5 top-20 bottom-5 w-[min(420px,calc(100vw-1.5rem))] rounded-[1.35rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-white border-slate-200'}`}>
+                      <aside className={`fixed z-[91] right-3 sm:right-5 top-20 bottom-5 w-[min(420px,calc(100vw-1.5rem))] rounded-2xl border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-white border-slate-200'}`}>
                         <div className={`px-4 py-3 border-b flex items-start justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900/90' : 'border-slate-100 bg-slate-50'}`}>
                           <div className="min-w-0">
                             <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Box / Bundle Picker</div>
@@ -12719,7 +12733,7 @@ S.N.: ${item.sn || '-'}
                 {showOperationSelectedPanel && actionTargetIds.length > 0 && (
                   <>
                     <button type="button" aria-label="ปิดรายการที่เลือก" onClick={() => setShowOperationSelectedPanel(false)} className="fixed inset-0 z-[92] bg-black/30" />
-                    <aside className={`fixed z-[93] right-3 sm:right-5 top-20 bottom-5 w-[min(460px,calc(100vw-1.5rem))] rounded-[1.35rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-white border-slate-200'}`}>
+                    <aside className={`fixed z-[93] right-3 sm:right-5 top-24 bottom-6 w-[min(380px,calc(100vw-1.5rem))] rounded-[1.35rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-white border-slate-200'}`}>
                       <div className={`px-4 py-3 border-b flex items-start justify-between gap-3 ${isDarkMode ? 'border-slate-800 bg-slate-900/90' : 'border-slate-100 bg-slate-50'}`}>
                         <div className="min-w-0">
                           <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Selected Items</div>
@@ -13858,49 +13872,49 @@ S.N.: ${item.sn || '-'}
               <h2 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>คลังอุปกรณ์</h2>
               <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>ค้นหา เปิดแฟ้ม เลือกหลายรายการ แล้วส่งต่อไปหน้า ยืม / ออกงาน / รับคืน แบบใหม่ ไม่เปิดฟอร์มเก่าซ้อนในคลัง</p>
             </div>
-            <div className="inventory-header-actions flex flex-wrap gap-2 shrink-0">
+            <div className="inventory-header-actions flex flex-wrap gap-2 shrink-0 relative">
               {canAddEditItems && <button type="button" onClick={openAddItemForm} className="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm"><Icons.Plus className="w-5 h-5 inline-block mr-1" /> เพิ่มอุปกรณ์</button>}
-              {canDeleteItems && <button type="button" onClick={() => setShowTrashModal(true)} className={`px-4 py-2.5 rounded-2xl border font-black ${isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}><Icons.Trash className="w-5 h-5 inline-block mr-1" /> ถังขยะ</button>}
-              <button type="button" onClick={exportInventoryCSV} className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">Export CSV</button>
-              <button type="button" onClick={openMonthlyReportPage} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>พิมพ์/รายงาน</button>
-              {canUseOperationalTools && <button type="button" onClick={() => openSelectionScanner({ camera: true })} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>สแกน QR</button>}
+              <button type="button" onClick={() => setShowInventoryMoreActions(v => !v)} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>เพิ่มเติม •••</button>
+              {showInventoryMoreActions && (
+                <div className={`absolute right-0 top-full mt-2 z-30 w-56 rounded-2xl border p-2 shadow-2xl ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  {canUseOperationalTools && <button type="button" onClick={() => { setShowInventoryMoreActions(false); openSelectionScanner({ camera: true }); }} className={`w-full text-left px-3 py-2 rounded-xl font-black text-sm ${isDarkMode ? 'hover:bg-slate-900 text-slate-200' : 'hover:bg-slate-50 text-slate-700'}`}>สแกน QR</button>}
+                  <button type="button" onClick={() => { setShowInventoryMoreActions(false); exportInventoryCSV(); }} className={`w-full text-left px-3 py-2 rounded-xl font-black text-sm ${isDarkMode ? 'hover:bg-slate-900 text-slate-200' : 'hover:bg-slate-50 text-slate-700'}`}>Export CSV</button>
+                  <button type="button" onClick={() => { setShowInventoryMoreActions(false); openMonthlyReportPage(); }} className={`w-full text-left px-3 py-2 rounded-xl font-black text-sm ${isDarkMode ? 'hover:bg-slate-900 text-slate-200' : 'hover:bg-slate-50 text-slate-700'}`}>พิมพ์ / รายงาน</button>
+                  {canDeleteItems && <button type="button" onClick={() => { setShowInventoryMoreActions(false); openSettingsTab('trash'); }} className={`w-full text-left px-3 py-2 rounded-xl font-black text-sm ${isDarkMode ? 'hover:bg-rose-950/45 text-rose-200' : 'hover:bg-rose-50 text-rose-700'}`}>ถังขยะ</button>}
+                </div>
+              )}
             </div>
           </div>
 
           <div className="p-2 sm:p-3 space-y-3">
-            <div className={`rounded-[1.35rem] border px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div className="min-w-0">
-                <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>Inventory Scope</div>
-                <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>{currentInventoryScope.label}</div>
-                <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เปลี่ยนมุมมองจากเมนูซ้าย: สต๊อกทั้งหมด / พร้อมใช้งาน / กำลังใช้งาน / ชำรุด / โกดัง</div>
+            <div className={`rounded-2xl border px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className="min-w-0 flex flex-wrap items-center gap-2">
+                <span className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>Inventory Scope</span>
+                <span className={`text-base font-black ${theme.textTitle}`}>{currentInventoryScope.label}</span>
+                <span className={`text-xs font-bold ${theme.textMuted}`}>เปลี่ยนมุมมองจากเมนูซ้าย</span>
               </div>
-              <div className={`shrink-0 px-3 py-2 rounded-2xl border text-xs font-black ${theme.btnSecondary}`}>พบ {filteredItems.length.toLocaleString('th-TH')} รายการ</div>
+              <div className={`shrink-0 px-3 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>พบ {filteredItems.length.toLocaleString('th-TH')} รายการ</div>
             </div>
 
-            <div className={`inventory-filter-bar rounded-[1.5rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div className={`p-4 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-3 ${theme.divide}`}>
+            <div className={`inventory-filter-bar rounded-[1.25rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`px-4 py-3 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 ${theme.divide}`}>
                 <div>
-                  <div className={`font-black text-lg ${theme.textTitle}`}>ค้นหาและตัวกรองคลัง</div>
+                  <div className={`font-black text-base ${theme.textTitle}`}>ค้นหาและตัวกรองคลัง</div>
                   <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>มุมมอง: {currentInventoryScope.label} • พบ {filteredItems.length.toLocaleString('th-TH')} รายการ • แสดง {inventoryRows.length.toLocaleString('th-TH')} รายการแรก</div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {selectedItems.length > 0 && canUseOperationalTools && (
-                    <>
-                      <button type="button" onClick={handleOpenBatchBorrow} className="px-3 py-2 rounded-xl bg-purple-600 text-white font-black text-xs">ยืมที่เลือก</button>
-                      <button type="button" onClick={handleOpenBatchEvent} className="px-3 py-2 rounded-xl bg-orange-500 text-white font-black text-xs">ออกงานที่เลือก</button>
-                      <button type="button" onClick={handleOpenBatchReturn} className="px-3 py-2 rounded-xl bg-emerald-600 text-white font-black text-xs">รับคืนที่เลือก</button>
-                      <button type="button" onClick={() => setShowพิมพ์Modal(true)} className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs flex items-center gap-1.5"><Icons.QrCode className="w-4 h-4" /> พิมพ์ QR / ฉลาก</button>
-                      <button type="button" onClick={() => setSelectedItems([])} className={`px-3.5 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ล้างเลือก</button>
-                    </>
-                  )}
-                  {hasActiveFilters && <button type="button" onClick={clearAllFilters} className={`px-3.5 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ล้างตัวกรอง</button>}
-                  {selectedItems.length === 0 && !hasActiveFilters && <span className={`px-3.5 py-2.5 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-slate-900 border-slate-800/55 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>ติ๊กเลือกเพื่อทำรายการแบบกลุ่ม</span>}
+                  {hasActiveFilters && <button type="button" onClick={clearAllFilters} className={`px-3 py-2 rounded-xl border font-black text-xs ${theme.btnSecondary}`}>ล้างตัวกรอง</button>}
+                  {selectedItems.length > 0 ? (
+                    <span className={`px-3.5 py-2.5 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-blue-950/25 border-blue-800/50 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>เลือกแล้ว {selectedItems.length.toLocaleString('th-TH')} รายการ • ใช้แถบรายการที่เลือกด้านล่าง</span>
+                  ) : !hasActiveFilters ? (
+                    <span className={`px-3.5 py-2.5 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-slate-900 border-slate-800/55 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>ติ๊กเลือกเพื่อทำรายการแบบกลุ่ม</span>
+                  ) : null}
                 </div>
               </div>
 
-              <div className="p-4 space-y-3">
+              <div className="p-3 space-y-2.5">
                 <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-3 items-start">
-                  <div className={`inventory-search-box flex items-center gap-3 px-4 py-2.5 rounded-2xl border ${theme.input}`}>
+                  <div className={`inventory-search-box flex items-center gap-3 px-4 py-2 rounded-xl border ${theme.input}`}>
                     <Icons.Search className={`w-5 h-5 shrink-0 ${theme.textMuted}`} />
                     <input
                       value={searchTerm}
@@ -14039,17 +14053,17 @@ S.N.: ${item.sn || '-'}
             </div>
 
             {selectedItems.length > 0 && canUseOperationalTools && (
-              <div className={`inventory-selected-toolbar rounded-2xl border px-3 py-2 flex flex-col lg:flex-row lg:items-center justify-between gap-2 ${isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-950'}`}>
+              <div className={`inventory-selected-toolbar rounded-2xl border px-3 py-2 flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-2 ${isDarkMode ? 'bg-blue-950/25 border-blue-800/60 text-blue-100' : 'bg-blue-50 border-blue-200 text-blue-950'}`}>
                 <div>
                   <div className="text-xs sm:text-sm font-black">เลือกแล้ว {selectedItems.length.toLocaleString('th-TH')} รายการ</div>
-                  <div className="text-[11px] font-bold opacity-75">ทำรายการแบบกลุ่ม หรือกดล้างเลือกเมื่อจบงาน</div>
+                  <div className="text-[11px] font-bold opacity-75">จัดการรายการที่เลือกจากจุดนี้จุดเดียว</div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={handleOpenBatchBorrow} className="px-3.5 py-2.5 rounded-xl bg-purple-600 text-white font-black text-sm">ยืมที่เลือก</button>
-                  <button type="button" onClick={handleOpenBatchEvent} className="px-3.5 py-2.5 rounded-xl bg-orange-500 text-white font-black text-sm">ออกงานที่เลือก</button>
-                  <button type="button" onClick={handleOpenBatchReturn} className="px-3.5 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-sm">รับคืนที่เลือก</button>
-                  <button type="button" onClick={() => setShowพิมพ์Modal(true)} className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm flex items-center gap-2"><Icons.QrCode className="w-4 h-4" /> พิมพ์ QR</button>
-                  {canDeleteItems && <button type="button" onClick={handleDeleteSelectedItems} className={`px-3.5 py-2.5 rounded-xl border font-black text-sm ${isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>ลบที่เลือก</button>}
+                  <button type="button" onClick={handleOpenBatchBorrow} className="px-3 py-2 rounded-xl bg-purple-600 text-white font-black text-xs">ยืมที่เลือก</button>
+                  <button type="button" onClick={handleOpenBatchEvent} className="px-3 py-2 rounded-xl bg-orange-500 text-white font-black text-xs">ออกงานที่เลือก</button>
+                  <button type="button" onClick={handleOpenBatchReturn} className="px-3 py-2 rounded-xl bg-emerald-600 text-white font-black text-xs">รับคืนที่เลือก</button>
+                  <button type="button" onClick={() => setShowพิมพ์Modal(true)} className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs flex items-center gap-2"><Icons.QrCode className="w-4 h-4" /> พิมพ์ QR</button>
+                  {canDeleteItems && <button type="button" onClick={handleDeleteSelectedItems} className={`px-3 py-2 rounded-xl border font-black text-xs ${isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>ลบที่เลือก</button>}
                   <button type="button" onClick={() => setSelectedItems([])} className={`px-3.5 py-2.5 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>ล้างเลือก</button>
                 </div>
               </div>
