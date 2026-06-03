@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.3.9 Box Set Editor Soft Divider Fix';
-const APP_UPDATE_NOTE = 'Box Set Editor Soft Divider Fix: เก็บเส้นขาวใน popup สร้างกล่อง/สร้างเซ็ตที่กู้กลับมาใน v23.3.8 โดยแก้เฉพาะ popup กล่อง/เซ็ต ไม่กระทบเส้นทั้งเว็บ';
+const APP_VERSION = 'v23.4.0 Trash Direct Open Fix';
+const APP_UPDATE_NOTE = 'Trash Direct Open Fix: แก้เมนูถังขยะใน Settings ให้เปิดหน้าถังขยะจริงทันที ไม่ต้องกดเปิดถังขยะกลางซ้ำ และเอาปุ่มเก่าที่เปิดถังขยะอุปกรณ์เดิมซึ่งกดไม่ติดออก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -14738,7 +14738,7 @@ S.N.: ${item.sn || '-'}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button type="button" onClick={handlePermanentDeleteOldCentralTrash} disabled={oldCentralTrashEntries.length === 0 || isBusy} className={`px-4 py-2.5 rounded-2xl border text-sm font-black ${oldCentralTrashEntries.length === 0 || isBusy ? 'bg-slate-800 border-slate-800/55 text-slate-500 cursor-not-allowed' : 'bg-amber-950/45 border-amber-500/40 text-amber-200 hover:bg-amber-700 hover:text-white'}`}>ล้างรายการเก่า 30 วัน ({oldCentralTrashEntries.length.toLocaleString('th-TH')})</button>
-                    <button type="button" onClick={() => setShowTrashModal(true)} className={`px-4 py-2.5 rounded-2xl border text-sm font-black ${theme.btnSecondary}`}>เปิดถังขยะอุปกรณ์เดิม</button>
+                    <button type="button" onClick={handleEmptyCentralTrashAll} disabled={centralTrashEntries.length === 0 || isBusy || !canDeleteItems} className={`px-4 py-2.5 rounded-2xl border text-sm font-black ${centralTrashEntries.length === 0 || isBusy || !canDeleteItems ? 'bg-slate-800 border-slate-800/55 text-slate-500 cursor-not-allowed' : 'bg-rose-950/45 border-rose-500/40 text-rose-200 hover:bg-rose-700 hover:text-white'}`}>ล้างถังขยะทั้งหมด ({centralTrashEntries.length.toLocaleString('th-TH')})</button>
                   </div>
                 </div>
 
@@ -15339,6 +15339,12 @@ S.N.: ${item.sn || '-'}
     const nextTab = legacyBasicTabs.includes(tabId) ? 'basicLists' : (removedSettingsTabs.includes(tabId) ? 'database' : tabId);
     if (legacyBasicTabs.includes(tabId)) setBasicListTab(tabId);
     setShowMoreMenu(false);
+    if (nextTab === 'trash') {
+      resetSettingsFormState();
+      setShowSettings(false);
+      openMainHistoryCenter({ reset: true, tab: 'trash' });
+      return;
+    }
     setSettingsTab(nextTab);
     resetSettingsFormState();
     if (nextTab === 'accounts') openNewAccountForm();
@@ -24463,21 +24469,9 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </div>
                 </div>
               ) : settingsTab === 'trash' ? (
-                <div className="p-5 sm:p-6 lg:p-7 space-y-4">
-                  <section className={`rounded-[1.35rem] border p-5 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-                      <div>
-                        <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>TRASH CENTER</div>
-                        <h4 className={`text-2xl font-black mt-1 ${theme.textTitle}`}>ถังขยะ</h4>
-                        <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมรายการที่ถูกย้ายลงถังขยะ กู้คืนหรือลบถาวรจากหน้ากลางเดียว</p>
-                      </div>
-                      <button type="button" onClick={() => setShowTrashModal(true)} className="px-5 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black shadow-lg shadow-rose-900/20">
-                        เปิดถังขยะกลาง
-                      </button>
-                    </div>
-                  </section>
-                  <div className={`rounded-3xl border p-5 text-sm font-bold leading-relaxed ${isDarkMode ? 'bg-slate-900/70 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                    ใช้ปุ่มนี้เพื่อเปิดหน้าถังขยะกลางโดยตรง ไม่ต้องแยกเป็นหน้าตั้งค่าซ้ำอีกชั้น
+                <div className="p-5 sm:p-6 lg:p-7">
+                  <div className={`p-6 rounded-3xl border text-center font-black ${theme.btnSecondary}`}>
+                    กำลังพาไปหน้าถังขยะ...
                   </div>
                 </div>
               ) : (
