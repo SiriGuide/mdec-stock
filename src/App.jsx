@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.1 Trash Inside Settings Restore';
-const APP_UPDATE_NOTE = 'Trash Inside Settings Restore: ย้ายถังขยะกลับมาอยู่ใน Settings ตามเดิม ไม่พาไปหน้าเอกสาร/ประวัติ/หลักฐาน และแสดงรายการถังขยะพร้อมกู้คืน/ลบถาวรในหน้าตั้งค่าโดยตรง';
+const APP_VERSION = 'v23.4.2 Open Item Profile Hotfix';
+const APP_UPDATE_NOTE = 'Open Item Profile Hotfix: แก้ปุ่มเปิดแฟ้มอุปกรณ์ที่บางหน้ากดแล้วไม่ขึ้น โดยรวมทางเปิดแฟ้มเป็น openItemProfile ปิด overlay/modal ที่บังอยู่ก่อนแล้วค่อยเปิดแฟ้ม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7499,11 +7499,33 @@ function MainApp() {
     openMainHistoryCenter({ reset: false, tab: 'history' });
   };
 
+  const openItemProfile = (itemId) => {
+    if (!itemId) return alert('ไม่พบรหัสอุปกรณ์สำหรับเปิดแฟ้ม');
+    const targetItem = items.find(item => String(item.id) === String(itemId));
+    if (!targetItem) return alert('ไม่พบอุปกรณ์นี้ในระบบ หรืออุปกรณ์อาจถูกลบไปแล้ว');
+
+    // v23.4.2: ปิด overlay/modal ที่อาจบังแฟ้มอุปกรณ์ก่อนเปิด
+    setShowMoreMenu(false);
+    setShowCommandCenter(false);
+    setShowStorageBoxEditor(false);
+    setShowBundleManager(false);
+    setShowStorageBoxAssignModal(false);
+    setShowBundleModal(false);
+    setShowProjectsModal(false);
+    setProjectMetaEditTarget(null);
+    setShowSettings(false);
+    setShowHistoryCenterModal(false);
+    setShowBorrowDocsModal(false);
+    setShowProofCenterModal(false);
+    setShowTrashModal(false);
+    setShowHistory(itemId);
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0);
+  };
+
   const openItemHistoryFromHistoryCenter = (itemId) => {
     if (!itemId) return;
     pushModalReturnTarget('historyCenter');
-    setShowHistoryCenterModal(false);
-    setShowHistory(itemId);
+    openItemProfile(itemId);
   };
 
   const openProofAttachFromHistoryCenter = (entry) => {
@@ -10683,7 +10705,7 @@ S.N.: ${item.sn || '-'}
                                     </div>
                                   </div>
                                   <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
-                                    <button type="button" onClick={(e) => { e.stopPropagation(); setShowHistory(item.id); }} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); openItemProfile(item.id); }} className={`px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
                                     {canAddEditItems && <button type="button" onClick={(e) => { e.stopPropagation(); openItemEditor(item); }} className="px-3 py-2 rounded-xl text-xs font-black bg-blue-950/35 text-blue-100 border border-blue-500/50">แก้ไข</button>}
                                   </div>
                                 </div>
@@ -10992,7 +11014,7 @@ S.N.: ${item.sn || '-'}
                               </div>
                               <div className="flex flex-wrap items-center gap-2 shrink-0">
                                 {statusPill(item)}
-                                <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
+                                <button type="button" onClick={() => openItemProfile(item.id)} className={`px-3 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>
                               </div>
                             </div>
                           ))}
@@ -13119,7 +13141,7 @@ S.N.: ${item.sn || '-'}
                 <div className={`font-black mb-3 ${theme.textTitle}`}>รายการล่าสุดในเดือนนี้</div>
                 <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
                   {reportInteractiveData.recentRows.length === 0 ? <div className={`text-sm font-bold ${theme.textMuted}`}>ยังไม่มีรายการในเดือนนี้</div> : reportInteractiveData.recentRows.slice(0, 6).map(row => (
-                    <button key={row.id} type="button" onClick={() => setShowHistory(row.item.id)} className={`w-full p-2 rounded-xl text-left flex items-center justify-between gap-2 ${isDarkMode ? 'hover:bg-slate-900' : 'hover:bg-slate-50'}`}>
+                    <button key={row.id} type="button" onClick={() => openItemProfile(row.item.id)} className={`w-full p-2 rounded-xl text-left flex items-center justify-between gap-2 ${isDarkMode ? 'hover:bg-slate-900' : 'hover:bg-slate-50'}`}>
                       <span className="min-w-0">
                         <span className={`block text-sm font-black truncate ${theme.textTitle}`}>{row.item.name}</span>
                         <span className={`block text-xs font-bold truncate ${theme.textMuted}`}>{row.action} • {row.subject}</span>
@@ -13334,7 +13356,7 @@ S.N.: ${item.sn || '-'}
             ) : (
               <button type="button" onClick={() => markStockCountFound(item, 'button')} className="px-3 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">พบแล้ว</button>
             )}
-            <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>เปิด</button>
+            <button type="button" onClick={() => openItemProfile(item.id)} className={`px-3 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>เปิด</button>
             <button type="button" onClick={() => openItemEditor(item)} className={`px-3 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>แก้ข้อมูล</button>
             <button type="button" onClick={() => openRepairForItem(item)} className={`px-3 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>แจ้งซ่อม</button>
           </div>
@@ -14079,7 +14101,7 @@ S.N.: ${item.sn || '-'}
                         const selected = selectedItems.includes(item.id);
                         const returnable = item.status === 'borrowed' || item.status === 'out-for-event';
                         return (
-                          <tr key={`${item.id}_${item.__cameraKitChildOf || 'main'}`} onClick={() => setShowHistory(item.id)} className={`inventory-table-row group border-b cursor-pointer transition-colors ${item.__cameraKitChildOf ? (isDarkMode ? 'bg-cyan-950/10' : 'bg-cyan-50/45') : ''} ${selected ? (isDarkMode ? 'inventory-row-selected bg-blue-950/25' : 'inventory-row-selected bg-blue-50/65') : theme.tr}`}>
+                          <tr key={`${item.id}_${item.__cameraKitChildOf || 'main'}`} onClick={() => openItemProfile(item.id)} className={`inventory-table-row group border-b cursor-pointer transition-colors ${item.__cameraKitChildOf ? (isDarkMode ? 'bg-cyan-950/10' : 'bg-cyan-50/45') : ''} ${selected ? (isDarkMode ? 'inventory-row-selected bg-blue-950/25' : 'inventory-row-selected bg-blue-50/65') : theme.tr}`}>
                             <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                               <input type="checkbox" checked={selected} onChange={() => setSelectedItems(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id])} className="w-5 h-5 accent-blue-600" />
                             </td>
@@ -14130,7 +14152,7 @@ S.N.: ${item.sn || '-'}
                             </td>
                             <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                               <div className="inventory-row-actions flex items-center justify-center gap-1.5">
-                                <button type="button" onClick={() => setShowHistory(item.id)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${theme.btnCancel}`} title="เปิด"><Icons.History className="w-4 h-4" /><span>แฟ้ม</span></button>
+                                <button type="button" onClick={() => openItemProfile(item.id)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${theme.btnCancel}`} title="เปิด"><Icons.History className="w-4 h-4" /><span>แฟ้ม</span></button>
                                 <button type="button" onClick={() => copyItemSummary(item)} className={`inventory-action-btn rounded-xl flex items-center justify-center gap-1.5 ${theme.btnCancel}`} title="คัดลอก"><Icons.ClipboardList className="w-4 h-4" /><span>คัดลอก</span></button>
                                 {canUseOperationalTools && <button type="button" onClick={() => openRepairForItem(item)} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-rose-950/30 border border-rose-500/25 text-rose-300 hover:bg-rose-600 hover:border-rose-600 hover:text-white' : 'bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-600 hover:border-rose-600 hover:text-white'}`} title="แจ้งซ่อม"><Icons.Alert className="w-4 h-4" /></button>}
                                 {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className={`inventory-action-btn inventory-action-icon-only rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-sky-950/30 border border-sky-500/25 text-sky-300 hover:bg-sky-600 hover:border-sky-600 hover:text-white' : 'bg-sky-50 border border-sky-200 text-sky-700 hover:bg-sky-600 hover:border-sky-600 hover:text-white'}`} title="แก้ไข"><Icons.Edit className="w-4 h-4" /></button>}
@@ -14701,7 +14723,7 @@ S.N.: ${item.sn || '-'}
                             ) : (
                               <span className={`inline-flex items-center px-3 py-2 rounded-xl border text-xs font-black ${isDarkMode ? 'border-slate-800/55 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-white text-slate-400'}`}>ไม่มีรูปหลักฐาน</span>
                             )}
-                            {!entry.isAuditLog && <button type="button" onClick={() => setShowHistory(entry.itemId)} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
+                            {!entry.isAuditLog && <button type="button" onClick={() => openItemProfile(entry.itemId)} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
                             {!entry.isAuditLog && <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-xs font-black">เพิ่มรูป</button>}
                             {totalProofs > 0 && <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูรูป</button>}
                           </div>
@@ -15279,13 +15301,13 @@ S.N.: ${item.sn || '-'}
                     const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
                     return (
                       <div key={item.id} className="p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-                        <button type="button" onClick={() => setShowHistory(item.id)} className="text-left min-w-0">
+                        <button type="button" onClick={() => openItemProfile(item.id)} className="text-left min-w-0">
                           <div className={`font-black text-lg truncate ${theme.textTitle}`}>{item.name || '-'}</div>
                           <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • {item.project ? projectDisplayName(item.project) : 'ไม่ระบุโครงการ'}</div>
                           <div className={`inline-flex mt-2 px-2.5 py-1 rounded-xl border text-xs font-black ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>ยังไม่เข้าคลังใช้งาน</div>
                         </button>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
-                          <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>แฟ้ม</button>
+                          <button type="button" onClick={() => openItemProfile(item.id)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>แฟ้ม</button>
                           {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>แก้ไข</button>}
                           {canAddEditItems && <button type="button" onClick={() => handleMoveWarehouseItemToStock(item)} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black col-span-2 sm:col-span-1">เบิกเข้าคลัง</button>}
                         </div>
@@ -21697,7 +21719,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <div className="text-xs font-black tracking-[.18em] text-cyan-300/80 uppercase mb-3">PRIORITY FOLLOW-UP</div>
                 <div className="mc-scroll space-y-2 pr-1">
                   {overdueItems.slice(0, 5).map(item => (
-                    <button key={`late_${item.id}`} type="button" onClick={() => setShowHistory(item.id)} className="mc-action-row w-full text-left rounded-2xl border border-rose-400/20 bg-rose-500/10 px-3 py-2.5">
+                    <button key={`late_${item.id}`} type="button" onClick={() => openItemProfile(item.id)} className="mc-action-row w-full text-left rounded-2xl border border-rose-400/20 bg-rose-500/10 px-3 py-2.5">
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0 font-black text-rose-100 truncate">{item.name}</div>
                         <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-rose-500 text-white shrink-0">เลยกำหนด</span>
@@ -21753,7 +21775,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   {outsideItems.slice(0, 6).map(item => {
                     const isLate = item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
                     return (
-                      <button key={`${item._kind}_${item.id}`} type="button" onClick={() => setShowHistory(item.id)} className={`mc-action-row w-full text-left rounded-2xl border px-3 py-2.5 ${isLate ? 'border-rose-400/25 bg-rose-500/10' : item._kind === 'event' ? 'border-orange-400/20 bg-orange-400/10' : 'border-purple-400/20 bg-purple-400/10'}`}>
+                      <button key={`${item._kind}_${item.id}`} type="button" onClick={() => openItemProfile(item.id)} className={`mc-action-row w-full text-left rounded-2xl border px-3 py-2.5 ${isLate ? 'border-rose-400/25 bg-rose-500/10' : item._kind === 'event' ? 'border-orange-400/20 bg-orange-400/10' : 'border-purple-400/20 bg-purple-400/10'}`}>
                         <div className="flex items-start justify-between gap-2">
                           <span className="font-black text-white truncate">{item.name}</span>
                           <span className={`text-[10px] font-black px-2 py-1 rounded-lg shrink-0 ${isLate ? 'bg-rose-500 text-white' : item._kind === 'event' ? 'bg-orange-500/80 text-white' : 'bg-purple-500/80 text-white'}`}>{isLate ? 'เลยกำหนด' : item._kind === 'event' ? 'ออกงาน' : 'ยืม'}</span>
@@ -23485,7 +23507,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   {singleSelectedItem && (
                     <button
                       type="button"
-                      onClick={() => setShowHistory(singleSelectedItem.id)}
+                      onClick={() => openItemProfile(singleSelectedItem.id)}
                       className={`px-4 py-2.5 rounded-2xl font-black shadow-md flex items-center justify-center gap-2 text-sm transition-colors border ${theme.btnSecondary}`}
                       title="ดูรายละเอียดรายการที่เลือก"
                     >
@@ -25317,7 +25339,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                                       </div>
                                     </div>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
-                                      <button type="button" onClick={() => setShowHistory(item.id)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>
+                                      <button type="button" onClick={() => openItemProfile(item.id)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>รายละเอียด</button>
                                       {canAddEditItems && <button type="button" onClick={() => { setShowProjectsModal(false); openItemEditor(item); }} className="px-3 py-2 rounded-xl text-sm font-black bg-blue-950/35 text-blue-100 border border-blue-500/50">แก้ไข</button>}
                                       <button type="button" onClick={() => copyItemSummary(item)} className={`px-3 py-2 rounded-xl text-sm font-black border ${theme.btnSecondary}`}>คัดลอกสรุป</button>
                                     </div>
