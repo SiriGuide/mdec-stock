@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.0 Trash Direct Open Fix';
-const APP_UPDATE_NOTE = 'Trash Direct Open Fix: แก้เมนูถังขยะใน Settings ให้เปิดหน้าถังขยะจริงทันที ไม่ต้องกดเปิดถังขยะกลางซ้ำ และเอาปุ่มเก่าที่เปิดถังขยะอุปกรณ์เดิมซึ่งกดไม่ติดออก';
+const APP_VERSION = 'v23.4.1 Trash Inside Settings Restore';
+const APP_UPDATE_NOTE = 'Trash Inside Settings Restore: ย้ายถังขยะกลับมาอยู่ใน Settings ตามเดิม ไม่พาไปหน้าเอกสาร/ประวัติ/หลักฐาน และแสดงรายการถังขยะพร้อมกู้คืน/ลบถาวรในหน้าตั้งค่าโดยตรง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -15339,12 +15339,6 @@ S.N.: ${item.sn || '-'}
     const nextTab = legacyBasicTabs.includes(tabId) ? 'basicLists' : (removedSettingsTabs.includes(tabId) ? 'database' : tabId);
     if (legacyBasicTabs.includes(tabId)) setBasicListTab(tabId);
     setShowMoreMenu(false);
-    if (nextTab === 'trash') {
-      resetSettingsFormState();
-      setShowSettings(false);
-      openMainHistoryCenter({ reset: true, tab: 'trash' });
-      return;
-    }
     setSettingsTab(nextTab);
     resetSettingsFormState();
     if (nextTab === 'accounts') openNewAccountForm();
@@ -24469,10 +24463,76 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </div>
                 </div>
               ) : settingsTab === 'trash' ? (
-                <div className="p-5 sm:p-6 lg:p-7">
-                  <div className={`p-6 rounded-3xl border text-center font-black ${theme.btnSecondary}`}>
-                    กำลังพาไปหน้าถังขยะ...
+                <div className="p-4 sm:p-5 lg:p-6 space-y-4">
+                  <section className={`rounded-[1.35rem] border p-4 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>TRASH</div>
+                        <h4 className={`text-2xl font-black mt-1 ${theme.textTitle}`}>ถังขยะ</h4>
+                        <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รายการที่ถูกย้ายลงถังขยะจากระบบ กู้คืนหรือลบถาวรได้จากตรงนี้เลย</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 shrink-0">
+                        <button type="button" onClick={handlePermanentDeleteOldCentralTrash} disabled={oldCentralTrashEntries.length === 0 || isBusy || !canDeleteItems} className={`px-4 py-2.5 rounded-2xl border text-sm font-black ${oldCentralTrashEntries.length === 0 || isBusy || !canDeleteItems ? 'bg-slate-800 border-slate-800/55 text-slate-500 cursor-not-allowed' : 'bg-amber-950/45 border-amber-500/40 text-amber-200 hover:bg-amber-700 hover:text-white'}`}>
+                          ล้างรายการเก่า 30 วัน ({oldCentralTrashEntries.length.toLocaleString('th-TH')})
+                        </button>
+                        <button type="button" onClick={handleEmptyCentralTrashAll} disabled={centralTrashEntries.length === 0 || isBusy || !canDeleteItems} className={`px-4 py-2.5 rounded-2xl border text-sm font-black ${centralTrashEntries.length === 0 || isBusy || !canDeleteItems ? 'bg-slate-800 border-slate-800/55 text-slate-500 cursor-not-allowed' : 'bg-rose-950/45 border-rose-500/40 text-rose-200 hover:bg-rose-700 hover:text-white'}`}>
+                          ล้างถังขยะทั้งหมด ({centralTrashEntries.length.toLocaleString('th-TH')})
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                    {[
+                      ['ทั้งหมด', centralTrashEntries.length],
+                      ['อุปกรณ์', centralTrashEntries.filter(entry => entry.kind === 'item').length],
+                      ['ประวัติ', centralTrashEntries.filter(entry => entry.kind === 'history').length],
+                      ['รูปหลักฐาน', centralTrashEntries.filter(entry => entry.kind === 'proof').length]
+                    ].map(([label, value]) => (
+                      <div key={label} className={`rounded-2xl border px-4 py-3 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                        <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
+                        <div className={`text-2xl font-black mt-0.5 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                      </div>
+                    ))}
                   </div>
+
+                  <section className={`rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    {centralTrashEntries.length === 0 ? (
+                      <div className={`p-8 text-center font-black ${theme.textMuted}`}>ถังขยะว่างอยู่</div>
+                    ) : (
+                      <div className="max-h-[52vh] overflow-y-auto custom-scrollbar">
+                        {centralTrashEntries.map((entry) => (
+                          <div key={`${entry.kind}_${entry.id || entry.itemId || entry.groupId || entry.historyIndex || entry.subject}`} className={`px-4 py-3 border-b last:border-b-0 ${theme.divide}`}>
+                            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:items-center">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black border ${entry.kind === 'item' ? 'bg-blue-500/12 text-blue-200 border-blue-500/25' : entry.kind === 'proof' ? 'bg-fuchsia-500/12 text-fuchsia-200 border-fuchsia-500/25' : 'bg-amber-500/12 text-amber-200 border-amber-500/25'}`}>
+                                    {entry.kind === 'item' ? 'อุปกรณ์' : entry.kind === 'proof' ? 'รูปหลักฐาน' : 'ประวัติ'}
+                                  </span>
+                                  <span className={`font-black break-words ${theme.textTitle}`}>{entry.itemName || entry.subject || entry.title || entry.name || '-'}</span>
+                                </div>
+                                <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>
+                                  {entry.sn ? `S.N. ${entry.sn} • ` : ''}{entry.note || entry.detail || entry.typeLabel || entry.kind || '-'}
+                                </div>
+                                <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>
+                                  {entry.deletedAt ? `ลบเมื่อ ${formatThaiDateTime(entry.deletedAt)}` : ''}
+                                  {entry.deletedBy ? ` • โดย ${entry.deletedBy}` : ''}
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap gap-2 shrink-0">
+                                <button type="button" onClick={() => handleRestoreCentralTrashEntry(entry)} disabled={isBusy || !canDeleteItems} className={`px-3 py-2 rounded-xl border text-xs font-black ${isBusy || !canDeleteItems ? 'bg-slate-800 border-slate-800 text-slate-500 cursor-not-allowed' : 'bg-emerald-950/45 border-emerald-500/35 text-emerald-200 hover:bg-emerald-700 hover:text-white'}`}>
+                                  กู้คืน
+                                </button>
+                                <button type="button" onClick={() => handlePermanentDeleteCentralTrashEntry(entry)} disabled={isBusy || !canDeleteItems} className={`px-3 py-2 rounded-xl border text-xs font-black ${isBusy || !canDeleteItems ? 'bg-slate-800 border-slate-800 text-slate-500 cursor-not-allowed' : 'bg-rose-950/45 border-rose-500/35 text-rose-200 hover:bg-rose-700 hover:text-white'}`}>
+                                  ลบถาวร
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
                 </div>
               ) : (
                 <div className="p-5 sm:p-6 lg:p-7">
