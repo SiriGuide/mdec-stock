@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.6 Box Set Editor Side Actions Fix';
-const APP_UPDATE_NOTE = 'Box Set Editor Side Actions Fix: ย้ายปุ่ม ยกเลิก/ลบ/บันทึก ของ popup กล่องและเซ็ตออกจากแถบล่างเต็มหน้าจอ ไปไว้ในแผงซ้าย เพื่อไม่ให้บังรายการอุปกรณ์และทำให้ UI เหมือนกัน';
+const APP_VERSION = 'v23.4.7 Box Set Editor Header Actions Fix';
+const APP_UPDATE_NOTE = 'Box Set Editor Header Actions Fix: ย้ายปุ่ม บันทึก/ลบ/ยกเลิก ของ popup กล่องและเซ็ตขึ้นไปไว้ด้านบนของแผงซ้าย ไม่อยู่ท้ายแผงที่ต้องเลื่อนหา และไม่บังรายการอุปกรณ์';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -23748,38 +23748,11 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
 
               <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[330px_minmax(0,1fr)] gap-3 p-3">
-                <aside className={`boxset-panel rounded-[1.35rem] border p-3 flex flex-col gap-3 ${isDarkMode ? 'bg-slate-950/55 border-slate-800/60' : 'bg-slate-50 border-slate-200'}`}>
+                <aside className={`boxset-panel rounded-[1.35rem] border p-3 flex flex-col gap-3 min-h-0 overflow-y-auto custom-scrollbar ${isDarkMode ? 'bg-slate-950/55 border-slate-800/60' : 'bg-slate-50 border-slate-200'}`}>
                   <label className="block">
                     <span className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>ชื่อกล่อง / ตู้ / ชั้น <span className="text-rose-500">*</span></span>
                     <input type="text" className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="เช่น กล่องเสียงภาคสนาม" value={storageBoxForm.name || ''} onChange={(e) => setStorageBoxForm({...storageBoxForm, name: e.target.value})} />
                   </label>
-                  <label className="block">
-                    <span className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>หมายเหตุ</span>
-                    <textarea rows={3} className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none border resize-none ${theme.input}`} placeholder="เช่น เก็บหลังงานทุกครั้ง" value={storageBoxForm.note || ''} onChange={(e) => setStorageBoxForm({...storageBoxForm, note: e.target.value})} />
-                  </label>
-                  <label className="block">
-                    <span className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>ขนาดฉลาก</span>
-                    <select className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none border ${theme.input}`} value={storageBoxForm.size || 'normal'} onChange={(e) => setStorageBoxForm({...storageBoxForm, size: e.target.value})}>
-                      <option value="small">เล็ก</option>
-                      <option value="normal">ปกติ</option>
-                      <option value="large">ใหญ่</option>
-                    </select>
-                  </label>
-                  <div className={`boxset-card rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-800/60' : 'bg-white border-slate-200'}`}>
-                    <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SELECTED</div>
-                    <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{selectedIds.size}</div>
-                    <div className={`text-xs font-bold ${theme.textMuted}`}>รายการในกล่องนี้</div>
-                    <div className="mt-3 space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar">
-                      {selectedPreview.length === 0 ? (
-                        <div className={`text-xs font-bold ${theme.textMuted}`}>ยังไม่ได้เลือกอุปกรณ์</div>
-                      ) : selectedPreview.map(item => (
-                        <button key={item.id} type="button" onClick={() => toggleItem(item.id)} className={`boxset-chip w-full text-left rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-slate-950 border-slate-800/60 hover:border-rose-700/70' : 'bg-slate-50 border-slate-200'}`}>
-                          <div className={`font-black text-sm truncate ${theme.textTitle}`}>{item.name || '-'}</div>
-                          <div className={`text-[11px] font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                   <div className={`rounded-2xl border p-3 space-y-2 ${isDarkMode ? 'bg-slate-900/55 border-slate-800/60' : 'bg-white border-slate-200'}`}>
                     <button type="button" onClick={handleSaveStorageBoxEditor} className="w-full px-5 py-3 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white font-black">
                       บันทึก
@@ -23796,8 +23769,36 @@ ${auditChangeSummary}` : auditChangeSummary);
                         </button>
                       )}
                     </div>
-                    <p className={`text-[11px] font-bold leading-relaxed ${theme.textMuted}`}>ลบ = ลบเฉพาะแฟ้มกล่อง ไม่ลบอุปกรณ์จริง</p>
+                    <p className={`text-[11px] font-bold leading-relaxed ${theme.textMuted}`}>ลบเฉพาะแฟ้มกล่อง ไม่ลบอุปกรณ์จริง</p>
                   </div>
+                  <label className="block">
+                    <span className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>หมายเหตุ</span>
+                    <textarea rows={3} className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none border resize-none ${theme.input}`} placeholder="เช่น เก็บหลังงานทุกครั้ง" value={storageBoxForm.note || ''} onChange={(e) => setStorageBoxForm({...storageBoxForm, note: e.target.value})} />
+                  </label>
+                  <label className="block">
+                    <span className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>ขนาดฉลาก</span>
+                    <select className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none border ${theme.input}`} value={storageBoxForm.size || 'normal'} onChange={(e) => setStorageBoxForm({...storageBoxForm, size: e.target.value})}>
+                      <option value="small">เล็ก</option>
+                      <option value="normal">ปกติ</option>
+                      <option value="large">ใหญ่</option>
+                    </select>
+                  </label>
+                  <div className={`boxset-card rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-800/60' : 'bg-white border-slate-200'}`}>
+                    <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SELECTED</div>
+                    <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{selectedIds.size}</div>
+                    <div className={`text-xs font-bold ${theme.textMuted}`}>รายการในกล่องนี้</div>
+                    <div className="mt-3 space-y-2 max-h-[150px] overflow-y-auto custom-scrollbar">
+                      {selectedPreview.length === 0 ? (
+                        <div className={`text-xs font-bold ${theme.textMuted}`}>ยังไม่ได้เลือกอุปกรณ์</div>
+                      ) : selectedPreview.map(item => (
+                        <button key={item.id} type="button" onClick={() => toggleItem(item.id)} className={`boxset-chip w-full text-left rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-slate-950 border-slate-800/60 hover:border-rose-700/70' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className={`font-black text-sm truncate ${theme.textTitle}`}>{item.name || '-'}</div>
+                          <div className={`text-[11px] font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                 </aside>
 
                 <section className={`boxset-panel rounded-[1.35rem] border p-3 flex flex-col min-h-0 ${isDarkMode ? 'bg-slate-950/55 border-slate-800/60' : 'bg-white border-slate-200'}`}>
@@ -23874,26 +23875,11 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
 
               <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[330px_minmax(0,1fr)] gap-3 p-3">
-                <aside className={`boxset-panel rounded-[1.35rem] border p-3 flex flex-col gap-3 ${isDarkMode ? 'bg-slate-950/55 border-slate-800/60' : 'bg-slate-50 border-slate-200'}`}>
+                <aside className={`boxset-panel rounded-[1.35rem] border p-3 flex flex-col gap-3 min-h-0 overflow-y-auto custom-scrollbar ${isDarkMode ? 'bg-slate-950/55 border-slate-800/60' : 'bg-slate-50 border-slate-200'}`}>
                   <label className="block">
                     <span className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>ชื่อเซ็ต <span className="text-rose-500">*</span></span>
                     <input type="text" className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="เช่น เซ็ต Live Streaming" value={bundleForm.name || ''} onChange={(e) => setBundleForm({...bundleForm, name: e.target.value})} />
                   </label>
-                  <div className={`boxset-card rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-800/60' : 'bg-white border-slate-200'}`}>
-                    <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SELECTED</div>
-                    <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{selectedIds.size}</div>
-                    <div className={`text-xs font-bold ${theme.textMuted}`}>รายการในเซ็ตนี้</div>
-                    <div className="mt-3 space-y-2 max-h-[230px] overflow-y-auto custom-scrollbar">
-                      {selectedPreview.length === 0 ? (
-                        <div className={`text-xs font-bold ${theme.textMuted}`}>ยังไม่ได้เลือกอุปกรณ์</div>
-                      ) : selectedPreview.map(item => (
-                        <button key={item.id} type="button" onClick={() => toggleItem(item.id)} className={`boxset-chip w-full text-left rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-slate-950 border-slate-800/60 hover:border-rose-700/70' : 'bg-slate-50 border-slate-200'}`}>
-                          <div className={`font-black text-sm truncate ${theme.textTitle}`}>{item.name || '-'}</div>
-                          <div className={`text-[11px] font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                   <div className={`rounded-2xl border p-3 space-y-2 ${isDarkMode ? 'bg-slate-900/55 border-slate-800/60' : 'bg-white border-slate-200'}`}>
                     <button type="button" onClick={handleSaveBundle} className="w-full px-5 py-3 rounded-xl bg-violet-700 hover:bg-violet-600 text-white font-black">
                       บันทึก
@@ -23910,8 +23896,24 @@ ${auditChangeSummary}` : auditChangeSummary);
                         </button>
                       )}
                     </div>
-                    <p className={`text-[11px] font-bold leading-relaxed ${theme.textMuted}`}>ลบ = ลบเฉพาะแฟ้มเซ็ต ไม่ลบอุปกรณ์จริง</p>
+                    <p className={`text-[11px] font-bold leading-relaxed ${theme.textMuted}`}>ลบเฉพาะแฟ้มเซ็ต ไม่ลบอุปกรณ์จริง</p>
                   </div>
+                  <div className={`boxset-card rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-800/60' : 'bg-white border-slate-200'}`}>
+                    <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SELECTED</div>
+                    <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{selectedIds.size}</div>
+                    <div className={`text-xs font-bold ${theme.textMuted}`}>รายการในเซ็ตนี้</div>
+                    <div className="mt-3 space-y-2 max-h-[180px] overflow-y-auto custom-scrollbar">
+                      {selectedPreview.length === 0 ? (
+                        <div className={`text-xs font-bold ${theme.textMuted}`}>ยังไม่ได้เลือกอุปกรณ์</div>
+                      ) : selectedPreview.map(item => (
+                        <button key={item.id} type="button" onClick={() => toggleItem(item.id)} className={`boxset-chip w-full text-left rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-slate-950 border-slate-800/60 hover:border-rose-700/70' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className={`font-black text-sm truncate ${theme.textTitle}`}>{item.name || '-'}</div>
+                          <div className={`text-[11px] font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                 </aside>
 
                 <section className={`boxset-panel rounded-[1.35rem] border p-3 flex flex-col min-h-0 ${isDarkMode ? 'bg-slate-950/55 border-slate-800/60' : 'bg-white border-slate-200'}`}>
