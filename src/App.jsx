@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.5 Unified Box Set Delete Flow';
-const APP_UPDATE_NOTE = 'Unified Box Set Delete Flow: ปรับการลบกล่องจริงให้ใช้ pattern เดียวกับเซ็ตใช้งาน มีปุ่มลบในตำแหน่งเดียวกัน ลบเฉพาะแฟ้มกล่อง ไม่ลบอุปกรณ์จริง และหน้าตา editor สอดคล้องกันมากขึ้น';
+const APP_VERSION = 'v23.4.6 Box Set Editor Side Actions Fix';
+const APP_UPDATE_NOTE = 'Box Set Editor Side Actions Fix: ย้ายปุ่ม ยกเลิก/ลบ/บันทึก ของ popup กล่องและเซ็ตออกจากแถบล่างเต็มหน้าจอ ไปไว้ในแผงซ้าย เพื่อไม่ให้บังรายการอุปกรณ์และทำให้ UI เหมือนกัน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -23769,7 +23769,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SELECTED</div>
                     <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{selectedIds.size}</div>
                     <div className={`text-xs font-bold ${theme.textMuted}`}>รายการในกล่องนี้</div>
-                    <div className="mt-3 space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar">
+                    <div className="mt-3 space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar">
                       {selectedPreview.length === 0 ? (
                         <div className={`text-xs font-bold ${theme.textMuted}`}>ยังไม่ได้เลือกอุปกรณ์</div>
                       ) : selectedPreview.map(item => (
@@ -23779,6 +23779,24 @@ ${auditChangeSummary}` : auditChangeSummary);
                         </button>
                       ))}
                     </div>
+                  </div>
+                  <div className={`rounded-2xl border p-3 space-y-2 ${isDarkMode ? 'bg-slate-900/55 border-slate-800/60' : 'bg-white border-slate-200'}`}>
+                    <button type="button" onClick={handleSaveStorageBoxEditor} className="w-full px-5 py-3 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white font-black">
+                      บันทึก
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => setShowStorageBoxEditor(false)} className={`px-4 py-2.5 rounded-xl font-black ${theme.btnCancel}`}>ยกเลิก</button>
+                      {storageBoxForm.id ? (
+                        <button type="button" onClick={handleDeleteStorageBoxEditor} className="px-4 py-2.5 rounded-xl font-black border bg-rose-950/45 border-rose-500/35 text-rose-200 hover:bg-rose-700 hover:text-white">
+                          ลบ
+                        </button>
+                      ) : (
+                        <button type="button" disabled className="px-4 py-2.5 rounded-xl font-black border bg-slate-900/50 border-slate-800 text-slate-600 cursor-not-allowed">
+                          ลบ
+                        </button>
+                      )}
+                    </div>
+                    <p className={`text-[11px] font-bold leading-relaxed ${theme.textMuted}`}>ลบ = ลบเฉพาะแฟ้มกล่อง ไม่ลบอุปกรณ์จริง</p>
                   </div>
                 </aside>
 
@@ -23815,15 +23833,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </section>
               </div>
 
-              <div className={`boxset-modal-footer p-3 border-t flex flex-col sm:flex-row gap-2 ${theme.divide}`}>
-                <button type="button" onClick={() => setShowStorageBoxEditor(false)} className={`px-5 py-2.5 rounded-xl font-black ${theme.btnCancel}`}>ยกเลิก</button>
-                {storageBoxForm.id && (
-                  <button type="button" onClick={handleDeleteStorageBoxEditor} className="px-5 py-2.5 rounded-xl font-black border bg-rose-950/45 border-rose-500/35 text-rose-200 hover:bg-rose-700 hover:text-white">
-                    ลบ
-                  </button>
-                )}
-                <button type="button" onClick={handleSaveStorageBoxEditor} className="flex-1 px-5 py-2.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white font-black">บันทึก</button>
-              </div>
+
             </div>
           </div>
         );
@@ -23873,7 +23883,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SELECTED</div>
                     <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{selectedIds.size}</div>
                     <div className={`text-xs font-bold ${theme.textMuted}`}>รายการในเซ็ตนี้</div>
-                    <div className="mt-3 space-y-2 max-h-[360px] overflow-y-auto custom-scrollbar">
+                    <div className="mt-3 space-y-2 max-h-[230px] overflow-y-auto custom-scrollbar">
                       {selectedPreview.length === 0 ? (
                         <div className={`text-xs font-bold ${theme.textMuted}`}>ยังไม่ได้เลือกอุปกรณ์</div>
                       ) : selectedPreview.map(item => (
@@ -23883,6 +23893,24 @@ ${auditChangeSummary}` : auditChangeSummary);
                         </button>
                       ))}
                     </div>
+                  </div>
+                  <div className={`rounded-2xl border p-3 space-y-2 ${isDarkMode ? 'bg-slate-900/55 border-slate-800/60' : 'bg-white border-slate-200'}`}>
+                    <button type="button" onClick={handleSaveBundle} className="w-full px-5 py-3 rounded-xl bg-violet-700 hover:bg-violet-600 text-white font-black">
+                      บันทึก
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => setShowBundleManager(false)} className={`px-4 py-2.5 rounded-xl font-black ${theme.btnCancel}`}>ยกเลิก</button>
+                      {bundleForm.id ? (
+                        <button type="button" onClick={() => handleDeleteBundle(bundleForm.id)} className="px-4 py-2.5 rounded-xl font-black border bg-rose-950/45 border-rose-500/35 text-rose-200 hover:bg-rose-700 hover:text-white">
+                          ลบ
+                        </button>
+                      ) : (
+                        <button type="button" disabled className="px-4 py-2.5 rounded-xl font-black border bg-slate-900/50 border-slate-800 text-slate-600 cursor-not-allowed">
+                          ลบ
+                        </button>
+                      )}
+                    </div>
+                    <p className={`text-[11px] font-bold leading-relaxed ${theme.textMuted}`}>ลบ = ลบเฉพาะแฟ้มเซ็ต ไม่ลบอุปกรณ์จริง</p>
                   </div>
                 </aside>
 
@@ -23919,10 +23947,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </section>
               </div>
 
-              <div className={`boxset-modal-footer p-3 border-t flex gap-2 ${theme.divide}`}>
-                <button type="button" onClick={() => setShowBundleManager(false)} className={`px-5 py-2.5 rounded-xl font-black ${theme.btnCancel}`}>ยกเลิก</button>
-                <button type="button" onClick={handleSaveBundle} className="flex-1 px-5 py-2.5 rounded-xl bg-violet-700 hover:bg-violet-600 text-white font-black">บันทึกเซ็ต</button>
-              </div>
+
             </div>
           </div>
         );
