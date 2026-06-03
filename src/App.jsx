@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.3.8 Restore Box Set Editors + Trash Settings Fix';
-const APP_UPDATE_NOTE = 'Restore Box Set Editors + Trash Settings Fix: กู้ popup สร้างกล่อง/สร้างเซ็ตกลับมาให้กดติด และเพิ่มหน้า/ทางเข้าถังขยะใน Settings ไม่ให้ขึ้นว่ายังไม่มีหน้าตั้งค่า';
+const APP_VERSION = 'v23.3.9 Box Set Editor Soft Divider Fix';
+const APP_UPDATE_NOTE = 'Box Set Editor Soft Divider Fix: เก็บเส้นขาวใน popup สร้างกล่อง/สร้างเซ็ตที่กู้กลับมาใน v23.3.8 โดยแก้เฉพาะ popup กล่อง/เซ็ต ไม่กระทบเส้นทั้งเว็บ';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -1085,6 +1085,36 @@ function FactoryPolishStyle({ isDarkMode }) {
       }
       .organize-workspace-panel .boxset-side-list {
         border-right: 0 !important;
+      }
+
+
+      /* v23.3.9: ลดเส้นขาวเฉพาะ popup กล่อง/เซ็ต */
+      .box-set-unified-editor .boxset-modal-shell {
+        border-color: rgba(30, 41, 59, .72) !important;
+      }
+      .box-set-unified-editor .boxset-modal-header,
+      .box-set-unified-editor .boxset-modal-footer {
+        border-color: rgba(30, 41, 59, .55) !important;
+      }
+      .box-set-unified-editor .boxset-panel,
+      .box-set-unified-editor .boxset-card,
+      .box-set-unified-editor .boxset-item-row,
+      .box-set-unified-editor .boxset-chip {
+        border-color: rgba(51, 65, 85, .48) !important;
+      }
+      .box-set-unified-editor .boxset-item-list {
+        gap: 6px;
+      }
+      .box-set-unified-editor .boxset-item-row {
+        border-color: transparent !important;
+        background: rgba(15, 23, 42, .45);
+        box-shadow: inset 0 0 0 1px rgba(51, 65, 85, .32);
+      }
+      .box-set-unified-editor .boxset-item-row:hover {
+        box-shadow: inset 0 0 0 1px rgba(71, 85, 105, .55);
+      }
+      .box-set-unified-editor .boxset-item-row.is-selected {
+        box-shadow: inset 0 0 0 1px rgba(96, 165, 250, .42);
       }
 
 @media (min-width: 1024px) {
@@ -23634,8 +23664,8 @@ ${auditChangeSummary}` : auditChangeSummary);
         const selectedPreview = (storageBoxForm.itemIds || []).map(id => items.find(item => item.id === id)).filter(Boolean);
         return (
           <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 z-[9990] box-set-unified-editor`}>
-            <div className={`rounded-[2rem] shadow-2xl w-full max-w-[88rem] h-[86vh] overflow-hidden flex flex-col border ${theme.cardBg} ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
-              <div className={`p-4 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
+            <div className={`boxset-modal-shell rounded-[2rem] shadow-2xl w-full max-w-[88rem] h-[86vh] overflow-hidden flex flex-col border ${theme.cardBg} ${isDarkMode ? 'border-slate-800/60' : 'border-slate-200'}`}>
+              <div className={`boxset-modal-header p-4 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
                 <div className="min-w-0 flex items-start gap-3">
                   <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-cyan-950/30 border-cyan-800/60 text-cyan-200' : 'bg-cyan-50 border-cyan-200 text-cyan-700'}`}><Icons.Folder className="w-6 h-6" /></div>
                   <div className="min-w-0">
@@ -23648,7 +23678,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
 
               <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[330px_minmax(0,1fr)] gap-3 p-3">
-                <aside className={`rounded-[1.35rem] border p-3 flex flex-col gap-3 ${isDarkMode ? 'bg-slate-950/55 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <aside className={`boxset-panel rounded-[1.35rem] border p-3 flex flex-col gap-3 ${isDarkMode ? 'bg-slate-950/55 border-slate-800/60' : 'bg-slate-50 border-slate-200'}`}>
                   <label className="block">
                     <span className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>ชื่อกล่อง / ตู้ / ชั้น <span className="text-rose-500">*</span></span>
                     <input type="text" className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="เช่น กล่องเสียงภาคสนาม" value={storageBoxForm.name || ''} onChange={(e) => setStorageBoxForm({...storageBoxForm, name: e.target.value})} />
@@ -23665,7 +23695,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                       <option value="large">ใหญ่</option>
                     </select>
                   </label>
-                  <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div className={`boxset-card rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-800/60' : 'bg-white border-slate-200'}`}>
                     <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SELECTED</div>
                     <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{selectedIds.size}</div>
                     <div className={`text-xs font-bold ${theme.textMuted}`}>รายการในกล่องนี้</div>
@@ -23673,7 +23703,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                       {selectedPreview.length === 0 ? (
                         <div className={`text-xs font-bold ${theme.textMuted}`}>ยังไม่ได้เลือกอุปกรณ์</div>
                       ) : selectedPreview.map(item => (
-                        <button key={item.id} type="button" onClick={() => toggleItem(item.id)} className={`w-full text-left rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-slate-950 border-slate-800 hover:border-rose-700' : 'bg-slate-50 border-slate-200'}`}>
+                        <button key={item.id} type="button" onClick={() => toggleItem(item.id)} className={`boxset-chip w-full text-left rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-slate-950 border-slate-800/60 hover:border-rose-700/70' : 'bg-slate-50 border-slate-200'}`}>
                           <div className={`font-black text-sm truncate ${theme.textTitle}`}>{item.name || '-'}</div>
                           <div className={`text-[11px] font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'}</div>
                         </button>
@@ -23682,7 +23712,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </div>
                 </aside>
 
-                <section className={`rounded-[1.35rem] border p-3 flex flex-col min-h-0 ${isDarkMode ? 'bg-slate-950/55 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <section className={`boxset-panel rounded-[1.35rem] border p-3 flex flex-col min-h-0 ${isDarkMode ? 'bg-slate-950/55 border-slate-800/60' : 'bg-white border-slate-200'}`}>
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 mb-3">
                     <div>
                       <h4 className={`font-black ${theme.textTitle}`}>เลือกอุปกรณ์</h4>
@@ -23694,12 +23724,12 @@ ${auditChangeSummary}` : auditChangeSummary);
                     </div>
                   </div>
                   <input type="text" className={`w-full px-4 py-3 rounded-2xl font-bold outline-none border mb-3 ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / หมวด / ที่เก็บ..." value={storageBoxSearchTerm} onChange={(e) => setStorageBoxSearchTerm(e.target.value)} />
-                  <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-1.5">
+                  <div className="boxset-item-list flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col">
                     {selectableItems.map(item => {
                       const checked = selectedIds.has(item.id);
                       const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
                       return (
-                        <button key={item.id} type="button" onClick={() => toggleItem(item.id)} className={`w-full text-left rounded-xl px-3 py-2.5 flex items-center justify-between gap-3 transition ${checked ? (isDarkMode ? 'bg-cyan-950/25 border border-cyan-700/50' : 'bg-cyan-50 border border-cyan-200') : (isDarkMode ? 'bg-slate-900/55 border border-transparent hover:border-slate-700' : 'bg-slate-50 border border-transparent hover:border-slate-200')}`}>
+                        <button key={item.id} type="button" onClick={() => toggleItem(item.id)} className={`boxset-item-row w-full text-left rounded-xl px-3 py-2.5 flex items-center justify-between gap-3 transition ${checked ? 'is-selected ' + (isDarkMode ? 'bg-cyan-950/25 border border-cyan-700/40' : 'bg-cyan-50 border border-cyan-200') : (isDarkMode ? 'bg-slate-900/55 border border-transparent' : 'bg-slate-50 border border-transparent hover:border-slate-200')}`}>
                           <div className="min-w-0 flex items-center gap-3">
                             <span className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 ${checked ? 'bg-cyan-600 border-cyan-500 text-white' : (isDarkMode ? 'border-slate-700' : 'border-slate-300')}`}>{checked ? '✓' : ''}</span>
                             <div className="min-w-0">
@@ -23715,7 +23745,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </section>
               </div>
 
-              <div className={`p-3 border-t flex gap-2 ${theme.divide}`}>
+              <div className={`boxset-modal-footer p-3 border-t flex gap-2 ${theme.divide}`}>
                 <button type="button" onClick={() => setShowStorageBoxEditor(false)} className={`px-5 py-2.5 rounded-xl font-black ${theme.btnCancel}`}>ยกเลิก</button>
                 <button type="button" onClick={handleSaveStorageBoxEditor} className="flex-1 px-5 py-2.5 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white font-black">บันทึกกล่อง</button>
               </div>
@@ -23745,8 +23775,8 @@ ${auditChangeSummary}` : auditChangeSummary);
         const selectedPreview = (bundleForm.itemIds || []).map(id => items.find(item => item.id === id)).filter(Boolean);
         return (
           <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 z-[9990] box-set-unified-editor`}>
-            <div className={`rounded-[2rem] shadow-2xl w-full max-w-[88rem] h-[86vh] overflow-hidden flex flex-col border ${theme.cardBg} ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
-              <div className={`p-4 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
+            <div className={`boxset-modal-shell rounded-[2rem] shadow-2xl w-full max-w-[88rem] h-[86vh] overflow-hidden flex flex-col border ${theme.cardBg} ${isDarkMode ? 'border-slate-800/60' : 'border-slate-200'}`}>
+              <div className={`boxset-modal-header p-4 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
                 <div className="min-w-0 flex items-start gap-3">
                   <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-violet-950/30 border-violet-800/60 text-violet-200' : 'bg-violet-50 border-violet-200 text-violet-700'}`}><Icons.Layers className="w-6 h-6" /></div>
                   <div className="min-w-0">
@@ -23759,12 +23789,12 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
 
               <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[330px_minmax(0,1fr)] gap-3 p-3">
-                <aside className={`rounded-[1.35rem] border p-3 flex flex-col gap-3 ${isDarkMode ? 'bg-slate-950/55 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <aside className={`boxset-panel rounded-[1.35rem] border p-3 flex flex-col gap-3 ${isDarkMode ? 'bg-slate-950/55 border-slate-800/60' : 'bg-slate-50 border-slate-200'}`}>
                   <label className="block">
                     <span className={`block text-xs font-black mb-1.5 ${theme.textMuted}`}>ชื่อเซ็ต <span className="text-rose-500">*</span></span>
                     <input type="text" className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none border ${theme.input}`} placeholder="เช่น เซ็ต Live Streaming" value={bundleForm.name || ''} onChange={(e) => setBundleForm({...bundleForm, name: e.target.value})} />
                   </label>
-                  <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div className={`boxset-card rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-800/60' : 'bg-white border-slate-200'}`}>
                     <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SELECTED</div>
                     <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{selectedIds.size}</div>
                     <div className={`text-xs font-bold ${theme.textMuted}`}>รายการในเซ็ตนี้</div>
@@ -23772,7 +23802,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                       {selectedPreview.length === 0 ? (
                         <div className={`text-xs font-bold ${theme.textMuted}`}>ยังไม่ได้เลือกอุปกรณ์</div>
                       ) : selectedPreview.map(item => (
-                        <button key={item.id} type="button" onClick={() => toggleItem(item.id)} className={`w-full text-left rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-slate-950 border-slate-800 hover:border-rose-700' : 'bg-slate-50 border-slate-200'}`}>
+                        <button key={item.id} type="button" onClick={() => toggleItem(item.id)} className={`boxset-chip w-full text-left rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-slate-950 border-slate-800/60 hover:border-rose-700/70' : 'bg-slate-50 border-slate-200'}`}>
                           <div className={`font-black text-sm truncate ${theme.textTitle}`}>{item.name || '-'}</div>
                           <div className={`text-[11px] font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'}</div>
                         </button>
@@ -23781,7 +23811,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </div>
                 </aside>
 
-                <section className={`rounded-[1.35rem] border p-3 flex flex-col min-h-0 ${isDarkMode ? 'bg-slate-950/55 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <section className={`boxset-panel rounded-[1.35rem] border p-3 flex flex-col min-h-0 ${isDarkMode ? 'bg-slate-950/55 border-slate-800/60' : 'bg-white border-slate-200'}`}>
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 mb-3">
                     <div>
                       <h4 className={`font-black ${theme.textTitle}`}>เลือกอุปกรณ์</h4>
@@ -23793,12 +23823,12 @@ ${auditChangeSummary}` : auditChangeSummary);
                     </div>
                   </div>
                   <input type="text" className={`w-full px-4 py-3 rounded-2xl font-bold outline-none border mb-3 ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / หมวด / ที่เก็บ..." value={bundleSearchTerm} onChange={(e) => setBundleSearchTerm(e.target.value)} />
-                  <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-1.5">
+                  <div className="boxset-item-list flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col">
                     {selectableItems.map(item => {
                       const checked = selectedIds.has(item.id);
                       const statusInfo = STATUSES.find(st => st.id === item.status) || STATUSES[0];
                       return (
-                        <button key={item.id} type="button" onClick={() => toggleItem(item.id)} className={`w-full text-left rounded-xl px-3 py-2.5 flex items-center justify-between gap-3 transition ${checked ? (isDarkMode ? 'bg-violet-950/25 border border-violet-700/50' : 'bg-violet-50 border border-violet-200') : (isDarkMode ? 'bg-slate-900/55 border border-transparent hover:border-slate-700' : 'bg-slate-50 border border-transparent hover:border-slate-200')}`}>
+                        <button key={item.id} type="button" onClick={() => toggleItem(item.id)} className={`boxset-item-row w-full text-left rounded-xl px-3 py-2.5 flex items-center justify-between gap-3 transition ${checked ? 'is-selected ' + (isDarkMode ? 'bg-violet-950/25 border border-violet-700/40' : 'bg-violet-50 border border-violet-200') : (isDarkMode ? 'bg-slate-900/55 border border-transparent' : 'bg-slate-50 border border-transparent hover:border-slate-200')}`}>
                           <div className="min-w-0 flex items-center gap-3">
                             <span className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 ${checked ? 'bg-violet-600 border-violet-500 text-white' : (isDarkMode ? 'border-slate-700' : 'border-slate-300')}`}>{checked ? '✓' : ''}</span>
                             <div className="min-w-0">
@@ -23814,7 +23844,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </section>
               </div>
 
-              <div className={`p-3 border-t flex gap-2 ${theme.divide}`}>
+              <div className={`boxset-modal-footer p-3 border-t flex gap-2 ${theme.divide}`}>
                 <button type="button" onClick={() => setShowBundleManager(false)} className={`px-5 py-2.5 rounded-xl font-black ${theme.btnCancel}`}>ยกเลิก</button>
                 <button type="button" onClick={handleSaveBundle} className="flex-1 px-5 py-2.5 rounded-xl bg-violet-700 hover:bg-violet-600 text-white font-black">บันทึกเซ็ต</button>
               </div>
