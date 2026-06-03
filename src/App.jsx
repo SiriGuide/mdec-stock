@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.8 Inventory Workspace Compact Polish';
-const APP_UPDATE_NOTE = 'Inventory Workspace Compact Polish: ลดความรกหน้า คลังอุปกรณ์ รวมปุ่มรองไว้ในเพิ่มเติม ลดความสูงกล่องค้นหา/ตัวกรอง และให้ action หลักอยู่กับแถบรายการที่เลือกเพียงจุดเดียว';
+const APP_VERSION = 'v23.4.9 Restore Backup Center Modal Hotfix';
+const APP_UPDATE_NOTE = 'Restore Backup Center Modal Hotfix: กู้คืนหน้าต่างศูนย์สำรองข้อมูลที่ปุ่มเปิดแล้วไม่แสดงผล พร้อมปุ่มสำรอง JSON/CSV/HTML/ชุดปิดปี และปุ่มกู้คืน JSON แบบยืนยัน RESTORE';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -8296,6 +8296,12 @@ function MainApp() {
     const action = dangerConfirm.onConfirm;
     setDangerConfirm(null);
     if (typeof action === 'function') await runWithBusy(action);
+  };
+
+  const openBackupCenter = () => {
+    setShowMoreMenu(false);
+    setShowSettings(false);
+    setShowBackupCenterModal(true);
   };
 
   const requestRestoreBackupJSON = () => {
@@ -23256,7 +23262,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูพื้นที่ฐานข้อมูล รูปหลักฐาน และสถานะระบบ</p>
                   </button>
                   {canManageระบบ && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowBackupCenterModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); openBackupCenter(); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.Database className="w-5 h-5" /> ศูนย์สำรองข้อมูล</div>
                       <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>JSON / Google Sheets CSV / HTML รูปหลักฐาน</p>
                     </button>
@@ -24775,6 +24781,103 @@ ${auditChangeSummary}` : auditChangeSummary);
 
 
 
+
+      {/* v23.4.9 Backup Center Modal */}
+      {showBackupCenterModal && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 z-[9995]`}>
+          <div className={`w-full max-w-5xl max-h-[90vh] rounded-[2rem] border shadow-2xl overflow-hidden flex flex-col ${theme.cardBg} ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+            <div className={`p-4 sm:p-5 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
+              <div className="min-w-0 flex items-start gap-3">
+                <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-amber-950/35 border-amber-700/60 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                  <Icons.Database className="w-6 h-6" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>BACKUP CENTER</div>
+                  <h3 className={`text-2xl font-black ${theme.textTitle}`}>ศูนย์สำรองข้อมูล</h3>
+                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สำรอง JSON / CSV / HTML และกู้คืนจากไฟล์ JSON แบบปลอดภัย</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setShowBackupCenterModal(false)} className={`w-10 h-10 rounded-2xl flex items-center justify-center ${theme.btnSecondary}`}>
+                <Icons.X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 sm:p-5 space-y-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                {[
+                  ['อุปกรณ์ทั้งหมด', items.filter(item => item && !item.isDeleted).length],
+                  ['ประวัติทั้งหมด', yearEndHelperData.historyCount],
+                  ['เอกสารย้อนหลัง', asArray(borrowเอกสารs).length],
+                  ['รูปหลักฐาน', databaseStorageEstimate.proofImageCount]
+                ].map(([label, value]) => (
+                  <div key={label} className={`rounded-2xl border px-4 py-3 ${isDarkMode ? 'bg-slate-950/65 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
+                    <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                  </div>
+                ))}
+              </div>
+
+              <section className={`rounded-[1.35rem] border p-4 ${isDarkMode ? 'bg-slate-950/65 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
+                  <div>
+                    <h4 className={`text-lg font-black ${theme.textTitle}`}>สำรองข้อมูลหลัก</h4>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แนะนำให้ดาวน์โหลด JSON เต็มชุดก่อนปรับข้อมูลจำนวนมาก</p>
+                  </div>
+                  <div className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>สำรองล่าสุด: {yearEndHelperData.lastBackupText}</div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  <button type="button" onClick={exportFullBackupJSON} disabled={isBusy} className="p-4 rounded-2xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-left font-black shadow-lg shadow-blue-900/20">
+                    <div className="text-lg">JSON เต็มชุด</div>
+                    <div className="text-xs font-bold opacity-80 mt-1">ใช้สำหรับสำรองหลักและกู้คืน</div>
+                  </button>
+                  <button type="button" onClick={exportOneStopBackupSet} disabled={isBusy} className="p-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white text-left font-black shadow-lg shadow-emerald-900/20">
+                    <div className="text-lg">สำรองครบชุดไฟล์เดียว</div>
+                    <div className="text-xs font-bold opacity-80 mt-1">HTML รวมข้อมูลและรูปหลักฐาน</div>
+                  </button>
+                  <button type="button" onClick={exportSheetsCSVPack} disabled={isBusy} className={`p-4 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+                    <div className="text-lg">CSV สำหรับ Google Sheets</div>
+                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>Inventory / History / Projects / Proof Index</div>
+                  </button>
+                  <button type="button" onClick={exportHistoryCSV} disabled={isBusy} className={`p-4 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+                    <div className="text-lg">ประวัติยืม-คืน CSV</div>
+                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ส่งออกประวัติส่วนกลาง</div>
+                  </button>
+                  <button type="button" onClick={exportProofGalleryHTML} disabled={isBusy} className={`p-4 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+                    <div className="text-lg">คลังรูปหลักฐาน HTML</div>
+                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เปิดดูรูปหลักฐานนอกเว็บได้</div>
+                  </button>
+                  <button type="button" onClick={exportYearEndSummaryCSV} disabled={isBusy} className={`p-4 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
+                    <div className="text-lg">สรุปก่อนปิดปี CSV</div>
+                    <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เช็กรายการค้างและความพร้อม</div>
+                  </button>
+                </div>
+              </section>
+
+              <section className={`rounded-[1.35rem] border p-4 ${isDarkMode ? 'bg-amber-950/18 border-amber-800/60' : 'bg-amber-50 border-amber-200'}`}>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  <div>
+                    <h4 className={`text-lg font-black ${theme.textTitle}`}>กู้คืนข้อมูลจาก JSON</h4>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ระบบจะให้พิมพ์ RESTORE ก่อนเลือกไฟล์ เพื่อกันกดพลาด</p>
+                  </div>
+                  <button type="button" onClick={requestRestoreBackupJSON} disabled={isBusy || !canManageระบบ} className="px-5 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 text-white font-black">
+                    กู้คืนจากไฟล์ JSON
+                  </button>
+                </div>
+              </section>
+
+              <section className={`rounded-[1.35rem] border p-4 ${isDarkMode ? 'bg-slate-900/65 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`font-black mb-2 ${theme.textTitle}`}>คำแนะนำ</div>
+                <div className={`text-sm font-bold leading-relaxed ${theme.textMuted}`}>
+                  ใช้ “JSON เต็มชุด” เป็นไฟล์สำรองหลัก ส่วน CSV ใช้สำหรับเปิดตรวจใน Google Sheets เท่านั้น ก่อนกู้คืนควรสำรอง JSON ล่าสุดอีกครั้งเสมอ
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
+
+
       {/* Add/Edit Form */}
       {/* Settings Modal (การตั้งค่าทั่วไป + ฐานข้อมูล) */}
       {showSettings && (
@@ -25196,7 +25299,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                       </div>
                       <button
                         type="button"
-                        onClick={() => setShowBackupCenterModal(true)}
+                        onClick={() => openBackupCenter()}
                         className="px-5 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black shadow-lg shadow-amber-600/20"
                       >
                         เปิดศูนย์สำรองข้อมูล
