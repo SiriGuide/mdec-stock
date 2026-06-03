@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.12 Simple Restore JSON Picker Fix';
-const APP_UPDATE_NOTE = 'Simple Restore JSON Picker Fix: เอาการพิมพ์ RESTORE ออกจากปุ่มกู้คืน JSON และทำให้ปุ่มเลือกไฟล์เป็น label ที่เปิด file picker ตรง ๆ ไม่ผ่าน prompt/confirm/ref.click';
+const APP_VERSION = 'v23.4.13 Settings Final Cleanup Polish';
+const APP_UPDATE_NOTE = 'Settings Final Cleanup Polish: เก็บหน้า Settings รอบท้าย ลดคำยาว/ปุ่มซ้ำ ปรับ wording ของฐานข้อมูล/สำรอง รายการพื้นฐาน บัญชีผู้ใช้ และถังขยะให้เรียบง่ายขึ้น โดยไม่แตะ flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -1141,6 +1141,20 @@ function FactoryPolishStyle({ isDarkMode }) {
         clip: rect(0, 0, 0, 0) !important;
         white-space: nowrap !important;
         border: 0 !important;
+      }
+
+
+      /* v23.4.13 Settings final cleanup */
+      .settings-shell .settings-nav-groups button,
+      .settings-center-overview button {
+        transition: transform .15s ease, border-color .15s ease, background .15s ease;
+      }
+      .settings-shell .settings-nav-groups button:hover,
+      .settings-center-overview button:hover {
+        transform: translateY(-1px);
+      }
+      .settings-shell .settings-section-switcher button {
+        white-space: nowrap;
       }
 
 @media (min-width: 1024px) {
@@ -6557,7 +6571,7 @@ button[class*="orange"]:not(:disabled) {
 
 /* v22.53.13 Settings Back Flow Usability Fix */
 .factory-stock-polish .settings-center-overview button {
-  min-height: 142px;
+  min-height: 112px;
 }
 .factory-stock-polish .settings-section-switcher {
   scrollbar-width: thin;
@@ -8324,7 +8338,7 @@ function MainApp() {
       subtitle: 'ปุ่มนี้มีผลกับข้อมูลจริง',
       tone: 'amber',
       confirmText: 'RESTORE',
-      actionLabel: 'เลือกไฟล์ JSON เพื่อกู้คืน',
+      actionLabel: 'เลือกไฟล์ JSON',
       message: 'ระบบจะเขียนทับ/เพิ่มข้อมูลที่มี ID ตรงกับไฟล์สำรอง แต่จะไม่ลบอุปกรณ์ที่ไม่มีในไฟล์ เพื่อความปลอดภัย',
       set: ['ควรใช้เฉพาะกรณีต้องกู้ข้อมูลกลับจากไฟล์สำรอง', 'แนะนำให้มีไฟล์สำรองล่าสุดอยู่ในเครื่องก่อน', 'ต้องพิมพ์ RESTORE ก่อน ระบบจึงจะเปิดหน้าต่างเลือกไฟล์'],
       onConfirm: () => restoreInputRef.current?.click()
@@ -15372,10 +15386,10 @@ S.N.: ${item.sn || '-'}
   };
 
   const settingsNavItems = [
-    { id: 'basicLists', label: 'รายการพื้นฐาน', desc: 'หมวดหมู่ สถานที่ และเจ้าหน้าที่', icon: Icons.Layers, group: 'ข้อมูลพื้นฐาน' },
-    { id: 'accounts', label: 'บัญชีผู้ใช้', desc: 'ล็อกอินและสิทธิ์', icon: Icons.UserPlus, group: 'ผู้ใช้งาน' },
-    { id: 'database', label: 'ฐานข้อมูล / สำรอง', desc: 'Backup, Restore, Cleanup', icon: Icons.Database, group: 'ระบบ' },
-    { id: 'trash', label: 'ถังขยะ', desc: 'กู้คืน / ลบถาวร', icon: Icons.Trash, group: 'ระบบ' },
+    { id: 'basicLists', label: 'รายการพื้นฐาน', desc: 'หมวดหมู่ / ที่เก็บ / เจ้าหน้าที่', icon: Icons.Layers, group: 'ข้อมูลพื้นฐาน' },
+    { id: 'accounts', label: 'บัญชีผู้ใช้', desc: 'ผู้ใช้และสิทธิ์', icon: Icons.UserPlus, group: 'ผู้ใช้งาน' },
+    { id: 'database', label: 'ฐานข้อมูล / สำรอง', desc: 'สำรอง / กู้คืน', icon: Icons.Database, group: 'ระบบ' },
+    { id: 'trash', label: 'ถังขยะ', desc: 'กู้คืนหรือลบถาวร', icon: Icons.Trash, group: 'ระบบ' },
   ];
 
   const settingsNavGroups = ['ข้อมูลพื้นฐาน', 'ผู้ใช้งาน', 'ระบบ'];
@@ -19654,9 +19668,9 @@ ${auditChangeSummary}` : auditChangeSummary);
     yearEndHelperData.set.forEach((item, index) => rows.push(['Set', `${index + 1}. ${item.label}`, item.ok ? 'ผ่าน' : 'ควรตรวจ', item.note || '']));
     yearEndHelperData.warnings.forEach((warning, index) => rows.push(['คำเตือน', `${index + 1}`, warning, 'ควรตรวจสอบก่อนปิดปี']));
     backupDownloadCSV(`MDEC_Year_End_Summary_${getBackupFileTag()}.csv`, headers, rows);
-    await logAction('ส่งออกสรุปก่อนปิดปี CSV', 'Year-End Summary', `ส่งออก ${rows.length} แถว`);
+    await logAction('ส่งออกสรุปปิดปี CSV', 'Year-End Summary', `ส่งออก ${rows.length} แถว`);
     await saveBackupTimestamp('yearEndSummaryCsv');
-    pushToast('ดาวน์โหลดสรุปก่อนปิดปี CSV แล้ว', 'success');
+    pushToast('ดาวน์โหลดสรุปปิดปี CSV แล้ว', 'success');
   };
 
   const exportSimpleYearEndPack = async () => {
@@ -19702,7 +19716,7 @@ ${auditChangeSummary}` : auditChangeSummary);
   const exportHistoryCSV = async () => {
     const { headers, rows } = buildHistoryCsvRows();
     backupDownloadCSV('MDEC_Borrow_Return_History_' + getBackupFileTag() + '.csv', headers, rows);
-    await logAction('สำรองประวัติยืม-คืน CSV', 'ส่งออก ' + rows.length + ' รายการประวัติ', 'ดาวน์ดาวน์โหลดประวัติการยืม-คืนพร้อมวันเวลาเป็นไฟล์ CSV');
+    await logAction('สำรองประวัติ CSV', 'ส่งออก ' + rows.length + ' รายการประวัติ', 'ดาวน์ดาวน์โหลดประวัติการยืม-คืนพร้อมวันเวลาเป็นไฟล์ CSV');
     await saveBackupTimestamp('historyCsv');
     if (rows.length === 0) alert('ℹ️ ดาวน์ดาวน์โหลดไฟล์แล้ว แต่ยังไม่มีประวัติยืม-คืนในระบบ');
   };
@@ -20223,7 +20237,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       backupDownloadTextFile('MDEC_PROOF_GALLERY_' + getBackupFileTag() + '.html', buildProofGalleryHTML(collected.proofDocs), 'text/html;charset=utf-8;');
       await logAction('สำรองรูปหลักฐาน HTML', 'ส่งออกคลังรูปหลักฐาน ' + collected.proofDocs.length + ' รูป', 'ดาวน์ดาวน์โหลดไฟล์ HTML สำหรับเปิดดูรูปหลักฐานได้ทันที');
       await saveBackupTimestamp('proofHtml');
-      pushToast('ดาวน์ดาวน์โหลดคลังรูปหลักฐาน HTML แล้ว', 'success');
+      pushToast('ดาวน์ดาวน์โหลดรูปหลักฐาน HTML แล้ว', 'success');
     } catch (error) {
       console.error(error);
       alert('❌ สำรองรูปหลักฐาน HTML ไม่สำเร็จ: ' + error.message);
@@ -20242,9 +20256,9 @@ ${auditChangeSummary}` : auditChangeSummary);
       setTimeout(() => backupDownloadCSV(`MDEC_HISTORY_FOR_GOOGLE_SHEETS_${tag}.csv`, history.headers, history.rows), 450);
       setTimeout(() => backupDownloadCSV(`MDEC_PROJECTS_FOR_GOOGLE_SHEETS_${tag}.csv`, projects.headers, projects.rows), 900);
       setTimeout(() => backupDownloadCSV(`MDEC_PROOF_INDEX_FOR_GOOGLE_SHEETS_${tag}.csv`, proofIndex.headers, proofIndex.rows), 1350);
-      await logAction('สำรอง CSV สำหรับ Google Sheets', 'ส่งออกตาราง Inventory/History/Projects/Proof Index', 'CSV เปิดใน Google Sheets ได้ แต่ไม่ได้เก็บรูปจริง');
+      await logAction('สำรอง CSV Google Sheets', 'ส่งออกตาราง Inventory/History/Projects/Proof Index', 'CSV เปิดใน Google Sheets ได้ แต่ไม่ได้เก็บรูปจริง');
       await saveBackupTimestamp('sheetsCsv');
-      pushToast('ดาวน์ดาวน์โหลดชุด CSV สำหรับ Google Sheets แล้ว', 'success');
+      pushToast('ดาวน์ดาวน์โหลดชุด CSV Google Sheets แล้ว', 'success');
     } catch (error) {
       console.error(error);
       alert('❌ สำรอง CSV ไม่สำเร็จ: ' + error.message);
@@ -20343,7 +20357,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       confirmText: 'CLEAR',
       actionLabel: 'ยืนยันล้างประวัติ',
       message: `ระบบจะล้างเฉพาะ history ของอุปกรณ์ทุกชิ้น รวมประมาณ ${historyCount.toLocaleString('th-TH')} รายการ โดยไม่ลบรายการอุปกรณ์ ไม่เปลี่ยนสถานะปัจจุบัน และไม่ลบหมวดหมู่/สถานที่`,
-      set: ['ควรกด “สำรองครบชุดไฟล์เดียว” ก่อน', 'ควรกด “JSON กู้คืนระบบ” เก็บแยกไว้ด้วย', 'ต้องพิมพ์ CLEAR ให้ถูกต้องก่อนปุ่มยืนยันจะใช้งานได้'],
+      set: ['ควรกด “ไฟล์เดียวครบชุด” ก่อน', 'ควรกด “JSON กู้คืนระบบ” เก็บแยกไว้ด้วย', 'ต้องพิมพ์ CLEAR ให้ถูกต้องก่อนปุ่มยืนยันจะใช้งานได้'],
       onConfirm: async () => {
         try {
           await Promise.all(items.map((item) => setDoc(getItemDoc(item.id), { history: [] }, { merge: true })));
@@ -23271,20 +23285,17 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <div className="font-black text-lg flex items-center gap-2"><Icons.ClipboardList className="w-5 h-5" /> รายงานประจำเดือน</div>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สรุปการยืม คืน ออกงาน และหลักฐาน</p>
                   </button>
-                  <button type="button" onClick={() => { setShowMoreMenu(false); setShowระบบHealthModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                    <div className="font-black text-lg flex items-center gap-2"><Icons.Alert className="w-5 h-5" /> ตรวจสุขภาพระบบ</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ดูพื้นที่ฐานข้อมูล รูปหลักฐาน และสถานะระบบ</p>
-                  </button>
+
                   {canManageระบบ && (
                     <button type="button" onClick={() => { setShowMoreMenu(false); openBackupCenter(); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
-                      <div className="font-black text-lg flex items-center gap-2"><Icons.Database className="w-5 h-5" /> ศูนย์สำรองข้อมูล</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>JSON / Google Sheets CSV / HTML รูปหลักฐาน</p>
+                      <div className="font-black text-lg flex items-center gap-2"><Icons.Database className="w-5 h-5" /> Backup Center</div>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สำรอง JSON / CSV / HTML</p>
                     </button>
                   )}
                   {isFullMode && canManageระบบ && (
-                    <button type="button" onClick={() => { setShowMoreMenu(false); setShowTrashModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
+                    <button type="button" onClick={() => { setShowMoreMenu(false); openSettingsTab('trash'); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                       <div className="font-black text-lg flex items-center gap-2"><Icons.Trash className="w-5 h-5" /> ถังขยะ</div>
-                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>กู้คืนอุปกรณ์ที่ลบผิด</p>
+                      <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>กู้คืน / ลบถาวร ใน Settings</p>
                     </button>
                   )}
                   <button type="button" onClick={() => { setShowMoreMenu(false); setShowHelpModal(true); }} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
@@ -24818,7 +24829,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </div>
                 <div className="min-w-0">
                   <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>BACKUP CENTER</div>
-                  <h3 className={`text-2xl font-black ${theme.textTitle}`}>ศูนย์สำรองข้อมูล</h3>
+                  <h3 className={`text-2xl font-black ${theme.textTitle}`}>Backup Center</h3>
                   <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สำรอง JSON / CSV / HTML และกู้คืนจากไฟล์ JSON แบบปลอดภัย</p>
                 </div>
               </div>
@@ -24846,34 +24857,34 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
                   <div>
                     <h4 className={`text-lg font-black ${theme.textTitle}`}>สำรองข้อมูลหลัก</h4>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แนะนำให้ดาวน์โหลด JSON เต็มชุดก่อนปรับข้อมูลจำนวนมาก</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แนะนำให้ดาวน์โหลด Backup JSONก่อนปรับข้อมูลจำนวนมาก</p>
                   </div>
                   <div className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>สำรองล่าสุด: {yearEndHelperData.lastBackupText}</div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   <button type="button" onClick={exportFullBackupJSON} disabled={isBusy} className="p-4 rounded-2xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white text-left font-black shadow-lg shadow-blue-900/20">
-                    <div className="text-lg">JSON เต็มชุด</div>
+                    <div className="text-lg">Backup JSON</div>
                     <div className="text-xs font-bold opacity-80 mt-1">ใช้สำหรับสำรองหลักและกู้คืน</div>
                   </button>
                   <button type="button" onClick={exportOneStopBackupSet} disabled={isBusy} className="p-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white text-left font-black shadow-lg shadow-emerald-900/20">
-                    <div className="text-lg">สำรองครบชุดไฟล์เดียว</div>
+                    <div className="text-lg">ไฟล์เดียวครบชุด</div>
                     <div className="text-xs font-bold opacity-80 mt-1">HTML รวมข้อมูลและรูปหลักฐาน</div>
                   </button>
                   <button type="button" onClick={exportSheetsCSVPack} disabled={isBusy} className={`p-4 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
-                    <div className="text-lg">CSV สำหรับ Google Sheets</div>
+                    <div className="text-lg">CSV Google Sheets</div>
                     <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>Inventory / History / Projects / Proof Index</div>
                   </button>
                   <button type="button" onClick={exportHistoryCSV} disabled={isBusy} className={`p-4 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
-                    <div className="text-lg">ประวัติยืม-คืน CSV</div>
+                    <div className="text-lg">ประวัติ CSV</div>
                     <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ส่งออกประวัติส่วนกลาง</div>
                   </button>
                   <button type="button" onClick={exportProofGalleryHTML} disabled={isBusy} className={`p-4 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
-                    <div className="text-lg">คลังรูปหลักฐาน HTML</div>
+                    <div className="text-lg">รูปหลักฐาน HTML</div>
                     <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เปิดดูรูปหลักฐานนอกเว็บได้</div>
                   </button>
                   <button type="button" onClick={exportYearEndSummaryCSV} disabled={isBusy} className={`p-4 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
-                    <div className="text-lg">สรุปก่อนปิดปี CSV</div>
+                    <div className="text-lg">สรุปปิดปี CSV</div>
                     <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เช็กรายการค้างและความพร้อม</div>
                   </button>
                 </div>
@@ -24883,7 +24894,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                   <div>
                     <h4 className={`text-lg font-black ${theme.textTitle}`}>กู้คืนข้อมูลจาก JSON</h4>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกไฟล์ JSON จากเครื่อง แล้วระบบจะเริ่มกู้คืนทันที</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกไฟล์ JSON จากเครื่องเพื่อกู้คืน</p>
                   </div>
                   {isBusy || !canManageระบบ ? (
                     <button type="button" disabled className="px-5 py-3 rounded-2xl bg-slate-700 text-white font-black cursor-not-allowed">
@@ -24894,7 +24905,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                       htmlFor="mdec-restore-json-input"
                       className="px-5 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black text-center cursor-pointer"
                     >
-                      เลือกไฟล์ JSON เพื่อกู้คืน
+                      เลือกไฟล์ JSON
                     </label>
                   )}
                 </div>
@@ -24903,7 +24914,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               <section className={`rounded-[1.35rem] border p-4 ${isDarkMode ? 'bg-slate-900/65 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div className={`font-black mb-2 ${theme.textTitle}`}>คำแนะนำ</div>
                 <div className={`text-sm font-bold leading-relaxed ${theme.textMuted}`}>
-                  ใช้ “JSON เต็มชุด” เป็นไฟล์สำรองหลัก ส่วน CSV ใช้สำหรับเปิดตรวจใน Google Sheets เท่านั้น ก่อนกู้คืนควรสำรอง JSON ล่าสุดอีกครั้งเสมอ
+                  ใช้ “Backup JSON” เป็นไฟล์สำรองหลัก ส่วน CSV ใช้สำหรับเปิดตรวจใน Google Sheets เท่านั้น ก่อนกู้คืนควรสำรอง JSON ล่าสุดอีกครั้งเสมอ
                 </div>
               </section>
             </div>
@@ -24927,7 +24938,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <span className={`inline-flex px-3 py-1 rounded-full text-[11px] font-black tracking-[0.16em] uppercase ${isDarkMode ? 'bg-blue-500/15 text-blue-200 border border-blue-400/20' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>Settings Workspace</span>
                     <span className={`inline-flex px-3 py-1 rounded-full text-[11px] font-black ${isDarkMode ? 'bg-slate-900 text-slate-300 border border-slate-700' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>{settingsNavItems.find(nav => nav.id === settingsTab)?.label || 'ภาพรวมระบบ'}</span>
                   </div>
-                  <h3 className={`text-2xl sm:text-3xl font-black mt-2 ${theme.textTitle}`}>ตั้งค่าระบบ</h3>
+                  <h3 className={`text-xl sm:text-2xl font-black mt-2 ${theme.textTitle}`}>ตั้งค่าระบบ</h3>
                   <p className={`text-xs sm:text-sm font-bold mt-1.5 max-w-3xl ${theme.textMuted}`}>ปรับให้ทุกหมวดอยู่ใน workspace เดียวกัน ดูเรียบร้อยขึ้น อ่านง่ายขึ้น และเข้าไปจัดการระบบได้ต่อเนื่องโดยไม่รู้สึกว่าคนละหน้า</p>
                 </div>
               </div>
@@ -25056,12 +25067,12 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </div>
               )}
               {settingsTab === '__removed_overview__' ? (
-                <div className="p-5 sm:p-6 lg:p-7 space-y-5 settings-center-overview">
+                <div className="p-4 sm:p-5 lg:p-6 space-y-5 settings-center-overview">
                   <div className={`p-6 rounded-[1.9rem] border shadow-[0_18px_50px_rgba(15,23,42,0.16)] ${isDarkMode ? 'bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))] border-slate-800' : 'bg-[linear-gradient(135deg,rgba(255,255,255,1),rgba(248,250,252,1))] border-slate-200 shadow-sm'}`}>
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="min-w-0">
                         <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-500">SETTINGS COMMAND CENTER</div>
-                        <h4 className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>ตั้งค่าระบบ MDEC Stock</h4>
+                        <h4 className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>ตั้งค่าระบบ MDEC Stock</h4>
                         <p className={`text-sm font-bold mt-2 ${theme.textMuted}`}>รวมงานตั้งค่าระบบ ผู้ใช้งาน เอกสาร หลักฐาน สำรองข้อมูล และคุณภาพข้อมูลไว้ในหน้าเดียว เพื่อเตรียมทดสอบเพิ่ม/ลบอุปกรณ์รอบใหม่</p>
                       </div>
                       <div className={`shrink-0 p-4 rounded-2xl border text-center ${dataQualityAudit.scoreTone === 'emerald' ? (isDarkMode ? 'bg-emerald-950/30 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : dataQualityAudit.scoreTone === 'amber' ? (isDarkMode ? 'bg-amber-950/30 border-amber-800' : 'bg-amber-50 border-amber-200') : (isDarkMode ? 'bg-rose-950/30 border-rose-800' : 'bg-rose-50 border-rose-200')}`}>
@@ -25127,7 +25138,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
                       <div className="min-w-0">
                         <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>USER ACCOUNTS</div>
-                        <h4 className={`text-2xl sm:text-3xl font-black mt-0.5 ${theme.textTitle}`}>บัญชีผู้ใช้</h4>
+                        <h4 className={`text-xl sm:text-2xl font-black mt-0.5 ${theme.textTitle}`}>บัญชีผู้ใช้</h4>
                         <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เพิ่ม แก้ไข รีเซ็ต PIN และกำหนดสิทธิ์ผู้ใช้งานในระบบ</p>
                       </div>
                       <div className="flex flex-wrap gap-2 shrink-0">
@@ -25264,20 +25275,20 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </div>
                 );
               })() : settingsTab === 'database' ? (
-                <div className="p-5 sm:p-6 lg:p-7 space-y-5">
+                <div className="p-4 sm:p-5 lg:p-6 space-y-5">
                   <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-amber-900/20 border-amber-800' : 'bg-amber-50 border-amber-200'}`}>
                     <h4 className={`text-xl font-black mb-2 flex items-center gap-2 ${theme.textTitle}`}>
                       <Icons.Database className="w-6 h-6 text-amber-500" />
                       ฐานข้อมูล / สำรอง
                     </h4>
-                    <p className={`text-sm font-bold ${theme.textMuted}`}>สำรองข้อมูล ส่งออกไฟล์ และเตรียมข้อมูลสิ้นปี ใช้เป็นศูนย์กลางเรื่องความปลอดภัยของฐานข้อมูล</p>
+                    <p className={`text-sm font-bold ${theme.textMuted}`}>สำรอง ส่งออก และตรวจพื้นที่ฐานข้อมูล</p>
                   </div>
 
                   <div className={`p-5 rounded-[1.35rem] border ${databaseStorageEstimate.cardTone}`}>
                     <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
                       <div className="min-w-0">
                         <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${databaseStorageEstimate.textTone}`}>DATABASE CAPACITY METER</div>
-                        <div className={`text-2xl sm:text-3xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.percentText} ของพื้นที่ฐานข้อมูล</div>
+                        <div className={`text-xl sm:text-2xl font-black mt-1 ${theme.textTitle}`}>{databaseStorageEstimate.percentText} ของพื้นที่ฐานข้อมูล</div>
                         <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{databaseStorageEstimate.safetyText}</div>
                       </div>
                       <button
@@ -25321,28 +25332,28 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <div className={`p-4 rounded-2xl border ${theme.btnSecondary}`}>
                       <div className={`text-xs font-black ${theme.textMuted}`}>สำรองล่าสุด</div>
                       <div className={`text-lg font-black mt-1 ${theme.textTitle}`}>{yearEndHelperData.lastBackupText || 'ยังไม่เคยสำรอง'}</div>
-                      <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>แนะนำสำรองก่อนแก้ข้อมูลจำนวนมาก</div>
+                      <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ควรสำรองก่อนแก้ข้อมูลจำนวนมาก</div>
                     </div>
                   </div>
 
                   <div className={`p-5 rounded-[1.35rem] border shadow-[0_12px_35px_rgba(15,23,42,0.10)] ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="min-w-0">
-                        <div className={`font-black text-lg ${theme.textTitle}`}>ศูนย์สำรองข้อมูล</div>
-                        <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Export ข้อมูลหลักเป็น JSON / CSV และสรุปข้อมูลก่อนปิดปี โดยไม่มีปุ่มล้างข้อมูลจริง เพื่อลดความเสี่ยงกดพลาด</div>
+                        <div className={`font-black text-lg ${theme.textTitle}`}>Backup Center</div>
+                        <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สำรอง JSON / CSV / HTML และสรุปก่อนปิดปีในจุดเดียว</div>
                       </div>
                       <button
                         type="button"
                         onClick={() => openBackupCenter()}
                         className="px-5 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black shadow-lg shadow-amber-600/20"
                       >
-                        เปิดศูนย์สำรองข้อมูล
+                        เปิด Backup Center
                       </button>
                     </div>
                   </div>
 
                   <div className={`p-5 rounded-[1.35rem] border ${isDarkMode ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>รายการที่ควรสำรอง</div>
+                    <div className={`font-black text-lg mb-3 ${theme.textTitle}`}>รายการสำรอง</div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
                       {[
                         ['อุปกรณ์ทั้งหมด', items.filter(item => item && !item.isDeleted).length],
@@ -25593,8 +25604,8 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </section>
                 </div>
               ) : (
-                <div className="p-5 sm:p-6 lg:p-7">
-                  <div className={`p-6 rounded-3xl border text-center font-black ${theme.btnSecondary}`}>ยังไม่มีหน้าตั้งค่าสำหรับหมวดนี้</div>
+                <div className="p-4 sm:p-5 lg:p-6">
+                  <div className={`p-6 rounded-3xl border text-center font-black ${theme.btnSecondary}`}>ยังไม่มีหน้าสำหรับหมวดนี้</div>
                 </div>
               )}
               </div>
