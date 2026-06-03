@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.11 Direct Restore JSON Picker Fix';
-const APP_UPDATE_NOTE = 'Direct Restore JSON Picker Fix: เปลี่ยนปุ่มกู้คืน JSON ให้เป็น label/input โดยตรง ไม่พึ่ง click ผ่าน ref หลัง confirm modal เพื่อให้เปิดหน้าต่างเลือกไฟล์ได้จริง';
+const APP_VERSION = 'v23.4.12 Simple Restore JSON Picker Fix';
+const APP_UPDATE_NOTE = 'Simple Restore JSON Picker Fix: เอาการพิมพ์ RESTORE ออกจากปุ่มกู้คืน JSON และทำให้ปุ่มเลือกไฟล์เป็น label ที่เปิด file picker ตรง ๆ ไม่ผ่าน prompt/confirm/ref.click';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -24803,7 +24803,7 @@ ${auditChangeSummary}` : auditChangeSummary);
         ref={restoreInputRef}
         type="file"
         accept=".json,application/json"
-        className="sr-only"
+        style={{ position: 'fixed', left: '-9999px', top: '-9999px', width: '1px', height: '1px', opacity: 0 }}
         onChange={handleRestoreBackupJSON}
       />
 
@@ -24883,25 +24883,20 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                   <div>
                     <h4 className={`text-lg font-black ${theme.textTitle}`}>กู้คืนข้อมูลจาก JSON</h4>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ระบบจะให้พิมพ์ RESTORE ก่อนเลือกไฟล์ เพื่อกันกดพลาด</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกไฟล์ JSON จากเครื่อง แล้วระบบจะเริ่มกู้คืนทันที</p>
                   </div>
-                  <label
-                    htmlFor="mdec-restore-json-input"
-                    onClick={(e) => {
-                      if (isBusy || !canManageระบบ) {
-                        e.preventDefault();
-                        return;
-                      }
-                      const typed = window.prompt('การกู้คืนมีผลกับข้อมูลจริง\nพิมพ์ RESTORE เพื่อเลือกไฟล์ JSON');
-                      if (typed !== 'RESTORE') {
-                        e.preventDefault();
-                        pushToast('ยกเลิกการเลือกไฟล์กู้คืน', 'warning');
-                      }
-                    }}
-                    className={`px-5 py-3 rounded-2xl text-white font-black text-center cursor-pointer ${isBusy || !canManageระบบ ? 'bg-slate-700 cursor-not-allowed' : 'bg-amber-600 hover:bg-amber-500'}`}
-                  >
-                    กู้คืนจากไฟล์ JSON
-                  </label>
+                  {isBusy || !canManageระบบ ? (
+                    <button type="button" disabled className="px-5 py-3 rounded-2xl bg-slate-700 text-white font-black cursor-not-allowed">
+                      กู้คืนจากไฟล์ JSON
+                    </button>
+                  ) : (
+                    <label
+                      htmlFor="mdec-restore-json-input"
+                      className="px-5 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black text-center cursor-pointer"
+                    >
+                      เลือกไฟล์ JSON เพื่อกู้คืน
+                    </label>
+                  )}
                 </div>
               </section>
 
