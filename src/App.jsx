@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.9 Restore Backup Center Modal Hotfix';
-const APP_UPDATE_NOTE = 'Restore Backup Center Modal Hotfix: กู้คืนหน้าต่างศูนย์สำรองข้อมูลที่ปุ่มเปิดแล้วไม่แสดงผล พร้อมปุ่มสำรอง JSON/CSV/HTML/ชุดปิดปี และปุ่มกู้คืน JSON แบบยืนยัน RESTORE';
+const APP_VERSION = 'v23.4.10 Restore JSON File Input Fix';
+const APP_UPDATE_NOTE = 'Restore JSON File Input Fix: เพิ่ม input file ที่ผูกกับ restoreInputRef เพื่อให้ปุ่ม กู้คืนจากไฟล์ JSON เปิดหน้าต่างเลือกไฟล์ได้จริง หลังยืนยัน RESTORE';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -24781,6 +24781,16 @@ ${auditChangeSummary}` : auditChangeSummary);
 
 
 
+
+
+      {/* v23.4.10 Hidden Restore JSON Input */}
+      <input
+        ref={restoreInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={handleRestoreBackupJSON}
+      />
 
       {/* v23.4.9 Backup Center Modal */}
       {showBackupCenterModal && (
