@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.2 QR Print Panel Layout Hotfix';
+const APP_VERSION = 'v23.4.16.3 QR Label Friendly Preset Polish';
 const APP_UPDATE_NOTE = 'QR Label Exact Size Polish: ปรับหน้าพิมพ์ QR ให้กำหนดขนาดฉลากเป็นมิลลิเมตรได้โดยตรง ทั้งกว้าง สูง และขนาด QR เพื่อกะระยะติดอุปกรณ์จริงได้ง่ายขึ้น โดยไม่แตะ QR Scanner core';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -7834,7 +7834,6 @@ function MainApp() {
   const [qrLabelHeightMm, setQrLabelHeightMm] = useState(38);
   const [qrCodeSizeMm, setQrCodeSizeMm] = useState(23);
   const [qrพิมพ์Mode, setQrพิมพ์Mode] = useState('label');
-  const [qrพิมพ์Columns, setQrพิมพ์Columns] = useState('auto');
   const [showBoxLabelพิมพ์Modal, setShowBoxLabelพิมพ์Modal] = useState(false);
   const [showStorageBoxesModal, setShowStorageBoxesModal] = useState(false);
   const [showStorageBoxAssignModal, setShowStorageBoxAssignModal] = useState(false);
@@ -21532,17 +21531,30 @@ ${auditChangeSummary}` : auditChangeSummary);
       labelQrServer: Math.max(200, Math.round(safeQrCodeSizeMm * 10))
     };
     const isLabelMode = qrพิมพ์Mode === 'label';
-    const qrColumnPresets = {
-      auto: { label: 'อัตโนมัติ', plain: qrPreset.grid, labelGrid: qrPreset.labelGrid },
-      '3': { label: '3 คอลัมน์', plain: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3', labelGrid: 'grid-cols-1 md:grid-cols-3' },
-      '4': { label: '4 คอลัมน์', plain: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4', labelGrid: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4' },
-      '5': { label: '5 คอลัมน์', plain: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5', labelGrid: 'grid-cols-1 sm:grid-cols-3 md:grid-cols-5' }
+    const qrLabelSizePresets = [
+      { id: 'general', label: 'ทั่วไป', hint: 'อุปกรณ์ทั่วไป', width: 65, height: 38, qr: 23 },
+      { id: 'square', label: 'สี่เหลี่ยม', hint: 'ติดกล่อง/ซอง', width: 50, height: 50, qr: 25 },
+      { id: 'small', label: 'เล็ก', hint: 'แบต/เมม/ของชิ้นเล็ก', width: 45, height: 25, qr: 18 },
+      { id: 'box', label: 'กล่องใหญ่', hint: 'กล่องจัดเก็บ', width: 80, height: 45, qr: 28 },
+      { id: 'qrFocus', label: 'QR ใหญ่', hint: 'สแกนไกลขึ้น', width: 60, height: 60, qr: 36 }
+    ];
+    const activeQrLabelPreset = qrLabelSizePresets.find(preset => preset.width === safeQrLabelWidthMm && preset.height === safeQrLabelHeightMm && preset.qr === safeQrCodeSizeMm)?.id || 'custom';
+    const applyQrLabelPreset = (preset) => {
+      setQrLabelWidthMm(preset.width);
+      setQrLabelHeightMm(preset.height);
+      setQrCodeSizeMm(preset.qr);
     };
-    const qrColumnPreset = qrColumnPresets[qrพิมพ์Columns] || qrColumnPresets.auto;
-    const activeQrGrid = isLabelMode ? qrColumnPreset.labelGrid : qrColumnPreset.plain;
+    const qrGridStyle = {
+      '--qr-card-width': qrPreset.printCardWidth,
+      '--qr-card-height': qrPreset.printCardHeight,
+      '--qr-image-size': qrPreset.printQrSize,
+      gridTemplateColumns: 'repeat(auto-fill, var(--qr-card-width))',
+      justifyContent: 'start',
+      alignItems: 'start'
+    };
 
     return (
-      <div className="bg-white min-h-screen font-sans text-black">
+      <div className="qr-print-page bg-white min-h-screen font-sans text-black">
          <style>{`
            .qr-label-card {
              border-color: #cbd5e1;
@@ -21570,14 +21582,16 @@ ${auditChangeSummary}` : auditChangeSummary);
            .qr-label-footer { letter-spacing: .04em; }
            @media print {
              @page { size: A4; margin: 7mm; }
-             body { background: white !important; }
+             html, body, #root { margin: 0 !important; padding: 0 !important; background: #ffffff !important; border: 0 !important; outline: 0 !important; box-shadow: none !important; }
+             body::before, body::after, #root::before, #root::after { display: none !important; content: none !important; }
+             .qr-print-page { background: #fff !important; border: 0 !important; outline: 0 !important; box-shadow: none !important; }
              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
              .qr-label-card, .qr-plain-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; }
-             .qr-plain-grid { grid-template-columns: repeat(auto-fill, var(--qr-card-width)) !important; justify-content: start !important; align-items: start !important; gap: 2mm !important; }
-             .qr-plain-card { width: var(--qr-card-width) !important; min-height: var(--qr-card-height) !important; padding: 1.2mm !important; box-sizing: border-box !important; }
+             .qr-plain-grid { grid-template-columns: repeat(auto-fill, var(--qr-card-width)) !important; justify-content: start !important; align-items: start !important; gap: 2mm !important; background: #fff !important; border: 0 !important; }
+             .qr-plain-card { width: var(--qr-card-width) !important; min-height: var(--qr-card-height) !important; padding: 1.2mm !important; box-sizing: border-box !important; border-color: #cbd5e1 !important; }
              .qr-plain-card .qr-code-image { width: var(--qr-image-size) !important; height: var(--qr-image-size) !important; margin-bottom: 1mm !important; }
-             .qr-label-grid { grid-template-columns: repeat(auto-fill, var(--qr-card-width)) !important; justify-content: start !important; gap: 3mm !important; align-items: start !important; }
-             .qr-label-card { width: var(--qr-card-width) !important; min-height: var(--qr-card-height) !important; border: 1.2px solid #111827 !important; border-radius: 2mm !important; padding: 2mm !important; overflow: hidden !important; box-sizing: border-box !important; }
+             .qr-label-grid { grid-template-columns: repeat(auto-fill, var(--qr-card-width)) !important; justify-content: start !important; gap: 3mm !important; align-items: start !important; background: #fff !important; border: 0 !important; }
+             .qr-label-card { width: var(--qr-card-width) !important; min-height: var(--qr-card-height) !important; border: .3mm solid #cbd5e1 !important; border-radius: 2mm !important; padding: 2mm !important; overflow: hidden !important; box-sizing: border-box !important; }
              .qr-label-card .qr-code-image { width: var(--qr-image-size) !important; height: var(--qr-image-size) !important; }
              .qr-label-card .qr-safe-zone { padding: 1mm !important; border-color: #111827 !important; border-radius: 1.5mm !important; }
              .qr-label-card .qr-brand-logo img, .qr-plain-card .qr-brand-logo img { width: 100% !important; height: 100% !important; }
@@ -21593,7 +21607,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <Icons.QrCode className="w-6 h-6" /> พิมพ์ QR / ฉลากอุปกรณ์ ({selectedItems.length} ดวง)
               </h2>
               <p className="text-slate-300 text-sm font-bold mt-1">
-                จัดฉลาก QR สำหรับติดอุปกรณ์/กล่องจริง แนะนำพิมพ์บนสติกเกอร์ A4 และทดลองสแกน 1 ดวงก่อนติดจริง
+                จัดฉลาก QR สำหรับติดอุปกรณ์/กล่องจริง ระบบเรียงลง A4 อัตโนมัติ เลือกพรีเซ็ตหรือกำหนดขนาดเองได้
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-3">
@@ -21641,22 +21655,27 @@ ${auditChangeSummary}` : auditChangeSummary);
                  </div>
                </div>
 
-               <div className="flex bg-slate-700/80 p-1 rounded-xl gap-1">
-                 {Object.entries(qrColumnPresets).map(([key, preset]) => (
+               <div className="w-full xl:w-auto flex flex-wrap bg-slate-700/80 p-2 rounded-xl gap-2 items-stretch">
+                 <div className="w-full text-[10px] font-black text-slate-300 px-1">พรีเซ็ตขนาดฉลาก</div>
+                 {qrLabelSizePresets.map(preset => (
                    <button
-                     key={key}
+                     key={preset.id}
                      type="button"
-                     onClick={() => setQrพิมพ์Columns(key)}
-                     className={`px-3 py-2 rounded-lg font-black transition-colors ${qrพิมพ์Columns === key ? 'bg-blue-950/35 text-blue-100 border border-blue-500/50 shadow' : 'text-slate-200 hover:bg-slate-600'}`}
-                     title="ปรับจำนวนคอลัมน์บนหน้าพิมพ์"
+                     onClick={() => applyQrLabelPreset(preset)}
+                     className={`px-3 py-2 rounded-xl border text-left transition-colors ${activeQrLabelPreset === preset.id ? 'bg-blue-950/35 text-blue-100 border-blue-500/50 shadow' : 'bg-slate-800/60 border-slate-600 text-slate-200 hover:bg-slate-600'}`}
+                     title={`${preset.width}×${preset.height} มม. • QR ${preset.qr} มม.`}
                    >
-                     {preset.label}
+                     <div className="text-xs font-black">{preset.label}</div>
+                     <div className="text-[10px] font-bold opacity-80">{preset.width}×{preset.height} • QR {preset.qr}</div>
                    </button>
                  ))}
+                 {activeQrLabelPreset === 'custom' && (
+                   <span className="px-3 py-2 rounded-xl border border-amber-400/30 bg-amber-500/10 text-amber-100 text-xs font-black flex items-center">กำหนดเอง</span>
+                 )}
                </div>
 
                <div className="w-full text-xs sm:text-sm font-bold text-slate-300 bg-slate-800 border border-slate-800/55 rounded-xl px-4 py-3">
-                 แนะนำ: ใช้ “ฉลากข้อมูล” สำหรับติดอุปกรณ์ทั่วไป / ใช้ “QR ล้วน” เมื่อพื้นที่แคบมาก • ถ้าเป็นแบต/เมมให้ติดรหัสสั้นบนตัวของ และติด QR ที่ซองหรือกล่องเก็บแทน
+                 ขนาดที่กรอกคือ “ขนาดจริงบนกระดาษ A4 ตอนพิมพ์” หน่วยมิลลิเมตร • ระบบจะเรียงฉลากให้อัตโนมัติตามความกว้างกระดาษ ไม่ต้องเลือกคอลัมน์เอง • แนะนำพิมพ์ Scale 100% / Default และทดลองสแกนก่อนติดจริง
                </div>
 
                <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors">
@@ -21683,8 +21702,8 @@ ${auditChangeSummary}` : auditChangeSummary);
 
          {!isLabelMode ? (
            <div
-             className={`qr-plain-grid pt-6 p-8 grid ${activeQrGrid} gap-5 print:pt-0 print:p-0`}
-             style={{ '--qr-card-width': qrPreset.printCardWidth, '--qr-card-height': qrPreset.printCardHeight, '--qr-image-size': qrPreset.printQrSize }}
+             className="qr-plain-grid pt-6 p-8 grid gap-5 print:pt-0 print:p-0"
+             style={qrGridStyle}
            >
              {selectedItems.map(id => {
                 const item = items.find(i => i.id === id);
@@ -21710,8 +21729,8 @@ ${auditChangeSummary}` : auditChangeSummary);
            </div>
          ) : (
            <div
-             className={`qr-label-grid pt-6 p-8 grid ${activeQrGrid} gap-5 print:pt-0 print:p-0 print:gap-2`}
-             style={{ '--qr-card-width': qrPreset.printCardWidth, '--qr-card-height': qrPreset.printCardHeight, '--qr-image-size': qrPreset.printQrSize }}
+             className="qr-label-grid pt-6 p-8 grid gap-5 print:pt-0 print:p-0 print:gap-2"
+             style={qrGridStyle}
            >
              {selectedItems.map(id => {
                 const item = items.find(i => i.id === id);
