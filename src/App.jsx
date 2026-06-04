@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.14 Records Workspace Compact Polish';
-const APP_UPDATE_NOTE = 'Records Workspace Compact Polish: เก็บหน้าเอกสาร/ประวัติ/หลักฐานให้กระชับขึ้น ลดคำอธิบายยาว ปรับแท็บให้เล็กลง และย้ำว่าถังขยะอยู่ใน Settings ไม่กลับมาอยู่หน้านี้';
+const APP_VERSION = 'v23.4.14.2 Return Confirm Hotfix';
+const APP_UPDATE_NOTE = 'Return Confirm Hotfix: แก้ปุ่มยืนยันรับคืน/ยืม/ออกงานที่ตั้งค่า confirmation ไว้แต่ไม่มี modal ทำให้กดแล้วไม่บันทึก โดยใช้หน้าต่างยืนยันแบบปลอดภัยก่อนบันทึกจริง';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -9886,6 +9886,24 @@ function MainApp() {
     } catch (e) { return String(value); }
   };
 
+  const formatThaiDateTime = (value) => {
+    if (!value) return '-';
+    try {
+      const d = value?.toDate ? value.toDate() : new Date(value);
+      if (Number.isNaN(d.getTime())) return String(value);
+      return d.toLocaleString('th-TH', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+    } catch (e) {
+      return String(value);
+    }
+  };
+
   const projectStats = useMemo(() => {
     const map = {};
     const metaMap = settingsOptions.projectMeta || {};
@@ -18638,7 +18656,7 @@ ${auditChangeSummary}` : auditChangeSummary);
     };
   };
 
-  const requestOperationConfirm = (type = 'borrow') => {
+  const requestOperationConfirm = async (type = 'borrow') => {
     if (!requireOperationalAccess(type === 'return' ? 'รับคืนอุปกรณ์' : type === 'event' ? 'นำอุปกรณ์ออกงาน' : 'ยืมอุปกรณ์', type)) return;
     if (type === 'borrow') {
       if (!borrowData.borrower || !borrowData.staff || packingSet.length === 0) return alert('❌ กรุณากรอกผู้ยืม เลือกเจ้าหน้าที่ และติ๊ก/สแกนเช็กอุปกรณ์อย่างน้อย 1 ชิ้น');
@@ -18647,7 +18665,22 @@ ${auditChangeSummary}` : auditChangeSummary);
     } else if (type === 'return') {
       if (!returnData.staff || returnSet.length === 0) return alert('❌ กรุณาเลือกผู้รับคืน และติ๊ก/สแกนเช็กอุปกรณ์ที่รับคืนอย่างน้อย 1 ชิ้น');
     }
-    setOperationConfirm(buildOperationConfirmData(type));
+
+    // v23.4.14.2 Return Confirm Hotfix
+    // เดิม setOperationConfirm(...) แล้วไม่มี modal แสดง/ไม่มีปุ่มเรียก executeOperationConfirm
+    // ผลคือกดยืนยันรับคืนแล้วเหมือนไม่มีอะไรเกิดขึ้น จึงใช้ native confirm ที่ทำงานจริงก่อนบันทึก
+    const confirmData = buildOperationConfirmData(type);
+    const actionLabel = type === 'return' ? 'รับคืนอุปกรณ์' : type === 'event' ? 'นำอุปกรณ์ออกงาน' : 'บันทึกการยืม';
+    const subjectLine = confirmData.subject && confirmData.subject !== '-' ? `\n${confirmData.subjectLabel}: ${confirmData.subject}` : '';
+    const skippedLine = confirmData.skippedCount > 0 ? `\nไม่ได้เช็ก/ข้าม: ${confirmData.skippedCount} รายการ` : '';
+    const proofLine = confirmData.proofCount > 0 ? `\nหลักฐาน: ${confirmData.proofCount} ไฟล์` : '';
+    const problemLine = confirmData.problemCount > 0 ? `\nรายการต้องตรวจเพิ่ม: ${confirmData.problemCount} รายการ` : '';
+    const ok = window.confirm(`ตรวจสอบก่อน${actionLabel}${subjectLine}\n${confirmData.staffLabel}: ${confirmData.staff}\nจำนวนที่จะบันทึก: ${confirmData.actionCount}/${confirmData.totalCount} รายการ${skippedLine}${problemLine}${proofLine}\n\nยืนยันทำรายการนี้หรือไม่?`);
+    if (!ok) return;
+
+    if (type === 'event') return handleEventOut();
+    if (type === 'return') return handleReturn();
+    return handleBorrow();
   };
 
   const executeOperationConfirm = async () => {
@@ -23516,7 +23549,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   {[
                     ['เครื่องเสียง', () => { setSearchTerm(''); setSmartQuickFilter('audio'); openWorkspace('inventory'); }],
                     ['กล้อง/เลนส์', () => { setSearchTerm(''); setSmartQuickFilter('camera'); openWorkspace('inventory'); }],
-                    ['ยังไม่มี QR', () => { setQrTaggedFilter('no'); openWorkspace('inventory'); }],
+                    ['ยังไม่มี QR', () => { setSearchTerm(''); setSmartQuickFilter('untaggedQr'); openWorkspace('inventory'); }],
                     ['ข้อมูลควรเติม', () => { setQuickProblemOnly(true); openWorkspace('inventory'); }]
                   ].map(([label, action]) => (
                     <button key={label} type="button" onClick={action} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>{label}</button>
@@ -26119,7 +26152,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {row.item.sn || '-'} • {row.item.category || '-'} • {row.item.location || '-'}</div>
                           </div>
                           <div className="flex flex-col items-end gap-1 shrink-0">
-                            <span className={`editor-chip px-2.5 py-1 rounded-xl text-[11px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{getOperationHumanStatusLabel(item)}</span>
+                            <span className={`editor-chip px-2.5 py-1 rounded-xl text-[11px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{getOperationHumanStatusLabel(row.item)}</span>
                             <span className={`editor-chip px-2.5 py-1 rounded-xl text-[11px] font-black border ${urgentCls}`}>{getRepairUrgencyLabel(row.urgency)}</span>
                           </div>
                         </div>
