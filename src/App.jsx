@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.14.2 Return Confirm Hotfix';
-const APP_UPDATE_NOTE = 'Return Confirm Hotfix: แก้ปุ่มยืนยันรับคืน/ยืม/ออกงานที่ตั้งค่า confirmation ไว้แต่ไม่มี modal ทำให้กดแล้วไม่บันทึก โดยใช้หน้าต่างยืนยันแบบปลอดภัยก่อนบันทึกจริง';
+const APP_VERSION = 'v23.4.15 Records / History Usability Polish';
+const APP_UPDATE_NOTE = 'Records / History Usability Polish: ปรับหน้าเอกสารย้อนหลังให้เป็นศูนย์ค้นงานจริง มีการ์ดสรุป คลิกกรองเร็ว สถานะรอคืน/คืนบางส่วน/คืนครบ ค้นจากเลขเอกสาร ผู้ยืม ชื่องาน วันที่ อุปกรณ์ S.N. และมีปุ่มพิมพ์ซ้ำ ดูประวัติ คัดลอกสรุป โดยไม่รื้อ flow หลักและไม่แตะ QR Scanner core';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -9840,19 +9840,24 @@ function MainApp() {
       // รับคืนยังถูกเก็บในประวัติส่วนกลาง/รูปหลักฐาน/สถานะเอกสารเดิม แต่ไม่สร้างความรกในรายการเอกสาร
       if (doc.type === 'return' || doc.status === 'return-record') return false;
       const status = doc.status || 'active';
-      const matchFilter = borrowDocFilter === 'all' || status === borrowDocFilter || doc.type === borrowDocFilter;
+      const docType = doc.type || doc.docType || 'borrow';
+      const matchFilter = borrowDocFilter === 'all' || status === borrowDocFilter || docType === borrowDocFilter;
       if (!matchFilter) return false;
       if (!q) return true;
-      const itemText = (doc.items || []).map(i => `${i.name || ''} ${i.sn || ''} ${i.category || ''} ${i.location || ''}`).join(' ');
-      const dateText = `${doc.date || ''} ${doc.createdAt || ''} ${doc.updatedAt || ''}`;
-      const titleText = `${doc.title || ''} ${doc.ref || ''} ${doc.statusLabel || ''}`;
-      return titleText.toLowerCase().includes(q) ||
-             String(doc.borrower || '').toLowerCase().includes(q) ||
-             String(doc.staffOut || '').toLowerCase().includes(q) ||
-             String(doc.operatorName || '').toLowerCase().includes(q) ||
-             String(doc.note || '').toLowerCase().includes(q) ||
-             dateText.toLowerCase().includes(q) ||
-             itemText.toLowerCase().includes(q);
+      const itemText = asArray(doc.items).map(i => [
+        i.name,
+        i.sn,
+        i.serialNumber,
+        i.shortCode,
+        i.category,
+        i.location,
+        i.storageLocation,
+        i.department
+      ].filter(Boolean).join(' ')).join(' ');
+      const dateText = `${doc.date || ''} ${doc.createdAt || ''} ${doc.updatedAt || ''} ${doc.expectedReturn || ''} ${doc.returnedAt || ''}`;
+      const titleText = `${doc.title || ''} ${doc.ref || ''} ${doc.id || ''} ${doc.documentId || ''} ${doc.documentRef || ''} ${doc.statusLabel || ''}`;
+      const peopleText = `${doc.borrower || ''} ${doc.subject || ''} ${doc.eventName || ''} ${doc.staffOut || ''} ${doc.staffIn || ''} ${doc.returnStaff || ''} ${doc.operatorName || ''}`;
+      return `${titleText} ${peopleText} ${doc.note || ''} ${dateText} ${itemText}`.toLowerCase().includes(q);
     }).sort((a, b) => new Date(b.date || b.createdAt || b.updatedAt || 0) - new Date(a.date || a.createdAt || a.updatedAt || 0));
   }, [borrowเอกสารs, borrowDocSearch, borrowDocFilter]);
 
@@ -14547,11 +14552,89 @@ S.N.: ${item.sn || '-'}
   };
 
   const renderRecordsWorkspace = () => {
+    const docsForRecords = asArray(borrowเอกสารs).filter(doc => doc?.type !== 'return' && doc?.status !== 'return-record');
+    const recordsDocStats = {
+      total: docsForRecords.length,
+      active: docsForRecords.filter(d => !d.status || d.status === 'active').length,
+      partial: docsForRecords.filter(d => d.status === 'partial').length,
+      closed: docsForRecords.filter(d => d.status === 'closed').length,
+      borrow: docsForRecords.filter(d => (d.type || d.docType || 'borrow') === 'borrow').length,
+      event: docsForRecords.filter(d => (d.type || d.docType) === 'event').length,
+      proof: docsForRecords.filter(d => asArray(d.proofs).length > 0).length,
+    };
     const recordTabs = [
-      ['docs', 'เอกสารย้อนหลัง', borrowเอกสารs.length],
-      ['history', 'ประวัติส่วนกลาง', filteredHistoryCenterEntries.length],
-      ['proofs', 'รูปหลักฐาน', filteredProofGroups.length]
+      ['docs', 'เอกสารย้อนหลัง', recordsDocStats.total, 'ใบยืม/ออกงาน + สถานะคืน'],
+      ['history', 'ประวัติส่วนกลาง', filteredHistoryCenterEntries.length, 'ค้นจากทุกอุปกรณ์'],
+      ['proofs', 'รูปหลักฐาน', filteredProofGroups.length, 'หลักฐานยืม/คืน/ออกงาน']
     ];
+    const recordsFilterCards = [
+      { id: 'all', label: 'ทั้งหมด', value: recordsDocStats.total, hint: 'เอกสารที่เก็บไว้', tone: isDarkMode ? 'bg-blue-950/35 text-blue-100 border-blue-800/70' : 'bg-blue-50 text-blue-800 border-blue-200' },
+      { id: 'active', label: 'รอคืน', value: recordsDocStats.active, hint: 'ยังค้างอยู่', tone: isDarkMode ? 'bg-amber-950/35 text-amber-100 border-amber-800/70' : 'bg-amber-50 text-amber-800 border-amber-200' },
+      { id: 'partial', label: 'คืนบางส่วน', value: recordsDocStats.partial, hint: 'ยังไม่ครบ', tone: isDarkMode ? 'bg-purple-950/35 text-purple-100 border-purple-800/70' : 'bg-purple-50 text-purple-800 border-purple-200' },
+      { id: 'closed', label: 'คืนครบแล้ว', value: recordsDocStats.closed, hint: 'ปิดเอกสาร', tone: isDarkMode ? 'bg-emerald-950/35 text-emerald-100 border-emerald-800/70' : 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+      { id: 'event', label: 'ใบออกงาน', value: recordsDocStats.event, hint: 'งาน/กิจกรรม', tone: isDarkMode ? 'bg-orange-950/35 text-orange-100 border-orange-800/70' : 'bg-orange-50 text-orange-800 border-orange-200' },
+    ];
+    const getRecordsDocMeta = (docData = {}) => {
+      const itemCount = Array.isArray(docData.items) ? docData.items.length : (Array.isArray(docData.itemIds) ? docData.itemIds.length : 0);
+      const returnedCount = Array.isArray(docData.returnedItemIds) ? docData.returnedItemIds.length : 0;
+      const status = docData.status || 'active';
+      const isEventDoc = (docData.type || docData.docType) === 'event';
+      const typeLabel = isEventDoc ? 'ใบออกงาน' : 'ใบยืม';
+      const title = docData.title || (isEventDoc ? 'ใบนำอุปกรณ์ออกงาน' : 'ใบยืมอุปกรณ์');
+      const statusLabel = docData.statusLabel || (status === 'closed' ? 'คืนครบแล้ว' : status === 'partial' ? 'คืนบางส่วน' : 'รอคืน');
+      const statusTone = status === 'closed'
+        ? (isDarkMode ? 'bg-emerald-950/35 text-emerald-100 border-emerald-800/70' : 'bg-emerald-50 text-emerald-800 border-emerald-200')
+        : status === 'partial'
+          ? (isDarkMode ? 'bg-purple-950/35 text-purple-100 border-purple-800/70' : 'bg-purple-50 text-purple-800 border-purple-200')
+          : (isDarkMode ? 'bg-amber-950/35 text-amber-100 border-amber-800/70' : 'bg-amber-50 text-amber-800 border-amber-200');
+      const typeTone = isEventDoc
+        ? (isDarkMode ? 'bg-orange-950/35 text-orange-100 border-orange-800/70' : 'bg-orange-50 text-orange-800 border-orange-200')
+        : (isDarkMode ? 'bg-blue-950/35 text-blue-100 border-blue-800/70' : 'bg-blue-50 text-blue-800 border-blue-200');
+      const docDate = docData.date || docData.createdAt || docData.updatedAt;
+      const dateText = docDate ? formatThaiDateTime(docDate) : '-';
+      const dueText = docData.expectedReturn ? formatThaiDateTime(docData.expectedReturn) : '-';
+      const ownerText = docData.borrower || docData.subject || docData.eventName || '-';
+      const staffText = docData.staffOut || docData.operatorName || '-';
+      const proofCount = asArray(docData.proofs).length;
+      const remainingCount = Math.max(itemCount - returnedCount, 0);
+      return { itemCount, returnedCount, remainingCount, status, typeLabel, title, statusLabel, statusTone, typeTone, dateText, dueText, ownerText, staffText, proofCount };
+    };
+    const openDocHistorySearch = (docData = {}) => {
+      const firstItem = asArray(docData.items)[0] || {};
+      const historyKey = String(
+        docData.ref ||
+        docData.borrower ||
+        docData.eventName ||
+        docData.subject ||
+        firstItem.sn ||
+        firstItem.name ||
+        ''
+      ).trim();
+      setHistoryCenterSearch(historyKey);
+      setHistoryCenterFilter('all');
+      setRecordsCenterMode('history');
+    };
+    const copyDocSummary = async (docData = {}) => {
+      const meta = getRecordsDocMeta(docData);
+      const itemLines = asArray(docData.items).slice(0, 12).map((item, index) => `${index + 1}. ${item.name || item.id || '-'}${item.sn ? ` / S.N. ${item.sn}` : ''}`);
+      const extraCount = Math.max(meta.itemCount - itemLines.length, 0);
+      const text = [
+        `${meta.typeLabel}: ${docData.ref || docData.id || '-'}`,
+        `สถานะ: ${meta.statusLabel}`,
+        `ผู้ยืม/ชื่องาน: ${meta.ownerText}`,
+        `วันที่: ${meta.dateText}`,
+        `กำหนดคืน: ${meta.dueText}`,
+        `เจ้าหน้าที่: ${meta.staffText}`,
+        `คืนแล้ว: ${meta.returnedCount}/${meta.itemCount} รายการ`,
+        itemLines.length ? `รายการอุปกรณ์:\n${itemLines.join('\n')}${extraCount > 0 ? `\n...และอีก ${extraCount} รายการ` : ''}` : 'รายการอุปกรณ์: -'
+      ].join('\n');
+      try {
+        await navigator.clipboard.writeText(text);
+        pushToast('คัดลอกสรุปเอกสารแล้ว', 'success');
+      } catch (error) {
+        window.prompt('คัดลอกข้อความนี้', text);
+      }
+    };
     return (
       <div className="page-workspace-shell records-workspace space-y-5">
         {renderWorkspaceTabs()}
@@ -14560,70 +14643,115 @@ S.N.: ${item.sn || '-'}
             <div>
               <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'}`}>RECORDS</div>
               <h2 className={`text-xl font-black mt-1 ${theme.textTitle}`}>เอกสาร / ประวัติ / หลักฐาน</h2>
-              <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นย้อนหลัง เปิดดูเอกสาร ประวัติ และรูปหลักฐานจากหน้าเดียว</p>
+              <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นย้อนหลัง เปิดดูเอกสาร พิมพ์ซ้ำ ไล่ประวัติ และจัดการรูปหลักฐานจากหน้าเดียว</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => { setBorrowDocSearch(''); setBorrowDocFilter('all'); setHistoryCenterSearch(''); setHistoryCenterFilter('all'); setProofCenterSearch(''); setProofCenterFilter('all'); }} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>ล้างคำค้น</button>
               <button type="button" onClick={() => openWorkspace('overview')} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับภาพรวม</button>
             </div>
           </div>
 
           <div className="p-3 sm:p-3 space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              {recordTabs.map(([id, label, count]) => (
+              {recordTabs.map(([id, label, count, hint]) => (
                 <button key={id} type="button" onClick={() => setRecordsCenterMode(id)} className={`px-3 py-2.5 rounded-xl border text-left font-black ${recordsCenterMode === id ? 'bg-blue-950/35 text-blue-100 border border-blue-500/50 shadow-md' : theme.btnSecondary}`}>
-                  <div>{label}</div>
-                  <div className={`text-2xl font-black mt-1 ${recordsCenterMode === id ? 'text-white' : theme.textTitle}`}>{Number(count || 0).toLocaleString('th-TH')}</div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div>{label}</div>
+                      <div className={`text-[11px] font-bold mt-0.5 ${recordsCenterMode === id ? 'text-blue-100/75' : theme.textMuted}`}>{hint}</div>
+                    </div>
+                    <div className={`text-2xl font-black ${recordsCenterMode === id ? 'text-white' : theme.textTitle}`}>{Number(count || 0).toLocaleString('th-TH')}</div>
+                  </div>
                 </button>
               ))}
             </div>
 
             {recordsCenterMode === 'docs' && (
               <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <div className={`px-4 py-3 border-b grid grid-cols-1 lg:grid-cols-[1fr_220px_auto] gap-3 ${theme.divide}`}>
-                  <input className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาเลขที่เอกสาร / ผู้ยืม / ชื่องาน / อุปกรณ์" value={borrowDocSearch} onChange={e => setBorrowDocSearch(e.target.value)} />
-                  <select className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} value={borrowDocFilter} onChange={e => setBorrowDocFilter(e.target.value)}>
-                    <option value="all">เอกสารทั้งหมด</option>
-                    <option value="borrow">ใบยืม</option>
-                    <option value="event">ใบออกงาน</option>
-                    <option value="active">รอคืน</option>
-                    <option value="closed">คืนครบแล้ว</option>
-                  </select>
-                  <div className={`px-3.5 py-2.5 rounded-xl border font-black text-center text-sm ${theme.btnSecondary}`}>{filteredBorrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร</div>
+                <div className={`px-3 sm:px-4 py-3 border-b ${theme.divide}`}>
+                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mb-3">
+                    {recordsFilterCards.map(card => (
+                      <button key={card.id} type="button" onClick={() => setBorrowDocFilter(card.id)} className={`rounded-2xl border p-3 text-left transition-all ${borrowDocFilter === card.id ? `${card.tone} ring-2 ring-blue-500/20` : theme.btnSecondary}`}>
+                        <div className="text-[11px] font-black opacity-80">{card.label}</div>
+                        <div className="text-2xl font-black mt-1">{Number(card.value || 0).toLocaleString('th-TH')}</div>
+                        <div className="text-[11px] font-bold mt-0.5 opacity-75">{card.hint}</div>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px_auto] gap-3">
+                    <div className="relative">
+                      <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${theme.textMuted}`} />
+                      <input className={`w-full pl-11 pr-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาเลขเอกสาร / ผู้ยืม / ชื่องาน / วันที่ / อุปกรณ์ / S.N." value={borrowDocSearch} onChange={e => setBorrowDocSearch(e.target.value)} />
+                    </div>
+                    <select className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} value={borrowDocFilter} onChange={e => setBorrowDocFilter(e.target.value)}>
+                      <option value="all">เอกสารทั้งหมด</option>
+                      <option value="borrow">ใบยืม</option>
+                      <option value="event">ใบออกงาน</option>
+                      <option value="active">รอคืน</option>
+                      <option value="partial">คืนบางส่วน</option>
+                      <option value="closed">คืนครบแล้ว</option>
+                    </select>
+                    <div className={`px-3.5 py-2.5 rounded-xl border font-black text-center text-sm ${theme.btnSecondary}`}>{filteredBorrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร</div>
+                  </div>
                 </div>
                 <div className="p-3 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
-                  {filteredBorrowเอกสารs.length === 0 ? <div className={`p-8 rounded-2xl border text-center font-black ${theme.textMuted}`}>ไม่พบเอกสาร</div> : filteredBorrowเอกสารs.slice(0, 180).map(docData => (
-                    <div key={docData.id || docData.ref} className={`p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className={`font-black text-lg truncate ${theme.textTitle}`}>{docData.ref || docData.id || '-'} • {docData.title || docData.type || 'เอกสาร'}</div>
-                          <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{docData.borrower || docData.subject || docData.eventName || '-'} • {docData.date ? new Date(docData.date).toLocaleString('th-TH', { hour12: false }) : '-'}</div>
-                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>รายการ {(docData.items?.length || docData.itemIds?.length || 0).toLocaleString('th-TH')} ชิ้น • {docData.statusLabel || docData.status || '-'}</div>
-                        </div>
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 shrink-0">
-                          <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2 rounded-lg bg-blue-950/35 text-blue-100 border border-blue-500/50 text-sm font-black">พิมพ์/Preview</button>
-                          <button type="button" onClick={() => {
-                            const firstItem = asArray(docData.items)[0] || {};
-                            const historyKey = String(
-                              docData.borrower ||
-                              docData.eventName ||
-                              docData.subject ||
-                              docData.staffOut ||
-                              docData.operatorName ||
-                              firstItem.sn ||
-                              firstItem.name ||
-                              ''
-                            ).trim();
-                            setHistoryCenterSearch(historyKey);
-                            setHistoryCenterFilter('all');
-                            setRecordsCenterMode('history');
-                          }} className={`px-3 py-2 rounded-lg border text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
-                          {canDeleteItems && (
-                            <button type="button" onClick={() => handleDeleteBorrowเอกสาร(docData)} className={`col-span-2 lg:col-span-1 px-3 py-2 rounded-lg border text-sm font-black ${isDarkMode ? 'bg-rose-950/35 border-rose-800/70 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>ลบ</button>
-                          )}
+                  {filteredBorrowเอกสารs.length === 0 ? (
+                    <div className={`p-8 rounded-2xl border text-center ${theme.textMuted}`}>
+                      <Icons.Search className="w-10 h-10 mx-auto mb-3 opacity-60" />
+                      <div className={`text-lg font-black ${theme.textTitle}`}>ไม่พบเอกสารตามเงื่อนไข</div>
+                      <div className="text-sm font-bold mt-1">ลองล้างคำค้น หรือเปลี่ยนตัวกรองเป็น “ทั้งหมด”</div>
+                      <button type="button" onClick={() => { setBorrowDocSearch(''); setBorrowDocFilter('all'); }} className="mt-4 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black">ล้างตัวกรอง</button>
+                    </div>
+                  ) : filteredBorrowเอกสารs.slice(0, 180).map(docData => {
+                    const meta = getRecordsDocMeta(docData);
+                    const previewItems = asArray(docData.items).slice(0, 4);
+                    return (
+                      <div key={docData.id || docData.ref} className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${meta.typeTone}`}>{meta.typeLabel}</span>
+                              <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${meta.statusTone}`}>{meta.statusLabel}</span>
+                              <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>{meta.itemCount.toLocaleString('th-TH')} รายการ</span>
+                              {meta.proofCount > 0 && <span className="px-2.5 py-1 rounded-xl border text-[11px] font-black bg-pink-500/10 text-pink-500 border-pink-500/20">หลักฐาน {meta.proofCount}</span>}
+                            </div>
+                            <div className={`font-black text-lg truncate ${theme.textTitle}`}>{docData.ref || docData.id || '-'} • {meta.title}</div>
+                            <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{meta.ownerText} • วันที่ {meta.dateText}</div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-3">
+                              <div className={`rounded-xl px-3 py-2 ${isDarkMode ? 'bg-slate-950/65' : 'bg-white'}`}>
+                                <div className={`text-[11px] font-black ${theme.textMuted}`}>กำหนดคืน</div>
+                                <div className={`text-sm font-black truncate ${theme.textTitle}`}>{meta.dueText}</div>
+                              </div>
+                              <div className={`rounded-xl px-3 py-2 ${isDarkMode ? 'bg-slate-950/65' : 'bg-white'}`}>
+                                <div className={`text-[11px] font-black ${theme.textMuted}`}>เจ้าหน้าที่</div>
+                                <div className={`text-sm font-black truncate ${theme.textTitle}`}>{meta.staffText}</div>
+                              </div>
+                              <div className={`rounded-xl px-3 py-2 ${isDarkMode ? 'bg-slate-950/65' : 'bg-white'}`}>
+                                <div className={`text-[11px] font-black ${theme.textMuted}`}>คืนแล้ว</div>
+                                <div className={`text-sm font-black truncate ${theme.textTitle}`}>{meta.returnedCount.toLocaleString('th-TH')} / {meta.itemCount.toLocaleString('th-TH')} รายการ</div>
+                              </div>
+                            </div>
+                            {previewItems.length > 0 && (
+                              <div className={`mt-3 text-xs font-bold ${theme.textMuted}`}>
+                                รายการ: {previewItems.map(i => `${i.name || i.id || '-'}${i.sn ? ` (${i.sn})` : ''}`).join(', ')}{meta.itemCount > previewItems.length ? ` และอีก ${meta.itemCount - previewItems.length} รายการ` : ''}
+                              </div>
+                            )}
+                            {docData.note && <div className={`mt-2 text-xs font-bold rounded-xl px-3 py-2 ${isDarkMode ? 'bg-amber-950/20 text-amber-200' : 'bg-amber-50 text-amber-700'}`}>หมายเหตุ: {docData.note}</div>}
+                          </div>
+                          <div className="grid grid-cols-2 xl:grid-cols-1 gap-2 shrink-0 xl:min-w-[150px]">
+                            <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-black shadow-sm">พิมพ์ซ้ำ</button>
+                            <button type="button" onClick={() => openDocHistorySearch(docData)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
+                            <button type="button" onClick={() => copyDocSummary(docData)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>คัดลอกสรุป</button>
+                            {meta.status !== 'closed' && <button type="button" onClick={() => { setTrackingSearch(docData.ref || meta.ownerText || ''); openWorkspace('tracking'); }} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black shadow-sm">ติดตามคืน</button>}
+                            {canDeleteItems && (
+                              <button type="button" onClick={() => handleDeleteBorrowเอกสาร(docData)} className={`col-span-2 xl:col-span-1 px-3 py-2 rounded-xl border text-sm font-black ${isDarkMode ? 'bg-rose-950/35 border-rose-800/70 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>ลบ</button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+                  {filteredBorrowเอกสารs.length > 180 && <div className={`text-center text-sm font-bold ${theme.textMuted}`}>แสดง 180 รายการล่าสุดจากผลค้นหา ถ้าต้องการรายการเก่าให้พิมพ์คำค้นให้แคบลง</div>}
                 </div>
               </div>
             )}
