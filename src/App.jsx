@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16 Return Tracking / Follow-up Polish';
-const APP_UPDATE_NOTE = 'Return Tracking / Follow-up Polish: ปรับหน้าติดตามของรอคืนให้ค้นจากเลขเอกสารได้ แยกคืนบางส่วน ช่วยคัดลอกข้อความตามของ และโยงไปเอกสาร/ประวัติ/หลักฐานได้ชัดขึ้น โดยไม่รื้อ flow หลักและไม่แตะ QR Scanner core';
+const APP_VERSION = 'v23.4.16.1 QR Label Exact Size Polish';
+const APP_UPDATE_NOTE = 'QR Label Exact Size Polish: ปรับหน้าพิมพ์ QR ให้กำหนดขนาดฉลากเป็นมิลลิเมตรได้โดยตรง ทั้งกว้าง สูง และขนาด QR เพื่อกะระยะติดอุปกรณ์จริงได้ง่ายขึ้น โดยไม่แตะ QR Scanner core';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7830,6 +7830,9 @@ function MainApp() {
   // 🖨️ สถานะสำหรับ พิมพ์ & Scan QR Code
   const [showพิมพ์Modal, setShowพิมพ์Modal] = useState(false);
   const [qrพิมพ์Size, setQrพิมพ์Size] = useState('normal');
+  const [qrLabelWidthMm, setQrLabelWidthMm] = useState(65);
+  const [qrLabelHeightMm, setQrLabelHeightMm] = useState(38);
+  const [qrCodeSizeMm, setQrCodeSizeMm] = useState(23);
   const [qrพิมพ์Mode, setQrพิมพ์Mode] = useState('label');
   const [qrพิมพ์Columns, setQrพิมพ์Columns] = useState('auto');
   const [showBoxLabelพิมพ์Modal, setShowBoxLabelพิมพ์Modal] = useState(false);
@@ -21511,7 +21514,23 @@ ${auditChangeSummary}` : auditChangeSummary);
         labelTextClass: 'text-xs print:text-[8px]'
       }
     };
-    const qrPreset = qrSizePresets[qrพิมพ์Size] || qrSizePresets.normal;
+    const clampMm = (value, min, max, fallback) => {
+      const numericValue = Number(value);
+      if (!Number.isFinite(numericValue)) return fallback;
+      return Math.min(max, Math.max(min, numericValue));
+    };
+    const qrBasePreset = qrSizePresets[qrพิมพ์Size] || qrSizePresets.normal;
+    const safeQrLabelWidthMm = clampMm(qrLabelWidthMm, 20, 100, 65);
+    const safeQrLabelHeightMm = clampMm(qrLabelHeightMm, 20, 100, 38);
+    const safeQrCodeSizeMm = clampMm(qrCodeSizeMm, 12, Math.max(12, Math.min(safeQrLabelWidthMm, safeQrLabelHeightMm) - 6), 23);
+    const qrPreset = {
+      ...qrBasePreset,
+      printCardWidth: `${safeQrLabelWidthMm}mm`,
+      printCardHeight: `${safeQrLabelHeightMm}mm`,
+      printQrSize: `${safeQrCodeSizeMm}mm`,
+      qrServer: Math.max(180, Math.round(safeQrCodeSizeMm * 10)),
+      labelQrServer: Math.max(200, Math.round(safeQrCodeSizeMm * 10))
+    };
     const isLabelMode = qrพิมพ์Mode === 'label';
     const qrColumnPresets = {
       auto: { label: 'อัตโนมัติ', plain: qrPreset.grid, labelGrid: qrPreset.labelGrid },
@@ -21557,9 +21576,9 @@ ${auditChangeSummary}` : auditChangeSummary);
              .qr-plain-grid { grid-template-columns: repeat(auto-fill, var(--qr-card-width)) !important; justify-content: start !important; align-items: start !important; gap: 2mm !important; }
              .qr-plain-card { width: var(--qr-card-width) !important; min-height: var(--qr-card-height) !important; padding: 1.2mm !important; box-sizing: border-box !important; }
              .qr-plain-card .qr-code-image { width: var(--qr-image-size) !important; height: var(--qr-image-size) !important; margin-bottom: 1mm !important; }
-             .qr-label-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 3mm !important; align-items: start !important; }
-             .qr-label-card { min-height: 38mm !important; border: 1.2px solid #111827 !important; border-radius: 2mm !important; padding: 2mm !important; overflow: hidden !important; }
-             .qr-label-card .qr-code-image { width: 23mm !important; height: 23mm !important; }
+             .qr-label-grid { grid-template-columns: repeat(auto-fill, var(--qr-card-width)) !important; justify-content: start !important; gap: 3mm !important; align-items: start !important; }
+             .qr-label-card { width: var(--qr-card-width) !important; min-height: var(--qr-card-height) !important; border: 1.2px solid #111827 !important; border-radius: 2mm !important; padding: 2mm !important; overflow: hidden !important; box-sizing: border-box !important; }
+             .qr-label-card .qr-code-image { width: var(--qr-image-size) !important; height: var(--qr-image-size) !important; }
              .qr-label-card .qr-safe-zone { padding: 1mm !important; border-color: #111827 !important; border-radius: 1.5mm !important; }
              .qr-label-card .qr-brand-logo img, .qr-plain-card .qr-brand-logo img { width: 100% !important; height: 100% !important; }
              .qr-label-meta { grid-template-columns: 9mm minmax(0, 1fr) !important; row-gap: .55mm !important; column-gap: 1mm !important; }
@@ -21597,18 +21616,29 @@ ${auditChangeSummary}` : auditChangeSummary);
                  </button>
                </div>
 
-               <div className="flex bg-slate-700/80 p-1 rounded-xl gap-1">
-                 {Object.entries(qrSizePresets).map(([key, preset]) => (
-                   <button
-                     key={key}
-                     type="button"
-                     onClick={() => setQrพิมพ์Size(key)}
-                     className={`px-4 py-2 rounded-lg font-black transition-colors ${qrพิมพ์Size === key ? 'bg-blue-950/35 text-blue-100 border border-blue-500/50 shadow' : 'text-slate-200 hover:bg-slate-600'}`}
-                     title={preset.desc}
-                   >
-                     {preset.label}
-                   </button>
+               <div className="flex flex-wrap bg-slate-700/80 p-2 rounded-xl gap-2 items-end">
+                 {[
+                   { label: 'กว้าง', value: qrLabelWidthMm, setter: setQrLabelWidthMm, min: 20, max: 100, title: 'ความกว้างฉลากเป็นมิลลิเมตร' },
+                   { label: 'สูง', value: qrLabelHeightMm, setter: setQrLabelHeightMm, min: 20, max: 100, title: 'ความสูงฉลากเป็นมิลลิเมตร' },
+                   { label: 'QR', value: qrCodeSizeMm, setter: setQrCodeSizeMm, min: 12, max: 80, title: 'ขนาดตัว QR เป็นมิลลิเมตร' }
+                 ].map(field => (
+                   <label key={field.label} className="flex flex-col gap-1 text-[10px] font-black text-slate-300" title={field.title}>
+                     <span>{field.label} (มม.)</span>
+                     <input
+                       type="number"
+                       min={field.min}
+                       max={field.max}
+                       step="1"
+                       value={field.value}
+                       onChange={(event) => field.setter(event.target.value)}
+                       onBlur={(event) => field.setter(clampMm(event.target.value, field.min, field.max, Number(field.value) || field.min))}
+                       className="w-20 h-9 rounded-lg border border-slate-500 bg-slate-900 px-2 text-sm font-black text-white outline-none focus:border-blue-300"
+                     />
+                   </label>
                  ))}
+                 <div className="px-2 pb-1 text-[11px] font-bold text-slate-300">
+                   พรีวิว: {safeQrLabelWidthMm}×{safeQrLabelHeightMm} มม. • QR {safeQrCodeSizeMm} มม.
+                 </div>
                </div>
 
                <div className="flex bg-slate-700/80 p-1 rounded-xl gap-1">
@@ -21643,7 +21673,7 @@ ${auditChangeSummary}` : auditChangeSummary);
            <div>
              <div className="text-[8pt] font-black tracking-[0.18em] uppercase text-slate-600">MDEC STOCK • ASSET QR LABELS</div>
              <div className="text-[15pt] font-black leading-tight text-slate-950">ฉลาก QR ติดอุปกรณ์ / กล่องจัดเก็บ</div>
-             <div className="text-[7.5pt] font-bold text-slate-600">จำนวน {selectedItems.length.toLocaleString('th-TH')} ดวง • รูปแบบ {isLabelMode ? 'ฉลากข้อมูล' : 'QR ล้วน'} • ขนาด {qrPreset.label}</div>
+             <div className="text-[7.5pt] font-bold text-slate-600">จำนวน {selectedItems.length.toLocaleString('th-TH')} ดวง • รูปแบบ {isLabelMode ? 'ฉลากข้อมูล' : 'QR ล้วน'} • ขนาด {safeQrLabelWidthMm}×{safeQrLabelHeightMm} มม. • QR {safeQrCodeSizeMm} มม.</div>
            </div>
            <div className="text-right text-[7.5pt] font-bold text-slate-700">
              <div>วันที่พิมพ์: {new Date().toLocaleDateString('th-TH')}</div>
@@ -21679,7 +21709,10 @@ ${auditChangeSummary}` : auditChangeSummary);
              })}
            </div>
          ) : (
-           <div className={`qr-label-grid pt-52 xl:pt-36 p-8 grid ${activeQrGrid} gap-5 print:pt-0 print:p-0 print:gap-2`}>
+           <div
+             className={`qr-label-grid pt-52 xl:pt-36 p-8 grid ${activeQrGrid} gap-5 print:pt-0 print:p-0 print:gap-2`}
+             style={{ '--qr-card-width': qrPreset.printCardWidth, '--qr-card-height': qrPreset.printCardHeight, '--qr-image-size': qrPreset.printQrSize }}
+           >
              {selectedItems.map(id => {
                 const item = items.find(i => i.id === id);
                 if(!item) return null;
