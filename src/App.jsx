@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.14 Equipment Icon Obvious Recognition Pack';
-const APP_UPDATE_NOTE = 'Equipment Icon Obvious Recognition Pack: ปรับไอคอนอุปกรณ์ให้เห็นแล้วนึกออกทันที เช่น กล้อง เลนส์ ไมค์ ขาตั้ง เมม และสาย โดยยังรองรับ auto icon และเลือกเองได้';
+const APP_VERSION = 'v23.4.16.15 Department Icons Restore / Camera Lens Swap Before Confirm';
+const APP_UPDATE_NOTE = 'Department Icons Restore / Camera Lens Swap: กลับไปใช้ไอคอนฝ่ายแบบเดิม และเพิ่มตัวเลือกเปลี่ยน/ถอดเลนส์ของกล้องก่อนยืนยันยืม/ออกงาน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -145,148 +145,6 @@ const DEPARTMENTS = [
   { id: 'ห้องประชุม', label: 'ห้องประชุม', color: 'bg-sky-100 text-sky-700', darkColor: 'bg-sky-900/40 text-sky-400', iconName: 'Users', iconColor: 'text-sky-500' },
   { id: 'ob-live', label: 'OB-LIVE', color: 'bg-violet-100 text-violet-700', darkColor: 'bg-violet-900/40 text-violet-400', iconName: 'Signal', iconColor: 'text-violet-500' }
 ];
-
-const EQUIPMENT_ICON_OPTIONS = [
-  { key: 'auto', emoji: '✨', label: 'อัตโนมัติ', keywords: [] },
-  { key: 'camera', emoji: '📷', label: 'กล้อง', keywords: ['กล้อง','camera','sony','canon','nikon','fuji','body','a7','eos'] },
-  { key: 'video', emoji: '🎥', label: 'กล้องวิดีโอ', keywords: ['วิดีโอ','video','camcorder','gimbal','กิมบอล'] },
-  { key: 'lens', emoji: '🔭', label: 'เลนส์', keywords: ['เลนส์','lens','mm','fe ','rf ','ef ','mount'] },
-  { key: 'tripod', emoji: '🔱', label: 'ขาตั้ง', keywords: ['ขาตั้ง','tripod','monopod','stand','ขาไมค์','ขาตั้งไมค์'] },
-  { key: 'microphone', emoji: '🎙️', label: 'ไมค์', keywords: ['ไมค์','microphone','mic','wireless','lavalier','shotgun'] },
-  { key: 'speaker', emoji: '🔊', label: 'ลำโพง', keywords: ['ลำโพง','speaker','pa','subwoofer','ซับ'] },
-  { key: 'mixer', emoji: '🎚️', label: 'มิกเซอร์', keywords: ['mixer','มิกเซอร์','soundcraft','yamaha','console','audio interface','interface'] },
-  { key: 'light', emoji: '💡', label: 'ไฟ', keywords: ['ไฟ','แสง','light','led','softbox','panel','spotlight'] },
-  { key: 'battery', emoji: '🔋', label: 'แบตเตอรี่', keywords: ['แบต','battery','ถ่าน','np-f','lp-e','charger','ชาร์จ'] },
-  { key: 'memory', emoji: '💾', label: 'เมม/การ์ด', keywords: ['เมม','memory','sd','cfexpress','card','การ์ด','128gb','256gb','64gb'] },
-  { key: 'cable', emoji: '🔌', label: 'สาย/อะแดปเตอร์', keywords: ['สาย','cable','hdmi','xlr','usb','adapter','อะแดปเตอร์','ปลั๊ก','ต่อพ่วง'] },
-  { key: 'monitor', emoji: '🖥️', label: 'จอ/มอนิเตอร์', keywords: ['จอ','monitor','display','screen','ทีวี','tv'] },
-  { key: 'laptop', emoji: '💻', label: 'คอม/โน้ตบุ๊ก', keywords: ['คอม','notebook','laptop','macbook','pc','computer'] },
-  { key: 'projector', emoji: '📽️', label: 'โปรเจกเตอร์', keywords: ['projector','โปรเจกเตอร์','ฉาย'] },
-  { key: 'printer', emoji: '🖨️', label: 'ปริ้นเตอร์', keywords: ['printer','ปริ้น','พิมพ์','epson','canon printer'] },
-  { key: 'box', emoji: '📦', label: 'กล่อง/เคส', keywords: ['กล่อง','box','case','เคส','กระเป๋า','bag'] },
-  { key: 'toolbox', emoji: '🧰', label: 'เครื่องมือ', keywords: ['เครื่องมือ','tool','toolbox','ไขควง','ประแจ','คีม'] },
-  { key: 'drone', emoji: '🚁', label: 'โดรน', keywords: ['โดรน','drone','dji','mavic'] },
-  { key: 'headphone', emoji: '🎧', label: 'หูฟัง', keywords: ['หูฟัง','headphone','headset','earphone'] },
-  { key: 'router', emoji: '📡', label: 'สัญญาณ/เน็ตเวิร์ก', keywords: ['router','wifi','network','lan','switch','ap','wireless receiver'] },
-  { key: 'remote', emoji: '🎛️', label: 'รีโมต/คอนโทรล', keywords: ['remote','รีโมต','controller','control','clicker'] },
-  { key: 'furniture', emoji: '🪑', label: 'โต๊ะ/เก้าอี้/ขาตั้งแปลกๆ', keywords: ['โต๊ะ','เก้าอี้','chair','table','podium','โพเดียม'] },
-  { key: 'cleaning', emoji: '🧽', label: 'ทำความสะอาด', keywords: ['ผ้า','clean','ทำความสะอาด','แปรง','น้ำยา','blower'] },
-  { key: 'document', emoji: '📄', label: 'เอกสาร/ป้าย', keywords: ['เอกสาร','ป้าย','label','บัตร','แฟ้ม','document'] },
-  { key: 'weird', emoji: '🧩', label: 'ของแปลก/อื่น ๆ', keywords: ['อื่น','แปลก','misc','accessory','อุปกรณ์เสริม','ไม่รู้หมวด'] },
-  { key: 'package', emoji: '📦', label: 'ทั่วไป', keywords: [] }
-];
-
-const normalizeEquipmentIconText = (value) => String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
-
-const inferEquipmentIconKey = (item = {}) => {
-  const explicit = String(item.iconKey || item.equipmentIcon || '').trim();
-  if (explicit && explicit !== 'auto') return explicit;
-  const haystack = normalizeEquipmentIconText([
-    item.name, item.category, item.equipmentType, item.department, item.location, item.shortCode, item.sn, item.compatibleWith
-  ].filter(Boolean).join(' '));
-  for (const option of EQUIPMENT_ICON_OPTIONS) {
-    if (!option.key || option.key === 'auto' || option.key === 'package') continue;
-    if ((option.keywords || []).some(keyword => haystack.includes(normalizeEquipmentIconText(keyword)))) return option.key;
-  }
-  const kind = typeof inferCameraHelperKind === 'function' ? inferCameraHelperKind(item) : '';
-  if (kind === 'camera') return 'camera';
-  if (kind === 'lens') return 'lens';
-  if (kind === 'memory') return 'memory';
-  if (kind === 'battery') return 'battery';
-  return 'package';
-};
-
-const getEquipmentIconMeta = (item = {}) => {
-  const key = inferEquipmentIconKey(item);
-  return EQUIPMENT_ICON_OPTIONS.find(option => option.key === key) || EQUIPMENT_ICON_OPTIONS.find(option => option.key === 'package') || { key: 'package', emoji: '📦', label: 'ทั่วไป' };
-};
-
-const EquipmentGlyph = ({ iconKey = 'package', className = '' }) => {
-  const key = String(iconKey || 'package');
-  const svgClass = className || 'w-5 h-5';
-  const common = {
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 2.25,
-    strokeLinecap: 'round',
-    strokeLinejoin: 'round'
-  };
-
-  switch (key) {
-    case 'camera':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M4 8.5a2.5 2.5 0 0 1 2.5-2.5h2.2l1.5-2h3.6l1.5 2H18a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 19H6.5A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.3"/><path d="M8 8h1"/></svg>;
-    case 'video':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="7" width="11.5" height="10" rx="2.2"/><path d="m15.5 10 4.5-2.5v9L15.5 14"/><path d="M7.5 7V5.2"/></svg>;
-    case 'lens':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.4"/><path d="M12 4.5v2.3"/><path d="M12 17.2v2.3"/><path d="M4.5 12h2.3"/><path d="M17.2 12h2.3"/></svg>;
-    case 'tripod':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M12 4v5.5"/><path d="M8.4 9.3H15.6"/><path d="M12 9.3V13"/><path d="M12 13 7 20"/><path d="M12 13 17 20"/><path d="M9.7 9.3 7.6 20"/><path d="M14.3 9.3 16.4 20"/></svg>;
-    case 'microphone':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="8.8" y="4" width="6.4" height="10.2" rx="3.2"/><path d="M6.5 10.8a5.5 5.5 0 0 0 11 0"/><path d="M12 16.2V20"/><path d="M9.2 20h5.6"/></svg>;
-    case 'speaker':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="6.5" y="4.5" width="11" height="15" rx="2.2"/><circle cx="12" cy="9" r="1.7"/><circle cx="12" cy="14.5" r="3.1"/></svg>;
-    case 'mixer':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M7 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M5.6 8.5h2.8"/><path d="M10.6 13.5h2.8"/><path d="M15.6 10.5h2.8"/></svg>;
-    case 'light':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M9.2 15c-1.2-1-2.7-2.3-2.7-5.1A5.5 5.5 0 0 1 12 4.4a5.5 5.5 0 0 1 5.5 5.5c0 2.8-1.5 4.1-2.7 5.1"/><path d="M9.6 15h4.8"/><path d="M10 17.8h4"/><path d="M10.6 20h2.8"/><path d="M8 7.5 6.5 6"/><path d="M16 7.5 17.5 6"/></svg>;
-    case 'battery':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="3.8" y="7" width="14.8" height="10" rx="2.2"/><path d="M18.6 10.2h1.8a1 1 0 0 1 1 1v1.6a1 1 0 0 1-1 1h-1.8"/><path d="M8.8 10.2v3.6"/><path d="M12 9v6"/></svg>;
-    case 'memory':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M8 4.5h7.5L19 8v11.5H8z"/><path d="M15.5 4.5V8H19"/><path d="M10 12h7"/><path d="M10 15h5"/><path d="M10 18h4"/></svg>;
-    case 'cable':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M7.5 8.5v3a3.5 3.5 0 0 0 3.5 3.5h2"/><path d="M13 15h2.2A3.8 3.8 0 0 0 19 11.2V8.5"/><rect x="5" y="5" width="3" height="3.5" rx="1"/><rect x="16" y="5" width="3" height="3.5" rx="1"/><path d="M12 15v4"/></svg>;
-    case 'monitor':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="5" width="16" height="10.5" rx="2"/><path d="M12 15.5V19"/><path d="M9 19h6"/></svg>;
-    case 'laptop':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="6.2" y="5" width="11.6" height="8.8" rx="1.5"/><path d="M4 17.5h16"/><path d="M8.5 17.5h7"/></svg>;
-    case 'projector':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="8" width="16" height="8" rx="2"/><circle cx="9" cy="12" r="2.4"/><path d="M15.5 10.5h2.5"/><path d="M15.5 13.5h2.5"/></svg>;
-    case 'printer':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M7.5 8V5.2h9V8"/><rect x="5" y="8.5" width="14" height="7.5" rx="2"/><path d="M8 15.5h8V19H8z"/><path d="M16 11.8h.01"/></svg>;
-    case 'box':
-    case 'package':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="m12 3.5 7 3.8v9.8L12 20.9 5 17.1V7.3z"/><path d="m12 3.5 7 3.8-7 3.8-7-3.8z"/><path d="M12 11.1v9.8"/></svg>;
-    case 'toolbox':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="8" width="16" height="10" rx="2"/><path d="M9 8V6.6A1.6 1.6 0 0 1 10.6 5h2.8A1.6 1.6 0 0 1 15 6.6V8"/><path d="M4 12h16"/></svg>;
-    case 'drone':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><circle cx="8" cy="8" r="2.5"/><circle cx="16" cy="8" r="2.5"/><circle cx="8" cy="16" r="2.5"/><circle cx="16" cy="16" r="2.5"/><circle cx="12" cy="12" r="1.6"/><path d="M9.7 9.7 11 11"/><path d="M14.3 9.7 13 11"/><path d="M9.7 14.3 11 13"/><path d="M14.3 14.3 13 13"/></svg>;
-    case 'headphone':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M5.5 12.5a6.5 6.5 0 0 1 13 0"/><rect x="4" y="12" width="3.2" height="6" rx="1.3"/><rect x="16.8" y="12" width="3.2" height="6" rx="1.3"/></svg>;
-    case 'router':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="5" y="14" width="14" height="4" rx="1.4"/><path d="M8 14V10"/><path d="M16 14V10"/><path d="M12 7.5a5.5 5.5 0 0 1 3.8 1.6"/><path d="M12 5a8.5 8.5 0 0 1 5.8 2.3"/><circle cx="9" cy="16" r="0.6" fill="currentColor" stroke="none"/><circle cx="12" cy="16" r="0.6" fill="currentColor" stroke="none"/><circle cx="15" cy="16" r="0.6" fill="currentColor" stroke="none"/></svg>;
-    case 'remote':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="8" y="4" width="8" height="16" rx="2.5"/><circle cx="12" cy="8" r="1.2"/><path d="M10 11.8h4"/><path d="M10 14.8h4"/><path d="M10 17.8h4"/></svg>;
-    case 'furniture':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M7 12V9.8A2.8 2.8 0 0 1 9.8 7h4.4A2.8 2.8 0 0 1 17 9.8V12"/><path d="M6 12h12"/><path d="M7 12v5"/><path d="M17 12v5"/></svg>;
-    case 'cleaning':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M8 6h8"/><path d="M10 6V4.5"/><path d="m9 8 7 1.2-2.5 9.3H8.5z"/><path d="M9.2 13.5h5.2"/></svg>;
-    case 'document':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M8 4.5h7.5L19 8v11.5H8z"/><path d="M15.5 4.5V8H19"/><path d="M10 12h6"/><path d="M10 15h6"/></svg>;
-    case 'weird':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="m12 4 2 4 4 2-4 2-2 4-2-4-4-2 4-2z"/><circle cx="18" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="6" cy="18" r="1.3" fill="currentColor" stroke="none"/></svg>;
-    default:
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="m12 3.5 7 3.8v9.8L12 20.9 5 17.1V7.3z"/><path d="m12 3.5 7 3.8-7 3.8-7-3.8z"/><path d="M12 11.1v9.8"/></svg>;
-  }
-};
-
-const EquipmentIconBadge = ({ item = null, iconKey = '', size = 'md', className = '', title = '' }) => {
-  const meta = item ? getEquipmentIconMeta(item) : (EQUIPMENT_ICON_OPTIONS.find(option => option.key === iconKey) || EQUIPMENT_ICON_OPTIONS.find(option => option.key === 'package') || { key: 'package', label: 'ทั่วไป' });
-  const config = {
-    xs: { wrap: 'w-8 h-8 rounded-xl', glyph: 'w-4 h-4' },
-    sm: { wrap: 'w-9 h-9 rounded-[1rem]', glyph: 'w-[18px] h-[18px]' },
-    md: { wrap: 'w-10 h-10 rounded-[1.15rem]', glyph: 'w-5 h-5' },
-    lg: { wrap: 'w-12 h-12 rounded-[1.25rem]', glyph: 'w-6 h-6' }
-  }[size] || { wrap: 'w-10 h-10 rounded-[1.15rem]', glyph: 'w-5 h-5' };
-
-  return (
-    <div
-      className={`${config.wrap} ${className} flex items-center justify-center shrink-0 border border-slate-500/20 bg-gradient-to-br from-slate-700/95 via-slate-800/95 to-slate-900 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_18px_rgba(2,6,23,0.22)]`}
-      title={title || meta.label}
-    >
-      <EquipmentGlyph iconKey={meta.key} className={`${config.glyph} text-white/95`} />
-    </div>
-  );
-};
 
 
 // ===== v22.57.6.4 Department Color Identity Helper =====
@@ -7313,7 +7171,7 @@ function MainApp() {
   const [firebaseError, setFirebaseError] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '', iconKey: 'auto', equipmentType: '', shortCode: '', ownerDepartment: '', mount: '', compatibleWith: '', linkedLensId: '', linkedLensName: '', currentLens: '', batteryModel: '', memoryCapacity: '', memoryType: '', memorySpeed: '', linkedMemoryId: '', linkedMemoryName: '', memoryAssignMode: '', assignedCamera: '' });
+  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '', equipmentType: '', shortCode: '', ownerDepartment: '', mount: '', compatibleWith: '', linkedLensId: '', linkedLensName: '', currentLens: '', batteryModel: '', memoryCapacity: '', memoryType: '', memorySpeed: '', linkedMemoryId: '', linkedMemoryName: '', memoryAssignMode: '', assignedCamera: '' });
   
   const [itemToDelete, setItemToDelete] = useState(null); 
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
@@ -7523,6 +7381,7 @@ function MainApp() {
   const [showBorrowReturnFilters, setShowBorrowReturnFilters] = useState(false);
   const [showOperationQuickPick, setShowOperationQuickPick] = useState(false);
   const [showOperationSelectedPanel, setShowOperationSelectedPanel] = useState(false);
+  const [operationLensOverrides, setOperationLensOverrides] = useState({});
   const [operationPickerDept, setOperationPickerDept] = useState('');
   const [operationPickerLocation, setOperationPickerLocation] = useState('');
   const [operationPickerCategory, setOperationPickerCategory] = useState('');
@@ -11544,7 +11403,7 @@ S.N.: ${item.sn || '-'}
     baseIds.forEach(id => {
       const camera = items.find(item => item && item.id === id && !item.isDeleted);
       if (!camera || inferCameraHelperKind(camera) !== 'camera') return;
-      const linkedLens = getCameraLinkedLensAutoItem(camera);
+      const linkedLens = getOperationSelectedLensForCamera(camera);
       const linkedMemory = getCameraLinkedMemoryAutoItem(camera);
       // v23.1.78: ยืม/ออกงาน = ดึงเฉพาะของพร้อมใช้, รับคืน = ดึงเฉพาะของที่กำลังถูกยืมหรือออกงาน
       if (isOperationalLinkedAccessoryReady(linkedLens, mode) && !expanded.includes(linkedLens.id)) expanded.push(linkedLens.id);
@@ -11558,7 +11417,7 @@ S.N.: ${item.sn || '-'}
     return asArray(ids).map(id => {
       const camera = items.find(item => item && item.id === id && !item.isDeleted && inferCameraHelperKind(item) === 'camera');
       if (!camera) return null;
-      const linkedLens = getCameraLinkedLensAutoItem(camera);
+      const linkedLens = getOperationSelectedLensForCamera(camera);
       const linkedMemory = getCameraLinkedMemoryAutoItem(camera);
       const hasLinkedLens = linkedLens && idSet.has(linkedLens.id);
       const hasLinkedMemory = linkedMemory && idSet.has(linkedMemory.id);
@@ -11583,7 +11442,7 @@ S.N.: ${item.sn || '-'}
   const getCameraLinkedLensUnavailableWarnings = (ids = []) => {
     return Array.from(new Set(asArray(ids).filter(Boolean))).map(id => {
       const camera = items.find(item => item && item.id === id && !item.isDeleted);
-      const linkedLens = getCameraLinkedLensAutoItem(camera);
+      const linkedLens = getOperationSelectedLensForCamera(camera);
       const linkedMemory = getCameraLinkedMemoryAutoItem(camera);
       const warnings = [];
       if (linkedLens && linkedLens.status !== 'available') {
@@ -12096,6 +11955,7 @@ S.N.: ${item.sn || '-'}
       const next = actionTargetIds.filter(x => !removeIds.includes(x));
       setActionTargets(next);
       setActionSet(actionSet.filter(x => !removeIds.includes(x)));
+      setOperationLensOverrides(prev => { const copy = { ...(prev || {}) }; delete copy[id]; return copy; });
       if (next.length === 0) setShowOperationSelectedPanel(false);
     };
     const ActionIcon = modeInfo.icon;
@@ -12129,6 +11989,91 @@ S.N.: ${item.sn || '-'}
       if (borrowReturnMode === 'event') setEventSet(unique);
       else if (borrowReturnMode === 'return') setReturnSet(unique);
       else setPackingSet(unique);
+    };
+
+    const getOperationLensOverrideValue = (cameraId) => {
+      if (!cameraId) return undefined;
+      return Object.prototype.hasOwnProperty.call(operationLensOverrides || {}, cameraId) ? operationLensOverrides[cameraId] : undefined;
+    };
+
+    const getOperationSelectedLensForCamera = (camera = {}) => {
+      if (!camera?.id) return null;
+      const override = getOperationLensOverrideValue(camera.id);
+      if (override === 'none') return null;
+      if (override) return items.find(item => item && !item.isDeleted && item.id === override) || null;
+      return getCameraLinkedLensAutoItem(camera);
+    };
+
+    const getOperationLensCandidatesForCamera = (camera = {}) => {
+      const currentLens = getOperationSelectedLensForCamera(camera);
+      return items
+        .filter(item => item && !item.isDeleted && inferCameraHelperKind(item) === 'lens')
+        .filter(item => item.status === 'available' || item.id === currentLens?.id)
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true }));
+    };
+
+    const applyOperationCameraLensOverride = (cameraId, lensId) => {
+      if (!cameraId || borrowReturnMode === 'return') return;
+      const camera = items.find(item => item && item.id === cameraId && !item.isDeleted);
+      if (!camera) return;
+      const defaultLens = getCameraLinkedLensAutoItem(camera);
+      const previousOverride = getOperationLensOverrideValue(cameraId);
+      const previousLensId = previousOverride && previousOverride !== 'none' ? previousOverride : defaultLens?.id;
+      const nextLens = lensId && lensId !== 'none' ? items.find(item => item && item.id === lensId && !item.isDeleted) : null;
+      if (nextLens && nextLens.status !== 'available') {
+        pushToast('เลนส์นี้ยังไม่พร้อมใช้', `${nextLens.name || 'เลนส์'} สถานะ ${getLinkedAccessoryStatusText(nextLens)}`, 'warning');
+        return;
+      }
+
+      const removeIds = [previousLensId, defaultLens?.id]
+        .filter(Boolean)
+        .filter(id => id !== lensId);
+      const buildNextIds = (source = []) => {
+        const next = Array.from(new Set(asArray(source).filter(id => !removeIds.includes(id))));
+        if (lensId && lensId !== 'none' && !next.includes(lensId)) next.push(lensId);
+        return next;
+      };
+      const nextTargetIds = buildNextIds(actionTargetIds);
+      const nextSetIds = buildNextIds(actionSet);
+      setActionTargets(nextTargetIds);
+      setActionSet(nextSetIds.filter(id => nextTargetIds.includes(id)));
+      setOperationLensOverrides(prev => ({ ...prev, [cameraId]: lensId || 'none' }));
+      pushToast(lensId && lensId !== 'none' ? 'เปลี่ยนเลนส์ชุดกล้องแล้ว' : 'ถอดเลนส์ออกจากชุดกล้องแล้ว', lensId && lensId !== 'none' ? `${camera.name || 'กล้อง'} + ${nextLens?.name || 'เลนส์'}` : camera.name || 'กล้อง', 'success');
+    };
+
+    const normalizeOperationLensSelectionForSubmit = (sourceIds = actionSet, mode = borrowReturnMode) => {
+      const next = expandCameraLinkedLensIdsForOperation(sourceIds, mode);
+      const idSet = new Set(next);
+      asArray(sourceIds).forEach(id => {
+        const camera = items.find(item => item && item.id === id && !item.isDeleted && inferCameraHelperKind(item) === 'camera');
+        if (!camera) return;
+        const override = getOperationLensOverrideValue(camera.id);
+        const defaultLens = getCameraLinkedLensAutoItem(camera);
+        if (override === 'none') {
+          if (defaultLens) idSet.delete(defaultLens.id);
+          return;
+        }
+        if (override) {
+          if (defaultLens && defaultLens.id !== override) idSet.delete(defaultLens.id);
+          const overrideLens = items.find(item => item && !item.isDeleted && item.id === override);
+          if (isOperationalLinkedAccessoryReady(overrideLens, mode)) idSet.add(overrideLens.id);
+        }
+      });
+      return Array.from(idSet);
+    };
+
+    const getOperationCameraLensWarnings = (sourceIds = actionSet, mode = borrowReturnMode) => {
+      if (mode === 'return') return [];
+      return Array.from(new Set(asArray(sourceIds).filter(Boolean))).flatMap(id => {
+        const camera = items.find(item => item && item.id === id && !item.isDeleted && inferCameraHelperKind(item) === 'camera');
+        if (!camera) return [];
+        const lens = getOperationSelectedLensForCamera(camera);
+        if (lens && lens.status !== 'available') {
+          const statusLabel = (STATUSES.find(st => st.id === lens.status) || {}).label || lens.status || 'ไม่พร้อมใช้';
+          return [`${camera.name || 'กล้อง'} เลือกใช้ ${lens.name || 'เลนส์'} แต่เลนส์สถานะ ${statusLabel}`];
+        }
+        return [];
+      });
     };
 
     const getReturnGroupIdsFromSelection = (sourceIds = actionTargetIds) => {
@@ -12397,6 +12342,7 @@ S.N.: ${item.sn || '-'}
 
     const clearOperationSelection = () => {
       setBorrowReturnStage('select');
+      setOperationLensOverrides({});
       if (borrowReturnMode === 'event') {
         setEventTargetIds([]);
         setEventSet([]);
@@ -12529,7 +12475,7 @@ S.N.: ${item.sn || '-'}
       const selected = actionTargetIds.includes(item.id);
       const late = (item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
       const deptInfo = DEPARTMENTS.find(d => d.id === (item.department || item.ownerDepartment));
-      const equipmentIcon = getEquipmentIconMeta(item);
+      const DeptIcon = Icons[deptInfo?.iconName] || Icons.Package;
       const deptPillClass = deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600');
       return (
         <button
@@ -12541,7 +12487,9 @@ S.N.: ${item.sn || '-'}
         >
           <div>
             <div className="flex items-start justify-between gap-2">
-              <EquipmentIconBadge item={item} size="sm" className={selected ? 'ring-1 ring-white/20' : ''} />
+              <div className={`w-8 h-8 rounded-2xl border flex items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-slate-800/50 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-800/55 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
+                <DeptIcon className="w-4 h-4" />
+              </div>
               <span className={`w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black text-xs transition-all ${selected ? (isDarkMode ? 'bg-emerald-400 border-emerald-300 text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white') : isDarkMode ? 'border-slate-800/55 bg-slate-950 text-slate-600 group-hover:text-slate-300' : 'border-slate-300 bg-white text-slate-300 group-hover:text-slate-500'}`}>{selected ? '✓' : ''}</span>
             </div>
             <div className="mt-2 min-w-0">
@@ -12569,7 +12517,7 @@ S.N.: ${item.sn || '-'}
       const selected = actionTargetIds.includes(item.id);
       const late = (item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
       const deptInfo = DEPARTMENTS.find(d => d.id === (item.department || item.ownerDepartment));
-      const equipmentIcon = getEquipmentIconMeta(item);
+      const DeptIcon = Icons[deptInfo?.iconName] || Icons.Package;
       const deptPillClass = deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600');
       return (
         <button
@@ -12580,7 +12528,9 @@ S.N.: ${item.sn || '-'}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex items-start gap-3">
-              <EquipmentIconBadge item={item} size="sm" className={selected ? 'ring-1 ring-white/20' : ''} />
+              <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-slate-800/50 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-800/55 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500')}`}>
+                <DeptIcon className="w-4 h-4" />
+              </div>
               <div className="min-w-0">
                 <div className={`font-black text-sm leading-tight truncate ${selected ? 'text-white' : theme.textTitle}`}>{item.name || '-'}</div>
                 <div className={`text-[11px] font-bold mt-1 truncate ${selected ? 'text-white/75' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || item.storageBoxName || '-'}</div>
@@ -12978,6 +12928,21 @@ S.N.: ${item.sn || '-'}
                               <div className="mt-2 space-y-1.5 text-xs font-bold">
                                 <div className={theme.textMuted}>📷 กล้อง: <span className={theme.textTitle}>{bundle.camera.name || '-'}</span></div>
                                 <div className={bundle.lens ? theme.textMuted : (isDarkMode ? 'text-amber-300' : 'text-amber-700')}>🔭 เลนส์: <span className={theme.textTitle}>{bundle.lens ? `${bundle.lens.name || '-'}${bundle.lens.sn ? ` • S.N. ${bundle.lens.sn}` : ''}` : (bundle.missingLens ? `${bundle.missingLens.name || 'เลนส์ที่ลิงก์ไว้'} ยังไม่ถูกเพิ่ม` : 'ยังไม่ได้ลิงก์เลนส์')}</span></div>
+                                {borrowReturnMode !== 'return' && (
+                                  <label className="block mt-2" onClick={(e) => e.stopPropagation()}>
+                                    <span className={`block text-[10px] font-black mb-1 ${theme.textMuted}`}>เปลี่ยนเลนส์ก่อนยืนยัน</span>
+                                    <select
+                                      value={bundle.lens?.id || 'none'}
+                                      onChange={(event) => applyOperationCameraLensOverride(bundle.camera.id, event.target.value)}
+                                      className={`w-full px-3 py-2 rounded-xl border text-xs font-black ${theme.input}`}
+                                    >
+                                      <option value="none">เอาเฉพาะบอดี้ / ไม่พ่วงเลนส์</option>
+                                      {getOperationLensCandidatesForCamera(bundle.camera).map(lens => (
+                                        <option key={lens.id} value={lens.id}>{lens.name || 'เลนส์'}{lens.sn ? ` • S.N. ${lens.sn}` : ''}</option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                )}
                                 <div className={bundle.memory ? theme.textMuted : (isDarkMode ? 'text-amber-300' : 'text-amber-700')}>💾 เมม: <span className={theme.textTitle}>{bundle.memory ? `${bundle.memory.name || '-'}${bundle.memory.sn ? ` • S.N. ${bundle.memory.sn}` : ''}` : (bundle.missingMemory ? `${bundle.missingMemory.name || 'เมมที่ลิงก์ไว้'} ยังไม่ถูกเพิ่ม` : (bundle.memoryText || 'ยังไม่กรอก'))}</span></div>
                               </div>
                             </div>
@@ -13199,8 +13164,22 @@ S.N.: ${item.sn || '-'}
                               <div key={`check_bundle_${bundle.camera.id}`} className={`rounded-xl border p-2.5 ${checkedAll ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-white border-slate-200')}`}>
                                 <label className="flex items-start gap-3 cursor-pointer">
                                   <input type="checkbox" className="stock-check mt-0.5" checked={checkedAll} onChange={e => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionSet(e.target.checked ? Array.from(new Set([...actionSet, ...bundleIds])) : actionSet.filter(id => !bundleIds.includes(id))); }} />
-                                  <span className={`min-w-0 flex-1 text-sm font-black ${theme.textTitle}`}>ชุดกล้อง: {bundle.camera.name}<span className={`block text-xs font-bold ${theme.textMuted}`}>กล้อง + {bundle.lens ? bundle.lens.name : 'ยังไม่ได้ลิงก์เลนส์'}{bundle.memory ? ` • เมม ${bundle.memory.name}` : (bundle.memoryText ? ` • เมม ${bundle.memoryText}` : '')}</span></span>
+                                  <span className={`min-w-0 flex-1 text-sm font-black ${theme.textTitle}`}>ชุดกล้อง: {bundle.camera.name}<span className={`block text-xs font-bold ${theme.textMuted}`}>กล้อง + {bundle.lens ? bundle.lens.name : 'เฉพาะบอดี้ / ไม่พ่วงเลนส์'}{bundle.memory ? ` • เมม ${bundle.memory.name}` : (bundle.memoryText ? ` • เมม ${bundle.memoryText}` : '')}</span></span>
                                 </label>
+                                {borrowReturnMode !== 'return' && (
+                                  <div className="mt-2 pl-8" onClick={(e) => e.stopPropagation()}>
+                                    <select
+                                      value={bundle.lens?.id || 'none'}
+                                      onChange={(event) => applyOperationCameraLensOverride(bundle.camera.id, event.target.value)}
+                                      className={`w-full px-3 py-2 rounded-xl border text-xs font-black ${theme.input}`}
+                                    >
+                                      <option value="none">เอาเฉพาะบอดี้ / ไม่พ่วงเลนส์</option>
+                                      {getOperationLensCandidatesForCamera(bundle.camera).map(lens => (
+                                        <option key={lens.id} value={lens.id}>{lens.name || 'เลนส์'}{lens.sn ? ` • S.N. ${lens.sn}` : ''}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
@@ -14319,7 +14298,7 @@ S.N.: ${item.sn || '-'}
                     <tbody>
                       {inventoryDisplayRows.map((item) => {
                         const deptUI = getInventoryDeptIdentity(item);
-                        const equipmentIcon = getEquipmentIconMeta(item);
+                        const DeptIcon = Icons[deptUI.iconName] || Icons.Package;
                         const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
                         const assetInfo = getAssetStatusInfo(item.assetStatus);
                         const proofCount = getItemProofCount(item);
@@ -14333,7 +14312,12 @@ S.N.: ${item.sn || '-'}
                             </td>
                             <td className="inventory-row-name-cell px-4 py-4">
                               <div className="flex items-start gap-3 min-w-0">
-                                <EquipmentIconBadge item={item} size="md" className="mt-0.5" title={equipmentIcon.label} />
+                                <div
+                                  className={`inventory-row-icon mt-0.5 w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${deptUI.iconWrap}`}
+                                  style={{ boxShadow: `inset 3px 0 0 ${deptUI.accent}55` }}
+                                >
+                                  <DeptIcon className="w-5 h-5" />
+                                </div>
                                 <div className="min-w-0">
                                   <div className={`font-black text-base leading-snug truncate ${theme.textTitle}`}>{item.name || '-'}</div>
                                   <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || item.assetShortCode || item.localCode || 'ไม่มีรหัสสั้น'}</div>
@@ -15712,7 +15696,7 @@ S.N.: ${item.sn || '-'}
             </div>
             <div className="flex flex-wrap gap-2">
               <div className={`px-4 py-2.5 rounded-2xl border font-black ${isDarkMode ? 'bg-slate-900 border-slate-800/55 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>{warehouseCount.toLocaleString('th-TH')} รายการในโกดัง</div>
-              {canAddEditItems && <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'warehouse', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '', iconKey: 'auto', equipmentType: '', shortCode: '', ownerDepartment: '', mount: '', compatibleWith: '', linkedLensId: '', linkedLensName: '', currentLens: '', batteryModel: '', memoryCapacity: '', memoryType: '', memorySpeed: '', linkedMemoryId: '', linkedMemoryName: '', memoryAssignMode: '', assignedCamera: '' }); setShowForm(true); }} className="px-4 py-2.5 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white font-black">เพิ่มของเข้าโกดัง</button>}
+              {canAddEditItems && <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'warehouse', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '', equipmentType: '', shortCode: '', ownerDepartment: '', mount: '', compatibleWith: '', linkedLensId: '', linkedLensName: '', currentLens: '', batteryModel: '', memoryCapacity: '', memoryType: '', memorySpeed: '', linkedMemoryId: '', linkedMemoryName: '', memoryAssignMode: '', assignedCamera: '' }); setShowForm(true); }} className="px-4 py-2.5 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white font-black">เพิ่มของเข้าโกดัง</button>}
             </div>
           </div>
           <div className="p-4 sm:p-5 space-y-4">
@@ -18813,8 +18797,7 @@ S.N.: ${item.sn || '-'}
         project: finalProject,
         assetStatus: formData.assetStatus || 'active',
         owner: finalOwner,
-        quantity: Number(formData.quantity) || 1,
-        iconKey: formData.iconKey || 'auto', 
+        quantity: Number(formData.quantity) || 1, 
         updatedAt: new Date().toISOString(),
         updatedBy: currentOperator?.name || 'Admin' 
       };
@@ -19147,9 +19130,9 @@ ${auditChangeSummary}` : auditChangeSummary);
       const uploadedProofs = await uploadProofsOrConfirm(borrowProofFiles, `หลักฐานการยืม • ${borrowData.borrower || ''}`);
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('BR');
-      const linkedLensWarnings = getCameraLinkedLensUnavailableWarnings(packingSet);
-      if (linkedLensWarnings.length > 0) return alert('⚠️ กล้องบางตัวมีเลนส์ที่ลิงก์ไว้แต่เลนส์ยังไม่พร้อมใช้งาน:\n' + linkedLensWarnings.join('\n') + '\n\nกรุณาตรวจสถานะเลนส์ก่อนบันทึก เพื่อให้รายการยืมตรงกับของจริง');
-      const finalBorrowSet = expandCameraLinkedLensIdsForOperation(packingSet, 'borrow');
+      const linkedLensWarnings = getOperationCameraLensWarnings(packingSet, 'borrow');
+      if (linkedLensWarnings.length > 0) return alert('⚠️ กล้องบางตัวเลือกเลนส์ที่ยังไม่พร้อมใช้งาน:\n' + linkedLensWarnings.join('\n') + '\n\nกรุณาเปลี่ยนเลนส์หรือถอดเลนส์ก่อนบันทึก');
+      const finalBorrowSet = normalizeOperationLensSelectionForSubmit(packingSet, 'borrow');
       const selectedBorrowItems = finalBorrowSet.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
       const documentSnapshot = makeBorrowเอกสารSnapshot({
         type: 'borrow',
@@ -19175,6 +19158,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       setพิมพ์SlipData(documentSnapshot);
       setBorrowTargetIds([]);
       setPackingSet([]);
+      setOperationLensOverrides({});
       setSelectedItems([]); 
       setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setBorrowProofFiles([]);
@@ -19210,9 +19194,9 @@ ${auditChangeSummary}` : auditChangeSummary);
       const uploadedProofs = await uploadProofsOrConfirm(eventProofFiles, `หลักฐานออกงาน • ${eventData.eventName || ''}`);
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('EV');
-      const linkedLensWarnings = getCameraLinkedLensUnavailableWarnings(eventSet);
-      if (linkedLensWarnings.length > 0) return alert('⚠️ กล้องบางตัวมีเลนส์ที่ลิงก์ไว้แต่เลนส์ยังไม่พร้อมใช้งาน:\n' + linkedLensWarnings.join('\n') + '\n\nกรุณาตรวจสถานะเลนส์ก่อนบันทึก เพื่อให้รายการออกงานตรงกับของจริง');
-      const finalEventSet = expandCameraLinkedLensIdsForOperation(eventSet, 'event');
+      const linkedLensWarnings = getOperationCameraLensWarnings(eventSet, 'event');
+      if (linkedLensWarnings.length > 0) return alert('⚠️ กล้องบางตัวเลือกเลนส์ที่ยังไม่พร้อมใช้งาน:\n' + linkedLensWarnings.join('\n') + '\n\nกรุณาเปลี่ยนเลนส์หรือถอดเลนส์ก่อนบันทึก');
+      const finalEventSet = normalizeOperationLensSelectionForSubmit(eventSet, 'event');
       const selectedEventItems = finalEventSet.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
       const documentSnapshot = makeBorrowเอกสารSnapshot({
         type: 'event',
@@ -19238,6 +19222,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       setพิมพ์SlipData(documentSnapshot);
       setEventTargetIds([]);
       setEventSet([]);
+      setOperationLensOverrides({});
       setSelectedItems([]); 
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setEventProofFiles([]);
@@ -23857,7 +23842,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                                 {scannedSelection.map(item => {
                                   const st = STATUSES.find(s => s.id === item.status) || STATUSES[0];
                                   const deptUI = getInventoryDeptIdentity(item);
-                                  const equipmentIcon = getEquipmentIconMeta(item);
+                                  const DeptIcon = Icons[deptUI.iconName] || Icons.Package;
                                   return (
                                     <div
                                       key={item.id}
@@ -23865,7 +23850,9 @@ ${auditChangeSummary}` : auditChangeSummary);
                                       style={{ borderLeft: `3px solid ${deptUI.accent}` }}
                                     >
                                       <div className="flex items-start gap-3 min-w-0">
-                                        <EquipmentIconBadge item={item} size="sm" title={equipmentIcon.label} />
+                                        <div className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 border ${deptUI.iconWrap}`}>
+                                          <DeptIcon className="w-4 h-4" />
+                                        </div>
                                         <div className="min-w-0">
                                           <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
                                           <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • {item.location || 'ไม่ระบุที่เก็บ'}</div>
@@ -26454,45 +26441,6 @@ ${auditChangeSummary}` : auditChangeSummary);
                       isDarkMode={isDarkMode}
                       icon="🏷️"
                     />
-                  </div>
-                  <div className="sm:col-span-2">
-                    {(() => {
-                      const autoMeta = getEquipmentIconMeta({ ...formData, iconKey: 'auto' });
-                      const currentMeta = getEquipmentIconMeta(formData);
-                      const pickerOptions = EQUIPMENT_ICON_OPTIONS.filter(option => option.key !== 'package');
-                      return (
-                        <div className={`rounded-3xl border p-3 ${isDarkMode ? 'bg-slate-950/60 border-slate-800/55' : 'bg-white border-slate-200'}`}>
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                            <div>
-                              <div className={`text-sm font-black ${theme.textTitle}`}>ไอคอนอุปกรณ์</div>
-                              <div className={`text-[11px] font-bold ${theme.textMuted}`}>ระบบเดาให้ก่อนจากชื่อ/หมวด หรือเลือกเองได้ เผื่อของแปลก ๆ ในศูนย์</div>
-                            </div>
-                            <div className={`px-3 py-1.5 rounded-2xl border text-xs font-black flex items-center gap-2 ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
-                              <EquipmentIconBadge iconKey={formData.iconKey && formData.iconKey !== 'auto' ? currentMeta.key : autoMeta.key} size="xs" className="inline-flex" />
-                              <span>ใช้ตอนนี้: {formData.iconKey && formData.iconKey !== 'auto' ? currentMeta.label : `อัตโนมัติ • ${autoMeta.label}`}</span>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
-                            {pickerOptions.map(option => {
-                              const active = (formData.iconKey || 'auto') === option.key;
-                              const isAuto = option.key === 'auto';
-                              return (
-                                <button
-                                  key={option.key}
-                                  type="button"
-                                  onClick={() => setFormData(prev => ({ ...prev, iconKey: option.key }))}
-                                  className={`min-h-[82px] rounded-2xl border p-2.5 flex flex-col items-center justify-center gap-2 transition ${active ? 'bg-blue-600/15 border-blue-500 text-white shadow-lg shadow-blue-600/10 ring-1 ring-blue-400/40' : (isDarkMode ? 'bg-slate-900 border-slate-800/55 text-slate-200 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-white hover:border-blue-200')}`}
-                                  title={isAuto ? `อัตโนมัติ: ตอนนี้เดาเป็น ${autoMeta.label}` : option.label}
-                                >
-                                  <EquipmentIconBadge iconKey={isAuto ? autoMeta.key : option.key} size="sm" className={active ? 'ring-1 ring-blue-300/30' : ''} />
-                                  <span className="text-[10px] font-black leading-tight text-center line-clamp-2">{isAuto ? 'อัตโนมัติ' : option.label}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })()}
                   </div>
                 </div>
               </section>
