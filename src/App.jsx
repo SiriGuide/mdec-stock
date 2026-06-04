@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.13 Equipment Icon Visual Polish';
-const APP_UPDATE_NOTE = 'Equipment Icon Visual Polish: เปลี่ยนไอคอนอุปกรณ์ให้เป็นชุดมินิมอลโทนเดียว คล้ายแฟ้มคลังที่ต้องการ โดยยังรองรับ auto icon และเลือกเองได้';
+const APP_VERSION = 'v23.4.16.14 Equipment Icon Obvious Recognition Pack';
+const APP_UPDATE_NOTE = 'Equipment Icon Obvious Recognition Pack: ปรับไอคอนอุปกรณ์ให้เห็นแล้วนึกออกทันที เช่น กล้อง เลนส์ ไมค์ ขาตั้ง เมม และสาย โดยยังรองรับ auto icon และเลือกเองได้';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -207,65 +207,65 @@ const EquipmentGlyph = ({ iconKey = 'package', className = '' }) => {
   const common = {
     fill: 'none',
     stroke: 'currentColor',
-    strokeWidth: 1.9,
+    strokeWidth: 2.25,
     strokeLinecap: 'round',
     strokeLinejoin: 'round'
   };
 
   switch (key) {
     case 'camera':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M4 8.5a2 2 0 0 1 2-2h2.2l1.1-1.6A1.5 1.5 0 0 1 10.55 4h2.9a1.5 1.5 0 0 1 1.25.9l1.1 1.6H18a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.8" r="3.5"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M4 8.5a2.5 2.5 0 0 1 2.5-2.5h2.2l1.5-2h3.6l1.5 2H18a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 19H6.5A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.3"/><path d="M8 8h1"/></svg>;
     case 'video':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="7" width="11" height="10" rx="2"/><path d="m15 10 4-2v8l-4-2z"/><path d="M8 7V5.5"/><path d="M11 7V4.8"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="7" width="11.5" height="10" rx="2.2"/><path d="m15.5 10 4.5-2.5v9L15.5 14"/><path d="M7.5 7V5.2"/></svg>;
     case 'lens':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/><path d="M12 5v2"/><path d="M12 17v2"/><path d="M5 12h2"/><path d="M17 12h2"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.4"/><path d="M12 4.5v2.3"/><path d="M12 17.2v2.3"/><path d="M4.5 12h2.3"/><path d="M17.2 12h2.3"/></svg>;
     case 'tripod':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M12 4v5"/><path d="M8.5 8.5 12 5.5l3.5 3"/><path d="M12 9v9"/><path d="M12 13 7.5 20"/><path d="M12 13 16.5 20"/><path d="M9 20h6"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M12 4v5.5"/><path d="M8.4 9.3H15.6"/><path d="M12 9.3V13"/><path d="M12 13 7 20"/><path d="M12 13 17 20"/><path d="M9.7 9.3 7.6 20"/><path d="M14.3 9.3 16.4 20"/></svg>;
     case 'microphone':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="9" y="4" width="6" height="10" rx="3"/><path d="M6.5 10.5a5.5 5.5 0 0 0 11 0"/><path d="M12 16v4"/><path d="M9 20h6"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="8.8" y="4" width="6.4" height="10.2" rx="3.2"/><path d="M6.5 10.8a5.5 5.5 0 0 0 11 0"/><path d="M12 16.2V20"/><path d="M9.2 20h5.6"/></svg>;
     case 'speaker':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M5 10h4l5-4v12l-5-4H5z"/><path d="M17 9.5a4 4 0 0 1 0 5"/><path d="M18.8 7a7 7 0 0 1 0 10"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="6.5" y="4.5" width="11" height="15" rx="2.2"/><circle cx="12" cy="9" r="1.7"/><circle cx="12" cy="14.5" r="3.1"/></svg>;
     case 'mixer':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M7 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><rect x="5.5" y="7" width="3" height="3" rx="1"/><rect x="10.5" y="12" width="3" height="3" rx="1"/><rect x="15.5" y="9" width="3" height="3" rx="1"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M7 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M5.6 8.5h2.8"/><path d="M10.6 13.5h2.8"/><path d="M15.6 10.5h2.8"/></svg>;
     case 'light':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M9 15c-1-1-2.5-2.2-2.5-5A5.5 5.5 0 0 1 12 4.5 5.5 5.5 0 0 1 17.5 10c0 2.8-1.5 4-2.5 5"/><path d="M9.5 15h5"/><path d="M10 18h4"/><path d="M10.5 20h3"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M9.2 15c-1.2-1-2.7-2.3-2.7-5.1A5.5 5.5 0 0 1 12 4.4a5.5 5.5 0 0 1 5.5 5.5c0 2.8-1.5 4.1-2.7 5.1"/><path d="M9.6 15h4.8"/><path d="M10 17.8h4"/><path d="M10.6 20h2.8"/><path d="M8 7.5 6.5 6"/><path d="M16 7.5 17.5 6"/></svg>;
     case 'battery':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="7" width="14" height="10" rx="2"/><path d="M18 10h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2"/><path d="M10.5 9.5 8.7 12h2.1l-1.3 2.5 3-3.8h-2z"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="3.8" y="7" width="14.8" height="10" rx="2.2"/><path d="M18.6 10.2h1.8a1 1 0 0 1 1 1v1.6a1 1 0 0 1-1 1h-1.8"/><path d="M8.8 10.2v3.6"/><path d="M12 9v6"/></svg>;
     case 'memory':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M8 4h6l4 4v12H8z"/><path d="M14 4v4h4"/><path d="M10 12h6"/><path d="M10 15h6"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M8 4.5h7.5L19 8v11.5H8z"/><path d="M15.5 4.5V8H19"/><path d="M10 12h7"/><path d="M10 15h5"/><path d="M10 18h4"/></svg>;
     case 'cable':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M9.5 8.5 14 13a3 3 0 0 1-4.2 4.2L7 14.4A3 3 0 1 1 11.2 10l1 1"/><path d="M14.5 15.5 10 11a3 3 0 0 1 4.2-4.2l2.8 2.8A3 3 0 0 1 12.8 14l-1-1"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M7.5 8.5v3a3.5 3.5 0 0 0 3.5 3.5h2"/><path d="M13 15h2.2A3.8 3.8 0 0 0 19 11.2V8.5"/><rect x="5" y="5" width="3" height="3.5" rx="1"/><rect x="16" y="5" width="3" height="3.5" rx="1"/><path d="M12 15v4"/></svg>;
     case 'monitor':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="5" width="16" height="11" rx="2"/><path d="M10 19h4"/><path d="M12 16v3"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="5" width="16" height="10.5" rx="2"/><path d="M12 15.5V19"/><path d="M9 19h6"/></svg>;
     case 'laptop':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="6" y="5" width="12" height="9" rx="1.8"/><path d="M4 18h16"/><path d="M8 18h8"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="6.2" y="5" width="11.6" height="8.8" rx="1.5"/><path d="M4 17.5h16"/><path d="M8.5 17.5h7"/></svg>;
     case 'projector':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="8" width="16" height="8" rx="2"/><circle cx="9" cy="12" r="2.2"/><path d="M16 10.5h2.5"/><path d="M16 13.5h2.5"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="8" width="16" height="8" rx="2"/><circle cx="9" cy="12" r="2.4"/><path d="M15.5 10.5h2.5"/><path d="M15.5 13.5h2.5"/></svg>;
     case 'printer':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M7 8V5h10v3"/><rect x="5" y="9" width="14" height="7" rx="2"/><path d="M8 16h8v3H8z"/><path d="M16 12h.01"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M7.5 8V5.2h9V8"/><rect x="5" y="8.5" width="14" height="7.5" rx="2"/><path d="M8 15.5h8V19H8z"/><path d="M16 11.8h.01"/></svg>;
     case 'box':
     case 'package':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="m12 3 7 3.8v10.4L12 21l-7-3.8V6.8z"/><path d="m12 3 7 3.8-7 3.8-7-3.8z"/><path d="M12 10.6V21"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="m12 3.5 7 3.8v9.8L12 20.9 5 17.1V7.3z"/><path d="m12 3.5 7 3.8-7 3.8-7-3.8z"/><path d="M12 11.1v9.8"/></svg>;
     case 'toolbox':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="8" width="16" height="10" rx="2"/><path d="M9 8V6.5A1.5 1.5 0 0 1 10.5 5h3A1.5 1.5 0 0 1 15 6.5V8"/><path d="M4 12h16"/><path d="M11 12v2"/><path d="M13 12v2"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="8" width="16" height="10" rx="2"/><path d="M9 8V6.6A1.6 1.6 0 0 1 10.6 5h2.8A1.6 1.6 0 0 1 15 6.6V8"/><path d="M4 12h16"/></svg>;
     case 'drone':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><circle cx="8" cy="8" r="2.5"/><circle cx="16" cy="8" r="2.5"/><circle cx="8" cy="16" r="2.5"/><circle cx="16" cy="16" r="2.5"/><path d="M10.2 9.8 13.8 13.2"/><path d="M13.8 9.8 10.2 13.2"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><circle cx="8" cy="8" r="2.5"/><circle cx="16" cy="8" r="2.5"/><circle cx="8" cy="16" r="2.5"/><circle cx="16" cy="16" r="2.5"/><circle cx="12" cy="12" r="1.6"/><path d="M9.7 9.7 11 11"/><path d="M14.3 9.7 13 11"/><path d="M9.7 14.3 11 13"/><path d="M14.3 14.3 13 13"/></svg>;
     case 'headphone':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M5 13a7 7 0 0 1 14 0"/><rect x="4" y="12" width="3" height="6" rx="1.2"/><rect x="17" y="12" width="3" height="6" rx="1.2"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M5.5 12.5a6.5 6.5 0 0 1 13 0"/><rect x="4" y="12" width="3.2" height="6" rx="1.3"/><rect x="16.8" y="12" width="3.2" height="6" rx="1.3"/></svg>;
     case 'router':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="5" y="14" width="14" height="4" rx="1.5"/><path d="M8 14V9"/><path d="M16 14V9"/><path d="M12 7a6 6 0 0 1 4.2 1.8"/><path d="M12 4.8a9 9 0 0 1 6.2 2.6"/><circle cx="9" cy="16" r="0.6" fill="currentColor" stroke="none"/><circle cx="12" cy="16" r="0.6" fill="currentColor" stroke="none"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="5" y="14" width="14" height="4" rx="1.4"/><path d="M8 14V10"/><path d="M16 14V10"/><path d="M12 7.5a5.5 5.5 0 0 1 3.8 1.6"/><path d="M12 5a8.5 8.5 0 0 1 5.8 2.3"/><circle cx="9" cy="16" r="0.6" fill="currentColor" stroke="none"/><circle cx="12" cy="16" r="0.6" fill="currentColor" stroke="none"/><circle cx="15" cy="16" r="0.6" fill="currentColor" stroke="none"/></svg>;
     case 'remote':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="8" y="4" width="8" height="16" rx="2.5"/><circle cx="12" cy="8" r="1.2"/><path d="M10 12h4"/><path d="M10 15h4"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="8" y="4" width="8" height="16" rx="2.5"/><circle cx="12" cy="8" r="1.2"/><path d="M10 11.8h4"/><path d="M10 14.8h4"/><path d="M10 17.8h4"/></svg>;
     case 'furniture':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M7 12V9.5A2.5 2.5 0 0 1 9.5 7h5A2.5 2.5 0 0 1 17 9.5V12"/><path d="M6 12h12"/><path d="M7 12v5"/><path d="M17 12v5"/><path d="M9 17h6"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M7 12V9.8A2.8 2.8 0 0 1 9.8 7h4.4A2.8 2.8 0 0 1 17 9.8V12"/><path d="M6 12h12"/><path d="M7 12v5"/><path d="M17 12v5"/></svg>;
     case 'cleaning':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M8 6h7l2 3-6 8H6z"/><path d="M12 6V4"/><path d="M9 15h6"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M8 6h8"/><path d="M10 6V4.5"/><path d="m9 8 7 1.2-2.5 9.3H8.5z"/><path d="M9.2 13.5h5.2"/></svg>;
     case 'document':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M8 4h6l4 4v12H8z"/><path d="M14 4v4h4"/><path d="M10 12h5"/><path d="M10 15h5"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M8 4.5h7.5L19 8v11.5H8z"/><path d="M15.5 4.5V8H19"/><path d="M10 12h6"/><path d="M10 15h6"/></svg>;
     case 'weird':
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="m12 4 2 4 4 2-4 2-2 4-2-4-4-2 4-2z"/><circle cx="18" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="6" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="m12 4 2 4 4 2-4 2-2 4-2-4-4-2 4-2z"/><circle cx="18" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="6" cy="18" r="1.3" fill="currentColor" stroke="none"/></svg>;
     default:
-      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="m12 3 7 3.8v10.4L12 21l-7-3.8V6.8z"/><path d="m12 3 7 3.8-7 3.8-7-3.8z"/><path d="M12 10.6V21"/></svg>;
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="m12 3.5 7 3.8v9.8L12 20.9 5 17.1V7.3z"/><path d="m12 3.5 7 3.8-7 3.8-7-3.8z"/><path d="M12 11.1v9.8"/></svg>;
   }
 };
 
