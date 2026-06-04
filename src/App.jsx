@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.7 QR Label Print Mode Fix';
+const APP_VERSION = 'v23.4.16.8 QR Label Print Match Preview Fix';
 const APP_UPDATE_NOTE = 'QR Label Simple Sizes Hotfix: ถอยระบบฉลาก QR ให้ใช้ง่ายเป็นขนาดเล็ก/กลาง/ใหญ่ที่เหมาะกับหัวขาไมค์ กล้อง และกล่อง พร้อมบังคับโหมดพิมพ์พื้นหลังขาว';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -21528,30 +21528,51 @@ ${auditChangeSummary}` : auditChangeSummary);
       const cardHeight = activeQrPreset.printCardHeight;
       const qrImageSize = activeQrPreset.printQrSize;
       const isLabel = forcedMode === 'label';
+      const qrServerSize = isLabel ? activeQrPreset.labelQrServer : activeQrPreset.qrServer;
+      const sizeText = forcedSize === 'small' ? 'เล็ก' : forcedSize === 'large' ? 'ใหญ่' : 'กลาง';
+
       const cardsHtml = selectedPrintItems.map((item) => {
         const itemName = escapeQrPrintText(item.name || '-');
-        const itemSn = escapeQrPrintText(item.sn || item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || '-');
+        const itemSnRaw = item.sn || item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || '-';
+        const itemSn = escapeQrPrintText(itemSnRaw);
         const itemCode = escapeQrPrintText(item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || item.sn || 'MDEC');
+        const itemLocation = escapeQrPrintText(item.location || item.storageLocation || item.storage || '-');
         const qrData = encodeURIComponent(item.id || item.sn || item.name || 'MDEC-STOCK');
-        const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=${isLabel ? activeQrPreset.labelQrServer : activeQrPreset.qrServer}x${isLabel ? activeQrPreset.labelQrServer : activeQrPreset.qrServer}&margin=4&data=${qrData}`;
+        const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=${qrServerSize}x${qrServerSize}&margin=4&data=${qrData}`;
+
         if (isLabel) {
           return `
             <div class="qr-card label-card">
-              <img class="qr-img" src="${qrSrc}" alt="QR" />
-              <div class="qr-info">
-                <div class="brand">MDEC STOCK</div>
-                <div class="name">${itemName}</div>
-                <div class="code">${itemCode}</div>
-                <div class="sn">S.N. ${itemSn}</div>
+              <div class="label-top">
+                <div class="brand-wrap">
+                  <div class="brand-title">MDEC STOCK</div>
+                  <div class="brand-sub">ศูนย์มัลติมีเดียทางการศึกษา</div>
+                </div>
+                <div class="asset-chip">${itemCode}</div>
+              </div>
+              <div class="label-main">
+                <div class="qr-box"><img class="qr-img" src="${qrSrc}" alt="QR" /></div>
+                <div class="label-info">
+                  <div class="asset-name">${itemName}</div>
+                  <div class="meta-row"><span>S.N.</span><strong>${itemSn}</strong></div>
+                  <div class="meta-row"><span>รหัส</span><strong>${itemCode}</strong></div>
+                  ${forcedSize !== 'small' ? `<div class="meta-row muted"><span>ที่เก็บ</span><strong>${itemLocation}</strong></div>` : ''}
+                </div>
+              </div>
+              <div class="label-footer">
+                <span>ทรัพย์สินศูนย์มัลติมีเดีย</span>
+                <strong>SCAN BEFORE USE</strong>
               </div>
             </div>
           `;
         }
+
         return `
           <div class="qr-card plain-card">
-            <img class="qr-img" src="${qrSrc}" alt="QR" />
-            <div class="name">${itemName}</div>
-            <div class="code">${itemCode}</div>
+            <img class="qr-img plain-qr" src="${qrSrc}" alt="QR" />
+            <div class="plain-brand">MDEC STOCK</div>
+            <div class="plain-name">${itemName}</div>
+            <div class="plain-code">${itemCode}</div>
           </div>
         `;
       }).join('');
@@ -21562,49 +21583,101 @@ ${auditChangeSummary}` : auditChangeSummary);
   <meta charset="utf-8" />
   <title>MDEC QR Labels</title>
   <style>
-    @page { size: A4; margin: 6mm; }
-    :root { background: #ffffff !important; }
-    html, body {
-      margin: 0;
-      padding: 0;
+    @page { size: A4; margin: 7mm; }
+    :root, html, body {
+      margin: 0 !important;
+      padding: 0 !important;
       background: #ffffff !important;
-      color: #000;
-      font-family: Arial, 'Noto Sans Thai', sans-serif;
+      color: #0f172a !important;
+      font-family: Arial, 'Noto Sans Thai', Tahoma, sans-serif;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     *, *::before, *::after { box-sizing: border-box; }
     .sheet {
-      background: #ffffff;
+      background: #ffffff !important;
       display: grid;
       grid-template-columns: repeat(auto-fill, ${cardWidth});
-      gap: 2mm;
+      gap: 3mm;
       align-items: start;
       justify-content: start;
+      width: 100%;
     }
     .qr-card {
       width: ${cardWidth};
       min-height: ${cardHeight};
-      background: #fff;
-      border: 0.15mm dashed #cbd5e1;
-      border-radius: 1mm;
+      background: #ffffff !important;
+      border: 0.25mm solid #cbd5e1;
+      border-radius: 2.3mm;
       overflow: hidden;
       break-inside: avoid;
       page-break-inside: avoid;
     }
-    .plain-card {
-      padding: 1mm;
+    .label-card {
+      padding: 2mm;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
+      gap: 1.2mm;
     }
-    .label-card {
-      padding: 1mm;
+    .label-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1.6mm;
+      border-bottom: 0.2mm solid #e2e8f0;
+      padding-bottom: 1mm;
+    }
+    .brand-wrap { min-width: 0; }
+    .brand-title {
+      font-size: ${forcedSize === 'small' ? '6.2pt' : forcedSize === 'large' ? '9pt' : '7.6pt'};
+      line-height: 1;
+      letter-spacing: .22em;
+      font-weight: 900;
+      color: #0f172a;
+      white-space: nowrap;
+    }
+    .brand-sub {
+      margin-top: .5mm;
+      font-size: ${forcedSize === 'small' ? '4.7pt' : forcedSize === 'large' ? '6.4pt' : '5.4pt'};
+      line-height: 1;
+      font-weight: 800;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 34mm;
+    }
+    .asset-chip {
+      flex: 0 0 auto;
+      border: 0.2mm solid #94a3b8;
+      background: #f8fafc;
+      color: #0f172a;
+      border-radius: 1.4mm;
+      padding: .55mm 1.35mm;
+      font-size: ${forcedSize === 'small' ? '5.2pt' : forcedSize === 'large' ? '7pt' : '6pt'};
+      line-height: 1;
+      font-weight: 900;
+      max-width: 18mm;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .label-main {
       display: flex;
       align-items: center;
-      gap: 1.4mm;
+      gap: 2mm;
+      min-height: 0;
+      flex: 1;
+    }
+    .qr-box {
+      flex: 0 0 auto;
+      border: 0.2mm solid #e2e8f0;
+      border-radius: 1.6mm;
+      background: #ffffff;
+      padding: .9mm;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .qr-img {
       width: ${qrImageSize};
@@ -21612,32 +21685,87 @@ ${auditChangeSummary}` : auditChangeSummary);
       display: block;
       flex: 0 0 auto;
       object-fit: contain;
-      background: #fff;
+      background: #ffffff;
     }
-    .qr-info { min-width: 0; flex: 1; line-height: 1.08; }
-    .brand { font-size: 5.2pt; letter-spacing: .09em; font-weight: 900; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .name { margin-top: .6mm; font-size: 6.2pt; line-height: 1.12; font-weight: 900; color: #111827; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .code { margin-top: .5mm; font-size: 6pt; font-weight: 900; color: #1d4ed8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sn { margin-top: .3mm; font-size: 5.2pt; font-weight: 700; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .plain-card .name { width: 100%; text-align: center; }
-    .plain-card .code { width: 100%; text-align: center; }
+    .label-info { min-width: 0; flex: 1; line-height: 1.05; }
+    .asset-name {
+      font-size: ${forcedSize === 'small' ? '5.8pt' : forcedSize === 'large' ? '8.3pt' : '6.9pt'};
+      line-height: 1.12;
+      font-weight: 900;
+      color: #111827;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: ${forcedSize === 'small' ? '.6mm' : '1mm'};
+    }
+    .meta-row {
+      display: grid;
+      grid-template-columns: ${forcedSize === 'small' ? '5.2mm' : '7mm'} minmax(0, 1fr);
+      gap: .8mm;
+      align-items: baseline;
+      margin-top: .45mm;
+      font-size: ${forcedSize === 'small' ? '4.8pt' : forcedSize === 'large' ? '6.6pt' : '5.8pt'};
+      line-height: 1.05;
+    }
+    .meta-row span { color: #64748b; font-weight: 900; white-space: nowrap; }
+    .meta-row strong { color: #0f172a; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .meta-row.muted strong { color: #334155; font-weight: 800; }
+    .label-footer {
+      border-top: 0.2mm solid #e2e8f0;
+      padding-top: .8mm;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5mm;
+      font-size: ${forcedSize === 'small' ? '4.2pt' : forcedSize === 'large' ? '5.8pt' : '5pt'};
+      line-height: 1;
+      color: #64748b;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .label-footer span { overflow: hidden; text-overflow: ellipsis; }
+    .label-footer strong { color: #94a3b8; letter-spacing: .12em; flex: 0 0 auto; }
+    .plain-card {
+      padding: 1.6mm;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: .5mm;
+      border-style: dashed;
+      border-radius: 1mm;
+    }
+    .plain-qr { width: ${qrImageSize}; height: ${qrImageSize}; }
+    .plain-brand { font-size: 4.8pt; letter-spacing: .12em; font-weight: 900; color: #0f172a; }
+    .plain-name {
+      width: 100%;
+      font-size: ${forcedSize === 'small' ? '4.6pt' : forcedSize === 'large' ? '6.2pt' : '5.3pt'};
+      line-height: 1.05;
+      font-weight: 900;
+      color: #111827;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .plain-code { font-size: ${forcedSize === 'small' ? '4.8pt' : '6pt'}; line-height: 1; font-weight: 900; color: #1d4ed8; }
     @media screen {
-      body { padding: 0; }
-      .sheet { min-height: 0; }
+      body { padding: 0 !important; }
+      .sheet { padding: 0 !important; margin: 0 !important; min-height: 0 !important; }
     }
     @media print {
-      body { padding: 0 !important; }
+      html, body { background: #ffffff !important; }
+      body { padding: 0 !important; margin: 0 !important; }
       .sheet { padding: 0 !important; margin: 0 !important; }
+      .qr-card { box-shadow: none !important; }
     }
   </style>
 </head>
 <body>
-  <div class="sheet">${cardsHtml}</div>
+  <div class="sheet" data-mode="${isLabel ? 'label' : 'plain'}" data-size="${sizeText}">${cardsHtml}</div>
 </body>
 </html>`;
-      const oldFrame = document.getElementById('mdec-clean-qr-print-frame');
-      if (oldFrame) oldFrame.remove();
-
       const printFrame = document.createElement('iframe');
       printFrame.id = 'mdec-clean-qr-print-frame';
       printFrame.title = 'MDEC QR Clean Print Sheet';
