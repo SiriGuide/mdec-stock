@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.12 Equipment Icon Picker / Auto Icon Pack';
-const APP_UPDATE_NOTE = 'QR Label Simple Sizes Hotfix: ถอยระบบฉลาก QR ให้ใช้ง่ายเป็นขนาดเล็ก/กลาง/ใหญ่ที่เหมาะกับหัวขาไมค์ กล้อง และกล่อง พร้อมบังคับโหมดพิมพ์พื้นหลังขาว';
+const APP_VERSION = 'v23.4.16.13 Equipment Icon Visual Polish';
+const APP_UPDATE_NOTE = 'Equipment Icon Visual Polish: เปลี่ยนไอคอนอุปกรณ์ให้เป็นชุดมินิมอลโทนเดียว คล้ายแฟ้มคลังที่ต้องการ โดยยังรองรับ auto icon และเลือกเองได้';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -199,6 +199,93 @@ const inferEquipmentIconKey = (item = {}) => {
 const getEquipmentIconMeta = (item = {}) => {
   const key = inferEquipmentIconKey(item);
   return EQUIPMENT_ICON_OPTIONS.find(option => option.key === key) || EQUIPMENT_ICON_OPTIONS.find(option => option.key === 'package') || { key: 'package', emoji: '📦', label: 'ทั่วไป' };
+};
+
+const EquipmentGlyph = ({ iconKey = 'package', className = '' }) => {
+  const key = String(iconKey || 'package');
+  const svgClass = className || 'w-5 h-5';
+  const common = {
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.9,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round'
+  };
+
+  switch (key) {
+    case 'camera':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M4 8.5a2 2 0 0 1 2-2h2.2l1.1-1.6A1.5 1.5 0 0 1 10.55 4h2.9a1.5 1.5 0 0 1 1.25.9l1.1 1.6H18a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.8" r="3.5"/></svg>;
+    case 'video':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="7" width="11" height="10" rx="2"/><path d="m15 10 4-2v8l-4-2z"/><path d="M8 7V5.5"/><path d="M11 7V4.8"/></svg>;
+    case 'lens':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/><path d="M12 5v2"/><path d="M12 17v2"/><path d="M5 12h2"/><path d="M17 12h2"/></svg>;
+    case 'tripod':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M12 4v5"/><path d="M8.5 8.5 12 5.5l3.5 3"/><path d="M12 9v9"/><path d="M12 13 7.5 20"/><path d="M12 13 16.5 20"/><path d="M9 20h6"/></svg>;
+    case 'microphone':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="9" y="4" width="6" height="10" rx="3"/><path d="M6.5 10.5a5.5 5.5 0 0 0 11 0"/><path d="M12 16v4"/><path d="M9 20h6"/></svg>;
+    case 'speaker':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M5 10h4l5-4v12l-5-4H5z"/><path d="M17 9.5a4 4 0 0 1 0 5"/><path d="M18.8 7a7 7 0 0 1 0 10"/></svg>;
+    case 'mixer':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M7 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><rect x="5.5" y="7" width="3" height="3" rx="1"/><rect x="10.5" y="12" width="3" height="3" rx="1"/><rect x="15.5" y="9" width="3" height="3" rx="1"/></svg>;
+    case 'light':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M9 15c-1-1-2.5-2.2-2.5-5A5.5 5.5 0 0 1 12 4.5 5.5 5.5 0 0 1 17.5 10c0 2.8-1.5 4-2.5 5"/><path d="M9.5 15h5"/><path d="M10 18h4"/><path d="M10.5 20h3"/></svg>;
+    case 'battery':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="7" width="14" height="10" rx="2"/><path d="M18 10h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2"/><path d="M10.5 9.5 8.7 12h2.1l-1.3 2.5 3-3.8h-2z"/></svg>;
+    case 'memory':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M8 4h6l4 4v12H8z"/><path d="M14 4v4h4"/><path d="M10 12h6"/><path d="M10 15h6"/></svg>;
+    case 'cable':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M9.5 8.5 14 13a3 3 0 0 1-4.2 4.2L7 14.4A3 3 0 1 1 11.2 10l1 1"/><path d="M14.5 15.5 10 11a3 3 0 0 1 4.2-4.2l2.8 2.8A3 3 0 0 1 12.8 14l-1-1"/></svg>;
+    case 'monitor':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="5" width="16" height="11" rx="2"/><path d="M10 19h4"/><path d="M12 16v3"/></svg>;
+    case 'laptop':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="6" y="5" width="12" height="9" rx="1.8"/><path d="M4 18h16"/><path d="M8 18h8"/></svg>;
+    case 'projector':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="8" width="16" height="8" rx="2"/><circle cx="9" cy="12" r="2.2"/><path d="M16 10.5h2.5"/><path d="M16 13.5h2.5"/></svg>;
+    case 'printer':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M7 8V5h10v3"/><rect x="5" y="9" width="14" height="7" rx="2"/><path d="M8 16h8v3H8z"/><path d="M16 12h.01"/></svg>;
+    case 'box':
+    case 'package':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="m12 3 7 3.8v10.4L12 21l-7-3.8V6.8z"/><path d="m12 3 7 3.8-7 3.8-7-3.8z"/><path d="M12 10.6V21"/></svg>;
+    case 'toolbox':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="4" y="8" width="16" height="10" rx="2"/><path d="M9 8V6.5A1.5 1.5 0 0 1 10.5 5h3A1.5 1.5 0 0 1 15 6.5V8"/><path d="M4 12h16"/><path d="M11 12v2"/><path d="M13 12v2"/></svg>;
+    case 'drone':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><circle cx="8" cy="8" r="2.5"/><circle cx="16" cy="8" r="2.5"/><circle cx="8" cy="16" r="2.5"/><circle cx="16" cy="16" r="2.5"/><path d="M10.2 9.8 13.8 13.2"/><path d="M13.8 9.8 10.2 13.2"/></svg>;
+    case 'headphone':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M5 13a7 7 0 0 1 14 0"/><rect x="4" y="12" width="3" height="6" rx="1.2"/><rect x="17" y="12" width="3" height="6" rx="1.2"/></svg>;
+    case 'router':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="5" y="14" width="14" height="4" rx="1.5"/><path d="M8 14V9"/><path d="M16 14V9"/><path d="M12 7a6 6 0 0 1 4.2 1.8"/><path d="M12 4.8a9 9 0 0 1 6.2 2.6"/><circle cx="9" cy="16" r="0.6" fill="currentColor" stroke="none"/><circle cx="12" cy="16" r="0.6" fill="currentColor" stroke="none"/></svg>;
+    case 'remote':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><rect x="8" y="4" width="8" height="16" rx="2.5"/><circle cx="12" cy="8" r="1.2"/><path d="M10 12h4"/><path d="M10 15h4"/></svg>;
+    case 'furniture':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M7 12V9.5A2.5 2.5 0 0 1 9.5 7h5A2.5 2.5 0 0 1 17 9.5V12"/><path d="M6 12h12"/><path d="M7 12v5"/><path d="M17 12v5"/><path d="M9 17h6"/></svg>;
+    case 'cleaning':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M8 6h7l2 3-6 8H6z"/><path d="M12 6V4"/><path d="M9 15h6"/></svg>;
+    case 'document':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="M8 4h6l4 4v12H8z"/><path d="M14 4v4h4"/><path d="M10 12h5"/><path d="M10 15h5"/></svg>;
+    case 'weird':
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="m12 4 2 4 4 2-4 2-2 4-2-4-4-2 4-2z"/><circle cx="18" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="6" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg>;
+    default:
+      return <svg className={svgClass} viewBox="0 0 24 24" {...common}><path d="m12 3 7 3.8v10.4L12 21l-7-3.8V6.8z"/><path d="m12 3 7 3.8-7 3.8-7-3.8z"/><path d="M12 10.6V21"/></svg>;
+  }
+};
+
+const EquipmentIconBadge = ({ item = null, iconKey = '', size = 'md', className = '', title = '' }) => {
+  const meta = item ? getEquipmentIconMeta(item) : (EQUIPMENT_ICON_OPTIONS.find(option => option.key === iconKey) || EQUIPMENT_ICON_OPTIONS.find(option => option.key === 'package') || { key: 'package', label: 'ทั่วไป' });
+  const config = {
+    xs: { wrap: 'w-8 h-8 rounded-xl', glyph: 'w-4 h-4' },
+    sm: { wrap: 'w-9 h-9 rounded-[1rem]', glyph: 'w-[18px] h-[18px]' },
+    md: { wrap: 'w-10 h-10 rounded-[1.15rem]', glyph: 'w-5 h-5' },
+    lg: { wrap: 'w-12 h-12 rounded-[1.25rem]', glyph: 'w-6 h-6' }
+  }[size] || { wrap: 'w-10 h-10 rounded-[1.15rem]', glyph: 'w-5 h-5' };
+
+  return (
+    <div
+      className={`${config.wrap} ${className} flex items-center justify-center shrink-0 border border-slate-500/20 bg-gradient-to-br from-slate-700/95 via-slate-800/95 to-slate-900 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_18px_rgba(2,6,23,0.22)]`}
+      title={title || meta.label}
+    >
+      <EquipmentGlyph iconKey={meta.key} className={`${config.glyph} text-white/95`} />
+    </div>
+  );
 };
 
 
@@ -12454,9 +12541,7 @@ S.N.: ${item.sn || '-'}
         >
           <div>
             <div className="flex items-start justify-between gap-2">
-              <div className={`w-8 h-8 rounded-2xl border flex items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-slate-800/50 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-800/55 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
-                <span className="text-lg leading-none">{equipmentIcon.emoji}</span>
-              </div>
+              <EquipmentIconBadge item={item} size="sm" className={selected ? 'ring-1 ring-white/20' : ''} />
               <span className={`w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black text-xs transition-all ${selected ? (isDarkMode ? 'bg-emerald-400 border-emerald-300 text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white') : isDarkMode ? 'border-slate-800/55 bg-slate-950 text-slate-600 group-hover:text-slate-300' : 'border-slate-300 bg-white text-slate-300 group-hover:text-slate-500'}`}>{selected ? '✓' : ''}</span>
             </div>
             <div className="mt-2 min-w-0">
@@ -12495,9 +12580,7 @@ S.N.: ${item.sn || '-'}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex items-start gap-3">
-              <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-slate-800/50 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-800/55 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500')}`}>
-                <span className="text-lg leading-none">{equipmentIcon.emoji}</span>
-              </div>
+              <EquipmentIconBadge item={item} size="sm" className={selected ? 'ring-1 ring-white/20' : ''} />
               <div className="min-w-0">
                 <div className={`font-black text-sm leading-tight truncate ${selected ? 'text-white' : theme.textTitle}`}>{item.name || '-'}</div>
                 <div className={`text-[11px] font-bold mt-1 truncate ${selected ? 'text-white/75' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || item.storageBoxName || '-'}</div>
@@ -14250,12 +14333,7 @@ S.N.: ${item.sn || '-'}
                             </td>
                             <td className="inventory-row-name-cell px-4 py-4">
                               <div className="flex items-start gap-3 min-w-0">
-                                <div
-                                  className={`inventory-row-icon mt-0.5 w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${deptUI.iconWrap}`}
-                                  style={{ boxShadow: `inset 3px 0 0 ${deptUI.accent}55` }}
-                                >
-                                  <span className="text-xl leading-none" title={equipmentIcon.label}>{equipmentIcon.emoji}</span>
-                                </div>
+                                <EquipmentIconBadge item={item} size="md" className="mt-0.5" title={equipmentIcon.label} />
                                 <div className="min-w-0">
                                   <div className={`font-black text-base leading-snug truncate ${theme.textTitle}`}>{item.name || '-'}</div>
                                   <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || item.assetShortCode || item.localCode || 'ไม่มีรหัสสั้น'}</div>
@@ -23787,9 +23865,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                                       style={{ borderLeft: `3px solid ${deptUI.accent}` }}
                                     >
                                       <div className="flex items-start gap-3 min-w-0">
-                                        <div className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 border ${deptUI.iconWrap}`}>
-                                          <span className="text-lg leading-none" title={equipmentIcon.label}>{equipmentIcon.emoji}</span>
-                                        </div>
+                                        <EquipmentIconBadge item={item} size="sm" title={equipmentIcon.label} />
                                         <div className="min-w-0">
                                           <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
                                           <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • {item.location || 'ไม่ระบุที่เก็บ'}</div>
@@ -26391,8 +26467,9 @@ ${auditChangeSummary}` : auditChangeSummary);
                               <div className={`text-sm font-black ${theme.textTitle}`}>ไอคอนอุปกรณ์</div>
                               <div className={`text-[11px] font-bold ${theme.textMuted}`}>ระบบเดาให้ก่อนจากชื่อ/หมวด หรือเลือกเองได้ เผื่อของแปลก ๆ ในศูนย์</div>
                             </div>
-                            <div className={`px-3 py-1.5 rounded-2xl border text-xs font-black ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
-                              ใช้ตอนนี้: <span className="text-base align-middle">{currentMeta.emoji}</span> {formData.iconKey && formData.iconKey !== 'auto' ? currentMeta.label : `อัตโนมัติ • ${autoMeta.label}`}
+                            <div className={`px-3 py-1.5 rounded-2xl border text-xs font-black flex items-center gap-2 ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                              <EquipmentIconBadge iconKey={formData.iconKey && formData.iconKey !== 'auto' ? currentMeta.key : autoMeta.key} size="xs" className="inline-flex" />
+                              <span>ใช้ตอนนี้: {formData.iconKey && formData.iconKey !== 'auto' ? currentMeta.label : `อัตโนมัติ • ${autoMeta.label}`}</span>
                             </div>
                           </div>
                           <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
@@ -26404,10 +26481,10 @@ ${auditChangeSummary}` : auditChangeSummary);
                                   key={option.key}
                                   type="button"
                                   onClick={() => setFormData(prev => ({ ...prev, iconKey: option.key }))}
-                                  className={`min-h-[62px] rounded-2xl border p-2 flex flex-col items-center justify-center gap-1 transition ${active ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/20' : (isDarkMode ? 'bg-slate-900 border-slate-800/55 text-slate-200 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-white hover:border-blue-200')}`}
+                                  className={`min-h-[82px] rounded-2xl border p-2.5 flex flex-col items-center justify-center gap-2 transition ${active ? 'bg-blue-600/15 border-blue-500 text-white shadow-lg shadow-blue-600/10 ring-1 ring-blue-400/40' : (isDarkMode ? 'bg-slate-900 border-slate-800/55 text-slate-200 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-white hover:border-blue-200')}`}
                                   title={isAuto ? `อัตโนมัติ: ตอนนี้เดาเป็น ${autoMeta.label}` : option.label}
                                 >
-                                  <span className="text-xl leading-none">{isAuto ? autoMeta.emoji : option.emoji}</span>
+                                  <EquipmentIconBadge iconKey={isAuto ? autoMeta.key : option.key} size="sm" className={active ? 'ring-1 ring-blue-300/30' : ''} />
                                   <span className="text-[10px] font-black leading-tight text-center line-clamp-2">{isAuto ? 'อัตโนมัติ' : option.label}</span>
                                 </button>
                               );
