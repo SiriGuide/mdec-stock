@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.6 QR Label Iframe Print Fix';
+const APP_VERSION = 'v23.4.16.7 QR Label Print Mode Fix';
 const APP_UPDATE_NOTE = 'QR Label Simple Sizes Hotfix: ถอยระบบฉลาก QR ให้ใช้ง่ายเป็นขนาดเล็ก/กลาง/ใหญ่ที่เหมาะกับหัวขาไมค์ กล้อง และกล่อง พร้อมบังคับโหมดพิมพ์พื้นหลังขาว';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -21517,22 +21517,23 @@ ${auditChangeSummary}` : auditChangeSummary);
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
 
-    const openCleanQrPrintSheet = () => {
+    const openCleanQrPrintSheet = (forcedMode = qrพิมพ์Mode, forcedSize = qrพิมพ์Size) => {
+      const activeQrPreset = qrSizePresets[forcedSize] || qrSizePresets.normal;
       const selectedPrintItems = selectedItems
         .map(id => items.find(i => i.id === id))
         .filter(Boolean);
       if (!selectedPrintItems.length) return;
 
-      const cardWidth = qrPreset.printCardWidth;
-      const cardHeight = qrPreset.printCardHeight;
-      const qrImageSize = qrPreset.printQrSize;
-      const isLabel = qrพิมพ์Mode === 'label';
+      const cardWidth = activeQrPreset.printCardWidth;
+      const cardHeight = activeQrPreset.printCardHeight;
+      const qrImageSize = activeQrPreset.printQrSize;
+      const isLabel = forcedMode === 'label';
       const cardsHtml = selectedPrintItems.map((item) => {
         const itemName = escapeQrPrintText(item.name || '-');
         const itemSn = escapeQrPrintText(item.sn || item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || '-');
         const itemCode = escapeQrPrintText(item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || item.sn || 'MDEC');
         const qrData = encodeURIComponent(item.id || item.sn || item.name || 'MDEC-STOCK');
-        const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=${qrPreset.qrServer}x${qrPreset.qrServer}&margin=4&data=${qrData}`;
+        const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=${isLabel ? activeQrPreset.labelQrServer : activeQrPreset.qrServer}x${isLabel ? activeQrPreset.labelQrServer : activeQrPreset.qrServer}&margin=4&data=${qrData}`;
         if (isLabel) {
           return `
             <div class="qr-card label-card">
@@ -21801,12 +21802,17 @@ ${auditChangeSummary}` : auditChangeSummary);
                </div>
 
                <div className="w-full text-xs sm:text-sm font-bold text-slate-300 bg-slate-800 border border-slate-800/55 rounded-xl px-4 py-3">
-                 {qrSizeNote} • ขนาดนี้คือขนาดจริงบนกระดาษ A4 ตอนพิมพ์ • แนะนำตั้ง Scale เป็น 100% หรือ Default และทดลองสแกนก่อนติดจริง
+                 {qrSizeNote} • กดปุ่มพิมพ์ QR ล้วน หรือ พิมพ์ฉลากข้อมูล ได้แยกกันชัดเจน • แนะนำตั้ง Scale เป็น 100% หรือ Default
                </div>
 
-               <button onClick={openCleanQrPrintSheet} className="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors">
-                 <Icons.พิมพ์er className="w-5 h-5"/> สั่งพิมพ์
-               </button>
+               <div className="flex flex-wrap gap-2">
+                 <button onClick={() => openCleanQrPrintSheet('plain', qrพิมพ์Size)} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors" title="พิมพ์แบบ QR อย่างเดียวตามขนาดที่เลือก">
+                   <Icons.พิมพ์er className="w-5 h-5"/> พิมพ์ QR ล้วน
+                 </button>
+                 <button onClick={() => openCleanQrPrintSheet('label', qrพิมพ์Size)} className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors" title="พิมพ์แบบฉลากข้อมูลตามขนาดที่เลือก">
+                   <Icons.Tag className="w-5 h-5"/> พิมพ์ฉลากข้อมูล
+                 </button>
+               </div>
                <button onClick={markSelectedQrTagged} className="bg-emerald-600 hover:bg-emerald-500 px-3.5 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors">
                  <Icons.CheckCircle className="w-5 h-5"/> ติด QR แล้ว
                </button>
