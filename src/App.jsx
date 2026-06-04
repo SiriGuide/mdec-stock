@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.15 Records / History Usability Polish';
-const APP_UPDATE_NOTE = 'Records / History Usability Polish: ปรับหน้าเอกสารย้อนหลังให้เป็นศูนย์ค้นงานจริง มีการ์ดสรุป คลิกกรองเร็ว สถานะรอคืน/คืนบางส่วน/คืนครบ ค้นจากเลขเอกสาร ผู้ยืม ชื่องาน วันที่ อุปกรณ์ S.N. และมีปุ่มพิมพ์ซ้ำ ดูประวัติ คัดลอกสรุป โดยไม่รื้อ flow หลักและไม่แตะ QR Scanner core';
+const APP_VERSION = 'v23.4.15.1 Records / History Search Ref Hotfix';
+const APP_UPDATE_NOTE = 'Records / History Search Ref Hotfix: ให้ประวัติส่วนกลางค้นเจอจากเลขใบยืม/ใบออกงาน/เลขเอกสารได้จริง รวมถึงเชื่อมจากเอกสารย้อนหลังและหลักฐานรูปภาพโดยไม่รื้อ flow หลักและไม่แตะ QR Scanner core';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -14603,10 +14603,15 @@ S.N.: ${item.sn || '-'}
       const firstItem = asArray(docData.items)[0] || {};
       const historyKey = String(
         docData.ref ||
+        docData.documentRef ||
+        docData.documentId ||
+        docData.docId ||
+        docData.id ||
         docData.borrower ||
         docData.eventName ||
         docData.subject ||
         firstItem.sn ||
+        firstItem.shortCode ||
         firstItem.name ||
         ''
       ).trim();
@@ -15147,7 +15152,23 @@ S.N.: ${item.sn || '-'}
                                 <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{selectedItems.length.toLocaleString('th-TH')} อุปกรณ์ที่เกี่ยวข้อง • รูปหลักฐาน 1 รูป • {selectedGroup.isLegacyBatch ? 'ข้อมูลเก่า' : 'ข้อมูลปัจจุบัน'}</p>
                               </div>
                               <div className="flex flex-wrap gap-1.5 shrink-0">
-                                <button type="button" onClick={() => { setHistoryCenterSearch(selectedGroup.sn || selectedGroup.itemName || selectedSubject || ''); setRecordsCenterMode('history'); }} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
+                                <button type="button" onClick={() => {
+                                  const proofHistoryKey = String(
+                                    previewEntry.documentRef ||
+                                    previewEntry.operationGroupId ||
+                                    previewEntry.proof?.documentRef ||
+                                    previewEntry.proof?.ref ||
+                                    previewEntry.proof?.groupId ||
+                                    previewEntry.proof?.batchId ||
+                                    selectedGroup.groupId ||
+                                    selectedGroup.sn ||
+                                    selectedGroup.itemName ||
+                                    selectedSubject ||
+                                    ''
+                                  ).trim();
+                                  setHistoryCenterSearch(proofHistoryKey);
+                                  setRecordsCenterMode('history');
+                                }} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
                                 {canUseOperationalTools && previewProof && (
                                   <button
                                     type="button"
@@ -16394,6 +16415,8 @@ S.N.: ${item.sn || '-'}
           subject,
           staff,
           note: h.note || h.problem || '',
+          documentRef: h.documentRef || h.documentId || h.docId || h.ref || h.borrowDocId || h.borrowDocRef || '',
+          operationGroupId: h.groupId || h.groupKey || h.batchId || h.batchKey || h.transactionId || h.operationId || h.operationGroupId || h.borrowGroupId || h.returnGroupId || h.eventGroupId || '',
           directProofs,
           documentProofs,
           linkedProofs: [],
@@ -16489,6 +16512,8 @@ S.N.: ${item.sn || '-'}
         subject: auditDisplay.subject || auditDisplay.title,
         staff: userText,
         note: auditDisplay.note || '-',
+        documentRef: log.documentRef || log.documentId || log.docId || log.ref || log.borrowDocId || log.borrowDocRef || '',
+        operationGroupId: log.groupId || log.groupKey || log.batchId || log.batchKey || log.transactionId || log.operationId || log.operationGroupId || '',
         directProofs: [],
         documentProofs: [],
         linkedProofs: [],
@@ -16520,7 +16545,21 @@ S.N.: ${item.sn || '-'}
       const matchType = historyCenterFilter === 'all'
         ? true
         : entry.historyType === historyCenterFilter || (historyCenterFilter === 'repair' && String(entry.historyType || '').includes('repair')) || (historyCenterFilter === 'system' && entry.isAuditLog);
-      const haystack = `${entry.itemName} ${entry.sn} ${entry.category} ${entry.location} ${entry.subject} ${entry.staff} ${entry.note} ${entry.typeLabel} ${entry.date} ${entry.status} ${entry.department || ''} ${entry.rawHistory?.action || ''} ${entry.rawHistory?.detail || ''} ${entry.rawHistory?.details || ''}`.toLowerCase();
+      const groupSearchText = asArray(entry.groupRows).map(row => [
+        row.itemName, row.sn, row.category, row.location, row.subject, row.staff, row.note, row.typeLabel, row.date, row.status, row.department,
+        row.documentRef, row.operationGroupId,
+        row.rawHistory?.documentRef, row.rawHistory?.documentId, row.rawHistory?.docId, row.rawHistory?.ref, row.rawHistory?.borrowDocId, row.rawHistory?.borrowDocRef,
+        row.rawHistory?.groupId, row.rawHistory?.groupKey, row.rawHistory?.batchId, row.rawHistory?.transactionId, row.rawHistory?.operationId,
+        row.rawHistory?.action, row.rawHistory?.detail, row.rawHistory?.details
+      ].filter(Boolean).join(' ')).join(' ');
+      const haystack = [
+        entry.itemName, entry.sn, entry.category, entry.location, entry.subject, entry.staff, entry.note, entry.typeLabel, entry.date, entry.status, entry.department,
+        entry.documentRef, entry.operationGroupId,
+        entry.rawHistory?.documentRef, entry.rawHistory?.documentId, entry.rawHistory?.docId, entry.rawHistory?.ref, entry.rawHistory?.borrowDocId, entry.rawHistory?.borrowDocRef,
+        entry.rawHistory?.groupId, entry.rawHistory?.groupKey, entry.rawHistory?.batchId, entry.rawHistory?.transactionId, entry.rawHistory?.operationId,
+        entry.rawHistory?.action, entry.rawHistory?.detail, entry.rawHistory?.details,
+        groupSearchText
+      ].filter(Boolean).join(' ').toLowerCase();
       return matchType && (!keyword || haystack.includes(keyword));
     });
   }, [allHistoryCenterEntries, historyCenterFilter, historyCenterSearch]);
@@ -16643,7 +16682,11 @@ S.N.: ${item.sn || '-'}
     const keyword = String(proofCenterSearch || '').toLowerCase().trim();
     return allProofEntries.filter((entry) => {
       const matchType = proofCenterFilter === 'all' || entry.historyType === proofCenterFilter;
-      const haystack = `${entry.itemName} ${entry.sn} ${entry.department} ${entry.category} ${entry.location} ${entry.subject} ${entry.staff} ${entry.storageBoxName} ${entry.note} ${entry.typeLabel} ${entry.date} ${entry.proof?.contextLabel || ''} ${entry.proof?.note || ''}`.toLowerCase();
+      const haystack = [
+        entry.itemName, entry.sn, entry.department, entry.category, entry.location, entry.subject, entry.staff, entry.storageBoxName, entry.note, entry.typeLabel, entry.date,
+        entry.documentRef, entry.operationGroupId,
+        entry.proof?.documentRef, entry.proof?.groupId, entry.proof?.batchId, entry.proof?.ref, entry.proof?.contextLabel, entry.proof?.note
+      ].filter(Boolean).join(' ').toLowerCase();
       return matchType && (!keyword || haystack.includes(keyword));
     });
   }, [allProofEntries, proofCenterFilter, proofCenterSearch]);
@@ -16747,7 +16790,9 @@ S.N.: ${item.sn || '-'}
           subject: entry.subject || '-',
           typeLabel: entry.typeLabel || '-',
           historyType: entry.historyType || 'other',
-          date: entry.date || entry.proof?.createdAt || ''
+          date: entry.date || entry.proof?.createdAt || '',
+          documentRef: entry.documentRef || entry.proof?.documentRef || entry.proof?.ref || '',
+          operationGroupId: entry.operationGroupId || entry.proof?.groupId || entry.proof?.batchId || ''
         });
       }
     });
@@ -16758,7 +16803,12 @@ S.N.: ${item.sn || '-'}
         group.representative?.subject,
         group.representative?.staff,
         group.representative?.note,
-        ...group.itemRefs.flatMap(ref => [ref.itemName, ref.sn, ref.subject, ref.typeLabel])
+        group.groupId,
+        group.proof?.documentRef,
+        group.proof?.groupId,
+        group.proof?.batchId,
+        group.proof?.ref,
+        ...group.itemRefs.flatMap(ref => [ref.itemName, ref.sn, ref.subject, ref.typeLabel, ref.documentRef, ref.operationGroupId])
       ].filter(Boolean).join(' ').toLowerCase();
       const sortedEntries = group.entries.slice().sort((a, b) => new Date(b.date || b.proof?.deletedAt || 0) - new Date(a.date || a.proof?.deletedAt || 0));
       return { ...group, entries: sortedEntries, representative: sortedEntries[0] || group.representative, searchText, firstDate: sortedEntries[0]?.date || sortedEntries[0]?.proof?.deletedAt || '' };
@@ -16867,7 +16917,9 @@ S.N.: ${item.sn || '-'}
           subject: entry.subject || '-',
           typeLabel: entry.typeLabel || '-',
           historyType: entry.historyType || 'other',
-          date: entry.date || entry.proof?.createdAt || ''
+          date: entry.date || entry.proof?.createdAt || '',
+          documentRef: entry.documentRef || entry.proof?.documentRef || entry.proof?.ref || '',
+          operationGroupId: entry.operationGroupId || entry.proof?.groupId || entry.proof?.batchId || ''
         });
       }
     });
@@ -16880,7 +16932,12 @@ S.N.: ${item.sn || '-'}
         group.representative?.staff,
         group.representative?.storageBoxName,
         group.representative?.note,
-        ...group.itemRefs.flatMap(ref => [ref.itemName, ref.sn, ref.subject, ref.typeLabel])
+        group.groupId,
+        group.proof?.documentRef,
+        group.proof?.groupId,
+        group.proof?.batchId,
+        group.proof?.ref,
+        ...group.itemRefs.flatMap(ref => [ref.itemName, ref.sn, ref.subject, ref.typeLabel, ref.documentRef, ref.operationGroupId])
       ].filter(Boolean).join(' ').toLowerCase();
 
       const sortedEntries = group.entries.slice().sort((a, b) => new Date(b.date || b.proof?.createdAt || 0) - new Date(a.date || a.proof?.createdAt || 0));
