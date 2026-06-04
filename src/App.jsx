@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.1 Camera Lens Warning Call Hotfix';
-const APP_UPDATE_NOTE = 'Camera Lens Warning Call Hotfix: ยึดฐาน v23.4.16.18 ที่เสถียร และตัดจุดเรียก warning เลนส์ที่ทำให้บาง build ขึ้น getOperationCameraLensWarnings is not defined';
+const APP_VERSION = 'v23.4.16.18.2 Camera Confirm Function Alias Hotfix';
+const APP_UPDATE_NOTE = 'Camera Confirm Function Alias Hotfix: ยึดฐาน v23.4.16.18 และกัน error ตอนยืนยันยืม/ออกงานจาก helper เลนส์ชื่อไม่ตรง โดยไม่แตะระบบเมม/แบตและไม่รื้อ flow';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -12088,6 +12088,10 @@ S.N.: ${item.sn || '-'}
       return Array.from(idSet);
     };
 
+    // v23.4.16.18.2: กันกรณีโค้ดบางจุด/บาง build เรียกชื่อ helper เก่า
+    // ให้ชี้กลับมาที่ตัว normalize หลักตัวเดียวกัน เพื่อไม่ให้ยืนยันยืม/ออกงานแล้วล้ม
+    const getOperationLensSelectionForSubmit = normalizeOperationLensSelectionForSubmit;
+
     const getOperationCameraLensWarnings = (sourceIds = actionSet, mode = borrowReturnMode) => {
       if (mode === 'return') return [];
       return Array.from(new Set(asArray(sourceIds).filter(Boolean))).flatMap(id => {
@@ -19172,7 +19176,8 @@ ${auditChangeSummary}` : auditChangeSummary);
       const uploadedProofs = await uploadProofsOrConfirm(borrowProofFiles, `หลักฐานการยืม • ${borrowData.borrower || ''}`);
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('BR');
-      // v23.4.16.18.1: ตัด warning helper ออกจากขั้นบันทึก เพื่อไม่ให้บาง build เจอ getOperationCameraLensWarnings is not defined
+      const linkedLensWarnings = getOperationCameraLensWarnings(packingSet, 'borrow');
+      if (linkedLensWarnings.length > 0) return alert('⚠️ กล้องบางตัวเลือกเลนส์ที่ยังไม่พร้อมใช้งาน:\n' + linkedLensWarnings.join('\n') + '\n\nกรุณาเปลี่ยนเลนส์หรือถอดเลนส์ก่อนบันทึก');
       const finalBorrowSet = normalizeOperationLensSelectionForSubmit(packingSet, 'borrow');
       const selectedBorrowItems = finalBorrowSet.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
       const documentSnapshot = makeBorrowเอกสารSnapshot({
@@ -19235,7 +19240,8 @@ ${auditChangeSummary}` : auditChangeSummary);
       const uploadedProofs = await uploadProofsOrConfirm(eventProofFiles, `หลักฐานออกงาน • ${eventData.eventName || ''}`);
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('EV');
-      // v23.4.16.18.1: ตัด warning helper ออกจากขั้นบันทึก เพื่อไม่ให้บาง build เจอ getOperationCameraLensWarnings is not defined
+      const linkedLensWarnings = getOperationCameraLensWarnings(eventSet, 'event');
+      if (linkedLensWarnings.length > 0) return alert('⚠️ กล้องบางตัวเลือกเลนส์ที่ยังไม่พร้อมใช้งาน:\n' + linkedLensWarnings.join('\n') + '\n\nกรุณาเปลี่ยนเลนส์หรือถอดเลนส์ก่อนบันทึก');
       const finalEventSet = normalizeOperationLensSelectionForSubmit(eventSet, 'event');
       const selectedEventItems = finalEventSet.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
       const documentSnapshot = makeBorrowเอกสารSnapshot({
