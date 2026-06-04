@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.11 Equipment Form Declutter / Lens Link Filter';
+const APP_VERSION = 'v23.4.16.12 Equipment Icon Picker / Auto Icon Pack';
 const APP_UPDATE_NOTE = 'QR Label Simple Sizes Hotfix: ถอยระบบฉลาก QR ให้ใช้ง่ายเป็นขนาดเล็ก/กลาง/ใหญ่ที่เหมาะกับหัวขาไมค์ กล้อง และกล่อง พร้อมบังคับโหมดพิมพ์พื้นหลังขาว';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -145,6 +145,61 @@ const DEPARTMENTS = [
   { id: 'ห้องประชุม', label: 'ห้องประชุม', color: 'bg-sky-100 text-sky-700', darkColor: 'bg-sky-900/40 text-sky-400', iconName: 'Users', iconColor: 'text-sky-500' },
   { id: 'ob-live', label: 'OB-LIVE', color: 'bg-violet-100 text-violet-700', darkColor: 'bg-violet-900/40 text-violet-400', iconName: 'Signal', iconColor: 'text-violet-500' }
 ];
+
+const EQUIPMENT_ICON_OPTIONS = [
+  { key: 'auto', emoji: '✨', label: 'อัตโนมัติ', keywords: [] },
+  { key: 'camera', emoji: '📷', label: 'กล้อง', keywords: ['กล้อง','camera','sony','canon','nikon','fuji','body','a7','eos'] },
+  { key: 'video', emoji: '🎥', label: 'กล้องวิดีโอ', keywords: ['วิดีโอ','video','camcorder','gimbal','กิมบอล'] },
+  { key: 'lens', emoji: '🔭', label: 'เลนส์', keywords: ['เลนส์','lens','mm','fe ','rf ','ef ','mount'] },
+  { key: 'tripod', emoji: '🔱', label: 'ขาตั้ง', keywords: ['ขาตั้ง','tripod','monopod','stand','ขาไมค์','ขาตั้งไมค์'] },
+  { key: 'microphone', emoji: '🎙️', label: 'ไมค์', keywords: ['ไมค์','microphone','mic','wireless','lavalier','shotgun'] },
+  { key: 'speaker', emoji: '🔊', label: 'ลำโพง', keywords: ['ลำโพง','speaker','pa','subwoofer','ซับ'] },
+  { key: 'mixer', emoji: '🎚️', label: 'มิกเซอร์', keywords: ['mixer','มิกเซอร์','soundcraft','yamaha','console','audio interface','interface'] },
+  { key: 'light', emoji: '💡', label: 'ไฟ', keywords: ['ไฟ','แสง','light','led','softbox','panel','spotlight'] },
+  { key: 'battery', emoji: '🔋', label: 'แบตเตอรี่', keywords: ['แบต','battery','ถ่าน','np-f','lp-e','charger','ชาร์จ'] },
+  { key: 'memory', emoji: '💾', label: 'เมม/การ์ด', keywords: ['เมม','memory','sd','cfexpress','card','การ์ด','128gb','256gb','64gb'] },
+  { key: 'cable', emoji: '🔌', label: 'สาย/อะแดปเตอร์', keywords: ['สาย','cable','hdmi','xlr','usb','adapter','อะแดปเตอร์','ปลั๊ก','ต่อพ่วง'] },
+  { key: 'monitor', emoji: '🖥️', label: 'จอ/มอนิเตอร์', keywords: ['จอ','monitor','display','screen','ทีวี','tv'] },
+  { key: 'laptop', emoji: '💻', label: 'คอม/โน้ตบุ๊ก', keywords: ['คอม','notebook','laptop','macbook','pc','computer'] },
+  { key: 'projector', emoji: '📽️', label: 'โปรเจกเตอร์', keywords: ['projector','โปรเจกเตอร์','ฉาย'] },
+  { key: 'printer', emoji: '🖨️', label: 'ปริ้นเตอร์', keywords: ['printer','ปริ้น','พิมพ์','epson','canon printer'] },
+  { key: 'box', emoji: '📦', label: 'กล่อง/เคส', keywords: ['กล่อง','box','case','เคส','กระเป๋า','bag'] },
+  { key: 'toolbox', emoji: '🧰', label: 'เครื่องมือ', keywords: ['เครื่องมือ','tool','toolbox','ไขควง','ประแจ','คีม'] },
+  { key: 'drone', emoji: '🚁', label: 'โดรน', keywords: ['โดรน','drone','dji','mavic'] },
+  { key: 'headphone', emoji: '🎧', label: 'หูฟัง', keywords: ['หูฟัง','headphone','headset','earphone'] },
+  { key: 'router', emoji: '📡', label: 'สัญญาณ/เน็ตเวิร์ก', keywords: ['router','wifi','network','lan','switch','ap','wireless receiver'] },
+  { key: 'remote', emoji: '🎛️', label: 'รีโมต/คอนโทรล', keywords: ['remote','รีโมต','controller','control','clicker'] },
+  { key: 'furniture', emoji: '🪑', label: 'โต๊ะ/เก้าอี้/ขาตั้งแปลกๆ', keywords: ['โต๊ะ','เก้าอี้','chair','table','podium','โพเดียม'] },
+  { key: 'cleaning', emoji: '🧽', label: 'ทำความสะอาด', keywords: ['ผ้า','clean','ทำความสะอาด','แปรง','น้ำยา','blower'] },
+  { key: 'document', emoji: '📄', label: 'เอกสาร/ป้าย', keywords: ['เอกสาร','ป้าย','label','บัตร','แฟ้ม','document'] },
+  { key: 'weird', emoji: '🧩', label: 'ของแปลก/อื่น ๆ', keywords: ['อื่น','แปลก','misc','accessory','อุปกรณ์เสริม','ไม่รู้หมวด'] },
+  { key: 'package', emoji: '📦', label: 'ทั่วไป', keywords: [] }
+];
+
+const normalizeEquipmentIconText = (value) => String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+const inferEquipmentIconKey = (item = {}) => {
+  const explicit = String(item.iconKey || item.equipmentIcon || '').trim();
+  if (explicit && explicit !== 'auto') return explicit;
+  const haystack = normalizeEquipmentIconText([
+    item.name, item.category, item.equipmentType, item.department, item.location, item.shortCode, item.sn, item.compatibleWith
+  ].filter(Boolean).join(' '));
+  for (const option of EQUIPMENT_ICON_OPTIONS) {
+    if (!option.key || option.key === 'auto' || option.key === 'package') continue;
+    if ((option.keywords || []).some(keyword => haystack.includes(normalizeEquipmentIconText(keyword)))) return option.key;
+  }
+  const kind = typeof inferCameraHelperKind === 'function' ? inferCameraHelperKind(item) : '';
+  if (kind === 'camera') return 'camera';
+  if (kind === 'lens') return 'lens';
+  if (kind === 'memory') return 'memory';
+  if (kind === 'battery') return 'battery';
+  return 'package';
+};
+
+const getEquipmentIconMeta = (item = {}) => {
+  const key = inferEquipmentIconKey(item);
+  return EQUIPMENT_ICON_OPTIONS.find(option => option.key === key) || EQUIPMENT_ICON_OPTIONS.find(option => option.key === 'package') || { key: 'package', emoji: '📦', label: 'ทั่วไป' };
+};
 
 
 // ===== v22.57.6.4 Department Color Identity Helper =====
@@ -7171,7 +7226,7 @@ function MainApp() {
   const [firebaseError, setFirebaseError] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '', equipmentType: '', shortCode: '', ownerDepartment: '', mount: '', compatibleWith: '', linkedLensId: '', linkedLensName: '', currentLens: '', batteryModel: '', memoryCapacity: '', memoryType: '', memorySpeed: '', linkedMemoryId: '', linkedMemoryName: '', memoryAssignMode: '', assignedCamera: '' });
+  const [formData, setFormData] = useState({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'available', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '', iconKey: 'auto', equipmentType: '', shortCode: '', ownerDepartment: '', mount: '', compatibleWith: '', linkedLensId: '', linkedLensName: '', currentLens: '', batteryModel: '', memoryCapacity: '', memoryType: '', memorySpeed: '', linkedMemoryId: '', linkedMemoryName: '', memoryAssignMode: '', assignedCamera: '' });
   
   const [itemToDelete, setItemToDelete] = useState(null); 
   const [deleteSettingConfirm, setDeleteSettingConfirm] = useState(null);
@@ -12387,7 +12442,7 @@ S.N.: ${item.sn || '-'}
       const selected = actionTargetIds.includes(item.id);
       const late = (item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
       const deptInfo = DEPARTMENTS.find(d => d.id === (item.department || item.ownerDepartment));
-      const DeptIcon = Icons[deptInfo?.iconName] || Icons.Package;
+      const equipmentIcon = getEquipmentIconMeta(item);
       const deptPillClass = deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600');
       return (
         <button
@@ -12400,7 +12455,7 @@ S.N.: ${item.sn || '-'}
           <div>
             <div className="flex items-start justify-between gap-2">
               <div className={`w-8 h-8 rounded-2xl border flex items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-slate-800/50 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-800/55 text-slate-400' : 'bg-white border-slate-200 text-slate-500')}`}>
-                <DeptIcon className="w-4 h-4" />
+                <span className="text-lg leading-none">{equipmentIcon.emoji}</span>
               </div>
               <span className={`w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 font-black text-xs transition-all ${selected ? (isDarkMode ? 'bg-emerald-400 border-emerald-300 text-slate-950' : 'bg-emerald-600 border-emerald-600 text-white') : isDarkMode ? 'border-slate-800/55 bg-slate-950 text-slate-600 group-hover:text-slate-300' : 'border-slate-300 bg-white text-slate-300 group-hover:text-slate-500'}`}>{selected ? '✓' : ''}</span>
             </div>
@@ -12429,7 +12484,7 @@ S.N.: ${item.sn || '-'}
       const selected = actionTargetIds.includes(item.id);
       const late = (item.status === 'borrowed' || item.status === 'out-for-event') && item.expectedReturn && new Date(item.expectedReturn).getTime() < todayMs;
       const deptInfo = DEPARTMENTS.find(d => d.id === (item.department || item.ownerDepartment));
-      const DeptIcon = Icons[deptInfo?.iconName] || Icons.Package;
+      const equipmentIcon = getEquipmentIconMeta(item);
       const deptPillClass = deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600');
       return (
         <button
@@ -12441,7 +12496,7 @@ S.N.: ${item.sn || '-'}
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex items-start gap-3">
               <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${selected ? 'bg-white/10 border-slate-800/50 text-white' : deptInfo ? (isDarkMode ? deptInfo.darkColor : deptInfo.color) : (isDarkMode ? 'bg-slate-950 border-slate-800/55 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500')}`}>
-                <DeptIcon className="w-4 h-4" />
+                <span className="text-lg leading-none">{equipmentIcon.emoji}</span>
               </div>
               <div className="min-w-0">
                 <div className={`font-black text-sm leading-tight truncate ${selected ? 'text-white' : theme.textTitle}`}>{item.name || '-'}</div>
@@ -14181,7 +14236,7 @@ S.N.: ${item.sn || '-'}
                     <tbody>
                       {inventoryDisplayRows.map((item) => {
                         const deptUI = getInventoryDeptIdentity(item);
-                        const DeptIcon = Icons[deptUI.iconName] || Icons.Package;
+                        const equipmentIcon = getEquipmentIconMeta(item);
                         const statusInfo = STATUSES.find(s => s.id === item.status) || STATUSES[0];
                         const assetInfo = getAssetStatusInfo(item.assetStatus);
                         const proofCount = getItemProofCount(item);
@@ -14199,7 +14254,7 @@ S.N.: ${item.sn || '-'}
                                   className={`inventory-row-icon mt-0.5 w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${deptUI.iconWrap}`}
                                   style={{ boxShadow: `inset 3px 0 0 ${deptUI.accent}55` }}
                                 >
-                                  <DeptIcon className="w-5 h-5" />
+                                  <span className="text-xl leading-none" title={equipmentIcon.label}>{equipmentIcon.emoji}</span>
                                 </div>
                                 <div className="min-w-0">
                                   <div className={`font-black text-base leading-snug truncate ${theme.textTitle}`}>{item.name || '-'}</div>
@@ -15579,7 +15634,7 @@ S.N.: ${item.sn || '-'}
             </div>
             <div className="flex flex-wrap gap-2">
               <div className={`px-4 py-2.5 rounded-2xl border font-black ${isDarkMode ? 'bg-slate-900 border-slate-800/55 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>{warehouseCount.toLocaleString('th-TH')} รายการในโกดัง</div>
-              {canAddEditItems && <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'warehouse', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '', equipmentType: '', shortCode: '', ownerDepartment: '', mount: '', compatibleWith: '', linkedLensId: '', linkedLensName: '', currentLens: '', batteryModel: '', memoryCapacity: '', memoryType: '', memorySpeed: '', linkedMemoryId: '', linkedMemoryName: '', memoryAssignMode: '', assignedCamera: '' }); setShowForm(true); }} className="px-4 py-2.5 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white font-black">เพิ่มของเข้าโกดัง</button>}
+              {canAddEditItems && <button type="button" onClick={() => { setFormData({ id: '', name: '', sn: '', department: 'ภาพนิ่ง', category: '', newCategory: '', location: '', newLocation: '', status: 'warehouse', assetStatus: 'active', project: '', newProject: '', quantity: 1, owner: '', newOwner: '', isPersonalItem: false, qrTagged: false, internalNote: '', iconKey: 'auto', equipmentType: '', shortCode: '', ownerDepartment: '', mount: '', compatibleWith: '', linkedLensId: '', linkedLensName: '', currentLens: '', batteryModel: '', memoryCapacity: '', memoryType: '', memorySpeed: '', linkedMemoryId: '', linkedMemoryName: '', memoryAssignMode: '', assignedCamera: '' }); setShowForm(true); }} className="px-4 py-2.5 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white font-black">เพิ่มของเข้าโกดัง</button>}
             </div>
           </div>
           <div className="p-4 sm:p-5 space-y-4">
@@ -18680,7 +18735,8 @@ S.N.: ${item.sn || '-'}
         project: finalProject,
         assetStatus: formData.assetStatus || 'active',
         owner: finalOwner,
-        quantity: Number(formData.quantity) || 1, 
+        quantity: Number(formData.quantity) || 1,
+        iconKey: formData.iconKey || 'auto', 
         updatedAt: new Date().toISOString(),
         updatedBy: currentOperator?.name || 'Admin' 
       };
@@ -23723,7 +23779,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                                 {scannedSelection.map(item => {
                                   const st = STATUSES.find(s => s.id === item.status) || STATUSES[0];
                                   const deptUI = getInventoryDeptIdentity(item);
-                                  const DeptIcon = Icons[deptUI.iconName] || Icons.Package;
+                                  const equipmentIcon = getEquipmentIconMeta(item);
                                   return (
                                     <div
                                       key={item.id}
@@ -23732,7 +23788,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                                     >
                                       <div className="flex items-start gap-3 min-w-0">
                                         <div className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 border ${deptUI.iconWrap}`}>
-                                          <DeptIcon className="w-4 h-4" />
+                                          <span className="text-lg leading-none" title={equipmentIcon.label}>{equipmentIcon.emoji}</span>
                                         </div>
                                         <div className="min-w-0">
                                           <div className={`font-black truncate ${theme.textTitle}`}>{item.name}</div>
@@ -26322,6 +26378,44 @@ ${auditChangeSummary}` : auditChangeSummary);
                       isDarkMode={isDarkMode}
                       icon="🏷️"
                     />
+                  </div>
+                  <div className="sm:col-span-2">
+                    {(() => {
+                      const autoMeta = getEquipmentIconMeta({ ...formData, iconKey: 'auto' });
+                      const currentMeta = getEquipmentIconMeta(formData);
+                      const pickerOptions = EQUIPMENT_ICON_OPTIONS.filter(option => option.key !== 'package');
+                      return (
+                        <div className={`rounded-3xl border p-3 ${isDarkMode ? 'bg-slate-950/60 border-slate-800/55' : 'bg-white border-slate-200'}`}>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                            <div>
+                              <div className={`text-sm font-black ${theme.textTitle}`}>ไอคอนอุปกรณ์</div>
+                              <div className={`text-[11px] font-bold ${theme.textMuted}`}>ระบบเดาให้ก่อนจากชื่อ/หมวด หรือเลือกเองได้ เผื่อของแปลก ๆ ในศูนย์</div>
+                            </div>
+                            <div className={`px-3 py-1.5 rounded-2xl border text-xs font-black ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                              ใช้ตอนนี้: <span className="text-base align-middle">{currentMeta.emoji}</span> {formData.iconKey && formData.iconKey !== 'auto' ? currentMeta.label : `อัตโนมัติ • ${autoMeta.label}`}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
+                            {pickerOptions.map(option => {
+                              const active = (formData.iconKey || 'auto') === option.key;
+                              const isAuto = option.key === 'auto';
+                              return (
+                                <button
+                                  key={option.key}
+                                  type="button"
+                                  onClick={() => setFormData(prev => ({ ...prev, iconKey: option.key }))}
+                                  className={`min-h-[62px] rounded-2xl border p-2 flex flex-col items-center justify-center gap-1 transition ${active ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/20' : (isDarkMode ? 'bg-slate-900 border-slate-800/55 text-slate-200 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-white hover:border-blue-200')}`}
+                                  title={isAuto ? `อัตโนมัติ: ตอนนี้เดาเป็น ${autoMeta.label}` : option.label}
+                                >
+                                  <span className="text-xl leading-none">{isAuto ? autoMeta.emoji : option.emoji}</span>
+                                  <span className="text-[10px] font-black leading-tight text-center line-clamp-2">{isAuto ? 'อัตโนมัติ' : option.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </section>
