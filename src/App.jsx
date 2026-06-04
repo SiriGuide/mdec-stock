@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.3 Camera Confirm Warning Removal Hotfix';
-const APP_UPDATE_NOTE = 'Camera Confirm Warning Removal Hotfix: ถอดจุดเรียก warning helper ที่ทำให้ยืนยันยืม/ออกงานล้ม และใช้ชุดรายการสุดท้ายจากระบบพ่วงเลนส์เดิมแบบปลอดภัย';
+const APP_VERSION = 'v23.4.16.18.4 Borrow Event Confirm Safe Hotfix';
+const APP_UPDATE_NOTE = 'Borrow Event Confirm Safe Hotfix: ถอด helper ชุดกล้องที่อยู่นอก scope ตอนยืนยันยืม/ออกงาน เพื่อให้บันทึกได้เสถียรก่อน โดยยังไม่แตะ QR Scanner core';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -19172,9 +19172,8 @@ ${auditChangeSummary}` : auditChangeSummary);
       const uploadedProofs = await uploadProofsOrConfirm(borrowProofFiles, `หลักฐานการยืม • ${borrowData.borrower || ''}`);
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('BR');
-      // v23.4.16.18.3: ไม่เรียก warning helper ตอนยืนยัน เพราะบาง build อยู่นอก scope แล้วทำให้รายการยืมล้ม
-      // ใช้ระบบขยายชุดกล้อง/เลนส์เดิมโดยตรง เพื่อให้กดยืนยันได้เสถียรก่อน
-      const finalBorrowSet = expandCameraLinkedLensIdsForOperation(packingSet, 'borrow');
+      // v23.4.16.18.4: ใช้รายการที่ติ๊กไว้โดยตรงก่อน เพื่อกัน helper เลนส์นอก scope ทำให้ยืนยันยืมพัง
+      const finalBorrowSet = Array.from(new Set(asArray(packingSet).filter(Boolean)));
       const selectedBorrowItems = finalBorrowSet.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
       const documentSnapshot = makeBorrowเอกสารSnapshot({
         type: 'borrow',
@@ -19185,7 +19184,7 @@ ${auditChangeSummary}` : auditChangeSummary);
         expectedReturn: borrowData.returnDate,
         note: borrowData.note,
         selectedItems: selectedBorrowItems,
-        itemGroups: getCameraOperationItemGroups(finalBorrowSet, 'borrow'),
+        itemGroups: [],
         proofs: uploadedProofs
       });
       const newHistoryEntry = { type: 'borrow', date: docDate, documentId: docRef, documentRef: docRef, borrower: borrowData.borrower, expectedReturn: borrowData.returnDate, staffOut: finalStaff, note: borrowData.note, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
@@ -19196,7 +19195,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       });
       await Promise.all([setDoc(getBorrowDoc(docRef), documentSnapshot, { merge: true }), ...promises]);
 
-      logAction('ให้ยืมอุปกรณ์', `ทำรายการ ${selectedBorrowItems.length} ชิ้น / ชุดกล้อง ${getCameraOperationItemGroups(finalBorrowSet, 'borrow').length} ชุด`, `เลขที่เอกสาร: ${docRef}\nยืมโดย: ${borrowData.borrower} (จนท.ผู้ให้ยืม: ${finalStaff})\nรายการ: ${borrowedNames.join(', ')}`);
+      logAction('ให้ยืมอุปกรณ์', `ทำรายการ ${selectedBorrowItems.length} ชิ้น`, `เลขที่เอกสาร: ${docRef}\nยืมโดย: ${borrowData.borrower} (จนท.ผู้ให้ยืม: ${finalStaff})\nรายการ: ${borrowedNames.join(', ')}`);
       setพิมพ์SlipData(documentSnapshot);
       setBorrowTargetIds([]);
       setPackingSet([]);
@@ -19236,9 +19235,8 @@ ${auditChangeSummary}` : auditChangeSummary);
       const uploadedProofs = await uploadProofsOrConfirm(eventProofFiles, `หลักฐานออกงาน • ${eventData.eventName || ''}`);
       const docDate = new Date().toISOString();
       const docRef = makeเอกสารRef('EV');
-      // v23.4.16.18.3: ไม่เรียก warning helper ตอนยืนยัน เพราะบาง build อยู่นอก scope แล้วทำให้รายการออกงานล้ม
-      // ใช้ระบบขยายชุดกล้อง/เลนส์เดิมโดยตรง เพื่อให้กดยืนยันได้เสถียรก่อน
-      const finalEventSet = expandCameraLinkedLensIdsForOperation(eventSet, 'event');
+      // v23.4.16.18.4: ใช้รายการที่ติ๊กไว้โดยตรงก่อน เพื่อกัน helper เลนส์นอก scope ทำให้ยืนยันออกงานพัง
+      const finalEventSet = Array.from(new Set(asArray(eventSet).filter(Boolean)));
       const selectedEventItems = finalEventSet.map(id => items.find(i => i.id === id)).filter(i => i && i.status === 'available');
       const documentSnapshot = makeBorrowเอกสารSnapshot({
         type: 'event',
@@ -19249,7 +19247,7 @@ ${auditChangeSummary}` : auditChangeSummary);
         expectedReturn: eventData.returnDate,
         note: eventData.note,
         selectedItems: selectedEventItems,
-        itemGroups: getCameraOperationItemGroups(finalEventSet, 'event'),
+        itemGroups: [],
         proofs: uploadedProofs
       });
       const newHistoryEntry = { type: 'event', date: docDate, documentId: docRef, documentRef: docRef, eventName: eventData.eventName, expectedReturn: eventData.returnDate, staffOut: finalStaff, note: eventData.note, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
@@ -19260,7 +19258,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       });
       await Promise.all([setDoc(getBorrowDoc(docRef), documentSnapshot, { merge: true }), ...promises]);
 
-      logAction('นำออกงาน', `ทำรายการ ${selectedEventItems.length} ชิ้น / ชุดกล้อง ${getCameraOperationItemGroups(finalEventSet, 'event').length} ชุด`, `เลขที่เอกสาร: ${docRef}\nชื่องาน: ${eventData.eventName} (ผู้นำออก: ${finalStaff})\nรายการ: ${eventNames.join(', ')}`);
+      logAction('นำออกงาน', `ทำรายการ ${selectedEventItems.length} ชิ้น`, `เลขที่เอกสาร: ${docRef}\nชื่องาน: ${eventData.eventName} (ผู้นำออก: ${finalStaff})\nรายการ: ${eventNames.join(', ')}`);
       setพิมพ์SlipData(documentSnapshot);
       setEventTargetIds([]);
       setEventSet([]);
@@ -19330,7 +19328,7 @@ ${auditChangeSummary}` : auditChangeSummary);
         expectedReturn: '',
         note: selectedReturnItems.some(i => i.returnCondition !== 'ปกติ' || i.returnNote) ? 'มีบันทึกสภาพ/หมายเหตุรายชิ้น โปรดตรวจสอบในตาราง' : 'รับคืนสภาพปกติ / ตามที่ระบุรายชิ้น',
         itemIds: selectedReturnItems.map(i => i.id),
-        itemGroups: getCameraOperationItemGroups(finalReturnSet, 'return'),
+        itemGroups: [],
         returnMode: finalReturnSet.length < returnTargetIds.length ? 'partial-selected' : 'group-or-full',
         status: 'return-record',
         statusLabel: 'บันทึกรับคืน',
@@ -19390,7 +19388,7 @@ ${auditChangeSummary}` : auditChangeSummary);
         await Promise.all(archiveUpdates);
       }
 
-      logAction('รับคืนอุปกรณ์', `ทำรายการ ${finalReturnSet.length} ชิ้น / ชุดกล้อง ${getCameraOperationItemGroups(finalReturnSet, 'return').length} ชุด`, `จนท.ผู้รับคืน: ${finalStaff}\nเลขที่เอกสารรับคืน: ${returnDocRef}\nรายการ: ${returnedNames.join(', ')}`);
+      logAction('รับคืนอุปกรณ์', `ทำรายการ ${finalReturnSet.length} ชิ้น`, `จนท.ผู้รับคืน: ${finalStaff}\nเลขที่เอกสารรับคืน: ${returnDocRef}\nรายการ: ${returnedNames.join(', ')}`);
 
       // v23.1.87: ไม่เปิด/สร้างใบรับคืนให้พิมพ์แล้ว ใช้ประวัติส่วนกลาง + รูปหลักฐานแทน
       setReturnTargetIds([]);
