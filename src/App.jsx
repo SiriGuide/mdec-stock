@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.4 Borrow Event Confirm Safe Hotfix';
+const APP_VERSION = 'v23.4.16.18.5 Return Confirm Safe Hotfix';
 const APP_UPDATE_NOTE = 'Borrow Event Confirm Safe Hotfix: ถอด helper ชุดกล้องที่อยู่นอก scope ตอนยืนยันยืม/ออกงาน เพื่อให้บันทึกได้เสถียรก่อน โดยยังไม่แตะ QR Scanner core';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -11399,13 +11399,17 @@ S.N.: ${item.sn || '-'}
 
   const expandCameraLinkedLensIdsForOperation = (ids = [], mode = 'borrow') => {
     const baseIds = Array.from(new Set(asArray(ids).filter(Boolean)));
+    // v23.4.16.18.5 Return Confirm Safe Hotfix
+    // รับคืนต้องใช้รายการที่ผู้ใช้ติ๊กไว้โดยตรงก่อน ไม่ขยายชุดกล้อง/เลนส์อัตโนมัติ
+    // เพราะ flow รับคืนมีการดึงทั้งกลุ่มจากเอกสารอยู่แล้ว และการขยายเลนส์ทำให้กดรับคืนพัง/สับสนได้
+    if (mode === 'return') return baseIds;
     const expanded = [...baseIds];
     baseIds.forEach(id => {
       const camera = items.find(item => item && item.id === id && !item.isDeleted);
       if (!camera || inferCameraHelperKind(camera) !== 'camera') return;
       const linkedLens = getOperationSelectedLensForCamera(camera);
       const linkedMemory = getCameraLinkedMemoryAutoItem(camera);
-      // v23.1.78: ยืม/ออกงาน = ดึงเฉพาะของพร้อมใช้, รับคืน = ดึงเฉพาะของที่กำลังถูกยืมหรือออกงาน
+      // ยืม/ออกงานเท่านั้น: พ่วงเฉพาะเลนส์/เมมที่พร้อมใช้ ถ้ามีการเลือกให้พ่วง
       if (isOperationalLinkedAccessoryReady(linkedLens, mode) && !expanded.includes(linkedLens.id)) expanded.push(linkedLens.id);
       if (isOperationalLinkedAccessoryReady(linkedMemory, mode) && !expanded.includes(linkedMemory.id)) expanded.push(linkedMemory.id);
     });
@@ -19295,7 +19299,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       const uploadedProofs = await uploadProofsOrConfirm(returnProofFiles, `หลักฐานรับคืน • ${finalStaff || ''}`);
       const returnDocDate = new Date().toISOString();
       const returnDocRef = makeเอกสารRef('RT');
-      const finalReturnSet = expandCameraLinkedLensIdsForOperation(returnSet, 'return');
+      const finalReturnSet = Array.from(new Set(asArray(returnSet).filter(Boolean))); // v23.4.16.18.5 รับคืนตามรายการที่ติ๊กไว้ตรง ๆ
       const selectedReturnItems = finalReturnSet.map(id => {
         const item = items.find(i => i.id === id);
         const inspection = returnInspection[id] || { condition: 'ปกติ', note: '' };
