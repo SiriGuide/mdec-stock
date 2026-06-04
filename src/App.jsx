@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.1 QR Label Exact Size Polish';
+const APP_VERSION = 'v23.4.16.2 QR Print Panel Layout Hotfix';
 const APP_UPDATE_NOTE = 'QR Label Exact Size Polish: ปรับหน้าพิมพ์ QR ให้กำหนดขนาดฉลากเป็นมิลลิเมตรได้โดยตรง ทั้งกว้าง สูง และขนาด QR เพื่อกะระยะติดอุปกรณ์จริงได้ง่ายขึ้น โดยไม่แตะ QR Scanner core';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -8600,7 +8600,7 @@ function MainApp() {
         />
         {proofFiles.length > 0 && (
           <div className="mt-3 space-y-1">
-            <div className="flex justify-between items-center gap-2">
+            <div className="flex justify-between items-start gap-2">
               <span className="text-xs font-black">เลือกรูปแล้ว {proofFiles.length} รูป</span>
               <button type="button" onClick={() => setProofFiles([])} className={`text-xs font-black px-2 py-1 rounded-lg ${theme.btnCancel}`}>ล้างรูป</button>
             </div>
@@ -21295,7 +21295,7 @@ ${auditChangeSummary}` : auditChangeSummary);
             </p>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-3">
+          <div className="flex flex-wrap justify-start gap-3 w-full xl:w-auto">
             <div className="flex bg-slate-800 p-1 rounded-xl gap-1">
               {Object.entries(boxLabelSizePresets).map(([key, preset]) => (
                 <button
@@ -21587,7 +21587,7 @@ ${auditChangeSummary}` : auditChangeSummary);
              .qr-print-header { display: flex !important; align-items: end !important; justify-content: space-between !important; border-bottom: 1.4px solid #111827 !important; padding-bottom: 2mm !important; margin-bottom: 4mm !important; }
            }
          `}</style>
-         <div className="print:hidden p-4 bg-slate-800 text-white flex flex-col xl:flex-row justify-between items-center fixed top-0 w-full z-50 shadow-md gap-3">
+         <div className="print:hidden p-4 bg-slate-800/95 backdrop-blur text-white flex flex-col xl:flex-row justify-between items-center sticky top-0 w-full z-40 shadow-md gap-3">
             <div>
               <h2 className="font-bold text-xl flex items-center gap-2">
                 <Icons.QrCode className="w-6 h-6" /> พิมพ์ QR / ฉลากอุปกรณ์ ({selectedItems.length} ดวง)
@@ -21683,7 +21683,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
          {!isLabelMode ? (
            <div
-             className={`qr-plain-grid pt-52 xl:pt-36 p-8 grid ${activeQrGrid} gap-5 print:pt-0 print:p-0`}
+             className={`qr-plain-grid pt-6 p-8 grid ${activeQrGrid} gap-5 print:pt-0 print:p-0`}
              style={{ '--qr-card-width': qrPreset.printCardWidth, '--qr-card-height': qrPreset.printCardHeight, '--qr-image-size': qrPreset.printQrSize }}
            >
              {selectedItems.map(id => {
@@ -21710,7 +21710,7 @@ ${auditChangeSummary}` : auditChangeSummary);
            </div>
          ) : (
            <div
-             className={`qr-label-grid pt-52 xl:pt-36 p-8 grid ${activeQrGrid} gap-5 print:pt-0 print:p-0 print:gap-2`}
+             className={`qr-label-grid pt-6 p-8 grid ${activeQrGrid} gap-5 print:pt-0 print:p-0 print:gap-2`}
              style={{ '--qr-card-width': qrPreset.printCardWidth, '--qr-card-height': qrPreset.printCardHeight, '--qr-image-size': qrPreset.printQrSize }}
            >
              {selectedItems.map(id => {
