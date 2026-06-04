@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.17 Camera Linked Lens Default / Strict Lens Filter';
-const APP_UPDATE_NOTE = 'Camera Linked Lens Default / Strict Lens Filter: ตั้งเลนส์ที่ลิงก์กับกล้องเป็นค่าเริ่มต้นก่อนยืนยัน และกรองช่องเลือกเลนส์ไม่ให้ HDMI/สาย/อุปกรณ์อื่นโผล่';
+const APP_VERSION = 'v23.4.16.18 Camera Lens Selection TDZ Hotfix';
+const APP_UPDATE_NOTE = 'Camera Lens Selection TDZ Hotfix: แก้ ReferenceError ตอนติ๊กเลือกกล้อง โดยจัดลำดับฟังก์ชันเลือกเลนส์ก่อนสร้างกลุ่มชุดกล้อง และยังกรองเลนส์เข้มเหมือนเดิม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11943,9 +11943,6 @@ S.N.: ${item.sn || '-'}
       });
       return { bundles, looseItems, usedLensIds: usedKitChildIds };
     };
-    const operationBundleGroups = getOperationCameraBundleGroups(actionTargetIds);
-    const operationBundleCount = operationBundleGroups.bundles.filter(bundle => bundle.lens).length;
-    const operationGroupedSelectedCount = operationBundleGroups.bundles.length + operationBundleGroups.looseItems.length;
     const removeOperationSelectedItem = (id) => {
       const targetItem = items.find(item => item && item.id === id && !item.isDeleted);
       const linkedLens = getCameraLinkedLensAutoItem(targetItem);
@@ -12104,6 +12101,12 @@ S.N.: ${item.sn || '-'}
         return [];
       });
     };
+
+
+    // v23.4.16.18: ต้องสร้างกลุ่มชุดกล้องหลังจากประกาศ helper เลนส์แล้วเท่านั้น ไม่งั้น production build จะเจอ TDZ error ตอนติ๊กกล้อง
+    const operationBundleGroups = getOperationCameraBundleGroups(actionTargetIds);
+    const operationBundleCount = operationBundleGroups.bundles.filter(bundle => bundle.lens).length;
+    const operationGroupedSelectedCount = operationBundleGroups.bundles.length + operationBundleGroups.looseItems.length;
 
     const getReturnGroupIdsFromSelection = (sourceIds = actionTargetIds) => {
       const selectedIds = Array.from(new Set(asArray(sourceIds).filter(Boolean)));
