@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.15 Department Icons Restore / Camera Lens Swap Before Confirm';
-const APP_UPDATE_NOTE = 'Department Icons Restore / Camera Lens Swap: กลับไปใช้ไอคอนฝ่ายแบบเดิม และเพิ่มตัวเลือกเปลี่ยน/ถอดเลนส์ของกล้องก่อนยืนยันยืม/ออกงาน';
+const APP_VERSION = 'v23.4.16.16 Camera Select Toggle Hotfix';
+const APP_UPDATE_NOTE = 'Camera Select Toggle Hotfix: แก้การติ๊กเลือกกล้องในหน้ายืม/ออกงานให้เลือกบอดี้ได้ก่อน แล้วค่อยเปลี่ยน/พ่วงเลนส์ในขั้นตอนก่อนยืนยัน';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -12362,26 +12362,36 @@ S.N.: ${item.sn || '-'}
     const toggleOperationalItem = (id) => {
       if (!hasOperationPermission(borrowReturnMode)) { requireOperationalAccess(getOperationPermissionLabel(borrowReturnMode), borrowReturnMode); return; }
       const targetItem = items.find(item => item && item.id === id && !item.isDeleted);
+      if (!targetItem) return;
+      const isCamera = inferCameraHelperKind(targetItem) === 'camera';
       const linkedLens = getCameraLinkedLensAutoItem(targetItem);
       const linkedMemory = getCameraLinkedMemoryAutoItem(targetItem);
-      const linkedLensCanGo = isOperationalLinkedAccessoryReady(linkedLens, borrowReturnMode);
-      const linkedMemoryCanGo = isOperationalLinkedAccessoryReady(linkedMemory, borrowReturnMode);
 
       if (actionTargetIds.includes(id)) {
-        const removeIds = [id, ...(linkedLens && actionTargetIds.includes(linkedLens.id) ? [linkedLens.id] : []), ...(linkedMemory && actionTargetIds.includes(linkedMemory.id) ? [linkedMemory.id] : [])];
+        const overrideLensId = getOperationLensOverrideValue(id);
+        const selectedLensId = overrideLensId && overrideLensId !== 'none' ? overrideLensId : linkedLens?.id;
+        const removeIds = [id, selectedLensId, linkedLens?.id, linkedMemory?.id].filter(Boolean);
         const next = actionTargetIds.filter(x => !removeIds.includes(x));
         setActionTargets(next);
         setActionSet(actionSet.filter(x => !removeIds.includes(x)));
-      } else {
-        const next = expandCameraLinkedLensIdsForOperation([...actionTargetIds, id], borrowReturnMode);
+        setOperationLensOverrides(prev => { const copy = { ...(prev || {}) }; delete copy[id]; return copy; });
+      } else if (isCamera && borrowReturnMode !== 'return') {
+        // v23.4.16.16: ให้ติ๊กเลือกกล้องเป็น “บอดี้” ได้ก่อนเสมอ
+        // เลนส์จะไปเลือก/เปลี่ยน/ถอดในขั้นตอนก่อนยืนยัน ไม่ดึงอัตโนมัติจนทำให้ติ๊กกล้องแล้วสับสน
+        const next = Array.from(new Set([...actionTargetIds, id]));
         setActionTargets(next);
-        setActionSet(expandCameraLinkedLensIdsForOperation([...actionSet, id], borrowReturnMode));
-        if (linkedLensCanGo || linkedMemoryCanGo) {
-          const added = [linkedLensCanGo ? linkedLens.name || 'เลนส์' : '', linkedMemoryCanGo ? linkedMemory.name || 'เมม' : ''].filter(Boolean).join(' + ');
-          pushToast(borrowReturnMode === 'return' ? 'เพิ่มอุปกรณ์ชุดกล้องเข้ารับคืนแล้ว' : 'เพิ่มอุปกรณ์ในชุดกล้องให้แล้ว', `${targetItem?.name || 'กล้อง'} + ${added}`, 'info');
+        setActionSet(Array.from(new Set([...actionSet, id])));
+        if (linkedLens) {
+          pushToast('เลือกกล้องแล้ว', 'ก่อนยืนยันสามารถเลือกใช้เลนส์ที่ลิงก์ไว้ เปลี่ยนเลนส์ หรือเอาเฉพาะบอดี้ได้', 'info');
         }
-        if (linkedLens && !linkedLensCanGo) pushToast(borrowReturnMode === 'return' ? 'เลนส์ที่ลิงก์ไว้ยังไม่ได้อยู่ในสถานะรอคืน' : 'เลนส์ที่ลิงก์ไว้ยังไม่พร้อมใช้', `${linkedLens.name || 'เลนส์'} สถานะ ${getLinkedAccessoryStatusText(linkedLens)} จึงไม่ถูกเพิ่มอัตโนมัติ`, 'warning');
-        if (linkedMemory && !linkedMemoryCanGo) pushToast(borrowReturnMode === 'return' ? 'เมมที่ลิงก์ไว้ยังไม่ได้อยู่ในสถานะรอคืน' : 'เมมที่ลิงก์ไว้ยังไม่พร้อมใช้', `${linkedMemory.name || 'เมม'} สถานะ ${getLinkedAccessoryStatusText(linkedMemory)} จึงไม่ถูกเพิ่มอัตโนมัติ`, 'warning');
+      } else {
+        const next = borrowReturnMode === 'return'
+          ? expandCameraLinkedLensIdsForOperation([...actionTargetIds, id], borrowReturnMode)
+          : Array.from(new Set([...actionTargetIds, id]));
+        setActionTargets(next);
+        setActionSet(borrowReturnMode === 'return'
+          ? expandCameraLinkedLensIdsForOperation([...actionSet, id], borrowReturnMode)
+          : Array.from(new Set([...actionSet, id])));
       }
     };
 
