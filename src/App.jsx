@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.9 QR Plain Clean No Cutline Hotfix';
+const APP_VERSION = 'v23.4.16.11 Equipment Form Declutter / Lens Link Filter';
 const APP_UPDATE_NOTE = 'QR Label Simple Sizes Hotfix: ถอยระบบฉลาก QR ให้ใช้ง่ายเป็นขนาดเล็ก/กลาง/ใหญ่ที่เหมาะกับหัวขาไมค์ กล้อง และกล่อง พร้อมบังคับโหมดพิมพ์พื้นหลังขาว';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -21598,7 +21598,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       background: #ffffff !important;
       display: grid;
       grid-template-columns: repeat(auto-fill, ${cardWidth});
-      gap: 3mm;
+      gap: 1mm;
       align-items: start;
       justify-content: start;
       width: 100%;
@@ -21607,14 +21607,14 @@ ${auditChangeSummary}` : auditChangeSummary);
       width: ${cardWidth};
       min-height: ${cardHeight};
       background: #ffffff !important;
-      border: 0.25mm solid #cbd5e1;
-      border-radius: 2.3mm;
+      border: 0.18mm dashed #94a3b8;
+      border-radius: 0.8mm;
       overflow: hidden;
       break-inside: avoid;
       page-break-inside: avoid;
     }
     .label-card {
-      padding: 2mm;
+      padding: 1.5mm;
       display: flex;
       flex-direction: column;
       gap: 1.2mm;
@@ -21734,8 +21734,8 @@ ${auditChangeSummary}` : auditChangeSummary);
       justify-content: center;
       text-align: center;
       gap: .5mm;
-      border: none !important;
-      border-radius: 0;
+      border: 0.18mm dashed #94a3b8 !important;
+      border-radius: 0.8mm;
       outline: none !important;
     }
     .plain-qr { width: ${qrImageSize}; height: ${qrImageSize}; }
@@ -21874,7 +21874,7 @@ ${auditChangeSummary}` : auditChangeSummary);
              .qr-print-header { display: none !important; }
              .qr-label-card, .qr-plain-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; background: #fff !important; }
              .qr-plain-grid, .qr-label-grid { grid-template-columns: repeat(auto-fill, var(--qr-card-width)) !important; justify-content: start !important; align-items: start !important; background: #fff !important; border: 0 !important; outline: 0 !important; box-shadow: none !important; }
-             .qr-plain-grid, .qr-label-grid { gap: 2mm !important; }
+             .qr-plain-grid, .qr-label-grid { gap: 1mm !important; }
              .qr-plain-card { width: var(--qr-card-width) !important; min-height: var(--qr-card-height) !important; padding: 1mm !important; box-sizing: border-box !important; border: .15mm dashed #cbd5e1 !important; border-radius: .8mm !important; }
              .qr-plain-card .qr-code-image { width: var(--qr-image-size) !important; height: var(--qr-image-size) !important; margin-bottom: .5mm !important; }
              .qr-label-card { width: var(--qr-card-width) !important; min-height: var(--qr-card-height) !important; border: .15mm dashed #cbd5e1 !important; border-radius: .8mm !important; padding: 1mm !important; overflow: hidden !important; box-sizing: border-box !important; }
@@ -21931,7 +21931,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                </div>
 
                <div className="w-full text-xs sm:text-sm font-bold text-slate-300 bg-slate-800 border border-slate-800/55 rounded-xl px-4 py-3">
-                 {qrSizeNote} • QR ล้วนจะพิมพ์แบบสะอาด ไม่มีเส้นประช่วยตัด • กดปุ่มพิมพ์ QR ล้วน หรือ พิมพ์ฉลากข้อมูล ได้แยกกันชัดเจน • แนะนำตั้ง Scale เป็น 100% หรือ Default
+                 {qrSizeNote} • มีเส้นประบาง ๆ ช่วยตัดและลดช่องว่างระหว่างฉลากแล้ว • กดปุ่มพิมพ์ QR ล้วน หรือ พิมพ์ฉลากข้อมูล ได้แยกกันชัดเจน • แนะนำตั้ง Scale เป็น 100% หรือ Default
                </div>
 
                <div className="flex flex-wrap gap-2">
@@ -21963,14 +21963,14 @@ ${auditChangeSummary}` : auditChangeSummary);
 
          {!isLabelMode ? (
            <div
-             className="qr-plain-grid pt-6 p-8 grid gap-5 print:pt-0 print:p-0"
+             className="qr-plain-grid pt-6 p-6 grid gap-2 print:pt-0 print:p-0"
              style={qrGridStyle}
            >
              {selectedItems.map(id => {
                 const item = items.find(i => i.id === id);
                 if(!item) return null;
                 return (
-                   <div key={id} className={`qr-plain-card border border-transparent flex flex-col items-center text-center break-inside-avoid print:border-solid print:border-slate-400 rounded-xl print:rounded-none relative print:min-h-0 bg-white ${qrPreset.card}`}>
+                   <div key={id} className={`qr-plain-card border border-dashed border-slate-300 flex flex-col items-center text-center break-inside-avoid print:border-solid print:border-slate-400 rounded-xl print:rounded-none relative print:min-h-0 bg-white ${qrPreset.card}`}>
                       <div className="w-full flex items-center justify-between gap-2 mb-2 print:mb-1">
                         <div className="qr-brand-logo">
                           {showเอกสารLogo('qrLogo') && renderOrgLogoBox({ className: 'w-12 h-7 print:w-10 print:h-6 rounded-lg border border-slate-200 px-1.5 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
@@ -21990,7 +21990,7 @@ ${auditChangeSummary}` : auditChangeSummary);
            </div>
          ) : (
            <div
-             className="qr-label-grid pt-6 p-8 grid gap-5 print:pt-0 print:p-0 print:gap-2"
+             className="qr-label-grid pt-6 p-6 grid gap-2 print:pt-0 print:p-0 print:gap-1"
              style={qrGridStyle}
            >
              {selectedItems.map(id => {
@@ -26276,18 +26276,18 @@ ${auditChangeSummary}` : auditChangeSummary);
 
       {showForm && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-5 z-[9999]`}>
-          <div className={`item-form-shell compact-modal-shell rounded-3xl p-2.5 sm:p-3 lg:p-5 max-w-[900px] w-full max-h-[84vh] overflow-y-auto custom-scrollbar shadow-2xl border ${theme.cardBg}`}>
+          <div className={`item-form-shell compact-modal-shell rounded-3xl p-2.5 sm:p-3 lg:p-5 max-w-[980px] w-full max-h-[86vh] overflow-y-auto custom-scrollbar shadow-2xl border ${theme.cardBg}`}>
             <div className="flex justify-between items-start gap-3 mb-4">
               <div>
                 <h3 className={`text-lg sm:text-xl font-black ${theme.textTitle}`}>{formData.id ? 'แก้ไขข้อมูลอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
-                <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>แบ่งข้อมูลเป็นหมวด เพื่อกรอกง่ายและลดความผิดพลาด</p>
+                <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>กรอกเฉพาะข้อมูลหลักก่อน ส่วนกล้อง/เลนส์/เมมจะแสดงเท่าที่จำเป็น</p>
               </div>
               <button type="button" onClick={() => confirmCloseIfDirty(true, () => setShowForm(false))} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
             </div>
 
             <div className="space-y-5">
               <section className={`item-form-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-slate-50 border-slate-200'}`}>
-                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>1. ข้อมูลอุปกรณ์</div>
+                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>1. ข้อมูลหลัก</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="sm:col-span-2">
                     <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>ชื่ออุปกรณ์ <span className="text-rose-500">*</span></label>
@@ -26347,15 +26347,32 @@ ${auditChangeSummary}` : auditChangeSummary);
                   const isLens = equipmentType === 'lens';
                   const isMemory = equipmentType === 'memory';
                   const hasSpecificType = ['camera', 'lens', 'memory'].includes(equipmentType);
+                  const selectedLensId = formData.linkedLensId || formData.currentLensId || formData.attachedLensId || '';
+                  const selectedMemoryId = formData.linkedMemoryId || formData.currentMemoryId || formData.attachedMemoryId || '';
+                  const activeCameraItems = items.filter(item => item && !item.isDeleted && item.id !== formData.id && inferCameraHelperKind(item) === 'camera');
+                  const isLensLinkedToAnotherCamera = (lens) => {
+                    if (!lens) return false;
+                    const lensTokens = [lens.id, lens.sn, lens.shortCode, lens.localCode, lens.assetShortCode, lens.name]
+                      .map(value => String(value || '').trim())
+                      .filter(Boolean);
+                    const normalizedLensTokens = lensTokens.map(value => normalizeLensLinkText(value)).filter(Boolean);
+                    return activeCameraItems.some(camera => {
+                      const linkedLens = getLinkedLensItem(camera);
+                      if (linkedLens?.id && linkedLens.id === lens.id) return true;
+                      const rawValues = getCameraLensLinkValues(camera).map(value => String(value || '').trim()).filter(Boolean);
+                      if (rawValues.some(value => lensTokens.includes(value))) return true;
+                      const normalizedValues = rawValues.map(value => normalizeLensLinkText(value)).filter(Boolean);
+                      return normalizedValues.some(value => normalizedLensTokens.includes(value));
+                    });
+                  };
                   const lensOptions = items
                     .filter(item => item && !item.isDeleted && item.id !== formData.id && inferCameraHelperKind(item) === 'lens')
+                    .filter(lens => lens.id === selectedLensId || !isLensLinkedToAnotherCamera(lens))
                     .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true, sensitivity: 'base' }));
                   const memoryOptions = items
                     .filter(item => item && !item.isDeleted && item.id !== formData.id && inferCameraHelperKind(item) === 'memory')
                     .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true, sensitivity: 'base' }));
-                  const selectedLensId = formData.linkedLensId || formData.currentLensId || formData.attachedLensId || '';
-                  const selectedLens = lensOptions.find(item => item.id === selectedLensId);
-                  const selectedMemoryId = formData.linkedMemoryId || formData.currentMemoryId || formData.attachedMemoryId || '';
+                  const selectedLens = lensOptions.find(item => item.id === selectedLensId) || (selectedLensId ? items.find(item => item.id === selectedLensId) : null);
                   const selectedMemory = memoryOptions.find(item => item.id === selectedMemoryId);
                   const fieldCardClass = `p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950/50 border-slate-800' : 'bg-white/80 border-sky-100'}`;
                   const setLinkedLens = (lensId) => {
@@ -26383,8 +26400,8 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <>
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
                         <div>
-                          <div className={`font-black text-lg mb-1 flex items-center gap-2 ${theme.textTitle}`}>2. ข้อมูลเสริมแบบง่าย</div>
-                          <p className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>ระบบอ่านจาก “หมวดหมู่อุปกรณ์” ให้อัตโนมัติ: ถ้าเป็นกล้องให้เลือกเลนส์ที่ติดอยู่ + กรอกเมม ส่วนเลนส์ไม่ต้องกรอกข้อมูลเพิ่ม</p>
+                          <div className={`font-black text-lg mb-1 flex items-center gap-2 ${theme.textTitle}`}>2. ชุดกล้อง / เลนส์ / เมม</div>
+                          <p className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>แสดงเฉพาะช่องที่เกี่ยวกับหมวดที่เลือก เพื่อลดความรกตอนเพิ่ม/แก้ไขอุปกรณ์</p>
                         </div>
                         <div className={`px-3 py-2 rounded-2xl text-xs font-black border shrink-0 ${hasSpecificType ? (isDarkMode ? 'bg-slate-950/70 border-sky-800 text-sky-200' : 'bg-white border-sky-200 text-sky-700') : (isDarkMode ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600')}`}>
                           {typeMeta.icon} อ่านจากหมวด: {typeMeta.label}
@@ -26400,14 +26417,14 @@ ${auditChangeSummary}` : auditChangeSummary);
                         ) : (
                           <div>
                             <span className="font-black">📦 อุปกรณ์ทั่วไป</span>
-                            <span className="block text-xs opacity-80 mt-1">ส่วนนี้จะซ่อนเอง ถ้าเลือกหมวด “กล้อง / เมม” ระบบจะแสดงช่องที่เกี่ยวข้องให้อัตโนมัติ ส่วนเลนส์ไม่ต้องกรอกอะไรเพิ่ม</span>
+                            <span className="block text-xs opacity-80 mt-1">ไม่มีช่องเสริมสำหรับอุปกรณ์ทั่วไป</span>
                           </div>
                         )}
                       </div>
 
                       {!hasSpecificType ? (
                         <div className={`p-2.5 rounded-lg border text-sm font-bold ${isDarkMode ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-white/80 border-sky-100 text-slate-600'}`}>
-                          อุปกรณ์ทั่วไปไม่ต้องกรอกส่วนนี้ ถ้าเป็นกล้องให้เลือกหมวดหมู่เป็น “กล้อง” แล้วระบบจะแสดงช่องเลือกเลนส์ที่ติดอยู่กับเมมที่คากล้องให้อัตโนมัติ
+                          อุปกรณ์ทั่วไปไม่ต้องกรอกข้อมูลเสริม
                         </div>
                       ) : (
                         <div className="space-y-2.5 qr-side-panel">
@@ -26423,7 +26440,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                                   <option value="">-- ไม่ได้ลิงก์เลนส์ --</option>
                                   {lensOptions.map(lens => <option key={lens.id} value={lens.id}>{lens.name || 'เลนส์'}{lens.sn ? ` • S.N. ${lens.sn}` : ''}</option>)}
                                 </select>
-                                <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>เลือกจากอุปกรณ์หมวดเลนส์ในคลัง ถ้าไม่มีในรายการ ให้เพิ่มเลนส์เป็นอุปกรณ์ก่อน</div>
+                                <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>รายการนี้ซ่อนเลนส์ที่ลิงก์กับกล้องอื่นแล้ว เพื่อลดการลิงก์ซ้ำ</div>
                               </div>
                               <div>
                                 <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>เมมที่ลิงก์กับกล้องตอนนี้</label>
@@ -26477,7 +26494,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               </section>
 
               <section className={`item-form-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
-                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>3. ที่เก็บ / โครงการ / พัสดุ</div>
+                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>3. ที่เก็บและสถานะ</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="sm:col-span-2">
                     <SmartOptionInput
@@ -26526,7 +26543,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               </section>
 
               <section className={`item-form-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-white border-slate-200'}`}>
-                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>4. รายละเอียดเพิ่มเติม</div>
+                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>4. เพิ่มเติม</div>
                 <div className="space-y-4">
                   <div className={`p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-800/55' : 'bg-slate-50 border-slate-200'}`}>
                     <label className={`flex items-center gap-3 cursor-pointer ${theme.textTitle}`}>
