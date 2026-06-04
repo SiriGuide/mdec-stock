@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.21 Camera Spare Count Simple Polish';
-const APP_UPDATE_NOTE = 'Camera Spare Count Simple Polish: เปลี่ยนเมม/แบตสำรองเป็นตัวเลขจำนวนใบ/ก้อนแบบง่าย ๆ ในชุดกล้องก่อนยืนยัน ไม่ต้องคีย์เมม/แบตรายชิ้น';
+const APP_VERSION = 'v23.4.16.22 Camera Memory Note Rollback Hotfix';
+const APP_UPDATE_NOTE = 'Camera Kit Borrow Summary Polish: ปรับสรุปชุดกล้องก่อนยืนยันให้ชัดขึ้น เลนส์ยังเปลี่ยนเฉพาะรอบได้ เมม/แบตเป็นข้อมูลประกอบแบบของติดงาน และตัดรหัสสั้นออกจาก flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -7382,7 +7382,6 @@ function MainApp() {
   const [showOperationQuickPick, setShowOperationQuickPick] = useState(false);
   const [showOperationSelectedPanel, setShowOperationSelectedPanel] = useState(false);
   const [operationLensOverrides, setOperationLensOverrides] = useState({});
-  const [operationConsumableOptions, setOperationConsumableOptions] = useState({});
   const [operationPickerDept, setOperationPickerDept] = useState('');
   const [operationPickerLocation, setOperationPickerLocation] = useState('');
   const [operationPickerCategory, setOperationPickerCategory] = useState('');
@@ -11398,45 +11397,6 @@ S.N.: ${item.sn || '-'}
     return linkedMemory;
   };
 
-  const clampOperationSpareCount = (value, max = 9) => {
-    const number = Number(value);
-    if (!Number.isFinite(number)) return 0;
-    return Math.max(0, Math.min(max, Math.round(number)));
-  };
-
-  const getOperationCameraConsumableOptions = (cameraId) => {
-    if (!cameraId) return { spareMemoryCount: 0, spareBatteryCount: 0, note: '' };
-    const raw = operationConsumableOptions?.[cameraId] || {};
-    return {
-      spareMemoryCount: clampOperationSpareCount(raw.spareMemoryCount ?? (raw.spareMemory ? 1 : 0), 9),
-      spareBatteryCount: clampOperationSpareCount(raw.spareBatteryCount ?? (raw.spareBattery ? 1 : 0), 12),
-      note: String(raw.note || '').trim()
-    };
-  };
-
-  const updateOperationCameraConsumables = (cameraId, patch = {}) => {
-    if (!cameraId) return;
-    setOperationConsumableOptions(prev => ({
-      ...(prev || {}),
-      [cameraId]: {
-        ...(prev?.[cameraId] || {}),
-        ...patch
-      }
-    }));
-  };
-
-  const getOperationCameraConsumableText = (camera = {}) => {
-    if (!camera?.id) return '';
-    const baseMemory = getCameraSimpleMemoryText(camera);
-    const options = getOperationCameraConsumableOptions(camera.id);
-    const parts = [];
-    if (baseMemory) parts.push(`ติดกล้อง: ${baseMemory}`);
-    if (options.spareMemoryCount > 0) parts.push(`เมมสำรอง ${options.spareMemoryCount} ใบ`);
-    if (options.spareBatteryCount > 0) parts.push(`แบตสำรอง ${options.spareBatteryCount} ก้อน`);
-    if (options.note) parts.push(options.note);
-    return parts.join(' • ');
-  };
-
   const expandCameraLinkedLensIdsForOperation = (ids = [], mode = 'borrow') => {
     const baseIds = Array.from(new Set(asArray(ids).filter(Boolean)));
     const expanded = [...baseIds];
@@ -11469,7 +11429,7 @@ S.N.: ${item.sn || '-'}
         memoryId: '',
         memoryName: '',
         memorySn: '',
-        memoryText: getOperationCameraConsumableText(camera) || ''
+        memoryText: getCameraSimpleMemoryText(camera) || ''
       };
     }).filter(Boolean);
   };
@@ -11960,7 +11920,7 @@ S.N.: ${item.sn || '-'}
             camera: item,
             lens: selectedLens || null,
             memory: null,
-            memoryText: getOperationCameraConsumableText(item),
+            memoryText: getCameraSimpleMemoryText(item),
             missingLens: null,
             missingMemory: null
           });
@@ -11983,7 +11943,6 @@ S.N.: ${item.sn || '-'}
       setActionTargets(next);
       setActionSet(actionSet.filter(x => !removeIds.includes(x)));
       setOperationLensOverrides(prev => { const copy = { ...(prev || {}) }; delete copy[id]; return copy; });
-      setOperationConsumableOptions(prev => { const copy = { ...(prev || {}) }; delete copy[id]; return copy; });
       if (next.length === 0) setShowOperationSelectedPanel(false);
     };
     const ActionIcon = modeInfo.icon;
@@ -12407,7 +12366,6 @@ S.N.: ${item.sn || '-'}
     const clearOperationSelection = () => {
       setBorrowReturnStage('select');
       setOperationLensOverrides({});
-      setOperationConsumableOptions({});
       if (borrowReturnMode === 'event') {
         setEventTargetIds([]);
         setEventSet([]);
@@ -12440,7 +12398,6 @@ S.N.: ${item.sn || '-'}
         setActionTargets(next);
         setActionSet(actionSet.filter(x => !removeIds.includes(x)));
         setOperationLensOverrides(prev => { const copy = { ...(prev || {}) }; delete copy[id]; return copy; });
-        setOperationConsumableOptions(prev => { const copy = { ...(prev || {}) }; delete copy[id]; return copy; });
       } else if (isCamera && borrowReturnMode !== 'return') {
         // v23.4.16.16: ให้ติ๊กเลือกกล้องเป็น “บอดี้” ได้ก่อนเสมอ
         // เลนส์จะไปเลือก/เปลี่ยน/ถอดในขั้นตอนก่อนยืนยัน ไม่ดึงอัตโนมัติจนทำให้ติ๊กกล้องแล้วสับสน
@@ -12448,7 +12405,7 @@ S.N.: ${item.sn || '-'}
         setActionTargets(next);
         setActionSet(Array.from(new Set([...actionSet, id])));
         if (linkedLens) {
-          pushToast('เลือกกล้องแล้ว', 'ก่อนยืนยันเลือกเลนส์ได้ และใส่จำนวนเมมสำรอง/แบตสำรองได้', 'info');
+          pushToast('เลือกกล้องแล้ว', 'ก่อนยืนยันสามารถเลือกใช้เลนส์ที่ลิงก์ไว้ เปลี่ยนเลนส์ หรือเอาเฉพาะบอดี้ได้', 'info');
         }
       } else {
         const next = borrowReturnMode === 'return'
@@ -12963,7 +12920,7 @@ S.N.: ${item.sn || '-'}
                     <div className="min-w-0">
                       <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>Camera Cabinet</div>
                       <div className={`font-black mt-1 ${theme.textTitle}`}>ตู้กล้อง: เลือกกล้องหลักได้เลย เลนส์ที่ลิงก์ไว้จะขึ้นเป็นค่าเริ่มต้นก่อนยืนยัน</div>
-                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ก่อนยืนยันสามารถเปลี่ยนเลนส์หรือเอาเฉพาะบอดี้ได้ พร้อมใส่จำนวนเมมสำรอง/แบตสำรองแบบง่าย ๆ</div>
+                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ก่อนยืนยันสามารถเปลี่ยนเลนส์หรือเอาเฉพาะบอดี้ได้ ส่วนเมม/แบตให้ระบุเป็นของติดงานในหมายเหตุ ไม่ต้องคีย์ทีละใบ/ก้อน</div>
                     </div>
                   </div>
                 )}
@@ -12976,7 +12933,7 @@ S.N.: ${item.sn || '-'}
                         <div className="min-w-0">
                           <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Selected Items</div>
                           <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>รายการที่เลือก {actionTargetIds.length.toLocaleString('th-TH')} ชิ้น • {operationGroupedSelectedCount.toLocaleString('th-TH')} กลุ่ม</div>
-                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{borrowReturnMode === 'return' ? 'ถ้ารายการนี้มาจากเอกสารยืม/ออกงานเดียวกัน กดรับคืนทั้งกลุ่มได้ ไม่ต้องติ๊กทีละชิ้น' : 'กล้องที่ลิงก์เลนส์ไว้จะขึ้นเป็นค่าเริ่มต้นก่อนยืนยัน และใส่จำนวนเมมสำรอง/แบตสำรองได้แบบไม่ต้องคีย์ทีละชิ้น'}</div>
+                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{borrowReturnMode === 'return' ? 'ถ้ารายการนี้มาจากเอกสารยืม/ออกงานเดียวกัน กดรับคืนทั้งกลุ่มได้ ไม่ต้องติ๊กทีละชิ้น' : 'กล้องที่ลิงก์เลนส์ไว้จะขึ้นเป็นค่าเริ่มต้นก่อนยืนยัน ส่วนเมม/แบตให้ระบุเป็นของติดงาน ไม่ต้องคีย์ทีละใบ/ก้อน'}</div>
                         </div>
                         <button type="button" onClick={() => setShowOperationSelectedPanel(false)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}>×</button>
                       </div>
@@ -13019,62 +12976,7 @@ S.N.: ${item.sn || '-'}
                                     </select>
                                   </label>
                                 )}
-                                {borrowReturnMode !== 'return' && (() => {
-                                  const spareOptions = getOperationCameraConsumableOptions(bundle.camera.id);
-                                  const CounterButton = ({ children, onClick, disabled = false }) => (
-                                    <button
-                                      type="button"
-                                      onClick={onClick}
-                                      disabled={disabled}
-                                      className={`w-8 h-8 rounded-xl border font-black text-sm ${disabled ? 'opacity-40 cursor-not-allowed' : ''} ${theme.btnSecondary}`}
-                                    >
-                                      {children}
-                                    </button>
-                                  );
-                                  const renderSpareCounter = ({ label, unit, value, colorClass, max, field }) => (
-                                    <div className={`rounded-xl border px-3 py-2 ${value > 0 ? colorClass : (isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-700')}`}>
-                                      <div className="flex items-center justify-between gap-2">
-                                        <div>
-                                          <div className="text-xs font-black">{label}</div>
-                                          <div className="text-[10px] font-bold opacity-75">จำนวนที่ให้ยืมเป็นของสำรอง</div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <CounterButton disabled={value <= 0} onClick={() => updateOperationCameraConsumables(bundle.camera.id, { [field]: clampOperationSpareCount(value - 1, max) })}>−</CounterButton>
-                                          <div className="min-w-[54px] text-center">
-                                            <div className="text-lg font-black leading-none">{value}</div>
-                                            <div className="text-[10px] font-black opacity-75">{unit}</div>
-                                          </div>
-                                          <CounterButton disabled={value >= max} onClick={() => updateOperationCameraConsumables(bundle.camera.id, { [field]: clampOperationSpareCount(value + 1, max) })}>+</CounterButton>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                  return (
-                                    <div className={`mt-2 rounded-xl border p-2.5 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                                      <div className={`text-[10px] font-black mb-2 ${theme.textMuted}`}>เมม / แบต สำรองสำหรับงานนี้</div>
-                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                        {renderSpareCounter({
-                                          label: 'เมมสำรอง',
-                                          unit: 'ใบ',
-                                          value: spareOptions.spareMemoryCount,
-                                          max: 9,
-                                          field: 'spareMemoryCount',
-                                          colorClass: isDarkMode ? 'bg-cyan-950/35 border-cyan-700 text-cyan-200' : 'bg-cyan-50 border-cyan-200 text-cyan-800'
-                                        })}
-                                        {renderSpareCounter({
-                                          label: 'แบตสำรอง',
-                                          unit: 'ก้อน',
-                                          value: spareOptions.spareBatteryCount,
-                                          max: 12,
-                                          field: 'spareBatteryCount',
-                                          colorClass: isDarkMode ? 'bg-amber-950/35 border-amber-700 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'
-                                        })}
-                                      </div>
-                                      <input className={`mt-2 w-full px-3 py-2 rounded-xl border text-xs font-bold ${theme.input}`} placeholder="หมายเหตุเพิ่มเติม เช่น เมม 128GB / แบต Sony" value={spareOptions.note} onChange={(event) => updateOperationCameraConsumables(bundle.camera.id, { note: event.target.value })} />
-                                    </div>
-                                  );
-                                })()}
-                                <div className={theme.textMuted}>💾 เมม/แบต: <span className={theme.textTitle}>{bundle.memoryText || 'ไม่ได้เลือกของสำรอง / ระบุในหมายเหตุได้'}</span></div>
+                                <div className={theme.textMuted}>💾 เมม/แบต: <span className={theme.textTitle}>{bundle.memoryText || 'ระบุเป็นของติดงาน/หมายเหตุ ไม่ต้องคีย์ทีละใบหรือทีละก้อน'}</span></div>
                               </div>
                             </div>
                           </div>
@@ -13295,7 +13197,7 @@ S.N.: ${item.sn || '-'}
                               <div key={`check_bundle_${bundle.camera.id}`} className={`rounded-xl border p-2.5 ${checkedAll ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-white border-slate-200')}`}>
                                 <label className="flex items-start gap-3 cursor-pointer">
                                   <input type="checkbox" className="stock-check mt-0.5" checked={checkedAll} onChange={e => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionSet(e.target.checked ? Array.from(new Set([...actionSet, ...bundleIds])) : actionSet.filter(id => !bundleIds.includes(id))); }} />
-                                  <span className={`min-w-0 flex-1 text-sm font-black ${theme.textTitle}`}>ชุดกล้อง: {bundle.camera.name}<span className={`block text-xs font-bold ${theme.textMuted}`}>กล้อง + {bundle.lens ? bundle.lens.name : 'เฉพาะบอดี้ / ไม่พ่วงเลนส์'}{bundle.memoryText ? ` • เมม/แบต: ${bundle.memoryText}` : ' • เมม/แบต: ไม่ได้เลือกของสำรอง'}</span></span>
+                                  <span className={`min-w-0 flex-1 text-sm font-black ${theme.textTitle}`}>ชุดกล้อง: {bundle.camera.name}<span className={`block text-xs font-bold ${theme.textMuted}`}>กล้อง + {bundle.lens ? bundle.lens.name : 'เฉพาะบอดี้ / ไม่พ่วงเลนส์'}{bundle.memoryText ? ` • เมม/แบต: ${bundle.memoryText}` : ' • เมม/แบต: ระบุเป็นของติดงาน'}</span></span>
                                 </label>
                                 {borrowReturnMode !== 'return' && (
                                   <div className="mt-2 pl-8" onClick={(e) => e.stopPropagation()}>
@@ -13309,17 +13211,6 @@ S.N.: ${item.sn || '-'}
                                         <option key={lens.id} value={lens.id}>{lens.name || 'เลนส์'}{lens.sn ? ` • S.N. ${lens.sn}` : ''}</option>
                                       ))}
                                     </select>
-                                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                      <label className={`flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer text-xs font-black ${getOperationCameraConsumableOptions(bundle.camera.id).spareMemory ? (isDarkMode ? 'bg-cyan-950/35 border-cyan-700 text-cyan-200' : 'bg-cyan-50 border-cyan-200 text-cyan-800') : (isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-700')}`}>
-                                        <input type="checkbox" className="stock-check" checked={getOperationCameraConsumableOptions(bundle.camera.id).spareMemory} onChange={(event) => updateOperationCameraConsumables(bundle.camera.id, { spareMemory: event.target.checked })} />
-                                        <span>เมมสำรอง</span>
-                                      </label>
-                                      <label className={`flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer text-xs font-black ${getOperationCameraConsumableOptions(bundle.camera.id).spareBattery ? (isDarkMode ? 'bg-amber-950/35 border-amber-700 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800') : (isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-700')}`}>
-                                        <input type="checkbox" className="stock-check" checked={getOperationCameraConsumableOptions(bundle.camera.id).spareBattery} onChange={(event) => updateOperationCameraConsumables(bundle.camera.id, { spareBattery: event.target.checked })} />
-                                        <span>แบตสำรอง</span>
-                                      </label>
-                                    </div>
-                                    <input className={`mt-2 w-full px-3 py-2 rounded-xl border text-xs font-bold ${theme.input}`} placeholder="หมายเหตุของติดงาน" value={getOperationCameraConsumableOptions(bundle.camera.id).note} onChange={(event) => updateOperationCameraConsumables(bundle.camera.id, { note: event.target.value })} />
                                   </div>
                                 )}
                               </div>
@@ -19301,7 +19192,6 @@ ${auditChangeSummary}` : auditChangeSummary);
       setBorrowTargetIds([]);
       setPackingSet([]);
       setOperationLensOverrides({});
-      setOperationConsumableOptions({});
       setSelectedItems([]); 
       setBorrowData({ borrower: '', borrowDate: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setBorrowProofFiles([]);
@@ -19366,7 +19256,6 @@ ${auditChangeSummary}` : auditChangeSummary);
       setEventTargetIds([]);
       setEventSet([]);
       setOperationLensOverrides({});
-      setOperationConsumableOptions({});
       setSelectedItems([]); 
       setEventData({ eventName: '', returnDate: '', staff: '', newStaff: '', note: '' });
       setEventProofFiles([]);
