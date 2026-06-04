@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.8 QR Label Print Match Preview Fix';
+const APP_VERSION = 'v23.4.16.9 QR Plain Clean No Cutline Hotfix';
 const APP_UPDATE_NOTE = 'QR Label Simple Sizes Hotfix: ถอยระบบฉลาก QR ให้ใช้ง่ายเป็นขนาดเล็ก/กลาง/ใหญ่ที่เหมาะกับหัวขาไมค์ กล้อง และกล่อง พร้อมบังคับโหมดพิมพ์พื้นหลังขาว';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -21734,8 +21734,9 @@ ${auditChangeSummary}` : auditChangeSummary);
       justify-content: center;
       text-align: center;
       gap: .5mm;
-      border-style: dashed;
-      border-radius: 1mm;
+      border: none !important;
+      border-radius: 0;
+      outline: none !important;
     }
     .plain-qr { width: ${qrImageSize}; height: ${qrImageSize}; }
     .plain-brand { font-size: 4.8pt; letter-spacing: .12em; font-weight: 900; color: #0f172a; }
@@ -21930,7 +21931,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                </div>
 
                <div className="w-full text-xs sm:text-sm font-bold text-slate-300 bg-slate-800 border border-slate-800/55 rounded-xl px-4 py-3">
-                 {qrSizeNote} • กดปุ่มพิมพ์ QR ล้วน หรือ พิมพ์ฉลากข้อมูล ได้แยกกันชัดเจน • แนะนำตั้ง Scale เป็น 100% หรือ Default
+                 {qrSizeNote} • QR ล้วนจะพิมพ์แบบสะอาด ไม่มีเส้นประช่วยตัด • กดปุ่มพิมพ์ QR ล้วน หรือ พิมพ์ฉลากข้อมูล ได้แยกกันชัดเจน • แนะนำตั้ง Scale เป็น 100% หรือ Default
                </div>
 
                <div className="flex flex-wrap gap-2">
@@ -21969,7 +21970,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 const item = items.find(i => i.id === id);
                 if(!item) return null;
                 return (
-                   <div key={id} className={`qr-plain-card border border-slate-300 flex flex-col items-center text-center break-inside-avoid print:border-solid print:border-slate-400 rounded-xl print:rounded-none relative print:min-h-0 bg-white ${qrPreset.card}`}>
+                   <div key={id} className={`qr-plain-card border border-transparent flex flex-col items-center text-center break-inside-avoid print:border-solid print:border-slate-400 rounded-xl print:rounded-none relative print:min-h-0 bg-white ${qrPreset.card}`}>
                       <div className="w-full flex items-center justify-between gap-2 mb-2 print:mb-1">
                         <div className="qr-brand-logo">
                           {showเอกสารLogo('qrLogo') && renderOrgLogoBox({ className: 'w-12 h-7 print:w-10 print:h-6 rounded-lg border border-slate-200 px-1.5 py-0.5 shadow-sm', imgClassName: 'w-full h-full object-contain', fallbackIconClass: 'w-3 h-3' })}
