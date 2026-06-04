@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.15.1 Records / History Search Ref Hotfix';
-const APP_UPDATE_NOTE = 'Records / History Search Ref Hotfix: ให้ประวัติส่วนกลางค้นเจอจากเลขใบยืม/ใบออกงาน/เลขเอกสารได้จริง รวมถึงเชื่อมจากเอกสารย้อนหลังและหลักฐานรูปภาพโดยไม่รื้อ flow หลักและไม่แตะ QR Scanner core';
+const APP_VERSION = 'v23.4.16 Return Tracking / Follow-up Polish';
+const APP_UPDATE_NOTE = 'Return Tracking / Follow-up Polish: ปรับหน้าติดตามของรอคืนให้ค้นจากเลขเอกสารได้ แยกคืนบางส่วน ช่วยคัดลอกข้อความตามของ และโยงไปเอกสาร/ประวัติ/หลักฐานได้ชัดขึ้น โดยไม่รื้อ flow หลักและไม่แตะ QR Scanner core';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -14267,16 +14267,19 @@ S.N.: ${item.sn || '-'}
       ? returnTrackingData.dueToday
       : trackingTab === 'overdue' || trackingTab === 'issues'
         ? returnTrackingData.overdue
-        : trackingTab === 'event'
-          ? returnTrackingData.event
-          : trackingTab === 'borrowed'
-            ? returnTrackingData.borrowed
-            : activeList;
+        : trackingTab === 'partial'
+          ? returnTrackingData.partial
+          : trackingTab === 'event'
+            ? returnTrackingData.event
+            : trackingTab === 'borrowed'
+              ? returnTrackingData.borrowed
+              : activeList;
 
     const trackingTabs = [
       { id: 'all', label: 'ทั้งหมด', value: activeList.length, hint: 'ยืม + ออกงาน', icon: Icons.History, tone: 'slate' },
       { id: 'today', label: 'ต้องคืนวันนี้', value: returnTrackingData.dueToday.length, hint: 'เช็กก่อนปิดวัน', icon: Icons.History, tone: 'amber' },
       { id: 'overdue', label: 'เลยกำหนด', value: returnTrackingData.overdue.length, hint: 'ควรติดตาม', icon: Icons.Alert, tone: 'rose' },
+      { id: 'partial', label: 'คืนบางส่วน', value: returnTrackingData.partial.length, hint: 'เหลือรอคืน', icon: Icons.ClipboardList, tone: 'emerald' },
       { id: 'borrowed', label: 'ยืมอยู่', value: returnTrackingData.borrowed.length, hint: 'รายการยืม', icon: Icons.UserPlus, tone: 'violet' },
       { id: 'event', label: 'ออกงานอยู่', value: returnTrackingData.event.length, hint: 'นอกสถานที่', icon: Icons.Truck, tone: 'orange' }
     ];
@@ -14413,6 +14416,56 @@ S.N.: ${item.sn || '-'}
 
     const trackingGroupCards = buildTrackingGroupCards();
 
+    const getTrackingCardSearchKey = (card = {}) => {
+      const firstItem = asArray(card.items)[0] || {};
+      const ref = String(card.ref || '').trim();
+      if (ref && ref !== 'ข้อมูลเก่า' && ref !== '-') return ref;
+      return String(firstItem.borrowDocRef || firstItem.documentRef || firstItem.sn || firstItem.shortCode || card.title || firstItem.name || '').trim();
+    };
+
+    const openTrackingCardRecords = (card = {}, mode = 'docs') => {
+      const keyword = getTrackingCardSearchKey(card);
+      if (mode === 'history') {
+        setHistoryCenterSearch(keyword);
+        setHistoryCenterFilter('all');
+      } else if (mode === 'proofs') {
+        setProofCenterSearch(keyword);
+        setProofCenterFilter('all');
+      } else {
+        setBorrowDocSearch(keyword);
+        setBorrowDocFilter('all');
+      }
+      setRecordsCenterMode(mode);
+      openWorkspace('records');
+    };
+
+    const copyTrackingGroupMessage = async (card = {}) => {
+      const itemLines = asArray(card.items).slice(0, 12).map((item, index) => {
+        const info = getReturnTrackingDateInfo(item);
+        return `${index + 1}. ${item.name || '-'}${item.sn ? ` / S.N. ${item.sn}` : ''} — ${info.label}${info.daysText ? ` (${info.daysText})` : ''}`;
+      });
+      const extraCount = Math.max(0, asArray(card.items).length - itemLines.length);
+      const text = [
+        `แจ้งติดตามคืนอุปกรณ์ MDEC Stock`,
+        `ประเภท: ${card.typeLabel || '-'}`,
+        `เลขเอกสาร: ${card.ref || '-'}`,
+        `${card.type === 'event' ? 'ชื่องาน' : 'ผู้ยืม'}: ${card.title || '-'}`,
+        `กำหนดคืน: ${card.dueText || '-'}`,
+        `สถานะ: ${card.statusLabel || 'รอคืน'}`,
+        `คืนแล้ว: ${Number(card.returnedCount || 0).toLocaleString('th-TH')} / ${Number(card.total || 0).toLocaleString('th-TH')} รายการ`,
+        `ยังรอคืน: ${Number(card.remainingCount || 0).toLocaleString('th-TH')} รายการ`,
+        itemLines.length ? `รายการที่ยังรอคืน:\n${itemLines.join('\n')}${extraCount > 0 ? `\n...และอีก ${extraCount.toLocaleString('th-TH')} รายการ` : ''}` : 'รายการที่ยังรอคืน: -',
+        '',
+        'รบกวนตรวจสอบและนำอุปกรณ์มาคืนที่ศูนย์ MDEC ขอบคุณครับ'
+      ].join('\n');
+      try {
+        await navigator.clipboard.writeText(text);
+        pushToast('คัดลอกข้อความติดตามแล้ว', 'พร้อมส่ง LINE/แชทได้เลย', 'success');
+      } catch (error) {
+        window.prompt('คัดลอกข้อความนี้เพื่อนำไปส่งต่อ', text);
+      }
+    };
+
     const renderTrackingGroupCard = (card) => {
       const compactItems = asArray(card.items).slice(0, 8);
       const extraCount = Math.max(0, asArray(card.items).length - compactItems.length);
@@ -14447,8 +14500,15 @@ S.N.: ${item.sn || '-'}
               <span className="px-3 py-1.5 rounded-xl border text-[11px] font-black bg-emerald-950/35 border-emerald-800 text-emerald-200">คืนแล้ว {card.returnedCount.toLocaleString('th-TH')}</span>
               <span className="px-3 py-1.5 rounded-xl border text-[11px] font-black bg-amber-950/35 border-amber-800 text-amber-200">รอคืน {card.remainingCount.toLocaleString('th-TH')}</span>
               <span className={`px-3 py-1.5 rounded-xl border text-[11px] font-black ${statusPillClass(card.statusTone)}`}>{card.statusLabel}</span>
+              <button type="button" onClick={() => copyTrackingGroupMessage(card)} className="px-3 py-2.5 rounded-2xl border border-cyan-400/25 bg-cyan-500/10 text-cyan-100 hover:bg-cyan-500/15 text-xs font-black shadow-sm">คัดลอกตามของ</button>
               <button type="button" onClick={() => openReturnForItems(card.items.map(item => item.id))} className="ml-0 xl:ml-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-sm">รับคืนกลุ่มนี้</button>
             </div>
+          </div>
+
+          <div className="px-3.5 sm:px-4 pb-3 flex flex-wrap gap-2">
+            <button type="button" onClick={() => openTrackingCardRecords(card, 'docs')} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดเอกสาร</button>
+            <button type="button" onClick={() => openTrackingCardRecords(card, 'history')} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
+            <button type="button" onClick={() => openTrackingCardRecords(card, 'proofs')} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูหลักฐาน</button>
           </div>
 
           <div className="border-t border-slate-800/70" />
@@ -14508,7 +14568,7 @@ S.N.: ${item.sn || '-'}
           </div>
 
           <div className="p-4 sm:p-5 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-2.5">
               {trackingTabs.map(({ id, label, value, hint, icon: Icon, tone }) => {
                 const active = trackingTab === id || (id === 'all' && !['today', 'overdue', 'issues', 'event', 'borrowed'].includes(trackingTab));
                 return (
@@ -14530,9 +14590,12 @@ S.N.: ${item.sn || '-'}
               <div className="p-4 border-b border-slate-800/90 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3">
                 <div className="relative">
                   <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                  <input className={`w-full pl-12 pr-4 py-2.5 rounded-2xl border font-bold ${theme.input}`} placeholder="ค้นหาชื่ออุปกรณ์ / S.N. / ผู้ยืม / ชื่องาน" value={trackingSearch} onChange={e => setTrackingSearch(e.target.value)} />
+                  <input className={`w-full pl-12 pr-4 py-2.5 rounded-2xl border font-bold ${theme.input}`} placeholder="ค้นหาเลขเอกสาร / ผู้ยืม / ชื่องาน / อุปกรณ์ / S.N." value={trackingSearch} onChange={e => setTrackingSearch(e.target.value)} />
                 </div>
-                <div className="px-4 py-2.5 rounded-2xl border border-slate-800/55/70 bg-slate-900/70 text-slate-200 font-black text-center min-w-[150px]">{trackingGroupCards.length.toLocaleString('th-TH')} กลุ่ม / {visibleList.length.toLocaleString('th-TH')} ชิ้น</div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button type="button" onClick={() => { const sourceCard = trackingGroupCards.find(card => card.statusTone === 'rose') || trackingGroupCards[0]; if (sourceCard) copyTrackingGroupMessage(sourceCard); }} disabled={!trackingGroupCards.length} className="px-4 py-2.5 rounded-2xl border border-cyan-400/25 bg-cyan-500/10 text-cyan-100 disabled:opacity-40 font-black text-sm">คัดลอกกลุ่มแรก</button>
+                  <div className="px-4 py-2.5 rounded-2xl border border-slate-800/55/70 bg-slate-900/70 text-slate-200 font-black text-center min-w-[150px]">{trackingGroupCards.length.toLocaleString('th-TH')} กลุ่ม / {visibleList.length.toLocaleString('th-TH')} ชิ้น</div>
+                </div>
               </div>
 
               <div className="p-4 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
@@ -15952,32 +16015,76 @@ S.N.: ${item.sn || '-'}
   const returnTrackingData = useMemo(() => {
     const active = (todayFollowup.active || []).filter(item => item && !item.isDeleted);
     const search = String(trackingSearch || '').trim().toLowerCase();
+    const openDocs = asArray(borrowเอกสารs).filter(doc => {
+      const status = String(doc?.status || 'active').toLowerCase();
+      return !['closed', 'return-record', 'deleted', 'cancelled'].includes(status);
+    });
+    const partialDocs = openDocs.filter(doc => {
+      const status = String(doc.archivedStatus || doc.status || '').toLowerCase();
+      return status === 'partial' || status.includes('partial') || String(doc.statusLabel || '').includes('คืนบางส่วน');
+    });
+    const docSearchText = (doc = {}) => [
+      doc.ref,
+      doc.documentRef,
+      doc.documentId,
+      doc.docId,
+      doc.id,
+      doc.borrower,
+      doc.eventName,
+      doc.subject,
+      doc.staffOut,
+      doc.operatorName,
+      doc.expectedReturn,
+      doc.date,
+      asArray(doc.items).map(item => `${item?.name || ''} ${item?.sn || ''} ${item?.shortCode || ''}`).join(' ')
+    ].map(v => String(v || '').toLowerCase()).join(' ');
+    const matchedDocItemIds = new Set();
+    if (search) {
+      openDocs.forEach(doc => {
+        if (docSearchText(doc).includes(search)) {
+          asArray(doc.itemIds).forEach(id => id && matchedDocItemIds.add(id));
+          asArray(doc.items).forEach(item => item?.id && matchedDocItemIds.add(item.id));
+        }
+      });
+    }
+    const partialItemIds = new Set();
+    partialDocs.forEach(doc => {
+      asArray(doc.itemIds).forEach(id => id && partialItemIds.add(id));
+      asArray(doc.items).forEach(item => item?.id && partialItemIds.add(item.id));
+    });
     const match = (item) => {
       if (!search) return true;
+      if (matchedDocItemIds.has(item.id)) return true;
       return [
         item.name,
         item.sn,
+        item.shortCode,
+        item.assetCode,
         item.category,
         item.location,
+        item.storageLocation,
+        item.department,
         item.currentBorrower,
         item.currentEvent,
         item.borrower,
         item.eventName,
         item.staffOut,
-        item.internalNote
+        item.internalNote,
+        item.borrowDocId,
+        item.borrowDocRef,
+        item.documentRef,
+        item.documentId,
+        item.ref
       ].map(v => String(v || '').toLowerCase()).join(' ').includes(search);
     };
     const filteredActive = active.filter(match).slice().sort((a, b) => new Date(a.expectedReturn || '9999-12-31') - new Date(b.expectedReturn || '9999-12-31'));
-    const partialDocs = (borrowเอกสารs || []).filter(doc => {
-      const status = String(doc.archivedStatus || doc.status || '').toLowerCase();
-      return status === 'partial' || status.includes('partial') || String(doc.statusLabel || '').includes('คืนบางส่วน');
-    });
     return {
       active: filteredActive,
       dueToday: (todayFollowup.dueToday || []).filter(match),
       overdue: (todayFollowup.overdue || []).filter(match),
       borrowed: filteredActive.filter(item => item.status === 'borrowed'),
       event: filteredActive.filter(item => item.status === 'out-for-event'),
+      partial: filteredActive.filter(item => partialItemIds.has(item.id)),
       partialDocs,
       urgent: filteredActive.filter(item => {
         const info = getReturnTrackingDateInfo(item);
