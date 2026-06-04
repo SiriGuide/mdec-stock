@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18 Camera Lens Selection TDZ Hotfix';
-const APP_UPDATE_NOTE = 'Camera Lens Selection TDZ Hotfix: แก้ ReferenceError ตอนติ๊กเลือกกล้อง โดยจัดลำดับฟังก์ชันเลือกเลนส์ก่อนสร้างกลุ่มชุดกล้อง และยังกรองเลนส์เข้มเหมือนเดิม';
+const APP_VERSION = 'v23.4.16.19 Camera Kit Borrow Summary Polish';
+const APP_UPDATE_NOTE = 'Camera Kit Borrow Summary Polish: ปรับสรุปชุดกล้องก่อนยืนยันให้ชัดขึ้น เลนส์ยังเปลี่ยนเฉพาะรอบได้ เมม/แบตเป็นข้อมูลประกอบแบบของติดงาน และตัดรหัสสั้นออกจาก flow หลัก';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11404,10 +11404,8 @@ S.N.: ${item.sn || '-'}
       const camera = items.find(item => item && item.id === id && !item.isDeleted);
       if (!camera || inferCameraHelperKind(camera) !== 'camera') return;
       const linkedLens = getOperationSelectedLensForCamera(camera);
-      const linkedMemory = getCameraLinkedMemoryAutoItem(camera);
-      // v23.1.78: ยืม/ออกงาน = ดึงเฉพาะของพร้อมใช้, รับคืน = ดึงเฉพาะของที่กำลังถูกยืมหรือออกงาน
+      // v23.4.16.19: ดึงเฉพาะเลนส์เป็นอุปกรณ์จริง ส่วนเมม/แบตให้เป็นข้อมูลประกอบแบบของติดงาน ไม่ต้องคีย์ทีละใบ/ก้อน
       if (isOperationalLinkedAccessoryReady(linkedLens, mode) && !expanded.includes(linkedLens.id)) expanded.push(linkedLens.id);
-      if (isOperationalLinkedAccessoryReady(linkedMemory, mode) && !expanded.includes(linkedMemory.id)) expanded.push(linkedMemory.id);
     });
     return Array.from(new Set(expanded));
   };
@@ -11418,10 +11416,8 @@ S.N.: ${item.sn || '-'}
       const camera = items.find(item => item && item.id === id && !item.isDeleted && inferCameraHelperKind(item) === 'camera');
       if (!camera) return null;
       const linkedLens = getOperationSelectedLensForCamera(camera);
-      const linkedMemory = getCameraLinkedMemoryAutoItem(camera);
       const hasLinkedLens = linkedLens && idSet.has(linkedLens.id);
-      const hasLinkedMemory = linkedMemory && idSet.has(linkedMemory.id);
-      if (!hasLinkedLens && !hasLinkedMemory) return null;
+      if (!hasLinkedLens && !getCameraSimpleMemoryText(camera)) return null;
       return {
         type: mode === 'return' ? 'camera-kit-return' : 'camera-kit',
         cameraId: camera.id,
@@ -11430,9 +11426,9 @@ S.N.: ${item.sn || '-'}
         lensId: hasLinkedLens ? linkedLens.id : '',
         lensName: hasLinkedLens ? (linkedLens.name || '') : '',
         lensSn: hasLinkedLens ? (linkedLens.sn || '') : '',
-        memoryId: hasLinkedMemory ? linkedMemory.id : '',
-        memoryName: hasLinkedMemory ? (linkedMemory.name || '') : '',
-        memorySn: hasLinkedMemory ? (linkedMemory.sn || '') : '',
+        memoryId: '',
+        memoryName: '',
+        memorySn: '',
         memoryText: getCameraSimpleMemoryText(camera) || ''
       };
     }).filter(Boolean);
@@ -11781,7 +11777,6 @@ S.N.: ${item.sn || '-'}
                                       <div className={`text-xs font-bold ${theme.textMuted}`}>S.N. {item.sn || '-'} • {dept} • {item.location || '-'}</div>
                                       <div className="flex flex-wrap gap-1.5 mt-2">
                                         {spec && <span className="inline-flex px-2 py-1 rounded-full text-[11px] font-black bg-cyan-950/35 text-cyan-100 border border-cyan-500/50">{spec}</span>}
-                                        {item.shortCode && <span className={`inline-flex px-2 py-1 rounded-full text-[11px] font-black ${isDarkMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>{item.shortCode}</span>}
                                         {isOtherDept && <span className="inline-flex px-2 py-1 rounded-full text-[11px] font-black bg-amber-500 text-white">ข้ามฝ่าย</span>}
                                       </div>
                                     </div>
@@ -11920,17 +11915,14 @@ S.N.: ${item.sn || '-'}
         if (!item) return;
         if (inferCameraHelperKind(item) === 'camera') {
           const selectedLens = getOperationSelectedLensForCamera(item);
-          const linkedMemory = getCameraLinkedMemoryAutoItem(item);
-          const hasLinkedMemoryInSelection = linkedMemory && idSet.has(linkedMemory.id);
           if (selectedLens) usedKitChildIds.add(selectedLens.id);
-          if (hasLinkedMemoryInSelection) usedKitChildIds.add(linkedMemory.id);
           bundles.push({
             camera: item,
             lens: selectedLens || null,
-            memory: hasLinkedMemoryInSelection ? linkedMemory : null,
+            memory: null,
             memoryText: getCameraSimpleMemoryText(item),
             missingLens: null,
-            missingMemory: linkedMemory && !hasLinkedMemoryInSelection ? linkedMemory : null
+            missingMemory: null
           });
         }
       });
@@ -11946,8 +11938,7 @@ S.N.: ${item.sn || '-'}
     const removeOperationSelectedItem = (id) => {
       const targetItem = items.find(item => item && item.id === id && !item.isDeleted);
       const linkedLens = getCameraLinkedLensAutoItem(targetItem);
-      const linkedMemory = getCameraLinkedMemoryAutoItem(targetItem);
-      const removeIds = [id, ...(linkedLens && actionTargetIds.includes(linkedLens.id) ? [linkedLens.id] : []), ...(linkedMemory && actionTargetIds.includes(linkedMemory.id) ? [linkedMemory.id] : [])];
+      const removeIds = [id, ...(linkedLens && actionTargetIds.includes(linkedLens.id) ? [linkedLens.id] : [])];
       const next = actionTargetIds.filter(x => !removeIds.includes(x));
       setActionTargets(next);
       setActionSet(actionSet.filter(x => !removeIds.includes(x)));
@@ -11963,7 +11954,7 @@ S.N.: ${item.sn || '-'}
     const operationPageDesc = borrowReturnMode === 'event'
       ? 'แยกไว้สำหรับจัดอุปกรณ์ออกงานเท่านั้น เลือกของพร้อมใช้แล้วกรอกรายละเอียดงาน'
       : borrowReturnMode === 'return'
-        ? 'แยกไว้สำหรับรับคืนเท่านั้น เลือกได้หลายชิ้นพร้อมกัน และถ้าเลือกกล้องที่มีเลนส์/เมมลิงก์อยู่ ระบบจะดึงของชุดเดียวกันเข้ารับคืนให้'
+        ? 'แยกไว้สำหรับรับคืนเท่านั้น เลือกได้หลายชิ้นพร้อมกัน และถ้าเลือกของจากเอกสารเดียวกัน ระบบช่วยดึงกลุ่มรับคืนให้'
         : 'แยกไว้สำหรับยืมอุปกรณ์เท่านั้น ระบบจะแสดงเฉพาะของที่พร้อมใช้';
 
     const setActionTargets = (ids) => {
@@ -12536,7 +12527,7 @@ S.N.: ${item.sn || '-'}
             </div>
             <div className="mt-2 min-w-0">
               <div className={`font-black text-[13px] leading-tight line-clamp-2 ${selected ? 'text-white' : theme.textTitle}`}>{item.name || '-'}</div>
-              <div className={`mt-1 text-[10px] font-bold leading-snug line-clamp-2 ${selected ? 'text-white/75' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || item.storageBoxName || '-'}</div>
+              <div className={`mt-1 text-[10px] font-bold leading-snug line-clamp-2 ${selected ? 'text-white/75' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || item.storageLocation || item.storageBoxName || '-'}</div>
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>{getOperationHumanStatusLabel(item)}</span>
@@ -12575,7 +12566,7 @@ S.N.: ${item.sn || '-'}
               </div>
               <div className="min-w-0">
                 <div className={`font-black text-sm leading-tight truncate ${selected ? 'text-white' : theme.textTitle}`}>{item.name || '-'}</div>
-                <div className={`text-[11px] font-bold mt-1 truncate ${selected ? 'text-white/75' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || item.storageBoxName || '-'}</div>
+                <div className={`text-[11px] font-bold mt-1 truncate ${selected ? 'text-white/75' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || item.storageLocation || item.storageBoxName || '-'}</div>
                 {showFolderPath && (
                   <div className={`text-[10px] font-black mt-1 truncate ${selected ? 'text-white/70' : theme.textMuted}`}>{getOperationDeptLabel(item)} › {getOperationLocationLabel(item)} › {getOperationCategoryLabel(item)}</div>
                 )}
@@ -12928,8 +12919,8 @@ S.N.: ${item.sn || '-'}
                   <div className={`mx-3 mt-3 rounded-[1.35rem] border p-3 sm:p-4 ${isDarkMode ? 'bg-blue-950/18 border-blue-900/60' : 'bg-blue-50 border-blue-200'}`}>
                     <div className="min-w-0">
                       <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>Camera Cabinet</div>
-                      <div className={`font-black mt-1 ${theme.textTitle}`}>ตู้กล้อง: เลือกกล้องหลักได้เลย เลนส์/เมมที่ลิงก์ไว้จะติดรายการไปด้วยอัตโนมัติ</div>
-                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ในคลังจะแสดงว่ากล้องลิงก์เลนส์อะไรและมีเมมคากล้องเท่าไหร่ เลนส์เสริมหรือเมมเพิ่มยังเลือกแยกได้เหมือนเดิม</div>
+                      <div className={`font-black mt-1 ${theme.textTitle}`}>ตู้กล้อง: เลือกกล้องหลักได้เลย เลนส์ที่ลิงก์ไว้จะขึ้นเป็นค่าเริ่มต้นก่อนยืนยัน</div>
+                      <div className={`text-xs font-bold mt-1 leading-relaxed ${theme.textMuted}`}>ก่อนยืนยันสามารถเปลี่ยนเลนส์หรือเอาเฉพาะบอดี้ได้ ส่วนเมม/แบตให้ระบุเป็นของติดงานในหมายเหตุ ไม่ต้องคีย์ทีละใบ/ก้อน</div>
                     </div>
                   </div>
                 )}
@@ -12942,7 +12933,7 @@ S.N.: ${item.sn || '-'}
                         <div className="min-w-0">
                           <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Selected Items</div>
                           <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>รายการที่เลือก {actionTargetIds.length.toLocaleString('th-TH')} ชิ้น • {operationGroupedSelectedCount.toLocaleString('th-TH')} กลุ่ม</div>
-                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{borrowReturnMode === 'return' ? 'ถ้ารายการนี้มาจากเอกสารยืม/ออกงานเดียวกัน กดรับคืนทั้งกลุ่มได้ ไม่ต้องติ๊กทีละชิ้น' : 'กล้องที่ลิงก์เลนส์ไว้จะขึ้นเป็นค่าเริ่มต้นก่อนยืนยัน และเปลี่ยน/ถอดเลนส์ได้เฉพาะรอบนี้'}</div>
+                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{borrowReturnMode === 'return' ? 'ถ้ารายการนี้มาจากเอกสารยืม/ออกงานเดียวกัน กดรับคืนทั้งกลุ่มได้ ไม่ต้องติ๊กทีละชิ้น' : 'กล้องที่ลิงก์เลนส์ไว้จะขึ้นเป็นค่าเริ่มต้นก่อนยืนยัน ส่วนเมม/แบตให้ระบุเป็นของติดงาน ไม่ต้องคีย์ทีละใบ/ก้อน'}</div>
                         </div>
                         <button type="button" onClick={() => setShowOperationSelectedPanel(false)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}>×</button>
                       </div>
@@ -12985,7 +12976,7 @@ S.N.: ${item.sn || '-'}
                                     </select>
                                   </label>
                                 )}
-                                <div className={bundle.memory ? theme.textMuted : (isDarkMode ? 'text-amber-300' : 'text-amber-700')}>💾 เมม: <span className={theme.textTitle}>{bundle.memory ? `${bundle.memory.name || '-'}${bundle.memory.sn ? ` • S.N. ${bundle.memory.sn}` : ''}` : (bundle.missingMemory ? `${bundle.missingMemory.name || 'เมมที่ลิงก์ไว้'} ยังไม่ถูกเพิ่ม` : (bundle.memoryText || 'ยังไม่กรอก'))}</span></div>
+                                <div className={theme.textMuted}>💾 เมม/แบต: <span className={theme.textTitle}>{bundle.memoryText || 'ระบุเป็นของติดงาน/หมายเหตุ ไม่ต้องคีย์ทีละใบหรือทีละก้อน'}</span></div>
                               </div>
                             </div>
                           </div>
@@ -13200,13 +13191,13 @@ S.N.: ${item.sn || '-'}
                       {selectedActionItems.length === 0 ? <div className={`p-4 text-center text-sm font-bold ${theme.textMuted}`}>ยังไม่ได้เลือกอุปกรณ์</div> : (
                         <>
                           {operationBundleGroups.bundles.map(bundle => {
-                            const bundleIds = [bundle.camera.id, bundle.lens?.id, bundle.memory?.id].filter(Boolean);
+                            const bundleIds = [bundle.camera.id, bundle.lens?.id].filter(Boolean);
                             const checkedAll = bundleIds.every(id => actionSet.includes(id));
                             return (
                               <div key={`check_bundle_${bundle.camera.id}`} className={`rounded-xl border p-2.5 ${checkedAll ? (isDarkMode ? 'bg-emerald-950/25 border-emerald-800' : 'bg-emerald-50 border-emerald-200') : (isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-white border-slate-200')}`}>
                                 <label className="flex items-start gap-3 cursor-pointer">
                                   <input type="checkbox" className="stock-check mt-0.5" checked={checkedAll} onChange={e => { if (!requireOperationalAccess(currentOperationPermissionLabel, borrowReturnMode)) return; setActionSet(e.target.checked ? Array.from(new Set([...actionSet, ...bundleIds])) : actionSet.filter(id => !bundleIds.includes(id))); }} />
-                                  <span className={`min-w-0 flex-1 text-sm font-black ${theme.textTitle}`}>ชุดกล้อง: {bundle.camera.name}<span className={`block text-xs font-bold ${theme.textMuted}`}>กล้อง + {bundle.lens ? bundle.lens.name : 'เฉพาะบอดี้ / ไม่พ่วงเลนส์'}{bundle.memory ? ` • เมม ${bundle.memory.name}` : (bundle.memoryText ? ` • เมม ${bundle.memoryText}` : '')}</span></span>
+                                  <span className={`min-w-0 flex-1 text-sm font-black ${theme.textTitle}`}>ชุดกล้อง: {bundle.camera.name}<span className={`block text-xs font-bold ${theme.textMuted}`}>กล้อง + {bundle.lens ? bundle.lens.name : 'เฉพาะบอดี้ / ไม่พ่วงเลนส์'}{bundle.memoryText ? ` • เมม/แบต: ${bundle.memoryText}` : ' • เมม/แบต: ระบุเป็นของติดงาน'}</span></span>
                                 </label>
                                 {borrowReturnMode !== 'return' && (
                                   <div className="mt-2 pl-8" onClick={(e) => e.stopPropagation()}>
@@ -13567,7 +13558,7 @@ S.N.: ${item.sn || '-'}
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className={`text-lg font-black truncate ${theme.textTitle}`}>{item.name || '-'}</div>
-              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || item.assetShortCode || item.localCode || 'ไม่มีรหัสสั้น'}</div>
+              <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'}</div>
             </div>
             <span className={`editor-chip px-2.5 py-1 rounded-xl text-[11px] font-black border shrink-0 ${found ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-500' : item.status === 'maintenance' ? 'bg-rose-500/10 border-rose-500/25 text-rose-500' : item.status === 'borrowed' || item.status === 'out-for-event' ? 'bg-purple-500/10 border-purple-500/25 text-purple-500' : 'bg-amber-500/10 border-amber-500/25 text-amber-500'}`}>{auditStatus}</span>
           </div>
@@ -13818,7 +13809,7 @@ S.N.: ${item.sn || '-'}
             <form onSubmit={(e) => { e.preventDefault(); handleStockCountScan(); }} className={`p-3 rounded-3xl border flex flex-col lg:flex-row gap-3 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
               <div className={`flex-1 flex items-center gap-3 px-4 py-2.5 rounded-2xl border ${theme.input}`}>
                 <Icons.Search className={`w-5 h-5 shrink-0 ${theme.textMuted}`} />
-                <input value={stockCountInput} onChange={(e) => setStockCountInput(e.target.value)} className="bg-transparent outline-none w-full font-black text-base" placeholder="ยิงบาร์โค้ด / พิมพ์ S.N. / รหัสสั้น / ชื่ออุปกรณ์ แล้วกด Enter" />
+                <input value={stockCountInput} onChange={(e) => setStockCountInput(e.target.value)} className="bg-transparent outline-none w-full font-black text-base" placeholder="ยิงบาร์โค้ด / พิมพ์ S.N. / ชื่ออุปกรณ์ แล้วกด Enter" />
               </div>
               <button className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">บันทึกว่าพบ</button>
               <button type="button" onClick={openStockCountScanner} className="px-6 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black">สแกนด้วยกล้องเดิม</button>
@@ -13879,7 +13870,7 @@ S.N.: ${item.sn || '-'}
                   <div className={`min-h-[260px] rounded-3xl border border-dashed flex flex-col items-center justify-center text-center p-6 ${isDarkMode ? 'border-slate-800/55 bg-slate-950' : 'border-slate-200 bg-slate-50'}`}>
                     <Icons.Search className={`w-12 h-12 mb-4 ${theme.textMuted}`} />
                     <div className={`text-2xl font-black ${theme.textTitle}`}>ไม่พบรายการตามตัวกรอง</div>
-                    <p className={`text-sm font-bold mt-2 max-w-md ${theme.textMuted}`}>ลองล้างตัวกรอง หรือค้นหาด้วย S.N. / รหัสสั้น / ชื่ออุปกรณ์</p>
+                    <p className={`text-sm font-bold mt-2 max-w-md ${theme.textMuted}`}>ลองล้างตัวกรอง หรือค้นหาด้วย S.N. / ชื่ออุปกรณ์</p>
                     <button type="button" onClick={resetStockCountFilters} className="mt-5 px-5 py-2.5 rounded-2xl bg-emerald-600 text-white font-black">ล้างตัวกรอง</button>
                   </div>
                 ) : (
@@ -14022,7 +14013,7 @@ S.N.: ${item.sn || '-'}
     }[tone] || theme.btnSecondary);
 
     const exportInventoryCSV = () => {
-      const headers = ['ชื่ออุปกรณ์','S.N.','รหัสสั้น','หมวดหมู่','ฝ่าย','ที่เก็บ','สถานะ','จำนวน','โครงการ','สถานะพัสดุ','QR','หมายเหตุ'];
+      const headers = ['ชื่ออุปกรณ์','S.N.','หมวดหมู่','ฝ่าย','ที่เก็บ','สถานะ','จำนวน','โครงการ','สถานะพัสดุ','QR','หมายเหตุ'];
       const rows = filteredItems.map(item => {
         const deptInfo = DEPARTMENTS.find(d => d.id === item.department) || {};
         const statusInfo = STATUSES.find(s => s.id === item.status) || {};
@@ -14030,7 +14021,6 @@ S.N.: ${item.sn || '-'}
         return [
           item.name || '',
           item.sn || '',
-          item.shortCode || item.assetShortCode || item.localCode || '',
           item.category || '',
           deptInfo.label || item.department || '',
           item.location || '',
@@ -14153,7 +14143,7 @@ S.N.: ${item.sn || '-'}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="bg-transparent outline-none w-full font-black"
-                      placeholder="ค้นหา ชื่อ / S.N. / รหัสสั้น / หมวดหมู่ / ที่เก็บ / โครงการ / ฝ่าย"
+                      placeholder="ค้นหา ชื่อ / S.N. / หมวดหมู่ / ที่เก็บ / โครงการ / ฝ่าย"
                     />
                   </div>
                   <div className="flex flex-wrap gap-2 justify-start xl:justify-end">
@@ -14176,7 +14166,7 @@ S.N.: ${item.sn || '-'}
                       {chip.label}<span className="opacity-70">×</span>
                     </button>
                   ))}
-                  {activeFilterChips.length === 0 && <span className={`text-xs font-bold px-3 py-2 ${theme.textMuted}`}>พิมพ์ค้นหาได้จากชื่อ, S.N., รหัสสั้น, หมวดหมู่, ที่เก็บ, โครงการ และฝ่าย</span>}
+                  {activeFilterChips.length === 0 && <span className={`text-xs font-bold px-3 py-2 ${theme.textMuted}`}>พิมพ์ค้นหาได้จากชื่อ, S.N., หมวดหมู่, ที่เก็บ, โครงการ และฝ่าย</span>}
                 </div>
 
                 {showInventoryFilterPanel && (
@@ -14362,7 +14352,7 @@ S.N.: ${item.sn || '-'}
                                 </div>
                                 <div className="min-w-0">
                                   <div className={`font-black text-base leading-snug truncate ${theme.textTitle}`}>{item.name || '-'}</div>
-                                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || item.assetShortCode || item.localCode || 'ไม่มีรหัสสั้น'}</div>
+                                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'}</div>
                                   <div className={`inventory-open-cue text-[11px] font-black mt-1 ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>กดแถวเพื่อเปิดแฟ้มอุปกรณ์</div>
                                   {renderCameraKitInline(item, { compact: true })}
                                   {item.__isCameraKitParent && (item.__linkedLensInlineName || item.__linkedMemoryInlineName) && (
@@ -18145,7 +18135,6 @@ S.N.: ${item.sn || '-'}
     const missingCategory = activeItems.filter(i => !has(i.category));
     const missingProject = activeItems.filter(i => !has(i.project) || String(i.project || '').trim() === 'ไม่ระบุโครงการ');
     const missingQrTag = activeItems.filter(i => !i.qrTagged);
-    const missingShortCode = activeItems.filter(i => (isBattery(i) || isMemory(i)) && !has(i.shortCode));
     const missingOwnerDepartment = activeItems.filter(i => (isCamera(i) || isLens(i) || isBattery(i) || isMemory(i)) && !has(i.ownerDepartment) && !has(i.department));
     const cameraMissingMount = activeItems.filter(i => isCamera(i) && !has(i.mount) && !has(i.lensMount));
     const lensMissingMount = activeItems.filter(i => isLens(i) && !has(i.mount) && !has(i.lensMount));
@@ -18160,7 +18149,6 @@ S.N.: ${item.sn || '-'}
       ...missingCategory,
       ...missingProject,
       ...missingQrTag,
-      ...missingShortCode,
       ...missingOwnerDepartment,
       ...cameraMissingMount,
       ...lensMissingMount,
@@ -18210,8 +18198,7 @@ S.N.: ${item.sn || '-'}
       makeCard('location', 'ไม่ระบุที่เก็บ', missingLocation, 'ช่วยให้รู้ว่าของควรอยู่ที่ไหนหลังคืน', 'amber', 'core', 'high', 'ระบุห้อง / ตู้ / กล่องเก็บ'),
       makeCard('category', 'ไม่ระบุหมวดหมู่', missingCategory, 'ทำให้ filter และรายงานแม่นขึ้น', 'amber', 'core', 'high', 'เลือกหมวดหมู่หลักของอุปกรณ์'),
       makeCard('project', 'ยังไม่ระบุโครงการ', missingProject, 'ช่วยแยกของตามโครงการจัดซื้อ/จัดหา และทำรายงานพัสดุได้ง่ายขึ้น', 'slate', 'core', 'normal', 'เลือกโครงการหรือปล่อยไว้ถ้ายังไม่ทราบ'),
-      makeCard('qr', 'ยังไม่ติด QR', missingQrTag, 'ควรติดฉลาก QR หรือกำหนดรหัสสั้นสำหรับของชิ้นเล็ก', 'sky', 'qr', 'normal', 'พิมพ์ฉลาก QR หรือติ๊กว่าติดแล้ว'),
-      makeCard('shortCode', 'แบต/เมมไม่มีรหัสสั้น', missingShortCode, 'แนะนำรหัสแบบ PH-B01, OB-M02 สำหรับติดบนตัวของ', 'cyan', 'small', 'normal', 'เติมรหัสสั้นที่อ่านได้บนตัวของ'),
+      makeCard('qr', 'ยังไม่ติด QR', missingQrTag, 'ควรติดฉลาก QR สำหรับสแกนใช้งานจริง', 'sky', 'qr', 'normal', 'พิมพ์ฉลาก QR หรือติ๊กว่าติดแล้ว'),
       makeCard('ownerDept', 'ยังไม่ระบุฝ่ายดูแล', missingOwnerDepartment, 'ควรระบุ ภาพนิ่ง / วิดีโอ / OB-Live / ส่วนกลาง', 'indigo', 'core', 'normal', 'ระบุฝ่ายดูแลหรือฝ่ายเจ้าของอุปกรณ์'),
       makeCard('cameraMount', 'กล้องยังไม่มีเมาท์', cameraMissingMount, 'ช่วยให้ตัวช่วยกล้องแนะนำเลนส์ได้แม่นขึ้น', 'blue', 'camera', 'normal', 'เติม Mount เช่น Sony E / Canon RF'),
       makeCard('lensMount', 'เลนส์ยังไม่มีเมาท์', lensMissingMount, 'ช่วยป้องกันเลือกเลนส์ผิดระบบเมาท์', 'blue', 'lens', 'normal', 'เติม Mount ของเลนส์'),
@@ -18562,7 +18549,7 @@ S.N.: ${item.sn || '-'}
       ]);
     });
 
-    const headers = ['หมวด', 'ลำดับ/รายการ', 'ชื่ออุปกรณ์', 'S.N.', 'รหัสสั้น', 'หมวดหมู่', 'ที่เก็บ', 'ฝ่าย', 'โครงการ', 'สถานะระบบ', 'ผลตรวจนับ', 'เวลาที่พบ', 'หมายเหตุ/ข้อมูลที่ขาด'];
+    const headers = ['หมวด', 'ลำดับ/รายการ', 'ชื่ออุปกรณ์', 'S.N.', 'หมวดหมู่', 'ที่เก็บ', 'ฝ่าย', 'โครงการ', 'สถานะระบบ', 'ผลตรวจนับ', 'เวลาที่พบ', 'หมายเหตุ/ข้อมูลที่ขาด'];
     backupDownloadCSV(`MDEC_Stock_Count_${mode}_${stockCountSession.date || getBackupFileTag()}.csv`, headers, rows);
     await logAction('ส่งออก CSV ตรวจนับสต๊อก', stockCountSession.name || '-', `mode=${mode} rows=${rows.length}`);
     pushToast('ดาวน์โหลด CSV ตรวจนับแล้ว', 'success');
@@ -18826,8 +18813,8 @@ S.N.: ${item.sn || '-'}
             linkedLensId: selectedLinkedLens?.id || formData.linkedLensId || formData.currentLensId || formData.attachedLensId || formData.lensId || '',
             linkedLensName: selectedLinkedLens?.name || formData.linkedLensName || formData.currentLensName || formData.currentLens || formData.attachedLens || formData.defaultLens || '',
             currentLens: selectedLinkedLens?.name || formData.currentLens || formData.linkedLensName || formData.attachedLens || formData.defaultLens || '',
-            linkedMemoryId: selectedLinkedMemory?.id || formData.linkedMemoryId || formData.currentMemoryId || formData.attachedMemoryId || formData.memoryId || '',
-            linkedMemoryName: selectedLinkedMemory?.name || formData.linkedMemoryName || formData.currentMemoryName || formData.currentMemory || formData.attachedMemory || formData.defaultMemory || ''
+            linkedMemoryId: '',
+            linkedMemoryName: ''
           }
         : (formKind === 'lens' ? { linkedLensId: '', linkedLensName: '', currentLens: '', compatibleWith: '' } : (formKind === 'memory' ? { linkedMemoryId: '', linkedMemoryName: '', assignedCamera: '' } : {}));
 
@@ -18841,7 +18828,11 @@ S.N.: ${item.sn || '-'}
         owner: finalOwner,
         quantity: Number(formData.quantity) || 1, 
         updatedAt: new Date().toISOString(),
-        updatedBy: currentOperator?.name || 'Admin' 
+        updatedBy: currentOperator?.name || 'Admin',
+        shortCode: '',
+        shortLabel: '',
+        assetShortCode: '',
+        localCode: ''
       };
       delete itemData.newCategory;
       delete itemData.newLocation;
@@ -19527,7 +19518,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
   const openItemEditor = (item) => {
     if (!item) return;
-    setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newProject: '', newOwner: item.owner || '', isPersonalItem: !!item.owner, assetStatus: item.assetStatus || 'active', equipmentType: item.equipmentType || item.subType || item.type || '', shortCode: item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || '', ownerDepartment: item.ownerDepartment || item.ownerTeam || item.mainOwnerTeam || item.responsibleTeam || '', mount: item.mount || item.lensMount || item.cameraMount || '', compatibleWith: item.compatibleWith || item.useWith || item.supportedDevices || '', linkedLensId: item.linkedLensId || item.currentLensId || item.attachedLensId || item.lensId || item.defaultLensId || item.kitLensId || item.cameraLensId || item.pairedLensId || item.mainLensId || '', linkedLensName: item.linkedLensName || item.currentLensName || item.attachedLensName || item.defaultLensName || item.kitLensName || item.cameraLensName || item.pairedLensName || item.mainLensName || item.currentLens || item.attachedLens || item.defaultLens || item.compatibleWith || '', currentLens: item.currentLens || item.currentLensName || item.attachedLens || item.attachedLensName || item.defaultLens || item.defaultLensName || item.linkedLensName || item.compatibleWith || '', batteryModel: item.batteryModel || item.batteryType || item.batteryCode || '', memoryCapacity: item.memoryCapacity || item.capacity || item.storageCapacity || '', memoryType: item.memoryType || item.cardType || '', memorySpeed: item.memorySpeed || item.cardSpeed || item.speedClass || '', linkedMemoryId: item.linkedMemoryId || item.currentMemoryId || item.attachedMemoryId || item.memoryId || item.defaultMemoryId || '', linkedMemoryName: item.linkedMemoryName || item.currentMemoryName || item.currentMemory || item.attachedMemory || item.defaultMemory || '', memoryAssignMode: item.memoryAssignMode || item.memoryOwnerMode || item.memoryMode || '', assignedCamera: item.assignedCamera || item.assignedCameraName || item.defaultCamera || '' });
+    setFormData({ ...item, qrTagged: !!item.qrTagged, newCategory: '', newLocation: '', newProject: '', newOwner: item.owner || '', isPersonalItem: !!item.owner, assetStatus: item.assetStatus || 'active', equipmentType: item.equipmentType || item.subType || item.type || '', shortCode: '', ownerDepartment: item.ownerDepartment || item.ownerTeam || item.mainOwnerTeam || item.responsibleTeam || '', mount: item.mount || item.lensMount || item.cameraMount || '', compatibleWith: item.compatibleWith || item.useWith || item.supportedDevices || '', linkedLensId: item.linkedLensId || item.currentLensId || item.attachedLensId || item.lensId || item.defaultLensId || item.kitLensId || item.cameraLensId || item.pairedLensId || item.mainLensId || '', linkedLensName: item.linkedLensName || item.currentLensName || item.attachedLensName || item.defaultLensName || item.kitLensName || item.cameraLensName || item.pairedLensName || item.mainLensName || item.currentLens || item.attachedLens || item.defaultLens || item.compatibleWith || '', currentLens: item.currentLens || item.currentLensName || item.attachedLens || item.attachedLensName || item.defaultLens || item.defaultLensName || item.linkedLensName || item.compatibleWith || '', batteryModel: item.batteryModel || item.batteryType || item.batteryCode || '', memoryCapacity: item.memoryCapacity || item.capacity || item.storageCapacity || '', memoryType: item.memoryType || item.cardType || '', memorySpeed: item.memorySpeed || item.cardSpeed || item.speedClass || '', linkedMemoryId: item.linkedMemoryId || item.currentMemoryId || item.attachedMemoryId || item.memoryId || item.defaultMemoryId || '', linkedMemoryName: item.linkedMemoryName || item.currentMemoryName || item.currentMemory || item.attachedMemory || item.defaultMemory || '', memoryAssignMode: item.memoryAssignMode || item.memoryOwnerMode || item.memoryMode || '', assignedCamera: item.assignedCamera || item.assignedCameraName || item.defaultCamera || '' });
     setShowForm(true);
   };
 
@@ -21694,9 +21685,9 @@ ${auditChangeSummary}` : auditChangeSummary);
 
       const cardsHtml = selectedPrintItems.map((item) => {
         const itemName = escapeQrPrintText(item.name || '-');
-        const itemSnRaw = item.sn || item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || '-';
+        const itemSnRaw = item.sn || '-';
         const itemSn = escapeQrPrintText(itemSnRaw);
-        const itemCode = escapeQrPrintText(item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || item.sn || 'MDEC');
+        const itemCode = escapeQrPrintText(item.sn || 'MDEC');
         const itemLocation = escapeQrPrintText(item.location || item.storageLocation || item.storage || '-');
         const qrData = encodeURIComponent(item.id || item.sn || item.name || 'MDEC-STOCK');
         const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=${qrServerSize}x${qrServerSize}&margin=4&data=${qrData}`;
@@ -22143,7 +22134,6 @@ ${auditChangeSummary}` : auditChangeSummary);
                       </div>
                       <span className={`${qrPreset.nameClass} font-black leading-tight line-clamp-2 w-full mt-1.5`}>{item.name}</span>
                       <span className={`${qrPreset.snClass} font-bold text-gray-600 mt-1`}>{item.sn}</span>
-                      {(item.shortCode || item.shortLabel || item.assetShortCode || item.localCode) && <span className="text-[9px] font-black bg-blue-50 text-blue-700 border border-blue-100 px-1.5 py-0.5 rounded mt-1">{item.shortCode || item.shortLabel || item.assetShortCode || item.localCode}</span>}
                       {item.owner ? <span className="text-[9px] font-bold bg-gray-200 px-1 rounded mt-1">👤 {item.owner}</span> : <span className="text-[8px] font-black text-blue-700 mt-1">ทรัพย์สิน MDEC</span>}
                    </div>
                 )
@@ -22159,8 +22149,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 if(!item) return null;
                 const deptInfo = DEPARTMENTS.find(d => d.id === item.department);
                 const qrValue = encodeURIComponent(item.id || item.sn || item.name || 'MDEC-STOCK');
-                const labelShortCode = item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || '';
-                const labelPrimaryCode = labelShortCode || item.sn || (item.id ? String(item.id).slice(0, 10).toUpperCase() : 'MDEC');
+                const labelPrimaryCode = item.sn || (item.id ? String(item.id).slice(0, 10).toUpperCase() : 'MDEC');
                 const labelCategory = item.category || 'ไม่ระบุหมวดหมู่';
                 const labelLocation = item.location || item.storageLocation || item.storage || '-';
                 const labelDepartment = deptInfo?.label || item.department || '-';
@@ -22436,7 +22425,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   ) : printItems.map((item, index) => (
                     <tr key={item.id || index}>
                       <td className="border border-slate-300 px-2 py-2 text-center font-black">{index + 1}</td>
-                      <td className="border border-slate-300 px-2 py-2 font-bold">{safeText(item.name)}<div className="text-xs text-slate-500">{safeText(item.shortCode || item.internalNote, '')}</div></td>
+                      <td className="border border-slate-300 px-2 py-2 font-bold">{safeText(item.name)}<div className="text-xs text-slate-500">{safeText(item.internalNote, '')}</div></td>
                       <td className="border border-slate-300 px-2 py-2">{safeText(item.sn)}</td>
                       <td className="border border-slate-300 px-2 py-2">{safeText(item.category)} / {safeText(item.department)}</td>
                       <td className="border border-slate-300 px-2 py-2">{isReturnSlip ? safeText(item.returnNote || item.returnCondition) : safeText(item.note || item.currentNote)}</td>
@@ -24844,7 +24833,6 @@ ${auditChangeSummary}` : auditChangeSummary);
           ['กล่อง / ที่จัดเก็บ', detailItem.storageBoxName || '-'],
           ['โครงการจัดซื้อ', detailItem.project || detailItem.purchaseProject || '-'],
           ['S.N.', detailItem.sn || '-'],
-          ['รหัสสั้น', textOf('shortCode', 'shortLabel', 'assetShortCode', 'localCode')],
           ['หลักฐาน', `📷 ${detailProofCount} รูป`]
         ];
         const detailCameraKit = isCamera ? getCameraKitSummary(detailItem) : null;
@@ -24888,7 +24876,7 @@ ${auditChangeSummary}` : auditChangeSummary);
           ['สถานที่เก็บ', detailItem.location],
           ['ฝ่าย', detailItem.department],
           ['โครงการจัดซื้อ', detailItem.project || detailItem.purchaseProject],
-          ['รหัสสั้น/QR', detailItem.qrTagged || textOf('shortCode', 'shortLabel', 'assetShortCode', 'localCode') !== '-' ? 'ok' : '']
+          ['QR', detailItem.qrTagged ? 'ok' : '']
         ].filter(([, value]) => value === undefined || value === null || String(value).trim() === '' || value === false);
         const profileCompletion = Math.max(0, Math.round(((6 - missingProfileFields.length) / 6) * 100));
         const profileHealthCards = [
@@ -25300,8 +25288,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                       {[
                         ['ชื่อ', detailItem.name || '-'],
                         ['S.N.', detailItem.sn || '-'],
-                        ['รหัสสั้น', textOf('shortCode', 'shortLabel', 'assetShortCode', 'localCode')],
-                        ['หมวด', detailItem.category || '-'],
+                                      ['หมวด', detailItem.category || '-'],
                         ['ที่เก็บ', detailItem.location || '-'],
                         ['ฝ่าย', detailDept.label || detailItem.department || '-'],
                         ['โครงการ', detailItem.project || detailItem.purchaseProject || '-']
@@ -26441,7 +26428,7 @@ ${auditChangeSummary}` : auditChangeSummary);
             <div className="flex justify-between items-start gap-3 mb-4">
               <div>
                 <h3 className={`text-lg sm:text-xl font-black ${theme.textTitle}`}>{formData.id ? 'แก้ไขข้อมูลอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
-                <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>กรอกเฉพาะข้อมูลหลักก่อน ส่วนกล้อง/เลนส์/เมมจะแสดงเท่าที่จำเป็น</p>
+                <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>กรอกเฉพาะข้อมูลหลักก่อน ส่วนกล้อง/เลนส์/ของติดงานจะแสดงเท่าที่จำเป็น</p>
               </div>
               <button type="button" onClick={() => confirmCloseIfDirty(true, () => setShowForm(false))} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
             </div>
@@ -26497,19 +26484,19 @@ ${auditChangeSummary}` : auditChangeSummary);
                   });
                   const equipmentType = detectedEquipmentType !== 'other' ? detectedEquipmentType : (formData.equipmentType || '');
                   const typeLabelMap = {
-                    camera: { label: 'กล้อง', icon: '📷', desc: 'เลือกเลนส์ในคลังที่ติดกับกล้องตอนนี้ + กรอกเมมที่คากล้อง' },
+                    camera: { label: 'กล้อง', icon: '📷', desc: 'เลือกเลนส์ในคลังที่ติดกับกล้องตอนนี้ ส่วนเมม/แบตระบุเป็นของติดงาน ไม่ต้องคีย์ทีละใบ/ก้อน' },
                     lens: { label: 'เลนส์', icon: '🔭', desc: 'เลนส์เป็นอุปกรณ์ในคลังธรรมดา ไม่ต้องกรอกข้อมูลใช้กับกล้อง' },
-                    memory: { label: 'เมม', icon: '💾', desc: 'กรอกความจุเมมแบบง่าย ๆ' },
-                    battery: { label: 'แบตเตอรี่', icon: '🔋', desc: 'อุปกรณ์แยก เลือกตอนทำรายการได้ตามปกติ' },
+                    memory: { label: 'เมม', icon: '💾', desc: 'ใช้เป็นของติดงาน/สิ้นเปลือง ระบุในหมายเหตุ ไม่ต้องทำเป็นชุดกล้องถาวร' },
+                    battery: { label: 'แบตเตอรี่', icon: '🔋', desc: 'ใช้เป็นของติดงาน/สิ้นเปลือง ระบุในหมายเหตุ ไม่ต้องคีย์ทีละก้อน' },
                     accessory: { label: 'อุปกรณ์เสริม', icon: '🧩', desc: 'อุปกรณ์ทั่วไป' }
                   };
                   const typeMeta = typeLabelMap[equipmentType] || { label: 'ทั่วไป', icon: '📦', desc: 'ไม่ต้องกรอกข้อมูลเสริม' };
                   const isCamera = equipmentType === 'camera';
                   const isLens = equipmentType === 'lens';
                   const isMemory = equipmentType === 'memory';
-                  const hasSpecificType = ['camera', 'lens', 'memory'].includes(equipmentType);
+                  const hasSpecificType = ['camera', 'lens'].includes(equipmentType);
                   const selectedLensId = formData.linkedLensId || formData.currentLensId || formData.attachedLensId || '';
-                  const selectedMemoryId = formData.linkedMemoryId || formData.currentMemoryId || formData.attachedMemoryId || '';
+                  const selectedMemoryId = ''; // v23.4.16.19 เมม/แบตไม่ลิงก์เป็นอุปกรณ์รายชิ้นแล้ว
                   const activeCameraItems = items.filter(item => item && !item.isDeleted && item.id !== formData.id && inferCameraHelperKind(item) === 'camera');
                   const isLensLinkedToAnotherCamera = (lens) => {
                     if (!lens) return false;
@@ -26534,7 +26521,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     .filter(item => item && !item.isDeleted && item.id !== formData.id && inferCameraHelperKind(item) === 'memory')
                     .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true, sensitivity: 'base' }));
                   const selectedLens = lensOptions.find(item => item.id === selectedLensId) || (selectedLensId ? items.find(item => item.id === selectedLensId) : null);
-                  const selectedMemory = memoryOptions.find(item => item.id === selectedMemoryId);
+                  const selectedMemory = null;
                   const fieldCardClass = `p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-950/50 border-slate-800' : 'bg-white/80 border-sky-100'}`;
                   const setLinkedLens = (lensId) => {
                     const lens = lensOptions.find(item => item.id === lensId);
@@ -26561,7 +26548,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <>
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
                         <div>
-                          <div className={`font-black text-lg mb-1 flex items-center gap-2 ${theme.textTitle}`}>2. ชุดกล้อง / เลนส์ / เมม</div>
+                          <div className={`font-black text-lg mb-1 flex items-center gap-2 ${theme.textTitle}`}>2. ชุดกล้อง / เลนส์ / ของติดงาน</div>
                           <p className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>แสดงเฉพาะช่องที่เกี่ยวกับหมวดที่เลือก เพื่อลดความรกตอนเพิ่ม/แก้ไขอุปกรณ์</p>
                         </div>
                         <div className={`px-3 py-2 rounded-2xl text-xs font-black border shrink-0 ${hasSpecificType ? (isDarkMode ? 'bg-slate-950/70 border-sky-800 text-sky-200' : 'bg-white border-sky-200 text-sky-700') : (isDarkMode ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600')}`}>
@@ -26594,30 +26581,22 @@ ${auditChangeSummary}` : auditChangeSummary);
                           </div>
 
                           {isCamera && (
-                            <div className={`smart-specific-fields grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-3xl border ${isDarkMode ? 'bg-blue-950/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
+                            <div className={`smart-specific-fields grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-3xl border ${isDarkMode ? 'bg-blue-950/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
                               <div>
                                 <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>เลนส์ที่ลิงก์กับกล้องตอนนี้</label>
                                 <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={selectedLensId} onChange={e => setLinkedLens(e.target.value)}>
                                   <option value="">-- ไม่ได้ลิงก์เลนส์ --</option>
                                   {lensOptions.map(lens => <option key={lens.id} value={lens.id}>{lens.name || 'เลนส์'}{lens.sn ? ` • S.N. ${lens.sn}` : ''}</option>)}
                                 </select>
-                                <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>รายการนี้ซ่อนเลนส์ที่ลิงก์กับกล้องอื่นแล้ว เพื่อลดการลิงก์ซ้ำ</div>
+                                <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>เลนส์นี้เป็นค่าเริ่มต้นตอนยืม/ออกงาน แต่ยังเปลี่ยนเฉพาะรอบก่อนยืนยันได้</div>
                               </div>
                               <div>
-                                <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>เมมที่ลิงก์กับกล้องตอนนี้</label>
-                                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={selectedMemoryId} onChange={e => setLinkedMemory(e.target.value)}>
-                                  <option value="">-- ไม่ได้ลิงก์เมม --</option>
-                                  {memoryOptions.map(mem => <option key={mem.id} value={mem.id}>{mem.name || 'เมม'}{mem.sn ? ` • S.N. ${mem.sn}` : ''}{getCameraSimpleMemoryText(mem) ? ` • ${getCameraSimpleMemoryText(mem)}` : ''}</option>)}
-                                </select>
-                                <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>เลือกจากอุปกรณ์หมวดเมมในคลัง ถ้าไม่มีในรายการ ให้เพิ่มเมมเป็นอุปกรณ์ก่อน</div>
+                                <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>เมม / แบต / ของติดงาน</label>
+                                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น SD 128GB 2 ใบ + แบต NP-FZ100 2 ก้อน" value={formData.memoryCapacity || ''} onChange={e => setFormData({...formData, memoryCapacity: e.target.value, linkedMemoryId: '', linkedMemoryName: '', memoryType: '', memorySpeed: ''})} />
+                                <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>ใช้เป็นข้อความประกอบ ไม่ต้องสร้างเมม/แบตเป็นอุปกรณ์รายชิ้นถ้าไม่จำเป็น</div>
                               </div>
-                              <div>
-                                <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>เมมแบบข้อความสำรอง</label>
-                                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น 128GB, 256GB V60" value={formData.memoryCapacity || ''} onChange={e => setFormData({...formData, memoryCapacity: e.target.value, linkedMemoryId: '', linkedMemoryName: '', memoryType: '', memorySpeed: ''})} />
-                                <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>ใช้กรณียังไม่ได้เพิ่มเมมเป็นอุปกรณ์แยก</div>
-                              </div>
-                              <div className={`sm:col-span-3 rounded-2xl border px-3 py-2 text-xs font-bold ${isDarkMode ? 'bg-slate-950/50 border-slate-800 text-slate-300' : 'bg-white/80 border-blue-100 text-slate-600'}`}>
-                                จะแสดงในคลังและตอนยืมเป็น: กล้อง + {selectedLens ? (selectedLens.name || 'เลนส์ที่เลือก') : 'เลนส์ที่ลิงก์'} | เมม {selectedMemory ? (selectedMemory.name || 'เมมที่เลือก') : (formData.memoryCapacity || '...') }
+                              <div className={`sm:col-span-2 rounded-2xl border px-3 py-2 text-xs font-bold ${isDarkMode ? 'bg-slate-950/50 border-slate-800 text-slate-300' : 'bg-white/80 border-blue-100 text-slate-600'}`}>
+                                ก่อนยืนยันจะแสดงเป็น: กล้อง + {selectedLens ? (selectedLens.name || 'เลนส์ที่เลือก') : 'เฉพาะบอดี้/เลนส์ที่ลิงก์'} {formData.memoryCapacity ? ` • ของติดงาน: ${formData.memoryCapacity}` : ' • เมม/แบตระบุในหมายเหตุได้'}
                               </div>
                             </div>
                           )}
@@ -26645,7 +26624,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                           )}
 
                           <div className={`mt-2 p-3 rounded-2xl border text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950/70 border-slate-800 text-slate-300' : 'bg-white/80 border-sky-200 text-slate-600'}`}>
-                            สรุป: เลนส์ไม่ต้องกรอกข้อมูลใช้กับกล้อง ส่วนกล้องเป็นตัวเลือกว่าจะติดเลนส์และเมมตัวไหน ถ้ายังไม่เพิ่มเมมเป็นอุปกรณ์ก็กรอกความจุเป็นข้อความสำรองได้
+                            สรุป: เลนส์ยังเป็นอุปกรณ์จริงที่เลือก/เปลี่ยนได้ ส่วนเมมและแบตให้ใช้เป็นข้อมูลประกอบแบบของติดงาน ไม่ต้องคีย์ทีละใบหรือทีละก้อน
                           </div>
                         </div>
                       )}
@@ -27824,7 +27803,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </div>
                 )}
                 <div className={`mt-4 p-3 rounded-2xl text-xs font-bold ${isDarkMode ? 'bg-slate-950/50 text-slate-300' : 'bg-white/80 text-slate-600'}`}>
-                  แนะนำ: เริ่มแก้จาก S.N., ที่เก็บ, ฝ่ายดูแล, รหัสสั้นของแบต/เมม และข้อมูลความจุ/ความเร็วเมมก่อน จะทำให้ตัวช่วยกล้องและการค้นหาทำงานแม่นขึ้น
+                  แนะนำ: เริ่มแก้จาก S.N., ที่เก็บ, ฝ่ายดูแล และข้อมูลเมม/แบตแบบข้อความประกอบก่อน จะทำให้ตัวช่วยกล้องและการค้นหาทำงานแม่นขึ้น
                 </div>
                 {dataQualityAudit.priorityCards.length > 0 && (
                   <div className={`mt-2.5 p-2.5 rounded-xl text-xs font-bold border ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
