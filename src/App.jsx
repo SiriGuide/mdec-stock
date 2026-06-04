@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.16 Camera Select Toggle Hotfix';
-const APP_UPDATE_NOTE = 'Camera Select Toggle Hotfix: แก้การติ๊กเลือกกล้องในหน้ายืม/ออกงานให้เลือกบอดี้ได้ก่อน แล้วค่อยเปลี่ยน/พ่วงเลนส์ในขั้นตอนก่อนยืนยัน';
+const APP_VERSION = 'v23.4.16.17 Camera Linked Lens Default / Strict Lens Filter';
+const APP_UPDATE_NOTE = 'Camera Linked Lens Default / Strict Lens Filter: ตั้งเลนส์ที่ลิงก์กับกล้องเป็นค่าเริ่มต้นก่อนยืนยัน และกรองช่องเลือกเลนส์ไม่ให้ HDMI/สาย/อุปกรณ์อื่นโผล่';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11909,7 +11909,7 @@ S.N.: ${item.sn || '-'}
     const shouldShowOperationCameraNudge = borrowReturnMode !== 'return' && selectedCameraActionItems.length > 0 && borrowReturnStage === 'select';
     const selectedActionPreviewItems = selectedActionItems.slice(0, 4);
 
-    // v23.1.40: จัดกล้อง + เลนส์ที่ลิงก์ไว้ให้เป็น “กลุ่มชุดกล้อง” ใน flow ยืม/ออกงาน เพื่อให้คนใช้ไม่งงว่าเลนส์ติดไปด้วยหรือไม่
+    // v23.4.16.17: จัดกล้อง + เลนส์ก่อนยืนยัน โดยให้เลนส์ที่ลิงก์ไว้เป็นค่าเริ่มต้น แต่ยังเปลี่ยน/ถอดได้เฉพาะรอบนี้
     const getOperationCameraBundleGroups = (targetIds = actionTargetIds) => {
       const idSet = new Set(asArray(targetIds).filter(Boolean));
       const usedKitChildIds = new Set();
@@ -11919,18 +11919,17 @@ S.N.: ${item.sn || '-'}
         const item = items.find(entry => entry && entry.id === id && !entry.isDeleted);
         if (!item) return;
         if (inferCameraHelperKind(item) === 'camera') {
-          const linkedLens = getCameraLinkedLensAutoItem(item);
+          const selectedLens = getOperationSelectedLensForCamera(item);
           const linkedMemory = getCameraLinkedMemoryAutoItem(item);
-          const hasLinkedLensInSelection = linkedLens && idSet.has(linkedLens.id);
           const hasLinkedMemoryInSelection = linkedMemory && idSet.has(linkedMemory.id);
-          if (hasLinkedLensInSelection) usedKitChildIds.add(linkedLens.id);
+          if (selectedLens) usedKitChildIds.add(selectedLens.id);
           if (hasLinkedMemoryInSelection) usedKitChildIds.add(linkedMemory.id);
           bundles.push({
             camera: item,
-            lens: hasLinkedLensInSelection ? linkedLens : null,
+            lens: selectedLens || null,
             memory: hasLinkedMemoryInSelection ? linkedMemory : null,
             memoryText: getCameraSimpleMemoryText(item),
-            missingLens: linkedLens && !hasLinkedLensInSelection ? linkedLens : null,
+            missingLens: null,
             missingMemory: linkedMemory && !hasLinkedMemoryInSelection ? linkedMemory : null
           });
         }
@@ -11996,20 +11995,46 @@ S.N.: ${item.sn || '-'}
       return Object.prototype.hasOwnProperty.call(operationLensOverrides || {}, cameraId) ? operationLensOverrides[cameraId] : undefined;
     };
 
+    const isStrictOperationLensItem = (item = {}) => {
+      if (!item || item.isDeleted) return false;
+      const text = [
+        item.name, item.category, item.equipmentType, item.subType, item.type,
+        item.mount, item.lensMount, item.compatibleWith, item.brand, item.model, item.sn
+      ].map(v => String(v || '').toLowerCase()).join(' • ');
+      const explicitLens = /(^|\s)(lens|เลนส์)(\s|$)/i.test(String(item.equipmentType || item.subType || item.type || item.category || '').trim());
+      const lensName = /เลนส์|lens|fe|ef|rf|sony e|canon rf|canon ef|nikon z|sigma|tamron|\d{2,3}\s?-\s?\d{2,3}\s?mm|\d{2,3}\s?mm|f\/?\d/i.test(text);
+      const looksLikeCableOrAdapter = /hdmi|fiber|fibre|sdi|xlr|usb|type-c|type c|lan|ethernet|สาย|cable|adapter|adaptor|converter|splitter|extender|capture|switcher|matrix|ปลั๊ก|หัวแปลง/i.test(text);
+      if (looksLikeCableOrAdapter && !explicitLens) return false;
+      return explicitLens || (inferCameraHelperKind(item) === 'lens' && lensName && !looksLikeCableOrAdapter);
+    };
+
     const getOperationSelectedLensForCamera = (camera = {}) => {
       if (!camera?.id) return null;
       const override = getOperationLensOverrideValue(camera.id);
       if (override === 'none') return null;
-      if (override) return items.find(item => item && !item.isDeleted && item.id === override) || null;
-      return getCameraLinkedLensAutoItem(camera);
+      if (override) {
+        const overrideItem = items.find(item => item && !item.isDeleted && item.id === override) || null;
+        return isStrictOperationLensItem(overrideItem) ? overrideItem : null;
+      }
+      const linkedLens = getCameraLinkedLensAutoItem(camera);
+      return isStrictOperationLensItem(linkedLens) ? linkedLens : null;
     };
 
     const getOperationLensCandidatesForCamera = (camera = {}) => {
       const currentLens = getOperationSelectedLensForCamera(camera);
+      const cameraMount = inferCameraHelperMount(camera);
       return items
-        .filter(item => item && !item.isDeleted && inferCameraHelperKind(item) === 'lens')
+        .filter(item => isStrictOperationLensItem(item))
         .filter(item => item.status === 'available' || item.id === currentLens?.id)
-        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true }));
+        .sort((a, b) => {
+          const aLinked = a.id === currentLens?.id ? -1 : 0;
+          const bLinked = b.id === currentLens?.id ? -1 : 0;
+          if (aLinked !== bLinked) return aLinked - bLinked;
+          const aMountScore = cameraMount && inferCameraHelperMount(a) === cameraMount ? -1 : 0;
+          const bMountScore = cameraMount && inferCameraHelperMount(b) === cameraMount ? -1 : 0;
+          if (aMountScore !== bMountScore) return aMountScore - bMountScore;
+          return String(a.name || '').localeCompare(String(b.name || ''), 'th', { numeric: true });
+        });
     };
 
     const applyOperationCameraLensOverride = (cameraId, lensId) => {
@@ -12020,6 +12045,10 @@ S.N.: ${item.sn || '-'}
       const previousOverride = getOperationLensOverrideValue(cameraId);
       const previousLensId = previousOverride && previousOverride !== 'none' ? previousOverride : defaultLens?.id;
       const nextLens = lensId && lensId !== 'none' ? items.find(item => item && item.id === lensId && !item.isDeleted) : null;
+      if (nextLens && !isStrictOperationLensItem(nextLens)) {
+        pushToast('รายการนี้ไม่ใช่เลนส์', `${nextLens.name || 'อุปกรณ์'} จะไม่ถูกใช้เป็นเลนส์ของกล้อง`, 'warning');
+        return;
+      }
       if (nextLens && nextLens.status !== 'available') {
         pushToast('เลนส์นี้ยังไม่พร้อมใช้', `${nextLens.name || 'เลนส์'} สถานะ ${getLinkedAccessoryStatusText(nextLens)}`, 'warning');
         return;
@@ -12910,7 +12939,7 @@ S.N.: ${item.sn || '-'}
                         <div className="min-w-0">
                           <div className={`text-[10px] font-black uppercase tracking-[0.18em] ${theme.textMuted}`}>Selected Items</div>
                           <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>รายการที่เลือก {actionTargetIds.length.toLocaleString('th-TH')} ชิ้น • {operationGroupedSelectedCount.toLocaleString('th-TH')} กลุ่ม</div>
-                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{borrowReturnMode === 'return' ? 'ถ้ารายการนี้มาจากเอกสารยืม/ออกงานเดียวกัน กดรับคืนทั้งกลุ่มได้ ไม่ต้องติ๊กทีละชิ้น' : 'กล้องที่ลิงก์เลนส์ไว้จะแสดงเป็นชุดเดียวกัน และยืม/ออกงานไปพร้อมกัน'}</div>
+                          <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{borrowReturnMode === 'return' ? 'ถ้ารายการนี้มาจากเอกสารยืม/ออกงานเดียวกัน กดรับคืนทั้งกลุ่มได้ ไม่ต้องติ๊กทีละชิ้น' : 'กล้องที่ลิงก์เลนส์ไว้จะขึ้นเป็นค่าเริ่มต้นก่อนยืนยัน และเปลี่ยน/ถอดเลนส์ได้เฉพาะรอบนี้'}</div>
                         </div>
                         <button type="button" onClick={() => setShowOperationSelectedPanel(false)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}>×</button>
                       </div>
