@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.4 QR Label Simple Sizes Hotfix';
+const APP_VERSION = 'v23.4.16.5 QR Label Clean Print Hotfix';
 const APP_UPDATE_NOTE = 'QR Label Simple Sizes Hotfix: ถอยระบบฉลาก QR ให้ใช้ง่ายเป็นขนาดเล็ก/กลาง/ใหญ่ที่เหมาะกับหัวขาไมค์ กล้อง และกล่อง พร้อมบังคับโหมดพิมพ์พื้นหลังขาว';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -7833,7 +7833,7 @@ function MainApp() {
   const [qrLabelWidthMm, setQrLabelWidthMm] = useState(65);
   const [qrLabelHeightMm, setQrLabelHeightMm] = useState(38);
   const [qrCodeSizeMm, setQrCodeSizeMm] = useState(23);
-  const [qrพิมพ์Mode, setQrพิมพ์Mode] = useState('label');
+  const [qrพิมพ์Mode, setQrพิมพ์Mode] = useState('plain');
   const [showBoxLabelพิมพ์Modal, setShowBoxLabelพิมพ์Modal] = useState(false);
   const [showStorageBoxesModal, setShowStorageBoxesModal] = useState(false);
   const [showStorageBoxAssignModal, setShowStorageBoxAssignModal] = useState(false);
@@ -21439,9 +21439,9 @@ ${auditChangeSummary}` : auditChangeSummary);
       small: {
         label: 'เล็ก',
         desc: 'หัวขาไมค์ / แบต / เมม / ของชิ้นเล็ก',
-        printCardWidth: '32mm',
+        printCardWidth: '42mm',
         printCardHeight: '24mm',
-        printQrSize: '20mm',
+        printQrSize: '18mm',
         qrServer: 260,
         labelQrServer: 260,
         card: 'p-2 min-h-[112px] print:p-1',
@@ -21457,9 +21457,9 @@ ${auditChangeSummary}` : auditChangeSummary);
       normal: {
         label: 'กลาง',
         desc: 'กล้อง / ไมค์ / อุปกรณ์ทั่วไป แนะนำใช้ตัวนี้',
-        printCardWidth: '45mm',
-        printCardHeight: '30mm',
-        printQrSize: '24mm',
+        printCardWidth: '55mm',
+        printCardHeight: '32mm',
+        printQrSize: '23mm',
         qrServer: 320,
         labelQrServer: 320,
         card: 'p-3 min-h-[145px] print:p-1.5',
@@ -21475,8 +21475,8 @@ ${auditChangeSummary}` : auditChangeSummary);
       large: {
         label: 'ใหญ่',
         desc: 'กล่อง / กระเป๋า / ของที่สแกนไกลกว่า',
-        printCardWidth: '60mm',
-        printCardHeight: '38mm',
+        printCardWidth: '70mm',
+        printCardHeight: '40mm',
         printQrSize: '30mm',
         qrServer: 420,
         labelQrServer: 420,
@@ -21508,6 +21508,144 @@ ${auditChangeSummary}` : auditChangeSummary);
       gridTemplateColumns: 'repeat(auto-fill, var(--qr-card-width))',
       justifyContent: 'start',
       alignItems: 'start'
+    };
+
+    const escapeQrPrintText = (value) => String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+    const openCleanQrPrintSheet = () => {
+      const selectedPrintItems = selectedItems
+        .map(id => items.find(i => i.id === id))
+        .filter(Boolean);
+      if (!selectedPrintItems.length) return;
+
+      const cardWidth = qrPreset.printCardWidth;
+      const cardHeight = qrPreset.printCardHeight;
+      const qrImageSize = qrPreset.printQrSize;
+      const isLabel = qrพิมพ์Mode === 'label';
+      const cardsHtml = selectedPrintItems.map((item) => {
+        const itemName = escapeQrPrintText(item.name || '-');
+        const itemSn = escapeQrPrintText(item.sn || item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || '-');
+        const itemCode = escapeQrPrintText(item.shortCode || item.shortLabel || item.assetShortCode || item.localCode || item.sn || 'MDEC');
+        const qrData = encodeURIComponent(item.id || item.sn || item.name || 'MDEC-STOCK');
+        const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=${qrPreset.qrServer}x${qrPreset.qrServer}&margin=4&data=${qrData}`;
+        if (isLabel) {
+          return `
+            <div class="qr-card label-card">
+              <img class="qr-img" src="${qrSrc}" alt="QR" />
+              <div class="qr-info">
+                <div class="brand">MDEC STOCK</div>
+                <div class="name">${itemName}</div>
+                <div class="code">${itemCode}</div>
+                <div class="sn">S.N. ${itemSn}</div>
+              </div>
+            </div>
+          `;
+        }
+        return `
+          <div class="qr-card plain-card">
+            <img class="qr-img" src="${qrSrc}" alt="QR" />
+            <div class="name">${itemName}</div>
+            <div class="code">${itemCode}</div>
+          </div>
+        `;
+      }).join('');
+
+      const printHtml = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>MDEC QR Labels</title>
+  <style>
+    @page { size: A4; margin: 6mm; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff !important;
+      color: #000;
+      font-family: Arial, 'Noto Sans Thai', sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    .sheet {
+      background: #ffffff;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, ${cardWidth});
+      gap: 2mm;
+      align-items: start;
+      justify-content: start;
+    }
+    .qr-card {
+      width: ${cardWidth};
+      min-height: ${cardHeight};
+      background: #fff;
+      border: 0.15mm dashed #cbd5e1;
+      border-radius: 1mm;
+      overflow: hidden;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .plain-card {
+      padding: 1mm;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .label-card {
+      padding: 1mm;
+      display: flex;
+      align-items: center;
+      gap: 1.4mm;
+    }
+    .qr-img {
+      width: ${qrImageSize};
+      height: ${qrImageSize};
+      display: block;
+      flex: 0 0 auto;
+      object-fit: contain;
+      background: #fff;
+    }
+    .qr-info { min-width: 0; flex: 1; line-height: 1.08; }
+    .brand { font-size: 5.2pt; letter-spacing: .09em; font-weight: 900; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .name { margin-top: .6mm; font-size: 6.2pt; line-height: 1.12; font-weight: 900; color: #111827; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .code { margin-top: .5mm; font-size: 6pt; font-weight: 900; color: #1d4ed8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sn { margin-top: .3mm; font-size: 5.2pt; font-weight: 700; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .plain-card .name { width: 100%; text-align: center; }
+    .plain-card .code { width: 100%; text-align: center; }
+    @media screen {
+      body { padding: 12px; }
+      .sheet { min-height: calc(297mm - 12mm); }
+    }
+    @media print {
+      body { padding: 0 !important; }
+      .sheet { padding: 0 !important; margin: 0 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">${cardsHtml}</div>
+  <script>
+    window.addEventListener('load', function(){
+      setTimeout(function(){ window.focus(); window.print(); }, 250);
+    });
+  </script>
+</body>
+</html>`;
+      const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1100,height=800');
+      if (!printWindow) {
+        window.print();
+        return;
+      }
+      printWindow.document.open();
+      printWindow.document.write(printHtml);
+      printWindow.document.close();
     };
 
     return (
@@ -21544,28 +21682,29 @@ ${auditChangeSummary}` : auditChangeSummary);
                padding: 0 !important;
                width: auto !important;
                min-width: 0 !important;
+               min-height: 0 !important;
                background: #ffffff !important;
                color: #000000 !important;
                border: 0 !important;
                outline: 0 !important;
                box-shadow: none !important;
+               overflow: visible !important;
              }
              body::before, body::after, #root::before, #root::after, .qr-print-page::before, .qr-print-page::after { display: none !important; content: none !important; }
              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+             .qr-print-header { display: none !important; }
              .qr-label-card, .qr-plain-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; background: #fff !important; }
              .qr-plain-grid, .qr-label-grid { grid-template-columns: repeat(auto-fill, var(--qr-card-width)) !important; justify-content: start !important; align-items: start !important; background: #fff !important; border: 0 !important; outline: 0 !important; box-shadow: none !important; }
-             .qr-plain-grid { gap: 2mm !important; }
-             .qr-label-grid { gap: 2mm !important; }
-             .qr-plain-card { width: var(--qr-card-width) !important; min-height: var(--qr-card-height) !important; padding: 1mm !important; box-sizing: border-box !important; border: .2mm solid #e2e8f0 !important; border-radius: 1mm !important; }
-             .qr-plain-card .qr-code-image { width: var(--qr-image-size) !important; height: var(--qr-image-size) !important; margin-bottom: .7mm !important; }
-             .qr-label-card { width: var(--qr-card-width) !important; min-height: var(--qr-card-height) !important; border: .2mm solid #e2e8f0 !important; border-radius: 1mm !important; padding: 1mm !important; overflow: hidden !important; box-sizing: border-box !important; }
+             .qr-plain-grid, .qr-label-grid { gap: 2mm !important; }
+             .qr-plain-card { width: var(--qr-card-width) !important; min-height: var(--qr-card-height) !important; padding: 1mm !important; box-sizing: border-box !important; border: .15mm dashed #cbd5e1 !important; border-radius: .8mm !important; }
+             .qr-plain-card .qr-code-image { width: var(--qr-image-size) !important; height: var(--qr-image-size) !important; margin-bottom: .5mm !important; }
+             .qr-label-card { width: var(--qr-card-width) !important; min-height: var(--qr-card-height) !important; border: .15mm dashed #cbd5e1 !important; border-radius: .8mm !important; padding: 1mm !important; overflow: hidden !important; box-sizing: border-box !important; }
              .qr-label-card .qr-code-image { width: var(--qr-image-size) !important; height: var(--qr-image-size) !important; }
-             .qr-label-card .qr-safe-zone { padding: .6mm !important; border-color: #edf2f7 !important; border-radius: .8mm !important; }
+             .qr-label-card .qr-safe-zone { padding: .4mm !important; border-color: #f8fafc !important; border-radius: .6mm !important; }
              .qr-label-card .qr-brand-logo img, .qr-plain-card .qr-brand-logo img { width: 100% !important; height: 100% !important; }
-             .qr-label-meta { grid-template-columns: 7.5mm minmax(0, 1fr) !important; row-gap: .35mm !important; column-gap: .6mm !important; }
-             .qr-label-meta-label, .qr-label-meta-value { font-size: 5.6pt !important; line-height: 1.08 !important; }
-             .qr-label-footer { font-size: 5.2pt !important; }
-             .qr-print-header { display: flex !important; align-items: end !important; justify-content: space-between !important; border-bottom: .2mm solid #e2e8f0 !important; padding-bottom: 2mm !important; margin-bottom: 3mm !important; background: #fff !important; }
+             .qr-label-meta { grid-template-columns: 6mm minmax(0, 1fr) !important; row-gap: .25mm !important; column-gap: .5mm !important; }
+             .qr-label-meta-label, .qr-label-meta-value { font-size: 5pt !important; line-height: 1.02 !important; }
+             .qr-label-footer { font-size: 5pt !important; }
            }
          `}</style>
          <div className="print:hidden p-4 bg-slate-800/95 backdrop-blur text-white flex flex-col xl:flex-row justify-between items-center sticky top-0 w-full z-40 shadow-md gap-3">
@@ -21574,7 +21713,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <Icons.QrCode className="w-6 h-6" /> พิมพ์ QR / ฉลากอุปกรณ์ ({selectedItems.length} ดวง)
               </h2>
               <p className="text-slate-300 text-sm font-bold mt-1">
-                จัดฉลาก QR สำหรับติดอุปกรณ์จริง เลือกแค่ เล็ก / กลาง / ใหญ่ ให้พอดีกับงาน
+                จัดฉลาก QR สำหรับติดอุปกรณ์จริง เลือกแค่ เล็ก / กลาง / ใหญ่ แล้วกดสั่งพิมพ์
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-3">
@@ -21616,7 +21755,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                  {qrSizeNote} • ขนาดนี้คือขนาดจริงบนกระดาษ A4 ตอนพิมพ์ • แนะนำตั้ง Scale เป็น 100% หรือ Default และทดลองสแกนก่อนติดจริง
                </div>
 
-               <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors">
+               <button onClick={openCleanQrPrintSheet} className="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors">
                  <Icons.พิมพ์er className="w-5 h-5"/> สั่งพิมพ์
                </button>
                <button onClick={markSelectedQrTagged} className="bg-emerald-600 hover:bg-emerald-500 px-3.5 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors">
@@ -21707,9 +21846,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                           <div className={`${qrPreset.labelTitleClass} font-black line-clamp-2 text-slate-950 leading-tight`}>{item.name || '-'}</div>
                           <div className={`qr-label-meta mt-1.5 print:mt-1 ${qrPreset.labelTextClass}`}>
                             <span className="qr-label-meta-label">S.N.</span><span className="qr-label-meta-value">{item.sn || '-'}</span>
-                            <span className="qr-label-meta-label">หมวด</span><span className="qr-label-meta-value">{labelCategory}</span>
-                            <span className="qr-label-meta-label">ที่เก็บ</span><span className="qr-label-meta-value">{labelLocation}</span>
-                            <span className="qr-label-meta-label">ฝ่าย</span><span className="qr-label-meta-value">{labelDepartment}</span>
+                            <span className="qr-label-meta-label">รหัส</span><span className="qr-label-meta-value">{labelPrimaryCode}</span>
                           </div>
                         </div>
                       </div>
