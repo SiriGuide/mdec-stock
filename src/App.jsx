@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.5 QR Label Clean Print Hotfix';
+const APP_VERSION = 'v23.4.16.6 QR Label Iframe Print Fix';
 const APP_UPDATE_NOTE = 'QR Label Simple Sizes Hotfix: ถอยระบบฉลาก QR ให้ใช้ง่ายเป็นขนาดเล็ก/กลาง/ใหญ่ที่เหมาะกับหัวขาไมค์ กล้อง และกล่อง พร้อมบังคับโหมดพิมพ์พื้นหลังขาว';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -21562,6 +21562,7 @@ ${auditChangeSummary}` : auditChangeSummary);
   <title>MDEC QR Labels</title>
   <style>
     @page { size: A4; margin: 6mm; }
+    :root { background: #ffffff !important; }
     html, body {
       margin: 0;
       padding: 0;
@@ -21620,8 +21621,8 @@ ${auditChangeSummary}` : auditChangeSummary);
     .plain-card .name { width: 100%; text-align: center; }
     .plain-card .code { width: 100%; text-align: center; }
     @media screen {
-      body { padding: 12px; }
-      .sheet { min-height: calc(297mm - 12mm); }
+      body { padding: 0; }
+      .sheet { min-height: 0; }
     }
     @media print {
       body { padding: 0 !important; }
@@ -21631,21 +21632,69 @@ ${auditChangeSummary}` : auditChangeSummary);
 </head>
 <body>
   <div class="sheet">${cardsHtml}</div>
-  <script>
-    window.addEventListener('load', function(){
-      setTimeout(function(){ window.focus(); window.print(); }, 250);
-    });
-  </script>
 </body>
 </html>`;
-      const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1100,height=800');
-      if (!printWindow) {
-        window.print();
+      const oldFrame = document.getElementById('mdec-clean-qr-print-frame');
+      if (oldFrame) oldFrame.remove();
+
+      const printFrame = document.createElement('iframe');
+      printFrame.id = 'mdec-clean-qr-print-frame';
+      printFrame.title = 'MDEC QR Clean Print Sheet';
+      printFrame.style.position = 'fixed';
+      printFrame.style.right = '0';
+      printFrame.style.bottom = '0';
+      printFrame.style.width = '0';
+      printFrame.style.height = '0';
+      printFrame.style.border = '0';
+      printFrame.style.opacity = '0';
+      printFrame.style.pointerEvents = 'none';
+      document.body.appendChild(printFrame);
+
+      const frameDoc = printFrame.contentWindow?.document;
+      if (!frameDoc) {
+        alert('เปิดหน้าพิมพ์ไม่ได้ กรุณาลองใหม่อีกครั้ง');
+        printFrame.remove();
         return;
       }
-      printWindow.document.open();
-      printWindow.document.write(printHtml);
-      printWindow.document.close();
+
+      frameDoc.open();
+      frameDoc.write(printHtml);
+      frameDoc.close();
+
+      const doPrint = () => {
+        try {
+          printFrame.contentWindow?.focus();
+          printFrame.contentWindow?.print();
+        } catch (error) {
+          alert('สั่งพิมพ์ไม่ได้ กรุณาลองใหม่อีกครั้ง');
+        }
+        window.setTimeout(() => {
+          const existingFrame = document.getElementById('mdec-clean-qr-print-frame');
+          if (existingFrame) existingFrame.remove();
+        }, 1500);
+      };
+
+      const qrImages = Array.from(frameDoc.images || []);
+      if (!qrImages.length) {
+        window.setTimeout(doPrint, 250);
+        return;
+      }
+
+      let loadedCount = 0;
+      const markLoaded = () => {
+        loadedCount += 1;
+        if (loadedCount >= qrImages.length) window.setTimeout(doPrint, 150);
+      };
+      qrImages.forEach((img) => {
+        if (img.complete) markLoaded();
+        else {
+          img.onload = markLoaded;
+          img.onerror = markLoaded;
+        }
+      });
+      window.setTimeout(() => {
+        if (loadedCount < qrImages.length) doPrint();
+      }, 2500);
     };
 
     return (
