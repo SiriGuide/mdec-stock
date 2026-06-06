@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.5 Return Confirm Safe Hotfix';
+const APP_VERSION = 'v23.4.16.18.6 Inventory Direct Camera Borrow Hotfix';
 const APP_UPDATE_NOTE = 'Borrow Event Confirm Safe Hotfix: ถอด helper ชุดกล้องที่อยู่นอก scope ตอนยืนยันยืม/ออกงาน เพื่อให้บันทึกได้เสถียรก่อน โดยยังไม่แตะ QR Scanner core';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -11407,7 +11407,7 @@ S.N.: ${item.sn || '-'}
     baseIds.forEach(id => {
       const camera = items.find(item => item && item.id === id && !item.isDeleted);
       if (!camera || inferCameraHelperKind(camera) !== 'camera') return;
-      const linkedLens = getOperationSelectedLensForCamera(camera);
+      const linkedLens = getCameraLinkedLensAutoItem(camera);
       const linkedMemory = getCameraLinkedMemoryAutoItem(camera);
       // ยืม/ออกงานเท่านั้น: พ่วงเฉพาะเลนส์/เมมที่พร้อมใช้ ถ้ามีการเลือกให้พ่วง
       if (isOperationalLinkedAccessoryReady(linkedLens, mode) && !expanded.includes(linkedLens.id)) expanded.push(linkedLens.id);
@@ -11421,7 +11421,7 @@ S.N.: ${item.sn || '-'}
     return asArray(ids).map(id => {
       const camera = items.find(item => item && item.id === id && !item.isDeleted && inferCameraHelperKind(item) === 'camera');
       if (!camera) return null;
-      const linkedLens = getOperationSelectedLensForCamera(camera);
+      const linkedLens = getCameraLinkedLensAutoItem(camera);
       const linkedMemory = getCameraLinkedMemoryAutoItem(camera);
       const hasLinkedLens = linkedLens && idSet.has(linkedLens.id);
       const hasLinkedMemory = linkedMemory && idSet.has(linkedMemory.id);
@@ -11446,7 +11446,7 @@ S.N.: ${item.sn || '-'}
   const getCameraLinkedLensUnavailableWarnings = (ids = []) => {
     return Array.from(new Set(asArray(ids).filter(Boolean))).map(id => {
       const camera = items.find(item => item && item.id === id && !item.isDeleted);
-      const linkedLens = getOperationSelectedLensForCamera(camera);
+      const linkedLens = getCameraLinkedLensAutoItem(camera);
       const linkedMemory = getCameraLinkedMemoryAutoItem(camera);
       const warnings = [];
       if (linkedLens && linkedLens.status !== 'available') {
@@ -11923,7 +11923,7 @@ S.N.: ${item.sn || '-'}
         const item = items.find(entry => entry && entry.id === id && !entry.isDeleted);
         if (!item) return;
         if (inferCameraHelperKind(item) === 'camera') {
-          const selectedLens = getOperationSelectedLensForCamera(item);
+          const selectedLens = getCameraLinkedLensAutoItem(item);
           const linkedMemory = getCameraLinkedMemoryAutoItem(item);
           const hasLinkedMemoryInSelection = linkedMemory && idSet.has(linkedMemory.id);
           if (selectedLens) usedKitChildIds.add(selectedLens.id);
