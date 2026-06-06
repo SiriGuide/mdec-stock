@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.8 Adaptive Compact Selection Bar Polish';
+const APP_VERSION = 'v23.4.16.18.9 Ultra Compact Selection Bar Polish';
 const APP_UPDATE_NOTE = 'Borrow Event Confirm Safe Hotfix: ถอด helper ชุดกล้องที่อยู่นอก scope ตอนยืนยันยืม/ออกงาน เพื่อให้บันทึกได้เสถียรก่อน โดยยังไม่แตะ QR Scanner core';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -13081,18 +13081,18 @@ S.N.: ${item.sn || '-'}
 
               {!isOperationDetailsStep && actionTargetIds.length > 0 && (
                 <div className="fixed left-3 right-3 bottom-3 sm:bottom-4 z-[70] pointer-events-none">
-                  <div className={`pointer-events-auto mx-auto max-w-[920px] rounded-2xl border shadow-2xl px-2.5 sm:px-3 py-1.5 sm:py-2 flex flex-row items-center justify-between gap-2 ${isDarkMode ? 'bg-slate-950/95 border-slate-800/55 text-slate-100' : 'bg-white/95 border-slate-200 text-slate-900'} backdrop-blur`}>
+                  <div className={`pointer-events-auto mx-auto max-w-[620px] rounded-2xl border shadow-2xl px-2 py-1.5 flex flex-row items-center justify-between gap-2 ${isDarkMode ? 'bg-slate-950/95 border-slate-800/55 text-slate-100' : 'bg-white/95 border-slate-200 text-slate-900'} backdrop-blur`}>
                     <div className="min-w-0 flex items-center gap-3">
-                      <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-sm ${modeInfo.softClass}`}>{actionTargetIds.length}</div>
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-black text-sm ${modeInfo.softClass}`}>{actionTargetIds.length}</div>
                       <div className="min-w-0">
-                        <div className="font-black text-xs sm:text-sm leading-tight">เลือกแล้ว {actionTargetIds.length.toLocaleString('th-TH')} รายการ</div>
-                        <div className={`text-[11px] font-bold truncate ${theme.textMuted}`}>{selectedPreview || 'กดดูรายการเพื่อตรวจอีกครั้ง'}</div>
+                        <div className="font-black text-xs leading-tight">เลือกแล้ว {actionTargetIds.length.toLocaleString('th-TH')} รายการ</div>
+                        <div className={`hidden sm:block text-[11px] font-bold truncate max-w-[220px] ${theme.textMuted}`}>{selectedPreview || 'ตรวจรายการก่อนถัดไป'}</div>
                       </div>
                     </div>
                     <div className="flex gap-1.5 shrink-0">
-                      <button type="button" onClick={() => setShowOperationSelectedPanel(true)} className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูรายการ</button>
-                      <button type="button" onClick={clearOperationSelection} className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ล้าง</button>
-                      <button type="button" onClick={goToOperationDetails} disabled={!canUseCurrentOperation || actionTargetIds.length === 0} className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-black text-white ${toneBtn} disabled:bg-slate-500 disabled:cursor-not-allowed`}>ถัดไป</button>
+                      <button type="button" onClick={() => setShowOperationSelectedPanel(true)} className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-black ${theme.btnSecondary}`}>ดูรายการ</button>
+                      <button type="button" onClick={clearOperationSelection} className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-black ${theme.btnSecondary}`}>ล้าง</button>
+                      <button type="button" onClick={goToOperationDetails} disabled={!canUseCurrentOperation || actionTargetIds.length === 0} className={`px-3 py-1.5 rounded-xl text-[11px] font-black text-white ${toneBtn} disabled:bg-slate-500 disabled:cursor-not-allowed`}>ถัดไป</button>
                     </div>
                   </div>
                 </div>
@@ -22782,7 +22782,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               onClick={() => openWorkspace(['borrow','event','return'].includes(activeWorkspace) ? activeWorkspace : 'borrow')}
               className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl transition-all text-left ${['borrow','event','return'].includes(activeWorkspace) ? 'bg-gradient-to-r from-slate-700 to-blue-700 text-white shadow-lg shadow-blue-500/20 font-black' : 'text-slate-300 hover:bg-white/8 hover:text-white font-bold'}`}
             >
-              <span className="flex items-center gap-3 min-w-0">
+              <span className="flex items-center gap-2 min-w-0">
                 <Icons.UserPlus className="w-5 h-5 shrink-0" />
                 <span className="truncate">งานอุปกรณ์</span>
               </span>
@@ -24391,36 +24391,36 @@ ${auditChangeSummary}` : auditChangeSummary);
 
         return (
           <div className="bulk-selection-actionbar fixed left-3 right-3 bottom-3 sm:bottom-4 z-40 pointer-events-none">
-            <div className={`bulk-selection-panel pointer-events-auto mx-auto w-full max-w-[960px] rounded-2xl border shadow-2xl px-2.5 sm:px-3 py-1.5 sm:py-2 animate-[slideUp_0.3s_ease-out] ${isDarkMode ? 'bg-slate-950/95 border-slate-800/55 text-white' : 'bg-white/95 border-slate-200 text-slate-900'} backdrop-blur`}>
-              <div className="flex flex-col xl:flex-row xl:items-center gap-2">
-                <div className="flex items-center justify-between gap-3 shrink-0 xl:min-w-[240px]">
+            <div className={`bulk-selection-panel pointer-events-auto mx-auto w-full max-w-[640px] rounded-2xl border shadow-2xl px-2 py-1.5 animate-[slideUp_0.3s_ease-out] ${isDarkMode ? 'bg-slate-950/95 border-slate-800/55 text-white' : 'bg-white/95 border-slate-200 text-slate-900'} backdrop-blur`}>
+              <div className="flex flex-row items-center gap-2">
+                <div className="flex items-center justify-between gap-2 shrink-0 min-w-0 flex-1">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="bg-indigo-600 text-white font-black w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center shadow-inner text-lg shrink-0">{selectedItems.length}</div>
+                    <div className="bg-indigo-600 text-white font-black w-8 h-8 rounded-xl flex items-center justify-center shadow-inner text-sm shrink-0">{selectedItems.length}</div>
                     <div className="min-w-0">
-                      <div className={`font-black leading-tight ${theme.textTitle}`}>รายการที่เลือก</div>
-                      <div className={`text-[11px] font-bold truncate ${theme.textMuted}`}>{selectionHint || 'เปิดแฟ้ม แก้ไข พิมพ์ฉลาก จัดกล่อง หรือจัดเซ็ตจากจุดนี้ได้'}</div>
+                      <div className={`font-black leading-tight text-xs sm:text-sm ${theme.textTitle}`}>เลือกแล้ว {selectedItems.length} รายการ</div>
+                      <div className={`hidden sm:block text-[11px] font-bold truncate max-w-[220px] ${theme.textMuted}`}>{selectionHint || 'เปิดแฟ้ม / แก้ไข / พิมพ์ QR'}</div>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setSelectedItems([])}
-                    className={`lg:hidden w-9 h-9 rounded-2xl flex items-center justify-center border ${theme.btnSecondary}`}
+                    className={`sm:hidden w-8 h-8 rounded-xl flex items-center justify-center border ${theme.btnSecondary}`}
                     title="ล้างการเลือก"
                   >
                     <Icons.X className="w-5 h-5" />
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 sm:gap-2 flex-1">
+                <div className="flex items-center justify-end gap-1.5 shrink-0">
                   {singleSelectedItem && (
                     <button
                       type="button"
                       onClick={() => openItemProfile(singleSelectedItem.id)}
-                      className={`px-3 sm:px-4 py-2 rounded-2xl font-black shadow-md flex items-center justify-center gap-2 text-xs sm:text-sm transition-colors border ${theme.btnSecondary}`}
+                      className={`px-2.5 py-1.5 rounded-xl font-black shadow-md flex items-center justify-center gap-1.5 text-[11px] transition-colors border ${theme.btnSecondary}`}
                       title="ดูรายละเอียดรายการที่เลือก"
                     >
-                      <Icons.History className="w-5 h-5" />
-                      <span>รายละเอียด</span>
+                      <Icons.History className="w-4 h-4" />
+                      <span className="hidden sm:inline">รายละเอียด</span><span className="sm:hidden">ดู</span>
                     </button>
                   )}
 
@@ -24428,23 +24428,17 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <button
                       type="button"
                       onClick={() => openItemEditor(singleSelectedItem)}
-                      className="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-md flex items-center justify-center gap-2 text-sm transition-colors"
+                      className="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-md flex items-center justify-center gap-1.5 text-[11px] transition-colors"
                       title="แก้ไขข้อมูลรายการที่เลือก"
                     >
-                      <Icons.Edit className="w-5 h-5" />
-                      <span>แก้ไข</span>
+                      <Icons.Edit className="w-4 h-4" />
+                      <span className="hidden sm:inline">แก้ไข</span><span className="sm:hidden">แก้</span>
                     </button>
                   )}
 
-                  <div className={`col-span-2 sm:flex-1 px-3 py-2 rounded-2xl border text-left font-bold text-xs leading-5 ${isDarkMode ? 'bg-slate-900/70 border-slate-800/55 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                    <span className={`font-black ${theme.textTitle}`}>คลังอุปกรณ์</span>
-                    <span className={`${theme.textMuted}`}> • เปิดแฟ้ม / แก้ไข / พิมพ์ QR / จัดกล่อง</span>
-                  </div>
-
-                  <details className="bulk-more-menu relative col-span-1 sm:w-auto">
-                    <summary className={`list-none cursor-pointer px-3 sm:px-4 py-2 rounded-2xl font-black border flex items-center justify-center gap-2 text-xs sm:text-sm ${theme.btnSecondary}`}>
-                      <span>เพิ่มเติม</span>
-                      <span className="text-lg leading-none">⋯</span>
+                  <details className="bulk-more-menu relative">
+                    <summary className={`list-none cursor-pointer px-2.5 py-1.5 rounded-xl font-black border flex items-center justify-center gap-1.5 text-[11px] ${theme.btnSecondary}`}>
+                      <span>เพิ่ม</span><span className="text-base leading-none">⋯</span>
                     </summary>
                     <div className={`bulk-more-menu-panel absolute right-0 bottom-full mb-3 w-[min(82vw,330px)] rounded-3xl border shadow-2xl p-3 space-y-2 ${isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-white border-slate-200'}`}>
                       <button type="button" onClick={() => setShowพิมพ์Modal(true)} className={secondaryButtonClass}>
@@ -24477,7 +24471,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <button
                     type="button"
                     onClick={() => setSelectedItems([])}
-                    className={`hidden sm:flex w-10 h-10 rounded-2xl items-center justify-center border ${theme.btnSecondary}`}
+                    className={`hidden sm:flex w-8 h-8 rounded-xl items-center justify-center border ${theme.btnSecondary}`}
                     title="ล้างการเลือก"
                   >
                     <Icons.X className="w-5 h-5" />
