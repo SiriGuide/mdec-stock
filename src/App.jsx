@@ -5,7 +5,7 @@
 // v23.1.29 Proof Link Strict Match Hotfix - แก้รูปหลักฐานในประวัติไม่ให้ดึงรูปจากเรื่อง/ผู้เกี่ยวข้องกว้างเกินไป ต้องผูกกับอุปกรณ์หรือเอกสารจริง
 // v23.1.28 Central Admin Permission Fix - บัญชีกลาง username admin ถือเป็น owner เสมอ เพื่อให้ลบ/กู้คืน/จัดการระบบได้ตรงสิทธิ์
 // v23.1.27 Simplified Item Form / Remove Extra Codes - ลดช่องรหัสซ้ำ เหลือ S.N. หลัก + ข้อมูลกล้องเฉพาะเลนส์/เมม
-// v23.1.25 Simple Camera Link / Memory Field - ลดระบบกล้องให้เหลือแค่ลิงก์เลนส์ในคลัง + กรอกเมมที่คากล้องทั่วเว็บ
+// v23.1.25 Simple Camera Link / Memory Field - ลดระบบกล้องให้เหลือแค่ลิงก์เลนส์ในคลัง + กรอกเมมในกล้องทั่วเว็บ
 // v23.1.24 Camera Kit Info Simple Flow - ตัด popup ตัวช่วยกล้อง และโชว์ข้อมูลชุดกล้อง/เลนส์/เมม/แบตในคลังกับหน้าทำรายการ
 // v23.1.23 Friendly Picker Selection Bar + Camera Helper - เพิ่มแถบรายการที่เลือก ดูรายการแบบ popup และตัวช่วยกล้องที่ขึ้นตามบริบท
 // v23.1.22 Friendly Equipment Picker / Storage First UX - เปลี่ยนหน้าเลือกอุปกรณ์ให้เริ่มจากที่เก็บจริง เลือกหมวด แล้วหยิบของแบบเป็นมิตร
@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.11 Auto-fit Selection Pill Polish';
+const APP_VERSION = 'v23.4.16.18.12 Equipment Form Calm Polish';
 const APP_UPDATE_NOTE = 'Borrow Event Confirm Safe Hotfix: ถอด helper ชุดกล้องที่อยู่นอก scope ตอนยืนยันยืม/ออกงาน เพื่อให้บันทึกได้เสถียรก่อน โดยยังไม่แตะ QR Scanner core';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -9607,7 +9607,7 @@ function MainApp() {
     return clean;
   };
   const isUnassignedProjectName = (value) => normalizeProjectName(value) === '';
-  const projectDisplayName = (value) => normalizeProjectName(value) || 'ยังไม่ผูกโครงการจัดซื้อ';
+  const projectDisplayName = (value) => normalizeProjectName(value) || 'ยังไม่ผูกโครงการ';
   const cleanProjectName = (value) => normalizeProjectName(value);
 
   const todayMs = new Date().setHours(0,0,0,0);
@@ -10010,7 +10010,7 @@ function MainApp() {
     const rawName = String(quickProjectName || '').trim();
     const name = normalizeProjectName(rawName);
     if (!rawName) {
-      pushToast('กรุณาพิมพ์ชื่อโครงการจัดซื้อก่อน', 'warning');
+      pushToast('กรุณาพิมพ์ชื่อโครงการก่อน', 'warning');
       return;
     }
     if (!name) {
@@ -10076,8 +10076,8 @@ function MainApp() {
       if (existingKey) {
         pushToast('มีชื่อโครงการนี้อยู่แล้ว เปิดรายละเอียดให้แล้ว', 'warning');
       } else {
-        await logAction('เพิ่มโครงการจัดซื้อ', name, 'เพิ่มชื่อโครงการจัดซื้อ/จัดหาอุปกรณ์จากหน้าโครงการ');
-        pushToast('เพิ่มโครงการจัดซื้อเรียบร้อยแล้ว — โครงการนี้ยังไม่มีอุปกรณ์ผูกอยู่', 'success');
+        await logAction('เพิ่มโครงการ', name, 'เพิ่มชื่อโครงการ/จัดหาอุปกรณ์จากหน้าโครงการ');
+        pushToast('เพิ่มโครงการเรียบร้อยแล้ว — โครงการนี้ยังไม่มีอุปกรณ์ผูกอยู่', 'success');
       }
     } catch (error) {
       console.error(error);
@@ -10090,7 +10090,7 @@ function MainApp() {
 
   const openProjectMetaEditor = (projectName) => {
     const name = cleanProjectName(projectName);
-    if (!name) return alert('กรุณาเลือกโครงการจัดซื้อที่ต้องการแก้ไข');
+    if (!name) return alert('กรุณาเลือกโครงการที่ต้องการแก้ไข');
     const meta = getProjectMeta(name);
     setProjectMetaEditTarget(name);
     setProjectMetaForm({
@@ -10116,7 +10116,7 @@ function MainApp() {
     if (!canAddEditItems && !canManageระบบ) return alert('บัญชีนี้ไม่มีสิทธิ์แก้ไขแฟ้ม');
     const oldName = cleanProjectName(projectMetaEditTarget);
     const newName = cleanProjectName(projectMetaForm.name);
-    if (!newName) return alert('กรุณากรอกชื่อโครงการจัดซื้อให้ถูกต้อง');
+    if (!newName) return alert('กรุณากรอกชื่อโครงการให้ถูกต้อง');
     const currentProjects = Array.isArray(settingsOptions.projects) ? settingsOptions.projects : [];
     if (newName !== oldName && projectOptions.some(p => p !== oldName && String(p).trim() === newName)) return alert('มีชื่อโครงการนี้อยู่แล้ว');
 
@@ -10158,16 +10158,16 @@ function MainApp() {
             fromProject: oldName,
             toProject: newName,
             staff: currentOperator?.name || 'Admin',
-            note: 'เปลี่ยนชื่อโครงการจัดซื้อ'
+            note: 'เปลี่ยนชื่อโครงการ'
           });
           return setDoc(getItemDoc(item.id), { project: newName, history, updatedAt: nowIso, updatedBy: currentOperator?.name || 'Admin' }, { merge: true });
         }));
         if (asArray(filterProject).includes(oldName)) setFilterProject(prev => asArray(prev).map(v => v === oldName ? newName : v));
       }
       setSelectedPurchaseProject(newName);
-      await logAction('บันทึกรายละเอียดโครงการจัดซื้อ', newName, newName !== oldName ? `เปลี่ยนชื่อจาก ${oldName}` : 'แก้ไขรายละเอียดโครงการ');
+      await logAction('บันทึกรายละเอียดโครงการ', newName, newName !== oldName ? `เปลี่ยนชื่อจาก ${oldName}` : 'แก้ไขรายละเอียดโครงการ');
       closeProjectMetaEditor();
-      pushToast('เพิ่มโครงการจัดซื้อเรียบร้อยแล้ว', 'success');
+      pushToast('เพิ่มโครงการเรียบร้อยแล้ว', 'success');
     } catch (error) {
       console.error(error);
       alert('❌ บันทึกโครงการไม่สำเร็จ: ' + error.message);
@@ -10224,7 +10224,7 @@ function MainApp() {
 
   const handleSaveProjectAssignment = async () => {
     if (!projectAssignTarget) return alert('กรุณาเลือกโครงการ');
-    if (!canAddEditItems && !canManageระบบ) return alert('บัญชีนี้ไม่มีสิทธิ์ผูกอุปกรณ์กับโครงการจัดซื้อ');
+    if (!canAddEditItems && !canManageระบบ) return alert('บัญชีนี้ไม่มีสิทธิ์ผูกอุปกรณ์กับโครงการ');
     const selectedSet = new Set(projectAssignSelectedIds);
     const currentProjectItems = items.filter(item => item && !item.isDeleted && normalizeProjectName(item.project) === normalizeProjectName(projectAssignTarget));
     const selectedItemsForProject = items.filter(item => item && !item.isDeleted && selectedSet.has(item.id));
@@ -10236,7 +10236,7 @@ function MainApp() {
     const removeCount = currentProjectItems.filter(item => !selectedSet.has(item.id)).length;
 
     if (selectedItemsForProject.length === 0) {
-      const ok = window.confirm('ไม่มีอุปกรณ์ถูกเลือกไว้ในโครงการนี้ ต้องการล้างอุปกรณ์ทั้งหมดออกจากโครงการจัดซื้อนี้หรือไม่?');
+      const ok = window.confirm('ไม่มีอุปกรณ์ถูกเลือกไว้ในโครงการนี้ ต้องการล้างอุปกรณ์ทั้งหมดออกจากโครงการนี้หรือไม่?');
       if (!ok) return;
     }
 
@@ -10245,7 +10245,7 @@ function MainApp() {
         const oldProject = projectDisplayName(item.project);
         const willBeInProject = selectedSet.has(item.id);
         const nextProject = willBeInProject ? projectAssignTarget : '';
-        const nextProjectLabel = willBeInProject ? projectAssignTarget : 'ยังไม่ผูกโครงการจัดซื้อ';
+        const nextProjectLabel = willBeInProject ? projectAssignTarget : 'ยังไม่ผูกโครงการ';
         const projectChanged = String(oldProject || '') !== String(nextProjectLabel || '');
         const history = Array.isArray(item.history) ? [...item.history] : [];
         if (projectChanged) {
@@ -10255,7 +10255,7 @@ function MainApp() {
             fromProject: oldProject,
             toProject: nextProjectLabel,
             staff: currentOperator?.name || 'Admin',
-            note: willBeInProject ? 'ผูกอุปกรณ์เข้ากับโครงการจัดซื้อ' : 'นำอุปกรณ์ออกจากโครงการจัดซื้อ'
+            note: willBeInProject ? 'ผูกอุปกรณ์เข้ากับโครงการ' : 'นำอุปกรณ์ออกจากโครงการ'
           });
         }
         return setDoc(getItemDoc(item.id), {
@@ -10265,13 +10265,13 @@ function MainApp() {
           updatedBy: currentOperator?.name || 'Admin'
         }, { merge: true });
       }));
-      await logAction('ผูกอุปกรณ์กับโครงการจัดซื้อ', projectAssignTarget, `เลือกไว้ ${selectedItemsForProject.length} รายการ / เพิ่มใหม่ ${addCount} / นำออก ${removeCount}`);
+      await logAction('ผูกอุปกรณ์กับโครงการ', projectAssignTarget, `เลือกไว้ ${selectedItemsForProject.length} รายการ / เพิ่มใหม่ ${addCount} / นำออก ${removeCount}`);
       setFilterProject(selectedItemsForProject.length > 0 ? [projectAssignTarget] : []);
       setShowProjectAssignModal(false);
       pushToast(`บันทึกการผูกอุปกรณ์แล้ว: เลือกไว้ ${selectedItemsForProject.length} รายการ${removeCount ? ` / นำออก ${removeCount} รายการ` : ''}`, 'success');
     } catch (error) {
       console.error(error);
-      alert('❌ ผูกอุปกรณ์กับโครงการจัดซื้อไม่สำเร็จ: ' + error.message);
+      alert('❌ ผูกอุปกรณ์กับโครงการไม่สำเร็จ: ' + error.message);
     }
   };
 
@@ -10292,7 +10292,7 @@ function MainApp() {
 
   const handleRenameProject = async (oldName) => {
     if (!canAddEditItems && !canManageระบบ) return alert('บัญชีนี้ไม่มีสิทธิ์แก้ไขโครงการ');
-    if (!normalizeProjectName(oldName)) return alert('กรุณาเลือกโครงการจัดซื้อที่ต้องการเปลี่ยนชื่อ');
+    if (!normalizeProjectName(oldName)) return alert('กรุณาเลือกโครงการที่ต้องการเปลี่ยนชื่อ');
     const newName = prompt(`เปลี่ยนชื่อโครงการ\nจาก: ${oldName}\nเป็น:`, oldName);
     const clean = String(newName || '').trim();
     if (!clean || clean === oldName) return;
@@ -10317,7 +10317,7 @@ function MainApp() {
           fromProject: oldName,
           toProject: clean,
           staff: currentOperator?.name || 'Admin',
-          note: 'เปลี่ยนชื่อโครงการจัดซื้อจากหน้าโครงการจัดซื้อ'
+          note: 'เปลี่ยนชื่อโครงการจากหน้าโครงการ'
         });
         return setDoc(getItemDoc(item.id), {
           project: clean,
@@ -10340,7 +10340,7 @@ function MainApp() {
 
   const handleDeleteEmptyProject = async (projectName) => {
     if (!canManageระบบ && !canAddEditItems) return alert('บัญชีนี้ไม่มีสิทธิ์ลบชื่อโครงการ');
-    if (!normalizeProjectName(projectName)) return alert('กรุณาเลือกโครงการจัดซื้อที่ต้องการลบ');
+    if (!normalizeProjectName(projectName)) return alert('กรุณาเลือกโครงการที่ต้องการลบ');
     const project = projectStats.find(p => String(p.name) === String(projectName));
     if (project && project.total > 0) {
       return alert('โครงการนี้ยังมีอุปกรณ์อยู่ กรุณาย้าย/ลบการผูกอุปกรณ์ออกก่อน จึงจะลบชื่อโครงการได้');
@@ -10353,7 +10353,7 @@ function MainApp() {
       const updatedSettings = { ...settingsOptions, projects: updatedProjects.includes('อื่นๆ') ? updatedProjects : [...updatedProjects, 'อื่นๆ'], projectMeta: nextProjectMeta };
       setSettingsOptions(updatedSettings);
       await setDoc(getSettingsDoc(), updatedSettings, { merge: true });
-      await logAction('ลบชื่อโครงการจัดซื้อ', projectName, 'ลบชื่อโครงการจัดซื้อที่ไม่มีอุปกรณ์ผูกอยู่');
+      await logAction('ลบชื่อโครงการ', projectName, 'ลบชื่อโครงการที่ไม่มีอุปกรณ์ผูกอยู่');
       if (selectedPurchaseProject === projectName) setSelectedPurchaseProject(null);
       pushToast('ลบชื่อโครงการแล้ว', 'success');
     } catch (error) {
@@ -10514,8 +10514,8 @@ S.N.: ${item.sn || '-'}
     },
     projects: {
       kicker: 'PURCHASE PROJECTS',
-      title: 'โครงการจัดซื้อ',
-      desc: 'แฟ้มโครงการจัดซื้อแบบง่าย ใช้ดูว่าอุปกรณ์แต่ละชิ้นมาจากโครงการไหน'
+      title: 'โครงการ',
+      desc: 'แฟ้มโครงการแบบง่าย ใช้ดูว่าอุปกรณ์แต่ละชิ้นมาจากโครงการไหน'
     },
     organize: {
       kicker: 'ORGANIZE WORKSPACE',
@@ -10582,19 +10582,19 @@ S.N.: ${item.sn || '-'}
           <div className={`p-4 sm:p-5 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-3 ${theme.divide}`}>
             <div>
               <div className={`text-xs font-black tracking-[0.22em] uppercase ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'}`}>PURCHASE PROJECTS</div>
-              <h2 className={`text-lg sm:text-xl font-black mt-1 ${theme.textTitle}`}>โครงการจัดซื้อ</h2>
+              <h2 className={`text-lg sm:text-xl font-black mt-1 ${theme.textTitle}`}>โครงการ</h2>
               <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดกลุ่มอุปกรณ์ตามโครงการ / ปีงบประมาณ (ไม่บังคับ) / แหล่งที่มา เพื่อเปิดดูรายการในโครงการได้เร็ว</p>
             </div>
             <div className="grid grid-cols-2 sm:flex gap-2">
-              <button type="button" onClick={() => document.getElementById('quick-project-input')?.focus()} className="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black">+ เพิ่มโครงการ</button>
-              <button type="button" onClick={() => { setFilterProject([]); setProjectManagerSearch(''); setSelectedPurchaseProject(null); }} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
+              <button type="button" onClick={() => document.getElementById('quick-project-input')?.focus()} className="px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black">+ เพิ่มโครงการ</button>
+              <button type="button" onClick={() => { setFilterProject([]); setProjectManagerSearch(''); setSelectedPurchaseProject(null); }} className={`px-3.5 py-2.5 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
             </div>
           </div>
 
           <div className="p-4 sm:p-5 space-y-5">
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
               {[
-                ['โครงการจัดซื้อ', projectStats.length, 'text-indigo-500', 'แฟ้มโครงการทั้งหมด'],
+                ['โครงการ', projectStats.length, 'text-indigo-500', 'แฟ้มโครงการทั้งหมด'],
                 ['มีอุปกรณ์แล้ว', projectStats.filter(p => (p.total || 0) > 0).length, 'text-blue-500', 'มีรายการอุปกรณ์ในแฟ้ม'],
                 ['ยังไม่มีของ', projectStats.filter(p => (p.total || 0) === 0).length, 'text-amber-500', 'ยังไม่มีอุปกรณ์ในแฟ้ม'],
                 ['อุปกรณ์รวม', projectStats.reduce((s,p)=>s+(p.total||0),0), 'text-emerald-500', 'ของที่มีชื่อโครงการ']
@@ -10610,10 +10610,10 @@ S.N.: ${item.sn || '-'}
             {unassignedProjectItemCount > 0 && (
               <div className={`rounded-[1.25rem] border p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-950 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
                 <div>
-                  <div className="font-black">มีอุปกรณ์ {unassignedProjectItemCount.toLocaleString('th-TH')} รายการที่ยังไม่ได้ผูกโครงการจัดซื้อ</div>
+                  <div className="font-black">มีอุปกรณ์ {unassignedProjectItemCount.toLocaleString('th-TH')} รายการที่ยังไม่ได้ผูกโครงการ</div>
                   <div className="text-xs font-bold opacity-80 mt-1">ระบบจะไม่เอารายการเหล่านี้ไปรวมเป็นโครงการ “ไม่ระบุชื่อโครงการ” อีกแล้ว ต้องเลือกผูกเข้ากับโครงการจริงเท่านั้น</div>
                 </div>
-                <button type="button" onClick={() => { setFilterProject([]); openWorkspace('overview'); }} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ดูรายการในคลัง</button>
+                <button type="button" onClick={() => { setFilterProject([]); openWorkspace('overview'); }} className={`px-3.5 py-2.5 rounded-xl border font-black ${theme.btnSecondary}`}>ดูรายการในคลัง</button>
               </div>
             )}
 
@@ -10622,7 +10622,7 @@ S.N.: ${item.sn || '-'}
                 <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>เพิ่มโครงการใหม่</label>
                 <input
                   id="quick-project-input"
-                  className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
+                  className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`}
                   placeholder="เช่น โครงการปรับปรุงกล้องถ่ายภาพประจำปี 2569"
                   value={quickProjectName}
                   onChange={e => setQuickProjectName(e.target.value)}
@@ -10637,7 +10637,7 @@ S.N.: ${item.sn || '-'}
                 <div className={`p-4 border-b ${theme.divide}`}>
                   <div className={`font-black text-lg ${theme.textTitle}`}>แฟ้มโครงการ</div>
                   <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เลือกแฟ้มเพื่อดูรายการอุปกรณ์</div>
-                  <input className={`mt-3 w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาโครงการ / ปี / อุปกรณ์" value={projectManagerSearch} onChange={e => setProjectManagerSearch(e.target.value)} />
+                  <input className={`mt-3 w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} placeholder="ค้นหาโครงการ / ปี / อุปกรณ์" value={projectManagerSearch} onChange={e => setProjectManagerSearch(e.target.value)} />
                 </div>
                 <div className="p-3 space-y-2 max-h-[720px] overflow-y-auto custom-scrollbar">
                   {filteredProjectStats.length === 0 ? (
@@ -10693,10 +10693,10 @@ S.N.: ${item.sn || '-'}
                           </div>
                         </div>
                         <div className="grid grid-cols-2 sm:flex gap-2 shrink-0">
-                          {canAddEditItems && selectedProject.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectMetaEditor(selectedProject.name)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>แก้ไขโครงการ</button>}
-                          <button type="button" onClick={() => openProjectพิมพ์(selectedProject.name)} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>พิมพ์รายงาน</button>
-                          {canAddEditItems && selectedProject.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectAssign(selectedProject.name)} className="px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black">เลือกจากคลัง</button>}
-                          {canAddEditItems && selectedProject.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openNewItemForProject(selectedProject.name)} className="px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">+ เพิ่มอุปกรณ์</button>}
+                          {canAddEditItems && selectedProject.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectMetaEditor(selectedProject.name)} className={`px-3.5 py-2.5 rounded-xl border font-black ${theme.btnSecondary}`}>แก้ไขโครงการ</button>}
+                          <button type="button" onClick={() => openProjectพิมพ์(selectedProject.name)} className={`px-3.5 py-2.5 rounded-xl border font-black ${theme.btnSecondary}`}>พิมพ์รายงาน</button>
+                          {canAddEditItems && selectedProject.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openProjectAssign(selectedProject.name)} className="px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black">เลือกจากคลัง</button>}
+                          {canAddEditItems && selectedProject.name !== 'ไม่ระบุโครงการ' && <button type="button" onClick={() => openNewItemForProject(selectedProject.name)} className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">+ เพิ่มอุปกรณ์</button>}
                         </div>
                       </div>
                     </div>
@@ -10743,7 +10743,7 @@ S.N.: ${item.sn || '-'}
                             <div className="flex justify-between gap-3"><span className={theme.textMuted}>ข้อมูลไม่ครบ</span><span className={theme.textTitle}>{(selectedProject.missingData || 0).toLocaleString('th-TH')}</span></div>
                           </div>
                           <div className={`mt-4 pt-4 border-t ${theme.divide}`}>
-                            <button type="button" onClick={() => { setFilterProject([selectedProject.name]); openWorkspace('overview'); }} className="w-full px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black">ดูในหน้าคลังสินค้า</button>
+                            <button type="button" onClick={() => { setFilterProject([selectedProject.name]); openWorkspace('overview'); }} className="w-full px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black">ดูในหน้าคลังสินค้า</button>
                           </div>
                         </div>
                       </div>
@@ -10807,7 +10807,7 @@ S.N.: ${item.sn || '-'}
 
                       {selectedProject.name !== 'ไม่ระบุโครงการ' && isEmptyProject && canAddEditItems && (
                         <div className={`pt-2 flex flex-wrap gap-2`}>
-                          <button type="button" onClick={() => handleDeleteEmptyProject(selectedProject.name)} className="px-4 py-3 rounded-xl text-sm font-black bg-rose-600 text-white">ลบโครงการว่าง</button>
+                          <button type="button" onClick={() => handleDeleteEmptyProject(selectedProject.name)} className="px-3.5 py-2.5 rounded-xl text-sm font-black bg-rose-600 text-white">ลบโครงการว่าง</button>
                         </div>
                       )}
                     </div>
@@ -10829,17 +10829,17 @@ S.N.: ${item.sn || '-'}
                 <button type="button" onClick={closeProjectMetaEditor} className={`p-2 rounded-xl border ${theme.btnSecondary}`}><Icons.X className="w-4 h-4" /></button>
               </div>
               <div className="p-5 overflow-y-auto custom-scrollbar space-y-4">
-                <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>ชื่อโครงการ *</span><input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={projectMetaForm.name} onChange={e => setProjectMetaForm(prev => ({ ...prev, name: e.target.value }))} /></label>
+                <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>ชื่อโครงการ *</span><input className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} value={projectMetaForm.name} onChange={e => setProjectMetaForm(prev => ({ ...prev, name: e.target.value }))} /></label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>ปีงบประมาณ</span><input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="2569" value={projectMetaForm.fiscalYear} onChange={e => setProjectMetaForm(prev => ({ ...prev, fiscalYear: e.target.value }))} /></label>
-                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>งบประมาณ</span><input type="number" min="0" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="เช่น 120000" value={projectMetaForm.budget} onChange={e => setProjectMetaForm(prev => ({ ...prev, budget: e.target.value }))} /></label>
-                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>ผู้รับผิดชอบ</span><input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="เช่น ศูนย์ MDEC / ฝ่ายภาพนิ่ง" value={projectMetaForm.owner} onChange={e => setProjectMetaForm(prev => ({ ...prev, owner: e.target.value }))} /></label>
-                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>สถานะโครงการ</span><select className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={projectMetaForm.status} onChange={e => setProjectMetaForm(prev => ({ ...prev, status: e.target.value }))}><option value="draft">แบบร่าง</option><option value="active">ใช้งานอยู่</option><option value="closed">ปิดโครงการแล้ว</option></select></label>
-                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>วันที่เริ่ม</span><input type="date" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={projectMetaForm.startDate} onChange={e => setProjectMetaForm(prev => ({ ...prev, startDate: e.target.value }))} /></label>
-                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>วันที่สิ้นสุด</span><input type="date" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={projectMetaForm.endDate} onChange={e => setProjectMetaForm(prev => ({ ...prev, endDate: e.target.value }))} /></label>
+                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>ปีงบประมาณ</span><input className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} placeholder="2569" value={projectMetaForm.fiscalYear} onChange={e => setProjectMetaForm(prev => ({ ...prev, fiscalYear: e.target.value }))} /></label>
+                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>งบประมาณ</span><input type="number" min="0" className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} placeholder="เช่น 120000" value={projectMetaForm.budget} onChange={e => setProjectMetaForm(prev => ({ ...prev, budget: e.target.value }))} /></label>
+                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>ผู้รับผิดชอบ</span><input className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} placeholder="เช่น ศูนย์ MDEC / ฝ่ายภาพนิ่ง" value={projectMetaForm.owner} onChange={e => setProjectMetaForm(prev => ({ ...prev, owner: e.target.value }))} /></label>
+                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>สถานะโครงการ</span><select className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} value={projectMetaForm.status} onChange={e => setProjectMetaForm(prev => ({ ...prev, status: e.target.value }))}><option value="draft">แบบร่าง</option><option value="active">ใช้งานอยู่</option><option value="closed">ปิดโครงการแล้ว</option></select></label>
+                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>วันที่เริ่ม</span><input type="date" className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} value={projectMetaForm.startDate} onChange={e => setProjectMetaForm(prev => ({ ...prev, startDate: e.target.value }))} /></label>
+                  <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>วันที่สิ้นสุด</span><input type="date" className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} value={projectMetaForm.endDate} onChange={e => setProjectMetaForm(prev => ({ ...prev, endDate: e.target.value }))} /></label>
                 </div>
-                <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>รายละเอียดสั้น ๆ</span><textarea rows={3} className={`w-full px-4 py-3 rounded-xl border font-bold resize-none ${theme.input}`} placeholder="เช่น ปรับปรุงประสิทธิภาพการถ่ายภาพกิจกรรมของวิทยาลัย" value={projectMetaForm.objective} onChange={e => setProjectMetaForm(prev => ({ ...prev, objective: e.target.value }))} /></label>
-                <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>หมายเหตุ</span><textarea rows={3} className={`w-full px-4 py-3 rounded-xl border font-bold resize-none ${theme.input}`} placeholder="หมายเหตุ / เลขที่เอกสาร / แหล่งที่มา" value={projectMetaForm.note} onChange={e => setProjectMetaForm(prev => ({ ...prev, note: e.target.value }))} /></label>
+                <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>รายละเอียดสั้น ๆ</span><textarea rows={3} className={`w-full px-3.5 py-2.5 rounded-xl border font-bold resize-none ${theme.input}`} placeholder="เช่น ปรับปรุงประสิทธิภาพการถ่ายภาพกิจกรรมของวิทยาลัย" value={projectMetaForm.objective} onChange={e => setProjectMetaForm(prev => ({ ...prev, objective: e.target.value }))} /></label>
+                <label className="block"><span className={`block font-black mb-1 ${theme.textTitle}`}>หมายเหตุ</span><textarea rows={3} className={`w-full px-3.5 py-2.5 rounded-xl border font-bold resize-none ${theme.input}`} placeholder="หมายเหตุ / เลขที่เอกสาร / แหล่งที่มา" value={projectMetaForm.note} onChange={e => setProjectMetaForm(prev => ({ ...prev, note: e.target.value }))} /></label>
               </div>
               <div className={`p-4 border-t flex flex-col sm:flex-row justify-end gap-2 ${theme.divide}`}>
                 <button type="button" onClick={closeProjectMetaEditor} className={`px-5 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ยกเลิก</button>
@@ -11209,7 +11209,7 @@ S.N.: ${item.sn || '-'}
   };
 
 
-  // v23.1.25: ระบบกล้องแบบเรียบง่ายทั่วเว็บ — กล้องลิงก์เลนส์ได้ 1 ตัว และกรอกเมมที่คากล้องเป็นข้อความสั้น ๆ
+  // v23.1.25: ระบบกล้องแบบเรียบง่ายทั่วเว็บ — กล้องลิงก์เลนส์ได้ 1 ตัว และกรอกเมมในกล้องเป็นข้อความสั้น ๆ
   const flattenCameraKitValue = (value) => {
     if (value === null || value === undefined) return [];
     if (Array.isArray(value)) return value.flatMap(flattenCameraKitValue);
@@ -11378,7 +11378,7 @@ S.N.: ${item.sn || '-'}
     const memoryText = getCameraSimpleMemoryText(camera);
     return {
       lensText: lensText || 'ยังไม่ได้ลิงก์เลนส์',
-      memoryText: memoryText || 'ยังไม่กรอกเมมที่คากล้อง',
+      memoryText: memoryText || 'ยังไม่กรอกเมมในกล้อง',
       summaryText: `${camera.name || 'กล้อง'}${lensText ? ` + ${lensText}` : ''}${memoryText ? ` | เมม ${memoryText}` : ''}`
     };
   };
@@ -13163,30 +13163,30 @@ S.N.: ${item.sn || '-'}
 
                   {borrowReturnMode === 'borrow' && (
                     <>
-                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>ผู้ให้ยืม *</span><select className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={borrowData.staff || ''} onChange={e => setBorrowData({...borrowData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : borrowData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
-                      {borrowData.staff === 'อื่นๆ' && <input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={borrowData.newStaff || ''} onChange={e => setBorrowData({...borrowData, newStaff: e.target.value})} />}
-                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>ชื่อผู้ยืม *</span><input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="ชื่อ-สกุล / แผนก" value={borrowData.borrower || ''} onChange={e => setBorrowData({...borrowData, borrower: e.target.value})} /></label>
-                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>กำหนดคืน</span><input type="date" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={borrowData.returnDate || ''} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} /></label>
-                      <textarea className={`w-full px-4 py-3 rounded-xl border font-bold resize-none ${theme.input}`} rows={2} placeholder="หมายเหตุ" value={borrowData.note || ''} onChange={e => setBorrowData({...borrowData, note: e.target.value})} />
+                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>ผู้ให้ยืม *</span><select className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} value={borrowData.staff || ''} onChange={e => setBorrowData({...borrowData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : borrowData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
+                      {borrowData.staff === 'อื่นๆ' && <input className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={borrowData.newStaff || ''} onChange={e => setBorrowData({...borrowData, newStaff: e.target.value})} />}
+                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>ชื่อผู้ยืม *</span><input className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} placeholder="ชื่อ-สกุล / แผนก" value={borrowData.borrower || ''} onChange={e => setBorrowData({...borrowData, borrower: e.target.value})} /></label>
+                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>กำหนดคืน</span><input type="date" className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} value={borrowData.returnDate || ''} onChange={e => setBorrowData({...borrowData, returnDate: e.target.value})} /></label>
+                      <textarea className={`w-full px-3.5 py-2.5 rounded-xl border font-bold resize-none ${theme.input}`} rows={2} placeholder="หมายเหตุ" value={borrowData.note || ''} onChange={e => setBorrowData({...borrowData, note: e.target.value})} />
                       {renderProofUploader('หลักฐานการยืม', borrowProofFiles, setBorrowProofFiles, 'purple')}
                     </>
                   )}
 
                   {borrowReturnMode === 'event' && (
                     <>
-                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>ผู้นำออก / ผู้รับผิดชอบ *</span><select className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={eventData.staff || ''} onChange={e => setEventData({...eventData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : eventData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
-                      {eventData.staff === 'อื่นๆ' && <input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={eventData.newStaff || ''} onChange={e => setEventData({...eventData, newStaff: e.target.value})} />}
-                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>ชื่องาน / สถานที่ *</span><input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="เช่น งานประชุม / ถ่ายภาพกิจกรรม" value={eventData.eventName || ''} onChange={e => setEventData({...eventData, eventName: e.target.value})} /></label>
-                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>กำหนดคืน</span><input type="date" className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={eventData.returnDate || ''} onChange={e => setEventData({...eventData, returnDate: e.target.value})} /></label>
-                      <textarea className={`w-full px-4 py-3 rounded-xl border font-bold resize-none ${theme.input}`} rows={2} placeholder="หมายเหตุ" value={eventData.note || ''} onChange={e => setEventData({...eventData, note: e.target.value})} />
+                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>ผู้นำออก / ผู้รับผิดชอบ *</span><select className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} value={eventData.staff || ''} onChange={e => setEventData({...eventData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : eventData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
+                      {eventData.staff === 'อื่นๆ' && <input className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={eventData.newStaff || ''} onChange={e => setEventData({...eventData, newStaff: e.target.value})} />}
+                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>ชื่องาน / สถานที่ *</span><input className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} placeholder="เช่น งานประชุม / ถ่ายภาพกิจกรรม" value={eventData.eventName || ''} onChange={e => setEventData({...eventData, eventName: e.target.value})} /></label>
+                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>กำหนดคืน</span><input type="date" className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} value={eventData.returnDate || ''} onChange={e => setEventData({...eventData, returnDate: e.target.value})} /></label>
+                      <textarea className={`w-full px-3.5 py-2.5 rounded-xl border font-bold resize-none ${theme.input}`} rows={2} placeholder="หมายเหตุ" value={eventData.note || ''} onChange={e => setEventData({...eventData, note: e.target.value})} />
                       {renderProofUploader('หลักฐานนำออกงาน', eventProofFiles, setEventProofFiles, 'orange')}
                     </>
                   )}
 
                   {borrowReturnMode === 'return' && (
                     <>
-                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>ผู้รับคืน *</span><select className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={returnData.staff || ''} onChange={e => setReturnData({...returnData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : returnData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
-                      {returnData.staff === 'อื่นๆ' && <input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={returnData.newStaff || ''} onChange={e => setReturnData({...returnData, newStaff: e.target.value})} />}
+                      <label className="block"><span className={`block text-sm font-black mb-1 ${theme.textTitle}`}>ผู้รับคืน *</span><select className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} value={returnData.staff || ''} onChange={e => setReturnData({...returnData, staff: e.target.value, newStaff: e.target.value !== 'อื่นๆ' ? '' : returnData.newStaff})}><option value="" disabled>-- เลือกชื่อเจ้าหน้าที่ --</option>{(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
+                      {returnData.staff === 'อื่นๆ' && <input className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} placeholder="พิมพ์ชื่อเจ้าหน้าที่ใหม่" value={returnData.newStaff || ''} onChange={e => setReturnData({...returnData, newStaff: e.target.value})} />}
                       {renderProofUploader('หลักฐานการรับคืน', returnProofFiles, setReturnProofFiles, 'emerald')}
                     </>
                   )}
@@ -14242,7 +14242,7 @@ S.N.: ${item.sn || '-'}
                           selected={filterProject}
                           onChange={setFilterProject}
                           placeholder="ค้นหาโครงการ..."
-                          helper="กรองของที่ผูกกับโครงการจัดซื้อ"
+                          helper="กรองของที่ผูกกับโครงการ"
                           theme={theme}
                           isDarkMode={isDarkMode}
                         />
@@ -15534,7 +15534,7 @@ S.N.: ${item.sn || '-'}
         desc: 'ตั้งค่าข้อมูลที่ใช้ซ้ำในฟอร์มทั้งเว็บ',
         items: [
           ['รายการพื้นฐาน', 'รวมหมวดหมู่ สถานที่/ห้อง และเจ้าหน้าที่ไว้ในหน้าเดียว', Icons.Layers, () => openSettingsTab('basicLists')],
-          ['โครงการ', 'แฟ้มโครงการจัดซื้อ', Icons.Folder, () => openWorkspace('projects')]
+          ['โครงการ', 'แฟ้มโครงการ', Icons.Folder, () => openWorkspace('projects')]
         ]
       },
       {
@@ -16416,7 +16416,7 @@ S.N.: ${item.sn || '-'}
       '- ยืม / ออกงาน / รับคืน',
       '- ซ่อม / เบิกโกดัง / ส่งกลับโกดัง',
       '- เพิ่ม/แก้ไข/ลบรูปหลักฐาน',
-      '- เพิ่ม/แก้ไข/ลบโครงการจัดซื้อ',
+      '- เพิ่ม/แก้ไข/ลบโครงการ',
       '',
       'การล้างนี้จะลบ log จิปาถะออกจากฐานข้อมูลจริง ไม่ใช่แค่ซ่อนหน้าเว็บ และจะเก็บหลักฐาน/โครงการไว้'
     ].join('\n'));
@@ -16736,7 +16736,7 @@ S.N.: ${item.sn || '-'}
       if (isEditAction) {
         const oldLogHint = [
           'บันทึกเก่า: ระบบรู้ว่ามีการกดบันทึก/แก้ไขข้อมูลอุปกรณ์นี้',
-          snText && snText !== '-' ? `รหัส S.N.: ${snText}` : '',
+          snText && snText !== '-' ? `S.N.: ${snText}` : '',
           '',
           'แต่ log รายการนี้ยังไม่ได้เก็บ “ก่อนแก้ → หลังแก้” ไว้',
           'จึงยังบอกไม่ได้ว่าแก้ช่องไหน เช่น ชื่อ, หมวด, ที่เก็บ, เลนส์ หรือเมม',
@@ -18213,7 +18213,7 @@ S.N.: ${item.sn || '-'}
       makeCard('sn', 'ไม่มี S.N.', missingSn, 'ควรเติมรหัสประจำตัว/เลขเครื่อง เพื่อค้นหาและตรวจรับคืนง่ายขึ้น', 'rose', 'core', 'high', 'เติม S.N. หรือรหัสประจำตัว'),
       makeCard('location', 'ไม่ระบุที่เก็บ', missingLocation, 'ช่วยให้รู้ว่าของควรอยู่ที่ไหนหลังคืน', 'amber', 'core', 'high', 'ระบุห้อง / ตู้ / กล่องเก็บ'),
       makeCard('category', 'ไม่ระบุหมวดหมู่', missingCategory, 'ทำให้ filter และรายงานแม่นขึ้น', 'amber', 'core', 'high', 'เลือกหมวดหมู่หลักของอุปกรณ์'),
-      makeCard('project', 'ยังไม่ระบุโครงการ', missingProject, 'ช่วยแยกของตามโครงการจัดซื้อ/จัดหา และทำรายงานพัสดุได้ง่ายขึ้น', 'slate', 'core', 'normal', 'เลือกโครงการหรือปล่อยไว้ถ้ายังไม่ทราบ'),
+      makeCard('project', 'ยังไม่ระบุโครงการ', missingProject, 'ช่วยแยกของตามโครงการ/จัดหา และทำรายงานพัสดุได้ง่ายขึ้น', 'slate', 'core', 'normal', 'เลือกโครงการหรือปล่อยไว้ถ้ายังไม่ทราบ'),
       makeCard('qr', 'ยังไม่ติด QR', missingQrTag, 'ควรติดฉลาก QR หรือกำหนดรหัสสั้นสำหรับของชิ้นเล็ก', 'sky', 'qr', 'normal', 'พิมพ์ฉลาก QR หรือติ๊กว่าติดแล้ว'),
       makeCard('shortCode', 'แบต/เมมไม่มีรหัสสั้น', missingShortCode, 'แนะนำรหัสแบบ PH-B01, OB-M02 สำหรับติดบนตัวของ', 'cyan', 'small', 'normal', 'เติมรหัสสั้นที่อ่านได้บนตัวของ'),
       makeCard('ownerDept', 'ยังไม่ระบุฝ่ายดูแล', missingOwnerDepartment, 'ควรระบุ ภาพนิ่ง / วิดีโอ / OB-Live / ส่วนกลาง', 'indigo', 'core', 'normal', 'ระบุฝ่ายดูแลหรือฝ่ายเจ้าของอุปกรณ์'),
@@ -18711,7 +18711,7 @@ S.N.: ${item.sn || '-'}
       ['sn', 'S.N.'],
       ['category', 'หมวดหมู่'],
       ['location', 'ที่เก็บ'],
-      ['department', 'ฝ่ายที่รับผิดชอบ'],
+      ['department', 'ฝ่าย'],
       ['owner', 'เจ้าของ/ฝ่ายดูแล'],
       ['project', 'โครงการ'],
       ['status', 'สถานะใช้งาน'],
@@ -18722,7 +18722,7 @@ S.N.: ${item.sn || '-'}
       ['currentLens', 'เลนส์ที่คากล้อง'],
       ['linkedMemoryId', 'เมมที่ลิงก์ (รหัส)'],
       ['linkedMemoryName', 'เมมที่ลิงก์'],
-      ['memoryCapacity', 'ความจุเมม/เมมที่คากล้อง'],
+      ['memoryCapacity', 'ความจุเมม/เมมในกล้อง'],
       ['memoryType', 'ประเภทเมม'],
       ['memorySpeed', 'ความเร็วเมม'],
       ['internalNote', 'หมายเหตุภายใน']
@@ -18737,7 +18737,7 @@ S.N.: ${item.sn || '-'}
       .filter(Boolean);
 
     if (changes.length === 0) {
-      return `กดบันทึกข้อมูลอุปกรณ์ ${nextItem.name || oldItem.name || '-'} แต่ไม่มีข้อมูลหลักที่เปลี่ยนแปลง`;
+      return `กดบันทึกอุปกรณ์ ${nextItem.name || oldItem.name || '-'} แต่ไม่มีข้อมูลหลักที่เปลี่ยนแปลง`;
     }
 
     return [
@@ -18756,13 +18756,13 @@ S.N.: ${item.sn || '-'}
     const snInput = String(formData.sn || '').trim();
 
     if (!nameInput.trim() || !snInput) {
-      alert('❌ กรุณากรอก "ชื่ออุปกรณ์" และ "รหัส S.N." ให้ครบถ้วน (ระบบบังคับใส่รหัสซีเรียล)');
+      alert('❌ กรุณากรอก "ชื่ออุปกรณ์" และ "S.N." ให้ครบถ้วน (ระบบบังคับใส่รหัสซีเรียล)');
       return;
     }
 
     const isDuplicate = items.some(item => item.sn && String(item.sn).trim().toLowerCase() === snInput.toLowerCase() && item.id !== formData.id);
     if (isDuplicate) {
-      alert(`❌ ไม่สามารถบันทึกได้: รหัส S.N. "${snInput}" มีซ้ำอยู่ในระบบแล้ว กรุณาตรวจสอบอีกครั้ง`);
+      alert(`❌ ไม่สามารถบันทึกได้: S.N. "${snInput}" มีซ้ำอยู่ในระบบแล้ว กรุณาตรวจสอบอีกครั้ง`);
       return; 
     }
 
@@ -18865,7 +18865,7 @@ S.N.: ${item.sn || '-'}
             type: 'projectChange',
             date: new Date().toISOString(),
             fromProject: projectDisplayName(oldItem?.project),
-            toProject: finalProject || 'ยังไม่ผูกโครงการจัดซื้อ',
+            toProject: finalProject || 'ยังไม่ผูกโครงการ',
             staff: currentOperator?.name || 'Admin',
             note: 'เปลี่ยนโครงการแบบง่ายจากหน้าแก้ไขอุปกรณ์'
           });
@@ -18873,7 +18873,7 @@ S.N.: ${item.sn || '-'}
         }
         await setDoc(getItemDoc(formData.id), itemData, { merge: true });
         const auditChangeSummary = summarizeItemChangesForAudit(oldItem, itemData);
-        logAction(projectChanged ? 'เปลี่ยนโครงการอุปกรณ์' : 'แก้ไขข้อมูล', itemData.name, projectChanged ? `ย้ายจาก ${projectDisplayName(oldItem?.project)} → ${finalProject || 'ยังไม่ผูกโครงการจัดซื้อ'}
+        logAction(projectChanged ? 'เปลี่ยนโครงการอุปกรณ์' : 'แก้ไขข้อมูล', itemData.name, projectChanged ? `ย้ายจาก ${projectDisplayName(oldItem?.project)} → ${finalProject || 'ยังไม่ผูกโครงการ'}
 
 ${auditChangeSummary}` : auditChangeSummary);
       } else {
@@ -18885,7 +18885,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       alert(isEdit ? '✅ แก้ไขข้อมูลอุปกรณ์สำเร็จ!' : '✅ เพิ่มอุปกรณ์ใหม่สำเร็จ!');
     } catch (error) {
       console.error(error);
-      alert(`❌ ไม่สามารถบันทึกข้อมูลได้: ${error.message}`);
+      alert(`❌ ไม่สามารถบันทึกได้: ${error.message}`);
     }
   };
 
@@ -20228,7 +20228,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
   const exportItemHistoryCSV = (item) => {
     if (!item) return;
-    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ลำดับ', 'ประเภท', 'วันเวลาทำรายการ', 'ผู้ทำรายการในระบบ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'ลิงก์หลักฐาน'];
+    const headers = ['ชื่ออุปกรณ์', 'S.N.', 'ลำดับ', 'ประเภท', 'วันเวลาทำรายการ', 'ผู้ทำรายการในระบบ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'ลิงก์หลักฐาน'];
     const rows = (Array.isArray(item.history) ? item.history : []).map((h, index) => {
       const historyType = h.type === 'borrow' ? 'ยืมออก' : h.type === 'event' ? 'ออกงาน' : h.type === 'return' ? 'รับคืน' : (h.type || '-');
       return [item.name || '-', item.sn || '-', index + 1, historyType, formatBackupDateTime(h.date), h.operatorName || h.performedBy || '-', h.borrower || h.eventName || '-', h.staffOut || '-', h.staffIn || '-', h.expectedReturn || '-', h.note || '-', Array.isArray(h.proofs) ? h.proofs.length : 0, Array.isArray(h.proofs) ? h.proofs.map(p => p.storageType === 'firestore-doc-base64' ? (p.originalName || p.id || 'รูปในระบบ') : (p.url || p.id || '-')).join(' | ') : '-' ];
@@ -20340,7 +20340,7 @@ ${auditChangeSummary}` : auditChangeSummary);
   };
 
   const buildHistoryCsvRows = () => {
-    const headers = ['รหัสเอกสารอุปกรณ์', 'ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'โครงการ', 'สถานะพัสดุ', 'ลำดับประวัติ', 'ประเภทประวัติ', 'วันเวลาทำรายการ', 'ผู้ทำรายการในระบบ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'รหัส/ชื่อหลักฐาน', 'สถานะปัจจุบัน'];
+    const headers = ['รหัสเอกสารอุปกรณ์', 'ชื่ออุปกรณ์', 'S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'โครงการ', 'สถานะพัสดุ', 'ลำดับประวัติ', 'ประเภทประวัติ', 'วันเวลาทำรายการ', 'ผู้ทำรายการในระบบ', 'ผู้ยืม/ชื่องาน', 'เจ้าหน้าที่ผู้ให้ยืม/ผู้นำออก', 'เจ้าหน้าที่ผู้รับคืน', 'กำหนดคืน', 'หมายเหตุ', 'จำนวนหลักฐาน', 'รหัส/ชื่อหลักฐาน', 'สถานะปัจจุบัน'];
     const rows = [];
     items.forEach(item => {
       const historyList = Array.isArray(item.history) ? item.history : [];
@@ -20651,7 +20651,7 @@ ${auditChangeSummary}` : auditChangeSummary);
   </section>
   ${makeTable('รายการอุปกรณ์ / Inventory', inventory.headers, inventory.rows, 400)}
   ${makeTable('ประวัติยืม-คืน-ออกงาน / History', history.headers, history.rows, 400)}
-  ${makeTable('โครงการจัดซื้อ / Projects', projects.headers, projects.rows, 250)}
+  ${makeTable('โครงการ / Projects', projects.headers, projects.rows, 250)}
   ${makeTable('ดัชนีรูปหลักฐาน / Proof Index', proofIndex.headers, proofIndex.rows, 400)}
   <section class="section">
     <div class="sectionHead"><h2>คลังรูปหลักฐาน / Proof Gallery</h2><span>${proofGroups.length.toLocaleString('th-TH')} รูป</span></div>
@@ -20877,7 +20877,7 @@ ${auditChangeSummary}` : auditChangeSummary);
   };
 
   const exportToCSV = () => {
-    const headers = ['ชื่ออุปกรณ์', 'รหัส S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'กล่องเก็บของ', 'สถานะ', 'จำนวน', 'ผู้ยืมปัจจุบัน/ชื่องาน', 'สถานะ QR', 'เจ้าของ', 'หมายเหตุภายใน', 'อัปเดตล่าสุด'];
+    const headers = ['ชื่ออุปกรณ์', 'S.N.', 'ฝ่าย', 'หมวดหมู่', 'สถานที่', 'กล่องเก็บของ', 'สถานะ', 'จำนวน', 'ผู้ยืมปัจจุบัน/ชื่องาน', 'สถานะ QR', 'เจ้าของ', 'หมายเหตุภายใน', 'อัปเดตล่าสุด'];
     const csvData = items.map(i => [
       i.name, i.sn || '-', i.department, i.category || '-', i.location || '-', i.storageBoxName || '-',
       STATUSES.find(s=>s.id===i.status)?.label || i.status, i.quantity || 1, i.currentBorrower || i.currentEvent || '-', i.qrTagged ? 'ติด QR แล้ว' : 'ยังไม่ติด QR', i.owner || '-', i.internalNote || '-', new Date(i.updatedAt).toLocaleDateString('th-TH')
@@ -22218,7 +22218,7 @@ ${auditChangeSummary}` : auditChangeSummary);
         <div className="print-actions-bar print:hidden p-4 bg-slate-800 text-white flex justify-between items-center fixed top-0 w-full z-50 shadow-md">
           <div>
             <h2 className="font-bold text-xl flex items-center gap-2"><Icons.พิมพ์er className="w-6 h-6" /> รายงานโครงการ</h2>
-            <p className="text-slate-300 text-sm font-bold mt-1">ตัวอย่างนี้คือหน้าที่จะพิมพ์จริง ปรับข้อมูลได้จากหน้าโครงการจัดซื้อ</p>
+            <p className="text-slate-300 text-sm font-bold mt-1">ตัวอย่างนี้คือหน้าที่จะพิมพ์จริง ปรับข้อมูลได้จากหน้าโครงการ</p>
           </div>
           <div className="flex gap-3">
             <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors"><Icons.พิมพ์er className="w-5 h-5"/> พิมพ์รายงาน</button>
@@ -24296,7 +24296,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <div>
                     <div className={`text-xs font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>Stock Directory</div>
                     <h3 className={`mt-1 text-3xl font-black ${theme.textTitle}`}>สต็อกทั้งหมดของศูนย์</h3>
-                    <p className={`mt-1 text-sm font-bold ${theme.textMuted}`}>เปิดดูของในคลัง ค้นหาจากชื่อ รหัส S.N. ฝ่าย หมวด ที่เก็บ หรือโครงการ</p>
+                    <p className={`mt-1 text-sm font-bold ${theme.textMuted}`}>เปิดดูของในคลัง ค้นหาจากชื่อ S.N. ฝ่าย หมวด ที่เก็บ หรือโครงการ</p>
                   </div>
                   <button type="button" onClick={() => openWorkspace('inventory')} className={`px-5 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>เปิดหน้าสต็อก</button>
                 </div>
@@ -24502,7 +24502,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   list="storage-box-name-list"
                   value={boxLabelTitle}
                   onChange={(e) => setBoxLabelTitle(e.target.value)}
-                  className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`}
+                  className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border ${theme.input}`}
                   placeholder="เช่น กล่องไลฟ์สด A / กล่องสาย HDMI"
                 />
                 <datalist id="storage-box-name-list">
@@ -24516,7 +24516,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <input
                   value={boxLabelNote}
                   onChange={(e) => setBoxLabelNote(e.target.value)}
-                  className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`}
+                  className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border ${theme.input}`}
                   placeholder="เช่น ห้ามแยกชุด / เก็บหลังงานทุกครั้ง"
                 />
               </label>
@@ -24825,7 +24825,7 @@ ${auditChangeSummary}` : auditChangeSummary);
           ['หมวดหมู่', detailItem.category || '-'],
           ['สถานที่เก็บ', detailItem.location || '-'],
           ['กล่อง / ที่จัดเก็บ', detailItem.storageBoxName || '-'],
-          ['โครงการจัดซื้อ', detailItem.project || detailItem.purchaseProject || '-'],
+          ['โครงการ', detailItem.project || detailItem.purchaseProject || '-'],
           ['S.N.', detailItem.sn || '-'],
           ['รหัสสั้น', textOf('shortCode', 'shortLabel', 'assetShortCode', 'localCode')],
           ['หลักฐาน', `📷 ${detailProofCount} รูป`]
@@ -24836,7 +24836,7 @@ ${auditChangeSummary}` : auditChangeSummary);
           ['ฝ่ายดูแลหลัก', textOf('ownerDepartment', 'ownerTeam', 'mainOwnerTeam', 'responsibleTeam', 'owner')],
           ...(isCamera ? [
             ['เลนส์ที่ลิงก์', detailCameraKit?.lensText || textOf('linkedLensName', 'currentLens', 'compatibleWith')],
-            ['เมมที่คากล้อง', detailCameraKit?.memoryText || textOf('memoryCapacity', 'capacity', 'storageCapacity')]
+            ['เมมในกล้อง', detailCameraKit?.memoryText || textOf('memoryCapacity', 'capacity', 'storageCapacity')]
           ] : []),
           ...(isเลนส์ ? [['หมายเหตุเลนส์', textOf('compatibleWith', 'useWith', 'supportedDevices')]] : []),
           ...(isMemoryCard ? [['ความจุเมม', textOf('capacity', 'memoryCapacity', 'storageCapacity')]] : []),
@@ -24870,7 +24870,7 @@ ${auditChangeSummary}` : auditChangeSummary);
           ['หมวดหมู่', detailItem.category],
           ['สถานที่เก็บ', detailItem.location],
           ['ฝ่าย', detailItem.department],
-          ['โครงการจัดซื้อ', detailItem.project || detailItem.purchaseProject],
+          ['โครงการ', detailItem.project || detailItem.purchaseProject],
           ['รหัสสั้น/QR', detailItem.qrTagged || textOf('shortCode', 'shortLabel', 'assetShortCode', 'localCode') !== '-' ? 'ok' : '']
         ].filter(([, value]) => value === undefined || value === null || String(value).trim() === '' || value === false);
         const profileCompletion = Math.max(0, Math.round(((6 - missingProfileFields.length) / 6) * 100));
@@ -25390,7 +25390,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <input
                     type="password"
                     inputMode="numeric"
-                    className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`}
                     placeholder="PIN เดิม"
                     value={myPinForm.oldPin}
                     onChange={(e) => setMyPinForm(prev => ({ ...prev, oldPin: e.target.value }))}
@@ -25398,7 +25398,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <input
                     type="password"
                     inputMode="numeric"
-                    className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`}
                     placeholder="PIN ใหม่"
                     value={myPinForm.newPin}
                     onChange={(e) => setMyPinForm(prev => ({ ...prev, newPin: e.target.value }))}
@@ -25406,7 +25406,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <input
                     type="password"
                     inputMode="numeric"
-                    className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`}
                     placeholder="ยืนยัน PIN ใหม่"
                     value={myPinForm.confirmPin}
                     onChange={(e) => setMyPinForm(prev => ({ ...prev, confirmPin: e.target.value }))}
@@ -25450,7 +25450,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               ถ้าเป็นประวัติ “รับคืน” ที่ทำเป็นกลุ่ม ระบบจะผูกหลักฐานชุดนี้ให้ทุกอุปกรณ์ในกลุ่มรับคืนเดียวกันอัตโนมัติ
             </div>
             {renderProofUploader('รูปหลักฐานย้อนหลัง', proofAttachFiles, setProofAttachFiles, 'blue')}
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-2.5 mt-4">
               <button type="button" onClick={closeProofAttachModal} className={`w-full sm:flex-1 py-4 font-bold rounded-xl text-base sm:text-lg ${theme.btnCancel}`}>ยกเลิก</button>
               <button type="button" onClick={() => runWithBusy(handleAttachProofsToHistory)} disabled={isBusy || proofAttachFiles.length === 0} className={`flex-1 py-4 font-bold rounded-xl text-lg text-white ${isBusy || proofAttachFiles.length === 0 ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}>{isBusy ? 'กำลังอัปดาวน์โหลด...' : 'บันทึกหลักฐาน'}</button>
             </div>
@@ -26420,40 +26420,40 @@ ${auditChangeSummary}` : auditChangeSummary);
 
       {showForm && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 sm:p-5 z-[9999]`}>
-          <div className={`item-form-shell compact-modal-shell rounded-3xl p-2.5 sm:p-3 lg:p-5 max-w-[980px] w-full max-h-[86vh] overflow-y-auto custom-scrollbar shadow-2xl border ${theme.cardBg}`}>
-            <div className="flex justify-between items-start gap-3 mb-4">
+          <div className={`item-form-shell compact-modal-shell rounded-3xl p-2.5 sm:p-3 lg:p-5 max-w-[920px] w-full max-h-[88vh] overflow-y-auto custom-scrollbar shadow-2xl border ${theme.cardBg}`}>
+            <div className="flex justify-between items-start gap-3 mb-3">
               <div>
-                <h3 className={`text-lg sm:text-xl font-black ${theme.textTitle}`}>{formData.id ? 'แก้ไขข้อมูลอุปกรณ์' : 'เพิ่มอุปกรณ์ใหม่'}</h3>
-                <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>กรอกเฉพาะข้อมูลหลักก่อน ส่วนกล้อง/เลนส์/เมมจะแสดงเท่าที่จำเป็น</p>
+                <h3 className={`text-lg sm:text-xl font-black ${theme.textTitle}`}>{formData.id ? 'แก้ไขอุปกรณ์' : 'เพิ่มอุปกรณ์'}</h3>
+                <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>กรอกข้อมูลที่จำเป็นก่อน ส่วนเสริมค่อยเติมเมื่อมีข้อมูล</p>
               </div>
               <button type="button" onClick={() => confirmCloseIfDirty(true, () => setShowForm(false))} className={`p-2 hover:text-rose-500 transition-colors ${theme.textMuted}`}><Icons.X className="w-6 h-6" /></button>
             </div>
 
-            <div className="space-y-5">
-              <section className={`item-form-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-slate-50 border-slate-200'}`}>
-                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>1. ข้อมูลหลัก</div>
+            <div className="space-y-3">
+              <section className={`item-form-section p-3 sm:p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`font-black text-base mb-3 flex items-center gap-2 ${theme.textTitle}`}>ข้อมูลหลัก</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="sm:col-span-2">
-                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>ชื่ออุปกรณ์ <span className="text-rose-500">*</span></label>
-                    <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น กล้อง Sony A7IV" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
+                    <label className={`block text-sm font-black mb-1.5 ${theme.textTitle}`}>ชื่ออุปกรณ์ <span className="text-rose-500">*</span></label>
+                    <input type="text" className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น กล้อง Sony A7IV" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
                   </div>
                   <div>
-                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>รหัส S.N. <span className="text-rose-500">*</span></label>
-                    <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} placeholder="เช่น CAM-001" value={formData.sn || ''} onChange={e => setFormData({...formData, sn: e.target.value})} />
+                    <label className={`block text-sm font-black mb-1.5 ${theme.textTitle}`}>S.N. <span className="text-rose-500">*</span></label>
+                    <input type="text" className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น CAM-001" value={formData.sn || ''} onChange={e => setFormData({...formData, sn: e.target.value})} />
                   </div>
                   <div>
-                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>จำนวนชิ้น</label>
-                    <input type="number" min="1" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.quantity || 1} onChange={e => setFormData({...formData, quantity: e.target.value})} />
+                    <label className={`block text-sm font-black mb-1.5 ${theme.textTitle}`}>จำนวน</label>
+                    <input type="number" min="1" className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={formData.quantity || 1} onChange={e => setFormData({...formData, quantity: e.target.value})} />
                   </div>
                   <div>
-                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>ฝ่ายที่รับผิดชอบ</label>
-                    <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.department || ''} onChange={e => setFormData({...formData, department: e.target.value})}>
+                    <label className={`block text-sm font-black mb-1.5 ${theme.textTitle}`}>ฝ่าย</label>
+                    <select className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={formData.department || ''} onChange={e => setFormData({...formData, department: e.target.value})}>
                       {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
                     </select>
                   </div>
                   <div>
                     <SmartOptionInput
-                      label="หมวดหมู่อุปกรณ์"
+                      label="หมวดหมู่"
                       value={formData.category || ''}
                       options={settingsOptions.categories || []}
                       onChange={(value) => {
@@ -26461,7 +26461,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                         setFormData({...formData, category: value, newCategory: '', equipmentType: inferredType === 'other' ? '' : inferredType});
                       }}
                       placeholder="พิมพ์ค้นหา / กดรายการทั้งหมดเพื่อเลื่อนเลือก"
-                      helper="เลือกได้ทั้ง 2 แบบ: พิมพ์ค้นหาเร็ว ๆ หรือกด “รายการทั้งหมด” แล้วเลื่อนเลือกจากรายการเดิม"
+                      helper="พิมพ์ค้นหาหรือเลือกจากรายการเดิม"
                       theme={theme}
                       isDarkMode={isDarkMode}
                       icon="🏷️"
@@ -26480,7 +26480,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   });
                   const equipmentType = detectedEquipmentType !== 'other' ? detectedEquipmentType : (formData.equipmentType || '');
                   const typeLabelMap = {
-                    camera: { label: 'กล้อง', icon: '📷', desc: 'เลือกเลนส์ในคลังที่ติดกับกล้องตอนนี้ + กรอกเมมที่คากล้อง' },
+                    camera: { label: 'กล้อง', icon: '📷', desc: 'เลือกเลนส์ในคลังที่ติดกับกล้องตอนนี้ + กรอกเมมในกล้อง' },
                     lens: { label: 'เลนส์', icon: '🔭', desc: 'เลนส์เป็นอุปกรณ์ในคลังธรรมดา ไม่ต้องกรอกข้อมูลใช้กับกล้อง' },
                     memory: { label: 'เมม', icon: '💾', desc: 'กรอกความจุเมมแบบง่าย ๆ' },
                     battery: { label: 'แบตเตอรี่', icon: '🔋', desc: 'อุปกรณ์แยก เลือกตอนทำรายการได้ตามปกติ' },
@@ -26545,7 +26545,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
                         <div>
                           <div className={`font-black text-lg mb-1 flex items-center gap-2 ${theme.textTitle}`}>2. ชุดกล้อง / เลนส์ / เมม</div>
-                          <p className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>แสดงเฉพาะช่องที่เกี่ยวกับหมวดที่เลือก เพื่อลดความรกตอนเพิ่ม/แก้ไขอุปกรณ์</p>
+                          <p className={`text-xs font-bold ${theme.textMuted}`}>ระบบจะแสดงเฉพาะช่องที่จำเป็นตามหมวด</p>
                         </div>
                         <div className={`px-3 py-2 rounded-2xl text-xs font-black border shrink-0 ${hasSpecificType ? (isDarkMode ? 'bg-slate-950/70 border-sky-800 text-sky-200' : 'bg-white border-sky-200 text-sky-700') : (isDarkMode ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600')}`}>
                           {typeMeta.icon} อ่านจากหมวด: {typeMeta.label}
@@ -26573,14 +26573,14 @@ ${auditChangeSummary}` : auditChangeSummary);
                       ) : (
                         <div className="space-y-2.5 qr-side-panel">
                           <div className={`p-3 rounded-2xl border text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950/50 border-slate-800 text-slate-300' : 'bg-white/80 border-sky-100 text-slate-600'}`}>
-                            ใช้ <span className="font-black">รหัส S.N.</span> จากข้อมูลหลักเป็นรหัสเดียวของอุปกรณ์ ไม่ต้องกรอกรหัสซ้ำในส่วนนี้
+                            ใช้ <span className="font-black">S.N.</span> จากข้อมูลหลักเป็นรหัสเดียวของอุปกรณ์ ไม่ต้องกรอกรหัสซ้ำในส่วนนี้
                           </div>
 
                           {isCamera && (
                             <div className={`smart-specific-fields grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-3xl border ${isDarkMode ? 'bg-blue-950/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
                               <div>
                                 <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>เลนส์ที่ลิงก์กับกล้องตอนนี้</label>
-                                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={selectedLensId} onChange={e => setLinkedLens(e.target.value)}>
+                                <select className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={selectedLensId} onChange={e => setLinkedLens(e.target.value)}>
                                   <option value="">-- ไม่ได้ลิงก์เลนส์ --</option>
                                   {lensOptions.map(lens => <option key={lens.id} value={lens.id}>{lens.name || 'เลนส์'}{lens.sn ? ` • S.N. ${lens.sn}` : ''}</option>)}
                                 </select>
@@ -26588,7 +26588,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                               </div>
                               <div>
                                 <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>เมมที่ลิงก์กับกล้องตอนนี้</label>
-                                <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={selectedMemoryId} onChange={e => setLinkedMemory(e.target.value)}>
+                                <select className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={selectedMemoryId} onChange={e => setLinkedMemory(e.target.value)}>
                                   <option value="">-- ไม่ได้ลิงก์เมม --</option>
                                   {memoryOptions.map(mem => <option key={mem.id} value={mem.id}>{mem.name || 'เมม'}{mem.sn ? ` • S.N. ${mem.sn}` : ''}{getCameraSimpleMemoryText(mem) ? ` • ${getCameraSimpleMemoryText(mem)}` : ''}</option>)}
                                 </select>
@@ -26596,7 +26596,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                               </div>
                               <div>
                                 <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>เมมแบบข้อความสำรอง</label>
-                                <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น 128GB, 256GB V60" value={formData.memoryCapacity || ''} onChange={e => setFormData({...formData, memoryCapacity: e.target.value, linkedMemoryId: '', linkedMemoryName: '', memoryType: '', memorySpeed: ''})} />
+                                <input type="text" className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น 128GB, 256GB V60" value={formData.memoryCapacity || ''} onChange={e => setFormData({...formData, memoryCapacity: e.target.value, linkedMemoryId: '', linkedMemoryName: '', memoryType: '', memorySpeed: ''})} />
                                 <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>ใช้กรณียังไม่ได้เพิ่มเมมเป็นอุปกรณ์แยก</div>
                               </div>
                               <div className={`sm:col-span-3 rounded-2xl border px-3 py-2 text-xs font-bold ${isDarkMode ? 'bg-slate-950/50 border-slate-800 text-slate-300' : 'bg-white/80 border-blue-100 text-slate-600'}`}>
@@ -26615,7 +26615,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                           {isMemory && (
                             <div className={`smart-specific-fields p-4 rounded-3xl border ${isDarkMode ? 'bg-cyan-950/20 border-cyan-800' : 'bg-cyan-50 border-cyan-200'}`}>
                               <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>ความจุเมม</label>
-                              <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น 64GB, 128GB, 256GB V60" value={formData.memoryCapacity || ''} onChange={e => setFormData({...formData, memoryCapacity: e.target.value, memoryType: '', memorySpeed: ''})} />
+                              <input type="text" className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น 64GB, 128GB, 256GB V60" value={formData.memoryCapacity || ''} onChange={e => setFormData({...formData, memoryCapacity: e.target.value, memoryType: '', memorySpeed: ''})} />
                               <div className={`text-xs font-bold mt-2 ${theme.textMuted}`}>เมมเป็นอุปกรณ์ธรรมดา 1 ชิ้นในคลัง ถ้าจะให้ติดกับกล้อง ให้ไปที่หน้ากล้องแล้วเลือกเมมตัวนี้</div>
                             </div>
                           )}
@@ -26623,13 +26623,11 @@ ${auditChangeSummary}` : auditChangeSummary);
                           {!isCamera && !isLens && !isMemory && (
                             <div className={`smart-specific-fields p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-950/50 border-slate-800' : 'bg-white/80 border-sky-100'}`}>
                               <label className={`block text-xs font-black mb-1.5 ${theme.textTitle}`}>หมายเหตุ / ใช้ร่วมกับ</label>
-                              <input type="text" className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น ใช้กับกล้อง, ไฟ, OB-Live, ห้องประชุม" value={formData.compatibleWith || ''} onChange={e => setFormData({...formData, compatibleWith: e.target.value})} />
+                              <input type="text" className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border ${theme.input}`} placeholder="เช่น ใช้กับกล้อง, ไฟ, OB-Live, ห้องประชุม" value={formData.compatibleWith || ''} onChange={e => setFormData({...formData, compatibleWith: e.target.value})} />
                             </div>
                           )}
 
-                          <div className={`mt-2 p-3 rounded-2xl border text-xs sm:text-sm font-bold ${isDarkMode ? 'bg-slate-950/70 border-slate-800 text-slate-300' : 'bg-white/80 border-sky-200 text-slate-600'}`}>
-                            สรุป: เลนส์ไม่ต้องกรอกข้อมูลใช้กับกล้อง ส่วนกล้องเป็นตัวเลือกว่าจะติดเลนส์และเมมตัวไหน ถ้ายังไม่เพิ่มเมมเป็นอุปกรณ์ก็กรอกความจุเป็นข้อความสำรองได้
-                          </div>
+                          
                         </div>
                       )}
                     </>
@@ -26637,93 +26635,93 @@ ${auditChangeSummary}` : auditChangeSummary);
                 })()}
               </section>
 
-              <section className={`item-form-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
-                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>3. ที่เก็บและสถานะ</div>
+              <section className={`item-form-section p-3 sm:p-4 rounded-3xl border ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
+                <div className={`font-black text-base mb-3 flex items-center gap-2 ${theme.textTitle}`}>ที่เก็บ / สถานะ</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="sm:col-span-2">
                     <SmartOptionInput
-                      label="สถานที่จัดเก็บ / ห้อง"
+                      label="ที่เก็บ / ห้อง"
                       value={formData.location || ''}
                       options={settingsOptions.locations || []}
                       onChange={(value) => setFormData({...formData, location: value, newLocation: ''})}
                       placeholder="พิมพ์ค้นหา หรือกดรายการทั้งหมดเพื่อเลื่อนเลือก"
-                      helper="เลือกได้ทั้งพิมพ์ค้นหาและเลื่อนเลือก ถ้าเป็นสถานที่ใหม่ พิมพ์ชื่อไว้แล้วระบบจะเพิ่มให้ตอนกดบันทึก"
+                      helper="พิมพ์ค้นหาหรือพิมพ์ชื่อที่เก็บใหม่ได้"
                       theme={theme}
                       isDarkMode={isDarkMode}
                       icon="📍"
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>โครงการ / แหล่งที่มา</label>
+                    <label className={`block text-sm font-black mb-1.5 ${theme.textTitle}`}>โครงการ / แหล่งที่มา</label>
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <select className={`flex-1 px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.project || ''} onChange={e => setFormData({...formData, project: e.target.value, newProject: e.target.value !== 'อื่นๆ' ? '' : formData.newProject})}>
+                      <select className={`flex-1 px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={formData.project || ''} onChange={e => setFormData({...formData, project: e.target.value, newProject: e.target.value !== 'อื่นๆ' ? '' : formData.newProject})}>
                         <option value="">-- ไม่ระบุโครงการ --</option>
                         {projectOptions.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
-                      <button type="button" onClick={() => openWorkspace('projects')} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>โครงการจัดซื้อ</button>
+                      <button type="button" onClick={() => openWorkspace('projects')} className={`px-3.5 py-2.5 rounded-xl border font-black ${theme.btnSecondary}`}>โครงการ</button>
                     </div>
-                    <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>โครงการใช้สำหรับจัดกลุ่มอุปกรณ์ตามแหล่งที่มา/จัดซื้อ</p>
+                    
                   </div>
                   {formData.project === 'อื่นๆ' && (
                     <div className="sm:col-span-2">
                       <label className="block text-base font-bold text-blue-500 mb-2">เพิ่มชื่อโครงการใหม่ / พิมพ์ระบุเอง</label>
-                      <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-800'}`} placeholder="เช่น โครงการจัดซื้ออุปกรณ์ถ่ายภาพ ปี 2569" value={formData.newProject || ''} onChange={e => setFormData({...formData, newProject: e.target.value})} />
+                      <input type="text" autoFocus className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-blue-900/20 border-blue-800 text-blue-400' : 'bg-blue-50 border-blue-300 text-blue-800'}`} placeholder="เช่น โครงการอุปกรณ์ถ่ายภาพ ปี 2569" value={formData.newProject || ''} onChange={e => setFormData({...formData, newProject: e.target.value})} />
                     </div>
                   )}
                   <div>
-                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>สถานะใช้งาน</label>
-                    <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.status || 'available'} onChange={e => setFormData({...formData, status: e.target.value})}>
+                    <label className={`block text-sm font-black mb-1.5 ${theme.textTitle}`}>สถานะใช้งาน</label>
+                    <select className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={formData.status || 'available'} onChange={e => setFormData({...formData, status: e.target.value})}>
                       {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>สถานะพัสดุ</label>
-                    <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-lg border ${theme.input}`} value={formData.assetStatus || 'active'} onChange={e => setFormData({...formData, assetStatus: e.target.value})}>
+                    <label className={`block text-sm font-black mb-1.5 ${theme.textTitle}`}>สถานะพัสดุ</label>
+                    <select className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border ${theme.input}`} value={formData.assetStatus || 'active'} onChange={e => setFormData({...formData, assetStatus: e.target.value})}>
                       {ASSET_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                     </select>
-                    <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>สถานะพัสดุใช้ตรวจพัสดุ เช่น ใช้งานอยู่ / จำหน่ายแล้ว / สูญหาย</p>
+                    
                   </div>
                 </div>
               </section>
 
-              <section className={`item-form-section p-4 sm:p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-white border-slate-200'}`}>
-                <div className={`font-black text-lg mb-4 flex items-center gap-2 ${theme.textTitle}`}>4. เพิ่มเติม</div>
+              <section className={`item-form-section p-3 sm:p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-white border-slate-200'}`}>
+                <div className={`font-black text-base mb-3 flex items-center gap-2 ${theme.textTitle}`}>เพิ่มเติม</div>
                 <div className="space-y-4">
-                  <div className={`p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-800/55' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`p-3 border rounded-2xl transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-800/55' : 'bg-slate-50 border-slate-200'}`}>
                     <label className={`flex items-center gap-3 cursor-pointer ${theme.textTitle}`}>
                       <input type="checkbox" className="w-5 h-5 accent-emerald-500 rounded cursor-pointer" checked={!!formData.qrTagged} onChange={e => setFormData({...formData, qrTagged: e.target.checked})} />
-                      <span className="font-bold text-lg">▦ ติด QR แล้ว</span>
+                      <span className="font-black text-base">ติด QR แล้ว</span>
                     </label>
-                    <p className={`text-xs font-bold mt-2 ${theme.textMuted}`}>ใช้ช่วยกรองรายการที่ยังไม่ได้ติดฉลาก QR ตอนเตรียมอุปกรณ์จริง</p>
+                    
                   </div>
 
-                  <div className={`p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-800/55' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`p-3 border rounded-2xl transition-colors ${isDarkMode ? 'bg-slate-900 border-slate-800/55' : 'bg-slate-50 border-slate-200'}`}>
                     <label className={`flex items-center gap-3 cursor-pointer ${theme.textTitle}`}>
                       <input type="checkbox" className="w-5 h-5 accent-fuchsia-500 rounded cursor-pointer" checked={formData.isPersonalItem} onChange={e => {
                         const isChecked = e.target.checked;
                         setFormData({...formData, isPersonalItem: isChecked, owner: isChecked ? (formData.owner || '') : '', newOwner: ''});
                       }} />
-                      <span className="font-bold text-lg">👤 ระบุว่าเป็น "ของส่วนตัว" (Personal Item)</span>
+                      <span className="font-black text-base">👤 ของส่วนตัว</span>
                     </label>
                     {formData.isPersonalItem && (
                       <div className="mt-4 space-y-4">
                         <div>
                           <label className={`block text-sm font-bold mb-2 ${theme.textMuted}`}>เลือกชื่อเจ้าของ <span className="text-rose-500">*</span></label>
-                          <select className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-fuchsia-500 ${theme.input}`} value={formData.owner || ''} onChange={e => setFormData({...formData, owner: e.target.value, newOwner: e.target.value !== 'อื่นๆ' ? '' : formData.newOwner})}>
+                          <select className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-fuchsia-500 ${theme.input}`} value={formData.owner || ''} onChange={e => setFormData({...formData, owner: e.target.value, newOwner: e.target.value !== 'อื่นๆ' ? '' : formData.newOwner})}>
                             <option value="" disabled>-- เลือกชื่อเจ้าของ --</option>
                             {(settingsOptions.staff || []).map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
                         </div>
                         {formData.owner === 'อื่นๆ' && (
-                          <input type="text" autoFocus className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-fuchsia-500 ${isDarkMode ? 'bg-fuchsia-900/20 border-fuchsia-800 text-fuchsia-300' : 'bg-fuchsia-50 border-fuchsia-300 text-fuchsia-800'}`} placeholder="พิมพ์ชื่อเจ้าของใหม่..." value={formData.newOwner || ''} onChange={e => setFormData({...formData, newOwner: e.target.value})} />
+                          <input type="text" autoFocus className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border focus:ring-2 focus:ring-fuchsia-500 ${isDarkMode ? 'bg-fuchsia-900/20 border-fuchsia-800 text-fuchsia-300' : 'bg-fuchsia-50 border-fuchsia-300 text-fuchsia-800'}`} placeholder="พิมพ์ชื่อเจ้าของใหม่..." value={formData.newOwner || ''} onChange={e => setFormData({...formData, newOwner: e.target.value})} />
                         )}
                       </div>
                     )}
                   </div>
 
                   <div>
-                    <label className={`block text-base font-bold mb-2 ${theme.textTitle}`}>หมายเหตุภายใน / โน้ตอุปกรณ์ <span className={`text-sm font-normal ${theme.textMuted}`}>(ไม่แสดงบน QR)</span></label>
-                    <textarea className={`w-full px-4 py-3 rounded-xl font-bold outline-none text-base border resize-none ${theme.input}`} rows="3" placeholder="เช่น แบตเสื่อมเร็ว, ช่อง HDMI หลวม, ใช้กับสายเฉพาะรุ่น..." value={formData.internalNote || ''} onChange={e => setFormData({...formData, internalNote: e.target.value})}></textarea>
+                    <label className={`block text-sm font-black mb-1.5 ${theme.textTitle}`}>หมายเหตุภายใน <span className={`text-xs font-bold ${theme.textMuted}`}>(ไม่แสดงบน QR)</span></label>
+                    <textarea className={`w-full px-3.5 py-2.5 rounded-xl font-bold outline-none text-base border resize-none ${theme.input}`} rows="3" placeholder="เช่น แบตเสื่อมเร็ว, ช่อง HDMI หลวม, ใช้กับสายเฉพาะรุ่น..." value={formData.internalNote || ''} onChange={e => setFormData({...formData, internalNote: e.target.value})}></textarea>
                   </div>
 
                   {getMissingDataLabels(formData).length > 0 && (
@@ -26735,9 +26733,9 @@ ${auditChangeSummary}` : auditChangeSummary);
               </section>
             </div>
 
-            <div className="flex gap-3 mt-6">
-              <button type="button" onClick={() => confirmCloseIfDirty(true, () => setShowForm(false))} className={`flex-1 py-4 font-bold rounded-xl transition-colors text-lg ${theme.btnCancel}`}>ยกเลิก</button>
-              <button type="button" onClick={() => runWithBusy(handleSave)} disabled={isBusy} className={`flex-1 py-4 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-colors text-lg ${isBusy ? 'bg-blue-400 cursor-wait' : 'bg-blue-600 hover:bg-blue-500'}`}>{isBusy ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}</button>
+            <div className="flex gap-2.5 mt-4">
+              <button type="button" onClick={() => confirmCloseIfDirty(true, () => setShowForm(false))} className={`flex-1 py-3 font-black rounded-xl transition-colors text-base ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={() => runWithBusy(handleSave)} disabled={isBusy} className={`flex-1 py-3 text-white font-black rounded-xl shadow-lg shadow-blue-500/20 transition-colors text-lg ${isBusy ? 'bg-blue-400 cursor-wait' : 'bg-blue-600 hover:bg-blue-500'}`}>{isBusy ? 'กำลังบันทึก...' : 'บันทึก'}</button>
             </div>
           </div>
         </div>
@@ -27013,21 +27011,21 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
               <div className="p-6 overflow-y-auto custom-scrollbar space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>วันที่พบปัญหา</span><input type="date" className={`w-full px-4 py-3 rounded-xl border ${theme.input}`} value={repairForm.issueDate} onChange={e => setRepairForm({...repairForm, issueDate: e.target.value})} /></label>
-                  <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>ผู้แจ้ง</span><input className={`w-full px-4 py-3 rounded-xl border ${theme.input}`} value={repairForm.reporter} onChange={e => setRepairForm({...repairForm, reporter: e.target.value})} /></label>
+                  <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>วันที่พบปัญหา</span><input type="date" className={`w-full px-3.5 py-2.5 rounded-xl border ${theme.input}`} value={repairForm.issueDate} onChange={e => setRepairForm({...repairForm, issueDate: e.target.value})} /></label>
+                  <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>ผู้แจ้ง</span><input className={`w-full px-3.5 py-2.5 rounded-xl border ${theme.input}`} value={repairForm.reporter} onChange={e => setRepairForm({...repairForm, reporter: e.target.value})} /></label>
                 </div>
-                <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>อาการเสีย / สิ่งที่ต้องตรวจ <span className="text-rose-500">*</span></span><textarea rows="3" className={`w-full px-4 py-3 rounded-xl border resize-none ${theme.input}`} value={repairForm.problem} onChange={e => setRepairForm({...repairForm, problem: e.target.value})} placeholder="เช่น หัวไมค์หลวม / ช่อง HDMI กระพริบ / แบตเสื่อม" /></label>
+                <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>อาการเสีย / สิ่งที่ต้องตรวจ <span className="text-rose-500">*</span></span><textarea rows="3" className={`w-full px-3.5 py-2.5 rounded-xl border resize-none ${theme.input}`} value={repairForm.problem} onChange={e => setRepairForm({...repairForm, problem: e.target.value})} placeholder="เช่น หัวไมค์หลวม / ช่อง HDMI กระพริบ / แบตเสื่อม" /></label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>ความเร่งด่วน</span><select className={`w-full px-4 py-3 rounded-xl border ${theme.input}`} value={repairForm.urgency || 'normal'} onChange={e => setRepairForm({...repairForm, urgency: e.target.value})}><option value="low">ไม่เร่งด่วน</option><option value="normal">ปกติ</option><option value="high">เร่งด่วน</option><option value="critical">ด่วนมาก</option></select></label>
-                  <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>สถานะงานซ่อม</span><select className={`w-full px-4 py-3 rounded-xl border ${theme.input}`} value={repairForm.statusStage || 'reported'} onChange={e => setRepairForm({...repairForm, statusStage: e.target.value, markAvailable: e.target.value === 'done' ? true : repairForm.markAvailable})}><option value="reported">แจ้งปัญหา</option><option value="inspecting">รอตรวจสอบ</option><option value="repairing">ส่งซ่อม/กำลังซ่อม</option><option value="waiting">รออะไหล่/รอดำเนินการ</option><option value="done">ซ่อมเสร็จแล้ว</option><option value="retired">รอจำหน่าย/เลิกใช้งาน</option></select></label>
+                  <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>ความเร่งด่วน</span><select className={`w-full px-3.5 py-2.5 rounded-xl border ${theme.input}`} value={repairForm.urgency || 'normal'} onChange={e => setRepairForm({...repairForm, urgency: e.target.value})}><option value="low">ไม่เร่งด่วน</option><option value="normal">ปกติ</option><option value="high">เร่งด่วน</option><option value="critical">ด่วนมาก</option></select></label>
+                  <label className="block"><span className={`block font-bold mb-1 ${theme.textTitle}`}>สถานะงานซ่อม</span><select className={`w-full px-3.5 py-2.5 rounded-xl border ${theme.input}`} value={repairForm.statusStage || 'reported'} onChange={e => setRepairForm({...repairForm, statusStage: e.target.value, markAvailable: e.target.value === 'done' ? true : repairForm.markAvailable})}><option value="reported">แจ้งปัญหา</option><option value="inspecting">รอตรวจสอบ</option><option value="repairing">ส่งซ่อม/กำลังซ่อม</option><option value="waiting">รออะไหล่/รอดำเนินการ</option><option value="done">ซ่อมเสร็จแล้ว</option><option value="retired">รอจำหน่าย/เลิกใช้งาน</option></select></label>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <input className={`px-4 py-3 rounded-xl border ${theme.input}`} placeholder="ส่งซ่อมที่ไหน" value={repairForm.sentTo} onChange={e => setRepairForm({...repairForm, sentTo: e.target.value})} />
-                  <input className={`px-4 py-3 rounded-xl border ${theme.input}`} placeholder="ค่าใช้จ่าย" value={repairForm.cost} onChange={e => setRepairForm({...repairForm, cost: e.target.value})} />
-                  <input type="date" className={`px-4 py-3 rounded-xl border ${theme.input}`} value={repairForm.doneDate} onChange={e => setRepairForm({...repairForm, doneDate: e.target.value})} />
+                  <input className={`px-3.5 py-2.5 rounded-xl border ${theme.input}`} placeholder="ส่งซ่อมที่ไหน" value={repairForm.sentTo} onChange={e => setRepairForm({...repairForm, sentTo: e.target.value})} />
+                  <input className={`px-3.5 py-2.5 rounded-xl border ${theme.input}`} placeholder="ค่าใช้จ่าย" value={repairForm.cost} onChange={e => setRepairForm({...repairForm, cost: e.target.value})} />
+                  <input type="date" className={`px-3.5 py-2.5 rounded-xl border ${theme.input}`} value={repairForm.doneDate} onChange={e => setRepairForm({...repairForm, doneDate: e.target.value})} />
                 </div>
-                <input className={`w-full px-4 py-3 rounded-xl border ${theme.input}`} placeholder="แนวทางถัดไป เช่น รออะไหล่ / ส่งศูนย์ / ตรวจซ้ำวัน..." value={repairForm.nextAction || ''} onChange={e => setRepairForm({...repairForm, nextAction: e.target.value})} />
-                <textarea rows="2" className={`w-full px-4 py-3 rounded-xl border resize-none ${theme.input}`} placeholder="หมายเหตุเพิ่มเติม" value={repairForm.note} onChange={e => setRepairForm({...repairForm, note: e.target.value})} />
+                <input className={`w-full px-3.5 py-2.5 rounded-xl border ${theme.input}`} placeholder="แนวทางถัดไป เช่น รออะไหล่ / ส่งศูนย์ / ตรวจซ้ำวัน..." value={repairForm.nextAction || ''} onChange={e => setRepairForm({...repairForm, nextAction: e.target.value})} />
+                <textarea rows="2" className={`w-full px-3.5 py-2.5 rounded-xl border resize-none ${theme.input}`} placeholder="หมายเหตุเพิ่มเติม" value={repairForm.note} onChange={e => setRepairForm({...repairForm, note: e.target.value})} />
                 <label className={`flex items-center gap-3 p-4 rounded-xl border ${theme.btnSecondary}`}><input type="checkbox" className="w-5 h-5 accent-emerald-500" checked={repairForm.markAvailable} onChange={e => setRepairForm({...repairForm, markAvailable: e.target.checked})} /><span className="font-bold">ซ่อมเสร็จแล้ว เปลี่ยนสถานะกลับเป็นพร้อมใช้</span></label>
                 <div className={`editor-card rounded-2xl border p-3 ${isDarkMode ? 'border-slate-800/55 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
                   <h4 className={`font-black mb-3 ${theme.textTitle}`}>ประวัติซ่อมล่าสุด</h4>
@@ -27068,7 +27066,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       )}
 
 
-      {/* 🗂️ Legacy Project Manager (เก็บไว้เผื่อปุ่มเก่าเรียก แต่เมนูหลักใช้หน้าโครงการจัดซื้อแบบเต็มหน้าแล้ว) */}
+      {/* 🗂️ Legacy Project Manager (เก็บไว้เผื่อปุ่มเก่าเรียก แต่เมนูหลักใช้หน้าโครงการแบบเต็มหน้าแล้ว) */}
       {showProjectsModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9990] mdec-history-proof-safe`}>
           <div className={`borrow-docs-archive-shell rounded-[2rem] shadow-2xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[92vh] border ${isDarkMode ? 'bg-slate-900 border-slate-800/55 shadow-black/40' : 'bg-white border-white shadow-slate-200/80'}`}>
@@ -27076,7 +27074,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               <div>
                 <h3 className={`text-3xl font-black flex items-center gap-3 ${theme.textTitle}`}>
                   <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 text-white flex items-center justify-center shadow-lg">🗂️</span>
-                  โครงการจัดซื้อ
+                  โครงการ
                 </h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>บันทึกว่าอุปกรณ์แต่ละชิ้นจัดซื้อ/จัดหามาจากโครงการไหน ใช้สำหรับตรวจรายการและพิมพ์รายงาน</p>
               </div>
@@ -27086,9 +27084,9 @@ ${auditChangeSummary}` : auditChangeSummary);
             <div className="p-5 overflow-y-auto custom-scrollbar flex-1 space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {[
-                  ['1', 'สร้างชื่อโครงการ', 'ตั้งชื่อกลุ่ม เช่น งานประชุม / ห้องใหม่ / โครงการจัดซื้อ'],
+                  ['1', 'สร้างชื่อโครงการ', 'ตั้งชื่อกลุ่ม เช่น งานประชุม / ห้องใหม่ / โครงการ'],
                   ['2', 'จัดอุปกรณ์', 'กดปุ่มจัดอุปกรณ์ แล้วติ๊กเลือกของที่เกี่ยวข้อง'],
-                  ['3', 'ใช้งานต่อ', 'กดดูของที่อยู่ในโครงการจัดซื้อนี้ หรือพิมพ์รายงานได้ทันที']
+                  ['3', 'ใช้งานต่อ', 'กดดูของที่อยู่ในโครงการนี้ หรือพิมพ์รายงานได้ทันที']
                 ].map(([no, title, desc]) => (
                   <div key={no} className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-white border-slate-200'}`}>
                     <div className="w-8 h-8 rounded-xl bg-blue-950/35 text-blue-100 border border-blue-500/50 flex items-center justify-center font-black mb-3">{no}</div>
@@ -27101,10 +27099,10 @@ ${auditChangeSummary}` : auditChangeSummary);
               <div className={`p-5 rounded-[1.75rem] border shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-end">
                   <div>
-                    <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>เพิ่มชื่อโครงการจัดซื้อ / แหล่งงบประมาณ</label>
+                    <label className={`block text-base font-black mb-2 ${theme.textTitle}`}>เพิ่มชื่อโครงการ / แหล่งงบประมาณ</label>
                     <input
-                      className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`}
-                      placeholder="เช่น งานประชุมใหญ่ / โครงการจัดซื้ออุปกรณ์ / ห้องปฏิบัติการใหม่"
+                      className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`}
+                      placeholder="เช่น งานประชุมใหญ่ / โครงการอุปกรณ์ / ห้องปฏิบัติการใหม่"
                       value={quickProjectName}
                       onChange={e => setQuickProjectName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') handleAddProjectQuick(); }}
@@ -27138,7 +27136,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
               <div className={`p-2.5 rounded-lg border grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 ${isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-slate-50 border-slate-200'}`}>
                 <input className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาชื่อโครงการ / ชื่ออุปกรณ์ / S.N. / ห้องเก็บ" value={projectManagerSearch} onChange={e => setProjectManagerSearch(e.target.value)} />
-                <button type="button" onClick={() => setProjectManagerSearch('')} className={`px-4 py-3 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างค้นหา</button>
+                <button type="button" onClick={() => setProjectManagerSearch('')} className={`px-3.5 py-2.5 rounded-xl border font-black ${theme.btnSecondary}`}>ล้างค้นหา</button>
               </div>
 
               {hasMultiFilter(filterProject) && (
@@ -27221,19 +27219,19 @@ ${auditChangeSummary}` : auditChangeSummary);
             </div>
 
             <div className={`p-4 border-t ${theme.divide}`}>
-              <button type="button" onClick={() => setShowProjectsModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดโครงการจัดซื้อ</button>
+              <button type="button" onClick={() => setShowProjectsModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดโครงการ</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal ผูกอุปกรณ์กับโครงการจัดซื้อ */}
+      {/* Modal ผูกอุปกรณ์กับโครงการ */}
       {showProjectAssignModal && (
         <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-4 z-[9995]`}>
           <div className={`rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh] border ${theme.cardBg}`}>
             <div className={`p-5 border-b flex flex-col sm:flex-row sm:items-start justify-between gap-3 ${theme.divide}`}>
               <div>
-                <h3 className={`text-xl sm:text-2xl font-black ${theme.textTitle}`}>ผูกอุปกรณ์กับโครงการจัดซื้อ</h3>
+                <h3 className={`text-xl sm:text-2xl font-black ${theme.textTitle}`}>ผูกอุปกรณ์กับโครงการ</h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>โครงการ: <span className="text-indigo-500">{projectAssignTarget}</span> • ติ๊กเลือกเพื่อเพิ่มเข้ากลุ่ม หรือติ๊กออกเพื่อนำออกจากโครงการ แล้วบันทึกทีเดียว</p>
               </div>
               <button type="button" onClick={() => setShowProjectAssignModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-4 h-4" /></button>
@@ -27242,8 +27240,8 @@ ${auditChangeSummary}` : auditChangeSummary);
               <input className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / หมวดหมู่ / ห้องเก็บ / โครงการเดิม" value={projectAssignSearch} onChange={e => setProjectAssignSearch(e.target.value)} />
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div className={`px-3.5 py-2.5 rounded-xl border font-black text-center text-sm ${theme.btnSecondary}`}>เลือกแล้ว {projectAssignSelectedIds.length.toLocaleString('th-TH')} รายการ</div>
-                <button type="button" onClick={() => setProjectAssignSelectedIds(prev => [...new Set([...prev, ...projectAssignCandidateItems.map(item => item.id)])])} className="px-4 py-3 rounded-xl bg-blue-950/35 text-blue-100 border border-blue-500/50 font-black">เลือกที่ค้นหาทั้งหมด</button>
-                <button type="button" onClick={() => { const visibleIds = new Set(projectAssignCandidateItems.map(item => item.id)); setProjectAssignSelectedIds(prev => prev.filter(id => !visibleIds.has(id))); }} className={`px-4 py-3 rounded-xl border font-black ${theme.btnCancel}`}>ล้างที่ค้นหา</button>
+                <button type="button" onClick={() => setProjectAssignSelectedIds(prev => [...new Set([...prev, ...projectAssignCandidateItems.map(item => item.id)])])} className="px-3.5 py-2.5 rounded-xl bg-blue-950/35 text-blue-100 border border-blue-500/50 font-black">เลือกที่ค้นหาทั้งหมด</button>
+                <button type="button" onClick={() => { const visibleIds = new Set(projectAssignCandidateItems.map(item => item.id)); setProjectAssignSelectedIds(prev => prev.filter(id => !visibleIds.has(id))); }} className={`px-3.5 py-2.5 rounded-xl border font-black ${theme.btnCancel}`}>ล้างที่ค้นหา</button>
               </div>
             </div>
             <div className={`px-5 py-3 border-b text-sm font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800/55 text-slate-300' : 'bg-blue-50 border-blue-100 text-blue-800'}`}>
@@ -27264,7 +27262,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                           <div className="min-w-0 flex-1">
                             <div className="font-black truncate">{item.name}</div>
                             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.category || '-'} • {item.location || '-'}</div>
-                            <div className={`text-xs font-bold mt-2 ${already ? 'text-emerald-500' : theme.textMuted}`}>{checked ? (already ? 'อยู่ในโครงการจัดซื้อนี้แล้ว' : 'จะผูกเข้าโครงการจัดซื้อนี้') : (already ? 'จะนำออกจากโครงการจัดซื้อนี้เมื่อบันทึก' : `ปัจจุบัน: ${projectDisplayName(item.project)}`)}</div>
+                            <div className={`text-xs font-bold mt-2 ${already ? 'text-emerald-500' : theme.textMuted}`}>{checked ? (already ? 'อยู่ในโครงการนี้แล้ว' : 'จะผูกเข้าโครงการนี้') : (already ? 'จะนำออกจากโครงการนี้เมื่อบันทึก' : `ปัจจุบัน: ${projectDisplayName(item.project)}`)}</div>
                           </div>
                         </div>
                       </button>
@@ -27590,11 +27588,11 @@ ${auditChangeSummary}` : auditChangeSummary);
             <div className="p-6 space-y-4">
               <div>
                 <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>ชื่อ / ประเภทหลักฐาน</label>
-                <input className={`w-full px-4 py-3 rounded-xl border font-bold ${theme.input}`} value={proofEditForm.contextLabel} onChange={e => setProofEditForm(prev => ({ ...prev, contextLabel: e.target.value }))} placeholder="เช่น หลักฐานการยืม / หลักฐานรับคืน" />
+                <input className={`w-full px-3.5 py-2.5 rounded-xl border font-bold ${theme.input}`} value={proofEditForm.contextLabel} onChange={e => setProofEditForm(prev => ({ ...prev, contextLabel: e.target.value }))} placeholder="เช่น หลักฐานการยืม / หลักฐานรับคืน" />
               </div>
               <div>
                 <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>หมายเหตุรูปภาพ</label>
-                <textarea className={`w-full px-4 py-3 rounded-xl border font-bold min-h-[110px] ${theme.input}`} value={proofEditForm.note} onChange={e => setProofEditForm(prev => ({ ...prev, note: e.target.value }))} placeholder="เช่น รูปนี้เป็นภาพรวมของรายการยืมชุดลำโพง..." />
+                <textarea className={`w-full px-3.5 py-2.5 rounded-xl border font-bold min-h-[110px] ${theme.input}`} value={proofEditForm.note} onChange={e => setProofEditForm(prev => ({ ...prev, note: e.target.value }))} placeholder="เช่น รูปนี้เป็นภาพรวมของรายการยืมชุดลำโพง..." />
               </div>
               <div>
                 <label className={`block text-sm font-black mb-2 ${theme.textTitle}`}>แทนที่รูปหลักฐานเดิม (ไม่บังคับ)</label>
