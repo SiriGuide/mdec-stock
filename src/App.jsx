@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.6 Inventory Direct Camera Borrow Hotfix';
+const APP_VERSION = 'v23.4.16.18.7 Selection Panel Unified Auto Close Polish';
 const APP_UPDATE_NOTE = 'Borrow Event Confirm Safe Hotfix: ถอด helper ชุดกล้องที่อยู่นอก scope ตอนยืนยันยืม/ออกงาน เพื่อให้บันทึกได้เสถียรก่อน โดยยังไม่แตะ QR Scanner core';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -7401,6 +7401,7 @@ function MainApp() {
     workspace = removedWorkspaceRedirects[workspace] || workspace;
     setShowMoreMenu(false);
     setShowInventoryMoreActions(false);
+    setShowOperationSelectedPanel(false);
     setShowProjectsModal(false);
     setShowStorageBoxesModal(false);
     setShowBundleManager(false);
@@ -24372,7 +24373,7 @@ ${auditChangeSummary}` : auditChangeSummary);
       )}
 
       {/* 🛒 Bulk Selection Action Bar */}
-      {canUseOperationalTools && selectedItems.length > 0 && !(showScanModal && activeWorkspace === 'scanner') && (() => {
+      {activeWorkspace === 'inventory' && canUseOperationalTools && selectedItems.length > 0 && !(showScanModal && activeWorkspace === 'scanner') && (() => {
         const selectedActiveItems = selectedItems.map(id => items.find(item => item.id === id)).filter(Boolean);
         const availableCount = selectedActiveItems.filter(item => item.status === 'available').length;
         const returnableCount = selectedActiveItems.filter(item => item.status === 'borrowed' || item.status === 'out-for-event').length;
@@ -24389,15 +24390,15 @@ ${auditChangeSummary}` : auditChangeSummary);
         const secondaryButtonClass = `w-full px-4 py-2.5 rounded-2xl font-black text-sm border flex items-center gap-3 text-left transition-colors ${isDarkMode ? 'bg-slate-950 hover:bg-slate-800 border-slate-800/55 text-slate-200' : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'}`;
 
         return (
-          <div className="bulk-selection-actionbar fixed inset-x-3 bottom-4 sm:bottom-6 lg:inset-x-auto lg:right-6 lg:bottom-6 lg:w-[390px] z-40 flex justify-center pointer-events-none">
-            <div className={`bulk-selection-panel pointer-events-auto w-full max-w-4xl lg:max-w-none rounded-[1.5rem] border shadow-[0_18px_55px_rgba(0,0,0,0.32)] p-2.5 sm:p-3 animate-[slideUp_0.3s_ease-out] ${isDarkMode ? 'bg-slate-950 border-slate-800/55 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-              <div className="flex flex-col gap-3">
+          <div className="bulk-selection-actionbar fixed left-3 right-3 bottom-4 z-40 pointer-events-none">
+            <div className={`bulk-selection-panel pointer-events-auto mx-auto w-full max-w-2xl rounded-2xl border shadow-2xl px-2.5 sm:px-3 py-2 animate-[slideUp_0.3s_ease-out] ${isDarkMode ? 'bg-slate-950/95 border-slate-800/55 text-white' : 'bg-white/95 border-slate-200 text-slate-900'} backdrop-blur`}>
+              <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-3 shrink-0">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="bg-indigo-600 text-white font-black w-11 h-11 rounded-2xl flex items-center justify-center shadow-inner text-lg shrink-0">{selectedItems.length}</div>
                     <div className="min-w-0">
                       <div className={`font-black leading-tight ${theme.textTitle}`}>รายการที่เลือก</div>
-                      <div className={`text-xs font-bold truncate ${theme.textMuted}`}>{selectionHint || 'เลือกเพื่อเปิดแฟ้ม พิมพ์ฉลาก จัดกล่อง หรือแก้ไขข้อมูล'}</div>
+                      <div className={`text-[11px] font-bold truncate ${theme.textMuted}`}>{selectionHint || 'เปิดแฟ้ม แก้ไข พิมพ์ฉลาก จัดกล่อง หรือจัดเซ็ตจากจุดนี้ได้'}</div>
                     </div>
                   </div>
                   <button
@@ -24410,7 +24411,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 flex-1">
+                <div className="grid grid-cols-2 sm:grid-cols-[1fr_1fr_1.1fr_auto] gap-2 flex-1">
                   {singleSelectedItem && (
                     <button
                       type="button"
@@ -24435,12 +24436,12 @@ ${auditChangeSummary}` : auditChangeSummary);
                     </button>
                   )}
 
-                  <div className={`col-span-2 px-4 py-2.5 rounded-2xl border text-left font-bold text-sm leading-6 ${isDarkMode ? 'bg-slate-900/70 border-slate-800/55 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                    <div className={`font-black ${theme.textTitle}`}>คลังอุปกรณ์ใช้สำหรับเปิดแฟ้ม / จัดการข้อมูล</div>
-                    <div className={`text-xs mt-1 ${theme.textMuted}`}>ถ้าต้องการยืม ออกงาน หรือรับคืน ให้ไปที่เมนู “งานอุปกรณ์” เพื่อใช้หน้าทำรายการเฉพาะทาง</div>
+                  <div className={`col-span-2 sm:col-span-4 px-4 py-2.5 rounded-2xl border text-left font-bold text-sm leading-6 ${isDarkMode ? 'bg-slate-900/70 border-slate-800/55 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                    <div className={`font-black ${theme.textTitle}`}>หน้าคลังอุปกรณ์ • ใช้เปิดแฟ้ม / จัดการข้อมูล</div>
+                    <div className={`text-xs mt-1 ${theme.textMuted}`}>ถ้าต้องการยืม ออกงาน หรือรับคืน ให้ไปที่เมนู “งานอุปกรณ์” ระบบจะซ่อนแถบนี้ให้อัตโนมัติ</div>
                   </div>
 
-                  <details className="bulk-more-menu relative col-span-2 sm:col-span-1">
+                  <details className="bulk-more-menu relative col-span-1">
                     <summary className={`list-none cursor-pointer px-4 py-2.5 rounded-2xl font-black border flex items-center justify-center gap-2 text-sm ${theme.btnSecondary}`}>
                       <span>เพิ่มเติม</span>
                       <span className="text-lg leading-none">⋯</span>
@@ -24476,7 +24477,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <button
                     type="button"
                     onClick={() => setSelectedItems([])}
-                    className={`hidden lg:flex w-12 h-12 rounded-2xl items-center justify-center border ${theme.btnSecondary}`}
+                    className={`hidden sm:flex w-12 h-12 rounded-2xl items-center justify-center border ${theme.btnSecondary}`}
                     title="ล้างการเลือก"
                   >
                     <Icons.X className="w-5 h-5" />
