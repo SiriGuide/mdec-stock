@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.12 Equipment Form Calm Polish';
-const APP_UPDATE_NOTE = 'Borrow Event Confirm Safe Hotfix: ถอด helper ชุดกล้องที่อยู่นอก scope ตอนยืนยันยืม/ออกงาน เพื่อให้บันทึกได้เสถียรก่อน โดยยังไม่แตะ QR Scanner core';
+const APP_VERSION = 'v23.4.16.18.13 Equipment Kind Strict Tripod Hotfix';
+const APP_UPDATE_NOTE = 'Equipment Kind Strict Tripod Hotfix: แก้ตัวเดาประเภทไม่ให้ขาตั้งกล้อง/ขาตั้ง/stand ถูกมองเป็นกล้อง จึงไม่แสดงชุดกล้อง เลนส์ และเมมในฟอร์มผิดประเภท';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11145,6 +11145,11 @@ S.N.: ${item.sn || '-'}
 
   const inferCameraHelperKind = (item) => {
     const text = getItemSearchText(item);
+
+    // v23.4.16.18.13: คำอย่าง “ขาตั้งกล้อง” มีคำว่า “กล้อง” อยู่ในชื่อ
+    // แต่ตัวอุปกรณ์ไม่ใช่กล้องจริง จึงต้องกันกลุ่มขาตั้ง/stand ก่อนตรวจคำว่า camera
+    if (/ขาตั้ง|ขาไมค์|tripod|monopod|stand|light stand|mic stand|boom stand|gimbal stand/.test(text)) return 'accessory';
+    if (/สาย|cable|hdmi|fiber|ไฟเบอร์|adapter|converter|splitter|extender|ปลั๊ก|usb|xlr/.test(text)) return 'accessory';
     if (/เมม|memory|sdxc|sd card|\bsd\b|micro ?sd|cfexpress|cfast|การ์ด|card/.test(text)) return 'memory';
     if (/แบต|battery|batt|np-|lp-|bp-|fz100|fw50|v-mount|v mount/.test(text)) return 'battery';
     if (/เลนส์|lens|\bfe\b|\bef\b|\brf\b|\bz mount\b|\be mount\b|sony e|canon rf|canon ef|nikon z|sigma|tamron|\d{2,3}\s?-\s?\d{2,3}\s?mm|\d{2,3}\s?mm|f\/?\d/.test(text)) return 'lens';
