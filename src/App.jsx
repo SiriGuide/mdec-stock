@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.17 Records Return Link / Evidence Pair Polish';
+const APP_VERSION = 'v23.4.16.18.18 Records Timeline / Return Status Polish';
 const APP_UPDATE_NOTE = 'Equipment Kind Strict Tripod Hotfix: แก้ตัวเดาประเภทไม่ให้ขาตั้งกล้อง/ขาตั้ง/stand ถูกมองเป็นกล้อง จึงไม่แสดงชุดกล้อง เลนส์ และเมมในฟอร์มผิดประเภท';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -14895,7 +14895,7 @@ S.N.: ${item.sn || '-'}
     const recordTabs = [
       ['docs', 'เอกสารย้อนหลัง', recordsDocStats.total, 'ใบยืม/ออกงาน + สถานะคืน'],
       ['history', 'ประวัติส่วนกลาง', filteredHistoryCenterEntries.length, 'ค้นจากทุกอุปกรณ์'],
-      ['proofs', 'รูปหลักฐาน', filteredProofGroups.length, 'หลักฐานยืม/คืน/ออกงาน']
+      ['proofs', 'รูปหลักฐาน', filteredProofGroups.length, 'รูปเป็นข้อมูลเสริม']
     ];
     const recordsFilterCards = [
       { id: 'all', label: 'ทั้งหมด', value: recordsDocStats.total, hint: 'เอกสารที่เก็บไว้', tone: isDarkMode ? 'bg-blue-950/35 text-blue-100 border-blue-800/70' : 'bg-blue-50 text-blue-800 border-blue-200' },
@@ -14927,7 +14927,9 @@ S.N.: ${item.sn || '-'}
       const staffText = docData.staffOut || docData.operatorName || '-';
       const proofCount = asArray(docData.proofs).length;
       const remainingCount = Math.max(itemCount - returnedCount, 0);
-      return { itemCount, returnedCount, remainingCount, status, typeLabel, title, statusLabel, statusTone, typeTone, dateText, dueText, ownerText, staffText, proofCount };
+      const progressText = itemCount > 0 ? `คืนแล้ว ${returnedCount.toLocaleString('th-TH')}/${itemCount.toLocaleString('th-TH')} รายการ` : 'ยังไม่มีรายการอุปกรณ์';
+      const proofStatusText = proofCount > 0 ? `มีหลักฐาน ${proofCount.toLocaleString('th-TH')} รูป` : 'ยังไม่มีรูปหลักฐาน';
+      return { itemCount, returnedCount, remainingCount, status, typeLabel, title, statusLabel, statusTone, typeTone, dateText, dueText, ownerText, staffText, proofCount, progressText, proofStatusText };
     };
     const openDocHistorySearch = (docData = {}) => {
       const firstItem = asArray(docData.items)[0] || {};
@@ -14961,6 +14963,7 @@ S.N.: ${item.sn || '-'}
         `กำหนดคืน: ${meta.dueText}`,
         `เจ้าหน้าที่: ${meta.staffText}`,
         `คืนแล้ว: ${meta.returnedCount}/${meta.itemCount} รายการ`,
+        `หลักฐาน: ${meta.proofStatusText}`,
         itemLines.length ? `รายการอุปกรณ์:\n${itemLines.join('\n')}${extraCount > 0 ? `\n...และอีก ${extraCount} รายการ` : ''}` : 'รายการอุปกรณ์: -'
       ].join('\n');
       try {
@@ -15048,7 +15051,7 @@ S.N.: ${item.sn || '-'}
                               <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${meta.typeTone}`}>{meta.typeLabel}</span>
                               <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${meta.statusTone}`}>{meta.statusLabel}</span>
                               <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>{meta.itemCount.toLocaleString('th-TH')} รายการ</span>
-                              {meta.proofCount > 0 && <span className="px-2.5 py-1 rounded-xl border text-[11px] font-black bg-pink-500/10 text-pink-500 border-pink-500/20">หลักฐาน {meta.proofCount}</span>}
+                              {meta.proofCount > 0 ? <span className="px-2.5 py-1 rounded-xl border text-[11px] font-black bg-pink-500/10 text-pink-500 border-pink-500/20">หลักฐาน {meta.proofCount}</span> : <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-500' : 'bg-white border-slate-200 text-slate-400'}`}>ไม่มีรูปหลักฐาน</span>}
                             </div>
                             <div className={`font-black text-lg truncate ${theme.textTitle}`}>{docData.ref || docData.id || '-'} • {meta.title}</div>
                             <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{meta.ownerText} • วันที่ {meta.dateText}</div>
@@ -15062,8 +15065,8 @@ S.N.: ${item.sn || '-'}
                                 <div className={`text-sm font-black truncate ${theme.textTitle}`}>{meta.staffText}</div>
                               </div>
                               <div className={`rounded-xl px-3 py-2 ${isDarkMode ? 'bg-slate-950/65' : 'bg-white'}`}>
-                                <div className={`text-[11px] font-black ${theme.textMuted}`}>คืนแล้ว</div>
-                                <div className={`text-sm font-black truncate ${theme.textTitle}`}>{meta.returnedCount.toLocaleString('th-TH')} / {meta.itemCount.toLocaleString('th-TH')} รายการ</div>
+                                <div className={`text-[11px] font-black ${theme.textMuted}`}>สถานะคืน</div>
+                                <div className={`text-sm font-black truncate ${theme.textTitle}`}>{meta.progressText}</div>
                               </div>
                             </div>
                             {previewItems.length > 0 && (
@@ -15072,6 +15075,7 @@ S.N.: ${item.sn || '-'}
                               </div>
                             )}
                             {docData.note && <div className={`mt-2 text-xs font-bold rounded-xl px-3 py-2 ${isDarkMode ? 'bg-amber-950/20 text-amber-200' : 'bg-amber-50 text-amber-700'}`}>หมายเหตุ: {docData.note}</div>}
+                            {meta.proofCount === 0 && <div className={`mt-2 text-xs font-bold rounded-xl px-3 py-2 border ${isDarkMode ? 'bg-slate-950/35 border-slate-800/55 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>ไม่มีรูปหลักฐานแนบกับเอกสารนี้ แต่ยังตรวจสอบสถานะได้จากเอกสารและประวัติการยืม/คืน</div>}
                           </div>
                           <div className="grid grid-cols-2 xl:grid-cols-1 gap-2 shrink-0 xl:min-w-[150px]">
                             <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-black shadow-sm">พิมพ์ซ้ำ</button>
@@ -15246,14 +15250,22 @@ S.N.: ${item.sn || '-'}
                             </div>
                           )}
 
-                          {entry.historyType === 'return' && asArray(entry.returnSourceDocs || rowsInGroup.flatMap(row => row.returnSourceDocs || [])).length > 0 && (
-                            <div className={`mt-3 rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-emerald-950/18 border-emerald-500/25 text-emerald-100' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
-                              <div className="text-[10px] font-black opacity-75">ที่มาของการรับคืน</div>
-                              <div className="mt-1 text-xs font-black leading-relaxed">
-                                {asArray(entry.returnSourceDocs || rowsInGroup.flatMap(row => row.returnSourceDocs || [])).slice(0, 2).map(doc => `${doc.ref || '-'} • ${doc.owner || '-'} • ยืมเมื่อ ${doc.date ? formatThaiDateTime(doc.date) : '-'}`).join(' / ')}
+                          {entry.historyType === 'return' && (() => {
+                            const sourceDocs = asArray(entry.returnSourceDocs || rowsInGroup.flatMap(row => row.returnSourceDocs || []));
+                            return sourceDocs.length > 0 ? (
+                              <div className={`mt-3 rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-emerald-950/18 border-emerald-500/25 text-emerald-100' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+                                <div className="text-[10px] font-black opacity-75">ที่มาของการรับคืน</div>
+                                <div className="mt-1 text-xs font-black leading-relaxed">
+                                  {sourceDocs.slice(0, 2).map(doc => `${doc.ref || '-'} • ${doc.owner || '-'} • ยืมเมื่อ ${doc.date ? formatThaiDateTime(doc.date) : '-'}`).join(' / ')}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            ) : (
+                              <div className={`mt-3 rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/35 border-slate-800/55 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>
+                                <div className="text-[10px] font-black opacity-75">ที่มาของการรับคืน</div>
+                                <div className="mt-1 text-xs font-bold leading-relaxed">ยังไม่มีเลขเอกสารต้นทางในข้อมูลเก่า ระบบจะแสดงจากประวัติรายการนี้เป็นหลัก</div>
+                              </div>
+                            );
+                          })()}
 
                           {isGroup && (
                             <div className={`mt-3 rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/35 border-slate-800/55/70' : 'bg-white border-slate-200'}`}>
@@ -15274,7 +15286,7 @@ S.N.: ${item.sn || '-'}
                             {totalProofs > 0 ? (
                               <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-pink-500/25 bg-pink-500/10 text-pink-200 text-xs font-black">หลักฐาน {totalProofs} รูป</button>
                             ) : (
-                              <span className={`inline-flex items-center px-3 py-2 rounded-xl border text-xs font-black ${isDarkMode ? 'border-slate-800/55 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-white text-slate-400'}`}>ไม่มีรูปหลักฐาน</span>
+                              <span className={`inline-flex items-center px-3 py-2 rounded-xl border text-xs font-black ${isDarkMode ? 'border-slate-800/55 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-white text-slate-400'}`}>ไม่มีรูปหลักฐาน • ใช้ประวัติ/เอกสารเป็นหลัก</span>
                             )}
                             {!entry.isAuditLog && <button type="button" onClick={() => openItemProfile(entry.itemId)} className={`px-2 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
                             {!entry.isAuditLog && <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-xs font-black">เพิ่มรูป</button>}
@@ -15444,7 +15456,7 @@ S.N.: ${item.sn || '-'}
                             <div className={`px-3.5 py-2.5 border-b flex items-center justify-between gap-2 ${theme.divide}`}>
                               <div>
                                 <div className={`text-base font-black ${theme.textTitle}`}>รายการหลักฐาน</div>
-                                <div className={`text-[11px] font-bold ${theme.textMuted}`}>รูปหลักฐานหลัก 1 รูปต่อรายการ • เลือกเพื่อดูรายละเอียด</div>
+                                <div className={`text-[11px] font-bold ${theme.textMuted}`}>จับคู่ยืม/รับคืนตามเลขเอกสารหรือเรื่องเดียวกัน • รายการไม่มีรูปให้ดูจากเอกสาร</div>
                               </div>
                               <span className={`editor-chip px-2.5 py-1 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>{visibleGroups.length.toLocaleString('th-TH')} รายการ</span>
                             </div>
@@ -27648,8 +27660,8 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <div className="text-xs mt-1">จากการ์ดหลักฐานสามารถเปิดประวัติอุปกรณ์ที่เกี่ยวข้องได้ทันที</div>
               </div>
               <div className={`asset-profile-info-card p-3 rounded-2xl border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
-                <div className="font-black">รวมรูปซ้ำอัตโนมัติ</div>
-                <div className="text-xs mt-1">รูปเดียวที่ผูกหลายอุปกรณ์จะแสดงเป็นกลุ่มเดียว ลดความรกเวลารับคืนกลุ่ม</div>
+                <div className="font-black">เอกสารเป็นแกนหลัก</div>
+                <div className="text-xs mt-1">รายการที่ไม่มีรูปยังตามได้จากเอกสารและประวัติ รูปเป็นข้อมูลเสริม ไม่ใช่เงื่อนไขบังคับ</div>
               </div>
             </div>
 
@@ -27660,7 +27672,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <div className={`text-2xl font-black ${theme.textTitle}`}>{allProofEntries.length === 0 ? 'ยังไม่มีรูปหลักฐาน' : 'ไม่พบหลักฐานตามตัวกรอง'}</div>
                   <p className={`text-xs font-bold mt-1.5 max-w-2xl mx-auto ${theme.textMuted}`}>
                     {allProofEntries.length === 0
-                      ? 'เมื่อมีการแนบรูปตอนยืม / ออกงาน / รับคืน ระบบจะแสดงหลักฐานไว้ที่นี่เพื่อย้อนตรวจสอบได้ภายหลัง'
+                      ? 'เมื่อมีการแนบรูปตอนยืม / ออกงาน / รับคืน ระบบจะแสดงหลักฐานไว้ที่นี่ ส่วนรายการที่ไม่มีรูปให้ดูได้จากเอกสารย้อนหลังและประวัติส่วนกลาง'
                       : 'ลองล้างตัวกรอง หรือค้นหาด้วยชื่ออุปกรณ์, S.N., ผู้ยืม, ชื่องาน หรือหมายเหตุ'}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 max-w-3xl mx-auto">
