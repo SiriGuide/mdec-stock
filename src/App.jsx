@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.18 Records Timeline / Return Status Polish';
-const APP_UPDATE_NOTE = 'Equipment Kind Strict Tripod Hotfix: แก้ตัวเดาประเภทไม่ให้ขาตั้งกล้อง/ขาตั้ง/stand ถูกมองเป็นกล้อง จึงไม่แสดงชุดกล้อง เลนส์ และเมมในฟอร์มผิดประเภท';
+const APP_VERSION = 'v23.4.16.18.19 Proof Pair View / Evidence Fill Polish';
+const APP_UPDATE_NOTE = 'Proof Pair View / Evidence Fill Polish: จับคู่รูปยืม-รับคืนให้อยู่ดูด้วยกันมากขึ้นในศูนย์หลักฐาน และปรับกรอบรูปให้เต็มขึ้น ลดพื้นที่ว่างในพรีวิว';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -15450,6 +15450,77 @@ S.N.: ${item.sn || '-'}
                         const dateText = entry?.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-';
                         return { entry, label, subject, dateText };
                       };
+                      const normalizeProofTypeForPair = (value = '') => {
+                        const raw = String(value || '').toLowerCase();
+                        if (raw.includes('return') || raw.includes('คืน')) return 'return';
+                        if (raw.includes('borrow') || raw.includes('ยืม')) return 'borrow';
+                        if (raw.includes('event') || raw.includes('ออกงาน')) return 'event';
+                        if (raw.includes('repair') || raw.includes('ซ่อม')) return 'repair';
+                        return 'other';
+                      };
+                      const normalizePairText = (value = '') => String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
+                      const normalizePairRef = (value = '') => String(value || '').trim();
+                      const currentTypeKey = normalizeProofTypeForPair(previewEntry.historyType || currentTypeLabel);
+                      const pairWantedType = currentTypeKey === 'return' ? 'borrow' : currentTypeKey === 'borrow' ? 'return' : '';
+                      const currentItemKeys = new Set(selectedItems.map(ref => String(ref.itemId || ref.sn || ref.itemName || '').trim()).filter(Boolean));
+                      const currentSubjectKey = normalizePairText(selectedSubject);
+                      const currentMonthKey = String(previewEntry.date || previewProof.createdAt || '').slice(0, 7);
+                      const currentDocRef = normalizePairRef(previewEntry.documentRef || previewProof.documentRef || previewProof.ref || '');
+                      const currentOperationRef = normalizePairRef(previewEntry.operationGroupId || previewProof.groupId || previewProof.batchId || '');
+                      const currentReturnSourceRef = normalizePairRef(previewEntry.returnSourceDocs?.[0]?.ref || previewEntry.sourceBorrowRef || '');
+                      const currentProofUniqueKey = getProofUniqueKey(previewProof || {});
+                      const pairedProofEntry = pairWantedType ? (() => {
+                        let bestEntry = null;
+                        let bestScore = -1;
+                        allProofEntries.forEach((entry = {}) => {
+                          if (!entry?.proof || !(entry.proof.url || entry.proof.thumbUrl || entry.proof.dataUrl)) return;
+                          const entryProofKey = getProofUniqueKey(entry.proof || {});
+                          if (entryProofKey && currentProofUniqueKey && entryProofKey === currentProofUniqueKey) return;
+                          const entryTypeKey = normalizeProofTypeForPair(entry.historyType || entry.typeLabel);
+                          if (entryTypeKey !== pairWantedType) return;
+                          let score = 0;
+                          const entryKey = String(entry.itemId || entry.sn || entry.itemName || '').trim();
+                          if (entryKey && currentItemKeys.has(entryKey)) score += 8;
+                          const entryDocRef = normalizePairRef(entry.documentRef || entry.proof?.documentRef || entry.proof?.ref || '');
+                          const entryOperationRef = normalizePairRef(entry.operationGroupId || entry.proof?.groupId || entry.proof?.batchId || '');
+                          const entryReturnSourceRef = normalizePairRef(entry.returnSourceDocs?.[0]?.ref || entry.sourceBorrowRef || '');
+                          if (pairWantedType === 'borrow' && currentReturnSourceRef && entryDocRef === currentReturnSourceRef) score += 14;
+                          if (pairWantedType === 'return' && currentDocRef && entryReturnSourceRef === currentDocRef) score += 14;
+                          if (currentDocRef && entryDocRef && entryDocRef === currentDocRef) score += 5;
+                          if (currentOperationRef && entryOperationRef && entryOperationRef === currentOperationRef) score += 4;
+                          const entrySubjectKey = normalizePairText(entry.caseSubject || entry.borrower || entry.eventName || entry.subject || entry.staff || '');
+                          if (currentSubjectKey && entrySubjectKey && entrySubjectKey === currentSubjectKey) score += 3;
+                          const entryMonthKey = String(entry.date || entry.proof?.createdAt || '').slice(0, 7);
+                          if (currentMonthKey && entryMonthKey && entryMonthKey === currentMonthKey) score += 1;
+                          if (score > bestScore) {
+                            bestScore = score;
+                            bestEntry = entry;
+                          }
+                        });
+                        return bestScore >= 8 ? bestEntry : null;
+                      })() : null;
+                      const pairedProof = pairedProofEntry?.proof || {};
+                      const pairedPreviewSrc = pairedProof.url || pairedProof.thumbUrl || pairedProof.dataUrl || '';
+                      const pairedTypeLabel = pairedProofEntry?.typeLabel || (pairWantedType === 'borrow' ? 'ยืม' : pairWantedType === 'return' ? 'รับคืน' : 'หลักฐาน');
+                      const pairedDateText = pairedProofEntry?.date ? new Date(pairedProofEntry.date).toLocaleString('th-TH', { hour12: false }) : '-';
+                      const proofCards = [
+                        {
+                          key: 'current',
+                          label: currentTypeKey === 'return' ? 'รูปตอนคืน' : currentTypeKey === 'borrow' ? 'รูปตอนยืม' : 'รูปหลักฐาน',
+                          subLabel: `${currentTypeLabel} • ${selectedDateText}`,
+                          proof: previewProof,
+                          src: previewSrc,
+                          isPrimary: true
+                        },
+                        ...(pairedProofEntry ? [{
+                          key: 'paired',
+                          label: pairWantedType === 'borrow' ? 'รูปตอนยืม' : 'รูปตอนคืน',
+                          subLabel: `${pairedTypeLabel} • ${pairedDateText}`,
+                          proof: pairedProof,
+                          src: pairedPreviewSrc,
+                          isPrimary: false
+                        }] : [])
+                      ];
                       return (
                         <div className="grid grid-cols-1 2xl:grid-cols-[380px_minmax(0,1fr)] gap-3">
                           <aside className={`rounded-[1.25rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900/55 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
@@ -15500,7 +15571,7 @@ S.N.: ${item.sn || '-'}
                               <div className="min-w-0">
                                 <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SINGLE PROOF VIEW</div>
                                 <h3 className={`text-base sm:text-lg font-black mt-1 leading-tight ${theme.textTitle}`}>{selectedTitle}</h3>
-                                <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{selectedItems.length.toLocaleString('th-TH')} อุปกรณ์ที่เกี่ยวข้อง • รูปหลักฐาน 1 รูป • {selectedGroup.isLegacyBatch ? 'ข้อมูลเก่า' : 'ข้อมูลปัจจุบัน'}</p>
+                                <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{selectedItems.length.toLocaleString('th-TH')} อุปกรณ์ที่เกี่ยวข้อง • รูปหลักฐาน {proofCards.length.toLocaleString('th-TH')} รูป • {selectedGroup.isLegacyBatch ? 'ข้อมูลเก่า' : 'ข้อมูลปัจจุบัน'}</p>
                               </div>
                               <div className="flex flex-wrap gap-1.5 shrink-0">
                                 <button type="button" onClick={() => {
@@ -15589,15 +15660,33 @@ S.N.: ${item.sn || '-'}
                                     ย้ายลงถังขยะ
                                   </button>
                                 )}
-                                <div className={`text-[13px] font-black mb-2 ${theme.textTitle}`}>รูปหลักฐาน</div>
-                                <button type="button" onClick={() => openProofImage(previewProof)} className={`w-full rounded-2xl border overflow-hidden h-[300px] 2xl:h-[360px] ${isDarkMode ? 'bg-slate-950 border-slate-800/80' : 'bg-white border-slate-200'}`}>
-                                  {previewSrc ? (
-                                    <img src={previewSrc} alt="รูปหลักฐาน" className="w-full h-full object-contain" loading="lazy" />
-                                  ) : (
-                                    <div className={`h-full flex items-center justify-center text-sm font-black ${theme.textMuted}`}>ไม่มีภาพหลักฐาน</div>
-                                  )}
-                                </button>
-                                <div className={`mt-2 text-[11px] font-bold ${theme.textMuted}`}>รูปหลักฐาน • {currentTypeLabel} • {selectedDateText}</div>
+                                <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pr-[132px] sm:pr-[148px]">
+                                  <div>
+                                    <div className={`text-[13px] font-black ${theme.textTitle}`}>รูปหลักฐาน</div>
+                                    <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{pairedProofEntry ? 'แสดงคู่รูปยืม/รับคืนของงานเดียวกัน' : 'ยังไม่พบรูปคู่ยืม/รับคืน แสดงรูปที่เลือกเป็นหลัก'}</div>
+                                  </div>
+                                  {pairedProofEntry && <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${theme.btnSecondary}`}>จับคู่แล้ว 2 รูป</span>}
+                                </div>
+                                <div className={`grid gap-3 ${proofCards.length > 1 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
+                                  {proofCards.map((card) => (
+                                    <div key={card.key} className={`rounded-2xl border p-2.5 ${isDarkMode ? 'bg-slate-950/75 border-slate-800/70' : 'bg-white border-slate-200'}`}>
+                                      <div className="flex items-center justify-between gap-2 mb-2">
+                                        <div>
+                                          <div className={`text-[12px] font-black ${theme.textTitle}`}>{card.label}</div>
+                                          <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>{card.subLabel}</div>
+                                        </div>
+                                        {card.isPrimary && <span className="px-2 py-1 rounded-lg bg-blue-600/15 border border-blue-500/30 text-blue-200 text-[10px] font-black">รูปหลัก</span>}
+                                      </div>
+                                      <button type="button" onClick={() => openProofImage(card.proof)} className={`w-full rounded-2xl border overflow-hidden aspect-[4/3] ${isDarkMode ? 'bg-slate-900 border-slate-800/80' : 'bg-slate-50 border-slate-200'}`}>
+                                        {card.src ? (
+                                          <img src={card.src} alt={card.label} className="w-full h-full object-cover object-center" loading="lazy" />
+                                        ) : (
+                                          <div className={`h-full flex items-center justify-center text-sm font-black ${theme.textMuted}`}>ไม่มีภาพหลักฐาน</div>
+                                        )}
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             </div>
                           </section>
