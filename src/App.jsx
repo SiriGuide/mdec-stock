@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.19 Proof Pair View / Evidence Fill Polish';
-const APP_UPDATE_NOTE = 'Proof Pair View / Evidence Fill Polish: จับคู่รูปยืม-รับคืนให้อยู่ดูด้วยกันมากขึ้นในศูนย์หลักฐาน และปรับกรอบรูปให้เต็มขึ้น ลดพื้นที่ว่างในพรีวิว';
+const APP_VERSION = 'v23.4.16.18.19.1 Central History Proof Fill Hotfix';
+const APP_UPDATE_NOTE = 'Central History Proof Fill Hotfix: ปรับรูปพรีวิวในประวัติส่วนกลางให้เต็มกรอบขึ้น ลดพื้นที่ว่าง และยังเปิดดูรูปเต็มจริงได้เหมือนเดิม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -15299,8 +15299,8 @@ S.N.: ${item.sn || '-'}
                             const proof = previewProofs[0];
                             const previewSrc = proof?.thumbUrl || proof?.url || proof?.dataUrl || '';
                             return previewSrc ? (
-                              <button type="button" onClick={() => openProofImage(proof)} className="w-full h-full min-h-[150px] max-h-[170px] block rounded-2xl overflow-hidden">
-                                <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-contain" loading="lazy" />
+                              <button type="button" onClick={() => openProofImage(proof)} className={`w-full h-full min-h-[150px] max-h-[170px] block rounded-2xl overflow-hidden border ${isDarkMode ? 'bg-slate-900 border-slate-800/70' : 'bg-slate-100 border-slate-200'}`}>
+                                <img src={previewSrc} alt="หลักฐาน" className="w-full h-full object-cover object-center" loading="lazy" />
                               </button>
                             ) : (
                               <div className={`h-full min-h-[150px] max-h-[170px] flex items-center justify-center text-xs font-black ${theme.textMuted}`}>ไม่มีภาพตัวอย่าง</div>
