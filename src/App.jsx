@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.16 Asset Profile Readability Polish';
+const APP_VERSION = 'v23.4.16.18.17 Records Return Link / Evidence Pair Polish';
 const APP_UPDATE_NOTE = 'Equipment Kind Strict Tripod Hotfix: แก้ตัวเดาประเภทไม่ให้ขาตั้งกล้อง/ขาตั้ง/stand ถูกมองเป็นกล้อง จึงไม่แสดงชุดกล้อง เลนส์ และเมมในฟอร์มผิดประเภท';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -15068,7 +15068,7 @@ S.N.: ${item.sn || '-'}
                             </div>
                             {previewItems.length > 0 && (
                               <div className={`mt-3 asset-profile-card-label text-xs font-bold ${theme.textMuted}`}>
-                                รายการ: {previewItems.map(i => `${i.name || i.id || '-'}${i.sn ? ` (${i.sn})` : ''}`).join(', ')}{meta.itemCount > previewItems.length ? ` และอีก ${meta.itemCount - previewItems.length} รายการ` : ''}
+                                รายการ: {previewItems.map(i => { const itemId = String(i.id || i.itemId || ''); const isReturned = meta.status === 'closed' || asArray(docData.returnedItemIds).map(id => String(id)).includes(itemId); return `${i.name || i.id || '-'}${i.sn ? ` (${i.sn})` : ''} • ${isReturned ? 'คืนแล้ว' : 'รอคืน'}`; }).join(', ')}{meta.itemCount > previewItems.length ? ` และอีก ${meta.itemCount - previewItems.length} รายการ` : ''}
                               </div>
                             )}
                             {docData.note && <div className={`mt-2 text-xs font-bold rounded-xl px-3 py-2 ${isDarkMode ? 'bg-amber-950/20 text-amber-200' : 'bg-amber-50 text-amber-700'}`}>หมายเหตุ: {docData.note}</div>}
@@ -15242,6 +15242,15 @@ S.N.: ${item.sn || '-'}
                                     ? `${rowsInGroup.length.toLocaleString('th-TH')} อุปกรณ์`
                                     : `${entry.itemName || '-'}${entry.sn ? ` • ${entry.sn}` : ''}`}
                                 </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {entry.historyType === 'return' && asArray(entry.returnSourceDocs || rowsInGroup.flatMap(row => row.returnSourceDocs || [])).length > 0 && (
+                            <div className={`mt-3 rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-emerald-950/18 border-emerald-500/25 text-emerald-100' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+                              <div className="text-[10px] font-black opacity-75">ที่มาของการรับคืน</div>
+                              <div className="mt-1 text-xs font-black leading-relaxed">
+                                {asArray(entry.returnSourceDocs || rowsInGroup.flatMap(row => row.returnSourceDocs || [])).slice(0, 2).map(doc => `${doc.ref || '-'} • ${doc.owner || '-'} • ยืมเมื่อ ${doc.date ? formatThaiDateTime(doc.date) : '-'}`).join(' / ')}
                               </div>
                             </div>
                           )}
@@ -16760,6 +16769,37 @@ S.N.: ${item.sn || '-'}
       return uniqueProofs([...byDirectKey, ...matched]);
     };
 
+    const findSourceDocsForReturnHistory = (h = {}, item = {}) => {
+      const itemId = String(item.id || h.itemId || '').trim();
+      const itemTokens = [itemId, item.sn, item.name, h.sn, h.itemName].filter(Boolean).map(v => String(v).toLowerCase().trim()).filter(Boolean);
+      const returnMs = new Date(h.date || h.createdAt || 0).getTime();
+      const explicitRefs = asArray(h.returnSourceDocuments || h.sourceBorrowDocs || h.sourceDocuments).flatMap(doc => [doc?.ref, doc?.id, doc?.documentRef, doc?.documentId]).filter(Boolean).map(String);
+      const docs = asArray(borrowเอกสารs).filter((docData = {}) => {
+        const docType = String(docData.type || docData.docType || '').toLowerCase();
+        if (docType === 'return' || docData.status === 'return-record') return false;
+        const docRefs = [docData.id, docData.ref, docData.documentId, docData.documentRef, docData.docId].filter(Boolean).map(String);
+        if (explicitRefs.length && explicitRefs.some(ref => docRefs.includes(ref))) return true;
+        const docItemIds = new Set([...(Array.isArray(docData.itemIds) ? docData.itemIds : []), ...asArray(docData.items).map(it => it?.id || it?.itemId).filter(Boolean)].map(String));
+        const docText = [docData.borrower, docData.eventName, docData.subject, docData.title, ...asArray(docData.items).flatMap(it => [it?.name, it?.sn])].filter(Boolean).join(' ').toLowerCase();
+        const itemMatch = (itemId && docItemIds.has(itemId)) || itemTokens.some(token => token.length >= 3 && docText.includes(token));
+        if (!itemMatch) return false;
+        const docMs = new Date(docData.date || docData.createdAt || docData.updatedAt || 0).getTime();
+        const beforeReturn = !returnMs || !docMs || docMs <= returnMs + (1000 * 60 * 60 * 24);
+        const returnedIds = new Set(asArray(docData.returnedItemIds).map(String));
+        const hasReturnSignal = returnedIds.has(itemId) || ['partial','closed'].includes(String(docData.status || '')) || docData.returnedAt || docData.returnStaff;
+        return beforeReturn && hasReturnSignal;
+      }).sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0));
+      return docs.slice(0, 3).map(docData => ({
+        id: docData.id || docData.ref || '',
+        ref: docData.ref || docData.id || docData.documentRef || docData.documentId || '',
+        type: docData.type || docData.docType || 'borrow',
+        date: docData.date || docData.createdAt || '',
+        owner: docData.borrower || docData.eventName || docData.subject || '',
+        staffOut: docData.staffOut || docData.operatorName || '',
+        expectedReturn: docData.expectedReturn || ''
+      }));
+    };
+
     items.filter(i => i && !i.isDeleted).forEach((item) => {
       const historyList = Array.isArray(item.history) ? item.history : [];
       historyList.forEach((h, historyIndex) => {
@@ -16772,6 +16812,7 @@ S.N.: ${item.sn || '-'}
         const groupKey = h.date ? getHistoryGroupKey(h) : '';
         const directProofs = Array.isArray(h.proofs) ? h.proofs : [];
         const documentProofs = findDocumentProofsForHistory(h, item);
+        const returnSourceDocs = historyType === 'return' ? findSourceDocsForReturnHistory(h, item) : [];
         rows.push({
           id: `${item.id}__history__${historyIndex}`,
           rawHistory: h,
@@ -16793,6 +16834,8 @@ S.N.: ${item.sn || '-'}
           operationGroupId: h.groupId || h.groupKey || h.batchId || h.batchKey || h.transactionId || h.operationId || h.operationGroupId || h.borrowGroupId || h.returnGroupId || h.eventGroupId || '',
           directProofs,
           documentProofs,
+          returnSourceDocs,
+          returnSourceSummary: returnSourceDocs.length ? `รับคืนจาก ${returnSourceDocs[0].ref || '-'} • ${returnSourceDocs[0].owner || '-'} • ยืมเมื่อ ${returnSourceDocs[0].date ? formatThaiDateTime(returnSourceDocs[0].date) : '-'}` : '',
           linkedProofs: [],
           proofCount: 0,
           groupKey,
@@ -16968,12 +17011,36 @@ S.N.: ${item.sn || '-'}
 
   const allProofEntries = useMemo(() => {
     const entries = [];
+    const findSourceDocsForReturnProof = (h = {}, item = {}) => {
+      const itemId = String(item.id || h.itemId || '').trim();
+      const itemTokens = [itemId, item.sn, item.name, h.sn, h.itemName].filter(Boolean).map(v => String(v).toLowerCase().trim()).filter(Boolean);
+      const returnMs = new Date(h.date || h.createdAt || 0).getTime();
+      return asArray(borrowเอกสารs).filter((docData = {}) => {
+        const docType = String(docData.type || docData.docType || '').toLowerCase();
+        if (docType === 'return' || docData.status === 'return-record') return false;
+        const docItemIds = new Set([...(Array.isArray(docData.itemIds) ? docData.itemIds : []), ...asArray(docData.items).map(it => it?.id || it?.itemId).filter(Boolean)].map(String));
+        const docText = [docData.borrower, docData.eventName, docData.subject, docData.title, ...asArray(docData.items).flatMap(it => [it?.name, it?.sn])].filter(Boolean).join(' ').toLowerCase();
+        const itemMatch = (itemId && docItemIds.has(itemId)) || itemTokens.some(token => token.length >= 3 && docText.includes(token));
+        if (!itemMatch) return false;
+        const docMs = new Date(docData.date || docData.createdAt || docData.updatedAt || 0).getTime();
+        const beforeReturn = !returnMs || !docMs || docMs <= returnMs + (1000 * 60 * 60 * 24);
+        const returnedIds = new Set(asArray(docData.returnedItemIds).map(String));
+        return beforeReturn && (returnedIds.has(itemId) || ['partial','closed'].includes(String(docData.status || '')) || docData.returnedAt || docData.returnStaff);
+      }).sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0)).slice(0, 2).map(docData => ({
+        id: docData.id || docData.ref || '',
+        ref: docData.ref || docData.id || docData.documentRef || docData.documentId || '',
+        type: docData.type || docData.docType || 'borrow',
+        date: docData.date || docData.createdAt || '',
+        owner: docData.borrower || docData.eventName || docData.subject || ''
+      }));
+    };
     items.filter(i => i && !i.isDeleted).forEach((item) => {
       (Array.isArray(item.history) ? item.history : []).forEach((h, historyIndex) => {
         const proofs = getActiveProofs(h.proofs);
         proofs.forEach((proof, proofIndex) => {
           const type = h.type || 'other';
           const typeLabel = type === 'borrow' ? 'ยืม' : type === 'event' ? 'ออกงาน' : type === 'return' ? 'รับคืน' : type === 'repair' || type === 'repair-done' ? 'ซ่อม' : 'อื่น ๆ';
+          const returnSourceDocs = type === 'return' ? findSourceDocsForReturnProof(h, item) : [];
           entries.push({
             id: `${item.id}_${historyIndex}_${proof.id || proofIndex}`,
             itemId: item.id,
@@ -16998,6 +17065,7 @@ S.N.: ${item.sn || '-'}
             staffOut: h.staffOut || h.operatorName || '',
             staffIn: h.staffIn || '',
             caseItemSetKey: String(item.id || item.sn || item.name || '-'),
+            returnSourceDocs,
             proof
           });
         });
@@ -17059,6 +17127,7 @@ S.N.: ${item.sn || '-'}
       const haystack = [
         entry.itemName, entry.sn, entry.department, entry.category, entry.location, entry.subject, entry.staff, entry.storageBoxName, entry.note, entry.typeLabel, entry.date,
         entry.documentRef, entry.operationGroupId,
+        ...asArray(entry.returnSourceDocs).flatMap(doc => [doc.ref, doc.owner, doc.date]),
         entry.proof?.documentRef, entry.proof?.groupId, entry.proof?.batchId, entry.proof?.ref, entry.proof?.contextLabel, entry.proof?.note
       ].filter(Boolean).join(' ').toLowerCase();
       return matchType && (!keyword || haystack.includes(keyword));
@@ -17406,6 +17475,8 @@ S.N.: ${item.sn || '-'}
       const hardRef = String(entry.documentRef || entry.operationGroupId || entry.proof?.documentRef || entry.proof?.groupId || entry.proof?.batchId || entry.proof?.ref || '').trim();
       const subject = normalizeCaseText(getEntrySubject(entry)) || normalizeCaseText(entry.staff || entry.staffIn || entry.staffOut || entry.proof?.createdBy || '') || 'no-subject';
 
+      const sourceBorrowRef = family === 'borrow-return' && typeKey === 'return' ? String(entry.returnSourceDocs?.[0]?.ref || entry.sourceBorrowRef || '').trim() : '';
+      if (sourceBorrowRef) return `${family}__ref__${sourceBorrowRef}`;
       if (hardRef) return `${family}__ref__${hardRef}`;
 
       // v23.1.68: เคสข้อมูลเก่า เช่น ยืม 4 คืน 3 แล้วคืนอีก 1
@@ -19445,12 +19516,19 @@ ${auditChangeSummary}` : auditChangeSummary);
         source: 'MDEC-Stock'
       };
       const newHistoryEntry = { type: 'return', date: returnDocDate, documentId: returnDocRef, documentRef: returnDocRef, staffIn: finalStaff, proofs: uploadedProofs, operatorId: currentOperator?.id || null, operatorName: currentOperator?.name || finalStaff || 'Admin' };
+      const findActiveSourceDocsForReturnedItem = (itemId) => asArray(borrowเอกสารs).filter(docData => {
+        const docType = String(docData.type || docData.docType || '').toLowerCase();
+        if (docType === 'return' || docData.status === 'return-record') return false;
+        const ids = new Set([...(Array.isArray(docData.itemIds) ? docData.itemIds : []), ...asArray(docData.items).map(it => it?.id || it?.itemId).filter(Boolean)].map(String));
+        const isOpen = !docData.status || docData.status === 'active' || docData.status === 'partial';
+        return isOpen && ids.has(String(itemId || ''));
+      }).slice(0, 3).map(docData => ({ ref: docData.ref || docData.id || '', id: docData.id || docData.ref || '', type: docData.type || 'borrow', date: docData.date || docData.createdAt || '', owner: docData.borrower || docData.eventName || docData.subject || '', expectedReturn: docData.expectedReturn || '' }));
       const promises = finalReturnSet.map(id => {
         const item = items.find(i => i.id === id);
         if (!item || (item.status !== 'borrowed' && item.status !== 'out-for-event')) return Promise.resolve();
         returnedNames.push(item.name);
         const inspection = returnInspection[id] || { condition: 'ปกติ', note: '' };
-        const itemHistoryEntry = { ...newHistoryEntry, inspection, operatorName: currentAccountLabel };
+        const itemHistoryEntry = { ...newHistoryEntry, inspection, operatorName: currentAccountLabel, returnSourceDocuments: findActiveSourceDocsForReturnedItem(id) };
         const newHistory = [...(item.history || []), itemHistoryEntry];
         const shouldMaintenance = ['มีรอย/ต้องตรวจเพิ่ม', 'ชำรุด', 'คืนไม่ครบ'].includes(inspection.condition);
         return setDoc(getItemDoc(id), {
@@ -22426,6 +22504,9 @@ ${auditChangeSummary}` : auditChangeSummary);
     const isReturnSlip = slipType === 'return';
     const isPrepSlip = slipType === 'prep';
     const printItems = Array.isArray(printSlipData.items) ? printSlipData.items : [];
+    const slipReturnedIds = new Set(asArray(printSlipData.returnedItemIds).map(id => String(id)));
+    const slipArchivedStatus = printSlipData.archivedStatus || printSlipData.status || 'active';
+    const isItemReturnedOnSlip = (item = {}) => slipArchivedStatus === 'closed' || slipReturnedIds.has(String(item.id || item.itemId || ''));
     const proofCount = Array.isArray(printSlipData.proofs) ? printSlipData.proofs.length : 0;
     const safeText = (value, fallback = '-') => {
       const text = String(value ?? '').trim();
@@ -22531,18 +22612,20 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <th className="border border-slate-400 px-2 py-2 text-left">อุปกรณ์</th>
                     <th className="border border-slate-400 px-2 py-2 text-left w-36">S.N.</th>
                     <th className="border border-slate-400 px-2 py-2 text-left w-40">หมวด / ฝ่าย</th>
+                    <th className="border border-slate-400 px-2 py-2 text-left w-32">สถานะคืน</th>
                     <th className="border border-slate-400 px-2 py-2 text-left w-44">หมายเหตุ</th>
                   </tr>
                 </thead>
                 <tbody>
                   {printItems.length === 0 ? (
-                    <tr><td colSpan={5} className="border border-slate-300 px-3 py-8 text-center font-bold text-slate-500">ยังไม่มีรายการอุปกรณ์ในเอกสารนี้</td></tr>
+                    <tr><td colSpan={6} className="border border-slate-300 px-3 py-8 text-center font-bold text-slate-500">ยังไม่มีรายการอุปกรณ์ในเอกสารนี้</td></tr>
                   ) : printItems.map((item, index) => (
                     <tr key={item.id || index}>
                       <td className="border border-slate-300 px-2 py-2 text-center font-black">{index + 1}</td>
                       <td className="border border-slate-300 px-2 py-2 font-bold">{safeText(item.name)}<div className="text-xs text-slate-500">{safeText(item.shortCode || item.internalNote, '')}</div></td>
                       <td className="border border-slate-300 px-2 py-2">{safeText(item.sn)}</td>
                       <td className="border border-slate-300 px-2 py-2">{safeText(item.category)} / {safeText(item.department)}</td>
+                      <td className="border border-slate-300 px-2 py-2 font-black">{isReturnSlip ? 'รับคืนแล้ว' : (isItemReturnedOnSlip(item) ? 'คืนแล้ว' : 'ยังไม่คืน')}</td>
                       <td className="border border-slate-300 px-2 py-2">{isReturnSlip ? safeText(item.returnNote || item.returnCondition) : safeText(item.note || item.currentNote)}</td>
                     </tr>
                   ))}
