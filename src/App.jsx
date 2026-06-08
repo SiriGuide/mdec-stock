@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.20 Daily Follow-up Message Polish';
-const APP_UPDATE_NOTE = 'Central History Proof Fill Hotfix: ปรับรูปพรีวิวในประวัติส่วนกลางให้เต็มกรอบขึ้น ลดพื้นที่ว่าง และยังเปิดดูรูปเต็มจริงได้เหมือนเดิม';
+const APP_VERSION = 'v23.4.16.18.21 Return Center Compact Polish';
+const APP_UPDATE_NOTE = 'Return Center Compact Polish: ปรับหน้า Tracking/Return Center ให้การ์ดรอคืนกระชับขึ้น ปุ่มจัดเป็นระเบียบ และข้อความติดตามยังใช้งานได้เหมือนเดิม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
 const DEFAULT_PROOF_SETTINGS = { targetKB: 150, warnKB: 250, maxKB: 500, maxImagesPerAction: 3, maxSide: 1000, borrowRequirement: 'recommended', eventRequirement: 'recommended', returnRequirement: 'recommended' };
@@ -11177,7 +11177,7 @@ S.N.: ${item.sn || '-'}
                             <div className={`font-black ${theme.textTitle}`}>อุปกรณ์ภายใน</div>
                             <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>{selectedStats.total.toLocaleString('th-TH')} รายการ</div>
                           </div>
-                          <button type="button" onClick={editSelected} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>จัดการรายการ</button>
+                          <button type="button" onClick={editSelected} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>จัดการรายการ</button>
                         </div>
 
                         <div className="editor-list max-h-[420px] overflow-y-auto custom-scrollbar">
@@ -12388,14 +12388,14 @@ S.N.: ${item.sn || '-'}
         : 'bg-slate-50 border-slate-200 hover:border-slate-300';
       return (
         <div key={card.id} className={`asset-profile-hero-card rounded-[1.35rem] border overflow-hidden transition-colors ${cardClass}`}>
-          <div className="px-3.5 sm:px-4 py-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+          <div className="px-3 sm:px-3.5 py-2.5 flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
             <div className="min-w-0 flex items-start gap-3">
-              <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 text-lg font-black ${avatarClass}`}>
+              <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 text-lg font-black ${avatarClass}`}>
                 {isEvent ? '🎬' : '👥'}
               </div>
               <div className="min-w-0">
                 <div className={`text-[10px] font-black uppercase tracking-[0.16em] ${theme.textMuted}`}>RETURN GROUP</div>
-                <div className={`text-base font-black mt-0.5 truncate ${theme.textTitle}`}>{card.typeLabel}: {card.title || '-'}</div>
+                <div className={`text-sm sm:text-base font-black mt-0.5 truncate ${theme.textTitle}`}>{card.typeLabel}: {card.title || '-'}</div>
                 <div className={`text-[11px] font-bold mt-0.5 truncate ${theme.textMuted}`}>เลขที่ {card.ref || '-'}{card.staffOut && card.staffOut !== '-' ? ` • ผู้ทำรายการ ${card.staffOut}` : ''}</div>
               </div>
             </div>
@@ -12404,7 +12404,7 @@ S.N.: ${item.sn || '-'}
               <span className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>ทั้งหมด {card.total.toLocaleString('th-TH')} ชิ้น</span>
               <span className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>คืนแล้ว {card.returnedCount.toLocaleString('th-TH')}</span>
               <span className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>รอคืน {card.remainingCount.toLocaleString('th-TH')}</span>
-              <button type="button" onClick={() => selectReturnGroupCard(card)} className="ml-0 xl:ml-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-sm">
+              <button type="button" onClick={() => selectReturnGroupCard(card)} className="ml-0 xl:ml-2 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-sm">
                 รับคืนกลุ่มนี้
               </button>
             </div>
@@ -12412,11 +12412,11 @@ S.N.: ${item.sn || '-'}
 
           <div className={`border-t ${isDarkMode ? 'border-slate-800/70' : 'border-slate-200'}`} />
 
-          <div className="px-3.5 sm:px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div className="px-3 sm:px-3.5 py-2.5 grid grid-cols-1 md:grid-cols-2 gap-1.5">
             {compactItems.map(item => (
               <div
                 key={`${card.id}_${item.id}`}
-                className={`rounded-2xl border px-3 py-2.5 min-h-[58px] flex items-center justify-between gap-3 ${itemClass}`}
+                className={`rounded-xl border px-2.5 py-2 min-h-[50px] flex items-center justify-between gap-3 ${itemClass}`}
               >
                 <div className="min-w-0">
                   <div className={`text-sm font-black leading-tight truncate ${theme.textTitle}`}>{item.name || '-'}</div>
@@ -12426,7 +12426,7 @@ S.N.: ${item.sn || '-'}
               </div>
             ))}
             {extraCount > 0 && (
-              <div className={`rounded-2xl border px-3 py-2.5 min-h-[58px] flex items-center justify-center text-xs font-black ${isDarkMode ? 'bg-slate-900/55 border-slate-800/55 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+              <div className={`rounded-xl border px-2.5 py-2 min-h-[50px] flex items-center justify-center text-xs font-black ${isDarkMode ? 'bg-slate-900/55 border-slate-800/55 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
                 + อีก {extraCount.toLocaleString('th-TH')} รายการ
               </div>
             )}
@@ -12922,7 +12922,7 @@ S.N.: ${item.sn || '-'}
                           <button
                             type="button"
                             onClick={() => setShowBorrowReturnFilters(false)}
-                            className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}
+                            className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}
                             title="ปิดตัวกรอง"
                           >
                             <Icons.X className="w-4 h-4" />
@@ -13051,11 +13051,11 @@ S.N.: ${item.sn || '-'}
                           <div className={`text-lg font-black mt-0.5 ${theme.textTitle}`}>รายการที่เลือก {actionTargetIds.length.toLocaleString('th-TH')} ชิ้น • {operationGroupedSelectedCount.toLocaleString('th-TH')} กลุ่ม</div>
                           <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{borrowReturnMode === 'return' ? 'ถ้ารายการนี้มาจากเอกสารยืม/ออกงานเดียวกัน กดรับคืนทั้งกลุ่มได้ ไม่ต้องติ๊กทีละชิ้น' : 'กล้องที่ลิงก์เลนส์ไว้จะขึ้นเป็นค่าเริ่มต้นก่อนยืนยัน และเปลี่ยน/ถอดเลนส์ได้เฉพาะรอบนี้'}</div>
                         </div>
-                        <button type="button" onClick={() => setShowOperationSelectedPanel(false)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}>×</button>
+                        <button type="button" onClick={() => setShowOperationSelectedPanel(false)} className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}>×</button>
                       </div>
                       {borrowReturnMode === 'return' && (
                         <div className={`px-4 py-3 border-b ${isDarkMode ? 'border-slate-800 bg-emerald-950/18' : 'border-emerald-100 bg-emerald-50'}`}>
-                          <button type="button" onClick={expandSelectedReturnGroup} className="w-full px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">
+                          <button type="button" onClick={expandSelectedReturnGroup} className="w-full px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">
                             รับคืนทั้งกลุ่มจากรายการที่เลือก
                           </button>
                           <div className={`text-[11px] font-bold mt-2 ${theme.textMuted}`}>ระบบจะดึงของที่อยู่ในเอกสารยืม/ออกงานเดียวกัน รวมเลนส์/เมมที่ลิงก์กับกล้องเข้ามาให้</div>
@@ -13070,7 +13070,7 @@ S.N.: ${item.sn || '-'}
                                 <div className={`font-black text-sm truncate mt-1 ${theme.textTitle}`}>{bundle.camera.name || '-'}</div>
                                 <div className={`text-[11px] font-bold mt-1 truncate ${theme.textMuted}`}>S.N. {bundle.camera.sn || '-'} • {getOperationLocationLabel(bundle.camera)}</div>
                               </div>
-                              <button type="button" onClick={() => removeOperationSelectedItem(bundle.camera.id)} className={`shrink-0 px-3 py-2 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-300 hover:bg-rose-950/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>เอาชุดนี้ออก</button>
+                              <button type="button" onClick={() => removeOperationSelectedItem(bundle.camera.id)} className={`shrink-0 px-2.5 py-1.5 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-300 hover:bg-rose-950/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>เอาชุดนี้ออก</button>
                             </div>
                             <div className={`mt-3 rounded-2xl border p-2.5 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white/80 border-blue-100'}`}>
                               <div className={`text-[11px] font-black ${theme.textTitle}`}>ในชุดนี้</div>
@@ -13083,7 +13083,7 @@ S.N.: ${item.sn || '-'}
                                     <select
                                       value={bundle.lens?.id || 'none'}
                                       onChange={(event) => applyOperationCameraLensOverride(bundle.camera.id, event.target.value)}
-                                      className={`w-full px-3 py-2 rounded-xl border text-xs font-black ${theme.input}`}
+                                      className={`w-full px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.input}`}
                                     >
                                       <option value="none">เอาเฉพาะบอดี้ / ไม่พ่วงเลนส์</option>
                                       {getOperationLensCandidatesForCamera(bundle.camera).map(lens => (
@@ -13110,7 +13110,7 @@ S.N.: ${item.sn || '-'}
                                 </div>
                                 {renderCameraKitInline(item, { compact: true })}
                               </div>
-                              <button type="button" onClick={() => removeOperationSelectedItem(item.id)} className={`shrink-0 px-3 py-2 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-300 hover:bg-rose-950/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>เอาออก</button>
+                              <button type="button" onClick={() => removeOperationSelectedItem(item.id)} className={`shrink-0 px-2.5 py-1.5 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-rose-950/30 border-rose-800 text-rose-300 hover:bg-rose-950/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>เอาออก</button>
                             </div>
                           );
                         })}
@@ -13319,7 +13319,7 @@ S.N.: ${item.sn || '-'}
                                     <select
                                       value={bundle.lens?.id || 'none'}
                                       onChange={(event) => applyOperationCameraLensOverride(bundle.camera.id, event.target.value)}
-                                      className={`w-full px-3 py-2 rounded-xl border text-xs font-black ${theme.input}`}
+                                      className={`w-full px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.input}`}
                                     >
                                       <option value="none">เอาเฉพาะบอดี้ / ไม่พ่วงเลนส์</option>
                                       {getOperationLensCandidatesForCamera(bundle.camera).map(lens => (
@@ -13387,7 +13387,7 @@ S.N.: ${item.sn || '-'}
               <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>หน้านี้เป็นหน้าเต็ม และมีดีไซน์เอกสาร A4 แยกจาก UI เว็บสำหรับพิมพ์รายงานให้ดูเป็นทางการ</p>
             </div>
             <div className="monthly-report-page-actions flex flex-wrap items-center gap-2 shrink-0">
-              <button type="button" onClick={exportFilteredReportCSV} className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">Export ตามตัวกรอง</button>
+              <button type="button" onClick={exportFilteredReportCSV} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">Export ตามตัวกรอง</button>
               <button type="button" onClick={exportMonthlyReportCSV} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>CSV รวมเดือน</button>
               <button type="button" onClick={printMonthlyReport} className="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">พิมพ์รายงาน</button>
               <button type="button" onClick={() => openWorkspace('overview')} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>กลับหน้าหลัก</button>
@@ -13422,7 +13422,7 @@ S.N.: ${item.sn || '-'}
                   <p className={`text-sm font-bold ${theme.textMuted}`}>ใช้กรองข้อมูลบนหน้า Reports และ Export CSV ตามเงื่อนไขปัจจุบัน</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={exportFilteredReportCSV} className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">Export ตามตัวกรอง</button>
+                  <button type="button" onClick={exportFilteredReportCSV} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">Export ตามตัวกรอง</button>
                   <button type="button" onClick={() => { setReportFilterDept('all'); setReportFilterCategory('all'); setReportFilterStatus('all'); setReportFilterProject('all'); setReportSearch(''); }} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>ล้างตัวกรองรายงาน</button>
                 </div>
               </div>
@@ -13839,7 +13839,7 @@ S.N.: ${item.sn || '-'}
               <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ใช้เดินตรวจของจริง เทียบกับข้อมูลในระบบ ติ๊กพบแล้ว คัดรายการยังไม่พบ และพิมพ์รายงานตรวจนับ</p>
             </div>
             <div className="flex flex-wrap gap-1.5 shrink-0">
-              <button type="button" onClick={startNewStockCountSession} className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">เริ่มรอบใหม่</button>
+              <button type="button" onClick={startNewStockCountSession} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">เริ่มรอบใหม่</button>
               <button type="button" onClick={openStockCountScanner} className="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">สแกนตรวจนับ</button>
               <button type="button" onClick={() => exportStockCountCSV('summary')} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>Export CSV</button>
               <button type="button" onClick={printStockCountReport} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>พิมพ์รายงาน</button>
@@ -14299,7 +14299,7 @@ S.N.: ${item.sn || '-'}
                           <div className={`text-lg font-black ${theme.textTitle}`}>ตัวกรองคลัง</div>
                           <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เลือกเฉพาะที่จำเป็น แล้วกดใช้ตัวกรอง</div>
                         </div>
-                        <button type="button" onClick={() => setShowInventoryFilterPanel(false)} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`} title="ปิดตัวกรอง">×</button>
+                        <button type="button" onClick={() => setShowInventoryFilterPanel(false)} className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`} title="ปิดตัวกรอง">×</button>
                       </div>
 
                       <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2.5">
@@ -14461,7 +14461,7 @@ S.N.: ${item.sn || '-'}
                             <td className="inventory-row-name-cell px-4 py-4">
                               <div className="flex items-start gap-3 min-w-0">
                                 <div
-                                  className={`inventory-row-icon mt-0.5 w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${deptUI.iconWrap}`}
+                                  className={`inventory-row-icon mt-0.5 w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${deptUI.iconWrap}`}
                                   style={{ boxShadow: `inset 3px 0 0 ${deptUI.accent}55` }}
                                 >
                                   <DeptIcon className="w-5 h-5" />
@@ -14777,15 +14777,15 @@ S.N.: ${item.sn || '-'}
           ? 'border-amber-500/30'
           : 'border-slate-800/80';
       return (
-        <div key={card.id} className={`rounded-[1.35rem] border ${borderTone} bg-slate-900/55 overflow-hidden hover:border-slate-800/55/90 transition-colors`}>
-          <div className="px-3.5 sm:px-4 py-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+        <div key={card.id} className={`rounded-2xl border ${borderTone} bg-slate-900/55 overflow-hidden hover:border-slate-800/55/90 transition-colors`}>
+          <div className="px-3 sm:px-3.5 py-2.5 flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
             <div className="min-w-0 flex items-start gap-3">
-              <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${avatarClass}`}>
+              <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${avatarClass}`}>
                 {isEvent ? <Icons.Truck className="w-5 h-5" /> : <Icons.UserPlus className="w-5 h-5" />}
               </div>
               <div className="min-w-0">
                 <div className={`text-[10px] font-black uppercase tracking-[0.16em] ${theme.textMuted}`}>RETURN TRACKING</div>
-                <div className={`text-base font-black mt-0.5 truncate ${theme.textTitle}`}>{card.typeLabel}: {card.title || '-'}</div>
+                <div className={`text-sm sm:text-base font-black mt-0.5 truncate ${theme.textTitle}`}>{card.typeLabel}: {card.title || '-'}</div>
                 <div className={`text-[11px] font-bold mt-0.5 truncate ${theme.textMuted}`}>เลขที่ {card.ref || '-'} • กำหนด {card.dueText || '-'}</div>
               </div>
             </div>
@@ -14795,24 +14795,24 @@ S.N.: ${item.sn || '-'}
               <span className="px-2.5 py-1.5 rounded-xl border text-[11px] font-black bg-emerald-950/35 border-emerald-800 text-emerald-200">คืนแล้ว {card.returnedCount.toLocaleString('th-TH')}</span>
               <span className="px-2.5 py-1.5 rounded-xl border text-[11px] font-black bg-amber-950/35 border-amber-800 text-amber-200">รอคืน {card.remainingCount.toLocaleString('th-TH')}</span>
               <span className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-black ${statusPillClass(card.statusTone)}`}>{card.statusLabel}</span>
-              <button type="button" onClick={() => copyTrackingGroupMessage(card)} className="px-3 py-2.5 rounded-2xl border border-cyan-400/25 bg-cyan-500/10 text-cyan-100 hover:bg-cyan-500/15 text-xs font-black shadow-sm">คัดลอกข้อความ</button>
-              <button type="button" onClick={() => openReturnForItems(card.items.map(item => item.id))} className="ml-0 xl:ml-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-sm">รับคืนกลุ่มนี้</button>
+              <button type="button" onClick={() => copyTrackingGroupMessage(card)} className="px-2.5 py-2 rounded-xl border border-cyan-400/25 bg-cyan-500/10 text-cyan-100 hover:bg-cyan-500/15 text-xs font-black shadow-sm">คัดลอกข้อความ</button>
+              <button type="button" onClick={() => openReturnForItems(card.items.map(item => item.id))} className="ml-0 xl:ml-2 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-sm">รับคืนกลุ่มนี้</button>
             </div>
           </div>
 
-          <div className="px-3.5 sm:px-4 pb-3 flex flex-wrap gap-2">
-            <button type="button" onClick={() => openTrackingCardRecords(card, 'docs')} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดเอกสาร</button>
-            <button type="button" onClick={() => openTrackingCardRecords(card, 'history')} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
-            <button type="button" onClick={() => openTrackingCardRecords(card, 'proofs')} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูหลักฐาน</button>
+          <div className="px-3 sm:px-3.5 pb-2.5 flex flex-wrap gap-1.5">
+            <button type="button" onClick={() => openTrackingCardRecords(card, 'docs')} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดเอกสาร</button>
+            <button type="button" onClick={() => openTrackingCardRecords(card, 'history')} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
+            <button type="button" onClick={() => openTrackingCardRecords(card, 'proofs')} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูหลักฐาน</button>
           </div>
 
           <div className="border-t border-slate-800/70" />
 
-          <div className="px-3.5 sm:px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div className="px-3 sm:px-3.5 py-2.5 grid grid-cols-1 md:grid-cols-2 gap-1.5">
             {compactItems.map(item => {
               const info = getReturnTrackingDateInfo(item);
               return (
-                <div key={`${card.id}_${item.id}`} className={`rounded-2xl border px-3 py-2.5 min-h-[58px] flex items-center justify-between gap-3 ${itemClass}`}>
+                <div key={`${card.id}_${item.id}`} className={`rounded-xl border px-2.5 py-2 min-h-[50px] flex items-center justify-between gap-3 ${itemClass}`}>
                   <div className="min-w-0">
                     <div className={`text-sm font-black leading-tight truncate ${theme.textTitle}`}>{item.name || '-'}</div>
                     <div className={`text-[11px] font-bold mt-0.5 truncate ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.location || item.storageLocation || '-'}</div>
@@ -14822,7 +14822,7 @@ S.N.: ${item.sn || '-'}
               );
             })}
             {extraCount > 0 && (
-              <div className="rounded-2xl border px-3 py-2.5 min-h-[58px] flex items-center justify-center text-xs font-black bg-slate-900/55 border-slate-800/55 text-slate-300">
+              <div className="rounded-xl border px-2.5 py-2 min-h-[50px] flex items-center justify-center text-xs font-black bg-slate-900/55 border-slate-800/55 text-slate-300">
                 + อีก {extraCount.toLocaleString('th-TH')} รายการ
               </div>
             )}
@@ -15314,7 +15314,7 @@ S.N.: ${item.sn || '-'}
                             {totalProofs > 0 ? (
                               <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-pink-500/25 bg-pink-500/10 text-pink-200 text-xs font-black">หลักฐาน {totalProofs} รูป</button>
                             ) : (
-                              <span className={`inline-flex items-center px-3 py-2 rounded-xl border text-xs font-black ${isDarkMode ? 'border-slate-800/55 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-white text-slate-400'}`}>ไม่มีรูปหลักฐาน • ใช้ประวัติ/เอกสารเป็นหลัก</span>
+                              <span className={`inline-flex items-center px-2.5 py-1.5 rounded-xl border text-xs font-black ${isDarkMode ? 'border-slate-800/55 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-white text-slate-400'}`}>ไม่มีรูปหลักฐาน • ใช้ประวัติ/เอกสารเป็นหลัก</span>
                             )}
                             {!entry.isAuditLog && <button type="button" onClick={() => openItemProfile(entry.itemId)} className={`px-2 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
                             {!entry.isAuditLog && <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-xs font-black">เพิ่มรูป</button>}
@@ -15881,7 +15881,7 @@ S.N.: ${item.sn || '-'}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {section.items.map(([label, desc, Icon, action]) => (
                       <button key={label} type="button" onClick={action} className={`group px-3.5 py-2.5 rounded-2xl border text-left transition flex items-start gap-3 ${isDarkMode ? 'bg-slate-950/70 border-slate-800 hover:border-blue-700 hover:bg-slate-950' : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-blue-300'}`}>
-                        <div className="w-10 h-10 rounded-2xl bg-blue-600/10 border border-blue-500/20 text-blue-500 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition"><Icon className="w-5 h-5" /></div>
+                        <div className="w-9 h-9 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition"><Icon className="w-5 h-5" /></div>
                         <div className="min-w-0">
                           <div className={`font-black truncate ${theme.textTitle}`}>{label}</div>
                           <div className={`text-xs font-bold mt-0.5 leading-relaxed ${theme.textMuted}`}>{desc}</div>
@@ -24197,7 +24197,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                               <div className={`asset-profile-section-title font-black text-lg ${theme.textTitle}`}>เลือกแล้ว {scannedSelection.length.toLocaleString('th-TH')} รายการ</div>
                             </div>
                             {scannedSelection.length > 0 && (
-                              <button type="button" onClick={() => setSelectedItems([])} className={`px-3 py-2 rounded-xl border text-xs font-black shrink-0 ${theme.btnSecondary}`}>ล้าง</button>
+                              <button type="button" onClick={() => setSelectedItems([])} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black shrink-0 ${theme.btnSecondary}`}>ล้าง</button>
                             )}
                           </div>
 
@@ -24909,7 +24909,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <p className={`text-sm font-bold mt-0.5 ${theme.textMuted}`}>เลือกอุปกรณ์ด้วยรายการแบบเดียวกัน</p>
                   </div>
                 </div>
-                <button type="button" onClick={() => setShowStorageBoxEditor(false)} className={`w-10 h-10 rounded-2xl flex items-center justify-center ${theme.btnSecondary}`}><Icons.X className="w-4 h-4" /></button>
+                <button type="button" onClick={() => setShowStorageBoxEditor(false)} className={`w-9 h-9 rounded-xl flex items-center justify-center ${theme.btnSecondary}`}><Icons.X className="w-4 h-4" /></button>
               </div>
 
               <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[330px_minmax(0,1fr)] gap-3 p-3">
@@ -24973,8 +24973,8 @@ ${auditChangeSummary}` : auditChangeSummary);
                       <p className={`asset-profile-card-label text-xs font-bold ${theme.textMuted}`}>ติ๊กเลือกจากรายการด้านล่าง ข้อมูลไม่สมบูรณ์จะไม่ถูกนำมาแสดง</p>
                     </div>
                     <div className="flex gap-2">
-                      <button type="button" onClick={() => setStorageBoxForm(prev => ({ ...prev, itemIds: selectableItems.map(item => item.id) }))} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เลือกทั้งหมด</button>
-                      <button type="button" onClick={() => setStorageBoxForm(prev => ({ ...prev, itemIds: [] }))} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ล้าง</button>
+                      <button type="button" onClick={() => setStorageBoxForm(prev => ({ ...prev, itemIds: selectableItems.map(item => item.id) }))} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เลือกทั้งหมด</button>
+                      <button type="button" onClick={() => setStorageBoxForm(prev => ({ ...prev, itemIds: [] }))} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ล้าง</button>
                     </div>
                   </div>
                   <input type="text" className={`w-full px-4 py-3 rounded-2xl font-bold outline-none border mb-3 ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / หมวด / ที่เก็บ..." value={storageBoxSearchTerm} onChange={(e) => setStorageBoxSearchTerm(e.target.value)} />
@@ -25036,7 +25036,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <p className={`text-sm font-bold mt-0.5 ${theme.textMuted}`}>เลือกอุปกรณ์ด้วยรายการแบบเดียวกัน</p>
                   </div>
                 </div>
-                <button type="button" onClick={() => setShowBundleManager(false)} className={`w-10 h-10 rounded-2xl flex items-center justify-center ${theme.btnSecondary}`}><Icons.X className="w-4 h-4" /></button>
+                <button type="button" onClick={() => setShowBundleManager(false)} className={`w-9 h-9 rounded-xl flex items-center justify-center ${theme.btnSecondary}`}><Icons.X className="w-4 h-4" /></button>
               </div>
 
               <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[330px_minmax(0,1fr)] gap-3 p-3">
@@ -25088,8 +25088,8 @@ ${auditChangeSummary}` : auditChangeSummary);
                       <p className={`asset-profile-card-label text-xs font-bold ${theme.textMuted}`}>ติ๊กเลือกอุปกรณ์ที่ต้องใช้ในเซ็ตนี้</p>
                     </div>
                     <div className="flex gap-2">
-                      <button type="button" onClick={() => setBundleForm(prev => ({ ...prev, itemIds: selectableItems.map(item => item.id) }))} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เลือกทั้งหมด</button>
-                      <button type="button" onClick={() => setBundleForm(prev => ({ ...prev, itemIds: [] }))} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ล้าง</button>
+                      <button type="button" onClick={() => setBundleForm(prev => ({ ...prev, itemIds: selectableItems.map(item => item.id) }))} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เลือกทั้งหมด</button>
+                      <button type="button" onClick={() => setBundleForm(prev => ({ ...prev, itemIds: [] }))} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ล้าง</button>
                     </div>
                   </div>
                   <input type="text" className={`w-full px-4 py-3 rounded-2xl font-bold outline-none border mb-3 ${theme.input}`} placeholder="ค้นหาอุปกรณ์ / S.N. / หมวด / ที่เก็บ..." value={bundleSearchTerm} onChange={(e) => setBundleSearchTerm(e.target.value)} />
@@ -25870,7 +25870,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                           <button
                             type="button"
                             onClick={() => handleRestoreTrashItem(item)}
-                            className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm"
+                            className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm"
                           >
                             กู้คืน
                           </button>
@@ -25951,7 +25951,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>สำรอง JSON / CSV / HTML และกู้คืนจากไฟล์ JSON แบบปลอดภัย</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setShowBackupCenterModal(false)} className={`w-10 h-10 rounded-2xl flex items-center justify-center ${theme.btnSecondary}`}>
+              <button type="button" onClick={() => setShowBackupCenterModal(false)} className={`w-9 h-9 rounded-xl flex items-center justify-center ${theme.btnSecondary}`}>
                 <Icons.X className="w-4 h-4" />
               </button>
             </div>
@@ -25977,7 +25977,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <h4 className={`text-lg font-black ${theme.textTitle}`}>สำรองข้อมูลหลัก</h4>
                     <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>แนะนำให้ดาวน์โหลด Backup JSONก่อนปรับข้อมูลจำนวนมาก</p>
                   </div>
-                  <div className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>สำรองล่าสุด: {yearEndHelperData.lastBackupText}</div>
+                  <div className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>สำรองล่าสุด: {yearEndHelperData.lastBackupText}</div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -26303,7 +26303,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                             <div key={acc.id} className={`px-4 py-3 border-b last:border-b-0 ${theme.divide} ${isEditing ? (isDarkMode ? 'bg-blue-950/22' : 'bg-blue-50') : ''}`}>
                               <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-3 xl:items-center">
                                 <button type="button" onClick={() => openEditAccountForm(acc)} className="min-w-0 text-left flex items-center gap-3">
-                                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 text-sm font-black ${acc.active === false ? 'bg-slate-700 text-slate-400' : isEditing ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-blue-500/15 text-blue-300' : 'bg-blue-50 text-blue-700')}`}>
+                                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-sm font-black ${acc.active === false ? 'bg-slate-700 text-slate-400' : isEditing ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-blue-500/15 text-blue-300' : 'bg-blue-50 text-blue-700')}`}>
                                     {initial}
                                   </div>
                                   <div className="min-w-0">
@@ -26707,10 +26707,10 @@ ${auditChangeSummary}` : auditChangeSummary);
                                 </div>
                               </div>
                               <div className="flex flex-wrap gap-2 shrink-0">
-                                <button type="button" onClick={() => handleRestoreCentralTrashEntry(entry)} disabled={isBusy || !canDeleteItems} className={`px-3 py-2 rounded-xl border text-xs font-black ${isBusy || !canDeleteItems ? 'bg-slate-800 border-slate-800 text-slate-500 cursor-not-allowed' : 'bg-emerald-950/45 border-emerald-500/35 text-emerald-200 hover:bg-emerald-700 hover:text-white'}`}>
+                                <button type="button" onClick={() => handleRestoreCentralTrashEntry(entry)} disabled={isBusy || !canDeleteItems} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${isBusy || !canDeleteItems ? 'bg-slate-800 border-slate-800 text-slate-500 cursor-not-allowed' : 'bg-emerald-950/45 border-emerald-500/35 text-emerald-200 hover:bg-emerald-700 hover:text-white'}`}>
                                   กู้คืน
                                 </button>
-                                <button type="button" onClick={() => handlePermanentDeleteCentralTrashEntry(entry)} disabled={isBusy || !canDeleteItems} className={`px-3 py-2 rounded-xl border text-xs font-black ${isBusy || !canDeleteItems ? 'bg-slate-800 border-slate-800 text-slate-500 cursor-not-allowed' : 'bg-rose-950/45 border-rose-500/35 text-rose-200 hover:bg-rose-700 hover:text-white'}`}>
+                                <button type="button" onClick={() => handlePermanentDeleteCentralTrashEntry(entry)} disabled={isBusy || !canDeleteItems} className={`px-2.5 py-1.5 rounded-xl border text-xs font-black ${isBusy || !canDeleteItems ? 'bg-slate-800 border-slate-800 text-slate-500 cursor-not-allowed' : 'bg-rose-950/45 border-rose-500/35 text-rose-200 hover:bg-rose-700 hover:text-white'}`}>
                                   ลบถาวร
                                 </button>
                               </div>
@@ -27181,7 +27181,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมอุปกรณ์ชำรุด ส่งซ่อม เสียซ้ำ และประวัติบำรุงรักษาไว้ในหน้าเดียว</p>
               </div>
               <div className="flex flex-wrap gap-1.5 shrink-0">
-                <button type="button" onClick={exportRepairCenterCSV} className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">Export CSV</button>
+                <button type="button" onClick={exportRepairCenterCSV} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-sm">Export CSV</button>
                 <button type="button" onClick={printRepairCenterReport} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>พิมพ์รายงาน</button>
                 <button type="button" onClick={() => setShowRepairCenterModal(false)} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnCancel}`}>ปิด</button>
               </div>
@@ -27339,7 +27339,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{repairItem.name} • {repairItem.sn || '-'}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => { setShowRepairModal(false); openRepairCenter('open'); }} className={`hidden sm:inline-flex px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดศูนย์ซ่อม</button>
+                  <button onClick={() => { setShowRepairModal(false); openRepairCenter('open'); }} className={`hidden sm:inline-flex px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดศูนย์ซ่อม</button>
                   <button onClick={() => setShowRepairModal(false)} className={`p-2 hover:text-rose-500 ${theme.textMuted}`}><Icons.X className="w-4 h-4" /></button>
                 </div>
               </div>
