@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.19.2 Evidence Pair List Compact Polish';
+const APP_VERSION = 'v23.4.16.18.20 Daily Follow-up Message Polish';
 const APP_UPDATE_NOTE = 'Central History Proof Fill Hotfix: ปรับรูปพรีวิวในประวัติส่วนกลางให้เต็มกรอบขึ้น ลดพื้นที่ว่าง และยังเปิดดูรูปเต็มจริงได้เหมือนเดิม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -14707,27 +14707,55 @@ S.N.: ${item.sn || '-'}
     };
 
     const copyTrackingGroupMessage = async (card = {}) => {
-      const itemLines = asArray(card.items).slice(0, 12).map((item, index) => {
+      const remainingItems = asArray(card.items);
+      const allItems = asArray(card.allItems).length ? asArray(card.allItems) : remainingItems;
+      const returnedCount = Number(card.returnedCount || 0);
+      const remainingCount = Number(card.remainingCount || remainingItems.length || 0);
+      const totalCount = Number(card.total || (returnedCount + remainingCount) || allItems.length || remainingCount);
+      const statusTone = card.statusTone || 'emerald';
+      const statusHeader = card.isPartial
+        ? 'แจ้งติดตามอุปกรณ์คืนบางส่วน'
+        : statusTone === 'rose'
+          ? 'แจ้งติดตามอุปกรณ์เลยกำหนดคืน'
+          : statusTone === 'amber'
+            ? 'แจ้งเตือนอุปกรณ์ครบกำหนดคืนวันนี้'
+            : 'แจ้งติดตามอุปกรณ์รอคืน';
+      const politeCloser = statusTone === 'rose'
+        ? 'รบกวนรีบนำอุปกรณ์มาคืนที่ศูนย์ MDEC หรือแจ้งสถานะกลับมาด้วยครับ'
+        : statusTone === 'amber'
+          ? 'รบกวนนำอุปกรณ์มาคืนที่ศูนย์ MDEC ภายในวันนี้ครับ'
+          : 'รบกวนตรวจสอบและนำอุปกรณ์มาคืนที่ศูนย์ MDEC ครับ';
+      const itemLines = remainingItems.slice(0, 10).map((item, index) => {
         const info = getReturnTrackingDateInfo(item);
-        return `${index + 1}. ${item.name || '-'}${item.sn ? ` / S.N. ${item.sn}` : ''} — ${info.label}${info.daysText ? ` (${info.daysText})` : ''}`;
+        const snText = item.sn ? ` / S.N. ${item.sn}` : '';
+        const dueText = info.daysText ? ` (${info.daysText})` : '';
+        return `${index + 1}. ${item.name || '-'}${snText}${dueText}`;
       });
-      const extraCount = Math.max(0, asArray(card.items).length - itemLines.length);
+      const extraCount = Math.max(0, remainingItems.length - itemLines.length);
+      const summaryLine = card.isPartial
+        ? `สถานะ: คืนบางส่วนแล้ว ${returnedCount.toLocaleString('th-TH')}/${totalCount.toLocaleString('th-TH')} รายการ • เหลือ ${remainingCount.toLocaleString('th-TH')} รายการ`
+        : `สถานะ: ${card.statusLabel || 'รอคืน'} • ยังรอคืน ${remainingCount.toLocaleString('th-TH')} รายการ`;
+      const docLine = card.ref && card.ref !== 'ข้อมูลเก่า' ? `เลขเอกสาร: ${card.ref}` : 'เลขเอกสาร: ข้อมูลเก่า / ไม่พบเลขเอกสาร';
+      const subjectLabel = card.type === 'event' ? 'ชื่องาน' : 'ผู้ยืม';
+      const borrowedDateText = card.date ? new Date(card.date).toLocaleString('th-TH', { hour12: false }) : '-';
       const text = [
-        `แจ้งติดตามคืนอุปกรณ์ MDEC Stock`,
+        statusHeader,
+        docLine,
+        `${subjectLabel}: ${card.title || '-'}`,
         `ประเภท: ${card.typeLabel || '-'}`,
-        `เลขเอกสาร: ${card.ref || '-'}`,
-        `${card.type === 'event' ? 'ชื่องาน' : 'ผู้ยืม'}: ${card.title || '-'}`,
+        `วันที่ยืม/ออกงาน: ${borrowedDateText}`,
         `กำหนดคืน: ${card.dueText || '-'}`,
-        `สถานะ: ${card.statusLabel || 'รอคืน'}`,
-        `คืนแล้ว: ${Number(card.returnedCount || 0).toLocaleString('th-TH')} / ${Number(card.total || 0).toLocaleString('th-TH')} รายการ`,
-        `ยังรอคืน: ${Number(card.remainingCount || 0).toLocaleString('th-TH')} รายการ`,
-        itemLines.length ? `รายการที่ยังรอคืน:\n${itemLines.join('\n')}${extraCount > 0 ? `\n...และอีก ${extraCount.toLocaleString('th-TH')} รายการ` : ''}` : 'รายการที่ยังรอคืน: -',
+        summaryLine,
         '',
-        'รบกวนตรวจสอบและนำอุปกรณ์มาคืนที่ศูนย์ MDEC ขอบคุณครับ'
+        itemLines.length
+          ? `รายการที่ยังรอคืน:\n${itemLines.join('\n')}${extraCount > 0 ? `\n...และอีก ${extraCount.toLocaleString('th-TH')} รายการ` : ''}`
+          : 'รายการที่ยังรอคืน: -',
+        '',
+        politeCloser
       ].join('\n');
       try {
         await navigator.clipboard.writeText(text);
-        pushToast('คัดลอกข้อความติดตามแล้ว', 'พร้อมส่ง LINE/แชทได้เลย', 'success');
+        pushToast('คัดลอกข้อความติดตามแล้ว', 'ข้อความพร้อมส่ง LINE/แชทแล้ว', 'success');
       } catch (error) {
         window.prompt('คัดลอกข้อความนี้เพื่อนำไปส่งต่อ', text);
       }
@@ -14767,7 +14795,7 @@ S.N.: ${item.sn || '-'}
               <span className="px-2.5 py-1.5 rounded-xl border text-[11px] font-black bg-emerald-950/35 border-emerald-800 text-emerald-200">คืนแล้ว {card.returnedCount.toLocaleString('th-TH')}</span>
               <span className="px-2.5 py-1.5 rounded-xl border text-[11px] font-black bg-amber-950/35 border-amber-800 text-amber-200">รอคืน {card.remainingCount.toLocaleString('th-TH')}</span>
               <span className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-black ${statusPillClass(card.statusTone)}`}>{card.statusLabel}</span>
-              <button type="button" onClick={() => copyTrackingGroupMessage(card)} className="px-3 py-2.5 rounded-2xl border border-cyan-400/25 bg-cyan-500/10 text-cyan-100 hover:bg-cyan-500/15 text-xs font-black shadow-sm">คัดลอกตามของ</button>
+              <button type="button" onClick={() => copyTrackingGroupMessage(card)} className="px-3 py-2.5 rounded-2xl border border-cyan-400/25 bg-cyan-500/10 text-cyan-100 hover:bg-cyan-500/15 text-xs font-black shadow-sm">คัดลอกข้อความ</button>
               <button type="button" onClick={() => openReturnForItems(card.items.map(item => item.id))} className="ml-0 xl:ml-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-sm">รับคืนกลุ่มนี้</button>
             </div>
           </div>
@@ -14860,7 +14888,7 @@ S.N.: ${item.sn || '-'}
                   <input className={`w-full pl-12 pr-4 py-2.5 rounded-2xl border font-bold ${theme.input}`} placeholder="ค้นหาเลขเอกสาร / ผู้ยืม / ชื่องาน / อุปกรณ์ / S.N." value={trackingSearch} onChange={e => setTrackingSearch(e.target.value)} />
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <button type="button" onClick={() => { const sourceCard = trackingGroupCards.find(card => card.statusTone === 'rose') || trackingGroupCards[0]; if (sourceCard) copyTrackingGroupMessage(sourceCard); }} disabled={!trackingGroupCards.length} className="px-4 py-2.5 rounded-2xl border border-cyan-400/25 bg-cyan-500/10 text-cyan-100 disabled:opacity-40 font-black text-sm">คัดลอกกลุ่มแรก</button>
+                  <button type="button" onClick={() => { const sourceCard = trackingGroupCards.find(card => card.statusTone === 'rose') || trackingGroupCards[0]; if (sourceCard) copyTrackingGroupMessage(sourceCard); }} disabled={!trackingGroupCards.length} className="px-4 py-2.5 rounded-2xl border border-cyan-400/25 bg-cyan-500/10 text-cyan-100 disabled:opacity-40 font-black text-sm">คัดลอกข้อความแรก</button>
                   <div className="px-4 py-2.5 rounded-2xl border border-slate-800/55/70 bg-slate-900/70 text-slate-200 font-black text-center min-w-[150px]">{trackingGroupCards.length.toLocaleString('th-TH')} กลุ่ม / {visibleList.length.toLocaleString('th-TH')} ชิ้น</div>
                 </div>
               </div>
@@ -28431,7 +28459,7 @@ function TodayPanel({ title, color, items, empty, isDarkMode, theme, dateInfoOf,
                 <button type="button" onClick={() => onReturn?.(item)} className="px-3 py-3 rounded-xl text-xs sm:text-sm font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm">รับคืน</button>
                 <button type="button" onClick={() => onDetail?.(item)} className={`px-3 py-3 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>เปิด</button>
                 <button type="button" onClick={() => onDocs?.(item)} className={`px-3 py-3 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>เอกสาร</button>
-                <button type="button" onClick={() => onCopy?.(item)} className={`px-3 py-3 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>คัดลอกตามของ</button>
+                <button type="button" onClick={() => onCopy?.(item)} className={`px-3 py-3 rounded-xl text-xs sm:text-sm font-black border ${theme.btnSecondary}`}>คัดลอกข้อความ</button>
               </div>
             </div>
           );
