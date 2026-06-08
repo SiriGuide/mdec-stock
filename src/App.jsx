@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.19.1 Central History Proof Fill Hotfix';
+const APP_VERSION = 'v23.4.16.18.19.2 Evidence Pair List Compact Polish';
 const APP_UPDATE_NOTE = 'Central History Proof Fill Hotfix: ปรับรูปพรีวิวในประวัติส่วนกลางให้เต็มกรอบขึ้น ลดพื้นที่ว่าง และยังเปิดดูรูปเต็มจริงได้เหมือนเดิม';
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -15536,6 +15536,14 @@ S.N.: ${item.sn || '-'}
                                 const summary = getGroupSummary(group);
                                 const isSelected = group.groupId === (selectedGroup.groupId || visibleGroups[0]?.groupId);
                                 const itemRefs = asArray(group.itemRefs).slice(0, 4);
+                                const hasBorrowProof = asArray(group.byType?.borrow).some(entry => entry?.proof && (entry.proof.url || entry.proof.thumbUrl || entry.proof.dataUrl));
+                                const hasReturnProof = asArray(group.byType?.return).some(entry => entry?.proof && (entry.proof.url || entry.proof.thumbUrl || entry.proof.dataUrl));
+                                const proofPairStatus = hasBorrowProof && hasReturnProof ? 'มีรูปยืม+คืน' : hasBorrowProof ? 'มีรูปตอนยืม' : hasReturnProof ? 'มีรูปตอนคืน' : 'ยังไม่มีรูปคู่';
+                                const proofPairClass = hasBorrowProof && hasReturnProof
+                                  ? 'bg-emerald-600/16 border-emerald-500/30 text-emerald-200'
+                                  : (hasBorrowProof || hasReturnProof)
+                                  ? 'bg-blue-600/16 border-blue-500/30 text-blue-200'
+                                  : 'bg-slate-700/30 border-slate-600/35 text-slate-300';
                                 return (
                                   <button
                                     key={group.groupId}
@@ -15545,7 +15553,10 @@ S.N.: ${item.sn || '-'}
                                   >
                                     <div className="flex items-start justify-between gap-3">
                                       <div className="min-w-0">
-                                        <span className={`inline-flex px-2 py-0.5 rounded-lg border text-[10px] font-black ${badgeClass(summary.label)}`}>{summary.label}</span>
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                          <span className={`inline-flex px-2 py-0.5 rounded-lg border text-[10px] font-black ${badgeClass(summary.label)}`}>{summary.label}</span>
+                                          <span className={`inline-flex px-2 py-0.5 rounded-lg border text-[10px] font-black ${proofPairClass}`}>{proofPairStatus}</span>
+                                        </div>
                                         <div className={`mt-1.5 text-[13px] font-black truncate ${theme.textTitle}`}>{summary.subject || '-'}</div>
                                         <div className={`text-[10px] font-bold mt-0.5 ${theme.textMuted}`}>{summary.dateText}</div>
                                       </div>
@@ -15569,7 +15580,7 @@ S.N.: ${item.sn || '-'}
                           <section className={`rounded-[1.25rem] border overflow-hidden ${isDarkMode ? 'bg-slate-900/55 border-slate-800' : 'bg-white border-slate-200'}`}>
                             <div className={`px-3.5 sm:px-4 py-3 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-2.5 ${theme.divide}`}>
                               <div className="min-w-0">
-                                <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SINGLE PROOF VIEW</div>
+                                <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>{proofCards.length > 1 ? 'PROOF PAIR VIEW' : 'SINGLE PROOF VIEW'}</div>
                                 <h3 className={`text-base sm:text-lg font-black mt-1 leading-tight ${theme.textTitle}`}>{selectedTitle}</h3>
                                 <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{selectedItems.length.toLocaleString('th-TH')} อุปกรณ์ที่เกี่ยวข้อง • รูปหลักฐาน {proofCards.length.toLocaleString('th-TH')} รูป • {selectedGroup.isLegacyBatch ? 'ข้อมูลเก่า' : 'ข้อมูลปัจจุบัน'}</p>
                               </div>
@@ -15663,9 +15674,9 @@ S.N.: ${item.sn || '-'}
                                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pr-[132px] sm:pr-[148px]">
                                   <div>
                                     <div className={`text-[13px] font-black ${theme.textTitle}`}>รูปหลักฐาน</div>
-                                    <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{pairedProofEntry ? 'แสดงคู่รูปยืม/รับคืนของงานเดียวกัน' : 'ยังไม่พบรูปคู่ยืม/รับคืน แสดงรูปที่เลือกเป็นหลัก'}</div>
+                                    <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{pairedProofEntry ? 'แสดงคู่รูปตอนยืมและตอนรับคืนของงานเดียวกัน' : 'ยังไม่พบรูปคู่ในระบบ แสดงรูปที่เลือกเป็นหลัก'}</div>
                                   </div>
-                                  {pairedProofEntry && <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${theme.btnSecondary}`}>จับคู่แล้ว 2 รูป</span>}
+                                  {pairedProofEntry ? <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${theme.btnSecondary}`}>จับคู่แล้ว 2 รูป</span> : <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>รูปเดี่ยว</span>}
                                 </div>
                                 <div className={`grid gap-3 ${proofCards.length > 1 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
                                   {proofCards.map((card) => (
