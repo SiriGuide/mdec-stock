@@ -76,7 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.23 Home / Daily Command Compact Polish';
+const APP_VERSION = 'v23.4.16.18.24 Documents / Records Formal Polish';
+// v23.4.16.18.24 Documents / Records Formal Polish - ปรับเอกสารย้อนหลังและใบพิมพ์ให้เป็นทางการขึ้น ไม่รื้อ Reports/Settings/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
 // Direction Lock: หน้า Reports / รายงานแบบ dashboard ถูกตัดออกจาก workflow หลักแล้ว ห้ามรื้อกลับมาโดยไม่ถามผู้ใช้ก่อน
@@ -7342,7 +7343,7 @@ function MainApp() {
   const [operationConfirm, setOperationConfirm] = useState(null);
   const [dangerConfirm, setDangerConfirm] = useState(null);
 
-  // 🧭 Final Operations Pack: ปฏิทิน / ตรวจนับ / แจ้งซ่อม / ติดตามการคืน / จอทีวี
+  // 🧭 Final Operations Pack: ปฏิทิน / ตรวจนับ / แจ้งซ่อม / ติดตามสถานะคืน / จอทีวี
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [showStockCountModal, setShowStockCountModal] = useState(false);
   const [stockCountFoundIds, setStockCountFoundIds] = useState([]);
@@ -7812,7 +7813,7 @@ function MainApp() {
       const proofRef = buildProofRef(chosen.proof);
       const targetRows = rowsInGroup.filter(row => row.itemId && Number.isFinite(Number(row.historyIndex)));
       if (targetRows.length === 0) {
-        alert('รายการนี้เป็นเอกสารเก่าหรือไม่มีตำแหน่ง historyIndex ที่ผูกกลับได้ ระบบจะเปิดหน้าต่างเพิ่มรูปให้แทน');
+        alert('รายการนี้เป็นเอกสารเก่าหรือไม่มีตำแหน่ง historyIndex ที่ผูกกลับได้ ระบบจะเปิดเอกสารย้อนหลังเพิ่มรูปให้แทน');
         openProofAttachFromHistoryCenter(entry);
         return;
       }
@@ -8449,13 +8450,13 @@ function MainApp() {
       confirmText: 'RESTORE',
       actionLabel: 'เลือกไฟล์ JSON',
       message: 'ระบบจะเขียนทับ/เพิ่มข้อมูลที่มี ID ตรงกับไฟล์สำรอง แต่จะไม่ลบอุปกรณ์ที่ไม่มีในไฟล์ เพื่อความปลอดภัย',
-      set: ['ควรใช้เฉพาะกรณีต้องกู้ข้อมูลกลับจากไฟล์สำรอง', 'แนะนำให้มีไฟล์สำรองล่าสุดอยู่ในเครื่องก่อน', 'ต้องพิมพ์ RESTORE ก่อน ระบบจึงจะเปิดหน้าต่างเลือกไฟล์'],
+      set: ['ควรใช้เฉพาะกรณีต้องกู้ข้อมูลกลับจากไฟล์สำรอง', 'แนะนำให้มีไฟล์สำรองล่าสุดอยู่ในเครื่องก่อน', 'ต้องพิมพ์ RESTORE ก่อน ระบบจึงจะเปิดเอกสารย้อนหลังเลือกไฟล์'],
       onConfirm: () => restoreInputRef.current?.click()
     });
   };
 
   const confirmCloseIfDirty = (isDirty, closeFn) => {
-    if (!isDirty || window.confirm('ข้อมูลยังไม่ได้บันทึก ต้องการปิดหน้าต่างนี้จริงหรือไม่?')) closeFn();
+    if (!isDirty || window.confirm('ข้อมูลยังไม่ได้บันทึก ต้องการปิดเอกสารย้อนหลังนี้จริงหรือไม่?')) closeFn();
   };
 
 
@@ -14027,7 +14028,7 @@ S.N.: ${item.sn || '-'}
                     <tr>
                       <th>ลำดับ</th>
                       <th>รายการตรวจ</th>
-                      <th>S.N.</th>
+                      <th>S.N. / เลขครุภัณฑ์</th>
                       <th>หมวด / ที่เก็บ</th>
                       <th>สถานะระบบ</th>
                       <th>ผลตรวจนับ</th>
@@ -14437,8 +14438,8 @@ S.N.: ${item.sn || '-'}
                             onChange={(e) => e.target.checked ? setSelectedItems(prev => Array.from(new Set([...prev, ...inventoryDisplaySelectionIds]))) : setSelectedItems(prev => prev.filter(id => !inventoryDisplaySelectionIds.includes(id)))}
                           />
                         </th>
-                        <th className="px-4 py-4 text-left font-bold">อุปกรณ์</th>
-                        <th className="px-4 py-4 text-left font-bold">หมวด / ฝ่าย</th>
+                        <th className="px-4 py-4 text-left font-bold">รายการอุปกรณ์</th>
+                        <th className="px-4 py-4 text-left font-bold">หมวด / ฝ่ายดูแล</th>
                         <th className="px-4 py-4 text-left font-bold">ที่เก็บ</th>
                         <th className="px-4 py-4 text-left font-bold">สถานะ</th>
                         <th className="px-4 py-4 text-left font-bold">ข้อมูล</th>
@@ -14941,7 +14942,7 @@ S.N.: ${item.sn || '-'}
       const isEventDoc = (docData.type || docData.docType) === 'event';
       const typeLabel = isEventDoc ? 'ใบออกงาน' : 'ใบยืม';
       const title = docData.title || (isEventDoc ? 'ใบนำอุปกรณ์ออกงาน' : 'ใบยืมอุปกรณ์');
-      const statusLabel = docData.statusLabel || (status === 'closed' ? 'คืนครบแล้ว' : status === 'partial' ? 'คืนบางส่วน' : 'รอคืน');
+      const statusLabel = docData.statusLabel || (status === 'closed' ? 'คืนครบ / ปิดเอกสาร' : status === 'partial' ? 'คืนบางส่วน' : 'อยู่ระหว่างใช้งาน');
       const statusTone = status === 'closed'
         ? (isDarkMode ? 'bg-emerald-950/35 text-emerald-100 border-emerald-800/70' : 'bg-emerald-50 text-emerald-800 border-emerald-200')
         : status === 'partial'
@@ -15011,7 +15012,7 @@ S.N.: ${item.sn || '-'}
             <div>
               <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'}`}>RECORDS</div>
               <h2 className={`text-xl font-black mt-1 ${theme.textTitle}`}>เอกสาร / ประวัติ / หลักฐาน</h2>
-              <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นย้อนหลัง เปิดดูเอกสาร พิมพ์ซ้ำ ไล่ประวัติ และจัดการรูปหลักฐานจากหน้าเดียว</p>
+              <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นย้อนหลัง เปิดดูเอกสาร พิมพ์เอกสาร ไล่ประวัติ และจัดการรูปหลักฐานจากหน้าเดียว</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={() => { setBorrowDocSearch(''); setBorrowDocFilter('all'); setHistoryCenterSearch(''); setHistoryCenterFilter('all'); setProofCenterSearch(''); setProofCenterFilter('all'); }} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>ล้างคำค้น</button>
@@ -15049,13 +15050,13 @@ S.N.: ${item.sn || '-'}
                   <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px_auto] gap-3">
                     <div className="relative">
                       <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${theme.textMuted}`} />
-                      <input className={`w-full pl-11 pr-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาเลขเอกสาร / ผู้ยืม / ชื่องาน / วันที่ / อุปกรณ์ / S.N." value={borrowDocSearch} onChange={e => setBorrowDocSearch(e.target.value)} />
+                      <input className={`w-full pl-11 pr-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาเลขที่เอกสาร / ผู้ยืม / ชื่องาน / วันที่ / อุปกรณ์ / S.N." value={borrowDocSearch} onChange={e => setBorrowDocSearch(e.target.value)} />
                     </div>
                     <select className={`px-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} value={borrowDocFilter} onChange={e => setBorrowDocFilter(e.target.value)}>
                       <option value="all">เอกสารทั้งหมด</option>
                       <option value="borrow">ใบยืม</option>
                       <option value="event">ใบออกงาน</option>
-                      <option value="active">รอคืน</option>
+                      <option value="active">อยู่ระหว่างใช้งาน</option>
                       <option value="partial">คืนบางส่วน</option>
                       <option value="closed">คืนครบแล้ว</option>
                     </select>
@@ -15108,7 +15109,7 @@ S.N.: ${item.sn || '-'}
                             {meta.proofCount === 0 && <div className={`mt-2 text-xs font-bold rounded-xl px-3 py-2 border ${isDarkMode ? 'bg-slate-950/35 border-slate-800/55 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>ไม่มีรูปหลักฐานแนบกับเอกสารนี้ แต่ยังตรวจสอบสถานะได้จากเอกสารและประวัติการยืม/คืน</div>}
                           </div>
                           <div className="grid grid-cols-2 xl:grid-cols-1 gap-2 shrink-0 xl:min-w-[150px]">
-                            <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-black shadow-sm">พิมพ์ซ้ำ</button>
+                            <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-black shadow-sm">พิมพ์เอกสาร</button>
                             <button type="button" onClick={() => openDocHistorySearch(docData)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
                             <button type="button" onClick={() => copyDocSummary(docData)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>คัดลอกสรุป</button>
                             {meta.status !== 'closed' && <button type="button" onClick={() => { setTrackingSearch(docData.ref || meta.ownerText || ''); openWorkspace('tracking'); }} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black shadow-sm">ติดตามคืน</button>}
@@ -16082,7 +16083,7 @@ S.N.: ${item.sn || '-'}
     {
       id: 'masterData',
       title: 'ข้อมูลพื้นฐาน',
-      desc: 'จัดหมวดหมู่ สถานที่ และรายชื่อเจ้าหน้าที่ให้ค้นหาง่าย ลดการพิมพ์ซ้ำ',
+      desc: 'จัดหมวดหมู่ สถานที่ และรายชื่อเจ้าหน้าที่ให้ค้นหาง่าย ลดการพิมพ์เอกสาร',
       icon: Icons.Tag,
       tone: isDarkMode ? 'bg-blue-950/25 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800',
       stats: `${(settingsOptions.categories || []).filter(v => v !== 'อื่นๆ').length} หมวด • ${(settingsOptions.locations || []).filter(v => v !== 'อื่นๆ').length} ที่เก็บ • ${(settingsOptions.staff || []).filter(v => v !== 'อื่นๆ').length} คน`,
@@ -22592,7 +22593,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <tr className="bg-slate-900 text-white text-[12px]">
                   <th className="border border-slate-900 px-3 py-2 text-left w-12">#</th>
                   <th className="border border-slate-900 px-3 py-2 text-left">ชื่ออุปกรณ์</th>
-                  <th className="border border-slate-900 px-3 py-2 text-left">S.N.</th>
+                  <th className="border border-slate-900 px-3 py-2 text-left">S.N. / เลขครุภัณฑ์</th>
                   <th className="border border-slate-900 px-3 py-2 text-left">หมวดหมู่</th>
                   <th className="border border-slate-900 px-3 py-2 text-left">สถานที่/ห้อง</th>
                   <th className="border border-slate-900 px-3 py-2 text-left">สถานะใช้งาน</th>
@@ -22659,11 +22660,12 @@ ${auditChangeSummary}` : auditChangeSummary);
         : d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
     };
     const docTitle = printSlipData.title || (isReturnSlip ? 'ใบรับคืนอุปกรณ์' : isEventSlip ? 'ใบนำอุปกรณ์ออกงาน' : isPrepSlip ? 'ใบเตรียมอุปกรณ์' : 'ใบยืมสิ่งของ / อุปกรณ์');
-    const subjectLabel = isReturnSlip ? 'เอกสารอ้างอิง' : isEventSlip ? 'ชื่องาน / สถานที่' : isPrepSlip ? 'ชื่องาน / เซ็ตใช้งาน' : 'ผู้ยืม / ผู้รับผิดชอบ';
+    const docOfficialType = isReturnSlip ? 'แบบฟอร์มรับคืนอุปกรณ์' : isEventSlip ? 'แบบฟอร์มนำอุปกรณ์ออกปฏิบัติงาน' : isPrepSlip ? 'แบบฟอร์มเตรียมอุปกรณ์สำหรับงาน' : 'แบบฟอร์มยืมสิ่งของ / อุปกรณ์';
+    const subjectLabel = isReturnSlip ? 'เอกสารอ้างอิง' : isEventSlip ? 'ชื่องาน / สถานที่ปฏิบัติงาน' : isPrepSlip ? 'ชื่องาน / รายการเตรียมอุปกรณ์' : 'ผู้ยืม / ผู้รับผิดชอบการใช้งาน';
     const subjectValue = isReturnSlip ? safeText(printSlipData.ref, 'รับคืนตามรายการที่เลือก') : safeText(printSlipData.borrower || printSlipData.subject || printSlipData.eventName);
-    const staffLabel = isReturnSlip ? 'เจ้าหน้าที่ผู้รับคืน' : isEventSlip ? 'ผู้นำอุปกรณ์ออกงาน' : isPrepSlip ? 'ผู้เตรียม / ผู้รับผิดชอบ' : 'เจ้าหน้าที่ผู้ให้ยืม';
+    const staffLabel = isReturnSlip ? 'เจ้าหน้าที่ผู้รับคืน' : isEventSlip ? 'ผู้รับผิดชอบนำอุปกรณ์ออกงาน' : isPrepSlip ? 'ผู้จัดเตรียม / ผู้รับผิดชอบ' : 'เจ้าหน้าที่ผู้ส่งมอบ';
     const staffValue = safeText(printSlipData.staffIn || printSlipData.returnStaff || printSlipData.staffOut || printSlipData.operatorName || printSlipData.createdBy);
-    const dueLabel = isReturnSlip ? 'วันที่รับคืน' : isPrepSlip ? 'วันที่ใช้งาน' : 'กำหนดคืน';
+    const dueLabel = isReturnSlip ? 'วันที่รับคืน' : isPrepSlip ? 'วันที่ใช้งาน' : 'กำหนดส่งคืน';
     const dueValue = isReturnSlip ? formatSlipDate(printSlipData.date, true) : formatSlipDate(printSlipData.expectedReturn, false);
     const sanitizeSlipFileName = (value) => String(value || '')
       .trim()
@@ -22696,10 +22698,17 @@ ${auditChangeSummary}` : auditChangeSummary);
     return (
       <div className="factory-stock-polish min-h-screen bg-slate-950 text-slate-100 font-sans print:bg-white print:text-slate-950">
         <style>{`
+          .mdec-formal-print-doc { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+          .mdec-formal-print-doc table { page-break-inside: auto; }
+          .mdec-formal-print-doc tr { page-break-inside: avoid; page-break-after: auto; }
+          .mdec-formal-print-doc .formal-field-label { letter-spacing: .04em; }
           @media print {
             @page { size: A4 portrait; margin: 12mm; }
             .no-print { display: none !important; }
             .print-sheet { box-shadow: none !important; border: 0 !important; padding: 0 !important; max-width: none !important; }
+            .mdec-formal-print-doc { color: #020617 !important; font-size: 11px !important; }
+            .mdec-formal-print-doc h2 { font-size: 22px !important; }
+            .mdec-formal-print-doc th { background: #0f172a !important; color: #fff !important; }
             body { background: white !important; }
           }
         `}</style>
@@ -22718,39 +22727,40 @@ ${auditChangeSummary}` : auditChangeSummary);
         </div>
 
         <main className="mx-auto max-w-5xl p-4 sm:p-6 print:p-0">
-          <article className="print-sheet rounded-[28px] border border-slate-800 bg-white text-slate-950 shadow-2xl p-6 sm:p-8 print:rounded-none">
-            <header className="border-b-2 border-slate-900 pb-5 mb-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-xs font-black tracking-[0.22em] text-slate-500 uppercase">MULTIMEDIA DEVELOPMENT EDUCATION CENTER</div>
-                  <h2 className="mt-2 text-3xl font-black tracking-tight">{docTitle}</h2>
-                  <p className="mt-1 text-sm font-bold text-slate-600">วิทยาลัยเทคโนโลยีภาคตะวันออก (อี.เทค)</p>
+          <article className="print-sheet mdec-formal-print-doc rounded-[24px] border border-slate-800 bg-white text-slate-950 shadow-2xl p-6 sm:p-8 print:rounded-none">
+            <header className="border-b-[3px] border-slate-900 pb-5 mb-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="text-[11px] font-black tracking-[0.18em] text-slate-500 uppercase">EDUCATIONAL MULTIMEDIA CENTER</div>
+                  <h2 className="mt-1 text-3xl font-black tracking-tight">{docTitle}</h2>
+                  <p className="mt-1 text-sm font-black text-slate-700">ศูนย์มัลติมีเดียทางการศึกษา • วิทยาลัยเทคโนโลยีภาคตะวันออก (อี.เทค)</p>
+                  <p className="mt-1 text-xs font-bold text-slate-500">{docOfficialType} สำหรับใช้เป็นหลักฐานภายในหน่วยงาน</p>
                 </div>
-                <div className="text-right text-sm font-bold text-slate-700">
-                  <div>เลขที่: <span className="font-black text-slate-950">{safeText(printSlipData.ref)}</span></div>
-                  <div>วันที่: {formatSlipDate(printSlipData.date, true)}</div>
-                  <div>{APP_VERSION}</div>
+                <div className="min-w-[190px] rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm font-bold text-slate-700">
+                  <div className="flex justify-between gap-3"><span>เลขที่เอกสาร</span><span className="font-black text-slate-950">{safeText(printSlipData.ref)}</span></div>
+                  <div className="flex justify-between gap-3 mt-1"><span>วันที่จัดทำ</span><span>{formatSlipDate(printSlipData.date, true)}</span></div>
+                  <div className="mt-2 border-t border-slate-200 pt-2 text-[10px] font-black text-slate-400 truncate">{APP_VERSION}</div>
                 </div>
               </div>
             </header>
 
             <section className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5 text-sm">
-              <div className="rounded-2xl border border-slate-300 bg-slate-50 p-3"><div className="text-[11px] font-black text-slate-500">{subjectLabel}</div><div className="mt-1 text-lg font-black">{subjectValue}</div></div>
-              <div className="rounded-2xl border border-slate-300 bg-slate-50 p-3"><div className="text-[11px] font-black text-slate-500">{staffLabel}</div><div className="mt-1 text-lg font-black">{staffValue}</div></div>
-              <div className="rounded-2xl border border-slate-300 bg-slate-50 p-3"><div className="text-[11px] font-black text-slate-500">{dueLabel}</div><div className="mt-1 text-lg font-black">{dueValue}</div></div>
-              <div className="rounded-2xl border border-slate-300 bg-slate-50 p-3"><div className="text-[11px] font-black text-slate-500">สรุปรายการ</div><div className="mt-1 text-lg font-black">{printItems.length.toLocaleString('th-TH')} รายการ • หลักฐาน {proofCount.toLocaleString('th-TH')} รูป</div></div>
+              <div className="rounded-2xl border border-slate-300 bg-slate-50 p-3"><div className="formal-field-label text-[11px] font-black text-slate-500">{subjectLabel}</div><div className="mt-1 text-lg font-black">{subjectValue}</div></div>
+              <div className="rounded-2xl border border-slate-300 bg-slate-50 p-3"><div className="formal-field-label text-[11px] font-black text-slate-500">{staffLabel}</div><div className="mt-1 text-lg font-black">{staffValue}</div></div>
+              <div className="rounded-2xl border border-slate-300 bg-slate-50 p-3"><div className="formal-field-label text-[11px] font-black text-slate-500">{dueLabel}</div><div className="mt-1 text-lg font-black">{dueValue}</div></div>
+              <div className="rounded-2xl border border-slate-300 bg-slate-50 p-3"><div className="formal-field-label text-[11px] font-black text-slate-500">สรุปรายการ</div><div className="mt-1 text-lg font-black">{printItems.length.toLocaleString('th-TH')} รายการ • หลักฐาน {proofCount.toLocaleString('th-TH')} รูป</div></div>
             </section>
 
             <section className="mb-5">
-              <div className="mb-2 text-sm font-black">รายการอุปกรณ์</div>
+              <div className="mb-2 text-sm font-black">รายการอุปกรณ์ประกอบเอกสาร</div>
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-slate-900 text-white">
                     <th className="border border-slate-400 px-2 py-2 text-center w-12">ลำดับ</th>
-                    <th className="border border-slate-400 px-2 py-2 text-left">อุปกรณ์</th>
-                    <th className="border border-slate-400 px-2 py-2 text-left w-36">S.N.</th>
-                    <th className="border border-slate-400 px-2 py-2 text-left w-40">หมวด / ฝ่าย</th>
-                    <th className="border border-slate-400 px-2 py-2 text-left w-32">สถานะคืน</th>
+                    <th className="border border-slate-400 px-2 py-2 text-left">รายการอุปกรณ์</th>
+                    <th className="border border-slate-400 px-2 py-2 text-left w-36">S.N. / เลขครุภัณฑ์</th>
+                    <th className="border border-slate-400 px-2 py-2 text-left w-40">หมวด / ฝ่ายดูแล</th>
+                    <th className="border border-slate-400 px-2 py-2 text-left w-32">สถานะการคืน</th>
                     <th className="border border-slate-400 px-2 py-2 text-left w-44">หมายเหตุ</th>
                   </tr>
                 </thead>
@@ -22773,23 +22783,23 @@ ${auditChangeSummary}` : auditChangeSummary);
 
             <section className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="rounded-2xl border border-slate-300 p-4 min-h-24">
-                <div className="font-black mb-2">หมายเหตุ</div>
+                <div className="font-black mb-2">หมายเหตุประกอบเอกสาร</div>
                 <div>{safeText(printSlipData.note, '-')}</div>
               </div>
               <div className="rounded-2xl border border-slate-300 p-4 min-h-24">
-                <div className="font-black mb-2">ข้อกำหนด</div>
+                <div className="font-black mb-2">เงื่อนไขการใช้งาน / การส่งคืน</div>
                 <ul className="list-disc pl-5 space-y-1">
-                  <li>ตรวจนับอุปกรณ์ทุกครั้งก่อนรับและคืน</li>
-                  <li>หากพบชำรุดหรือสูญหายให้แจ้งเจ้าหน้าที่ทันที</li>
-                  <li>เอกสารนี้ออกโดยระบบ MDEC Stock</li>
+                  <li>ผู้รับผิดชอบต้องตรวจนับอุปกรณ์ก่อนรับมอบและก่อนส่งคืนทุกครั้ง</li>
+                  <li>กรณีพบอุปกรณ์ชำรุด สูญหาย หรือไม่ครบถ้วน ต้องแจ้งเจ้าหน้าที่ผู้ดูแลทันที</li>
+                  <li>เอกสารนี้ออกโดยระบบ MDEC Stock เพื่อใช้เป็นหลักฐานภายในศูนย์มัลติมีเดียทางการศึกษา</li>
                 </ul>
               </div>
             </section>
 
             <section className="grid grid-cols-3 gap-5 mt-12 text-center text-sm font-bold">
-              <div><div className="h-12 border-b border-slate-900 mb-2"></div><div>ผู้รับผิดชอบ</div></div>
-              <div><div className="h-12 border-b border-slate-900 mb-2"></div><div>เจ้าหน้าที่</div></div>
-              <div><div className="h-12 border-b border-slate-900 mb-2"></div><div>ผู้ตรวจสอบ</div></div>
+              <div><div className="h-12 border-b border-slate-900 mb-2"></div><div>ลงชื่อผู้รับผิดชอบ</div><div className="mt-1 text-xs text-slate-500">(........................................)</div></div>
+              <div><div className="h-12 border-b border-slate-900 mb-2"></div><div>ลงชื่อเจ้าหน้าที่ผู้ส่งมอบ/รับคืน</div><div className="mt-1 text-xs text-slate-500">(........................................)</div></div>
+              <div><div className="h-12 border-b border-slate-900 mb-2"></div><div>ลงชื่อผู้ตรวจสอบ</div><div className="mt-1 text-xs text-slate-500">(........................................)</div></div>
             </section>
           </article>
         </main>
@@ -23346,7 +23356,7 @@ ${auditChangeSummary}` : auditChangeSummary);
             <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`asset-profile-info-card p-3 rounded-2xl border text-left font-black ${theme.btnSecondary}`}>
               <span className="mobile-field-icon bg-indigo-600 text-white mb-2"><Icons.พิมพ์er className="w-5 h-5" /></span>
               <span className={`block ${theme.textTitle}`}>เอกสาร</span>
-              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ค้นหา/พิมพ์ซ้ำ</span>
+              <span className={`block text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>ค้นหา/พิมพ์เอกสาร</span>
             </button>
           </div>
         </div>
@@ -24359,7 +24369,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </button>
                   <button type="button" onClick={() => openBorrowDocsArchive({ reset: false })} className={`p-4 rounded-2xl text-left border transition-all hover:-translate-y-0.5 hover:shadow-md ${theme.btnSecondary}`}>
                     <div className="font-black text-lg flex items-center gap-2"><Icons.พิมพ์er className="w-5 h-5" /> เอกสารย้อนหลัง</div>
-                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นหาและพิมพ์ซ้ำ</p>
+                    <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นหาและพิมพ์เอกสาร</p>
                   </button>
                 </div>
               </div>
@@ -25300,7 +25310,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <button type="button" onClick={printAssetProfile} className={`hidden sm:inline-flex px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>พิมพ์แฟ้ม</button>
                     <button type="button" onClick={() => openItemQrLabelFromDetail(detailItem)} className={`hidden sm:inline-flex px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>พิมพ์ QR</button>
                     <button type="button" onClick={() => exportItemHistoryCSV(detailItem)} className={`hidden sm:inline-flex px-3 py-2 rounded-xl text-xs font-black border ${theme.btnSecondary}`}>ส่งออก CSV</button>
-                    <button type="button" onClick={closeItemHistoryModal} className={`w-9 h-9 rounded-2xl border flex items-center justify-center ${theme.btnCancel}`} title={modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : modalReturnTarget === 'proofCenter' ? 'กลับไปศูนย์หลักฐาน' : 'ปิดหน้าต่าง'}><Icons.X className="w-4 h-4" /></button>
+                    <button type="button" onClick={closeItemHistoryModal} className={`w-9 h-9 rounded-2xl border flex items-center justify-center ${theme.btnCancel}`} title={modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : modalReturnTarget === 'proofCenter' ? 'กลับไปศูนย์หลักฐาน' : 'ปิดเอกสารย้อนหลัง'}><Icons.X className="w-4 h-4" /></button>
                   </div>
                 </div>
               </div>
@@ -25796,7 +25806,7 @@ ${auditChangeSummary}` : auditChangeSummary);
             </div>
 
             <div className={`p-4 border-t ${theme.divide}`}>
-              <button type="button" onClick={() => setShowMyAccountModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+              <button type="button" onClick={() => setShowMyAccountModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดเอกสารย้อนหลัง</button>
             </div>
           </div>
         </div>
@@ -26773,7 +26783,7 @@ ${auditChangeSummary}` : auditChangeSummary);
             </div>
 
             <div className={`p-4 border-t shrink-0 ${theme.divide}`}>
-              <button type="button" onClick={() => { setShowSettings(false); resetSettingsFormState(); }} className={`px-6 py-3 font-black rounded-2xl text-sm sm:text-base shadow-sm ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+              <button type="button" onClick={() => { setShowSettings(false); resetSettingsFormState(); }} className={`px-6 py-3 font-black rounded-2xl text-sm sm:text-base shadow-sm ${theme.btnCancel}`}>ปิดเอกสารย้อนหลัง</button>
             </div>
           </div>
         </div>
@@ -27336,7 +27346,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <div><b>{repairCenterData.done.length}</b><span>เสร็จแล้ว</span></div>
                 </div>
                 <table className="repair-report-table">
-                  <thead><tr><th>#</th><th>อุปกรณ์</th><th>S.N.</th><th>สถานะ</th><th>อาการ/ปัญหา</th><th>ส่งซ่อม/ค่าใช้จ่าย</th><th>แนวทางถัดไป</th></tr></thead>
+                  <thead><tr><th>#</th><th>รายการอุปกรณ์</th><th>S.N. / เลขครุภัณฑ์</th><th>สถานะ</th><th>อาการ/ปัญหา</th><th>ส่งซ่อม/ค่าใช้จ่าย</th><th>แนวทางถัดไป</th></tr></thead>
                   <tbody>
                     {repairCenterData.filteredRows.slice(0, 32).map((row, idx) => (
                       <tr key={`repair_print_${row.item.id}`}>
@@ -27665,7 +27675,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <h3 className={`text-xl sm:text-[1.35rem] font-black flex items-center gap-3 ${theme.textTitle}`}><span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-lg">🧾</span> ประวัติส่วนกลาง</h3>
                 <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นทุกประวัติจากทุกอุปกรณ์ พร้อมเพิ่มหลักฐานย้อนหลังได้จากจุดเดียว</p>
               </div>
-              <button type="button" onClick={closeHistoryCenterModal} className={`p-2 hover:text-rose-500 ${theme.textMuted}`} title={modalReturnTarget === 'borrowDocs' ? 'กลับไปหน้าเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดหน้าต่าง'}><Icons.X className="w-4 h-4" /></button>
+              <button type="button" onClick={closeHistoryCenterModal} className={`p-2 hover:text-rose-500 ${theme.textMuted}`} title={modalReturnTarget === 'borrowDocs' ? 'กลับไปหน้าเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดเอกสารย้อนหลัง'}><Icons.X className="w-4 h-4" /></button>
             </div>
 
             <div className={`px-4 sm:px-6 py-4 border-b grid grid-cols-2 md:grid-cols-5 gap-2 ${theme.divide}`}>
@@ -27745,7 +27755,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
             <div className={`p-4 border-t grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 ${theme.divide}`}>
               <div className={`text-xs sm:text-sm font-bold ${theme.textMuted}`}>ใช้หน้านี้เมื่อต้องการค้นประวัติหรือเพิ่มหลักฐานย้อนหลัง โดยไม่ต้องจำว่าอยู่ในอุปกรณ์ชิ้นไหน</div>
-              <button type="button" onClick={closeHistoryCenterModal} className={`px-5 py-2.5 rounded-xl font-black ${theme.btnCancel}`}>{modalReturnTarget === 'borrowDocs' ? 'กลับไปเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดหน้าต่าง'}</button>
+              <button type="button" onClick={closeHistoryCenterModal} className={`px-5 py-2.5 rounded-xl font-black ${theme.btnCancel}`}>{modalReturnTarget === 'borrowDocs' ? 'กลับไปเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดเอกสารย้อนหลัง'}</button>
             </div>
           </div>
         </div>
@@ -27767,7 +27777,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button type="button" onClick={() => { setProofCenterSearch(''); setProofCenterFilter('all'); }} className={`px-3.5 py-2 rounded-lg border text-sm font-black ${theme.btnSecondary}`}>ล้างตัวกรอง</button>
-                  <button type="button" onClick={closeProofCenterModal} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`} title={modalReturnTarget === 'borrowDocs' ? 'กลับไปหน้าเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดหน้าต่าง'}><Icons.X className="w-4 h-4" /></button>
+                  <button type="button" onClick={closeProofCenterModal} className={`p-2 rounded-xl hover:text-rose-500 ${theme.textMuted}`} title={modalReturnTarget === 'borrowDocs' ? 'กลับไปหน้าเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดเอกสารย้อนหลัง'}><Icons.X className="w-4 h-4" /></button>
                 </div>
               </div>
 
@@ -27944,7 +27954,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
             <div className={`p-2.5 sm:p-3 border-t grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 ${theme.divide}`}>
               <div className={`asset-profile-card-label text-xs font-bold ${theme.textMuted}`}>ระบบจะแสดงรูปเดียวที่ผูกหลายอุปกรณ์เป็นกลุ่มเดียว เพื่อลดรายการซ้ำและช่วยย้อนดูหลักฐานรับคืนกลุ่มได้ง่ายขึ้น</div>
-              <button type="button" onClick={closeProofCenterModal} className={`px-5 py-3 rounded-xl font-black ${theme.btnCancel}`}>{modalReturnTarget === 'borrowDocs' ? 'กลับไปเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดหน้าต่าง'}</button>
+              <button type="button" onClick={closeProofCenterModal} className={`px-5 py-3 rounded-xl font-black ${theme.btnCancel}`}>{modalReturnTarget === 'borrowDocs' ? 'กลับไปเอกสารย้อนหลัง' : modalReturnTarget === 'historyCenter' ? 'กลับไปประวัติส่วนกลาง' : 'ปิดเอกสารย้อนหลัง'}</button>
             </div>
           </div>
         </div>
@@ -28015,7 +28025,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 {[
                   ['เริ่มDaily Operations', 'เปิด Daily Workflow เพื่อสแกน QR, เพิ่มอุปกรณ์, ดูของรอคืน และรูปหลักฐาน'],
                   ['ยืม / ออกงาน', 'เลือกอุปกรณ์ → กดยืมหรือออกงาน → กรอกผู้รับผิดชอบ → แนบรูปหลักฐานถ้าต้องการ → บันทึก'],
-                  ['รับคืน', 'เปิดติดตามการคืนงานหรือรายละเอียดอุปกรณ์ → กดรับคืน → ตรวจสภาพ → แนบหลักฐานรับคืนได้']
+                  ['รับคืน', 'เปิดติดตามสถานะคืนงานหรือรายละเอียดอุปกรณ์ → กดรับคืน → ตรวจสภาพ → แนบหลักฐานรับคืนได้']
                 ].map(([title, desc], idx) => (
                   <div key={title} className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-slate-950 border-slate-800/55' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="w-9 h-9 rounded-2xl bg-blue-950/35 text-blue-100 border border-blue-500/50 flex items-center justify-center font-black mb-3">{idx + 1}</div>
@@ -28058,7 +28068,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               <div className={`p-5 rounded-3xl border ${isDarkMode ? 'bg-indigo-950/20 border-indigo-800' : 'bg-indigo-50 border-indigo-200'}`}>
                 <h4 className={`font-black text-xl mb-3 ${theme.textTitle}`}>🧭 ชื่อเมนูหลักที่ใช้ในระบบ</h4>
                 <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 text-sm font-bold ${theme.textMuted}`}>
-                  <div><b>ติดตามการคืนงาน</b> = ดูของรอคืน ออกงานอยู่ วันนี้ และเลยกำหนด</div>
+                  <div><b>ติดตามสถานะคืนงาน</b> = ดูของรอคืน ออกงานอยู่ วันนี้ และเลยกำหนด</div>
                   <div><b>ศูนย์รูปหลักฐาน</b> = ดู แก้ไข แทนที่ หรือลบรูปหลักฐาน</div>
                   <div><b>จัดเก็บและจัดชุด</b> = กล่องเก็บของ เซ็ตอุปกรณ์ และเซ็ตใช้งาน</div>
                   <div><b>เอกสารและฉลาก</b> = QR ฉลากกล่อง ใบยืม และตั้งค่าโลโก้เอกสาร</div>
@@ -28194,7 +28204,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <div className={`text-sm font-bold ${theme.textMuted}`}>เป้าหมาย {activeProofSettings.targetKB} KB/รูป • เตือนเมื่อเกิน {activeProofSettings.warnKB} KB • ไม่ให้บันทึกถ้าเกิน {activeProofSettings.maxKB} KB • ประมาณว่ายังเพิ่มได้ {proofStorageForecast.remainingByAvg.toLocaleString('th-TH')} รูปก่อนถึงโซนปลอดภัย 800MB</div>
               </div>
             </div>
-            <div className={`p-4 border-t ${theme.divide}`}><button type="button" onClick={() => setShowระบบHealthModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button></div>
+            <div className={`p-4 border-t ${theme.divide}`}><button type="button" onClick={() => setShowระบบHealthModal(false)} className={`w-full py-4 rounded-xl font-black ${theme.btnCancel}`}>ปิดเอกสารย้อนหลัง</button></div>
           </div>
         </div>
       )}
@@ -28205,9 +28215,9 @@ ${auditChangeSummary}` : auditChangeSummary);
           <div className={`borrow-docs-archive-shell rounded-3xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[90vh] ${theme.cardBg}`}>
             <div className={`p-3 sm:p-4 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${theme.divide}`}>
               <div className="min-w-0">
-                <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-500">DOCUMENTS ARCHIVE</div>
+                <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-500">OFFICIAL DOCUMENTS ARCHIVE</div>
                 <h3 className={`text-xl sm:text-[1.35rem] font-black mt-1 ${theme.textTitle}`}>เอกสารย้อนหลัง</h3>
-                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมใบยืม ใบออกงาน และสถานะการคืน ค้นหาได้จากเลขเอกสาร ผู้ยืม ชื่องาน วันที่ และรายการอุปกรณ์</p>
+                <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>ทะเบียนใบยืม ใบออกงาน และสถานะการส่งคืน สำหรับค้นหา พิมพ์เอกสาร และตรวจสอบหลักฐานภายใน</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button type="button" onClick={() => { setBorrowDocSearch(''); setBorrowDocFilter('all'); }} className={`px-4 py-2.5 rounded-2xl text-sm font-black border ${theme.btnSecondary}`}>ล้าง</button>
@@ -28217,10 +28227,10 @@ ${auditChangeSummary}` : auditChangeSummary);
 
             <div className="p-3 sm:p-4 border-b border-slate-200/60 dark:border-slate-800/80 grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
-                ['เอกสารทั้งหมด', borrowเอกสารs.length, 'bg-blue-500/10 text-blue-600 border-blue-500/20'],
-                ['รอคืน', borrowเอกสารs.filter(d => !d.status || d.status === 'active').length, 'bg-amber-500/10 text-amber-600 border-amber-500/20'],
+                ['ทะเบียนเอกสาร', borrowเอกสารs.length, 'bg-blue-500/10 text-blue-600 border-blue-500/20'],
+                ['อยู่ระหว่างใช้งาน', borrowเอกสารs.filter(d => !d.status || d.status === 'active').length, 'bg-amber-500/10 text-amber-600 border-amber-500/20'],
                 ['คืนบางส่วน', borrowเอกสารs.filter(d => d.status === 'partial').length, 'bg-purple-500/10 text-purple-600 border-purple-500/20'],
-                ['ปิดเอกสารแล้ว', borrowเอกสารs.filter(d => d.status === 'closed').length, 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20']
+                ['คืนครบ / ปิดเอกสาร', borrowเอกสารs.filter(d => d.status === 'closed').length, 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20']
               ].map(([label, value, tone]) => (
                 <div key={label} className={`editor-card rounded-2xl border p-3 ${tone}`}>
                   <div className="text-xs font-black opacity-80">{label}</div>
@@ -28233,15 +28243,15 @@ ${auditChangeSummary}` : auditChangeSummary);
               <div className={`borrow-docs-mobile-tight px-4 sm:px-5 py-2.5 sm:py-4 border-b grid grid-cols-1 md:grid-cols-3 gap-3 ${theme.divide}`}>
                 <button type="button" onClick={openHistoryCenterFromBorrowDocs} className={`p-2.5 rounded-lg border text-left font-black transition-all ${theme.btnSecondary}`}>
                   <div className={theme.textTitle}>ค้นประวัติส่วนกลาง</div>
-                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ใช้เมื่อต้องหาจากทุกอุปกรณ์หรือจำชื่อชิ้นงานไม่ได้</div>
+                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ตรวจสอบรายการเคลื่อนไหวของอุปกรณ์จากทุกเอกสาร</div>
                 </button>
                 <button type="button" onClick={openProofCenterFromBorrowDocs} className={`p-2.5 rounded-lg border text-left font-black transition-all ${theme.btnSecondary}`}>
                   <div className={theme.textTitle}>ศูนย์รูปหลักฐาน</div>
-                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ดู/แก้ไข/แทนที่รูปหลักฐานจากส่วนกลาง</div>
+                  <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ตรวจสอบรูปหลักฐานการรับมอบและส่งคืน</div>
                 </button>
                 <div className={`p-2.5 rounded-lg border font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
                   <div className="font-black">คำแนะนำ</div>
-                  <div className="text-xs mt-1">ถ้าต้องเพิ่มหลักฐานย้อนหลังและจำไม่ได้ว่าอยู่รายการไหน ให้เริ่มจาก “ประวัติส่วนกลาง”</div>
+                  <div className="text-xs mt-1">ใช้เลขที่เอกสารเป็นหลักเมื่อต้องค้นหา พิมพ์เอกสาร หรือตรวจสอบรายการย้อนหลัง</div>
                 </div>
               </div>
             ) : null}
@@ -28254,7 +28264,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                     type="text"
                     value={borrowDocSearch}
                     onChange={(e) => setBorrowDocSearch(e.target.value)}
-                    placeholder="ค้นหาเลขเอกสาร / ผู้ยืม / ชื่องาน / วันที่ / อุปกรณ์ / S.N."
+                    placeholder="ค้นหาเลขที่เอกสาร / ผู้ยืม / ชื่องาน / วันที่ / อุปกรณ์ / S.N."
                     className={`w-full pl-12 pr-4 py-4 rounded-2xl border font-bold outline-none ${theme.input}`}
                   />
                 </div>
@@ -28262,16 +28272,16 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <option value="all">ทั้งหมด</option>
                   <option value="borrow">เฉพาะใบยืม</option>
                   <option value="event">เฉพาะใบออกงาน</option>
-                  <option value="active">รอคืน</option>
+                  <option value="active">อยู่ระหว่างใช้งาน</option>
                   <option value="partial">คืนบางส่วน</option>
                   <option value="closed">คืนครบแล้ว</option>
                 </select>
                 <div className="md:col-span-2 borrow-docs-filter-row mobile-scroll-row flex gap-2 overflow-x-auto">
                   {[
                     ['all', 'ทั้งหมด'],
-                    ['active', 'รอคืน'],
+                    ['active', 'อยู่ระหว่างใช้งาน'],
                     ['partial', 'คืนบางส่วน'],
-                    ['closed', 'ปิดแล้ว'],
+                    ['closed', 'คืนครบ / ปิดแล้ว'],
                     ['borrow', 'ใบยืม'],
                     ['event', 'ใบออกงาน']
                   ].map(([id, label]) => (
@@ -28328,9 +28338,9 @@ ${auditChangeSummary}` : auditChangeSummary);
                   const itemCount = Array.isArray(docData.items) ? docData.items.length : (Array.isArray(docData.itemIds) ? docData.itemIds.length : 0);
                   const returnedCount = Array.isArray(docData.returnedItemIds) ? docData.returnedItemIds.length : 0;
                   const status = docData.status || 'active';
-                  const typeLabel = docData.type === 'event' ? 'ออกงาน' : 'ยืม';
+                  const typeLabel = docData.type === 'event' ? 'ใบออกงาน' : 'ใบยืม';
                   const title = docData.title || (docData.type === 'event' ? 'ใบนำอุปกรณ์ออกงาน' : 'ใบยืมอุปกรณ์');
-                  const statusLabel = docData.statusLabel || (status === 'closed' ? 'คืนครบแล้ว' : status === 'partial' ? 'คืนบางส่วน' : 'รอคืน');
+                  const statusLabel = docData.statusLabel || (status === 'closed' ? 'คืนครบ / ปิดเอกสาร' : status === 'partial' ? 'คืนบางส่วน' : 'อยู่ระหว่างใช้งาน');
                   const statusTone = status === 'closed'
                     ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
                     : status === 'partial'
@@ -28349,10 +28359,10 @@ ${auditChangeSummary}` : auditChangeSummary);
                             <span className={`px-3 py-1 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-slate-900 border-slate-800/55 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>{itemCount} รายการ</span>
                           </div>
                           <div className={`text-base sm:text-lg font-black truncate ${theme.textTitle}`}>{title}</div>
-                          <div className={`text-sm font-black mt-1 ${theme.textMuted}`}>เลขที่: {docData.ref || docData.id || '-'} • วันที่: {dateText}</div>
+                          <div className={`text-sm font-black mt-1 ${theme.textMuted}`}>เลขที่เอกสาร: {docData.ref || docData.id || '-'} • วันที่จัดทำ: {dateText}</div>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-4 text-sm">
                             <div className={`rounded-2xl p-3 ${isDarkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
-                              <div className={`text-xs font-black ${theme.textMuted}`}>ผู้ยืม / ชื่องาน</div>
+                              <div className={`text-xs font-black ${theme.textMuted}`}>ผู้ยืม / ชื่องาน / ผู้รับผิดชอบ</div>
                               <div className={`font-black truncate ${theme.textTitle}`}>{docData.borrower || '-'}</div>
                             </div>
                             <div className={`rounded-2xl p-3 ${isDarkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
@@ -28360,27 +28370,27 @@ ${auditChangeSummary}` : auditChangeSummary);
                               <div className={`font-black truncate ${theme.textTitle}`}>{docData.staffOut || docData.operatorName || '-'}</div>
                             </div>
                             <div className={`rounded-2xl p-3 ${isDarkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
-                              <div className={`text-xs font-black ${theme.textMuted}`}>คืนแล้ว</div>
+                              <div className={`text-xs font-black ${theme.textMuted}`}>สถานะส่งคืน</div>
                               <div className={`font-black truncate ${theme.textTitle}`}>{returnedCount.toLocaleString('th-TH')} / {itemCount.toLocaleString('th-TH')} รายการ</div>
                             </div>
                           </div>
                           {previewItems.length > 0 && (
                             <div className={`mt-4 asset-profile-card-label text-xs font-bold ${theme.textMuted}`}>
-                              รายการ: {previewItems.map(i => i.name || i.id || '-').join(', ')}{itemCount > previewItems.length ? ` และอีก ${itemCount - previewItems.length} รายการ` : ''}
+                              รายการอุปกรณ์: {previewItems.map(i => i.name || i.id || '-').join(', ')}{itemCount > previewItems.length ? ` และอีก ${itemCount - previewItems.length} รายการ` : ''}
                             </div>
                           )}
                           {docData.note && <div className={`mt-3 text-xs font-bold rounded-2xl px-3 py-2 ${isDarkMode ? 'bg-amber-950/20 text-amber-300' : 'bg-amber-50 text-amber-700'}`}>หมายเหตุ: {docData.note}</div>}
                         </div>
                         <div className="borrow-doc-card-actions flex flex-col sm:flex-row xl:flex-col gap-2 shrink-0 w-full xl:w-auto">
                           <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2">
-                            <Icons.พิมพ์er className="w-5 h-5" /> พิมพ์ซ้ำ
+                            <Icons.พิมพ์er className="w-5 h-5" /> พิมพ์เอกสาร
                           </button>
                           <button type="button" onClick={() => { setShowBorrowDocsModal(false); setTrackingTab('today'); setShowTrackingCenterModal(true); }} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
-                            ติดตามการคืน
+                            ติดตามสถานะคืน
                           </button>
                           {canDeleteItems && (
                             <button type="button" onClick={() => handleDeleteBorrowเอกสาร(docData)} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${isDarkMode ? 'bg-rose-950/35 border-rose-800/70 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>
-                              ลบเอกสารนี้
+                              ลบทะเบียนเอกสารนี้
                             </button>
                           )}
                         </div>
@@ -28393,7 +28403,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
             <div className={`borrow-docs-footer p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-3 ${theme.divide}`}>
               <div className={`text-sm font-bold ${theme.textMuted}`}>{borrowเอกสารs.length === 0 ? 'ยังไม่มีเอกสารในระบบ' : `กำลังแสดง ${filteredBorrowเอกสารs.length.toLocaleString('th-TH')} จาก ${borrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร`}</div>
-              <button type="button" onClick={() => setShowBorrowDocsModal(false)} className={`w-full sm:w-auto px-6 py-2.5 rounded-2xl font-black ${theme.btnCancel}`}>ปิดหน้าต่าง</button>
+              <button type="button" onClick={() => setShowBorrowDocsModal(false)} className={`w-full sm:w-auto px-6 py-2.5 rounded-2xl font-black ${theme.btnCancel}`}>ปิดเอกสารย้อนหลัง</button>
             </div>
           </div>
         </div>
@@ -28543,3 +28553,5 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+
+        
