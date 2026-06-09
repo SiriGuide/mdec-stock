@@ -22750,7 +22750,7 @@ ${auditChangeSummary}` : auditChangeSummary);
             <header className="border-b-[3px] border-slate-900 pb-5 mb-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <div className="text-[11px] font-black tracking-[0.18em] text-slate-500 uppercase">EDUCATIONAL MULTIMEDIA CENTER</div>
+                  <div className="text-[11px] font-black tracking-[0.18em] text-slate-500 uppercase">MULTIMEDIA DEVELOPMENT EDUCATION CENTER</div>
                   <h2 className="mt-1 text-3xl font-black tracking-tight">{docTitle}</h2>
                   <p className="mt-1 text-sm font-black text-slate-700">ศูนย์มัลติมีเดียทางการศึกษา • วิทยาลัยเทคโนโลยีภาคตะวันออก (อี.เทค)</p>
                   <p className="mt-1 text-xs font-bold text-slate-500">{docOfficialType} • เอกสารประกอบการเบิกใช้/ส่งมอบ/รับคืนอุปกรณ์ภายในหน่วยงาน</p>
