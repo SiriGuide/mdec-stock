@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.24.2 Borrow Slip Item Row Horizontal Name Hotfix';
-// v23.4.16.18.24.2 Borrow Slip Item Row Horizontal Name Hotfix - ปรับคอลัมน์รายการอุปกรณ์ในใบยืมให้อ่านแนวนอนแถวเดียว ดูสะอาดและเป็นเอกสารมากขึ้น
+const APP_VERSION = 'v23.4.16.18.25 Event Return Slip Formal Match Polish';
+// v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
 // Direction Lock: หน้า Reports / รายงานแบบ dashboard ถูกตัดออกจาก workflow หลักแล้ว ห้ามรื้อกลับมาโดยไม่ถามผู้ใช้ก่อน
@@ -22753,7 +22753,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   <div className="text-[11px] font-black tracking-[0.18em] text-slate-500 uppercase">EDUCATIONAL MULTIMEDIA CENTER</div>
                   <h2 className="mt-1 text-3xl font-black tracking-tight">{docTitle}</h2>
                   <p className="mt-1 text-sm font-black text-slate-700">ศูนย์มัลติมีเดียทางการศึกษา • วิทยาลัยเทคโนโลยีภาคตะวันออก (อี.เทค)</p>
-                  <p className="mt-1 text-xs font-bold text-slate-500">{docOfficialType} สำหรับใช้เป็นหลักฐานภายในหน่วยงาน</p>
+                  <p className="mt-1 text-xs font-bold text-slate-500">{docOfficialType} • เอกสารประกอบการเบิกใช้/ส่งมอบ/รับคืนอุปกรณ์ภายในหน่วยงาน</p>
                 </div>
                 <div className="min-w-[190px] rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm font-bold text-slate-700">
                   <div className="flex justify-between gap-3"><span>เลขที่เอกสาร</span><span className="font-black text-slate-950">{safeText(printSlipData.ref)}</span></div>
@@ -22775,12 +22775,12 @@ ${auditChangeSummary}` : auditChangeSummary);
               <table className="w-full border-collapse text-[12px] leading-tight table-fixed">
                 <thead>
                   <tr className="bg-slate-900 text-white">
-                    <th className="border border-slate-400 px-2 py-2 text-center w-[46px]">ลำดับ</th>
-                    <th className="border border-slate-400 px-2 py-2 text-left w-[34%]">รายการอุปกรณ์</th>
-                    <th className="border border-slate-400 px-2 py-2 text-left w-[18%]">S.N. / เลขครุภัณฑ์</th>
-                    <th className="border border-slate-400 px-2 py-2 text-left w-[18%]">หมวด / ฝ่ายดูแล</th>
-                    <th className="border border-slate-400 px-2 py-2 text-left w-[14%]">สถานะการคืน</th>
-                    <th className="border border-slate-400 px-2 py-2 text-left w-[16%]">หมายเหตุ</th>
+                    <th className="border border-slate-400 px-2 py-1.5 text-center w-[46px]">ลำดับ</th>
+                    <th className="border border-slate-400 px-2 py-1.5 text-left w-[34%]">รายการอุปกรณ์</th>
+                    <th className="border border-slate-400 px-2 py-1.5 text-left w-[18%]">S.N. / เลขครุภัณฑ์</th>
+                    <th className="border border-slate-400 px-2 py-1.5 text-left w-[18%]">หมวด / ฝ่ายดูแล</th>
+                    <th className="border border-slate-400 px-2 py-1.5 text-left w-[14%]">สถานะการคืน</th>
+                    <th className="border border-slate-400 px-2 py-1.5 text-left w-[16%]">หมายเหตุ</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -22788,14 +22788,14 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <tr><td colSpan={6} className="border border-slate-300 px-3 py-8 text-center font-bold text-slate-500">ยังไม่มีรายการอุปกรณ์ในเอกสารนี้</td></tr>
                   ) : printItems.map((item, index) => (
                     <tr key={item.id || index}>
-                      <td className="border border-slate-300 px-2 py-2 text-center align-top font-black">{index + 1}</td>
-                      <td className="border border-slate-300 px-2 py-2 align-top">
+                      <td className="border border-slate-300 px-2 py-1.5 text-center align-top font-black">{index + 1}</td>
+                      <td className="border border-slate-300 px-2 py-1.5 align-top">
                         <div className="font-black whitespace-nowrap">{safeText(item.name)}</div>
                       </td>
-                      <td className="border border-slate-300 px-2 py-2 align-top">{safeText(item.sn)}</td>
-                      <td className="border border-slate-300 px-2 py-2 align-top text-[11px]">{safeText(item.category)} / {safeText(item.department)}</td>
-                      <td className="border border-slate-300 px-2 py-2 align-top font-black whitespace-nowrap">{isReturnSlip ? 'รับคืนแล้ว' : (isItemReturnedOnSlip(item) ? 'คืนแล้ว' : 'ยังไม่คืน')}</td>
-                      <td className="border border-slate-300 px-2 py-2 align-top text-[11px]">{isReturnSlip ? safeText(item.returnNote || item.returnCondition) : safeText(item.note || item.currentNote)}</td>
+                      <td className="border border-slate-300 px-2 py-1.5 align-top">{safeText(item.sn)}</td>
+                      <td className="border border-slate-300 px-2 py-1.5 align-top text-[11px]">{safeText(item.category)} / {safeText(item.department)}</td>
+                      <td className="border border-slate-300 px-2 py-1.5 align-top font-black whitespace-nowrap">{isReturnSlip ? 'รับคืนแล้ว' : (isItemReturnedOnSlip(item) ? 'คืนแล้ว' : 'ยังไม่คืน')}</td>
+                      <td className="border border-slate-300 px-2 py-1.5 align-top text-[11px]">{isReturnSlip ? safeText(item.returnNote || item.returnCondition) : safeText(item.note || item.currentNote)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -22818,8 +22818,8 @@ ${auditChangeSummary}` : auditChangeSummary);
             </section>
 
             <section className="grid grid-cols-3 gap-5 mt-12 text-center text-sm font-bold">
-              <div><div className="h-12 border-b border-slate-900 mb-2"></div><div>ลงชื่อผู้รับผิดชอบ</div><div className="mt-1 text-xs text-slate-500">(........................................)</div></div>
-              <div><div className="h-12 border-b border-slate-900 mb-2"></div><div>ลงชื่อเจ้าหน้าที่ผู้ส่งมอบ/รับคืน</div><div className="mt-1 text-xs text-slate-500">(........................................)</div></div>
+              <div><div className="h-12 border-b border-slate-900 mb-2"></div><div>{isReturnSlip ? 'ลงชื่อผู้ส่งคืน' : 'ลงชื่อผู้รับผิดชอบ'}</div><div className="mt-1 text-xs text-slate-500">(........................................)</div></div>
+              <div><div className="h-12 border-b border-slate-900 mb-2"></div><div>{isReturnSlip ? 'ลงชื่อเจ้าหน้าที่ผู้รับคืน' : 'ลงชื่อเจ้าหน้าที่ผู้ส่งมอบ'}</div><div className="mt-1 text-xs text-slate-500">(........................................)</div></div>
               <div><div className="h-12 border-b border-slate-900 mb-2"></div><div>ลงชื่อผู้ตรวจสอบ</div><div className="mt-1 text-xs text-slate-500">(........................................)</div></div>
             </section>
           </article>
