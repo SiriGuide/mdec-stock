@@ -6993,7 +6993,7 @@ button[class*="orange"]:not(:disabled) {
 }
 
 
-/* v23.4.16.18.26.1 Inventory Scope Bar Simplify Hotfix - ปรับแถบขอบเขตคลังให้ดูคล้ายปุ่ม disabled เรียบขึ้น และมี animation เบาๆ โดยไม่แตะ flow หลัก */
+/* v23.4.16.18.26.2 Inventory Scope Mini Icon Hotfix - เอาแถบ Scope ใหญ่ออก เหลือเป็นไอคอน/พิลเล็กๆ ในหัวคลังแทน ลดความรก ไม่แตะ flow หลัก */
 .equipment-desktop-polish .inventory-comfort-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -14279,7 +14279,13 @@ S.N.: ${item.sn || '-'}
           <div className={`p-3 sm:p-4 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-3 ${theme.divide}`}>
             <div className="min-w-0">
               <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>INVENTORY WORKSPACE</div>
-              <h2 className={`text-xl sm:text-[1.35rem] font-black mt-1 ${theme.textTitle}`}>คลังอุปกรณ์</h2>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <h2 className={`text-xl sm:text-[1.35rem] font-black ${theme.textTitle}`}>คลังอุปกรณ์</h2>
+                <span title={`มุมมองปัจจุบัน: ${currentInventoryScope.label} • พบ ${filteredItems.length.toLocaleString('th-TH')} รายการ`} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-black cursor-default select-none ${isDarkMode ? 'bg-slate-900/80 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${isDarkMode ? 'bg-emerald-400' : 'bg-emerald-500'}`} aria-hidden="true"></span>
+                  {currentInventoryScope.label} • {filteredItems.length.toLocaleString('th-TH')}
+                </span>
+              </div>
               <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>ค้นหา เปิดแฟ้ม และจัดการรายการอุปกรณ์หลักแบบกระชับ เน้นข้อมูลที่ใช้จริง: ชื่อ, S.N., หมวด, ที่เก็บ และสถานะ</p>
             </div>
             <div className="inventory-header-actions flex flex-wrap gap-2 shrink-0 relative">
@@ -14296,17 +14302,6 @@ S.N.: ${item.sn || '-'}
           </div>
 
           <div className="p-2 sm:p-3 space-y-3">
-            <div className={`rounded-2xl border px-2.5 py-2 flex items-center justify-between gap-2 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div className={`min-w-0 inline-flex items-center gap-2 px-3 py-2 rounded-xl border cursor-default select-none transition-all duration-300 ${isDarkMode ? 'bg-slate-900/90 border-slate-700 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]' : 'bg-slate-50 border-slate-200 text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]'}`}>
-                <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden="true">
-                  <span className={`absolute inline-flex h-full w-full rounded-full animate-ping ${isDarkMode ? 'bg-emerald-400/35' : 'bg-emerald-500/30'}`}></span>
-                  <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${isDarkMode ? 'bg-emerald-400' : 'bg-emerald-500'}`}></span>
-                </span>
-                <span className={`truncate text-sm font-black ${theme.textTitle}`}>{currentInventoryScope.label}</span>
-              </div>
-              <div className={`shrink-0 inline-flex items-center px-3 py-2 rounded-xl border text-xs font-black cursor-default select-none transition-all duration-300 ${theme.btnSecondary}`}>พบ {filteredItems.length.toLocaleString('th-TH')} รายการ</div>
-            </div>
-
             <div className="inventory-comfort-summary">
               {[
                 ['ทั้งหมดในมุมมอง', filteredItems.length.toLocaleString('th-TH'), 'ALL'],
