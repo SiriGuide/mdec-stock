@@ -6993,7 +6993,7 @@ button[class*="orange"]:not(:disabled) {
 }
 
 
-/* v23.4.16.18.26 Inventory Workspace Comfort Polish - keep inventory familiar, calmer and easier to scan */
+/* v23.4.16.18.26.1 Inventory Scope Bar Simplify Hotfix - ปรับแถบขอบเขตคลังให้ดูคล้ายปุ่ม disabled เรียบขึ้น และมี animation เบาๆ โดยไม่แตะ flow หลัก */
 .equipment-desktop-polish .inventory-comfort-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -14296,13 +14296,15 @@ S.N.: ${item.sn || '-'}
           </div>
 
           <div className="p-2 sm:p-3 space-y-3">
-            <div className={`rounded-2xl border px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div className="min-w-0 flex flex-wrap items-center gap-2">
-                <span className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>Inventory Scope</span>
-                <span className={`text-base font-black ${theme.textTitle}`}>{currentInventoryScope.label}</span>
-                <span className={`asset-profile-card-label text-xs font-bold ${theme.textMuted}`}>เปลี่ยนมุมมองจากเมนูซ้าย</span>
+            <div className={`rounded-2xl border px-2.5 py-2 flex items-center justify-between gap-2 ${isDarkMode ? 'bg-slate-950/70 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`min-w-0 inline-flex items-center gap-2 px-3 py-2 rounded-xl border cursor-default select-none transition-all duration-300 ${isDarkMode ? 'bg-slate-900/90 border-slate-700 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]' : 'bg-slate-50 border-slate-200 text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]'}`}>
+                <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden="true">
+                  <span className={`absolute inline-flex h-full w-full rounded-full animate-ping ${isDarkMode ? 'bg-emerald-400/35' : 'bg-emerald-500/30'}`}></span>
+                  <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${isDarkMode ? 'bg-emerald-400' : 'bg-emerald-500'}`}></span>
+                </span>
+                <span className={`truncate text-sm font-black ${theme.textTitle}`}>{currentInventoryScope.label}</span>
               </div>
-              <div className={`shrink-0 px-2.5 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>พบ {filteredItems.length.toLocaleString('th-TH')} รายการ</div>
+              <div className={`shrink-0 inline-flex items-center px-3 py-2 rounded-xl border text-xs font-black cursor-default select-none transition-all duration-300 ${theme.btnSecondary}`}>พบ {filteredItems.length.toLocaleString('th-TH')} รายการ</div>
             </div>
 
             <div className="inventory-comfort-summary">
