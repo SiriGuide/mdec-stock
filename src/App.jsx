@@ -76,7 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.22 Reports Removed / Direction Lock Hotfix';
+const APP_VERSION = 'v23.4.16.18.23 Home / Daily Command Compact Polish';
+// Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
 // Direction Lock: หน้า Reports / รายงานแบบ dashboard ถูกตัดออกจาก workflow หลักแล้ว ห้ามรื้อกลับมาโดยไม่ถามผู้ใช้ก่อน
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
@@ -10800,7 +10801,7 @@ S.N.: ${item.sn || '-'}
                         ].map(([label, value, desc]) => (
                           <div key={label} className={`asset-profile-info-card p-3 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                             <div className={`text-xs font-black ${theme.textMuted}`}>{label}</div>
-                            <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                            <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
                             <div className={`text-xs font-bold mt-1 ${theme.textMuted}`}>{desc}</div>
                           </div>
                         ))}
@@ -24462,9 +24463,9 @@ ${auditChangeSummary}` : auditChangeSummary);
             : 'radial-gradient(circle at 12% 14%, rgba(37,99,235,.10), transparent 34%), radial-gradient(circle at 86% 18%, rgba(14,165,233,.10), transparent 30%), linear-gradient(135deg, #ffffff, #f8fafc)'
           }} />
 
-          <div className="relative p-5 sm:p-8 lg:p-10">
+          <div className="relative p-4 sm:p-6 lg:p-7">
             <div className="grid grid-cols-1 xl:grid-cols-[1.05fr_0.95fr] gap-7 items-stretch">
-              <div className="flex flex-col justify-between gap-8">
+              <div className="flex flex-col justify-between gap-5">
                 <div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <div className={`w-20 h-20 rounded-[1.75rem] border flex items-center justify-center p-3 shadow-lg ${isDarkMode ? 'bg-white/6 border-white/10' : 'bg-white border-slate-200'}`}>
@@ -24475,13 +24476,13 @@ ${auditChangeSummary}` : auditChangeSummary);
                         <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_16px_rgba(59,130,246,.75)]" />
                         MDEC OFFICIAL INVENTORY SYSTEM
                       </div>
-                      <h2 className={`mt-3 text-4xl sm:text-5xl lg:text-6xl font-black tracking-[-0.06em] leading-[0.98] ${theme.textTitle}`}>
+                      <h2 className={`mt-3 text-3xl sm:text-4xl lg:text-5xl font-black tracking-[-0.06em] leading-[0.98] ${theme.textTitle}`}>
                         ระบบสต็อกอุปกรณ์<br className="hidden sm:block" />ศูนย์มัลติมีเดีย
                       </h2>
                     </div>
                   </div>
 
-                  <p className={`mt-5 text-base sm:text-lg font-bold leading-8 max-w-3xl ${theme.textMuted}`}>
+                  <p className={`mt-4 text-sm sm:text-base font-bold leading-7 max-w-3xl ${theme.textMuted}`}>
                     ออกแบบใหม่ให้เป็นระบบใช้งานจริงแบบเป็นทางการ: เข้าสู่ระบบ เลือกงาน สแกน QR หรือค้นหาอุปกรณ์ แล้วบันทึกเอกสารและหลักฐานไว้ในฐานข้อมูลเดิมของศูนย์ โดยไม่ต้องกรอกข้อมูลใหม่
                   </p>
                 </div>
@@ -24493,21 +24494,21 @@ ${auditChangeSummary}` : auditChangeSummary);
                     ['อยู่นอกศูนย์', (currentBorrowedItems.length + currentEventItems.length) || 0, 'ยืม/ออกงาน'],
                     ['ต้องติดตาม', (overdueItems.length + dueTodayItems.length) || 0, 'วันนี้']
                   ].map(([label, value, caption]) => (
-                    <button key={label} type="button" onClick={() => label === 'ต้องติดตาม' ? openTrackingCenter('today') : openWorkspace('inventory')} className={`rounded-[1.35rem] border p-4 text-left transition-all hover:-translate-y-0.5 ${isDarkMode ? 'bg-white/[0.045] hover:bg-white/[0.07] border-white/10' : 'bg-white hover:bg-blue-50/60 border-slate-200'}`}>
+                    <button key={label} type="button" onClick={() => label === 'ต้องติดตาม' ? openTrackingCenter('today') : openWorkspace('inventory')} className={`rounded-[1.25rem] border p-3 text-left transition-all hover:-translate-y-0.5 ${isDarkMode ? 'bg-white/[0.045] hover:bg-white/[0.07] border-white/10' : 'bg-white hover:bg-blue-50/60 border-slate-200'}`}>
                       <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>{label}</div>
-                      <div className={`mt-2 text-3xl font-black tabular-nums ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                      <div className={`mt-1 text-2xl font-black tabular-nums ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
                       <div className={`mt-1 asset-profile-card-label text-xs font-bold ${theme.textMuted}`}>{caption}</div>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className={`rounded-[2rem] border p-4 sm:p-5 flex flex-col justify-between gap-5 ${isDarkMode ? 'bg-slate-900/78 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+              <div className={`rounded-[1.75rem] border p-4 flex flex-col justify-between gap-4 ${isDarkMode ? 'bg-slate-900/78 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className={`text-xs font-black tracking-[0.2em] uppercase ${theme.textMuted}`}>Current Session</div>
-                    <h3 className={`mt-1 text-2xl font-black ${theme.textTitle}`}>{canUseOperationalTools ? 'พร้อมใช้งานระบบ' : 'เข้าสู่ระบบก่อนใช้งาน'}</h3>
-                    <p className={`mt-2 text-sm font-bold leading-6 ${theme.textMuted}`}>{canUseOperationalTools ? `ผู้ใช้งาน: ${currentAccountLabel}` : 'ระบบจะซ่อนงานบันทึก ยืม คืน ออกงาน และหลังบ้าน จนกว่าจะเข้าสู่ระบบเจ้าหน้าที่'}</p>
+                    <h3 className={`mt-1 text-xl font-black ${theme.textTitle}`}>{canUseOperationalTools ? 'พร้อมใช้งานระบบ' : 'เข้าสู่ระบบก่อนใช้งาน'}</h3>
+                    <p className={`mt-1.5 text-xs font-bold leading-5 ${theme.textMuted}`}>{canUseOperationalTools ? `ผู้ใช้งาน: ${currentAccountLabel}` : 'ระบบจะซ่อนงานบันทึก ยืม คืน ออกงาน และหลังบ้าน จนกว่าจะเข้าสู่ระบบเจ้าหน้าที่'}</p>
                   </div>
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${canUseOperationalTools ? 'bg-emerald-500/15 text-emerald-300' : 'bg-blue-500/15 text-blue-300'}`}>
                     {canUseOperationalTools ? <Icons.CheckCircle className="w-7 h-7" /> : <Icons.Lock className="w-7 h-7" />}
@@ -24550,8 +24551,57 @@ ${auditChangeSummary}` : auditChangeSummary);
         </div>
 
         {canUseOperationalTools && (
-          <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-3">
+          <div className="p-4 sm:p-5 lg:p-6 space-y-4">
+            {/* v23.4.16.18.23 Home / Daily Command Compact Polish - compact daily command, no Reports restore */}
+            <section className={`home-daily-compact rounded-[1.75rem] border p-4 sm:p-5 ${isDarkMode ? 'bg-slate-900/85 border-slate-800/55' : 'bg-white border-slate-200 shadow-sm'}`}>
+              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className={`text-[11px] font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>DAILY COMMAND</div>
+                  <h3 className={`mt-1 text-2xl sm:text-3xl font-black tracking-[-0.04em] ${theme.textTitle}`}>วันนี้ต้องทำอะไร</h3>
+                  <p className={`mt-1 text-sm font-bold ${theme.textMuted}`}>สรุปงานเร่งด่วนหน้าแรกแบบสั้น ๆ ไม่เพิ่ม Reports และไม่รื้อ flow หลัก</p>
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 w-full xl:w-auto">
+                  {[
+                    ['คืนวันนี้', dueTodayItems.length || 0, () => openTrackingCenter('today'), 'amber'],
+                    ['เลยกำหนด', overdueItems.length || 0, () => openTrackingCenter('overdue'), 'rose'],
+                    ['รอคืน', (currentBorrowedItems.length + currentEventItems.length) || 0, () => openTrackingCenter('all'), 'blue'],
+                    ['คืนบางส่วน', (returnTrackingData?.partial || []).length || 0, () => openTrackingCenter('issues'), 'orange'],
+                    ['ซ่อม', stats.maintenance || 0, () => openRepairCenter('open'), 'slate'],
+                    ['ควรเติม', dailyIssueItems.length || 0, () => { setQuickProblemOnly(true); openWorkspace('inventory'); }, 'slate']
+                  ].map(([label, value, action, tone]) => (
+                    <button key={label} type="button" onClick={action} className={`home-daily-pill rounded-2xl border px-3 py-2.5 text-left transition-all hover:-translate-y-0.5 ${isDarkMode ? 'bg-slate-950/55 border-slate-800/55 hover:bg-slate-900' : 'bg-slate-50 border-slate-200 hover:bg-blue-50/60'}`}>
+                      <div className={`text-[10px] font-black truncate ${theme.textMuted}`}>{label}</div>
+                      <div className={`text-xl font-black tabular-nums ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 items-stretch">
+                <div className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950/45 border-slate-800/55' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`text-xs font-black mb-2 ${theme.textMuted}`}>รายการเร่งด่วน</div>
+                  {dashboardDailyTasks.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
+                      {dashboardDailyTasks.slice(0, 3).map(task => (
+                        <button key={task.id} type="button" onClick={task.action} className={`rounded-xl border px-3 py-2 text-left ${theme.btnSecondary}`}>
+                          <div className={`text-[10px] font-black ${task.tone === 'rose' ? 'text-rose-500' : task.tone === 'amber' ? 'text-amber-500' : theme.textMuted}`}>{task.label}</div>
+                          <div className={`text-sm font-black truncate ${theme.textTitle}`}>{task.title}</div>
+                          <div className={`text-[11px] font-bold truncate ${theme.textMuted}`}>{task.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className={`rounded-xl border px-3 py-3 text-sm font-black ${isDarkMode ? 'bg-emerald-950/20 border-emerald-900/45 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>วันนี้ยังไม่มีรายการเร่งด่วน</div>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 min-w-[190px]">
+                  <button type="button" onClick={() => openDailyReturnBatch('urgent')} className="px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">รับคืนด่วน</button>
+                  <button type="button" onClick={copyDailyOperationSummary} className={`px-4 py-3 rounded-2xl border font-black ${theme.btnSecondary}`}>คัดลอกสรุปวันนี้</button>
+                </div>
+              </div>
+            </section>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
               {[
                 {
                   title: 'เติมของเข้าสต็อก',
@@ -24588,18 +24638,18 @@ ${auditChangeSummary}` : auditChangeSummary);
               ].map(task => {
                 const Icon = task.icon;
                 return (
-                  <article key={task.title} className={`rounded-[2rem] border p-4 sm:p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl ${isDarkMode ? 'bg-slate-900/85 border-slate-800/55 hover:border-blue-400/35' : 'bg-white border-slate-200 hover:border-blue-300'}`}>
+                  <article key={task.title} className={`rounded-[1.55rem] border p-3.5 sm:p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl ${isDarkMode ? 'bg-slate-900/85 border-slate-800/55 hover:border-blue-400/35' : 'bg-white border-slate-200 hover:border-blue-300'}`}>
                     <div className="flex items-start justify-between gap-3">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-blue-500/12 text-blue-200 border border-blue-300/15' : 'bg-blue-50 text-blue-700 border border-blue-100'}`}><Icon className="w-7 h-7" /></div>
-                      <span className={`rounded-full border px-3 py-1 text-[10px] font-black tracking-[0.18em] ${isDarkMode ? 'bg-slate-950 border-slate-800/55 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>{task.tag}</span>
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-blue-500/12 text-blue-200 border border-blue-300/15' : 'bg-blue-50 text-blue-700 border border-blue-100'}`}><Icon className="w-5 h-5" /></div>
+                      <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black tracking-[0.14em] ${isDarkMode ? 'bg-slate-950 border-slate-800/55 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>{task.tag}</span>
                     </div>
-                    <h3 className={`mt-5 text-2xl font-black leading-tight ${theme.textTitle}`}>{task.title}</h3>
-                    <p className={`mt-2 text-sm font-bold leading-6 ${theme.textMuted}`}>{task.desc}</p>
-                    <div className="mt-5 grid grid-cols-1 gap-2">
-                      <button type="button" onClick={task.main} className="w-full px-4 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm transition-colors">เริ่มขั้นตอน</button>
+                    <h3 className={`mt-3 text-xl font-black leading-tight ${theme.textTitle}`}>{task.title}</h3>
+                    <p className={`mt-1.5 text-xs font-bold leading-5 ${theme.textMuted}`}>{task.desc}</p>
+                    <div className="mt-4 grid grid-cols-1 gap-2">
+                      <button type="button" onClick={task.main} className="w-full px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm transition-colors">เริ่มขั้นตอน</button>
                       <div className="grid grid-cols-2 gap-2">
-                        <button type="button" onClick={task.scan} className={`px-3 py-2.5 rounded-2xl border text-sm font-black ${theme.btnSecondary}`}>สแกน QR</button>
-                        <button type="button" onClick={task.main} className={`px-3 py-2.5 rounded-2xl border text-sm font-black ${theme.btnSecondary}`}>เลือก/กรอง</button>
+                        <button type="button" onClick={task.scan} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>สแกน QR</button>
+                        <button type="button" onClick={task.main} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เลือก/กรอง</button>
                       </div>
                     </div>
                   </article>
@@ -24608,11 +24658,11 @@ ${auditChangeSummary}` : auditChangeSummary);
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-[1.25fr_0.75fr] gap-3">
-              <section className={`rounded-[2rem] border p-4 sm:p-5 ${isDarkMode ? 'bg-slate-900/80 border-slate-800/55' : 'bg-slate-50 border-slate-200'}`}>
+              <section className={`rounded-[1.75rem] border p-4 ${isDarkMode ? 'bg-slate-900/80 border-slate-800/55' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
                   <div>
                     <div className={`text-xs font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>Stock Directory</div>
-                    <h3 className={`mt-1 text-3xl font-black ${theme.textTitle}`}>สต็อกทั้งหมดของศูนย์</h3>
+                    <h3 className={`mt-1 text-2xl font-black ${theme.textTitle}`}>สต็อกทั้งหมดของศูนย์</h3>
                     <p className={`mt-1 text-sm font-bold ${theme.textMuted}`}>เปิดดูของในคลัง ค้นหาจากชื่อ S.N. ฝ่าย หมวด ที่เก็บ หรือโครงการ</p>
                   </div>
                   <button type="button" onClick={() => openWorkspace('inventory')} className={`px-5 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>เปิดหน้าสต็อก</button>
@@ -24640,11 +24690,11 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </div>
               </section>
 
-              <section className={`rounded-[2rem] border p-4 sm:p-5 ${isDarkMode ? 'bg-slate-900/80 border-slate-800/55' : 'bg-white border-slate-200'}`}>
+              <section className={`rounded-[1.75rem] border p-4 ${isDarkMode ? 'bg-slate-900/80 border-slate-800/55' : 'bg-white border-slate-200'}`}>
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className={`text-xs font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>Today Monitor</div>
-                    <h3 className={`mt-1 text-2xl font-black ${theme.textTitle}`}>ติดตามวันนี้</h3>
+                    <h3 className={`mt-1 text-xl font-black ${theme.textTitle}`}>ติดตามวันนี้</h3>
                   </div>
                   <button type="button" onClick={() => openTrackingCenter('today')} className={`px-2 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ดูทั้งหมด</button>
                 </div>
@@ -24657,18 +24707,18 @@ ${auditChangeSummary}` : auditChangeSummary);
                   ].map(([label, value, action]) => (
                     <button key={label} type="button" onClick={action} className={`editor-card rounded-2xl border p-3 text-left ${theme.btnSecondary}`}>
                       <div className={`asset-profile-card-label text-xs font-bold ${theme.textMuted}`}>{label}</div>
-                      <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                      <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
                     </button>
                   ))}
                 </div>
               </section>
             </div>
 
-            <section className={`rounded-[2rem] border p-4 sm:p-5 ${isDarkMode ? 'bg-slate-900/70 border-slate-800/55' : 'bg-white border-slate-200'}`}>
+            <section className={`rounded-[1.75rem] border p-4 ${isDarkMode ? 'bg-slate-900/70 border-slate-800/55' : 'bg-white border-slate-200'}`}>
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 <div>
                   <div className={`text-xs font-black tracking-[0.18em] uppercase ${theme.textMuted}`}>Administration</div>
-                  <h3 className={`mt-1 text-2xl font-black ${theme.textTitle}`}>ตั้งค่าระบบ</h3>
+                  <h3 className={`mt-1 text-xl font-black ${theme.textTitle}`}>ตั้งค่าระบบ</h3>
                   <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>รวมศูนย์จัดการระบบและตั้งค่าไว้ในหน้าเดียว เพื่อให้เมนูไม่ซ้ำและยังคงเครื่องมือผู้ดูแลครบ</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -24942,7 +24992,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </label>
                   <div className={`boxset-card rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-800/60' : 'bg-white border-slate-200'}`}>
                     <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SELECTED</div>
-                    <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{selectedIds.size}</div>
+                    <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{selectedIds.size}</div>
                     <div className={`asset-profile-card-label text-xs font-bold ${theme.textMuted}`}>รายการในกล่องนี้</div>
                     <div className="mt-3 space-y-2 max-h-[150px] overflow-y-auto custom-scrollbar">
                       {selectedPreview.length === 0 ? (
@@ -25057,7 +25107,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </div>
                   <div className={`boxset-card rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-900/65 border-slate-800/60' : 'bg-white border-slate-200'}`}>
                     <div className={`text-[11px] font-black tracking-[0.16em] uppercase ${theme.textMuted}`}>SELECTED</div>
-                    <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{selectedIds.size}</div>
+                    <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{selectedIds.size}</div>
                     <div className={`asset-profile-card-label text-xs font-bold ${theme.textMuted}`}>รายการในเซ็ตนี้</div>
                     <div className="mt-3 space-y-2 max-h-[180px] overflow-y-auto custom-scrollbar">
                       {selectedPreview.length === 0 ? (
@@ -25796,7 +25846,7 @@ ${auditChangeSummary}` : auditChangeSummary);
             <div className={`px-5 sm:px-6 py-4 border-b grid grid-cols-2 md:grid-cols-4 gap-3 ${theme.divide}`}>
               <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div className={`text-xs font-black ${theme.textMuted}`}>ในถังขยะ</div>
-                <div className={`text-3xl font-black mt-1 ${theme.textTitle}`}>{deletedItems.length.toLocaleString('th-TH')}</div>
+                <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{deletedItems.length.toLocaleString('th-TH')}</div>
               </div>
               <div className={`p-2.5 rounded-lg border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                 <div className={`text-xs font-black ${theme.textMuted}`}>กู้คืนได้</div>
@@ -27253,10 +27303,10 @@ ${auditChangeSummary}` : auditChangeSummary);
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
-                          <button type="button" onClick={() => { setShowRepairCenterModal(false); setShowHistory(row.item.id); }} className={`px-3 py-2.5 rounded-2xl border text-sm font-black ${theme.btnSecondary}`}>เปิด</button>
+                          <button type="button" onClick={() => { setShowRepairCenterModal(false); setShowHistory(row.item.id); }} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิด</button>
                           <button type="button" onClick={() => { setShowRepairCenterModal(false); openRepairForItem(row.item); }} className="px-3 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-black">อัปเดตซ่อม</button>
                           {row.item.status === 'maintenance' && <button type="button" onClick={() => { setShowRepairCenterModal(false); openRepairForItem(row.item); setRepairForm(prev => ({ ...prev, statusStage: 'done', markAvailable: true, doneDate: new Date().toISOString().slice(0,10) })); }} className="px-3 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black">ปิดงาน</button>}
-                          <button type="button" onClick={() => copyItemSummary(row.item)} className={`px-3 py-2.5 rounded-2xl border text-sm font-black ${theme.btnSecondary}`}>คัดลอกสรุป</button>
+                          <button type="button" onClick={() => copyItemSummary(row.item)} className={`px-3 py-2 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>คัดลอกสรุป</button>
                         </div>
                       </div>
                     );
