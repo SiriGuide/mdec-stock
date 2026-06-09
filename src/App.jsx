@@ -76,8 +76,8 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.24 Documents / Records Formal Polish';
-// v23.4.16.18.24 Documents / Records Formal Polish - ปรับเอกสารย้อนหลังและใบพิมพ์ให้เป็นทางการขึ้น ไม่รื้อ Reports/Settings/QR Scanner core
+const APP_VERSION = 'v23.4.16.18.24.1 Borrow Slip Typography Compact Hotfix';
+// v23.4.16.18.24.1 Borrow Slip Typography Compact Hotfix - ลดขนาดตัวอักษรใบยืม/ใบพิมพ์เอกสารให้เป็นทางการและพอดี A4 ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
 // Direction Lock: หน้า Reports / รายงานแบบ dashboard ถูกตัดออกจาก workflow หลักแล้ว ห้ามรื้อกลับมาโดยไม่ถามผู้ใช้ก่อน
@@ -22698,16 +22698,35 @@ ${auditChangeSummary}` : auditChangeSummary);
     return (
       <div className="factory-stock-polish min-h-screen bg-slate-950 text-slate-100 font-sans print:bg-white print:text-slate-950">
         <style>{`
-          .mdec-formal-print-doc { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-          .mdec-formal-print-doc table { page-break-inside: auto; }
+          .mdec-formal-print-doc { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10.5px; line-height: 1.35; }
+          .mdec-formal-print-doc table { page-break-inside: auto; font-size: 10.2px !important; line-height: 1.28; }
           .mdec-formal-print-doc tr { page-break-inside: avoid; page-break-after: auto; }
-          .mdec-formal-print-doc .formal-field-label { letter-spacing: .04em; }
+          .mdec-formal-print-doc th,
+          .mdec-formal-print-doc td { padding: 5px 6px !important; vertical-align: top; }
+          .mdec-formal-print-doc .formal-field-label { letter-spacing: .035em; font-size: 9px !important; }
+          .mdec-formal-print-doc h2 { font-size: 22px !important; line-height: 1.05 !important; }
+          .mdec-formal-print-doc p { line-height: 1.32 !important; }
+          .mdec-formal-print-doc .text-lg { font-size: 13px !important; line-height: 1.22 !important; }
+          .mdec-formal-print-doc .text-sm { font-size: 11px !important; line-height: 1.3 !important; }
+          .mdec-formal-print-doc .text-xs { font-size: 9px !important; line-height: 1.25 !important; }
+          .mdec-formal-print-doc .text-\[10px\] { font-size: 8.5px !important; }
+          .mdec-formal-print-doc header { padding-bottom: 12px !important; margin-bottom: 12px !important; }
+          .mdec-formal-print-doc section { margin-bottom: 12px !important; }
+          .mdec-formal-print-doc .rounded-2xl { border-radius: 12px !important; }
+          .mdec-formal-print-doc :is(.p-3,.p-4) { padding: 8px !important; }
+          .mdec-formal-print-doc .h-12 { height: 32px !important; }
           @media print {
             @page { size: A4 portrait; margin: 12mm; }
             .no-print { display: none !important; }
             .print-sheet { box-shadow: none !important; border: 0 !important; padding: 0 !important; max-width: none !important; }
-            .mdec-formal-print-doc { color: #020617 !important; font-size: 11px !important; }
-            .mdec-formal-print-doc h2 { font-size: 22px !important; }
+            .mdec-formal-print-doc { color: #020617 !important; font-size: 8.4pt !important; line-height: 1.25 !important; }
+            .mdec-formal-print-doc h2 { font-size: 16pt !important; }
+            .mdec-formal-print-doc .text-lg { font-size: 9.5pt !important; }
+            .mdec-formal-print-doc .text-sm { font-size: 8pt !important; }
+            .mdec-formal-print-doc .text-xs { font-size: 6.8pt !important; }
+            .mdec-formal-print-doc table { font-size: 7.6pt !important; }
+            .mdec-formal-print-doc th,
+            .mdec-formal-print-doc td { padding: 3.5px 4.5px !important; }
             .mdec-formal-print-doc th { background: #0f172a !important; color: #fff !important; }
             body { background: white !important; }
           }
@@ -28553,5 +28572,3 @@ export default function App() {
     </ErrorBoundary>
   );
 }
-
-        
