@@ -6993,70 +6993,96 @@ button[class*="orange"]:not(:disabled) {
 }
 
 
-/* v23.4.16.18.26.2 Inventory Scope Mini Icon Hotfix - เอาแถบ Scope ใหญ่ออก เหลือเป็นไอคอน/พิลเล็กๆ ในหัวคลังแทน ลดความรก ไม่แตะ flow หลัก */
+/* v23.4.16.18.26.3 MacBook Inventory Beautiful Compact Hotfix - ลดความแน่นหน้า Inventory บน MacBook ให้สวยขึ้น กระชับขึ้น ไม่แตะ flow/QR/Reports */
 .equipment-desktop-polish .inventory-comfort-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: .5rem;
-}
-@media (min-width: 900px) {
-  .equipment-desktop-polish .inventory-comfort-summary {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
 }
 .equipment-desktop-polish .inventory-comfort-card {
-  border-radius: 1rem;
+  border-radius: 999px;
   border: 1px solid rgba(148,163,184,.18);
-  padding: .7rem .85rem;
+  padding: .48rem .72rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  min-height: 36px;
+  flex: 0 1 auto;
 }
 .equipment-desktop-polish .inventory-comfort-card .inventory-comfort-label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 950;
   letter-spacing: .12em;
   text-transform: uppercase;
-  opacity: .66;
+  opacity: .56;
 }
 .equipment-desktop-polish .inventory-comfort-card .inventory-comfort-value {
-  margin-top: .15rem;
-  font-size: 1.05rem;
-  line-height: 1.05;
+  font-size: .95rem;
+  line-height: 1;
   font-weight: 950;
 }
+.equipment-desktop-polish .inventory-comfort-card .inventory-comfort-name {
+  font-size: 10.5px;
+  font-weight: 800;
+  opacity: .68;
+  white-space: nowrap;
+}
 .equipment-desktop-polish .inventory-desktop-table.inventory-readability-table.inventory-comfort-table {
-  min-width: 1080px !important;
+  min-width: 1000px !important;
 }
 .equipment-desktop-polish .inventory-comfort-table thead th {
-  padding-top: .65rem !important;
-  padding-bottom: .65rem !important;
+  padding-top: .55rem !important;
+  padding-bottom: .55rem !important;
 }
 .equipment-desktop-polish .inventory-comfort-table tbody td {
-  padding-top: .65rem !important;
-  padding-bottom: .65rem !important;
+  padding-top: .55rem !important;
+  padding-bottom: .55rem !important;
 }
 .equipment-desktop-polish .inventory-comfort-table .inventory-row-name-cell {
-  min-width: 380px !important;
+  min-width: 360px !important;
 }
 .equipment-desktop-polish .inventory-comfort-table .inventory-item-title {
-  max-width: 360px;
+  max-width: 340px;
 }
 .equipment-desktop-polish .inventory-comfort-table .inventory-item-meta {
-  margin-top: .25rem !important;
+  margin-top: .18rem !important;
 }
 .equipment-desktop-polish .inventory-comfort-table .inventory-row-actions {
-  min-width: 218px !important;
+  min-width: 198px !important;
 }
 .equipment-desktop-polish .inventory-comfort-table .inventory-action-btn {
-  min-height: 30px !important;
-  border-radius: .8rem !important;
+  min-height: 28px !important;
+  border-radius: .75rem !important;
 }
 .equipment-desktop-polish .inventory-comfort-table .inventory-action-icon-only {
-  width: 30px !important;
+  width: 28px !important;
 }
 .equipment-desktop-polish .inventory-comfort-empty {
-  min-height: 220px;
+  min-height: 180px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+@media (max-width: 1320px) {
+  .equipment-desktop-polish .inventory-macbook-trim {
+    padding: .85rem !important;
+  }
+  .equipment-desktop-polish .inventory-macbook-title {
+    font-size: 1.15rem !important;
+  }
+  .equipment-desktop-polish .inventory-macbook-desc {
+    display: none !important;
+  }
+  .equipment-desktop-polish .inventory-comfort-summary {
+    gap: .38rem;
+  }
+  .equipment-desktop-polish .inventory-comfort-card {
+    padding: .42rem .62rem;
+  }
+  .equipment-desktop-polish .inventory-filter-bar .inventory-filter-heading {
+    padding-top: .65rem !important;
+    padding-bottom: .65rem !important;
+  }
 }
 
 
@@ -11107,7 +11133,7 @@ S.N.: ${item.sn || '-'}
               <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>จัดของเป็นกล่องจริง และจัดเซ็ตใช้งานที่หยิบใช้บ่อย แบบเรียบง่ายสำหรับงาน STOCK</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={openActiveEditor} className="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm">
+              <button type="button" onClick={openActiveEditor} className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm text-sm">
                 + {organizeViewMode === 'bundles' ? 'สร้างเซ็ตใช้งาน' : 'เพิ่มกล่องจริง'}
               </button>
               <button type="button" onClick={() => selectedCollection && addCollectionToOperation(selectedCollection, 'borrow')} disabled={!selectedCollection} className="px-4 py-2.5 rounded-2xl bg-emerald-700 hover:bg-emerald-600 disabled:bg-slate-700 disabled:text-slate-500 text-white font-black">
@@ -13487,7 +13513,7 @@ S.N.: ${item.sn || '-'}
             </div>
 
             <div className={`rounded-3xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-              <div className={`p-4 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${theme.divide}`}>
+              <div className={`px-3 py-2.5 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-2 ${theme.divide}`}>
                 <div>
                   <h3 className={`text-xl font-black ${theme.textTitle}`}>ตัวกรองรายงาน</h3>
                   <p className={`text-sm font-bold ${theme.textMuted}`}>ใช้กรองข้อมูลบนหน้า Reports และ Export CSV ตามเงื่อนไขปัจจุบัน</p>
@@ -14275,22 +14301,22 @@ S.N.: ${item.sn || '-'}
       <div className="equipment-inventory-page equipment-desktop-polish space-y-5">
         {renderWorkspaceTabs()}
 
-        <section className={`rounded-[1.8rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
-          <div className={`p-3 sm:p-4 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-3 ${theme.divide}`}>
+        <section className={`rounded-[1.55rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
+          <div className={`inventory-macbook-trim p-3 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-2.5 ${theme.divide}`}>
             <div className="min-w-0">
               <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>INVENTORY WORKSPACE</div>
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                <h2 className={`text-xl sm:text-[1.35rem] font-black ${theme.textTitle}`}>คลังอุปกรณ์</h2>
+                <h2 className={`inventory-macbook-title text-xl sm:text-[1.35rem] font-black ${theme.textTitle}`}>คลังอุปกรณ์</h2>
                 <span title={`มุมมองปัจจุบัน: ${currentInventoryScope.label} • พบ ${filteredItems.length.toLocaleString('th-TH')} รายการ`} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-black cursor-default select-none ${isDarkMode ? 'bg-slate-900/80 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${isDarkMode ? 'bg-emerald-400' : 'bg-emerald-500'}`} aria-hidden="true"></span>
                   {currentInventoryScope.label} • {filteredItems.length.toLocaleString('th-TH')}
                 </span>
               </div>
-              <p className={`text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>ค้นหา เปิดแฟ้ม และจัดการรายการอุปกรณ์หลักแบบกระชับ เน้นข้อมูลที่ใช้จริง: ชื่อ, S.N., หมวด, ที่เก็บ และสถานะ</p>
+              <p className={`inventory-macbook-desc text-sm font-bold mt-1 max-w-3xl ${theme.textMuted}`}>ค้นหา เปิดแฟ้ม และจัดการรายการอุปกรณ์หลักแบบกระชับ เน้นข้อมูลที่ใช้จริง</p>
             </div>
             <div className="inventory-header-actions flex flex-wrap gap-2 shrink-0 relative">
               {canAddEditItems && <button type="button" onClick={openAddItemForm} className="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-sm"><Icons.Plus className="w-5 h-5 inline-block mr-1" /> เพิ่มอุปกรณ์</button>}
-              <button type="button" onClick={() => setShowInventoryMoreActions(v => !v)} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>เพิ่มเติม •••</button>
+              <button type="button" onClick={() => setShowInventoryMoreActions(v => !v)} className={`px-3.5 py-2 rounded-xl border font-black text-sm ${theme.btnSecondary}`}>เพิ่มเติม •••</button>
               {showInventoryMoreActions && (
                 <div className={`absolute right-0 top-full mt-2 z-30 w-56 rounded-2xl border p-2 shadow-2xl ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
                   {canUseOperationalTools && <button type="button" onClick={() => { setShowInventoryMoreActions(false); openSelectionScanner({ camera: true }); }} className={`w-full text-left px-3 py-2 rounded-xl font-black text-sm ${isDarkMode ? 'hover:bg-slate-900 text-slate-200' : 'hover:bg-slate-50 text-slate-700'}`}>สแกน QR</button>}
@@ -14310,18 +14336,18 @@ S.N.: ${item.sn || '-'}
                 ['ซ่อม / ตรวจเช็ก', filteredItems.filter(i => i.status === 'repair' || i.assetStatus === 'repair' || i.assetStatus === 'damaged').length.toLocaleString('th-TH'), 'SERVICE']
               ].map(([label, value, code]) => (
                 <div key={label} className={`inventory-comfort-card ${isDarkMode ? 'bg-slate-950/70 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-800'}`}>
-                  <div className="inventory-comfort-label">{code}</div>
-                  <div className="inventory-comfort-value">{value}</div>
-                  <div className={`text-[11px] font-bold mt-1 ${theme.textMuted}`}>{label}</div>
+                  <span className="inventory-comfort-label">{code}</span>
+                  <span className="inventory-comfort-value">{value}</span>
+                  <span className={`inventory-comfort-name ${theme.textMuted}`}>{label}</span>
                 </div>
               ))}
             </div>
 
-            <div className={`inventory-filter-bar rounded-[1.25rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-              <div className={`px-4 py-3 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 ${theme.divide}`}>
+            <div className={`inventory-filter-bar rounded-[1.1rem] border shadow-sm overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+              <div className={`inventory-filter-heading px-3 py-2.5 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-2 ${theme.divide}`}>
                 <div>
-                  <div className={`font-black text-base ${theme.textTitle}`}>ค้นหาอุปกรณ์</div>
-                  <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>มุมมอง: {currentInventoryScope.label} • พบ {filteredItems.length.toLocaleString('th-TH')} รายการ • แสดง {inventoryRows.length.toLocaleString('th-TH')} รายการแรก</div>
+                  <div className={`font-black text-sm ${theme.textTitle}`}>ค้นหาอุปกรณ์</div>
+                  <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>พบ {filteredItems.length.toLocaleString('th-TH')} รายการ • แสดง {inventoryRows.length.toLocaleString('th-TH')} รายการแรก</div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {hasActiveFilters && <button type="button" onClick={clearAllFilters} className={`px-3 py-2 rounded-xl border font-black text-xs ${theme.btnSecondary}`}>ล้างตัวกรอง</button>}
@@ -14333,9 +14359,9 @@ S.N.: ${item.sn || '-'}
                 </div>
               </div>
 
-              <div className="p-3 space-y-2.5">
+              <div className="p-2.5 space-y-2">
                 <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto] gap-3 items-start">
-                  <div className={`inventory-search-box flex items-center gap-3 px-4 py-2 rounded-xl border ${theme.input}`}>
+                  <div className={`inventory-search-box flex items-center gap-3 px-3.5 py-1.5 rounded-xl border ${theme.input}`}>
                     <Icons.Search className={`w-5 h-5 shrink-0 ${theme.textMuted}`} />
                     <input
                       value={searchTerm}
@@ -14493,10 +14519,10 @@ S.N.: ${item.sn || '-'}
             <div className={`asset-profile-hero-card rounded-[1.35rem] border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
               <div className={`p-4 border-b flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${theme.divide}`}>
                 <div>
-                  <div className={`asset-profile-section-title font-black text-lg ${theme.textTitle}`}>ทะเบียนอุปกรณ์</div>
+                  <div className={`asset-profile-section-title font-black text-base ${theme.textTitle}`}>ทะเบียนอุปกรณ์</div>
                   <div className={`asset-profile-card-label text-xs font-bold ${theme.textMuted}`}>กดแถวเพื่อเปิดแฟ้มอุปกรณ์ • ติ๊ก checkbox เพื่อทำรายการแบบกลุ่ม</div>
                 </div>
-                <div className={`text-xs font-black px-3 py-2 rounded-full border ${isDarkMode ? 'bg-slate-900 border-slate-800/55 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>Comfort Table View</div>
+                <div className={`text-xs font-black px-3 py-2 rounded-full border ${isDarkMode ? 'bg-slate-900 border-slate-800/55 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>Table View</div>
               </div>
 
               {inventoryDisplayRows.length === 0 ? (
