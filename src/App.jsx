@@ -76,10 +76,10 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27 Unified Operation Card Theme Polish';
-// v23.4.16.18.27 Unified Operation Card Theme Polish - ปรับการ์ดหน้ายืม/ออกงาน/รับคืนให้เข้าทีมกับการ์ดคลังอุปกรณ์ ไม่แตะ flow/QR Scanner core/Reports
+const APP_VERSION = 'v23.4.16.18.27 Mobile Responsive Inventory Polish';
+// v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
-const APP_UPDATE_NOTE = 'Unified Operation Card Theme Polish: ทำให้การ์ดหน้ายืม/ออกงาน/รับคืนใช้ภาษา UI เดียวกับคลังอุปกรณ์ โดยไม่แตะ flow หลักหรือ QR Scanner core';
+const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
 // Direction Lock: หน้า Reports / รายงานแบบ dashboard ถูกตัดออกจาก workflow หลักแล้ว ห้ามรื้อกลับมาโดยไม่ถามผู้ใช้ก่อน
 // วางไฟล์โลโก้ศูนย์ไว้ที่ public/mdec-logo.png ถ้าไม่มีไฟล์ ระบบจะ fallback เป็นไอคอนกล่องเดิม
 const ORG_LOGO_SRC = '/mdec-logo.png';
@@ -7086,6 +7086,198 @@ button[class*="orange"]:not(:disabled) {
 }
 
 
+/* v23.4.16.18.27 Mobile Responsive Inventory Polish - เก็บหน้า Inventory สำหรับมือถือ/iPad แนวตั้งให้สวยขึ้น โดยไม่แตะ flow ยืม/คืน/QR/Reports */
+@media (max-width: 768px) {
+  .equipment-desktop-polish.equipment-inventory-page {
+    gap: .75rem !important;
+  }
+  .equipment-desktop-polish .inventory-macbook-trim {
+    padding: .78rem !important;
+    gap: .65rem !important;
+  }
+  .equipment-desktop-polish .inventory-macbook-title {
+    font-size: 1.08rem !important;
+    line-height: 1.08 !important;
+  }
+  .equipment-desktop-polish .inventory-macbook-desc,
+  .equipment-desktop-polish .inventory-comfort-name,
+  .equipment-desktop-polish .inventory-comfort-label {
+    display: none !important;
+  }
+  .equipment-desktop-polish .inventory-header-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    width: 100% !important;
+    gap: .45rem !important;
+  }
+  .equipment-desktop-polish .inventory-header-actions > button {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: .68rem .7rem !important;
+    border-radius: .9rem !important;
+    font-size: .78rem !important;
+  }
+  .equipment-desktop-polish .inventory-comfort-summary {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: .35rem !important;
+  }
+  .equipment-desktop-polish .inventory-comfort-card {
+    border-radius: .9rem !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    padding: .55rem .35rem !important;
+  }
+  .equipment-desktop-polish .inventory-comfort-value {
+    font-size: .92rem !important;
+  }
+  .equipment-desktop-polish .inventory-filter-heading {
+    padding: .72rem !important;
+  }
+  .equipment-desktop-polish .inventory-filter-heading > div:first-child .font-black {
+    font-size: .88rem !important;
+  }
+  .equipment-desktop-polish .inventory-filter-heading .flex.flex-wrap {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    width: 100% !important;
+    gap: .45rem !important;
+  }
+  .equipment-desktop-polish .inventory-filter-heading button,
+  .equipment-desktop-polish .inventory-filter-heading span {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: .62rem .65rem !important;
+    border-radius: .85rem !important;
+  }
+  .equipment-desktop-polish .inventory-filter-bar form,
+  .equipment-desktop-polish .inventory-filter-bar .p-3 {
+    padding: .7rem !important;
+  }
+  .equipment-desktop-polish .inventory-filter-bar input,
+  .equipment-desktop-polish .inventory-filter-bar select {
+    min-height: 42px !important;
+    border-radius: .9rem !important;
+    font-size: .82rem !important;
+  }
+  .equipment-desktop-polish .asset-profile-hero-card > .border-b {
+    padding: .78rem !important;
+    gap: .45rem !important;
+  }
+  .equipment-desktop-polish .asset-profile-hero-card .asset-profile-card-label {
+    display: none !important;
+  }
+  .equipment-desktop-polish .asset-profile-hero-card .overflow-x-auto {
+    overflow: visible !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table {
+    display: block !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table thead {
+    display: none !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table tbody,
+  .equipment-desktop-polish table.inventory-comfort-table tr,
+  .equipment-desktop-polish table.inventory-comfort-table td {
+    display: block !important;
+    width: 100% !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table tr.inventory-table-row {
+    margin: .65rem .6rem !important;
+    width: auto !important;
+    border: 1px solid rgba(148, 163, 184, .22) !important;
+    border-radius: 1.05rem !important;
+    overflow: hidden !important;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, .08) !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table td {
+    padding: .62rem .78rem !important;
+    border-bottom: 1px solid rgba(148, 163, 184, .14) !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table td:first-child {
+    position: absolute !important;
+    width: auto !important;
+    right: .9rem !important;
+    padding: .75rem !important;
+    border: 0 !important;
+    z-index: 1 !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table td:nth-child(2) {
+    padding-right: 3.2rem !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table td:nth-child(3)::before { content: 'หมวด / ฝ่ายดูแล'; }
+  .equipment-desktop-polish table.inventory-comfort-table td:nth-child(4)::before { content: 'ที่เก็บ'; }
+  .equipment-desktop-polish table.inventory-comfort-table td:nth-child(5)::before { content: 'สถานะ'; }
+  .equipment-desktop-polish table.inventory-comfort-table td:nth-child(6)::before { content: 'ข้อมูล'; }
+  .equipment-desktop-polish table.inventory-comfort-table td:nth-child(n+3)::before {
+    display: block;
+    margin-bottom: .28rem;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    opacity: .48;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table td:nth-child(7) {
+    border-bottom: 0 !important;
+  }
+  .equipment-desktop-polish .inventory-row-name-cell {
+    min-width: 0 !important;
+  }
+  .equipment-desktop-polish .inventory-row-name-cell .flex.items-start {
+    gap: .65rem !important;
+  }
+  .equipment-desktop-polish .inventory-row-icon {
+    width: 2.05rem !important;
+    height: 2.05rem !important;
+    border-radius: .85rem !important;
+  }
+  .equipment-desktop-polish .inventory-item-title {
+    max-width: calc(100vw - 9rem) !important;
+    font-size: .93rem !important;
+    line-height: 1.2 !important;
+  }
+  .equipment-desktop-polish .inventory-item-meta {
+    font-size: .72rem !important;
+  }
+  .equipment-desktop-polish .inventory-row-actions {
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: .42rem !important;
+  }
+  .equipment-desktop-polish .inventory-action-btn,
+  .equipment-desktop-polish .inventory-action-icon-only {
+    width: 100% !important;
+    min-height: 34px !important;
+    border-radius: .85rem !important;
+  }
+  .equipment-desktop-polish .inventory-action-btn span {
+    display: none !important;
+  }
+  .equipment-desktop-polish .inventory-selected-toolbar {
+    position: sticky !important;
+    bottom: .65rem !important;
+    z-index: 35 !important;
+    margin-inline: .35rem !important;
+    box-shadow: 0 18px 40px rgba(15,23,42,.2) !important;
+  }
+  .equipment-desktop-polish .inventory-selected-toolbar .flex.flex-wrap {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+  }
+  .equipment-desktop-polish .inventory-selected-toolbar button {
+    width: 100% !important;
+    font-size: .72rem !important;
+    padding: .62rem .5rem !important;
+  }
+}
+
+
 
 
 /* ===== v22.57.8 System Settings / Global Final Polish =====
@@ -13925,135 +14117,141 @@ S.N.: ${item.sn || '-'}
   
 
 
-
-/* v23.4.16.18.27 Unified Operation Card Theme Polish - Operation cards follow Inventory card language */
-.factory-stock-polish .operation-workspace-card.borrow-return-polish {
-  border-radius: 1.35rem !important;
-  border: 1px solid rgba(148,163,184,.22) !important;
-  box-shadow: 0 10px 28px rgba(15,23,42,.06) !important;
-  overflow: hidden !important;
-}
-.factory-stock-polish[data-polish-theme="dark"] .operation-workspace-card.borrow-return-polish {
-  background: rgba(2,6,23,.72) !important;
-  border-color: rgba(51,65,85,.88) !important;
-  box-shadow: 0 14px 36px rgba(0,0,0,.22) !important;
-}
-.factory-stock-polish[data-polish-theme="light"] .operation-workspace-card.borrow-return-polish {
-  background: #fff !important;
-  border-color: rgba(226,232,240,.95) !important;
-}
-.factory-stock-polish .operation-workspace-card.borrow-return-polish > div:first-child {
-  padding: .85rem 1rem !important;
-  background: transparent !important;
-}
-.factory-stock-polish .operation-workspace-card.borrow-return-polish > div:first-child h2 {
-  font-size: 1.12rem !important;
-  line-height: 1.2 !important;
-  letter-spacing: -.02em !important;
-}
-.factory-stock-polish .operation-workspace-card.borrow-return-polish > div:first-child p {
-  font-size: .78rem !important;
-  line-height: 1.35 !important;
-  max-width: 760px !important;
-}
-.factory-stock-polish .operation-workspace-card.borrow-return-polish > div:nth-child(2) {
-  padding: .85rem !important;
-}
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .asset-profile-hero-card,
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-set-panel,
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .editor-card,
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-folder-picker > div > div:first-child,
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-folder-picker > div > div[class*="rounded-2xl"] {
+/* v23.4.16.18.27.2 Unified Form & Stepper Theme Polish
+   Scope: UI only. Align borrow/event/return forms and stepper with Inventory card language. */
+.factory-stock-polish .operation-workspace-card.borrow-return-polish :is(section,.operation-set-panel,.operation-mobile-summary),
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) :is(.operation-mobile-summary,.operation-set-panel,.operation-item-preview),
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .space-y-2.max-h-40,
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .space-y-2.max-h-52,
+.factory-stock-polish .return-operation-modal .space-y-2.max-h-\[34vh\] {
   border-radius: 1.15rem !important;
+  border: 1px solid rgba(148,163,184,.22) !important;
+  background: color-mix(in srgb, var(--factory-card) 88%, var(--factory-bg)) !important;
+  box-shadow: 0 10px 24px rgba(15,23,42,.045) !important;
+}
+.factory-stock-polish[data-polish-theme="dark"] .operation-workspace-card.borrow-return-polish :is(section,.operation-set-panel,.operation-mobile-summary),
+.factory-stock-polish[data-polish-theme="dark"] :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) :is(.operation-mobile-summary,.operation-set-panel,.operation-item-preview),
+.factory-stock-polish[data-polish-theme="dark"] :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .space-y-2.max-h-40,
+.factory-stock-polish[data-polish-theme="dark"] :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .space-y-2.max-h-52,
+.factory-stock-polish[data-polish-theme="dark"] .return-operation-modal .space-y-2.max-h-\[34vh\] {
+  background: rgba(15,23,42,.72) !important;
+  box-shadow: 0 14px 30px rgba(0,0,0,.18) !important;
+}
+.factory-stock-polish .operation-workspace-card.borrow-return-polish :is(h3,h4),
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) :is(h3,h4) {
+  letter-spacing: -.02em;
+}
+.factory-stock-polish .operation-workspace-card.borrow-return-polish label:not(:has(input[type="checkbox"])),
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) label:not(:has(input[type="checkbox"])) {
+  display: block;
+  font-size: .78rem !important;
+  font-weight: 950 !important;
+  margin-bottom: .42rem !important;
+}
+.factory-stock-polish .operation-workspace-card.borrow-return-polish :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea),
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) {
+  min-height: 42px !important;
+  border-radius: .98rem !important;
+  border-color: rgba(148,163,184,.28) !important;
+  background: color-mix(in srgb, var(--factory-card) 94%, var(--factory-bg)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05) !important;
+  transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease !important;
+}
+.factory-stock-polish .operation-workspace-card.borrow-return-polish :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):focus,
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):focus {
+  border-color: rgba(59,130,246,.55) !important;
+  box-shadow: 0 0 0 3px rgba(59,130,246,.14) !important;
+  outline: none !important;
+}
+.factory-stock-polish .operation-workspace-card.borrow-return-polish textarea,
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) textarea {
+  min-height: 78px !important;
+  resize: vertical;
+}
+.factory-stock-polish .operation-step-row { gap: .55rem !important; }
+.factory-stock-polish .operation-step-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem !important;
+  background: color-mix(in srgb, var(--factory-card) 90%, var(--factory-bg)) !important;
   border-color: rgba(148,163,184,.22) !important;
-  box-shadow: none !important;
+  box-shadow: 0 8px 18px rgba(15,23,42,.045) !important;
 }
-.factory-stock-polish[data-polish-theme="dark"] .operation-workspace-card.borrow-return-polish .asset-profile-hero-card,
-.factory-stock-polish[data-polish-theme="dark"] .operation-workspace-card.borrow-return-polish .operation-set-panel,
-.factory-stock-polish[data-polish-theme="dark"] .operation-workspace-card.borrow-return-polish .editor-card {
-  background: rgba(15,23,42,.58) !important;
-  border-color: rgba(51,65,85,.72) !important;
+.factory-stock-polish .operation-step-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, rgba(16,185,129,.9), rgba(59,130,246,.8));
+  opacity: .85;
 }
-.factory-stock-polish[data-polish-theme="light"] .operation-workspace-card.borrow-return-polish .asset-profile-hero-card,
-.factory-stock-polish[data-polish-theme="light"] .operation-workspace-card.borrow-return-polish .operation-set-panel,
-.factory-stock-polish[data-polish-theme="light"] .operation-workspace-card.borrow-return-polish .editor-card {
-  background: #fff !important;
-  border-color: rgba(226,232,240,.95) !important;
+.factory-stock-polish .operation-step-card .operation-step-label {
+  font-size: .63rem !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase;
 }
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .asset-profile-hero-card > div:first-child {
-  padding: .85rem 1rem !important;
+.factory-stock-polish .operation-step-card .operation-step-value {
+  font-size: .98rem !important;
+  letter-spacing: -.02em;
 }
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .asset-profile-hero-card h3 {
-  font-size: 1.05rem !important;
-  line-height: 1.25 !important;
-  letter-spacing: -.015em !important;
-}
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .asset-profile-hero-card p {
-  font-size: .72rem !important;
-}
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-folder-picker {
-  padding: .75rem !important;
-  border-radius: 0 !important;
-}
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-picker-card,
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-folder-picker button.w-full.rounded-2xl {
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) label:has(input[type="checkbox"]),
+.factory-stock-polish .operation-workspace-card.borrow-return-polish label:has(input[type="checkbox"]),
+.factory-stock-polish .return-operation-modal label.return-set-card {
   border-radius: 1rem !important;
   border: 1px solid rgba(148,163,184,.22) !important;
-  padding: .72rem .78rem !important;
+  background: color-mix(in srgb, var(--factory-card) 92%, var(--factory-bg)) !important;
   box-shadow: none !important;
-  transition: transform .16s ease, border-color .16s ease, background-color .16s ease, box-shadow .16s ease !important;
+  transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease, background-color .15s ease !important;
 }
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-picker-card:hover,
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-folder-picker button.w-full.rounded-2xl:hover {
-  transform: translateY(-1px) !important;
-  box-shadow: 0 8px 18px rgba(15,23,42,.08) !important;
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) label:has(input[type="checkbox"]):hover,
+.factory-stock-polish .operation-workspace-card.borrow-return-polish label:has(input[type="checkbox"]):hover,
+.factory-stock-polish .return-operation-modal label.return-set-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(59,130,246,.36) !important;
+  box-shadow: 0 10px 22px rgba(15,23,42,.07) !important;
 }
-.factory-stock-polish[data-polish-theme="dark"] .operation-workspace-card.borrow-return-polish .operation-picker-card:hover,
-.factory-stock-polish[data-polish-theme="dark"] .operation-workspace-card.borrow-return-polish .operation-folder-picker button.w-full.rounded-2xl:hover {
-  box-shadow: 0 12px 24px rgba(0,0,0,.22) !important;
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) input[type="checkbox"],
+.factory-stock-polish .operation-workspace-card.borrow-return-polish input[type="checkbox"] {
+  border-radius: .42rem !important;
+  accent-color: #2563eb;
 }
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-picker-card :is(.rounded-xl,.rounded-2xl),
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-folder-picker button.w-full.rounded-2xl :is(.rounded-xl,.rounded-2xl) {
-  border-radius: .85rem !important;
+.factory-stock-polish .operation-sticky-actions,
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) > .flex.gap-3 {
+  border-radius: 1.15rem !important;
+  border: 1px solid rgba(148,163,184,.18) !important;
+  background: color-mix(in srgb, var(--factory-card) 94%, transparent) !important;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 -8px 22px rgba(15,23,42,.06) !important;
+  padding: .65rem !important;
 }
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-picker-card [class*="text-sm"],
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-folder-picker button.w-full.rounded-2xl [class*="text-sm"] {
-  letter-spacing: -.01em;
-}
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-picker-card span[class*="rounded-full"],
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-folder-picker button.w-full.rounded-2xl span[class*="rounded-full"] {
-  border-radius: 999px !important;
-  padding-inline: .5rem !important;
-  padding-block: .16rem !important;
-  font-size: .62rem !important;
-}
-.factory-stock-polish .operation-workspace-card.borrow-return-polish input:not([type="checkbox"]):not([type="radio"]),
-.factory-stock-polish .operation-workspace-card.borrow-return-polish select,
-.factory-stock-polish .operation-workspace-card.borrow-return-polish textarea {
-  border-radius: .95rem !important;
-  min-height: 40px !important;
-}
-.factory-stock-polish .operation-workspace-card.borrow-return-polish button {
+.factory-stock-polish .operation-sticky-actions > button,
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) > .flex.gap-3 > button,
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) button {
   border-radius: .95rem !important;
 }
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .grid.grid-cols-2.gap-3 > button,
-.factory-stock-polish .operation-workspace-card.borrow-return-polish button[class*="py-4"] {
-  min-height: 44px !important;
-  padding-top: .7rem !important;
-  padding-bottom: .7rem !important;
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) button:not(:disabled):hover,
+.factory-stock-polish .operation-workspace-card.borrow-return-polish button:not(:disabled):hover {
+  transform: translateY(-1px);
 }
-.factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-step-card {
-  border-radius: .95rem !important;
+.factory-stock-polish .operation-workspace-card.borrow-return-polish .grid.grid-cols-1.md\:grid-cols-2.gap-4,
+.factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) .grid.grid-cols-1.sm\:grid-cols-2 {
+  gap: .75rem !important;
 }
-@media (max-width: 1280px) {
+@media (min-width: 768px) {
+  .factory-stock-polish :is(.borrow-operation-modal,.event-operation-modal,.return-operation-modal,.operational-modal-shell) {
+    width: min(680px, calc(100vw - 48px)) !important;
+    max-width: min(680px, calc(100vw - 48px)) !important;
+    border-radius: 1.55rem !important;
+    padding: 1.15rem !important;
+  }
   .factory-stock-polish .operation-workspace-card.borrow-return-polish > div:first-child,
-  .factory-stock-polish .operation-workspace-card.borrow-return-polish > div:nth-child(2),
-  .factory-stock-polish .operation-workspace-card.borrow-return-polish .asset-profile-hero-card > div:first-child {
-    padding: .75rem !important;
+  .factory-stock-polish .operation-workspace-card.borrow-return-polish > div:nth-child(2) {
+    padding: 1rem !important;
   }
-  .factory-stock-polish .operation-workspace-card.borrow-return-polish .operation-folder-picker {
-    max-height: calc(100vh - 300px) !important;
-  }
+}
+@media (max-width: 767px) {
+  .factory-stock-polish .operation-step-row { grid-template-columns: 1fr !important; }
+  .factory-stock-polish .operation-step-card { padding: .65rem .75rem !important; }
 }
 
       `}</style>
