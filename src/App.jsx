@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.25 Event Return Slip Formal Match Polish';
+const APP_VERSION = 'v23.4.16.18.27.1 Mobile Admin Menu Bottom Sheet Polish';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -7084,6 +7084,357 @@ button[class*="orange"]:not(:disabled) {
     padding-bottom: .65rem !important;
   }
 }
+
+
+/* v23.4.16.18.27 Mobile Responsive Inventory Polish - เก็บหน้า Inventory สำหรับมือถือ/iPad แนวตั้งให้สวยขึ้น โดยไม่แตะ flow ยืม/คืน/QR/Reports */
+@media (max-width: 768px) {
+  .equipment-desktop-polish.equipment-inventory-page {
+    gap: .75rem !important;
+  }
+  .equipment-desktop-polish .inventory-macbook-trim {
+    padding: .78rem !important;
+    gap: .65rem !important;
+  }
+  .equipment-desktop-polish .inventory-macbook-title {
+    font-size: 1.08rem !important;
+    line-height: 1.08 !important;
+  }
+  .equipment-desktop-polish .inventory-macbook-desc,
+  .equipment-desktop-polish .inventory-comfort-name,
+  .equipment-desktop-polish .inventory-comfort-label {
+    display: none !important;
+  }
+  .equipment-desktop-polish .inventory-header-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    width: 100% !important;
+    gap: .45rem !important;
+  }
+  .equipment-desktop-polish .inventory-header-actions > button {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: .68rem .7rem !important;
+    border-radius: .9rem !important;
+    font-size: .78rem !important;
+  }
+  .equipment-desktop-polish .inventory-comfort-summary {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: .35rem !important;
+  }
+  .equipment-desktop-polish .inventory-comfort-card {
+    border-radius: .9rem !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    padding: .55rem .35rem !important;
+  }
+  .equipment-desktop-polish .inventory-comfort-value {
+    font-size: .92rem !important;
+  }
+  .equipment-desktop-polish .inventory-filter-heading {
+    padding: .72rem !important;
+  }
+  .equipment-desktop-polish .inventory-filter-heading > div:first-child .font-black {
+    font-size: .88rem !important;
+  }
+  .equipment-desktop-polish .inventory-filter-heading .flex.flex-wrap {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    width: 100% !important;
+    gap: .45rem !important;
+  }
+  .equipment-desktop-polish .inventory-filter-heading button,
+  .equipment-desktop-polish .inventory-filter-heading span {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: .62rem .65rem !important;
+    border-radius: .85rem !important;
+  }
+  .equipment-desktop-polish .inventory-filter-bar form,
+  .equipment-desktop-polish .inventory-filter-bar .p-3 {
+    padding: .7rem !important;
+  }
+  .equipment-desktop-polish .inventory-filter-bar input,
+  .equipment-desktop-polish .inventory-filter-bar select {
+    min-height: 42px !important;
+    border-radius: .9rem !important;
+    font-size: .82rem !important;
+  }
+  .equipment-desktop-polish .asset-profile-hero-card > .border-b {
+    padding: .78rem !important;
+    gap: .45rem !important;
+  }
+  .equipment-desktop-polish .asset-profile-hero-card .asset-profile-card-label {
+    display: none !important;
+  }
+  .equipment-desktop-polish .asset-profile-hero-card .overflow-x-auto {
+    overflow: visible !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table {
+    display: block !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table thead {
+    display: none !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table tbody,
+  .equipment-desktop-polish table.inventory-comfort-table tr,
+  .equipment-desktop-polish table.inventory-comfort-table td {
+    display: block !important;
+    width: 100% !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table tr.inventory-table-row {
+    margin: .65rem .6rem !important;
+    width: auto !important;
+    border: 1px solid rgba(148, 163, 184, .22) !important;
+    border-radius: 1.05rem !important;
+    overflow: hidden !important;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, .08) !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table td {
+    padding: .62rem .78rem !important;
+    border-bottom: 1px solid rgba(148, 163, 184, .14) !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table td:first-child {
+    position: absolute !important;
+    width: auto !important;
+    right: .9rem !important;
+    padding: .75rem !important;
+    border: 0 !important;
+    z-index: 1 !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table td:nth-child(2) {
+    padding-right: 3.2rem !important;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table td:nth-child(3)::before { content: 'หมวด / ฝ่ายดูแล'; }
+  .equipment-desktop-polish table.inventory-comfort-table td:nth-child(4)::before { content: 'ที่เก็บ'; }
+  .equipment-desktop-polish table.inventory-comfort-table td:nth-child(5)::before { content: 'สถานะ'; }
+  .equipment-desktop-polish table.inventory-comfort-table td:nth-child(6)::before { content: 'ข้อมูล'; }
+  .equipment-desktop-polish table.inventory-comfort-table td:nth-child(n+3)::before {
+    display: block;
+    margin-bottom: .28rem;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    opacity: .48;
+  }
+  .equipment-desktop-polish table.inventory-comfort-table td:nth-child(7) {
+    border-bottom: 0 !important;
+  }
+  .equipment-desktop-polish .inventory-row-name-cell {
+    min-width: 0 !important;
+  }
+  .equipment-desktop-polish .inventory-row-name-cell .flex.items-start {
+    gap: .65rem !important;
+  }
+  .equipment-desktop-polish .inventory-row-icon {
+    width: 2.05rem !important;
+    height: 2.05rem !important;
+    border-radius: .85rem !important;
+  }
+  .equipment-desktop-polish .inventory-item-title {
+    max-width: calc(100vw - 9rem) !important;
+    font-size: .93rem !important;
+    line-height: 1.2 !important;
+  }
+  .equipment-desktop-polish .inventory-item-meta {
+    font-size: .72rem !important;
+  }
+  .equipment-desktop-polish .inventory-row-actions {
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: .42rem !important;
+  }
+  .equipment-desktop-polish .inventory-action-btn,
+  .equipment-desktop-polish .inventory-action-icon-only {
+    width: 100% !important;
+    min-height: 34px !important;
+    border-radius: .85rem !important;
+  }
+  .equipment-desktop-polish .inventory-action-btn span {
+    display: none !important;
+  }
+  .equipment-desktop-polish .inventory-selected-toolbar {
+    position: sticky !important;
+    bottom: .65rem !important;
+    z-index: 35 !important;
+    margin-inline: .35rem !important;
+    box-shadow: 0 18px 40px rgba(15,23,42,.2) !important;
+  }
+  .equipment-desktop-polish .inventory-selected-toolbar .flex.flex-wrap {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+  }
+  .equipment-desktop-polish .inventory-selected-toolbar button {
+    width: 100% !important;
+    font-size: .72rem !important;
+    padding: .62rem .5rem !important;
+  }
+}
+
+/* v23.4.16.18.27.1 Mobile Admin Menu Bottom Sheet Polish - ทำเมนูเพิ่มเติมบนมือถือเป็น bottom sheet กระชับ อ่านง่าย ไม่แตะ flow/QR/Reports */
+@media (max-width: 768px) {
+  .factory-stock-polish .mobile-more-menu-overlay {
+    align-items: flex-end !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    background: rgba(2, 6, 23, .62) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+  }
+  .factory-stock-polish .mobile-more-menu-shell {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 88dvh !important;
+    border-radius: 24px 24px 0 0 !important;
+    border-bottom: 0 !important;
+    box-shadow: 0 -18px 55px rgba(2, 6, 23, .35) !important;
+  }
+  .factory-stock-polish .mobile-more-menu-shell::before {
+    content: '';
+    display: block;
+    width: 44px;
+    height: 5px;
+    border-radius: 999px;
+    margin: 10px auto 0;
+    background: rgba(148, 163, 184, .55);
+  }
+  .factory-stock-polish .mobile-more-menu-shell > .border-b {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 2 !important;
+    padding: .85rem 1rem .75rem !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+  }
+  .factory-stock-polish .mobile-more-menu-shell h3 {
+    font-size: 1.05rem !important;
+    line-height: 1.15 !important;
+    gap: .55rem !important;
+  }
+  .factory-stock-polish .mobile-more-menu-shell h3 > div {
+    width: 34px !important;
+    height: 34px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 14px !important;
+    flex: 0 0 auto !important;
+  }
+  .factory-stock-polish .mobile-more-menu-shell h3 svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  .factory-stock-polish .mobile-more-menu-shell h3 + p {
+    display: none !important;
+  }
+  .factory-stock-polish .mobile-more-menu-body {
+    max-height: calc(88dvh - 76px) !important;
+    padding: .8rem .9rem max(1rem, env(safe-area-inset-bottom)) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: .82rem !important;
+  }
+  .factory-stock-polish .mobile-more-menu-body > .asset-profile-info-card:first-child {
+    padding: .75rem !important;
+    border-radius: 18px !important;
+  }
+  .factory-stock-polish .mobile-more-menu-body > .asset-profile-info-card:first-child .asset-profile-section-title {
+    font-size: .92rem !important;
+  }
+  .factory-stock-polish .mobile-more-menu-body > .asset-profile-info-card:first-child p {
+    display: none !important;
+  }
+  .factory-stock-polish .mobile-more-menu-body > .asset-profile-info-card:first-child .flex.gap-2 {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .factory-stock-polish .mobile-more-menu-body > .asset-profile-info-card:first-child button {
+    padding: .6rem .55rem !important;
+    border-radius: .85rem !important;
+    font-size: .76rem !important;
+  }
+  .factory-stock-polish .more-menu-overview {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: .42rem !important;
+  }
+  .factory-stock-polish .more-menu-overview .asset-profile-info-card {
+    padding: .6rem .35rem !important;
+    text-align: center !important;
+    border-radius: 16px !important;
+  }
+  .factory-stock-polish .more-menu-overview .asset-profile-info-card .text-xs:first-child,
+  .factory-stock-polish .more-menu-overview .asset-profile-info-card .text-xs:last-child {
+    font-size: .58rem !important;
+    line-height: 1.05 !important;
+  }
+  .factory-stock-polish .more-menu-overview .asset-profile-info-card .text-2xl {
+    font-size: 1rem !important;
+    line-height: 1 !important;
+    margin-top: .18rem !important;
+  }
+  .factory-stock-polish .mobile-more-menu-body h4 {
+    margin: .25rem 0 .45rem !important;
+    font-size: .88rem !important;
+    letter-spacing: -.01em !important;
+  }
+  .factory-stock-polish .mobile-more-menu-body h4 svg {
+    width: 17px !important;
+    height: 17px !important;
+  }
+  .factory-stock-polish .mobile-more-menu-body .grid {
+    gap: .5rem !important;
+  }
+  .factory-stock-polish .mobile-more-menu-body .grid > button {
+    min-height: 58px !important;
+    padding: .75rem !important;
+    border-radius: 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: .65rem !important;
+    text-align: left !important;
+  }
+  .factory-stock-polish .mobile-more-menu-body .grid > button .font-black.text-lg {
+    font-size: .9rem !important;
+    line-height: 1.15 !important;
+    gap: .55rem !important;
+    min-width: 0 !important;
+  }
+  .factory-stock-polish .mobile-more-menu-body .grid > button .font-black.text-lg svg {
+    width: 18px !important;
+    height: 18px !important;
+    flex: 0 0 auto !important;
+  }
+  .factory-stock-polish .mobile-more-menu-body .grid > button p {
+    display: none !important;
+  }
+  .factory-stock-polish .mobile-more-menu-body .grid > button::after {
+    content: '›';
+    font-size: 1.35rem;
+    line-height: 1;
+    font-weight: 900;
+    opacity: .42;
+    flex: 0 0 auto;
+  }
+}
+@media (max-width: 390px) {
+  .factory-stock-polish .more-menu-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .factory-stock-polish .mobile-more-menu-body .grid > button {
+    min-height: 54px !important;
+    padding: .66rem !important;
+  }
+}
+
 
 
 
