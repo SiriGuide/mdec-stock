@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27 Mobile Responsive Inventory Polish';
+const APP_VERSION = 'v23.4.16.18.27.5 Records Workspace Visual Polish';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -13449,14 +13449,10 @@ S.N.: ${item.sn || '-'}
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className={`rounded-2xl border px-4 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className={`rounded-2xl border px-4 py-3 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                         <div className="min-w-0">
-                          <div className={`text-sm font-black ${theme.textTitle}`}>รายการรายการที่เลือกได้</div>
+                          <div className={`text-sm font-black ${theme.textTitle}`}>รายการที่เลือกได้</div>
                           <div className={`text-[11px] font-bold mt-0.5 ${theme.textMuted}`}>{borrowReturnMode === 'return' ? 'ด้านบนคือการ์ดกลุ่ม ส่วนรายการนี้เป็นรายการเดี่ยว/สำรองสำหรับกรณีต้องเลือกเฉพาะชิ้น' : 'เรียงเป็นแถวแนวตั้ง เลือกทีละชิ้นหรือใช้ตัวกรองด้านบนให้เหลือเฉพาะของที่ต้องการ'}</div>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 shrink-0">
-                          <button type="button" onClick={() => selectOperationViewItems(operationalItems)} className={`px-2 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เลือกที่เห็น</button>
-                          <button type="button" onClick={clearOperationSelection} className={`px-2 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>ล้างเลือก</button>
                         </div>
                       </div>
                       <div className="space-y-2.5">
@@ -13497,7 +13493,7 @@ S.N.: ${item.sn || '-'}
                       <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>'กรอกรายละเอียด ตรวจรายการ สแกนเช็ก QR หรือเช็กด้วยมือ แล้วกดยืนยันรายการ'</p>
                     </div>
                     {isOperationDetailsStep && (
-                      <button type="button" onClick={() => setBorrowReturnStage('select')} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>← กลับไปเลือกอุปกรณ์</button>
+                      <button type="button" onClick={() => setBorrowReturnStage('select')} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>← กลับไปเลือกอุปกรณ์</button>
                     )}
                   </div>
                 </div>
@@ -15366,13 +15362,6 @@ S.N.: ${item.sn || '-'}
       ['history', 'ประวัติส่วนกลาง', filteredHistoryCenterEntries.length, 'ค้นจากทุกอุปกรณ์'],
       ['proofs', 'รูปหลักฐาน', filteredProofGroups.length, 'รูปเป็นข้อมูลเสริม']
     ];
-    const recordsFilterCards = [
-      { id: 'all', label: 'ทั้งหมด', value: recordsDocStats.total, hint: 'เอกสารที่เก็บไว้', tone: isDarkMode ? 'bg-blue-950/35 text-blue-100 border-blue-800/70' : 'bg-blue-50 text-blue-800 border-blue-200' },
-      { id: 'active', label: 'รอคืน', value: recordsDocStats.active, hint: 'ยังค้างอยู่', tone: isDarkMode ? 'bg-amber-950/35 text-amber-100 border-amber-800/70' : 'bg-amber-50 text-amber-800 border-amber-200' },
-      { id: 'partial', label: 'คืนบางส่วน', value: recordsDocStats.partial, hint: 'ยังไม่ครบ', tone: isDarkMode ? 'bg-purple-950/35 text-purple-100 border-purple-800/70' : 'bg-purple-50 text-purple-800 border-purple-200' },
-      { id: 'closed', label: 'คืนครบแล้ว', value: recordsDocStats.closed, hint: 'ปิดเอกสาร', tone: isDarkMode ? 'bg-emerald-950/35 text-emerald-100 border-emerald-800/70' : 'bg-emerald-50 text-emerald-800 border-emerald-200' },
-      { id: 'event', label: 'ใบออกงาน', value: recordsDocStats.event, hint: 'งาน/กิจกรรม', tone: isDarkMode ? 'bg-orange-950/35 text-orange-100 border-orange-800/70' : 'bg-orange-50 text-orange-800 border-orange-200' },
-    ];
     const getRecordsDocMeta = (docData = {}) => {
       const itemCount = Array.isArray(docData.items) ? docData.items.length : (Array.isArray(docData.itemIds) ? docData.itemIds.length : 0);
       const returnedCount = Array.isArray(docData.returnedItemIds) ? docData.returnedItemIds.length : 0;
@@ -15443,14 +15432,14 @@ S.N.: ${item.sn || '-'}
       }
     };
     return (
-      <div className="page-workspace-shell records-workspace space-y-5">
+      <div className="page-workspace-shell records-workspace space-y-4">
         {renderWorkspaceTabs()}
-        <div className={`rounded-[1.8rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
-          <div className={`p-3 sm:p-5 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-3 ${theme.divide}`}>
+        <div className={`rounded-[1.65rem] border shadow-sm overflow-hidden ${theme.cardBg}`}>
+          <div className={`p-3 sm:p-4 border-b flex flex-col xl:flex-row xl:items-start justify-between gap-3 ${theme.divide}`}>
             <div>
               <div className={`text-xs font-black tracking-[0.18em] uppercase ${isDarkMode ? 'text-indigo-300' : 'text-indigo-600'}`}>RECORDS</div>
               <h2 className={`text-xl font-black mt-1 ${theme.textTitle}`}>เอกสาร / ประวัติ / หลักฐาน</h2>
-              <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>ค้นย้อนหลัง เปิดดูเอกสาร พิมพ์เอกสาร ไล่ประวัติ และจัดการรูปหลักฐานจากหน้าเดียว</p>
+              <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ค้นย้อนหลัง เปิดเอกสาร พิมพ์เอกสาร ไล่ประวัติ และจัดการรูปหลักฐานจากหน้าเดียว</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={() => { setBorrowDocSearch(''); setBorrowDocFilter('all'); setHistoryCenterSearch(''); setHistoryCenterFilter('all'); setProofCenterSearch(''); setProofCenterFilter('all'); }} className={`px-4 py-2.5 rounded-2xl border font-black ${theme.btnSecondary}`}>ล้างคำค้น</button>
@@ -15459,33 +15448,24 @@ S.N.: ${item.sn || '-'}
           </div>
 
           <div className="p-3 sm:p-3 space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
               {recordTabs.map(([id, label, count, hint]) => (
-                <button key={id} type="button" onClick={() => setRecordsCenterMode(id)} className={`px-3 py-2.5 rounded-xl border text-left font-black ${recordsCenterMode === id ? 'bg-blue-950/35 text-blue-100 border border-blue-500/50 shadow-md' : theme.btnSecondary}`}>
+                <button key={id} type="button" onClick={() => setRecordsCenterMode(id)} className={`px-3.5 py-2.5 rounded-2xl border text-left font-black transition-all ${recordsCenterMode === id ? 'bg-blue-950/35 text-blue-100 border-blue-500/50 shadow-md' : theme.btnSecondary}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div>{label}</div>
                       <div className={`text-[11px] font-bold mt-0.5 ${recordsCenterMode === id ? 'text-blue-100/75' : theme.textMuted}`}>{hint}</div>
                     </div>
-                    <div className={`text-2xl font-black ${recordsCenterMode === id ? 'text-white' : theme.textTitle}`}>{Number(count || 0).toLocaleString('th-TH')}</div>
+                    <div className={`text-xl font-black ${recordsCenterMode === id ? 'text-white' : theme.textTitle}`}>{Number(count || 0).toLocaleString('th-TH')}</div>
                   </div>
                 </button>
               ))}
             </div>
 
             {recordsCenterMode === 'docs' && (
-              <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <div className={`px-3 sm:px-4 py-3 border-b ${theme.divide}`}>
-                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mb-3">
-                    {recordsFilterCards.map(card => (
-                      <button key={card.id} type="button" onClick={() => setBorrowDocFilter(card.id)} className={`rounded-2xl border p-3 text-left transition-all ${borrowDocFilter === card.id ? `${card.tone} ring-2 ring-blue-500/20` : theme.btnSecondary}`}>
-                        <div className="text-[11px] font-black opacity-80">{card.label}</div>
-                        <div className="text-2xl font-black mt-1">{Number(card.value || 0).toLocaleString('th-TH')}</div>
-                        <div className="text-[11px] font-bold mt-0.5 opacity-75">{card.hint}</div>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px_auto] gap-3">
+              <div className={`rounded-[1.35rem] border overflow-hidden shadow-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className={`p-3 border-b ${theme.divide}`}>
+                  <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px_auto] gap-2.5">
                     <div className="relative">
                       <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${theme.textMuted}`} />
                       <input className={`w-full pl-11 pr-3.5 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาเลขที่เอกสาร / ผู้ยืม / ชื่องาน / วันที่ / อุปกรณ์ / S.N." value={borrowDocSearch} onChange={e => setBorrowDocSearch(e.target.value)} />
@@ -15501,7 +15481,7 @@ S.N.: ${item.sn || '-'}
                     <div className={`px-3.5 py-2.5 rounded-xl border font-black text-center text-sm ${theme.btnSecondary}`}>{filteredBorrowเอกสารs.length.toLocaleString('th-TH')} เอกสาร</div>
                   </div>
                 </div>
-                <div className="p-3 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
+                <div className="p-2.5 sm:p-3 page-mode-list overflow-y-auto custom-scrollbar space-y-2.5">
                   {filteredBorrowเอกสารs.length === 0 ? (
                     <div className={`p-8 rounded-2xl border text-center ${theme.textMuted}`}>
                       <Icons.Search className="w-10 h-10 mx-auto mb-3 opacity-60" />
@@ -15513,7 +15493,7 @@ S.N.: ${item.sn || '-'}
                     const meta = getRecordsDocMeta(docData);
                     const previewItems = asArray(docData.items).slice(0, 4);
                     return (
-                      <div key={docData.id || docData.ref} className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                      <div key={docData.id || docData.ref} className={`p-3 rounded-2xl border transition-all ${isDarkMode ? 'bg-slate-900/80 border-slate-800 hover:border-slate-700' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
                         <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -15522,9 +15502,9 @@ S.N.: ${item.sn || '-'}
                               <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>{meta.itemCount.toLocaleString('th-TH')} รายการ</span>
                               {meta.proofCount > 0 ? <span className="px-2.5 py-1 rounded-xl border text-[11px] font-black bg-pink-500/10 text-pink-500 border-pink-500/20">หลักฐาน {meta.proofCount}</span> : <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-500' : 'bg-white border-slate-200 text-slate-400'}`}>ไม่มีรูปหลักฐาน</span>}
                             </div>
-                            <div className={`font-black text-lg truncate ${theme.textTitle}`}>{docData.ref || docData.id || '-'} • {meta.title}</div>
+                            <div className={`font-black text-base sm:text-lg truncate ${theme.textTitle}`}>{docData.ref || docData.id || '-'} • {meta.title}</div>
                             <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{meta.ownerText} • วันที่ {meta.dateText}</div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-3">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2.5">
                               <div className={`rounded-xl px-3 py-2 ${isDarkMode ? 'bg-slate-950/65' : 'bg-white'}`}>
                                 <div className={`text-[11px] font-black ${theme.textMuted}`}>กำหนดคืน</div>
                                 <div className={`text-sm font-black truncate ${theme.textTitle}`}>{meta.dueText}</div>
@@ -15546,10 +15526,10 @@ S.N.: ${item.sn || '-'}
                             {docData.note && <div className={`mt-2 text-xs font-bold rounded-xl px-3 py-2 ${isDarkMode ? 'bg-amber-950/20 text-amber-200' : 'bg-amber-50 text-amber-700'}`}>หมายเหตุ: {docData.note}</div>}
                             {meta.proofCount === 0 && <div className={`mt-2 text-xs font-bold rounded-xl px-3 py-2 border ${isDarkMode ? 'bg-slate-950/35 border-slate-800/55 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>ไม่มีรูปหลักฐานแนบกับเอกสารนี้ แต่ยังตรวจสอบสถานะได้จากเอกสารและประวัติการยืม/คืน</div>}
                           </div>
-                          <div className="grid grid-cols-2 xl:grid-cols-1 gap-2 shrink-0 xl:min-w-[150px]">
-                            <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-black shadow-sm">พิมพ์เอกสาร</button>
-                            <button type="button" onClick={() => openDocHistorySearch(docData)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
-                            <button type="button" onClick={() => copyDocSummary(docData)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>คัดลอกสรุป</button>
+                          <div className="grid grid-cols-2 xl:grid-cols-1 gap-1.5 shrink-0 xl:min-w-[142px]">
+                            <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-black shadow-sm">พิมพ์เอกสาร</button>
+                            <button type="button" onClick={() => openDocHistorySearch(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
+                            <button type="button" onClick={() => copyDocSummary(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>คัดลอกสรุป</button>
                             {meta.status !== 'closed' && <button type="button" onClick={() => { setTrackingSearch(docData.ref || meta.ownerText || ''); openWorkspace('tracking'); }} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black shadow-sm">ติดตามคืน</button>}
                             {canDeleteItems && (
                               <button type="button" onClick={() => handleDeleteBorrowเอกสาร(docData)} className={`col-span-2 xl:col-span-1 px-3 py-2 rounded-xl border text-sm font-black ${isDarkMode ? 'bg-rose-950/35 border-rose-800/70 text-rose-200 hover:bg-rose-900/50' : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'}`}>ลบ</button>
@@ -15582,18 +15562,18 @@ S.N.: ${item.sn || '-'}
                   <div className={`p-3 border-b flex flex-col xl:flex-row xl:items-center justify-between gap-3 ${theme.divide}`}>
                     <div className="flex flex-wrap items-center gap-2">
                       <button type="button" onClick={() => setHistoryGroupMode(prev => !prev)} className={`px-3 py-2 rounded-xl border text-sm font-black ${historyGroupMode ? 'bg-slate-800 border-slate-800/55 text-white' : theme.btnSecondary}`}>{historyGroupMode ? 'มุมมองกลุ่ม' : 'มุมมองรายการเดี่ยว'}</button>
-                      <button type="button" onClick={() => setSelectedHistoryRecordIds(selectedVisibleHistoryIds)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เลือกที่แสดง</button>
-                      <button type="button" onClick={clearHistorySelection} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>ล้างเลือก</button>
+                      <button type="button" onClick={() => setSelectedHistoryRecordIds(selectedVisibleHistoryIds)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>เลือกที่แสดง</button>
+                      <button type="button" onClick={clearHistorySelection} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>ล้างเลือก</button>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>เลือกแล้ว {selectedHistoryRecordIds.length.toLocaleString('th-TH')} รายการ</div>
+                      <div className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>เลือกแล้ว {selectedHistoryRecordIds.length.toLocaleString('th-TH')} รายการ</div>
                       <button type="button" onClick={handleSoftDeleteSelectedHistory} disabled={selectedHistoryRecordIds.length === 0 || isBusy} className={`px-4 py-2 rounded-xl text-sm font-black ${selectedHistoryRecordIds.length === 0 || isBusy ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}>ย้ายลงถังขยะ</button>
                       <button type="button" onClick={handlePurgeNoiseHistoryLogs} disabled={isBusy} className={`px-4 py-2 rounded-xl text-sm font-black border ${isBusy ? 'bg-slate-800 border-slate-800/55 text-slate-500 cursor-not-allowed' : 'bg-amber-950/45 border-amber-500/40 text-amber-200 hover:bg-amber-700 hover:text-white'}`}>ลบ log จิปาถะ</button>
                       <button type="button" onClick={handlePurgeDeletedHistory} disabled={softDeletedHistoryEntries.length === 0 || isBusy} className={`px-4 py-2 rounded-xl text-sm font-black border ${softDeletedHistoryEntries.length === 0 || isBusy ? 'bg-slate-800 border-slate-800/55 text-slate-500 cursor-not-allowed' : 'bg-red-950/50 border-red-500/40 text-red-200 hover:bg-red-700 hover:text-white'}`}>ลบถาวรในถังขยะ {softDeletedHistoryEntries.length.toLocaleString('th-TH')}</button>
                     </div>
                   </div>
                 )}
-                <div className="p-3 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
+                <div className="p-2.5 sm:p-3 page-mode-list overflow-y-auto custom-scrollbar space-y-2.5">
                   {filteredHistoryCenterEntries.length === 0 ? <div className={`p-8 rounded-2xl border text-center font-black ${theme.textMuted}`}>ไม่พบประวัติ</div> : groupedHistoryCenterEntries.slice(0, 180).map(entry => {
                     const rowsInGroup = entry.groupRows || [entry];
                     const isGroup = historyGroupMode && rowsInGroup.length > 1;
@@ -15819,7 +15799,7 @@ S.N.: ${item.sn || '-'}
                   </div>
                 </div>
 
-                <div className="p-3 page-mode-list overflow-y-auto custom-scrollbar space-y-3">
+                <div className="p-2.5 sm:p-3 page-mode-list overflow-y-auto custom-scrollbar space-y-2.5">
                   {filteredCentralTrashEntries.length === 0 ? (
                     <div className={`p-8 rounded-2xl border text-center font-black ${theme.textMuted}`}>ถังขยะกลางว่างอยู่</div>
                   ) : filteredCentralTrashEntries.slice(0, 220).map(entry => (
@@ -16457,8 +16437,8 @@ S.N.: ${item.sn || '-'}
                           <div className={`inline-flex mt-2 px-2.5 py-1 rounded-xl border text-xs font-black ${isDarkMode ? statusInfo.darkColor : statusInfo.color}`}>ยังไม่เข้าคลังใช้งาน</div>
                         </button>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
-                          <button type="button" onClick={() => openItemProfile(item.id)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>แฟ้ม</button>
-                          {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className={`px-3 py-2 rounded-xl border text-sm font-black ${theme.btnSecondary}`}>แก้ไข</button>}
+                          <button type="button" onClick={() => openItemProfile(item.id)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>แฟ้ม</button>
+                          {canAddEditItems && <button type="button" onClick={() => openItemEditor(item)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>แก้ไข</button>}
                           {canAddEditItems && <button type="button" onClick={() => handleMoveWarehouseItemToStock(item)} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black col-span-2 sm:col-span-1">เบิกเข้าคลัง</button>}
                         </div>
                       </div>
