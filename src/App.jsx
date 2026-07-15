@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.8 Document Safety Check UI Severity Polish';
+const APP_VERSION = 'v23.4.16.18.27.9 Document Item Amendment Preview Mode';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -7598,6 +7598,10 @@ function MainApp() {
   const [docEditTarget, setDocEditTarget] = useState(null);
   const [docEditForm, setDocEditForm] = useState({ subject: '', documentDate: '', expectedReturn: '', staffOut: '', note: '' });
   const [docSafetyTarget, setDocSafetyTarget] = useState(null);
+  const [docAmendPreviewTarget, setDocAmendPreviewTarget] = useState(null);
+  const [docAmendPreviewSearch, setDocAmendPreviewSearch] = useState('');
+  const [docAmendPreviewItemId, setDocAmendPreviewItemId] = useState('');
+  const [docAmendPreviewReason, setDocAmendPreviewReason] = useState('ลืมบันทึกรายการตอนจ่ายของจริง');
   const [recordsCenterMode, setRecordsCenterMode] = useState('docs');
   const [showPersonalItemsModal, setShowPersonalItemsModal] = useState(false);
   const [showProjectsModal, setShowProjectsModal] = useState(false);
@@ -8720,6 +8724,43 @@ function MainApp() {
   };
 
   const closeBorrowDocSafetyCheck = () => setDocSafetyTarget(null);
+
+  const getBorrowDocAmendCandidateItems = (docData = {}, search = '') => {
+    const linkedIds = new Set(getBorrowDocLinkedItemIds(docData).map(id => String(id)));
+    const q = String(search || '').trim().toLowerCase();
+    return asArray(items)
+      .filter(item => item && String(item.id || '').trim())
+      .filter(item => !linkedIds.has(String(item.id)))
+      .filter(item => (item.status || 'available') === 'available')
+      .filter(item => !(item.deleted || item.isDeleted || item.archived || item.isArchived))
+      .filter(item => {
+        if (!q) return true;
+        const haystack = [item.name, item.sn, item.shortCode, item.category, item.department, item.ownerDepartment, item.location, item.storageLocation, item.storageBoxName].map(v => String(v || '').toLowerCase()).join(' ');
+        return haystack.includes(q);
+      })
+      .slice(0, 80);
+  };
+
+  const openBorrowDocItemAmendPreview = (docData = {}) => {
+    if (!docData) return;
+    if (!canUseOperationalTools) return alert('บัญชีนี้ไม่มีสิทธิ์ทดลองแก้รายการเอกสาร');
+    const safety = getBorrowDocItemSafety(docData);
+    if (!safety.canAmendSafely) {
+      setDocSafetyTarget(docData);
+      return alert('เอกสารนี้ยังไม่ผ่านเงื่อนไขสำหรับทดลองแก้รายการ ให้ตรวจความพร้อมก่อน');
+    }
+    setDocAmendPreviewTarget(docData);
+    setDocAmendPreviewSearch('');
+    setDocAmendPreviewItemId('');
+    setDocAmendPreviewReason('ลืมบันทึกรายการตอนจ่ายของจริง');
+  };
+
+  const closeBorrowDocItemAmendPreview = () => {
+    setDocAmendPreviewTarget(null);
+    setDocAmendPreviewSearch('');
+    setDocAmendPreviewItemId('');
+    setDocAmendPreviewReason('ลืมบันทึกรายการตอนจ่ายของจริง');
+  };
 
   const handleSaveBorrowDocEdit = async () => {
     if (!docEditTarget) return;
@@ -15750,6 +15791,7 @@ S.N.: ${item.sn || '-'}
                             <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-black shadow-sm">พิมพ์เอกสาร</button>
                             {canUseOperationalTools && <button type="button" onClick={() => openBorrowDocEdit(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>แก้ข้อมูล</button>}
                             <button type="button" onClick={() => openBorrowDocSafetyCheck(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${safety.tone}`}>ตรวจรายการ</button>
+                            {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => openBorrowDocItemAmendPreview(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${isDarkMode ? 'bg-cyan-950/35 border-cyan-800 text-cyan-100 hover:bg-cyan-900/45' : 'bg-cyan-50 border-cyan-200 text-cyan-700 hover:bg-cyan-100'}`}>Preview แก้รายการ</button>}
                             <button type="button" onClick={() => openDocHistorySearch(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
                             <button type="button" onClick={() => copyDocSummary(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>คัดลอกสรุป</button>
                             {meta.status !== 'closed' && <button type="button" onClick={() => { setTrackingSearch(docData.ref || meta.ownerText || ''); openWorkspace('tracking'); }} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black shadow-sm">ติดตามคืน</button>}
@@ -29056,6 +29098,11 @@ ${auditChangeSummary}` : auditChangeSummary);
                           <button type="button" onClick={() => openBorrowDocSafetyCheck(docData)} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${safety.tone}`}>
                             ตรวจความพร้อมแก้รายการ
                           </button>
+                          {canUseOperationalTools && safety.canAmendSafely && (
+                            <button type="button" onClick={() => openBorrowDocItemAmendPreview(docData)} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${isDarkMode ? 'bg-cyan-950/35 border-cyan-800 text-cyan-100 hover:bg-cyan-900/45' : 'bg-cyan-50 border-cyan-200 text-cyan-700 hover:bg-cyan-100'}`}>
+                              Preview แก้รายการ
+                            </button>
+                          )}
                           <button type="button" onClick={() => { setShowBorrowDocsModal(false); setTrackingTab('today'); setShowTrackingCenterModal(true); }} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
                             ติดตามสถานะคืน
                           </button>
@@ -29190,13 +29237,126 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
               <div className={`p-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
                 <div className={`text-xs font-bold ${theme.textMuted}`}>{safety.level === 'locked' ? 'สถานะ: ล็อกไว้ก่อน / ใช้งานจริงยังปลอดภัย' : 'สถานะ: อ่านอย่างเดียว ยังไม่เปิดแก้รายการจริง'}</div>
-                <button type="button" onClick={closeBorrowDocSafetyCheck} className={`px-5 py-2.5 rounded-2xl font-black ${theme.btnCancel}`}>ปิดผลตรวจ</button>
+                <div className="flex flex-wrap justify-end gap-2">
+                  {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => { closeBorrowDocSafetyCheck(); openBorrowDocItemAmendPreview(docSafetyTarget); }} className="px-5 py-2.5 rounded-2xl font-black bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm">เปิด Preview แก้รายการ</button>}
+                  <button type="button" onClick={closeBorrowDocSafetyCheck} className={`px-5 py-2.5 rounded-2xl font-black ${theme.btnCancel}`}>ปิดผลตรวจ</button>
+                </div>
               </div>
             </div>
           </div>
         );
       })()}
 
+
+      {/* Preview แก้รายการอุปกรณ์ในเอกสาร: อ่านอย่างเดียว ยังไม่บันทึกจริง */}
+      {docAmendPreviewTarget && (() => {
+        const safety = getBorrowDocItemSafety(docAmendPreviewTarget);
+        const candidates = getBorrowDocAmendCandidateItems(docAmendPreviewTarget, docAmendPreviewSearch);
+        const selectedItem = asArray(items).find(item => String(item.id) === String(docAmendPreviewItemId));
+        const typeLabel = safety.type === 'event' ? 'ออกงาน' : 'ยืม';
+        const nextStatusText = safety.type === 'event' ? 'ออกงาน' : 'ถูกยืม';
+        const ownerText = docAmendPreviewTarget.borrower || docAmendPreviewTarget.eventName || docAmendPreviewTarget.subject || '-';
+        return (
+          <div className="fixed inset-0 z-[170] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6" onMouseDown={(e) => { if (e.target === e.currentTarget) closeBorrowDocItemAmendPreview(); }}>
+            <div className={`w-full max-w-5xl max-h-[92vh] rounded-[1.7rem] border shadow-2xl overflow-hidden flex flex-col ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'}`}>
+              <div className={`p-4 sm:p-5 border-b flex items-start justify-between gap-4 ${theme.divide}`}>
+                <div className="min-w-0">
+                  <div className="text-xs font-black tracking-[0.18em] uppercase text-cyan-400">AMENDMENT PREVIEW</div>
+                  <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>ทดลองแก้รายการอุปกรณ์</h3>
+                  <p className={`text-sm font-bold mt-1 ${theme.textMuted}`}>Production Safe Mode: รอบนี้เป็น Preview เท่านั้น ยังไม่เขียนข้อมูลลงฐานและไม่เปลี่ยนสถานะอุปกรณ์</p>
+                </div>
+                <button type="button" onClick={closeBorrowDocItemAmendPreview} className={`w-11 h-11 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}><Icons.X className="w-5 h-5" /></button>
+              </div>
+
+              <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar space-y-4">
+                <div className={`rounded-2xl border p-4 ${safety.tone}`}>
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-black opacity-80">เอกสารที่กำลังจำลอง</div>
+                      <div className="text-2xl font-black mt-1">{safety.docKey || '-'}</div>
+                      <div className="text-sm font-bold mt-1 opacity-90">ประเภท: {typeLabel} • ผู้ยืม/ชื่องาน: {ownerText}</div>
+                    </div>
+                    <div className="text-sm font-black text-right">{safety.label}</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,.85fr)_minmax(0,1.15fr)] gap-4">
+                  <section className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className={`font-black ${theme.textTitle}`}>1) เลือกอุปกรณ์ที่ลืมบันทึก</div>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>แสดงเฉพาะอุปกรณ์ที่ยังพร้อมใช้งาน และยังไม่อยู่ในเอกสารนี้</p>
+                    <div className="mt-3 relative">
+                      <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${theme.textMuted}`} />
+                      <input className={`w-full pl-10 pr-3 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาชื่อ / S.N. / รหัสสั้น / ที่เก็บ" value={docAmendPreviewSearch} onChange={e => { setDocAmendPreviewSearch(e.target.value); setDocAmendPreviewItemId(''); }} />
+                    </div>
+                    <div className="mt-3 max-h-[310px] overflow-y-auto custom-scrollbar space-y-2">
+                      {candidates.length === 0 ? (
+                        <div className={`rounded-2xl border p-4 text-sm font-bold ${theme.textMuted} ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>ไม่พบอุปกรณ์พร้อมใช้งานตามคำค้นนี้</div>
+                      ) : candidates.slice(0, 40).map(item => {
+                        const selected = String(item.id) === String(docAmendPreviewItemId);
+                        return (
+                          <button key={`preview_candidate_${item.id}`} type="button" onClick={() => setDocAmendPreviewItemId(String(item.id))} className={`w-full rounded-2xl border px-3 py-3 text-left transition-all ${selected ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg shadow-cyan-500/20' : (isDarkMode ? 'bg-slate-950 border-slate-800 hover:border-cyan-800 text-slate-100' : 'bg-white border-slate-200 hover:border-cyan-200 text-slate-900')}`}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="font-black truncate">{item.name || '-'}</div>
+                                <div className={`text-xs font-bold mt-1 truncate ${selected ? 'text-white/80' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || item.storageBoxName || '-'}</div>
+                              </div>
+                              <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 font-black ${selected ? 'bg-white/15 border-white/25 text-white' : (isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-400')}`}>{selected ? '✓' : ''}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  <section className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className={`font-black ${theme.textTitle}`}>2) Preview ผลกระทบก่อนบันทึกจริง</div>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ขั้นนี้ยังไม่แก้อะไรจริง ใช้ตรวจว่าระบบจะทำอะไรในเวอร์ชันบันทึกจริง</p>
+                    <label className={`block text-xs font-black mt-4 mb-1.5 ${theme.textMuted}`}>เหตุผลการแก้รายการ</label>
+                    <textarea className={`w-full min-h-[74px] rounded-xl border p-3 text-sm font-bold ${theme.input}`} value={docAmendPreviewReason} onChange={e => setDocAmendPreviewReason(e.target.value)} placeholder="เช่น ลืมบันทึกรายการตอนจ่ายของจริง" />
+
+                    {selectedItem ? (
+                      <div className="mt-4 space-y-3">
+                        <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className={`text-xs font-black ${theme.textMuted}`}>อุปกรณ์ที่จะถูกเพิ่มเข้าเอกสาร</div>
+                          <div className={`text-lg font-black mt-1 ${theme.textTitle}`}>{selectedItem.name || '-'}</div>
+                          <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {selectedItem.sn || '-'} • {selectedItem.shortCode || '-'} • ID {selectedItem.id}</div>
+                        </div>
+                        {[
+                          ['เอกสาร', `เพิ่มอุปกรณ์นี้เข้าเอกสาร ${safety.docKey || '-'}`],
+                          ['สถานะอุปกรณ์', `พร้อมใช้งาน → ${nextStatusText}`],
+                          ['ข้อมูลปัจจุบันของอุปกรณ์', `ผูกกับ ${ownerText} และกำหนดคืนตามเอกสารเดิม`],
+                          ['ประวัติอุปกรณ์', `เพิ่มบันทึก: เพิ่มรายการย้อนหลังในเอกสาร (${docAmendPreviewReason || 'ยังไม่ระบุเหตุผล'})`],
+                          ['รูปหลักฐาน', 'ไม่แก้ไขรูปหลักฐานเดิม แค่เพิ่มรายการในเอกสารเมื่อเปิดบันทึกจริงในอนาคต']
+                        ].map(([label, value]) => (
+                          <div key={label} className={`rounded-xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/65 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                            <div className={`text-[11px] font-black ${theme.textMuted}`}>{label}</div>
+                            <div className={`text-sm font-black mt-0.5 ${theme.textTitle}`}>{value}</div>
+                          </div>
+                        ))}
+                        <div className={`rounded-2xl border p-3 text-xs font-bold ${isDarkMode ? 'bg-amber-950/20 border-amber-800/60 text-amber-100' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                          ปุ่มบันทึกจริงยังถูกปิดไว้ในเวอร์ชันนี้ เพื่อป้องกันข้อมูลใช้งานจริงเสียหาย ต้องผ่านขั้น Preview และตรวจผลก่อนเท่านั้น
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`mt-4 rounded-2xl border border-dashed p-6 text-center ${theme.textMuted} ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-slate-50'}`}>
+                        เลือกอุปกรณ์ทางซ้ายก่อน เพื่อดู Preview ผลกระทบ
+                      </div>
+                    )}
+                  </section>
+                </div>
+              </div>
+
+              <div className={`p-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
+                <div className={`text-xs font-bold ${theme.textMuted}`}>สถานะ: Preview อย่างเดียว • ไม่เขียนฐานข้อมูล • ไม่เปลี่ยนสถานะอุปกรณ์</div>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <button type="button" disabled className="px-5 py-3 rounded-2xl font-black bg-slate-700 text-slate-300 cursor-not-allowed">บันทึกจริงยังปิดไว้</button>
+                  <button type="button" onClick={closeBorrowDocItemAmendPreview} className={`px-5 py-3 rounded-2xl font-black ${theme.btnSecondary}`}>ปิด Preview</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* แก้ไขข้อมูลเอกสารยืม/ออกงาน */}
       {docEditTarget && (
