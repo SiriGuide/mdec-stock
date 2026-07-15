@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.5 Records Workspace Visual Polish';
+const APP_VERSION = 'v23.4.16.18.27.6 Borrow Document Metadata Edit Polish';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -7595,6 +7595,8 @@ function MainApp() {
   const [showBorrowDocsModal, setShowBorrowDocsModal] = useState(false);
   const [borrowDocSearch, setBorrowDocSearch] = useState('');
   const [borrowDocFilter, setBorrowDocFilter] = useState('all');
+  const [docEditTarget, setDocEditTarget] = useState(null);
+  const [docEditForm, setDocEditForm] = useState({ subject: '', documentDate: '', expectedReturn: '', staffOut: '', note: '' });
   const [recordsCenterMode, setRecordsCenterMode] = useState('docs');
   const [showPersonalItemsModal, setShowPersonalItemsModal] = useState(false);
   const [showProjectsModal, setShowProjectsModal] = useState(false);
@@ -8600,6 +8602,126 @@ function MainApp() {
       returnedAt: docData.returnedAt || '',
       returnStaff: docData.returnStaff || ''
     });
+  };
+
+
+  const openBorrowDocEdit = (docData = {}) => {
+    if (!docData) return;
+    if (!canUseOperationalTools) return alert('บัญชีนี้ไม่มีสิทธิ์แก้ไขข้อมูลเอกสารยืม/ออกงาน');
+    const isEventDoc = (docData.type || docData.docType) === 'event';
+    const subject = docData.borrower || docData.eventName || docData.subject || '';
+    setDocEditTarget(docData);
+    setDocEditForm({
+      subject,
+      documentDate: getDateKey(docData.date || docData.createdAt || new Date()),
+      expectedReturn: getDateKey(docData.expectedReturn || ''),
+      staffOut: docData.staffOut || docData.operatorName || '',
+      note: docData.note || ''
+    });
+  };
+
+  const closeBorrowDocEdit = () => {
+    setDocEditTarget(null);
+    setDocEditForm({ subject: '', documentDate: '', expectedReturn: '', staffOut: '', note: '' });
+  };
+
+  const handleSaveBorrowDocEdit = async () => {
+    if (!docEditTarget) return;
+    if (!canUseOperationalTools) return alert('บัญชีนี้ไม่มีสิทธิ์แก้ไขข้อมูลเอกสารยืม/ออกงาน');
+    const docId = docEditTarget.id || docEditTarget.ref;
+    if (!docId) return alert('❌ ไม่พบรหัสเอกสารที่จะแก้ไข');
+    const type = (docEditTarget.type || docEditTarget.docType || 'borrow') === 'event' ? 'event' : 'borrow';
+    const subject = String(docEditForm.subject || '').trim();
+    const staffOut = String(docEditForm.staffOut || '').trim();
+    const note = String(docEditForm.note || '').trim();
+    if (!subject) return alert(type === 'event' ? 'กรุณากรอกชื่องาน/ผู้รับผิดชอบ' : 'กรุณากรอกชื่อผู้ยืม');
+    if (!staffOut) return alert('กรุณากรอกเจ้าหน้าที่ผู้จ่ายอุปกรณ์');
+
+    const oldSubject = docEditTarget.borrower || docEditTarget.eventName || docEditTarget.subject || '';
+    const oldExpectedReturn = docEditTarget.expectedReturn || '';
+    const oldStaffOut = docEditTarget.staffOut || docEditTarget.operatorName || '';
+    const oldNote = docEditTarget.note || '';
+    const documentDate = docEditForm.documentDate ? new Date(`${docEditForm.documentDate}T00:00:00`).toISOString() : (docEditTarget.date || docEditTarget.createdAt || new Date().toISOString());
+    const expectedReturn = docEditForm.expectedReturn || '';
+    const itemIdsInDoc = Array.from(new Set([
+      ...asArray(docEditTarget.itemIds).map(id => String(id)),
+      ...asArray(docEditTarget.items).map(item => String(item?.id || item?.itemId || '')).filter(Boolean)
+    ])).filter(Boolean);
+    const refKey = String(docEditTarget.ref || docEditTarget.id || docId);
+    const isOpenDoc = !docEditTarget.status || docEditTarget.status === 'active' || docEditTarget.status === 'partial';
+    setIsBusy(true);
+    try {
+      const docPatch = {
+        borrower: subject,
+        subject,
+        staffOut,
+        expectedReturn,
+        note,
+        date: documentDate,
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentAccountLabel,
+        metadataEditedAt: new Date().toISOString(),
+        metadataEditedBy: currentAccountLabel
+      };
+      if (type === 'event') {
+        docPatch.eventName = subject;
+        docPatch.title = docEditTarget.title || 'ใบนำอุปกรณ์ออกงาน';
+      } else {
+        docPatch.title = docEditTarget.title || 'ใบยืมอุปกรณ์';
+      }
+
+      const itemUpdateTasks = items
+        .filter(item => itemIdsInDoc.includes(String(item.id)))
+        .map(item => {
+          const historyList = asArray(item.history);
+          let historyChanged = false;
+          const nextHistory = historyList.map(historyEntry => {
+            const historyRef = String(historyEntry.documentRef || historyEntry.documentId || historyEntry.ref || '');
+            if (historyRef !== refKey) return historyEntry;
+            historyChanged = true;
+            return {
+              ...historyEntry,
+              date: documentDate,
+              expectedReturn,
+              staffOut,
+              note,
+              borrower: type === 'borrow' ? subject : historyEntry.borrower,
+              eventName: type === 'event' ? subject : historyEntry.eventName,
+              subject,
+              editedAt: new Date().toISOString(),
+              editedBy: currentAccountLabel
+            };
+          });
+          const patch = historyChanged ? { history: nextHistory } : {};
+          if (isOpenDoc && type === 'borrow' && item.status === 'borrowed') {
+            patch.currentBorrower = subject;
+            patch.expectedReturn = expectedReturn;
+            patch.currentNote = note;
+          }
+          if (isOpenDoc && type === 'event' && item.status === 'out-for-event') {
+            patch.currentEvent = subject;
+            patch.expectedReturn = expectedReturn;
+            patch.currentNote = note;
+          }
+          if (Object.keys(patch).length === 0) return null;
+          return setDoc(getItemDoc(item.id), patch, { merge: true });
+        })
+        .filter(Boolean);
+
+      await Promise.all([setDoc(getBorrowDoc(docId), docPatch, { merge: true }), ...itemUpdateTasks]);
+      await logAction('แก้ไขข้อมูลเอกสารยืม/ออกงาน', refKey, `แก้ไขเฉพาะข้อมูลประกอบเอกสาร ไม่เปลี่ยนรายการอุปกรณ์หรือสถานะ
+จาก: ${oldSubject || '-'} / ${oldStaffOut || '-'} / กำหนดคืน ${oldExpectedReturn || '-'}
+เป็น: ${subject} / ${staffOut} / กำหนดคืน ${expectedReturn || '-'}
+หมายเหตุเดิม: ${oldNote || '-'}
+หมายเหตุใหม่: ${note || '-'}`);
+      pushToast('บันทึกข้อมูลเอกสารแล้ว', `${refKey} อัปเดตข้อมูลยืม/ออกงานเรียบร้อย`, 'success');
+      closeBorrowDocEdit();
+    } catch (error) {
+      console.error(error);
+      alert('❌ แก้ไขข้อมูลเอกสารไม่สำเร็จ: ' + (error?.message || error));
+    } finally {
+      setIsBusy(false);
+    }
   };
 
   const handleDeleteBorrowเอกสาร = async (docData) => {
@@ -15528,6 +15650,7 @@ S.N.: ${item.sn || '-'}
                           </div>
                           <div className="grid grid-cols-2 xl:grid-cols-1 gap-1.5 shrink-0 xl:min-w-[142px]">
                             <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-black shadow-sm">พิมพ์เอกสาร</button>
+                            {canUseOperationalTools && <button type="button" onClick={() => openBorrowDocEdit(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>แก้ข้อมูล</button>}
                             <button type="button" onClick={() => openDocHistorySearch(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
                             <button type="button" onClick={() => copyDocSummary(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>คัดลอกสรุป</button>
                             {meta.status !== 'closed' && <button type="button" onClick={() => { setTrackingSearch(docData.ref || meta.ownerText || ''); openWorkspace('tracking'); }} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black shadow-sm">ติดตามคืน</button>}
@@ -28824,6 +28947,11 @@ ${auditChangeSummary}` : auditChangeSummary);
                           <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2">
                             <Icons.พิมพ์er className="w-5 h-5" /> พิมพ์เอกสาร
                           </button>
+                          {canUseOperationalTools && (
+                            <button type="button" onClick={() => openBorrowDocEdit(docData)} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
+                              แก้ข้อมูลเอกสาร
+                            </button>
+                          )}
                           <button type="button" onClick={() => { setShowBorrowDocsModal(false); setTrackingTab('today'); setShowTrackingCenterModal(true); }} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
                             ติดตามสถานะคืน
                           </button>
@@ -28848,6 +28976,58 @@ ${auditChangeSummary}` : auditChangeSummary);
         </div>
       )}
 
+
+
+      {/* แก้ไขข้อมูลเอกสารยืม/ออกงาน */}
+      {docEditTarget && (
+        <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 z-[10020]`}>
+          <div className={`w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden ${theme.cardBg}`}>
+            <div className={`p-4 sm:p-5 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
+              <div className="min-w-0">
+                <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-400">EDIT BORROW DOCUMENT</div>
+                <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>แก้ไขข้อมูลการยืม / ออกงาน</h3>
+                <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>แก้เฉพาะข้อมูลประกอบเอกสาร เช่น ผู้ยืม ชื่องาน เจ้าหน้าที่ กำหนดคืน และหมายเหตุ ไม่เปลี่ยนรายการอุปกรณ์หรือสถานะของรายการ</p>
+              </div>
+              <button type="button" onClick={closeBorrowDocEdit} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}><Icons.X className="w-4 h-4" /></button>
+            </div>
+            <div className="p-4 sm:p-5 space-y-4">
+              <div className={`rounded-2xl border px-4 py-3 ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                <div className="text-[11px] font-black uppercase opacity-70">เอกสารที่กำลังแก้ไข</div>
+                <div className={`font-black mt-1 truncate ${theme.textTitle}`}>{docEditTarget.ref || docEditTarget.id || '-'} • {(docEditTarget.type || docEditTarget.docType) === 'event' ? 'ใบออกงาน' : 'ใบยืม'}</div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="block sm:col-span-2">
+                  <span className={`block text-sm font-black mb-1.5 ${theme.textTitle}`}>{(docEditTarget.type || docEditTarget.docType) === 'event' ? 'ชื่องาน / ผู้รับผิดชอบ' : 'ชื่อผู้ยืม / ผู้รับผิดชอบ'}</span>
+                  <input type="text" className={`w-full px-4 py-3 rounded-2xl border font-black outline-none ${theme.input}`} value={docEditForm.subject} onChange={e => setDocEditForm(prev => ({ ...prev, subject: e.target.value }))} placeholder="กรอกชื่อผู้ยืมหรือชื่องาน" />
+                </label>
+                <label className="block">
+                  <span className={`block text-sm font-black mb-1.5 ${theme.textTitle}`}>วันที่ยืม / วันที่จัดทำ</span>
+                  <input type="date" className={`w-full px-4 py-3 rounded-2xl border font-black outline-none ${theme.input}`} value={docEditForm.documentDate} onChange={e => setDocEditForm(prev => ({ ...prev, documentDate: e.target.value }))} />
+                </label>
+                <label className="block">
+                  <span className={`block text-sm font-black mb-1.5 ${theme.textTitle}`}>กำหนดคืน</span>
+                  <input type="date" className={`w-full px-4 py-3 rounded-2xl border font-black outline-none ${theme.input}`} value={docEditForm.expectedReturn} onChange={e => setDocEditForm(prev => ({ ...prev, expectedReturn: e.target.value }))} />
+                </label>
+                <label className="block sm:col-span-2">
+                  <span className={`block text-sm font-black mb-1.5 ${theme.textTitle}`}>เจ้าหน้าที่ผู้จ่ายอุปกรณ์</span>
+                  <input type="text" className={`w-full px-4 py-3 rounded-2xl border font-black outline-none ${theme.input}`} value={docEditForm.staffOut} onChange={e => setDocEditForm(prev => ({ ...prev, staffOut: e.target.value }))} placeholder="ชื่อเจ้าหน้าที่" />
+                </label>
+                <label className="block sm:col-span-2">
+                  <span className={`block text-sm font-black mb-1.5 ${theme.textTitle}`}>หมายเหตุ</span>
+                  <textarea rows={4} className={`w-full px-4 py-3 rounded-2xl border font-bold outline-none resize-none ${theme.input}`} value={docEditForm.note} onChange={e => setDocEditForm(prev => ({ ...prev, note: e.target.value }))} placeholder="เช่น รับของไปก่อน / รอส่งข้อมูลเพิ่ม / รายละเอียดเพิ่มเติม" />
+                </label>
+              </div>
+              <div className={`rounded-2xl border px-4 py-3 text-xs font-bold ${isDarkMode ? 'bg-amber-950/20 border-amber-800/60 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                หมายเหตุ: รอบนี้เป็นการแก้ข้อมูลเอกสารและประวัติที่ผูกกับเอกสารเท่านั้น ระบบจะไม่เพิ่ม/ลบรายการอุปกรณ์ในเอกสาร และไม่เปลี่ยนสถานะยืม/คืนของอุปกรณ์
+              </div>
+            </div>
+            <div className={`p-4 border-t flex flex-col sm:flex-row justify-end gap-2 ${theme.divide}`}>
+              <button type="button" onClick={closeBorrowDocEdit} className={`px-5 py-3 rounded-2xl border font-black ${theme.btnCancel}`}>ยกเลิก</button>
+              <button type="button" onClick={handleSaveBorrowDocEdit} disabled={isBusy} className={`px-5 py-3 rounded-2xl font-black text-white ${isBusy ? 'bg-slate-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20'}`}>{isBusy ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast แจ้งเตือนแบบไม่ขัดจังหวะ */}
       <div className="fixed top-4 right-4 z-[12000] space-y-3 w-[92vw] max-w-sm pointer-events-none">
