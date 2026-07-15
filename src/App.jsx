@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.7 Document Link Safety Check';
+const APP_VERSION = 'v23.4.16.18.27.8 Document Safety Check UI Severity Polish';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -8661,27 +8661,33 @@ function MainApp() {
     const incompleteSnapshotItems = asArray(docData.items).filter(item => !String(item?.id || item?.itemId || '').trim());
     const issues = [];
     const warnings = [];
+    const notes = [];
     if (!docKey) issues.push('ไม่พบเลขอ้างอิงเอกสารที่ชัดเจน');
     if ((docData.type || docData.docType || 'borrow') === 'return') issues.push('เป็นเอกสารรับคืน ไม่ใช่ใบยืม/ใบออกงาน');
     if (itemIds.length === 0) issues.push('เอกสารนี้ไม่มี ID อุปกรณ์ที่ผูกกับคลัง');
     if (missingItemIds.length > 0) issues.push(`มี ${missingItemIds.length.toLocaleString('th-TH')} รายการที่หาไม่พบในคลังปัจจุบัน`);
     if (isClosed) issues.push('เอกสารนี้คืนครบ/ปิดเอกสารแล้ว ควรล็อกการแก้รายการไว้ก่อน');
-    if (incompleteSnapshotItems.length > 0) warnings.push(`มี ${incompleteSnapshotItems.length.toLocaleString('th-TH')} รายการใน snapshot ที่ไม่มี ID`);
-    if (duplicateCount > 0) warnings.push(`พบ ID ซ้ำ ${duplicateCount.toLocaleString('th-TH')} จุด ระบบจะยึด ID ไม่ซ้ำเป็นหลัก`);
+    if (incompleteSnapshotItems.length > 0) notes.push(`มี ${incompleteSnapshotItems.length.toLocaleString('th-TH')} รายการใน snapshot ที่ไม่มี ID แต่ยังมี ID หลักให้ตรวจได้`);
+    if (duplicateCount > 0) notes.push(`พบ ID ซ้ำ ${duplicateCount.toLocaleString('th-TH')} จุด ระบบรวมเป็น ID ไม่ซ้ำแล้ว ไม่ถือเป็นปัญหาระดับล็อก`);
     if (missingHistoryItems.length > 0) warnings.push(`มี ${missingHistoryItems.length.toLocaleString('th-TH')} ชิ้นที่ประวัติอุปกรณ์ยังไม่ผูกเลขเอกสารนี้`);
     if (statusMismatchItems.length > 0) warnings.push(`มี ${statusMismatchItems.length.toLocaleString('th-TH')} ชิ้นที่สถานะปัจจุบันไม่ตรงกับเอกสาร`);
     if (returnedLinkedItems.length > 0) warnings.push(`มี ${returnedLinkedItems.length.toLocaleString('th-TH')} ชิ้นที่คืนแล้ว ห้ามยกเลิกรายการเหล่านี้ในขั้นแก้รายการ`);
     const level = issues.length > 0 ? 'locked' : warnings.length > 0 ? 'caution' : 'ready';
-    const label = level === 'ready' ? 'พร้อมแก้รายการ' : level === 'caution' ? 'ต้องตรวจเพิ่ม' : 'ยังไม่พร้อม';
+    const label = level === 'ready' ? 'พร้อมสำหรับขั้นต่อไป' : level === 'caution' ? 'แก้ได้แบบมีเงื่อนไข' : 'ล็อกไว้ก่อน';
     const desc = level === 'ready'
-      ? 'เอกสารนี้มีลิงก์อุปกรณ์ครบและยังเปิดอยู่ เหมาะสำหรับขั้นต่อไปของระบบแก้รายการแบบปลอดภัย'
+      ? 'เอกสารนี้มีลิงก์อุปกรณ์หลักครบและยังเปิดอยู่ รอบถัดไปจึงค่อยใช้โหมด Preview ก่อนบันทึกจริง'
       : level === 'caution'
-        ? 'เอกสารนี้พอมีลิงก์อุปกรณ์ แต่ยังมีคำเตือน ควรตรวจมือก่อนเปิดให้แก้รายการจริง'
-        : 'เอกสารนี้ยังไม่ผ่านเงื่อนไขแก้รายการแบบปลอดภัย';
+        ? 'เอกสารนี้มีลิงก์อุปกรณ์ แต่ต้องใช้โหมดปลอดภัยเท่านั้น เช่น Preview, เหตุผลการแก้, และห้ามแก้รายการที่คืนแล้ว'
+        : 'เอกสารนี้ยังไม่ควรเปิดแก้รายการจริง เพื่อป้องกันข้อมูลจากหลายเว็บทำให้สถานะอุปกรณ์เพี้ยน';
+    const nextActionLabel = level === 'ready'
+      ? 'ขั้นต่อไปที่ทำได้: ทดลอง Preview การเพิ่มรายการย้อนหลังเท่านั้น'
+      : level === 'caution'
+        ? 'ขั้นต่อไปที่ทำได้: ตรวจมือก่อน และเปิดได้เฉพาะคำสั่งที่ไม่กระทบของคืนแล้ว'
+        : 'ขั้นต่อไปที่แนะนำ: แก้ได้เฉพาะข้อมูลหัวเอกสาร ไม่เปิดแก้รายการอุปกรณ์';
     const tone = level === 'ready'
       ? (isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-100' : 'bg-emerald-50 border-emerald-200 text-emerald-700')
       : level === 'caution'
-        ? (isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-100' : 'bg-amber-50 border-amber-200 text-amber-700')
+        ? (isDarkMode ? 'bg-sky-950/35 border-sky-800 text-sky-100' : 'bg-sky-50 border-sky-200 text-sky-700')
         : (isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-100' : 'bg-rose-50 border-rose-200 text-rose-700');
     return {
       docKey,
@@ -8698,9 +8704,11 @@ function MainApp() {
       duplicateCount,
       issues,
       warnings,
+      notes,
       level,
       label,
       desc,
+      nextActionLabel,
       tone,
       canAmendSafely: level === 'ready'
     };
@@ -29084,8 +29092,8 @@ ${auditChangeSummary}` : auditChangeSummary);
               <div className={`p-4 sm:p-5 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
                 <div className="min-w-0">
                   <div className="text-xs font-black tracking-[0.18em] uppercase text-emerald-400">DOCUMENT SAFETY CHECK</div>
-                  <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>ตรวจความพร้อมก่อนแก้รายการอุปกรณ์</h3>
-                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>ขั้นนี้ตรวจอย่างเดียว ยังไม่เพิ่ม ลบ สลับ หรือเปลี่ยนสถานะอุปกรณ์ใด ๆ</p>
+                  <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>ตรวจความพร้อมแบบปลอดภัย</h3>
+                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>Production Safe Mode: อ่านข้อมูลอย่างเดียว ไม่เพิ่ม ลบ สลับ หรือเปลี่ยนสถานะอุปกรณ์ใด ๆ</p>
                 </div>
                 <button type="button" onClick={closeBorrowDocSafetyCheck} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}><Icons.X className="w-4 h-4" /></button>
               </div>
@@ -29093,7 +29101,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <div className={`rounded-2xl border p-4 ${safety.tone}`}>
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-xs font-black opacity-75">ผลตรวจ</div>
+                      <div className="text-xs font-black opacity-75">ระดับความพร้อม</div>
                       <div className="text-2xl font-black mt-1">{safety.label}</div>
                       <div className="text-sm font-bold mt-1 opacity-90">{safety.desc}</div>
                     </div>
@@ -29130,23 +29138,31 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </div>
                 </div>
 
-                {(safety.issues.length > 0 || safety.warnings.length > 0) ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(safety.issues.length > 0 || safety.warnings.length > 0 || safety.notes.length > 0) ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-rose-950/20 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>
-                      <div className="font-black mb-2">จุดที่ต้องแก้ก่อน</div>
+                      <div className="font-black mb-2">ปัญหาระดับล็อก</div>
                       {safety.issues.length > 0 ? (
                         <ul className="space-y-1.5 text-sm font-bold list-disc pl-5">
                           {safety.issues.map((issue, index) => <li key={`issue_${index}`}>{issue}</li>)}
                         </ul>
                       ) : <div className="text-sm font-bold opacity-80">ไม่พบปัญหาระดับล็อก</div>}
                     </div>
-                    <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-amber-950/20 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
-                      <div className="font-black mb-2">คำเตือน</div>
+                    <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-sky-950/20 border-sky-800 text-sky-200' : 'bg-sky-50 border-sky-200 text-sky-700'}`}>
+                      <div className="font-black mb-2">เงื่อนไขที่ต้องระวัง</div>
                       {safety.warnings.length > 0 ? (
                         <ul className="space-y-1.5 text-sm font-bold list-disc pl-5">
                           {safety.warnings.map((warning, index) => <li key={`warning_${index}`}>{warning}</li>)}
                         </ul>
-                      ) : <div className="text-sm font-bold opacity-80">ไม่มีคำเตือนเพิ่มเติม</div>}
+                      ) : <div className="text-sm font-bold opacity-80">ไม่มีเงื่อนไขเสี่ยงเพิ่มเติม</div>}
+                    </div>
+                    <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-950/65 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+                      <div className="font-black mb-2">บันทึกข้อมูล</div>
+                      {safety.notes.length > 0 ? (
+                        <ul className="space-y-1.5 text-sm font-bold list-disc pl-5">
+                          {safety.notes.map((note, index) => <li key={`note_${index}`}>{note}</li>)}
+                        </ul>
+                      ) : <div className="text-sm font-bold opacity-80">ไม่มีบันทึกเพิ่มเติม</div>}
                     </div>
                   </div>
                 ) : (
@@ -29168,11 +29184,12 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </div>
 
                 <div className={`rounded-2xl border px-4 py-3 text-xs font-bold ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-                  ขั้นนี้เป็นการ “ตรวจความพร้อม” เท่านั้น ปุ่มแก้รายการจริงจะยังไม่เปิดในเวอร์ชันนี้ เพื่อกันข้อมูลเก่าจากหลายเว็บทำให้สถานะอุปกรณ์เพี้ยน
+                  <div className="font-black mb-1">{safety.nextActionLabel}</div>
+                  <div>ขั้นนี้เป็นการ “ตรวจความพร้อม” เท่านั้น ยังไม่มีปุ่มบันทึกการแก้รายการจริง เพื่อกันข้อมูลเก่าจากหลายเว็บทำให้สถานะอุปกรณ์เพี้ยน</div>
                 </div>
               </div>
               <div className={`p-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
-                <div className={`text-xs font-bold ${theme.textMuted}`}>{safety.canAmendSafely ? 'สถานะ: พร้อมสำหรับขั้นต่อไป' : 'สถานะ: ยังไม่เปิดให้แก้รายการจริง'}</div>
+                <div className={`text-xs font-bold ${theme.textMuted}`}>{safety.level === 'locked' ? 'สถานะ: ล็อกไว้ก่อน / ใช้งานจริงยังปลอดภัย' : 'สถานะ: อ่านอย่างเดียว ยังไม่เปิดแก้รายการจริง'}</div>
                 <button type="button" onClick={closeBorrowDocSafetyCheck} className={`px-5 py-2.5 rounded-2xl font-black ${theme.btnCancel}`}>ปิดผลตรวจ</button>
               </div>
             </div>
