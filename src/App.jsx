@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.6 Borrow Document Metadata Edit Polish';
+const APP_VERSION = 'v23.4.16.18.27.7 Document Link Safety Check';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -7597,6 +7597,7 @@ function MainApp() {
   const [borrowDocFilter, setBorrowDocFilter] = useState('all');
   const [docEditTarget, setDocEditTarget] = useState(null);
   const [docEditForm, setDocEditForm] = useState({ subject: '', documentDate: '', expectedReturn: '', staffOut: '', note: '' });
+  const [docSafetyTarget, setDocSafetyTarget] = useState(null);
   const [recordsCenterMode, setRecordsCenterMode] = useState('docs');
   const [showPersonalItemsModal, setShowPersonalItemsModal] = useState(false);
   const [showProjectsModal, setShowProjectsModal] = useState(false);
@@ -8624,6 +8625,93 @@ function MainApp() {
     setDocEditTarget(null);
     setDocEditForm({ subject: '', documentDate: '', expectedReturn: '', staffOut: '', note: '' });
   };
+
+  const getBorrowDocLinkedItemIds = (docData = {}) => {
+    const fromIds = asArray(docData.itemIds).map(id => String(id || '').trim()).filter(Boolean);
+    const fromItems = asArray(docData.items).map(item => String(item?.id || item?.itemId || '').trim()).filter(Boolean);
+    return Array.from(new Set([...fromIds, ...fromItems])).filter(Boolean);
+  };
+
+  const getBorrowDocItemSafety = (docData = {}) => {
+    const docKey = String(docData.ref || docData.documentRef || docData.documentId || docData.id || '').trim();
+    const type = (docData.type || docData.docType || 'borrow') === 'event' ? 'event' : 'borrow';
+    const status = docData.status || 'active';
+    const isClosed = status === 'closed';
+    const itemIds = getBorrowDocLinkedItemIds(docData);
+    const rawIds = [
+      ...asArray(docData.itemIds).map(id => String(id || '').trim()).filter(Boolean),
+      ...asArray(docData.items).map(item => String(item?.id || item?.itemId || '').trim()).filter(Boolean)
+    ];
+    const duplicateCount = Math.max(rawIds.length - itemIds.length, 0);
+    const returnedIds = new Set(asArray(docData.returnedItemIds).map(id => String(id || '').trim()).filter(Boolean));
+    const foundItems = itemIds.map(id => items.find(item => String(item.id) === id)).filter(Boolean);
+    const foundIds = new Set(foundItems.map(item => String(item.id)));
+    const missingItemIds = itemIds.filter(id => !foundIds.has(id));
+    const expectedLiveStatus = type === 'event' ? 'out-for-event' : 'borrowed';
+    const openLinkedItems = foundItems.filter(item => !returnedIds.has(String(item.id)));
+    const returnedLinkedItems = foundItems.filter(item => returnedIds.has(String(item.id)));
+    const statusMismatchItems = !isClosed ? openLinkedItems.filter(item => item.status !== expectedLiveStatus) : [];
+    const missingHistoryItems = foundItems.filter(item => {
+      const historyList = asArray(item.history);
+      return !historyList.some(entry => {
+        const refs = [entry.documentRef, entry.documentId, entry.ref, entry.docId, entry.borrowRef].map(v => String(v || '').trim()).filter(Boolean);
+        return refs.includes(docKey);
+      });
+    });
+    const incompleteSnapshotItems = asArray(docData.items).filter(item => !String(item?.id || item?.itemId || '').trim());
+    const issues = [];
+    const warnings = [];
+    if (!docKey) issues.push('ไม่พบเลขอ้างอิงเอกสารที่ชัดเจน');
+    if ((docData.type || docData.docType || 'borrow') === 'return') issues.push('เป็นเอกสารรับคืน ไม่ใช่ใบยืม/ใบออกงาน');
+    if (itemIds.length === 0) issues.push('เอกสารนี้ไม่มี ID อุปกรณ์ที่ผูกกับคลัง');
+    if (missingItemIds.length > 0) issues.push(`มี ${missingItemIds.length.toLocaleString('th-TH')} รายการที่หาไม่พบในคลังปัจจุบัน`);
+    if (isClosed) issues.push('เอกสารนี้คืนครบ/ปิดเอกสารแล้ว ควรล็อกการแก้รายการไว้ก่อน');
+    if (incompleteSnapshotItems.length > 0) warnings.push(`มี ${incompleteSnapshotItems.length.toLocaleString('th-TH')} รายการใน snapshot ที่ไม่มี ID`);
+    if (duplicateCount > 0) warnings.push(`พบ ID ซ้ำ ${duplicateCount.toLocaleString('th-TH')} จุด ระบบจะยึด ID ไม่ซ้ำเป็นหลัก`);
+    if (missingHistoryItems.length > 0) warnings.push(`มี ${missingHistoryItems.length.toLocaleString('th-TH')} ชิ้นที่ประวัติอุปกรณ์ยังไม่ผูกเลขเอกสารนี้`);
+    if (statusMismatchItems.length > 0) warnings.push(`มี ${statusMismatchItems.length.toLocaleString('th-TH')} ชิ้นที่สถานะปัจจุบันไม่ตรงกับเอกสาร`);
+    if (returnedLinkedItems.length > 0) warnings.push(`มี ${returnedLinkedItems.length.toLocaleString('th-TH')} ชิ้นที่คืนแล้ว ห้ามยกเลิกรายการเหล่านี้ในขั้นแก้รายการ`);
+    const level = issues.length > 0 ? 'locked' : warnings.length > 0 ? 'caution' : 'ready';
+    const label = level === 'ready' ? 'พร้อมแก้รายการ' : level === 'caution' ? 'ต้องตรวจเพิ่ม' : 'ยังไม่พร้อม';
+    const desc = level === 'ready'
+      ? 'เอกสารนี้มีลิงก์อุปกรณ์ครบและยังเปิดอยู่ เหมาะสำหรับขั้นต่อไปของระบบแก้รายการแบบปลอดภัย'
+      : level === 'caution'
+        ? 'เอกสารนี้พอมีลิงก์อุปกรณ์ แต่ยังมีคำเตือน ควรตรวจมือก่อนเปิดให้แก้รายการจริง'
+        : 'เอกสารนี้ยังไม่ผ่านเงื่อนไขแก้รายการแบบปลอดภัย';
+    const tone = level === 'ready'
+      ? (isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-100' : 'bg-emerald-50 border-emerald-200 text-emerald-700')
+      : level === 'caution'
+        ? (isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-100' : 'bg-amber-50 border-amber-200 text-amber-700')
+        : (isDarkMode ? 'bg-rose-950/35 border-rose-800 text-rose-100' : 'bg-rose-50 border-rose-200 text-rose-700');
+    return {
+      docKey,
+      type,
+      status,
+      itemIds,
+      foundItems,
+      foundCount: foundItems.length,
+      missingItemIds,
+      returnedCount: returnedLinkedItems.length,
+      openCount: openLinkedItems.length,
+      statusMismatchItems,
+      missingHistoryItems,
+      duplicateCount,
+      issues,
+      warnings,
+      level,
+      label,
+      desc,
+      tone,
+      canAmendSafely: level === 'ready'
+    };
+  };
+
+  const openBorrowDocSafetyCheck = (docData = {}) => {
+    if (!docData) return;
+    setDocSafetyTarget(docData);
+  };
+
+  const closeBorrowDocSafetyCheck = () => setDocSafetyTarget(null);
 
   const handleSaveBorrowDocEdit = async () => {
     if (!docEditTarget) return;
@@ -15613,6 +15701,7 @@ S.N.: ${item.sn || '-'}
                     </div>
                   ) : filteredBorrowเอกสารs.slice(0, 180).map(docData => {
                     const meta = getRecordsDocMeta(docData);
+                    const safety = getBorrowDocItemSafety(docData);
                     const previewItems = asArray(docData.items).slice(0, 4);
                     return (
                       <div key={docData.id || docData.ref} className={`p-3 rounded-2xl border transition-all ${isDarkMode ? 'bg-slate-900/80 border-slate-800 hover:border-slate-700' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
@@ -15622,6 +15711,7 @@ S.N.: ${item.sn || '-'}
                               <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${meta.typeTone}`}>{meta.typeLabel}</span>
                               <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${meta.statusTone}`}>{meta.statusLabel}</span>
                               <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>{meta.itemCount.toLocaleString('th-TH')} รายการ</span>
+                              <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${safety.tone}`}>แก้รายการ: {safety.label}</span>
                               {meta.proofCount > 0 ? <span className="px-2.5 py-1 rounded-xl border text-[11px] font-black bg-pink-500/10 text-pink-500 border-pink-500/20">หลักฐาน {meta.proofCount}</span> : <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-500' : 'bg-white border-slate-200 text-slate-400'}`}>ไม่มีรูปหลักฐาน</span>}
                             </div>
                             <div className={`font-black text-base sm:text-lg truncate ${theme.textTitle}`}>{docData.ref || docData.id || '-'} • {meta.title}</div>
@@ -15651,6 +15741,7 @@ S.N.: ${item.sn || '-'}
                           <div className="grid grid-cols-2 xl:grid-cols-1 gap-1.5 shrink-0 xl:min-w-[142px]">
                             <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-black shadow-sm">พิมพ์เอกสาร</button>
                             {canUseOperationalTools && <button type="button" onClick={() => openBorrowDocEdit(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>แก้ข้อมูล</button>}
+                            <button type="button" onClick={() => openBorrowDocSafetyCheck(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${safety.tone}`}>ตรวจรายการ</button>
                             <button type="button" onClick={() => openDocHistorySearch(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
                             <button type="button" onClick={() => copyDocSummary(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>คัดลอกสรุป</button>
                             {meta.status !== 'closed' && <button type="button" onClick={() => { setTrackingSearch(docData.ref || meta.ownerText || ''); openWorkspace('tracking'); }} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black shadow-sm">ติดตามคืน</button>}
@@ -28900,6 +28991,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   const itemCount = Array.isArray(docData.items) ? docData.items.length : (Array.isArray(docData.itemIds) ? docData.itemIds.length : 0);
                   const returnedCount = Array.isArray(docData.returnedItemIds) ? docData.returnedItemIds.length : 0;
                   const status = docData.status || 'active';
+                  const safety = getBorrowDocItemSafety(docData);
                   const typeLabel = docData.type === 'event' ? 'ใบออกงาน' : 'ใบยืม';
                   const title = docData.title || (docData.type === 'event' ? 'ใบนำอุปกรณ์ออกงาน' : 'ใบยืมอุปกรณ์');
                   const statusLabel = docData.statusLabel || (status === 'closed' ? 'คืนครบ / ปิดเอกสาร' : status === 'partial' ? 'คืนบางส่วน' : 'อยู่ระหว่างใช้งาน');
@@ -28919,6 +29011,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                             <span className={`px-3 py-1 rounded-xl border text-xs font-black ${docData.type === 'event' ? 'bg-orange-500/10 text-orange-600 border-orange-500/20' : 'bg-blue-500/10 text-blue-600 border-blue-500/20'}`}>{typeLabel}</span>
                             <span className={`px-3 py-1 rounded-xl border text-xs font-black ${statusTone}`}>{statusLabel}</span>
                             <span className={`px-3 py-1 rounded-xl border text-xs font-black ${isDarkMode ? 'bg-slate-900 border-slate-800/55 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>{itemCount} รายการ</span>
+                            <span className={`px-3 py-1 rounded-xl border text-xs font-black ${safety.tone}`}>แก้รายการ: {safety.label}</span>
                           </div>
                           <div className={`text-base sm:text-lg font-black truncate ${theme.textTitle}`}>{title}</div>
                           <div className={`text-sm font-black mt-1 ${theme.textMuted}`}>เลขที่เอกสาร: {docData.ref || docData.id || '-'} • วันที่จัดทำ: {dateText}</div>
@@ -28952,6 +29045,9 @@ ${auditChangeSummary}` : auditChangeSummary);
                               แก้ข้อมูลเอกสาร
                             </button>
                           )}
+                          <button type="button" onClick={() => openBorrowDocSafetyCheck(docData)} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${safety.tone}`}>
+                            ตรวจความพร้อมแก้รายการ
+                          </button>
                           <button type="button" onClick={() => { setShowBorrowDocsModal(false); setTrackingTab('today'); setShowTrackingCenterModal(true); }} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
                             ติดตามสถานะคืน
                           </button>
@@ -28976,6 +29072,113 @@ ${auditChangeSummary}` : auditChangeSummary);
         </div>
       )}
 
+
+
+      {/* ตรวจความพร้อมแก้รายการอุปกรณ์ในเอกสาร */}
+      {docSafetyTarget && (() => {
+        const safety = getBorrowDocItemSafety(docSafetyTarget);
+        const previewIds = safety.itemIds.slice(0, 8);
+        return (
+          <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 z-[10025]`}>
+            <div className={`w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden ${theme.cardBg}`}>
+              <div className={`p-4 sm:p-5 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
+                <div className="min-w-0">
+                  <div className="text-xs font-black tracking-[0.18em] uppercase text-emerald-400">DOCUMENT SAFETY CHECK</div>
+                  <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>ตรวจความพร้อมก่อนแก้รายการอุปกรณ์</h3>
+                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>ขั้นนี้ตรวจอย่างเดียว ยังไม่เพิ่ม ลบ สลับ หรือเปลี่ยนสถานะอุปกรณ์ใด ๆ</p>
+                </div>
+                <button type="button" onClick={closeBorrowDocSafetyCheck} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}><Icons.X className="w-4 h-4" /></button>
+              </div>
+              <div className="p-4 sm:p-5 space-y-4 max-h-[72vh] overflow-y-auto custom-scrollbar">
+                <div className={`rounded-2xl border p-4 ${safety.tone}`}>
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-xs font-black opacity-75">ผลตรวจ</div>
+                      <div className="text-2xl font-black mt-1">{safety.label}</div>
+                      <div className="text-sm font-bold mt-1 opacity-90">{safety.desc}</div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="text-xs font-black opacity-75">เลขเอกสาร</div>
+                      <div className="font-black truncate max-w-[220px]">{safety.docKey || '-'}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                  {[
+                    ['ผูก ID', safety.itemIds.length],
+                    ['พบในคลัง', safety.foundCount],
+                    ['รอคืน/ยังเปิด', safety.openCount],
+                    ['คืนแล้ว', safety.returnedCount]
+                  ].map(([label, value]) => (
+                    <div key={label} className={`rounded-2xl border p-3 ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                      <div className={`text-[11px] font-black ${theme.textMuted}`}>{label}</div>
+                      <div className={`text-2xl font-black mt-1 ${theme.textTitle}`}>{Number(value || 0).toLocaleString('th-TH')}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div className={`font-black ${theme.textTitle}`}>เงื่อนไขที่ระบบตรวจ</div>
+                  <div className={`mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm font-bold ${theme.textMuted}`}>
+                    <div>• มีเลขอ้างอิงเอกสาร</div>
+                    <div>• มี ID อุปกรณ์ผูกกับเอกสาร</div>
+                    <div>• ID นั้นหาเจอในคลังปัจจุบัน</div>
+                    <div>• เอกสารยังไม่ปิดคืนครบ</div>
+                    <div>• ประวัติอุปกรณ์ผูกเลขเอกสารได้</div>
+                    <div>• สถานะอุปกรณ์ไม่ขัดกับใบยืม/ออกงาน</div>
+                  </div>
+                </div>
+
+                {(safety.issues.length > 0 || safety.warnings.length > 0) ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-rose-950/20 border-rose-800 text-rose-200' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>
+                      <div className="font-black mb-2">จุดที่ต้องแก้ก่อน</div>
+                      {safety.issues.length > 0 ? (
+                        <ul className="space-y-1.5 text-sm font-bold list-disc pl-5">
+                          {safety.issues.map((issue, index) => <li key={`issue_${index}`}>{issue}</li>)}
+                        </ul>
+                      ) : <div className="text-sm font-bold opacity-80">ไม่พบปัญหาระดับล็อก</div>}
+                    </div>
+                    <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-amber-950/20 border-amber-800 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                      <div className="font-black mb-2">คำเตือน</div>
+                      {safety.warnings.length > 0 ? (
+                        <ul className="space-y-1.5 text-sm font-bold list-disc pl-5">
+                          {safety.warnings.map((warning, index) => <li key={`warning_${index}`}>{warning}</li>)}
+                        </ul>
+                      ) : <div className="text-sm font-bold opacity-80">ไม่มีคำเตือนเพิ่มเติม</div>}
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`rounded-2xl border p-4 text-sm font-bold ${isDarkMode ? 'bg-emerald-950/20 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
+                    เอกสารนี้ผ่าน Safety Check เบื้องต้นแล้ว รอบถัดไปจึงค่อยเปิดขั้น “เพิ่มอุปกรณ์ที่ลืม” แบบมีเหตุผลและประวัติการแก้ไข
+                  </div>
+                )}
+
+                <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`font-black ${theme.textTitle}`}>รายการ ID ที่ผูกกับเอกสาร</div>
+                  <div className={`mt-2 text-xs font-bold ${theme.textMuted}`}>
+                    {previewIds.length > 0 ? `${previewIds.join(', ')}${safety.itemIds.length > previewIds.length ? ` และอีก ${safety.itemIds.length - previewIds.length} รายการ` : ''}` : 'ไม่พบ ID อุปกรณ์ในเอกสารนี้'}
+                  </div>
+                  {safety.missingItemIds.length > 0 && (
+                    <div className={`mt-2 text-xs font-bold ${isDarkMode ? 'text-rose-300' : 'text-rose-600'}`}>
+                      ID ที่หาไม่เจอ: {safety.missingItemIds.slice(0, 8).join(', ')}{safety.missingItemIds.length > 8 ? ` และอีก ${safety.missingItemIds.length - 8} รายการ` : ''}
+                    </div>
+                  )}
+                </div>
+
+                <div className={`rounded-2xl border px-4 py-3 text-xs font-bold ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                  ขั้นนี้เป็นการ “ตรวจความพร้อม” เท่านั้น ปุ่มแก้รายการจริงจะยังไม่เปิดในเวอร์ชันนี้ เพื่อกันข้อมูลเก่าจากหลายเว็บทำให้สถานะอุปกรณ์เพี้ยน
+                </div>
+              </div>
+              <div className={`p-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
+                <div className={`text-xs font-bold ${theme.textMuted}`}>{safety.canAmendSafely ? 'สถานะ: พร้อมสำหรับขั้นต่อไป' : 'สถานะ: ยังไม่เปิดให้แก้รายการจริง'}</div>
+                <button type="button" onClick={closeBorrowDocSafetyCheck} className={`px-5 py-2.5 rounded-2xl font-black ${theme.btnCancel}`}>ปิดผลตรวจ</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
 
       {/* แก้ไขข้อมูลเอกสารยืม/ออกงาน */}
