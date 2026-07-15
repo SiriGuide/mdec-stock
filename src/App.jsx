@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.9 Document Item Amendment Preview Mode';
+const APP_VERSION = 'v23.4.16.18.27.10 Amendment Preview Multi Select Polish';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -7600,7 +7600,7 @@ function MainApp() {
   const [docSafetyTarget, setDocSafetyTarget] = useState(null);
   const [docAmendPreviewTarget, setDocAmendPreviewTarget] = useState(null);
   const [docAmendPreviewSearch, setDocAmendPreviewSearch] = useState('');
-  const [docAmendPreviewItemId, setDocAmendPreviewItemId] = useState('');
+  const [docAmendPreviewItemIds, setDocAmendPreviewItemIds] = useState([]);
   const [docAmendPreviewReason, setDocAmendPreviewReason] = useState('ลืมบันทึกรายการตอนจ่ายของจริง');
   const [recordsCenterMode, setRecordsCenterMode] = useState('docs');
   const [showPersonalItemsModal, setShowPersonalItemsModal] = useState(false);
@@ -8751,14 +8751,14 @@ function MainApp() {
     }
     setDocAmendPreviewTarget(docData);
     setDocAmendPreviewSearch('');
-    setDocAmendPreviewItemId('');
+    setDocAmendPreviewItemIds([]);
     setDocAmendPreviewReason('ลืมบันทึกรายการตอนจ่ายของจริง');
   };
 
   const closeBorrowDocItemAmendPreview = () => {
     setDocAmendPreviewTarget(null);
     setDocAmendPreviewSearch('');
-    setDocAmendPreviewItemId('');
+    setDocAmendPreviewItemIds([]);
     setDocAmendPreviewReason('ลืมบันทึกรายการตอนจ่ายของจริง');
   };
 
@@ -29252,7 +29252,8 @@ ${auditChangeSummary}` : auditChangeSummary);
       {docAmendPreviewTarget && (() => {
         const safety = getBorrowDocItemSafety(docAmendPreviewTarget);
         const candidates = getBorrowDocAmendCandidateItems(docAmendPreviewTarget, docAmendPreviewSearch);
-        const selectedItem = asArray(items).find(item => String(item.id) === String(docAmendPreviewItemId));
+        const selectedItemIds = asArray(docAmendPreviewItemIds).map(id => String(id));
+        const selectedItems = selectedItemIds.map(id => asArray(items).find(item => String(item.id) === id)).filter(Boolean);
         const typeLabel = safety.type === 'event' ? 'ออกงาน' : 'ยืม';
         const nextStatusText = safety.type === 'event' ? 'ออกงาน' : 'ถูกยืม';
         const ownerText = docAmendPreviewTarget.borrower || docAmendPreviewTarget.eventName || docAmendPreviewTarget.subject || '-';
@@ -29283,18 +29284,18 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,.85fr)_minmax(0,1.15fr)] gap-4">
                   <section className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                     <div className={`font-black ${theme.textTitle}`}>1) เลือกอุปกรณ์ที่ลืมบันทึก</div>
-                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>แสดงเฉพาะอุปกรณ์ที่ยังพร้อมใช้งาน และยังไม่อยู่ในเอกสารนี้</p>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>แสดงเฉพาะอุปกรณ์ที่ยังพร้อมใช้งาน และยังไม่อยู่ในเอกสารนี้ เลือกได้หลายรายการ</p>
                     <div className="mt-3 relative">
                       <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${theme.textMuted}`} />
-                      <input className={`w-full pl-10 pr-3 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาชื่อ / S.N. / รหัสสั้น / ที่เก็บ" value={docAmendPreviewSearch} onChange={e => { setDocAmendPreviewSearch(e.target.value); setDocAmendPreviewItemId(''); }} />
+                      <input className={`w-full pl-10 pr-3 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาชื่อ / S.N. / รหัสสั้น / ที่เก็บ" value={docAmendPreviewSearch} onChange={e => setDocAmendPreviewSearch(e.target.value)} />
                     </div>
                     <div className="mt-3 max-h-[310px] overflow-y-auto custom-scrollbar space-y-2">
                       {candidates.length === 0 ? (
                         <div className={`rounded-2xl border p-4 text-sm font-bold ${theme.textMuted} ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>ไม่พบอุปกรณ์พร้อมใช้งานตามคำค้นนี้</div>
                       ) : candidates.slice(0, 40).map(item => {
-                        const selected = String(item.id) === String(docAmendPreviewItemId);
+                        const selected = selectedItemIds.includes(String(item.id));
                         return (
-                          <button key={`preview_candidate_${item.id}`} type="button" onClick={() => setDocAmendPreviewItemId(String(item.id))} className={`w-full rounded-2xl border px-3 py-3 text-left transition-all ${selected ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg shadow-cyan-500/20' : (isDarkMode ? 'bg-slate-950 border-slate-800 hover:border-cyan-800 text-slate-100' : 'bg-white border-slate-200 hover:border-cyan-200 text-slate-900')}`}>
+                          <button key={`preview_candidate_${item.id}`} type="button" onClick={() => setDocAmendPreviewItemIds(prev => { const id = String(item.id); const current = asArray(prev).map(v => String(v)); return current.includes(id) ? current.filter(v => v !== id) : [...current, id]; })} className={`w-full rounded-2xl border px-3 py-3 text-left transition-all ${selected ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg shadow-cyan-500/20' : (isDarkMode ? 'bg-slate-950 border-slate-800 hover:border-cyan-800 text-slate-100' : 'bg-white border-slate-200 hover:border-cyan-200 text-slate-900')}`}>
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <div className="font-black truncate">{item.name || '-'}</div>
@@ -29314,18 +29315,25 @@ ${auditChangeSummary}` : auditChangeSummary);
                     <label className={`block text-xs font-black mt-4 mb-1.5 ${theme.textMuted}`}>เหตุผลการแก้รายการ</label>
                     <textarea className={`w-full min-h-[74px] rounded-xl border p-3 text-sm font-bold ${theme.input}`} value={docAmendPreviewReason} onChange={e => setDocAmendPreviewReason(e.target.value)} placeholder="เช่น ลืมบันทึกรายการตอนจ่ายของจริง" />
 
-                    {selectedItem ? (
+                    {selectedItems.length > 0 ? (
                       <div className="mt-4 space-y-3">
                         <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                           <div className={`text-xs font-black ${theme.textMuted}`}>อุปกรณ์ที่จะถูกเพิ่มเข้าเอกสาร</div>
-                          <div className={`text-lg font-black mt-1 ${theme.textTitle}`}>{selectedItem.name || '-'}</div>
-                          <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>S.N. {selectedItem.sn || '-'} • {selectedItem.shortCode || '-'} • ID {selectedItem.id}</div>
+                          <div className={`text-lg font-black mt-1 ${theme.textTitle}`}>เลือกแล้ว {selectedItems.length.toLocaleString('th-TH')} รายการ</div>
+                          <div className="mt-3 space-y-2">
+                            {selectedItems.map(item => (
+                              <div key={`preview_selected_${item.id}`} className={`rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                                <div className={`text-sm font-black ${theme.textTitle}`}>{item.name || '-'}</div>
+                                <div className={`text-xs font-bold mt-0.5 ${theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • ID {item.id}</div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                         {[
-                          ['เอกสาร', `เพิ่มอุปกรณ์นี้เข้าเอกสาร ${safety.docKey || '-'}`],
+                          ['เอกสาร', `เพิ่มอุปกรณ์ ${selectedItems.length.toLocaleString('th-TH')} รายการเข้าเอกสาร ${safety.docKey || '-'}`],
                           ['สถานะอุปกรณ์', `พร้อมใช้งาน → ${nextStatusText}`],
-                          ['ข้อมูลปัจจุบันของอุปกรณ์', `ผูกกับ ${ownerText} และกำหนดคืนตามเอกสารเดิม`],
-                          ['ประวัติอุปกรณ์', `เพิ่มบันทึก: เพิ่มรายการย้อนหลังในเอกสาร (${docAmendPreviewReason || 'ยังไม่ระบุเหตุผล'})`],
+                          ['ข้อมูลปัจจุบันของอุปกรณ์', `ผูกอุปกรณ์ที่เลือกทั้งหมดกับ ${ownerText} และกำหนดคืนตามเอกสารเดิม`],
+                          ['ประวัติอุปกรณ์', `เพิ่มบันทึกให้แต่ละรายการ: เพิ่มรายการย้อนหลังในเอกสาร (${docAmendPreviewReason || 'ยังไม่ระบุเหตุผล'})`],
                           ['รูปหลักฐาน', 'ไม่แก้ไขรูปหลักฐานเดิม แค่เพิ่มรายการในเอกสารเมื่อเปิดบันทึกจริงในอนาคต']
                         ].map(([label, value]) => (
                           <div key={label} className={`rounded-xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/65 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
@@ -29339,7 +29347,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                       </div>
                     ) : (
                       <div className={`mt-4 rounded-2xl border border-dashed p-6 text-center ${theme.textMuted} ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-slate-50'}`}>
-                        เลือกอุปกรณ์ทางซ้ายก่อน เพื่อดู Preview ผลกระทบ
+                        เลือกอุปกรณ์ทางซ้ายอย่างน้อย 1 รายการ เพื่อดู Preview ผลกระทบ
                       </div>
                     )}
                   </section>
