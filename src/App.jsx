@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.13 Amendment Cancel Commit Safe Mode';
+const APP_VERSION = 'v23.4.16.18.27.13.1 Cancel Amendment Undefined Field Hotfix';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -9097,11 +9097,11 @@ function MainApp() {
           amendmentReason: reason,
           previousStatus: item.status || expectedLiveStatus,
           nextStatus: 'available',
-          borrower: type === 'borrow' ? ownerText : undefined,
-          eventName: type === 'event' ? ownerText : undefined,
           operatorId: currentOperator?.id || null,
           operatorName: currentOperator?.name || currentAccountLabel || 'Admin'
         };
+        if (type === 'borrow') historyEntry.borrower = ownerText;
+        if (type === 'event') historyEntry.eventName = ownerText;
         const history = [...asArray(item.history), historyEntry];
         return setDoc(getItemDoc(item.id), {
           status: 'available',
