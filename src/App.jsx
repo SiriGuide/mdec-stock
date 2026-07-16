@@ -29913,7 +29913,18 @@ ${auditChangeSummary}` : auditChangeSummary);
       {/* ศูนย์แก้รายการ: ปุ่มเดียว เลือกงานที่ต้องการ แล้วส่งต่อไปยัง Safe Mode เดิม */}
       {docAmendActionHubTarget && (() => {
         const safety = getBorrowDocItemSafety(docAmendActionHubTarget);
-        const meta = getRecordsDocMeta(docAmendActionHubTarget);
+        const amendHubItemCount = Array.isArray(docAmendActionHubTarget.items)
+          ? docAmendActionHubTarget.items.length
+          : (Array.isArray(docAmendActionHubTarget.itemIds) ? docAmendActionHubTarget.itemIds.length : 0);
+        const amendHubReturnedCount = Array.isArray(docAmendActionHubTarget.returnedItemIds) ? docAmendActionHubTarget.returnedItemIds.length : 0;
+        const amendHubIsEvent = (docAmendActionHubTarget.type || docAmendActionHubTarget.docType) === 'event';
+        const meta = {
+          typeLabel: amendHubIsEvent ? 'ใบออกงาน' : 'ใบยืม',
+          ownerText: docAmendActionHubTarget.borrower || docAmendActionHubTarget.subject || docAmendActionHubTarget.eventName || '-',
+          progressText: amendHubItemCount > 0
+            ? `คืนแล้ว ${amendHubReturnedCount.toLocaleString('th-TH')}/${amendHubItemCount.toLocaleString('th-TH')} รายการ`
+            : 'ยังไม่มีรายการอุปกรณ์'
+        };
         const docRefText = docAmendActionHubTarget.ref || docAmendActionHubTarget.id || '-';
         const optionBase = `rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg`;
         const optionMuted = isDarkMode ? 'bg-slate-900/80 border-slate-800 hover:border-slate-700' : 'bg-white border-slate-200 hover:border-slate-300';
