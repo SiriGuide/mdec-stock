@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.13.2 Cancel Amendment Status Label Hotfix';
+const APP_VERSION = 'v23.4.16.18.27.14 Amendment Swap Preview Mode';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -7606,6 +7606,12 @@ function MainApp() {
   const [docCancelPreviewSearch, setDocCancelPreviewSearch] = useState('');
   const [docCancelPreviewItemIds, setDocCancelPreviewItemIds] = useState([]);
   const [docCancelPreviewReason, setDocCancelPreviewReason] = useState('เลือกอุปกรณ์ผิดตอนสร้างเอกสาร');
+  const [docSwapPreviewTarget, setDocSwapPreviewTarget] = useState(null);
+  const [docSwapPreviewRemoveSearch, setDocSwapPreviewRemoveSearch] = useState('');
+  const [docSwapPreviewAddSearch, setDocSwapPreviewAddSearch] = useState('');
+  const [docSwapPreviewRemoveId, setDocSwapPreviewRemoveId] = useState('');
+  const [docSwapPreviewAddId, setDocSwapPreviewAddId] = useState('');
+  const [docSwapPreviewReason, setDocSwapPreviewReason] = useState('สลับอุปกรณ์ที่เลือกผิดตอนสร้างเอกสาร');
   const [recordsCenterMode, setRecordsCenterMode] = useState('docs');
   const [showPersonalItemsModal, setShowPersonalItemsModal] = useState(false);
   const [showProjectsModal, setShowProjectsModal] = useState(false);
@@ -8814,6 +8820,31 @@ function MainApp() {
     setDocCancelPreviewSearch('');
     setDocCancelPreviewItemIds([]);
     setDocCancelPreviewReason('เลือกอุปกรณ์ผิดตอนสร้างเอกสาร');
+  };
+
+  const openBorrowDocItemSwapPreview = (docData = {}) => {
+    if (!docData) return;
+    if (!canUseOperationalTools) return alert('บัญชีนี้ไม่มีสิทธิ์ทดลองสลับรายการในเอกสาร');
+    const safety = getBorrowDocItemSafety(docData);
+    if (!safety.canAmendSafely) {
+      setDocSafetyTarget(docData);
+      return alert('เอกสารนี้ยังไม่ผ่านเงื่อนไขสำหรับ Preview สลับรายการ ให้ตรวจความพร้อมก่อน');
+    }
+    setDocSwapPreviewTarget(docData);
+    setDocSwapPreviewRemoveSearch('');
+    setDocSwapPreviewAddSearch('');
+    setDocSwapPreviewRemoveId('');
+    setDocSwapPreviewAddId('');
+    setDocSwapPreviewReason('สลับอุปกรณ์ที่เลือกผิดตอนสร้างเอกสาร');
+  };
+
+  const closeBorrowDocItemSwapPreview = () => {
+    setDocSwapPreviewTarget(null);
+    setDocSwapPreviewRemoveSearch('');
+    setDocSwapPreviewAddSearch('');
+    setDocSwapPreviewRemoveId('');
+    setDocSwapPreviewAddId('');
+    setDocSwapPreviewReason('สลับอุปกรณ์ที่เลือกผิดตอนสร้างเอกสาร');
   };
 
   const handleCommitBorrowDocItemAmendment = async () => {
@@ -16165,6 +16196,7 @@ S.N.: ${item.sn || '-'}
                             <button type="button" onClick={() => openBorrowDocSafetyCheck(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${safety.tone}`}>ตรวจรายการ</button>
                             {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => openBorrowDocItemAmendPreview(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${isDarkMode ? 'bg-cyan-950/35 border-cyan-800 text-cyan-100 hover:bg-cyan-900/45' : 'bg-cyan-50 border-cyan-200 text-cyan-700 hover:bg-cyan-100'}`}>Preview เพิ่มรายการ</button>}
                             {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => openBorrowDocItemCancelPreview(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-100 hover:bg-amber-900/45' : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'}`}>Preview ยกเลิก</button>}
+                            {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => openBorrowDocItemSwapPreview(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${isDarkMode ? 'bg-violet-950/35 border-violet-800 text-violet-100 hover:bg-violet-900/45' : 'bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100'}`}>Preview สลับ</button>}
                             <button type="button" onClick={() => openDocHistorySearch(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
                             <button type="button" onClick={() => copyDocSummary(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>คัดลอกสรุป</button>
                             {meta.status !== 'closed' && <button type="button" onClick={() => { setTrackingSearch(docData.ref || meta.ownerText || ''); openWorkspace('tracking'); }} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black shadow-sm">ติดตามคืน</button>}
@@ -29481,6 +29513,11 @@ ${auditChangeSummary}` : auditChangeSummary);
                               Preview ยกเลิกรายการ
                             </button>
                           )}
+                          {canUseOperationalTools && safety.canAmendSafely && (
+                            <button type="button" onClick={() => openBorrowDocItemSwapPreview(docData)} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${isDarkMode ? 'bg-violet-950/35 border-violet-800 text-violet-100 hover:bg-violet-900/45' : 'bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100'}`}>
+                              Preview สลับรายการ
+                            </button>
+                          )}
                           <button type="button" onClick={() => { setShowBorrowDocsModal(false); setTrackingTab('today'); setShowTrackingCenterModal(true); }} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
                             ติดตามสถานะคืน
                           </button>
@@ -29618,6 +29655,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <div className="flex flex-wrap justify-end gap-2">
                   {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => { closeBorrowDocSafetyCheck(); openBorrowDocItemAmendPreview(docSafetyTarget); }} className="px-5 py-2.5 rounded-2xl font-black bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm">เปิด Preview เพิ่มรายการ</button>}
                   {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => { closeBorrowDocSafetyCheck(); openBorrowDocItemCancelPreview(docSafetyTarget); }} className="px-5 py-2.5 rounded-2xl font-black bg-amber-600 hover:bg-amber-500 text-white shadow-sm">เปิด Preview ยกเลิก</button>}
+                  {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => { closeBorrowDocSafetyCheck(); openBorrowDocItemSwapPreview(docSafetyTarget); }} className="px-5 py-2.5 rounded-2xl font-black bg-violet-600 hover:bg-violet-500 text-white shadow-sm">เปิด Preview สลับ</button>}
                   <button type="button" onClick={closeBorrowDocSafetyCheck} className={`px-5 py-2.5 rounded-2xl font-black ${theme.btnCancel}`}>ปิดผลตรวจ</button>
                 </div>
               </div>
@@ -29864,6 +29902,148 @@ ${auditChangeSummary}` : auditChangeSummary);
           </div>
         );
       })()}
+
+      {/* Preview สลับรายการอุปกรณ์ในเอกสาร: อ่านอย่างเดียว ยังไม่บันทึกจริง */}
+      {docSwapPreviewTarget && (() => {
+        const safety = getBorrowDocItemSafety(docSwapPreviewTarget);
+        const cancelCandidates = getBorrowDocCancelCandidateItems(docSwapPreviewTarget, docSwapPreviewRemoveSearch);
+        const addCandidates = getBorrowDocAmendCandidateItems(docSwapPreviewTarget, docSwapPreviewAddSearch);
+        const removeItem = cancelCandidates.find(item => String(item.id) === String(docSwapPreviewRemoveId)) || getBorrowDocCancelCandidateItems(docSwapPreviewTarget, '').find(item => String(item.id) === String(docSwapPreviewRemoveId));
+        const addItem = asArray(items).find(item => String(item.id) === String(docSwapPreviewAddId));
+        const type = (docSwapPreviewTarget.type || docSwapPreviewTarget.docType || 'borrow') === 'event' ? 'event' : 'borrow';
+        const selectedReady = Boolean(removeItem?.canCancel && addItem && (addItem.status || 'available') === 'available' && String(docSwapPreviewReason || '').trim().length >= 5);
+        return (
+          <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 z-[10016]`}>
+            <div className={`w-full max-w-6xl max-h-[92vh] overflow-hidden rounded-3xl shadow-2xl ${theme.cardBg}`}>
+              <div className={`p-4 sm:p-5 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
+                <div className="min-w-0">
+                  <div className="text-xs font-black tracking-[0.18em] uppercase text-violet-400">SWAP PREVIEW / PRODUCTION SAFE MODE</div>
+                  <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>Preview สลับรายการอุปกรณ์</h3>
+                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>จำลองการถอดรายการผิดออก แล้วเพิ่มรายการที่ถูกต้องเข้าเอกสารเดิม ยังไม่บันทึกข้อมูลจริง</p>
+                </div>
+                <button type="button" onClick={closeBorrowDocItemSwapPreview} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}><Icons.X className="w-4 h-4" /></button>
+              </div>
+
+              <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar max-h-[calc(92vh-150px)] space-y-4">
+                <div className={`rounded-2xl border p-4 ${safety.tone}`}>
+                  <div className="font-black">{safety.label}</div>
+                  <div className="text-xs font-bold mt-1 opacity-85">เอกสาร: {safety.docKey || '-'} • โหมดนี้คือ Preview เท่านั้น ไม่เขียนฐานข้อมูล</div>
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                  <section className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className={`font-black ${theme.textTitle}`}>1) เลือกรายการผิดที่จะถอดออก</div>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เลือกได้ 1 รายการก่อน เพื่อความปลอดภัย รายการที่คืนแล้วหรือสถานะไม่ตรงจะถูกล็อกไว้</p>
+                    <div className="mt-3 relative">
+                      <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${theme.textMuted}`} />
+                      <input className={`w-full pl-10 pr-3 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหารายการในเอกสาร" value={docSwapPreviewRemoveSearch} onChange={e => setDocSwapPreviewRemoveSearch(e.target.value)} />
+                    </div>
+                    <div className="mt-3 max-h-[360px] overflow-y-auto custom-scrollbar space-y-2">
+                      {cancelCandidates.length === 0 ? (
+                        <div className={`rounded-2xl border p-4 text-sm font-bold ${theme.textMuted} ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>ไม่พบรายการในเอกสารตามคำค้นนี้</div>
+                      ) : cancelCandidates.map(item => {
+                        const selected = String(docSwapPreviewRemoveId) === String(item.id);
+                        return (
+                          <button key={`swap_remove_${item.id}`} type="button" disabled={!item.canCancel} onClick={() => setDocSwapPreviewRemoveId(prev => String(prev) === String(item.id) ? '' : String(item.id))} className={`w-full rounded-2xl border px-3 py-3 text-left transition-all disabled:cursor-not-allowed ${selected ? 'bg-violet-600 border-violet-500 text-white shadow-lg shadow-violet-500/20' : item.canCancel ? (isDarkMode ? 'bg-slate-950 border-slate-800 hover:border-violet-800 text-slate-100' : 'bg-white border-slate-200 hover:border-violet-200 text-slate-900') : (isDarkMode ? 'bg-slate-950/55 border-slate-800 text-slate-500 opacity-75' : 'bg-slate-100 border-slate-200 text-slate-400 opacity-80')}`}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="font-black truncate">{item.name || item.id || '-'}</div>
+                                <div className={`text-xs font-bold mt-1 truncate ${selected ? 'text-white/80' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || item.storageBoxName || '-'}</div>
+                                {!item.canCancel && <div className="text-[11px] font-black mt-1 text-amber-300">ล็อก: {item.cancelBlockReason}</div>}
+                              </div>
+                              <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 font-black ${selected ? 'bg-white/15 border-white/25 text-white' : (isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-400')}`}>{selected ? '✓' : ''}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  <section className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className={`font-black ${theme.textTitle}`}>2) เลือกรายการถูกต้องที่จะเพิ่มเข้า</div>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>แสดงเฉพาะอุปกรณ์ที่พร้อมใช้งานและยังไม่อยู่ในเอกสารนี้</p>
+                    <div className="mt-3 relative">
+                      <Icons.Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${theme.textMuted}`} />
+                      <input className={`w-full pl-10 pr-3 py-2.5 rounded-xl border text-sm font-bold ${theme.input}`} placeholder="ค้นหาอุปกรณ์ที่จะเพิ่ม" value={docSwapPreviewAddSearch} onChange={e => setDocSwapPreviewAddSearch(e.target.value)} />
+                    </div>
+                    <div className="mt-3 max-h-[360px] overflow-y-auto custom-scrollbar space-y-2">
+                      {addCandidates.length === 0 ? (
+                        <div className={`rounded-2xl border p-4 text-sm font-bold ${theme.textMuted} ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>ไม่พบอุปกรณ์พร้อมใช้งานตามคำค้นนี้</div>
+                      ) : addCandidates.map(item => {
+                        const selected = String(docSwapPreviewAddId) === String(item.id);
+                        return (
+                          <button key={`swap_add_${item.id}`} type="button" onClick={() => setDocSwapPreviewAddId(prev => String(prev) === String(item.id) ? '' : String(item.id))} className={`w-full rounded-2xl border px-3 py-3 text-left transition-all ${selected ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : (isDarkMode ? 'bg-slate-950 border-slate-800 hover:border-emerald-800 text-slate-100' : 'bg-white border-slate-200 hover:border-emerald-200 text-slate-900')}`}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="font-black truncate">{item.name || '-'}</div>
+                                <div className={`text-xs font-bold mt-1 truncate ${selected ? 'text-white/80' : theme.textMuted}`}>S.N. {item.sn || '-'} • {item.shortCode || '-'} • {item.location || item.storageLocation || item.storageBoxName || '-'}</div>
+                              </div>
+                              <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 font-black ${selected ? 'bg-white/15 border-white/25 text-white' : (isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-400')}`}>{selected ? '✓' : ''}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  <section className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className={`font-black ${theme.textTitle}`}>3) Preview ผลกระทบ</div>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>รอบนี้ยังไม่เขียนฐานข้อมูล ใช้ตรวจความถูกต้องก่อนทำ Safe Commit ในรอบถัดไป</p>
+                    <label className={`block text-xs font-black mt-4 mb-1.5 ${theme.textMuted}`}>เหตุผลการสลับรายการ</label>
+                    <textarea className={`w-full min-h-[74px] rounded-xl border p-3 text-sm font-bold ${theme.input}`} value={docSwapPreviewReason} onChange={e => setDocSwapPreviewReason(e.target.value)} placeholder="เช่น เลือกอุปกรณ์ผิดตัวตอนสร้างเอกสาร" />
+
+                    {(removeItem || addItem) ? (
+                      <div className="mt-4 space-y-3">
+                        <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                          <div className={`text-xs font-black ${theme.textMuted}`}>รายการที่จะสลับ</div>
+                          <div className="grid grid-cols-1 gap-2 mt-3">
+                            <div className={`rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-rose-950/20 border-rose-800 text-rose-100' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>
+                              <div className="text-[11px] font-black">ถอดออกจากเอกสาร</div>
+                              <div className="text-sm font-black mt-0.5">{removeItem ? `${removeItem.name || removeItem.id}${removeItem.sn ? ` / S.N. ${removeItem.sn}` : ''}` : 'ยังไม่ได้เลือก'}</div>
+                            </div>
+                            <div className={`rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-emerald-950/20 border-emerald-800 text-emerald-100' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
+                              <div className="text-[11px] font-black">เพิ่มเข้าเอกสารแทน</div>
+                              <div className="text-sm font-black mt-0.5">{addItem ? `${addItem.name || addItem.id}${addItem.sn ? ` / S.N. ${addItem.sn}` : ''}` : 'ยังไม่ได้เลือก'}</div>
+                            </div>
+                          </div>
+                        </div>
+                        {[
+                          ['เอกสาร', `จะสลับรายการในเอกสาร ${safety.docKey || '-'}`],
+                          ['จำนวนรายการ', 'จำนวนรายการรวมในเอกสารจะเท่าเดิม เพราะเป็นการถอด 1 และเพิ่ม 1'],
+                          ['สถานะรายการเดิม', `เมื่อบันทึกจริงในอนาคต: ${type === 'event' ? 'ออกงาน' : 'ถูกยืม'} → พร้อมใช้งาน`],
+                          ['สถานะรายการใหม่', `เมื่อบันทึกจริงในอนาคต: พร้อมใช้งาน → ${type === 'event' ? 'ออกงาน' : 'ถูกยืม'}`],
+                          ['ประวัติ', `จะเพิ่มบันทึก amendment ให้ทั้ง 2 รายการ พร้อมเหตุผล: ${docSwapPreviewReason || 'ยังไม่ระบุเหตุผล'}`]
+                        ].map(([label, value]) => (
+                          <div key={label} className={`rounded-xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/65 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                            <div className={`text-[11px] font-black ${theme.textMuted}`}>{label}</div>
+                            <div className={`text-sm font-black mt-0.5 ${theme.textTitle}`}>{value}</div>
+                          </div>
+                        ))}
+                        <div className={`rounded-2xl border p-3 text-xs font-bold ${selectedReady ? (isDarkMode ? 'bg-violet-950/20 border-violet-800 text-violet-100' : 'bg-violet-50 border-violet-200 text-violet-800') : (isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500')}`}>
+                          {selectedReady ? 'Preview พร้อมแล้ว รอบนี้ยังไม่บันทึกจริง ขั้นถัดไปค่อยเปิด Safe Commit หลังตรวจผลลัพธ์' : 'ต้องเลือกทั้งรายการที่จะถอดออก รายการที่จะเพิ่มเข้า และกรอกเหตุผลอย่างน้อย 5 ตัวอักษร'}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`mt-4 rounded-2xl border border-dashed p-6 text-center ${theme.textMuted} ${isDarkMode ? 'border-slate-800 bg-slate-950' : 'border-slate-200 bg-slate-50'}`}>
+                        เลือกรายการที่จะถอดออกและรายการที่จะเพิ่มเข้า เพื่อดู Preview การสลับ
+                      </div>
+                    )}
+                  </section>
+                </div>
+              </div>
+
+              <div className={`p-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
+                <div className={`text-xs font-bold ${theme.textMuted}`}>สถานะ: Preview Only • ไม่เขียนฐานข้อมูล ไม่เปลี่ยนสถานะอุปกรณ์</div>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <button type="button" disabled className="px-5 py-3 rounded-2xl font-black bg-slate-700 text-slate-400 cursor-not-allowed shadow-sm">บันทึกจริงยังปิดอยู่</button>
+                  <button type="button" onClick={closeBorrowDocItemSwapPreview} className={`px-5 py-3 rounded-2xl font-black ${theme.btnSecondary}`}>ปิด Preview</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
 
       {/* แก้ไขข้อมูลเอกสารยืม/ออกงาน */}
       {docEditTarget && (
