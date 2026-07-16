@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.14.1 Swap Preview Footer Visibility Hotfix';
+const APP_VERSION = 'v23.4.16.18.27.15 Amendment Swap Commit Safe Mode';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -9163,6 +9163,229 @@ function MainApp() {
       setIsBusy(false);
     }
   };
+
+  const handleCommitBorrowDocItemSwap = async () => {
+    if (!docSwapPreviewTarget) return;
+    if (!canUseOperationalTools) return alert('บัญชีนี้ไม่มีสิทธิ์บันทึกสลับรายการในเอกสาร');
+    const safety = getBorrowDocItemSafety(docSwapPreviewTarget);
+    if (!safety.canAmendSafely) {
+      setDocSafetyTarget(docSwapPreviewTarget);
+      return alert('เอกสารนี้ยังไม่ผ่านเงื่อนไข Safe Mode สำหรับสลับรายการจริง');
+    }
+    const docId = docSwapPreviewTarget.id || docSwapPreviewTarget.ref;
+    const refKey = String(docSwapPreviewTarget.ref || docSwapPreviewTarget.id || docId || '').trim();
+    if (!docId || !refKey) return alert('ไม่พบเลขเอกสารสำหรับบันทึกจริง');
+    const removeId = String(docSwapPreviewRemoveId || '').trim();
+    const addId = String(docSwapPreviewAddId || '').trim();
+    if (!removeId || !addId) return alert('กรุณาเลือกทั้งรายการที่จะถอดออกและรายการที่จะเพิ่มเข้า');
+    if (removeId === addId) return alert('รายการเดิมและรายการใหม่ต้องไม่ใช่อุปกรณ์ชิ้นเดียวกัน');
+    const reason = String(docSwapPreviewReason || '').trim();
+    if (reason.length < 5) return alert('กรุณากรอกเหตุผลการสลับรายการอย่างน้อย 5 ตัวอักษร');
+
+    const localRemove = getBorrowDocCancelCandidateItems(docSwapPreviewTarget, '').find(item => String(item.id) === removeId);
+    const localAdd = items.find(item => String(item.id) === addId);
+    const linkedIds = new Set(getBorrowDocLinkedItemIds(docSwapPreviewTarget).map(id => String(id)));
+    if (!localRemove || !localRemove.canCancel) return alert('รายการที่จะถอดออกยังไม่ผ่านเงื่อนไข Safe Mode กรุณาตรวจรายการใหม่');
+    if (!localAdd || linkedIds.has(addId) || localAdd.status !== 'available' || localAdd.deleted || localAdd.isDeleted || localAdd.archived || localAdd.isArchived) {
+      return alert('รายการที่จะเพิ่มเข้าไม่พร้อมใช้งาน หรืออยู่ในเอกสารนี้แล้ว กรุณาตรวจรายการใหม่');
+    }
+
+    const type = (docSwapPreviewTarget.type || docSwapPreviewTarget.docType || 'borrow') === 'event' ? 'event' : 'borrow';
+    const expectedLiveStatus = type === 'event' ? 'out-for-event' : 'borrowed';
+    const nextStatus = expectedLiveStatus;
+    const previousStatusLabel = type === 'event' ? 'ออกงาน' : 'ถูกยืม';
+    const ownerText = String(docSwapPreviewTarget.eventName || docSwapPreviewTarget.borrower || docSwapPreviewTarget.subject || '-').trim();
+    const expectedReturn = docSwapPreviewTarget.expectedReturn || '';
+    const staffOut = docSwapPreviewTarget.staffOut || docSwapPreviewTarget.operatorName || currentAccountLabel || 'Admin';
+    const docNote = docSwapPreviewTarget.note || '';
+    const ok = window.confirm(`ยืนยันบันทึกสลับรายการในเอกสาร ${refKey}?\n\nถอดออก: ${localRemove.name || removeId}${localRemove.sn ? ` / S.N. ${localRemove.sn}` : ''}\nเพิ่มเข้า: ${localAdd.name || addId}${localAdd.sn ? ` / S.N. ${localAdd.sn}` : ''}\nสถานะตัวเดิม: ${previousStatusLabel} → พร้อมใช้งาน\nสถานะตัวใหม่: พร้อมใช้งาน → ${previousStatusLabel}\nเหตุผล: ${reason}\n\nระบบจะเขียนข้อมูลจริงลงฐานข้อมูล ปรับเอกสาร และเพิ่มประวัติ amendment ให้ทั้ง 2 รายการ`);
+    if (!ok) return;
+
+    setIsBusy(true);
+    try {
+      const now = new Date().toISOString();
+      const docSnap = await getDoc(getBorrowDoc(docId));
+      if (!docSnap.exists()) return alert('หยุดบันทึกเพื่อความปลอดภัย: ไม่พบเอกสารล่าสุดในฐานข้อมูล');
+      const liveDoc = { ...docSwapPreviewTarget, id: docId, ...docSnap.data() };
+      const liveSafety = getBorrowDocItemSafety(liveDoc);
+      if (!liveSafety.canAmendSafely) {
+        setDocSafetyTarget(liveDoc);
+        return alert('หยุดบันทึกเพื่อความปลอดภัย: เอกสารล่าสุดไม่ผ่านเงื่อนไข Safe Mode แล้ว');
+      }
+
+      const liveExistingItemIds = getBorrowDocLinkedItemIds(liveDoc);
+      const liveLinkedSet = new Set(liveExistingItemIds.map(id => String(id)));
+      const liveReturnedSet = new Set(asArray(liveDoc.returnedItemIds).map(id => String(id || '').trim()).filter(Boolean));
+      if (!liveLinkedSet.has(removeId)) return alert('หยุดบันทึกเพื่อความปลอดภัย: รายการที่จะถอดออกไม่อยู่ในเอกสารล่าสุดแล้ว');
+      if (liveReturnedSet.has(removeId)) return alert('หยุดบันทึกเพื่อความปลอดภัย: รายการที่จะถอดออกถูกคืนแล้ว จึงห้ามสลับย้อนหลัง');
+      if (liveLinkedSet.has(addId)) return alert('หยุดบันทึกเพื่อความปลอดภัย: รายการที่จะเพิ่มเข้าอยู่ในเอกสารล่าสุดแล้ว');
+
+      const [removeSnap, addSnap] = await Promise.all([getDoc(getItemDoc(removeId)), getDoc(getItemDoc(addId))]);
+      if (!removeSnap.exists() || !addSnap.exists()) return alert('หยุดบันทึกเพื่อความปลอดภัย: ไม่พบอุปกรณ์ล่าสุดในฐานข้อมูล');
+      const removeLiveItem = { id: removeId, ...removeSnap.data() };
+      const addLiveItem = { id: addId, ...addSnap.data() };
+      if (removeLiveItem.status !== expectedLiveStatus || removeLiveItem.deleted || removeLiveItem.isDeleted || removeLiveItem.archived || removeLiveItem.isArchived) {
+        return alert('หยุดบันทึกเพื่อความปลอดภัย: สถานะล่าสุดของรายการที่จะถอดออกไม่ตรงกับเอกสารแล้ว');
+      }
+      if (addLiveItem.status !== 'available' || addLiveItem.deleted || addLiveItem.isDeleted || addLiveItem.archived || addLiveItem.isArchived) {
+        return alert('หยุดบันทึกเพื่อความปลอดภัย: รายการที่จะเพิ่มเข้าไม่พร้อมใช้งานแล้ว');
+      }
+
+      const finalItemIds = liveExistingItemIds.map(id => String(id) === removeId ? addId : String(id));
+      const uniqueFinalItemIds = Array.from(new Set(finalItemIds));
+      if (uniqueFinalItemIds.length !== finalItemIds.length) return alert('หยุดบันทึกเพื่อความปลอดภัย: ตรวจพบ ID ซ้ำหลังสลับรายการ');
+
+      const addDocItem = {
+        id: addLiveItem.id,
+        name: addLiveItem.name || '-',
+        sn: addLiveItem.sn || '-',
+        category: addLiveItem.category || '-',
+        location: addLiveItem.location || addLiveItem.storageLocation || addLiveItem.storageBoxName || '-',
+        department: addLiveItem.department || addLiveItem.ownerDepartment || '-',
+        project: addLiveItem.project || '',
+        storageBoxName: addLiveItem.storageBoxName || '',
+        internalNote: addLiveItem.internalNote || '',
+        quantity: addLiveItem.quantity || 1,
+        amendedIntoDocument: true,
+        swappedIntoDocument: true,
+        swappedFromItemId: removeId,
+        amendedAt: now,
+        amendmentReason: reason,
+        amendedBy: currentAccountLabel
+      };
+      const finalDocItems = asArray(liveDoc.items).map(item => {
+        const itemId = String(item?.id || item?.itemId || '').trim();
+        return itemId === removeId ? addDocItem : item;
+      });
+      const docItemHasRemove = asArray(liveDoc.items).some(item => String(item?.id || item?.itemId || '').trim() === removeId);
+      const normalizedDocItems = docItemHasRemove ? finalDocItems : [...finalDocItems.filter(item => String(item?.id || item?.itemId || '').trim() !== addId), addDocItem];
+      const returnedItemIds = asArray(liveDoc.returnedItemIds).map(id => String(id || '').trim()).filter(Boolean).filter(id => id !== removeId);
+      const returnedSet = new Set(returnedItemIds);
+      const remainingItemIds = uniqueFinalItemIds.filter(id => !returnedSet.has(String(id)));
+      const nextDocStatus = remainingItemIds.length === 0 ? 'closed' : returnedItemIds.length > 0 ? 'partial' : 'active';
+      const nextDocStatusLabel = nextDocStatus === 'closed' ? 'คืนครบ / ปิดเอกสาร' : nextDocStatus === 'partial' ? 'คืนบางส่วน' : 'รอคืน';
+      const amendmentRecord = {
+        id: `swap_amend_${Date.now()}`,
+        type: 'swap-items',
+        date: now,
+        documentRef: refKey,
+        removeItemId: removeId,
+        addItemId: addId,
+        removeItemName: removeLiveItem.name || removeId,
+        addItemName: addLiveItem.name || addId,
+        reason,
+        operatorId: currentOperator?.id || null,
+        operatorName: currentOperator?.name || currentAccountLabel || 'Admin',
+        safeMode: true
+      };
+      const docPatch = {
+        itemIds: uniqueFinalItemIds,
+        items: normalizedDocItems,
+        returnedItemIds,
+        remainingItemIds,
+        returnProgress: { total: uniqueFinalItemIds.length, returned: returnedItemIds.length, remaining: remainingItemIds.length },
+        status: nextDocStatus,
+        statusLabel: nextDocStatusLabel,
+        updatedAt: now,
+        updatedBy: currentAccountLabel,
+        itemAmendedAt: now,
+        itemAmendedBy: currentAccountLabel,
+        itemAmendmentCount: (Number(liveDoc.itemAmendmentCount) || 0) + 1,
+        itemAmendments: [...asArray(liveDoc.itemAmendments), amendmentRecord]
+      };
+      if (type === 'event') {
+        docPatch.eventName = ownerText;
+        docPatch.borrower = liveDoc.borrower || ownerText;
+      } else {
+        docPatch.borrower = ownerText;
+        docPatch.subject = ownerText;
+      }
+
+      const removeHistoryEntry = {
+        type: 'amendment-swap-remove-item',
+        date: now,
+        documentId: refKey,
+        documentRef: refKey,
+        amendmentType: 'swap-remove-from-document',
+        amendmentReason: reason,
+        swappedWithItemId: addId,
+        previousStatus: removeLiveItem.status || expectedLiveStatus,
+        nextStatus: 'available',
+        operatorId: currentOperator?.id || null,
+        operatorName: currentOperator?.name || currentAccountLabel || 'Admin'
+      };
+      if (type === 'borrow') removeHistoryEntry.borrower = ownerText;
+      if (type === 'event') removeHistoryEntry.eventName = ownerText;
+
+      const addHistoryEntry = {
+        type,
+        date: now,
+        documentId: refKey,
+        documentRef: refKey,
+        amendmentType: 'swap-add-to-document',
+        amendmentReason: reason,
+        swappedFromItemId: removeId,
+        expectedReturn,
+        staffOut,
+        note: docNote,
+        previousStatus: addLiveItem.status || 'available',
+        nextStatus,
+        operatorId: currentOperator?.id || null,
+        operatorName: currentOperator?.name || currentAccountLabel || 'Admin'
+      };
+      if (type === 'event') addHistoryEntry.eventName = ownerText;
+      else addHistoryEntry.borrower = ownerText;
+
+      const removePatch = {
+        status: 'available',
+        currentBorrower: null,
+        currentEvent: null,
+        expectedReturn: '',
+        currentNote: '',
+        history: [...asArray(removeLiveItem.history), removeHistoryEntry],
+        lastAmendedDocumentRef: refKey,
+        lastAmendedAt: now,
+        updatedAt: now,
+        updatedBy: currentAccountLabel
+      };
+      const addPatch = {
+        status: nextStatus,
+        expectedReturn,
+        currentNote: docNote,
+        history: [...asArray(addLiveItem.history), addHistoryEntry],
+        lastAmendedDocumentRef: refKey,
+        lastAmendedAt: now,
+        updatedAt: now,
+        updatedBy: currentAccountLabel
+      };
+      if (type === 'event') {
+        addPatch.currentEvent = ownerText;
+        addPatch.currentBorrower = null;
+      } else {
+        addPatch.currentBorrower = ownerText;
+        addPatch.currentEvent = null;
+      }
+
+      await Promise.all([
+        setDoc(getBorrowDoc(docId), docPatch, { merge: true }),
+        setDoc(getItemDoc(removeId), removePatch, { merge: true }),
+        setDoc(getItemDoc(addId), addPatch, { merge: true })
+      ]);
+      await logAction('สลับรายการในเอกสาร', refKey, `สลับอุปกรณ์ในเอกสารเดิม
+ถอดออก: ${removeLiveItem.name || removeId}${removeLiveItem.sn ? ` (${removeLiveItem.sn})` : ''}
+เพิ่มเข้า: ${addLiveItem.name || addId}${addLiveItem.sn ? ` (${addLiveItem.sn})` : ''}
+ผู้เกี่ยวข้อง/ชื่องาน: ${ownerText}
+เหตุผล: ${reason}`);
+      pushToast('บันทึกสลับรายการแล้ว', `${refKey} สลับรายการเรียบร้อย`, 'success');
+      closeBorrowDocItemSwapPreview();
+    } catch (error) {
+      console.error(error);
+      alert('บันทึกสลับรายการไม่สำเร็จ: ' + (error?.message || error));
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
 
 
   const handleSaveBorrowDocEdit = async () => {
@@ -29903,7 +30126,7 @@ ${auditChangeSummary}` : auditChangeSummary);
         );
       })()}
 
-      {/* Preview สลับรายการอุปกรณ์ในเอกสาร: อ่านอย่างเดียว ยังไม่บันทึกจริง */}
+      {/* สลับรายการอุปกรณ์ในเอกสาร: อ่านอย่างเดียว ยังไม่บันทึกจริง */}
       {docSwapPreviewTarget && (() => {
         const safety = getBorrowDocItemSafety(docSwapPreviewTarget);
         const cancelCandidates = getBorrowDocCancelCandidateItems(docSwapPreviewTarget, docSwapPreviewRemoveSearch);
@@ -29917,9 +30140,9 @@ ${auditChangeSummary}` : auditChangeSummary);
             <div className={`w-full max-w-6xl h-[86vh] max-h-[86vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col ${theme.cardBg}`}>
               <div className={`p-3 sm:p-4 border-b flex items-start justify-between gap-3 shrink-0 ${theme.divide}`}>
                 <div className="min-w-0">
-                  <div className="text-xs font-black tracking-[0.18em] uppercase text-violet-400">SWAP PREVIEW / PRODUCTION SAFE MODE</div>
-                  <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>Preview สลับรายการอุปกรณ์</h3>
-                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>จำลองการถอดรายการผิดออก แล้วเพิ่มรายการที่ถูกต้องเข้าเอกสารเดิม ยังไม่บันทึกข้อมูลจริง</p>
+                  <div className="text-xs font-black tracking-[0.18em] uppercase text-violet-400">SWAP COMMIT / PRODUCTION SAFE MODE</div>
+                  <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>สลับรายการอุปกรณ์</h3>
+                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>ถอดรายการผิดออก แล้วเพิ่มรายการที่ถูกต้องเข้าเอกสารเดิมแบบ Safe Mode</p>
                 </div>
                 <button type="button" onClick={closeBorrowDocItemSwapPreview} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}><Icons.X className="w-4 h-4" /></button>
               </div>
@@ -29927,7 +30150,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               <div className="p-3 sm:p-4 overflow-y-auto custom-scrollbar flex-1 min-h-0 space-y-4">
                 <div className={`rounded-2xl border p-4 ${safety.tone}`}>
                   <div className="font-black">{safety.label}</div>
-                  <div className="text-xs font-bold mt-1 opacity-85">เอกสาร: {safety.docKey || '-'} • โหมดนี้คือ Preview เท่านั้น ไม่เขียนฐานข้อมูล</div>
+                  <div className="text-xs font-bold mt-1 opacity-85">เอกสาร: {safety.docKey || '-'} • ตรวจผลกระทบก่อนกดบันทึกจริง</div>
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4">
@@ -29988,7 +30211,7 @@ ${auditChangeSummary}` : auditChangeSummary);
 
                   <section className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200'}`}>
                     <div className={`font-black ${theme.textTitle}`}>3) Preview ผลกระทบ</div>
-                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>รอบนี้ยังไม่เขียนฐานข้อมูล ใช้ตรวจความถูกต้องก่อนทำ Safe Commit ในรอบถัดไป</p>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ตรวจความถูกต้องก่อนกดบันทึกจริง ระบบจะตรวจสถานะล่าสุดอีกครั้งก่อนเขียนฐานข้อมูล</p>
                     <label className={`block text-xs font-black mt-4 mb-1.5 ${theme.textMuted}`}>เหตุผลการสลับรายการ</label>
                     <textarea className={`w-full min-h-[74px] rounded-xl border p-3 text-sm font-bold ${theme.input}`} value={docSwapPreviewReason} onChange={e => setDocSwapPreviewReason(e.target.value)} placeholder="เช่น เลือกอุปกรณ์ผิดตัวตอนสร้างเอกสาร" />
 
@@ -30010,8 +30233,8 @@ ${auditChangeSummary}` : auditChangeSummary);
                         {[
                           ['เอกสาร', `จะสลับรายการในเอกสาร ${safety.docKey || '-'}`],
                           ['จำนวนรายการ', 'จำนวนรายการรวมในเอกสารจะเท่าเดิม เพราะเป็นการถอด 1 และเพิ่ม 1'],
-                          ['สถานะรายการเดิม', `เมื่อบันทึกจริงในอนาคต: ${type === 'event' ? 'ออกงาน' : 'ถูกยืม'} → พร้อมใช้งาน`],
-                          ['สถานะรายการใหม่', `เมื่อบันทึกจริงในอนาคต: พร้อมใช้งาน → ${type === 'event' ? 'ออกงาน' : 'ถูกยืม'}`],
+                          ['สถานะรายการเดิม', `เมื่อบันทึกจริง: ${type === 'event' ? 'ออกงาน' : 'ถูกยืม'} → พร้อมใช้งาน`],
+                          ['สถานะรายการใหม่', `เมื่อบันทึกจริง: พร้อมใช้งาน → ${type === 'event' ? 'ออกงาน' : 'ถูกยืม'}`],
                           ['ประวัติ', `จะเพิ่มบันทึก amendment ให้ทั้ง 2 รายการ พร้อมเหตุผล: ${docSwapPreviewReason || 'ยังไม่ระบุเหตุผล'}`]
                         ].map(([label, value]) => (
                           <div key={label} className={`rounded-xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/65 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
@@ -30020,7 +30243,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                           </div>
                         ))}
                         <div className={`rounded-2xl border p-3 text-xs font-bold ${selectedReady ? (isDarkMode ? 'bg-violet-950/20 border-violet-800 text-violet-100' : 'bg-violet-50 border-violet-200 text-violet-800') : (isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500')}`}>
-                          {selectedReady ? 'Preview พร้อมแล้ว รอบนี้ยังไม่บันทึกจริง ขั้นถัดไปค่อยเปิด Safe Commit หลังตรวจผลลัพธ์' : 'ต้องเลือกทั้งรายการที่จะถอดออก รายการที่จะเพิ่มเข้า และกรอกเหตุผลอย่างน้อย 5 ตัวอักษร'}
+                          {selectedReady ? 'พร้อมบันทึกสลับรายการจริง ระบบจะตรวจสถานะล่าสุดอีกครั้งก่อนเขียนฐานข้อมูล' : 'ต้องเลือกทั้งรายการที่จะถอดออก รายการที่จะเพิ่มเข้า และกรอกเหตุผลอย่างน้อย 5 ตัวอักษร'}
                         </div>
                       </div>
                     ) : (
@@ -30033,9 +30256,9 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
 
               <div className={`px-3 sm:px-4 py-3 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0 ${theme.divide} ${isDarkMode ? 'bg-slate-950/98 shadow-[0_-14px_30px_rgba(0,0,0,0.28)]' : 'bg-white/98 shadow-[0_-14px_30px_rgba(15,23,42,0.08)]'} backdrop-blur`}>
-                <div className={`text-[11px] sm:text-xs font-bold ${theme.textMuted}`}>สถานะ: Preview Only • ไม่เขียนฐานข้อมูล ไม่เปลี่ยนสถานะอุปกรณ์</div>
+                <div className={`text-[11px] sm:text-xs font-bold ${theme.textMuted}`}>สถานะ: Safe Commit • ตรวจสถานะล่าสุดก่อนเขียนฐานข้อมูล</div>
                 <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-end gap-2 w-full sm:w-auto">
-                  <button type="button" disabled className="px-3 sm:px-4 py-2.5 rounded-2xl font-black bg-slate-800 text-slate-400 cursor-not-allowed shadow-sm border border-slate-700/70">บันทึกจริงยังปิดอยู่</button>
+                  <button type="button" onClick={handleCommitBorrowDocItemSwap} disabled={isBusy || !selectedReady} className="px-3 sm:px-4 py-2.5 rounded-2xl font-black bg-violet-600 hover:bg-violet-500 text-white disabled:bg-slate-800 disabled:text-slate-400 disabled:cursor-not-allowed shadow-sm border border-violet-500/60">{isBusy ? 'กำลังบันทึก...' : 'บันทึกสลับรายการจริง'}</button>
                   <button type="button" onClick={closeBorrowDocItemSwapPreview} className={`px-3 sm:px-4 py-2.5 rounded-2xl font-black ${theme.btnSecondary}`}>ปิด Preview</button>
                 </div>
               </div>
