@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.17 Unified Amendment Action Hub Polish';
+const APP_VERSION = 'v23.4.16.18.27.18 Unified Document Edit Hub Polish';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -7598,6 +7598,7 @@ function MainApp() {
   const [docEditTarget, setDocEditTarget] = useState(null);
   const [docEditForm, setDocEditForm] = useState({ subject: '', documentDate: '', expectedReturn: '', staffOut: '', note: '' });
   const [docSafetyTarget, setDocSafetyTarget] = useState(null);
+  const [docUnifiedEditHubTarget, setDocUnifiedEditHubTarget] = useState(null);
   const [docAmendActionHubTarget, setDocAmendActionHubTarget] = useState(null);
   const [docAmendPreviewTarget, setDocAmendPreviewTarget] = useState(null);
   const [docAmendPreviewSearch, setDocAmendPreviewSearch] = useState('');
@@ -8620,6 +8621,24 @@ function MainApp() {
     });
   };
 
+
+  const openBorrowDocUnifiedEditHub = (docData = {}) => {
+    if (!docData) return;
+    if (!canUseOperationalTools) return alert('บัญชีนี้ไม่มีสิทธิ์แก้ไขข้อมูลเอกสาร');
+    setDocUnifiedEditHubTarget(docData);
+  };
+
+  const closeBorrowDocUnifiedEditHub = () => {
+    setDocUnifiedEditHubTarget(null);
+  };
+
+  const chooseBorrowDocUnifiedEditAction = (action) => {
+    const target = docUnifiedEditHubTarget;
+    if (!target) return;
+    setDocUnifiedEditHubTarget(null);
+    if (action === 'document') return openBorrowDocEdit(target);
+    if (action === 'items') return openBorrowDocAmendActionHub(target);
+  };
 
   const openBorrowDocEdit = (docData = {}) => {
     if (!docData) return;
@@ -16483,9 +16502,8 @@ S.N.: ${item.sn || '-'}
                           </div>
                           <div className="grid grid-cols-2 xl:grid-cols-1 gap-1.5 shrink-0 xl:min-w-[142px]">
                             <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-black shadow-sm">พิมพ์เอกสาร</button>
-                            {canUseOperationalTools && <button type="button" onClick={() => openBorrowDocEdit(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>แก้ข้อมูล</button>}
+                            {canUseOperationalTools && <button type="button" onClick={() => openBorrowDocUnifiedEditHub(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-100 hover:bg-blue-900/45' : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'}`}>แก้ไขข้อมูล</button>}
                             <button type="button" onClick={() => openBorrowDocSafetyCheck(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${safety.tone}`}>ตรวจรายการ</button>
-                            {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => openBorrowDocAmendActionHub(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${isDarkMode ? 'bg-violet-950/35 border-violet-800 text-violet-100 hover:bg-violet-900/45' : 'bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100'}`}>แก้รายการ</button>}
                             <button type="button" onClick={() => openDocHistorySearch(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
                             <button type="button" onClick={() => copyDocSummary(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>คัดลอกสรุป</button>
                             {meta.status !== 'closed' && <button type="button" onClick={() => { setTrackingSearch(docData.ref || meta.ownerText || ''); openWorkspace('tracking'); }} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black shadow-sm">ติดตามคืน</button>}
@@ -29872,18 +29890,13 @@ ${auditChangeSummary}` : auditChangeSummary);
                             <Icons.พิมพ์er className="w-5 h-5" /> พิมพ์เอกสาร
                           </button>
                           {canUseOperationalTools && (
-                            <button type="button" onClick={() => openBorrowDocEdit(docData)} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
-                              แก้ข้อมูลเอกสาร
+                            <button type="button" onClick={() => openBorrowDocUnifiedEditHub(docData)} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-100 hover:bg-blue-900/45' : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'}`}>
+                              แก้ไขข้อมูล
                             </button>
                           )}
                           <button type="button" onClick={() => openBorrowDocSafetyCheck(docData)} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${safety.tone}`}>
                             ตรวจความพร้อมแก้รายการ
                           </button>
-                          {canUseOperationalTools && safety.canAmendSafely && (
-                            <button type="button" onClick={() => openBorrowDocAmendActionHub(docData)} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${isDarkMode ? 'bg-violet-950/35 border-violet-800 text-violet-100 hover:bg-violet-900/45' : 'bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100'}`}>
-                              แก้รายการ
-                            </button>
-                          )}
                           <button type="button" onClick={() => { setShowBorrowDocsModal(false); setTrackingTab('today'); setShowTrackingCenterModal(true); }} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
                             ติดตามสถานะคืน
                           </button>
@@ -29908,6 +29921,83 @@ ${auditChangeSummary}` : auditChangeSummary);
         </div>
       )}
 
+
+
+      {/* ศูนย์แก้ไขข้อมูลเอกสาร: รวมแก้ข้อมูลหัวเอกสาร + แก้รายการอุปกรณ์ไว้ในปุ่มเดียว */}
+      {docUnifiedEditHubTarget && (() => {
+        const safety = getBorrowDocItemSafety(docUnifiedEditHubTarget);
+        const hubItemCount = Array.isArray(docUnifiedEditHubTarget.items)
+          ? docUnifiedEditHubTarget.items.length
+          : (Array.isArray(docUnifiedEditHubTarget.itemIds) ? docUnifiedEditHubTarget.itemIds.length : 0);
+        const hubReturnedCount = Array.isArray(docUnifiedEditHubTarget.returnedItemIds) ? docUnifiedEditHubTarget.returnedItemIds.length : 0;
+        const hubIsEvent = (docUnifiedEditHubTarget.type || docUnifiedEditHubTarget.docType) === 'event';
+        const docRefText = docUnifiedEditHubTarget.ref || docUnifiedEditHubTarget.id || '-';
+        const ownerText = docUnifiedEditHubTarget.borrower || docUnifiedEditHubTarget.subject || docUnifiedEditHubTarget.eventName || '-';
+        const optionBase = 'rounded-3xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg';
+        return (
+          <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 z-[10028]`} onMouseDown={(e) => { if (e.target === e.currentTarget) closeBorrowDocUnifiedEditHub(); }}>
+            <div className={`w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden ${theme.cardBg}`}>
+              <div className={`p-4 sm:p-5 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
+                <div className="min-w-0">
+                  <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-400">DOCUMENT EDIT HUB</div>
+                  <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>แก้ไขข้อมูลเอกสาร</h3>
+                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกว่าจะปรับข้อมูลทั่วไปของเอกสาร หรือแก้รายการอุปกรณ์ ระบบจะแยกขั้นตอนให้เองเพื่อกันแก้ผิดส่วน</p>
+                </div>
+                <button type="button" onClick={closeBorrowDocUnifiedEditHub} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}><Icons.X className="w-4 h-4" /></button>
+              </div>
+
+              <div className="p-4 sm:p-5 space-y-4 max-h-[78vh] overflow-y-auto custom-scrollbar">
+                <div className={`rounded-3xl border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className={`text-[11px] font-black ${theme.textMuted}`}>เอกสารที่กำลังแก้ไข</div>
+                      <div className={`font-black text-lg mt-1 truncate ${theme.textTitle}`}>{docRefText} • {hubIsEvent ? 'ใบออกงาน' : 'ใบยืม'}</div>
+                      <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{ownerText} • คืนแล้ว {hubReturnedCount.toLocaleString('th-TH')}/{hubItemCount.toLocaleString('th-TH')} รายการ</div>
+                    </div>
+                    <div className={`inline-flex px-3 py-1.5 rounded-2xl border text-xs font-black shrink-0 ${safety.tone}`}>แก้รายการ: {safety.label}</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  <button type="button" onClick={() => chooseBorrowDocUnifiedEditAction('document')} className={`${optionBase} ${isDarkMode ? 'bg-blue-950/26 border-blue-800/70 text-blue-100 hover:bg-blue-900/35' : 'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100'}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-3xl mb-2">✎</div>
+                        <div className="text-lg font-black">แก้ข้อมูลเอกสาร</div>
+                        <div className="text-xs font-bold mt-1 opacity-85">แก้ผู้ยืม / ชื่องาน / วันที่ / กำหนดคืน / เจ้าหน้าที่ / หมายเหตุ</div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-xl border text-[11px] font-black opacity-85">ไม่เปลี่ยนสถานะอุปกรณ์</span>
+                    </div>
+                    <div className="mt-4 rounded-2xl border border-current/20 px-3 py-2 text-xs font-bold opacity-90">เหมาะกับการแก้ข้อมูลหัวเอกสารหรือรายละเอียดประกอบ โดยไม่เพิ่มหรือลบรายการอุปกรณ์</div>
+                  </button>
+
+                  <button type="button" onClick={() => chooseBorrowDocUnifiedEditAction('items')} className={`${optionBase} ${safety.canAmendSafely ? (isDarkMode ? 'bg-violet-950/26 border-violet-800/70 text-violet-100 hover:bg-violet-900/35' : 'bg-violet-50 border-violet-200 text-violet-800 hover:bg-violet-100') : (isDarkMode ? 'bg-amber-950/24 border-amber-800/70 text-amber-100 hover:bg-amber-900/35' : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100')}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-3xl mb-2">⇄</div>
+                        <div className="text-lg font-black">แก้รายการอุปกรณ์</div>
+                        <div className="text-xs font-bold mt-1 opacity-85">เพิ่มรายการย้อนหลัง / ยกเลิกรายการผิด / สลับอุปกรณ์ผิดตัว</div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-xl border text-[11px] font-black opacity-85">Safe Mode</span>
+                    </div>
+                    <div className="mt-4 rounded-2xl border border-current/20 px-3 py-2 text-xs font-bold opacity-90">
+                      {safety.canAmendSafely ? 'เอกสารพร้อมแก้รายการ ระบบจะให้เลือกประเภทการแก้และต้องกรอกเหตุผลก่อนบันทึกจริง' : 'เอกสารนี้ยังไม่พร้อมแก้รายการ เมื่อเลือกส่วนนี้ระบบจะพาไปหน้าตรวจความพร้อมก่อน'}
+                    </div>
+                  </button>
+                </div>
+
+                <div className={`rounded-2xl border px-4 py-3 text-xs font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+                  ปุ่มเดียวนี้รวมเฉพาะทางเข้าใช้งานให้เป็นมิตรขึ้น แต่ระบบด้านในยังแยกความปลอดภัยเหมือนเดิม: แก้ข้อมูลทั่วไปจะไม่แตะสถานะอุปกรณ์ ส่วนแก้รายการอุปกรณ์ยังใช้ Safety Check และบันทึกประวัติ Amendment
+                </div>
+              </div>
+
+              <div className={`p-4 border-t flex justify-end ${theme.divide}`}>
+                <button type="button" onClick={closeBorrowDocUnifiedEditHub} className={`px-5 py-2.5 rounded-2xl font-black ${theme.btnCancel}`}>ปิด</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
 
       {/* ศูนย์แก้รายการ: ปุ่มเดียว เลือกงานที่ต้องการ แล้วส่งต่อไปยัง Safe Mode เดิม */}
