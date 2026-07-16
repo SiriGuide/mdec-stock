@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.16 Amendment History Audit Polish';
+const APP_VERSION = 'v23.4.16.18.27.16.2 Amendment Change Notice Polish';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -16581,12 +16581,38 @@ S.N.: ${item.sn || '-'}
                     const groupProofs = Array.from(groupLinkedProofMap.values()).filter(Boolean);
                     const previewProofs = groupProofs.slice(0, 4);
                     const totalProofs = groupProofs.length || rowsInGroup.reduce((sum, row) => sum + Number(row.proofCount || 0), 0);
-                    const operationLabel = isGroup ? `${entry.typeLabel || entry.historyType || '-'}กลุ่ม` : (entry.typeLabel || entry.historyType || '-');
+                    const amendmentRows = rowsInGroup.filter(row => row.isAmendmentHistory || row.rawHistory?.amendmentType || row.rawHistory?.amendedIntoDocument);
+                    const isAmendmentRow = amendmentRows.length > 0;
+                    const firstAmendment = amendmentRows[0] || entry;
+                    const amendmentTypeValue = firstAmendment.amendmentType || firstAmendment.rawHistory?.amendmentType || '';
+                    const amendmentReasonText = firstAmendment.amendmentReason || firstAmendment.rawHistory?.amendmentReason || '';
+                    const amendmentActionText = amendmentTypeValue === 'add-item-to-existing-document' ? 'เพิ่มรายการที่ลืมบันทึกเข้าเอกสาร'
+                      : amendmentTypeValue === 'cancel-item-from-document' ? 'ยกเลิกรายการที่ใส่ผิดออกจากเอกสาร'
+                      : amendmentTypeValue === 'swap-remove-from-document' ? 'สลับรายการ: ถอดรายการเดิมออก'
+                      : amendmentTypeValue === 'swap-add-to-document' ? 'สลับรายการ: เพิ่มรายการใหม่แทน'
+                      : String(firstAmendment.historyType || '').includes('amendment') ? 'แก้ไขรายการอุปกรณ์ในเอกสาร'
+                      : 'แก้ไขรายการอุปกรณ์ในเอกสาร';
+                    const amendmentTone = isDarkMode ? 'bg-fuchsia-950/30 border-fuchsia-500/30 text-fuchsia-100' : 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-800';
+                    const operationLabel = isAmendmentRow ? (isGroup ? `แก้รายการ ${rowsInGroup.length} รายการ` : 'แก้รายการ') : (isGroup ? `${entry.typeLabel || entry.historyType || '-'}กลุ่ม` : (entry.typeLabel || entry.historyType || '-'));
                     const displayTitle = isGroup
                       ? (entry.subject && entry.subject !== '-' ? entry.subject : `${entry.typeLabel || 'ประวัติ'} ${rowsInGroup.length} รายการ`)
                       : (entry.itemName || '-');
                     const sampleItems = rowsInGroup.slice(0, 5);
                     const extraItems = Math.max(0, rowsInGroup.length - sampleItems.length);
+                    const ownerLabel = isAmendmentRow ? 'ผู้ยืม / ชื่องานที่เกี่ยวข้อง' : entry.historyType === 'event' ? 'ชื่องาน/กิจกรรม' : entry.historyType === 'borrow' ? 'ผู้ยืม' : entry.historyType === 'return' ? 'ผู้คืน/ผู้เกี่ยวข้อง' : 'ผู้เกี่ยวข้อง';
+                    const ownerText = entry.rawHistory?.borrower || entry.rawHistory?.eventName || entry.subject || '-';
+                    const docRefText = entry.documentRef || entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.rawHistory?.borrowDocRef || entry.rawHistory?.borrowDocId || entry.rawHistory?.ref || '';
+                    const actionText = isAmendmentRow ? amendmentActionText
+                      : entry.historyType === 'borrow' ? 'ยืมออก'
+                      : entry.historyType === 'event' ? 'นำออกงาน'
+                      : entry.historyType === 'return' ? 'รับคืน'
+                      : entry.historyType === 'warehouse-activate' ? 'เบิกเข้าคลัง'
+                      : entry.historyType === 'warehouse-return' ? 'ส่งกลับโกดัง'
+                      : String(entry.historyType || '').includes('repair') ? 'งานซ่อม/ตรวจเช็ก'
+                      : (entry.typeLabel || 'ประวัติ');
+                    const recordSummaryText = isGroup
+                      ? `${rowsInGroup.length.toLocaleString('th-TH')} อุปกรณ์ในรายการเดียวกัน`
+                      : `${entry.itemName || '-'}${entry.sn ? ` • S.N. ${entry.sn}` : ''}`;
                     return (
                     <div key={entry.groupKey || entry.id} className={`relative rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-900/72 border-slate-800/70 hover:border-slate-800/55' : 'bg-slate-50 border-slate-200 hover:border-slate-300'} transition-colors`}>
                       <div className="grid grid-cols-1 xl:grid-cols-[auto_minmax(0,1fr)_260px] gap-0">
@@ -16602,7 +16628,8 @@ S.N.: ${item.sn || '-'}
 
                         <div className="min-w-0 p-3 sm:p-5">
                           <div className="flex flex-wrap items-center gap-2 pr-28">
-                            <span className={`px-2.5 py-1 rounded-lg border text-[11px] font-black ${getHistoryTypeTone(entry.historyType)}`}>{operationLabel}</span>
+                            <span className={`px-2.5 py-1 rounded-lg border text-[11px] font-black ${isAmendmentRow ? amendmentTone : getHistoryTypeTone(entry.historyType)}`}>{operationLabel}</span>
+                            {isAmendmentRow && <span className="px-2.5 py-1 rounded-lg border border-fuchsia-500/25 bg-fuchsia-500/10 text-fuchsia-200 text-[11px] font-black">มีการแก้ไขข้อมูล</span>}
                             {isGroup && <span className="px-2.5 py-1 rounded-lg border border-cyan-500/25 bg-cyan-500/10 text-cyan-200 text-[11px] font-black">{rowsInGroup.length} อุปกรณ์</span>}
                             <span className={`text-[11px] font-bold ${theme.textMuted}`}>{entry.date ? new Date(entry.date).toLocaleString('th-TH', { hour12: false }) : '-'} • โดย {entry.staff || '-'}</span>
                           </div>
@@ -16618,19 +16645,35 @@ S.N.: ${item.sn || '-'}
                               <div className={`mt-1 text-xs font-bold whitespace-pre-line leading-relaxed ${String(entry.note || '').includes('บันทึกเก่า') ? (isDarkMode ? 'text-amber-100/85' : 'text-amber-800') : theme.textMuted}`}>{entry.note || '-'}</div>
                             </div>
                           ) : (
-                            <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-2">
-                              <div className={`rounded-2xl border px-2.5 py-2 ${isDarkMode ? 'bg-slate-950/45 border-slate-800/55' : 'bg-white border-slate-200'}`}>
-                                <div className={`text-[10px] font-black ${theme.textMuted}`}>เรื่อง/ผู้เกี่ยวข้อง</div>
-                                <div className={`text-xs font-black mt-0.5 truncate ${theme.textTitle}`}>{entry.subject || '-'}</div>
+                            <div className="mt-3 grid grid-cols-1 lg:grid-cols-3 gap-2">
+                              <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-800/55' : 'bg-white border-slate-200'}`}>
+                                <div className={`text-[10px] font-black ${theme.textMuted}`}>ประเภทบันทึก</div>
+                                <div className={`text-sm font-black mt-0.5 truncate ${theme.textTitle}`}>{actionText}</div>
                               </div>
-                              <div className={`rounded-2xl border px-2.5 py-2 ${isDarkMode ? 'bg-slate-950/45 border-slate-800/55' : 'bg-white border-slate-200'}`}>
-                                <div className={`text-[10px] font-black ${theme.textMuted}`}>{operationLabel}</div>
-                                <div className={`text-xs font-black mt-0.5 truncate ${theme.textTitle}`}>
-                                  {isGroup
-                                    ? `${rowsInGroup.length.toLocaleString('th-TH')} อุปกรณ์`
-                                    : `${entry.itemName || '-'}${entry.sn ? ` • ${entry.sn}` : ''}`}
+                              <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-800/55' : 'bg-white border-slate-200'}`}>
+                                <div className={`text-[10px] font-black ${theme.textMuted}`}>{ownerLabel}</div>
+                                <div className={`text-sm font-black mt-0.5 truncate ${theme.textTitle}`}>{ownerText}</div>
+                              </div>
+                              <div className={`rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-slate-950/45 border-slate-800/55' : 'bg-white border-slate-200'}`}>
+                                <div className={`text-[10px] font-black ${theme.textMuted}`}>รายการอุปกรณ์</div>
+                                <div className={`text-sm font-black mt-0.5 truncate ${theme.textTitle}`}>{recordSummaryText}</div>
+                              </div>
+                              {docRefText && (
+                                <div className={`lg:col-span-3 rounded-2xl border px-3 py-2 ${isDarkMode ? 'bg-slate-950/30 border-slate-800/45' : 'bg-white/80 border-slate-200'}`}>
+                                  <div className={`text-[10px] font-black ${theme.textMuted}`}>เลขเอกสารที่เกี่ยวข้อง</div>
+                                  <div className={`text-xs font-black mt-0.5 truncate ${theme.textTitle}`}>{docRefText}</div>
                                 </div>
-                              </div>
+                              )}
+                              {isAmendmentRow && (
+                                <div className={`lg:col-span-3 rounded-2xl border px-3 py-2.5 ${isDarkMode ? 'bg-fuchsia-950/18 border-fuchsia-500/25 text-fuchsia-100' : 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-800'}`}>
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="text-xs font-black">รายการนี้เกิดจากการแก้ไขข้อมูลย้อนหลัง</div>
+                                    <div className="text-[11px] font-black opacity-75">{amendmentRows.length.toLocaleString('th-TH')} บันทึก</div>
+                                  </div>
+                                  <div className="mt-1 text-xs font-bold leading-relaxed">{amendmentActionText}</div>
+                                  {amendmentReasonText && <div className="mt-1 text-[11px] font-bold opacity-80">เหตุผล: {amendmentReasonText}</div>}
+                                </div>
+                              )}
                             </div>
                           )}
 
@@ -16670,7 +16713,7 @@ S.N.: ${item.sn || '-'}
                             {totalProofs > 0 ? (
                               <button type="button" onClick={() => { setProofCenterSearch(entry.subject && entry.subject !== '-' ? entry.subject : (entry.rawHistory?.documentRef || entry.rawHistory?.documentId || entry.sn || entry.itemName || '')); setProofCenterFilter(entry.historyType === 'repair-done' ? 'repair' : entry.historyType); setRecordsCenterMode('proofs'); }} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-pink-500/25 bg-pink-500/10 text-pink-200 text-xs font-black">หลักฐาน {totalProofs} รูป</button>
                             ) : (
-                              <span className={`inline-flex items-center px-2.5 py-1.5 rounded-xl border text-xs font-black ${isDarkMode ? 'border-slate-800/55 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-white text-slate-400'}`}>ไม่มีรูปหลักฐาน • ใช้ประวัติ/เอกสารเป็นหลัก</span>
+                              <span className={`inline-flex items-center px-2.5 py-1.5 rounded-xl border text-xs font-black ${isDarkMode ? 'border-slate-800/55 bg-slate-950/40 text-slate-500' : 'border-slate-200 bg-white text-slate-400'}`}>ยังไม่มีรูปแนบ</span>
                             )}
                             {!entry.isAuditLog && <button type="button" onClick={() => openItemProfile(entry.itemId)} className={`px-2 py-1.5 rounded-xl border text-xs font-black ${theme.btnSecondary}`}>เปิดแฟ้ม</button>}
                             {!entry.isAuditLog && <button type="button" onClick={() => openProofAttachFromHistoryCenter(entry)} className="px-3 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-xs font-black">เพิ่มรูป</button>}
@@ -16690,7 +16733,7 @@ S.N.: ${item.sn || '-'}
                               <div className={`h-full min-h-[150px] max-h-[170px] flex items-center justify-center text-xs font-black ${theme.textMuted}`}>ไม่มีภาพตัวอย่าง</div>
                             );
                           })() : (
-                            <div className={`h-full min-h-[150px] max-h-[170px] flex items-center justify-center text-xs font-black ${theme.textMuted}`}>ไม่มีรูปหลักฐาน</div>
+                            <div className={`h-full min-h-[150px] max-h-[170px] flex items-center justify-center text-xs font-black ${theme.textMuted}`}>ยังไม่มีรูปแนบ</div>
                           )}
                         </div>
                       </div>
@@ -17888,7 +17931,7 @@ S.N.: ${item.sn || '-'}
   // v23.1.50: ประวัติส่วนกลางให้เหลือเฉพาะเหตุการณ์หลักที่มีความหมายต่อการทำงานจริง
   // เก็บ: login/logout, export/backup/download, แก้ไข/เพิ่ม/ลบ/กู้คืนอุปกรณ์, ยืม/ออกงาน/รับคืน, ซ่อม, โกดัง, หลักฐาน, โครงการ
   // ตัดและลบจริงจากฐานข้อมูล: การเลือก/ติ๊ก/เปิดดู/ค้นหา/พิมพ์ preview/ปุ่ม UI/บัญชี/กล่อง/log จิปาถะอื่น ๆ
-  const CORE_HISTORY_ITEM_TYPES = new Set(['borrow', 'event', 'return', 'warehouse-activate', 'warehouse-return', 'projectChange']);
+  const CORE_HISTORY_ITEM_TYPES = new Set(['borrow', 'event', 'return', 'warehouse-activate', 'warehouse-return', 'projectChange', 'amendment-cancel-item', 'amendment-swap-remove-item']);
   const isCoreItemHistoryType = (type = '') => {
     const t = String(type || '').trim();
     return CORE_HISTORY_ITEM_TYPES.has(t) || t.includes('repair');
@@ -18302,8 +18345,16 @@ S.N.: ${item.sn || '-'}
         if (h?.deletedFromHistory) return;
         const historyType = h.type || 'other';
         if (!isCoreItemHistoryType(historyType)) return;
-        const typeLabel = historyType === 'borrow' ? 'ยืม' : historyType === 'event' ? 'ออกงาน' : historyType === 'return' ? 'รับคืน' : historyType === 'warehouse-activate' ? 'เบิกเข้าคลัง' : historyType === 'warehouse-return' ? 'ส่งกลับโกดัง' : String(historyType).includes('repair') ? 'ซ่อม' : 'อื่น ๆ';
-        const subject = h.borrower || h.eventName || h.problem || h.staffIn || h.note || '-';
+        const amendmentType = h.amendmentType || '';
+        const isAmendmentHistory = Boolean(amendmentType || h.amendedIntoDocument || h.swappedWithItemId || h.swappedFromItemId || String(historyType).startsWith('amendment-'));
+        const typeLabel = amendmentType === 'add-item-to-existing-document' ? 'เพิ่มย้อนหลัง'
+          : amendmentType === 'cancel-item-from-document' ? 'ยกเลิกรายการ'
+          : amendmentType === 'swap-remove-from-document' ? 'สลับออก'
+          : amendmentType === 'swap-add-to-document' ? 'สลับเข้า'
+          : historyType === 'amendment-cancel-item' ? 'ยกเลิกรายการ'
+          : historyType === 'amendment-swap-remove-item' ? 'สลับออก'
+          : historyType === 'borrow' ? 'ยืม' : historyType === 'event' ? 'ออกงาน' : historyType === 'return' ? 'รับคืน' : historyType === 'warehouse-activate' ? 'เบิกเข้าคลัง' : historyType === 'warehouse-return' ? 'ส่งกลับโกดัง' : String(historyType).includes('repair') ? 'ซ่อม' : 'อื่น ๆ';
+        const subject = h.borrower || h.eventName || h.problem || h.staffIn || h.note || h.amendmentReason || '-';
         const staff = h.staffOut || h.staffIn || h.operatorName || '-';
         const groupKey = h.date ? getHistoryGroupKey(h) : '';
         const directProofs = Array.isArray(h.proofs) ? h.proofs : [];
@@ -18335,6 +18386,13 @@ S.N.: ${item.sn || '-'}
           linkedProofs: [],
           proofCount: 0,
           groupKey,
+          isAmendmentHistory,
+          amendmentType,
+          amendmentReason: h.amendmentReason || '',
+          previousStatus: h.previousStatus || '',
+          nextStatus: h.nextStatus || '',
+          swappedWithItemId: h.swappedWithItemId || '',
+          swappedFromItemId: h.swappedFromItemId || '',
         });
       });
     });
