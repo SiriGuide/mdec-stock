@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.14 Amendment Swap Preview Mode';
+const APP_VERSION = 'v23.4.16.18.27.14.1 Swap Preview Footer Visibility Hotfix';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -29551,7 +29551,7 @@ ${auditChangeSummary}` : auditChangeSummary);
         return (
           <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 z-[10025]`}>
             <div className={`w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden ${theme.cardBg}`}>
-              <div className={`p-4 sm:p-5 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
+              <div className={`p-3 sm:p-4 border-b flex items-start justify-between gap-3 shrink-0 ${theme.divide}`}>
                 <div className="min-w-0">
                   <div className="text-xs font-black tracking-[0.18em] uppercase text-emerald-400">DOCUMENT SAFETY CHECK</div>
                   <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>ตรวจความพร้อมแบบปลอดภัย</h3>
@@ -29913,9 +29913,9 @@ ${auditChangeSummary}` : auditChangeSummary);
         const type = (docSwapPreviewTarget.type || docSwapPreviewTarget.docType || 'borrow') === 'event' ? 'event' : 'borrow';
         const selectedReady = Boolean(removeItem?.canCancel && addItem && (addItem.status || 'available') === 'available' && String(docSwapPreviewReason || '').trim().length >= 5);
         return (
-          <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 z-[10016]`}>
-            <div className={`w-full max-w-6xl max-h-[92vh] overflow-hidden rounded-3xl shadow-2xl ${theme.cardBg}`}>
-              <div className={`p-4 sm:p-5 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
+          <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-2 sm:p-3 z-[10016]`}>
+            <div className={`w-full max-w-6xl h-[86vh] max-h-[86vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col ${theme.cardBg}`}>
+              <div className={`p-3 sm:p-4 border-b flex items-start justify-between gap-3 shrink-0 ${theme.divide}`}>
                 <div className="min-w-0">
                   <div className="text-xs font-black tracking-[0.18em] uppercase text-violet-400">SWAP PREVIEW / PRODUCTION SAFE MODE</div>
                   <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>Preview สลับรายการอุปกรณ์</h3>
@@ -29924,13 +29924,13 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <button type="button" onClick={closeBorrowDocItemSwapPreview} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}><Icons.X className="w-4 h-4" /></button>
               </div>
 
-              <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar max-h-[calc(92vh-150px)] space-y-4">
+              <div className="p-3 sm:p-4 overflow-y-auto custom-scrollbar flex-1 min-h-0 space-y-4">
                 <div className={`rounded-2xl border p-4 ${safety.tone}`}>
                   <div className="font-black">{safety.label}</div>
                   <div className="text-xs font-bold mt-1 opacity-85">เอกสาร: {safety.docKey || '-'} • โหมดนี้คือ Preview เท่านั้น ไม่เขียนฐานข้อมูล</div>
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4">
                   <section className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                     <div className={`font-black ${theme.textTitle}`}>1) เลือกรายการผิดที่จะถอดออก</div>
                     <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>เลือกได้ 1 รายการก่อน เพื่อความปลอดภัย รายการที่คืนแล้วหรือสถานะไม่ตรงจะถูกล็อกไว้</p>
@@ -30032,11 +30032,11 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </div>
               </div>
 
-              <div className={`p-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
-                <div className={`text-xs font-bold ${theme.textMuted}`}>สถานะ: Preview Only • ไม่เขียนฐานข้อมูล ไม่เปลี่ยนสถานะอุปกรณ์</div>
-                <div className="flex flex-wrap justify-end gap-2">
-                  <button type="button" disabled className="px-5 py-3 rounded-2xl font-black bg-slate-700 text-slate-400 cursor-not-allowed shadow-sm">บันทึกจริงยังปิดอยู่</button>
-                  <button type="button" onClick={closeBorrowDocItemSwapPreview} className={`px-5 py-3 rounded-2xl font-black ${theme.btnSecondary}`}>ปิด Preview</button>
+              <div className={`px-3 sm:px-4 py-3 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0 ${theme.divide} ${isDarkMode ? 'bg-slate-950/98 shadow-[0_-14px_30px_rgba(0,0,0,0.28)]' : 'bg-white/98 shadow-[0_-14px_30px_rgba(15,23,42,0.08)]'} backdrop-blur`}>
+                <div className={`text-[11px] sm:text-xs font-bold ${theme.textMuted}`}>สถานะ: Preview Only • ไม่เขียนฐานข้อมูล ไม่เปลี่ยนสถานะอุปกรณ์</div>
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-end gap-2 w-full sm:w-auto">
+                  <button type="button" disabled className="px-3 sm:px-4 py-2.5 rounded-2xl font-black bg-slate-800 text-slate-400 cursor-not-allowed shadow-sm border border-slate-700/70">บันทึกจริงยังปิดอยู่</button>
+                  <button type="button" onClick={closeBorrowDocItemSwapPreview} className={`px-3 sm:px-4 py-2.5 rounded-2xl font-black ${theme.btnSecondary}`}>ปิด Preview</button>
                 </div>
               </div>
             </div>
