@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.12 Amendment Cancel Item Preview Mode';
+const APP_VERSION = 'v23.4.16.18.27.13 Amendment Cancel Commit Safe Mode';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -8967,6 +8967,171 @@ function MainApp() {
       setIsBusy(false);
     }
   };
+
+  const handleCommitBorrowDocItemCancel = async () => {
+    if (!docCancelPreviewTarget) return;
+    if (!canUseOperationalTools) return alert('บัญชีนี้ไม่มีสิทธิ์บันทึกยกเลิกรายการในเอกสาร');
+    const safety = getBorrowDocItemSafety(docCancelPreviewTarget);
+    if (!safety.canAmendSafely) {
+      setDocSafetyTarget(docCancelPreviewTarget);
+      return alert('เอกสารนี้ยังไม่ผ่านเงื่อนไข Safe Mode สำหรับยกเลิกรายการจริง');
+    }
+    const docId = docCancelPreviewTarget.id || docCancelPreviewTarget.ref;
+    const refKey = String(docCancelPreviewTarget.ref || docCancelPreviewTarget.id || docId || '').trim();
+    if (!docId || !refKey) return alert('ไม่พบเลขเอกสารสำหรับบันทึกจริง');
+    const reason = String(docCancelPreviewReason || '').trim();
+    if (reason.length < 5) return alert('กรุณากรอกเหตุผลการยกเลิกรายการอย่างน้อย 5 ตัวอักษร');
+    const selectedIds = Array.from(new Set(asArray(docCancelPreviewItemIds).map(id => String(id || '').trim()).filter(Boolean)));
+    if (selectedIds.length === 0) return alert('กรุณาเลือกรายการที่ต้องการยกเลิกออกจากเอกสารอย่างน้อย 1 รายการ');
+
+    const localCandidates = getBorrowDocCancelCandidateItems(docCancelPreviewTarget, '');
+    const localSelectedItems = selectedIds.map(id => localCandidates.find(item => String(item.id) === id)).filter(Boolean);
+    const localBlocked = selectedIds.filter(id => {
+      const item = localCandidates.find(entry => String(entry.id) === id);
+      return !item || !item.canCancel;
+    });
+    if (localBlocked.length > 0) return alert(`มี ${localBlocked.length.toLocaleString('th-TH')} รายการที่ยังยกเลิกแบบปลอดภัยไม่ได้ กรุณาตรวจรายการใหม่`);
+
+    const existingItemIds = getBorrowDocLinkedItemIds(docCancelPreviewTarget);
+    const finalItemIdsPreview = existingItemIds.filter(id => !selectedIds.includes(String(id)));
+    if (finalItemIdsPreview.length === 0) {
+      return alert('เพื่อความปลอดภัย รอบนี้ยังไม่อนุญาตให้ยกเลิกจนเอกสารเหลือ 0 รายการ ให้ตรวจมือหรือสร้างเอกสารใหม่แทน');
+    }
+
+    const type = (docCancelPreviewTarget.type || docCancelPreviewTarget.docType || 'borrow') === 'event' ? 'event' : 'borrow';
+    const expectedLiveStatus = type === 'event' ? 'out-for-event' : 'borrowed';
+    const previousStatusLabel = type === 'event' ? 'ออกงาน' : 'ถูกยืม';
+    const ownerText = String(docCancelPreviewTarget.eventName || docCancelPreviewTarget.borrower || docCancelPreviewTarget.subject || '-').trim();
+    const names = localSelectedItems.map(item => item.name || item.id).join(', ');
+    const ok = window.confirm(`ยืนยันบันทึกยกเลิกรายการออกจากเอกสาร ${refKey}?
+
+จำนวน: ${selectedIds.length.toLocaleString('th-TH')} รายการ
+รายการ: ${names || '-'}
+สถานะที่จะเปลี่ยน: ${previousStatusLabel} → พร้อมใช้งาน
+เหตุผล: ${reason}
+
+ระบบจะเขียนข้อมูลจริงลงฐานข้อมูล ปรับเอกสาร และเพิ่มประวัติให้อุปกรณ์แต่ละชิ้น`);
+    if (!ok) return;
+
+    setIsBusy(true);
+    try {
+      const now = new Date().toISOString();
+      const docSnap = await getDoc(getBorrowDoc(docId));
+      if (!docSnap.exists()) return alert('หยุดบันทึกเพื่อความปลอดภัย: ไม่พบเอกสารล่าสุดในฐานข้อมูล');
+      const liveDoc = { ...docCancelPreviewTarget, id: docId, ...docSnap.data() };
+      const liveSafety = getBorrowDocItemSafety(liveDoc);
+      if (!liveSafety.canAmendSafely) {
+        setDocSafetyTarget(liveDoc);
+        return alert('หยุดบันทึกเพื่อความปลอดภัย: เอกสารล่าสุดไม่ผ่านเงื่อนไข Safe Mode แล้ว');
+      }
+
+      const liveExistingItemIds = getBorrowDocLinkedItemIds(liveDoc);
+      const liveLinkedSet = new Set(liveExistingItemIds.map(id => String(id)));
+      const liveReturnedSet = new Set(asArray(liveDoc.returnedItemIds).map(id => String(id || '').trim()).filter(Boolean));
+      const invalidSelected = selectedIds.filter(id => !liveLinkedSet.has(String(id)) || liveReturnedSet.has(String(id)));
+      if (invalidSelected.length > 0) {
+        alert(`หยุดบันทึกเพื่อความปลอดภัย: มี ${invalidSelected.length.toLocaleString('th-TH')} รายการที่ไม่อยู่ในเอกสารล่าสุดหรือคืนแล้ว`);
+        return;
+      }
+
+      const liveSnapshots = await Promise.all(selectedIds.map(id => getDoc(getItemDoc(id))));
+      const liveItems = liveSnapshots.map((snap, index) => snap.exists() ? { id: selectedIds[index], ...snap.data() } : null);
+      const liveBlocked = liveItems.filter(item => !item || item.status !== expectedLiveStatus || item.deleted || item.isDeleted || item.archived || item.isArchived);
+      if (liveBlocked.length > 0) {
+        alert(`หยุดบันทึกเพื่อความปลอดภัย: มี ${liveBlocked.length.toLocaleString('th-TH')} รายการที่สถานะล่าสุดไม่ตรงกับเอกสารแล้ว`);
+        return;
+      }
+
+      const finalItemIds = liveExistingItemIds.filter(id => !selectedIds.includes(String(id)));
+      if (finalItemIds.length === 0) {
+        alert('หยุดบันทึกเพื่อความปลอดภัย: ไม่อนุญาตให้เอกสารเหลือ 0 รายการ');
+        return;
+      }
+
+      const selectedSet = new Set(selectedIds.map(id => String(id)));
+      const finalDocItems = asArray(liveDoc.items).filter(item => {
+        const itemId = String(item?.id || item?.itemId || '').trim();
+        return itemId && !selectedSet.has(itemId);
+      });
+      const returnedItemIds = asArray(liveDoc.returnedItemIds).map(id => String(id || '').trim()).filter(Boolean).filter(id => !selectedSet.has(id));
+      const returnedSet = new Set(returnedItemIds);
+      const remainingItemIds = finalItemIds.filter(id => !returnedSet.has(String(id)));
+      const nextStatus = remainingItemIds.length === 0 ? 'closed' : returnedItemIds.length > 0 ? 'partial' : 'active';
+      const nextStatusLabel = nextStatus === 'closed' ? 'คืนครบ / ปิดเอกสาร' : nextStatus === 'partial' ? 'คืนบางส่วน' : 'รอคืน';
+      const amendmentRecord = {
+        id: `cancel_amend_${Date.now()}`,
+        type: 'cancel-items',
+        date: now,
+        documentRef: refKey,
+        itemIds: selectedIds,
+        itemCount: selectedIds.length,
+        itemNames: liveItems.map(item => item.name || item.id),
+        reason,
+        operatorId: currentOperator?.id || null,
+        operatorName: currentOperator?.name || currentAccountLabel || 'Admin',
+        safeMode: true
+      };
+      const docPatch = {
+        itemIds: finalItemIds,
+        items: finalDocItems,
+        returnedItemIds,
+        remainingItemIds,
+        returnProgress: { total: finalItemIds.length, returned: returnedItemIds.length, remaining: remainingItemIds.length },
+        status: nextStatus,
+        statusLabel: nextStatusLabel,
+        updatedAt: now,
+        updatedBy: currentAccountLabel,
+        itemAmendedAt: now,
+        itemAmendedBy: currentAccountLabel,
+        itemAmendmentCount: (Number(liveDoc.itemAmendmentCount) || 0) + 1,
+        itemAmendments: [...asArray(liveDoc.itemAmendments), amendmentRecord]
+      };
+
+      const itemTasks = liveItems.map(item => {
+        const historyEntry = {
+          type: 'amendment-cancel-item',
+          date: now,
+          documentId: refKey,
+          documentRef: refKey,
+          amendmentType: 'cancel-item-from-document',
+          amendmentReason: reason,
+          previousStatus: item.status || expectedLiveStatus,
+          nextStatus: 'available',
+          borrower: type === 'borrow' ? ownerText : undefined,
+          eventName: type === 'event' ? ownerText : undefined,
+          operatorId: currentOperator?.id || null,
+          operatorName: currentOperator?.name || currentAccountLabel || 'Admin'
+        };
+        const history = [...asArray(item.history), historyEntry];
+        return setDoc(getItemDoc(item.id), {
+          status: 'available',
+          currentBorrower: null,
+          currentEvent: null,
+          expectedReturn: '',
+          currentNote: '',
+          history,
+          lastAmendedDocumentRef: refKey,
+          lastAmendedAt: now,
+          updatedAt: now,
+          updatedBy: currentAccountLabel
+        }, { merge: true });
+      });
+
+      await Promise.all([setDoc(getBorrowDoc(docId), docPatch, { merge: true }), ...itemTasks]);
+      await logAction('ยกเลิกรายการออกจากเอกสาร', refKey, `ยกเลิกอุปกรณ์ ${selectedIds.length} รายการจากเอกสารเดิม
+ผู้เกี่ยวข้อง/ชื่องาน: ${ownerText}
+เหตุผล: ${reason}
+รายการ: ${liveItems.map(item => `${item.name || item.id}${item.sn ? ` (${item.sn})` : ''}`).join(', ')}`);
+      pushToast('บันทึกยกเลิกรายการแล้ว', `${refKey} ยกเลิก ${selectedIds.length.toLocaleString('th-TH')} รายการ`, 'success');
+      closeBorrowDocItemCancelPreview();
+    } catch (error) {
+      console.error(error);
+      alert('บันทึกยกเลิกรายการไม่สำเร็จ: ' + (error?.message || error));
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
 
   const handleSaveBorrowDocEdit = async () => {
     if (!docEditTarget) return;
@@ -29596,7 +29761,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <div className="min-w-0">
                   <div className="text-xs font-black tracking-[0.18em] uppercase text-amber-300">CANCEL ITEM PREVIEW</div>
                   <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>Preview ยกเลิกรายการที่ใส่ผิด</h3>
-                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>Production Safe Mode: รอบนี้เป็น Preview เท่านั้น ยังไม่ลบรายการ ไม่คืนสถานะ และไม่เขียนฐานข้อมูล</p>
+                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>Production Safe Mode: ตรวจ Preview ก่อน แล้วบันทึกจริงได้เฉพาะรายการที่ยังไม่คืนและสถานะตรงกับเอกสาร</p>
                 </div>
                 <button type="button" onClick={closeBorrowDocItemCancelPreview} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}><Icons.X className="w-4 h-4" /></button>
               </div>
@@ -29643,8 +29808,8 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </section>
 
                   <section className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-900/70 border-slate-800' : 'bg-white border-slate-200'}`}>
-                    <div className={`font-black ${theme.textTitle}`}>2) Preview ผลกระทบก่อนเปิดบันทึกจริง</div>
-                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ขั้นนี้ยังไม่แก้อะไรจริง ใช้ตรวจว่าถ้ายกเลิกรายการ ระบบควรทำอะไรบ้าง</p>
+                    <div className={`font-black ${theme.textTitle}`}>2) Preview ผลกระทบก่อนบันทึกจริง</div>
+                    <p className={`text-xs font-bold mt-1 ${theme.textMuted}`}>ตรวจให้ชัดก่อนยืนยัน ระบบจะเขียนจริงเฉพาะรายการที่ผ่านเงื่อนไข Safe Mode เท่านั้น</p>
                     <label className={`block text-xs font-black mt-4 mb-1.5 ${theme.textMuted}`}>เหตุผลการยกเลิกรายการ</label>
                     <textarea className={`w-full min-h-[74px] rounded-xl border p-3 text-sm font-bold ${theme.input}`} value={docCancelPreviewReason} onChange={e => setDocCancelPreviewReason(e.target.value)} placeholder="เช่น เลือกอุปกรณ์ผิดตัวตอนสร้างเอกสาร" />
 
@@ -29663,9 +29828,9 @@ ${auditChangeSummary}` : auditChangeSummary);
                           </div>
                         </div>
                         {[
-                          ['เอกสาร', `Preview: ถอด ${selectedItems.length.toLocaleString('th-TH')} รายการออกจากเอกสาร ${safety.docKey || '-'}`],
+                          ['เอกสาร', `จะถอด ${selectedItems.length.toLocaleString('th-TH')} รายการออกจากเอกสาร ${safety.docKey || '-'}`],
                           ['จำนวนหลังยกเลิก', `จะเหลือ ${remainingAfterCancel.toLocaleString('th-TH')} รายการในเอกสาร • คืนแล้วเดิม ${returnedAfterCancel.toLocaleString('th-TH')} รายการ`],
-                          ['สถานะอุปกรณ์', `ถ้าเปิดบันทึกจริงในอนาคต: ${type === 'event' ? 'ออกงาน' : 'ถูกยืม'} → พร้อมใช้งาน`],
+                          ['สถานะอุปกรณ์', `เมื่อบันทึกจริง: ${type === 'event' ? 'ออกงาน' : 'ถูกยืม'} → พร้อมใช้งาน`],
                           ['ประวัติอุปกรณ์', `จะเพิ่มบันทึกให้แต่ละรายการ: ยกเลิกจากเอกสาร (${docCancelPreviewReason || 'ยังไม่ระบุเหตุผล'})`],
                           ['ข้อจำกัด', remainingAfterCancel === 0 ? 'เอกสารจะไม่เหลือรายการ ต้องใช้ความระวังเป็นพิเศษและอาจต้องล็อกไม่ให้บันทึกจริง' : 'ยังมีรายการอื่นอยู่ในเอกสาร จึงเหมาะสำหรับขั้นทดลองต่อไป']
                         ].map(([label, value]) => (
@@ -29675,7 +29840,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                           </div>
                         ))}
                         <div className={`rounded-2xl border p-3 text-xs font-bold ${isDarkMode ? 'bg-amber-950/20 border-amber-800/60 text-amber-100' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
-                          รอบนี้เป็น Preview เท่านั้น ปุ่มบันทึกจริงยังถูกปิดไว้ เพื่อกันข้อมูลใช้งานจริงเสียหาย
+                          ก่อนกดบันทึกจริง ระบบจะตรวจเอกสารและสถานะอุปกรณ์ล่าสุดจากฐานข้อมูลอีกครั้ง หากมีรายการไม่ตรงเงื่อนไข ระบบจะหยุดทันที
                         </div>
                       </div>
                     ) : (
@@ -29688,9 +29853,9 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
 
               <div className={`p-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
-                <div className={`text-xs font-bold ${theme.textMuted}`}>สถานะ: Preview เท่านั้น • ยังไม่คืนสถานะ • ยังไม่แก้เอกสารจริง</div>
+                <div className={`text-xs font-bold ${theme.textMuted}`}>สถานะ: Safe Commit • ตรวจล่าสุดก่อนเขียนฐานข้อมูลจริง</div>
                 <div className="flex flex-wrap justify-end gap-2">
-                  <button type="button" disabled className="px-5 py-3 rounded-2xl font-black bg-slate-700 text-slate-400 cursor-not-allowed shadow-sm">บันทึกจริงยังปิดไว้</button>
+                  <button type="button" onClick={handleCommitBorrowDocItemCancel} disabled={isBusy || selectedItems.length === 0 || remainingAfterCancel === 0 || String(docCancelPreviewReason || '').trim().length < 5} className="px-5 py-3 rounded-2xl font-black bg-amber-600 hover:bg-amber-500 text-white disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed shadow-sm">{isBusy ? 'กำลังบันทึก...' : 'บันทึกยกเลิกรายการจริง'}</button>
                   <button type="button" onClick={closeBorrowDocItemCancelPreview} className={`px-5 py-3 rounded-2xl font-black ${theme.btnSecondary}`}>ปิด Preview</button>
                 </div>
               </div>
