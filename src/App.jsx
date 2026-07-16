@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.10 Amendment Preview Multi Select Polish';
+const APP_VERSION = 'v23.4.16.18.27.11 Amendment Commit Safe Mode';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -8760,6 +8760,159 @@ function MainApp() {
     setDocAmendPreviewSearch('');
     setDocAmendPreviewItemIds([]);
     setDocAmendPreviewReason('ลืมบันทึกรายการตอนจ่ายของจริง');
+  };
+
+  const handleCommitBorrowDocItemAmendment = async () => {
+    if (!docAmendPreviewTarget) return;
+    if (!canUseOperationalTools) return alert('บัญชีนี้ไม่มีสิทธิ์บันทึกแก้รายการเอกสาร');
+    const safety = getBorrowDocItemSafety(docAmendPreviewTarget);
+    if (!safety.canAmendSafely) {
+      setDocSafetyTarget(docAmendPreviewTarget);
+      return alert('เอกสารนี้ยังไม่ผ่านเงื่อนไข Safe Mode สำหรับบันทึกจริง');
+    }
+    const docId = docAmendPreviewTarget.id || docAmendPreviewTarget.ref;
+    const refKey = String(docAmendPreviewTarget.ref || docAmendPreviewTarget.id || docId || '').trim();
+    if (!docId || !refKey) return alert('ไม่พบเลขเอกสารสำหรับบันทึกจริง');
+    const reason = String(docAmendPreviewReason || '').trim();
+    if (reason.length < 5) return alert('กรุณากรอกเหตุผลการแก้รายการอย่างน้อย 5 ตัวอักษร');
+    const selectedIds = Array.from(new Set(asArray(docAmendPreviewItemIds).map(id => String(id || '').trim()).filter(Boolean)));
+    if (selectedIds.length === 0) return alert('กรุณาเลือกอุปกรณ์ที่ต้องการเพิ่มเข้าเอกสารอย่างน้อย 1 รายการ');
+
+    const linkedIds = new Set(getBorrowDocLinkedItemIds(docAmendPreviewTarget).map(id => String(id)));
+    const localSelectedItems = selectedIds.map(id => items.find(item => String(item.id) === id)).filter(Boolean);
+    const localBlocked = selectedIds.filter(id => {
+      const item = items.find(it => String(it.id) === id);
+      return !item || linkedIds.has(id) || item.status !== 'available' || item.deleted || item.isDeleted || item.archived || item.isArchived;
+    });
+    if (localBlocked.length > 0) return alert(`มี ${localBlocked.length.toLocaleString('th-TH')} รายการที่ไม่พร้อมเพิ่มเข้าเอกสารแล้ว กรุณารีเฟรช/ตรวจรายการใหม่`);
+
+    const type = (docAmendPreviewTarget.type || docAmendPreviewTarget.docType || 'borrow') === 'event' ? 'event' : 'borrow';
+    const subjectText = String(docAmendPreviewTarget.eventName || docAmendPreviewTarget.borrower || docAmendPreviewTarget.subject || '-').trim();
+    const staffOut = docAmendPreviewTarget.staffOut || docAmendPreviewTarget.operatorName || currentAccountLabel || 'Admin';
+    const expectedReturn = docAmendPreviewTarget.expectedReturn || '';
+    const docNote = docAmendPreviewTarget.note || '';
+    const nextStatus = type === 'event' ? 'out-for-event' : 'borrowed';
+    const nextStatusLabel = type === 'event' ? 'ออกงาน' : 'ถูกยืม';
+    const names = localSelectedItems.map(item => item.name || item.id).join(', ');
+    const ok = window.confirm(`ยืนยันบันทึกเพิ่มรายการย้อนหลังเข้าเอกสาร ${refKey}?\n\nจำนวน: ${selectedIds.length.toLocaleString('th-TH')} รายการ\nรายการ: ${names || '-'}\nสถานะที่จะเปลี่ยน: พร้อมใช้งาน → ${nextStatusLabel}\nเหตุผล: ${reason}\n\nระบบจะเขียนข้อมูลจริงลงฐานข้อมูลและเพิ่มประวัติให้อุปกรณ์แต่ละชิ้น`);
+    if (!ok) return;
+
+    setIsBusy(true);
+    try {
+      const now = new Date().toISOString();
+      const liveSnapshots = await Promise.all(selectedIds.map(id => getDoc(getItemDoc(id))));
+      const liveItems = liveSnapshots.map((snap, index) => snap.exists() ? { id: selectedIds[index], ...snap.data() } : null);
+      const liveBlocked = liveItems.filter(item => !item || item.status !== 'available' || item.deleted || item.isDeleted || item.archived || item.isArchived);
+      if (liveBlocked.length > 0) {
+        alert(`หยุดบันทึกเพื่อความปลอดภัย: มี ${liveBlocked.length.toLocaleString('th-TH')} รายการที่สถานะล่าสุดไม่พร้อมใช้งานแล้ว`);
+        return;
+      }
+
+      const existingItemIds = getBorrowDocLinkedItemIds(docAmendPreviewTarget);
+      const finalItemIds = Array.from(new Set([...existingItemIds, ...selectedIds]));
+      const existingDocItems = asArray(docAmendPreviewTarget.items);
+      const newDocItems = liveItems.map(item => ({
+        id: item.id,
+        name: item.name || '-',
+        sn: item.sn || '-',
+        category: item.category || '-',
+        location: item.location || item.storageLocation || item.storageBoxName || '-',
+        department: item.department || item.ownerDepartment || '-',
+        project: item.project || '',
+        storageBoxName: item.storageBoxName || '',
+        internalNote: item.internalNote || '',
+        quantity: item.quantity || 1,
+        amendedIntoDocument: true,
+        amendedAt: now,
+        amendmentReason: reason,
+        amendedBy: currentAccountLabel
+      }));
+      const returnedItemIds = asArray(docAmendPreviewTarget.returnedItemIds).map(id => String(id));
+      const returnedSet = new Set(returnedItemIds);
+      const amendmentRecord = {
+        id: `amend_${Date.now()}`,
+        type: 'add-items',
+        date: now,
+        documentRef: refKey,
+        itemIds: selectedIds,
+        itemCount: selectedIds.length,
+        itemNames: liveItems.map(item => item.name || item.id),
+        reason,
+        operatorId: currentOperator?.id || null,
+        operatorName: currentOperator?.name || currentAccountLabel || 'Admin',
+        safeMode: true
+      };
+      const docPatch = {
+        itemIds: finalItemIds,
+        items: [...existingDocItems, ...newDocItems],
+        returnedItemIds,
+        remainingItemIds: finalItemIds.filter(id => !returnedSet.has(String(id))),
+        returnProgress: { total: finalItemIds.length, returned: returnedItemIds.length, remaining: Math.max(0, finalItemIds.length - returnedItemIds.length) },
+        status: docAmendPreviewTarget.status || 'active',
+        statusLabel: docAmendPreviewTarget.statusLabel || 'รอคืน',
+        updatedAt: now,
+        updatedBy: currentAccountLabel,
+        itemAmendedAt: now,
+        itemAmendedBy: currentAccountLabel,
+        itemAmendmentCount: (Number(docAmendPreviewTarget.itemAmendmentCount) || 0) + 1,
+        itemAmendments: [...asArray(docAmendPreviewTarget.itemAmendments), amendmentRecord]
+      };
+      if (type === 'event') {
+        docPatch.eventName = subjectText;
+        docPatch.borrower = docAmendPreviewTarget.borrower || subjectText;
+      } else {
+        docPatch.borrower = subjectText;
+        docPatch.subject = subjectText;
+      }
+
+      const itemTasks = liveItems.map(item => {
+        const historyEntry = {
+          type,
+          date: now,
+          documentId: refKey,
+          documentRef: refKey,
+          amendmentType: 'add-item-to-existing-document',
+          amendedIntoDocument: true,
+          amendmentReason: reason,
+          expectedReturn,
+          staffOut,
+          note: docNote,
+          operatorId: currentOperator?.id || null,
+          operatorName: currentOperator?.name || currentAccountLabel || 'Admin'
+        };
+        if (type === 'event') historyEntry.eventName = subjectText;
+        else historyEntry.borrower = subjectText;
+        const history = [...asArray(item.history), historyEntry];
+        const patch = {
+          status: nextStatus,
+          expectedReturn,
+          currentNote: docNote,
+          history,
+          lastAmendedDocumentRef: refKey,
+          lastAmendedAt: now,
+          updatedAt: now,
+          updatedBy: currentAccountLabel
+        };
+        if (type === 'event') {
+          patch.currentEvent = subjectText;
+          patch.currentBorrower = null;
+        } else {
+          patch.currentBorrower = subjectText;
+          patch.currentEvent = null;
+        }
+        return setDoc(getItemDoc(item.id), patch, { merge: true });
+      });
+
+      await Promise.all([setDoc(getBorrowDoc(docId), docPatch, { merge: true }), ...itemTasks]);
+      await logAction('เพิ่มรายการย้อนหลังในเอกสาร', refKey, `เพิ่มอุปกรณ์ ${selectedIds.length} รายการเข้าเอกสารเดิม\nผู้เกี่ยวข้อง/ชื่องาน: ${subjectText}\nเหตุผล: ${reason}\nรายการ: ${liveItems.map(item => `${item.name || item.id}${item.sn ? ` (${item.sn})` : ''}`).join(', ')}`);
+      pushToast('บันทึกเพิ่มรายการย้อนหลังแล้ว', `${refKey} เพิ่ม ${selectedIds.length.toLocaleString('th-TH')} รายการ`, 'success');
+      closeBorrowDocItemAmendPreview();
+    } catch (error) {
+      console.error(error);
+      alert('บันทึกเพิ่มรายการย้อนหลังไม่สำเร็จ: ' + (error?.message || error));
+    } finally {
+      setIsBusy(false);
+    }
   };
 
   const handleSaveBorrowDocEdit = async () => {
@@ -29341,8 +29494,8 @@ ${auditChangeSummary}` : auditChangeSummary);
                             <div className={`text-sm font-black mt-0.5 ${theme.textTitle}`}>{value}</div>
                           </div>
                         ))}
-                        <div className={`rounded-2xl border p-3 text-xs font-bold ${isDarkMode ? 'bg-amber-950/20 border-amber-800/60 text-amber-100' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
-                          ปุ่มบันทึกจริงยังถูกปิดไว้ในเวอร์ชันนี้ เพื่อป้องกันข้อมูลใช้งานจริงเสียหาย ต้องผ่านขั้น Preview และตรวจผลก่อนเท่านั้น
+                        <div className={`rounded-2xl border p-3 text-xs font-bold ${isDarkMode ? 'bg-emerald-950/20 border-emerald-800/60 text-emerald-100' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+                          Safe Commit เปิดเฉพาะการเพิ่มอุปกรณ์ที่ลืมบันทึกเท่านั้น ระบบจะตรวจสถานะล่าสุดอีกครั้งก่อนเขียนข้อมูลจริง
                         </div>
                       </div>
                     ) : (
@@ -29355,9 +29508,9 @@ ${auditChangeSummary}` : auditChangeSummary);
               </div>
 
               <div className={`p-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
-                <div className={`text-xs font-bold ${theme.textMuted}`}>สถานะ: Preview อย่างเดียว • ไม่เขียนฐานข้อมูล • ไม่เปลี่ยนสถานะอุปกรณ์</div>
+                <div className={`text-xs font-bold ${theme.textMuted}`}>สถานะ: Safe Commit • เพิ่มรายการย้อนหลังเท่านั้น • ตรวจสถานะล่าสุดก่อนบันทึก</div>
                 <div className="flex flex-wrap justify-end gap-2">
-                  <button type="button" disabled className="px-5 py-3 rounded-2xl font-black bg-slate-700 text-slate-300 cursor-not-allowed">บันทึกจริงยังปิดไว้</button>
+                  <button type="button" onClick={handleCommitBorrowDocItemAmendment} disabled={isBusy || selectedItems.length === 0 || String(docAmendPreviewReason || '').trim().length < 5} className="px-5 py-3 rounded-2xl font-black bg-emerald-600 hover:bg-emerald-500 text-white disabled:bg-slate-700 disabled:text-slate-400 disabled:cursor-not-allowed shadow-sm">{isBusy ? 'กำลังบันทึก...' : 'บันทึกเพิ่มรายการจริง'}</button>
                   <button type="button" onClick={closeBorrowDocItemAmendPreview} className={`px-5 py-3 rounded-2xl font-black ${theme.btnSecondary}`}>ปิด Preview</button>
                 </div>
               </div>
