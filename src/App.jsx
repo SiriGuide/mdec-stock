@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.16.3 Amendment Detail Readability Polish';
+const APP_VERSION = 'v23.4.16.18.27.17 Unified Amendment Action Hub Polish';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -7598,6 +7598,7 @@ function MainApp() {
   const [docEditTarget, setDocEditTarget] = useState(null);
   const [docEditForm, setDocEditForm] = useState({ subject: '', documentDate: '', expectedReturn: '', staffOut: '', note: '' });
   const [docSafetyTarget, setDocSafetyTarget] = useState(null);
+  const [docAmendActionHubTarget, setDocAmendActionHubTarget] = useState(null);
   const [docAmendPreviewTarget, setDocAmendPreviewTarget] = useState(null);
   const [docAmendPreviewSearch, setDocAmendPreviewSearch] = useState('');
   const [docAmendPreviewItemIds, setDocAmendPreviewItemIds] = useState([]);
@@ -8749,6 +8750,30 @@ function MainApp() {
         return haystack.includes(q);
       })
       .slice(0, 80);
+  };
+
+  const openBorrowDocAmendActionHub = (docData = {}) => {
+    if (!docData) return;
+    if (!canUseOperationalTools) return alert('บัญชีนี้ไม่มีสิทธิ์แก้รายการในเอกสาร');
+    const safety = getBorrowDocItemSafety(docData);
+    if (!safety.canAmendSafely) {
+      setDocSafetyTarget(docData);
+      return;
+    }
+    setDocAmendActionHubTarget(docData);
+  };
+
+  const closeBorrowDocAmendActionHub = () => {
+    setDocAmendActionHubTarget(null);
+  };
+
+  const chooseBorrowDocAmendAction = (action) => {
+    const target = docAmendActionHubTarget;
+    if (!target) return;
+    setDocAmendActionHubTarget(null);
+    if (action === 'add') return openBorrowDocItemAmendPreview(target);
+    if (action === 'cancel') return openBorrowDocItemCancelPreview(target);
+    if (action === 'swap') return openBorrowDocItemSwapPreview(target);
   };
 
   const openBorrowDocItemAmendPreview = (docData = {}) => {
@@ -16460,9 +16485,7 @@ S.N.: ${item.sn || '-'}
                             <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-black shadow-sm">พิมพ์เอกสาร</button>
                             {canUseOperationalTools && <button type="button" onClick={() => openBorrowDocEdit(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>แก้ข้อมูล</button>}
                             <button type="button" onClick={() => openBorrowDocSafetyCheck(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${safety.tone}`}>ตรวจรายการ</button>
-                            {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => openBorrowDocItemAmendPreview(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${isDarkMode ? 'bg-cyan-950/35 border-cyan-800 text-cyan-100 hover:bg-cyan-900/45' : 'bg-cyan-50 border-cyan-200 text-cyan-700 hover:bg-cyan-100'}`}>Preview เพิ่มรายการ</button>}
-                            {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => openBorrowDocItemCancelPreview(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-100 hover:bg-amber-900/45' : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'}`}>Preview ยกเลิก</button>}
-                            {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => openBorrowDocItemSwapPreview(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${isDarkMode ? 'bg-violet-950/35 border-violet-800 text-violet-100 hover:bg-violet-900/45' : 'bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100'}`}>Preview สลับ</button>}
+                            {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => openBorrowDocAmendActionHub(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${isDarkMode ? 'bg-violet-950/35 border-violet-800 text-violet-100 hover:bg-violet-900/45' : 'bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100'}`}>แก้รายการ</button>}
                             <button type="button" onClick={() => openDocHistorySearch(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
                             <button type="button" onClick={() => copyDocSummary(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>คัดลอกสรุป</button>
                             {meta.status !== 'closed' && <button type="button" onClick={() => { setTrackingSearch(docData.ref || meta.ownerText || ''); openWorkspace('tracking'); }} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black shadow-sm">ติดตามคืน</button>}
@@ -29857,18 +29880,8 @@ ${auditChangeSummary}` : auditChangeSummary);
                             ตรวจความพร้อมแก้รายการ
                           </button>
                           {canUseOperationalTools && safety.canAmendSafely && (
-                            <button type="button" onClick={() => openBorrowDocItemAmendPreview(docData)} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${isDarkMode ? 'bg-cyan-950/35 border-cyan-800 text-cyan-100 hover:bg-cyan-900/45' : 'bg-cyan-50 border-cyan-200 text-cyan-700 hover:bg-cyan-100'}`}>
-                              Preview เพิ่มรายการ
-                            </button>
-                          )}
-                          {canUseOperationalTools && safety.canAmendSafely && (
-                            <button type="button" onClick={() => openBorrowDocItemCancelPreview(docData)} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${isDarkMode ? 'bg-amber-950/35 border-amber-800 text-amber-100 hover:bg-amber-900/45' : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'}`}>
-                              Preview ยกเลิกรายการ
-                            </button>
-                          )}
-                          {canUseOperationalTools && safety.canAmendSafely && (
-                            <button type="button" onClick={() => openBorrowDocItemSwapPreview(docData)} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${isDarkMode ? 'bg-violet-950/35 border-violet-800 text-violet-100 hover:bg-violet-900/45' : 'bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100'}`}>
-                              Preview สลับรายการ
+                            <button type="button" onClick={() => openBorrowDocAmendActionHub(docData)} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${isDarkMode ? 'bg-violet-950/35 border-violet-800 text-violet-100 hover:bg-violet-900/45' : 'bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100'}`}>
+                              แก้รายการ
                             </button>
                           )}
                           <button type="button" onClick={() => { setShowBorrowDocsModal(false); setTrackingTab('today'); setShowTrackingCenterModal(true); }} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
@@ -29895,6 +29908,63 @@ ${auditChangeSummary}` : auditChangeSummary);
         </div>
       )}
 
+
+
+      {/* ศูนย์แก้รายการ: ปุ่มเดียว เลือกงานที่ต้องการ แล้วส่งต่อไปยัง Safe Mode เดิม */}
+      {docAmendActionHubTarget && (() => {
+        const safety = getBorrowDocItemSafety(docAmendActionHubTarget);
+        const meta = getRecordsDocMeta(docAmendActionHubTarget);
+        const docRefText = docAmendActionHubTarget.ref || docAmendActionHubTarget.id || '-';
+        const optionBase = `rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg`;
+        const optionMuted = isDarkMode ? 'bg-slate-900/80 border-slate-800 hover:border-slate-700' : 'bg-white border-slate-200 hover:border-slate-300';
+        return (
+          <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 z-[10030]`} onMouseDown={(e) => { if (e.target === e.currentTarget) closeBorrowDocAmendActionHub(); }}>
+            <div className={`w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden ${theme.cardBg}`}>
+              <div className={`p-4 sm:p-5 border-b flex items-start justify-between gap-3 ${theme.divide}`}>
+                <div className="min-w-0">
+                  <div className="text-xs font-black tracking-[0.18em] uppercase text-violet-400">AMENDMENT CENTER</div>
+                  <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>แก้รายการอุปกรณ์</h3>
+                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกสิ่งที่ต้องการทำกับเอกสารนี้ ระบบยังใช้ Safe Mode เดิมและตรวจสถานะล่าสุดก่อนบันทึกจริง</p>
+                </div>
+                <button type="button" onClick={closeBorrowDocAmendActionHub} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}><Icons.X className="w-4 h-4" /></button>
+              </div>
+              <div className="p-4 sm:p-5 space-y-4">
+                <div className={`rounded-2xl border p-4 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className={`text-[11px] font-black ${theme.textMuted}`}>เอกสารที่กำลังแก้</div>
+                  <div className={`font-black text-lg mt-1 ${theme.textTitle}`}>{docRefText} • {meta.typeLabel}</div>
+                  <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{meta.ownerText} • {meta.progressText}</div>
+                  <div className={`mt-2 inline-flex px-2.5 py-1 rounded-xl border text-[11px] font-black ${safety.tone}`}>สถานะ Safety Check: {safety.label}</div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <button type="button" onClick={() => chooseBorrowDocAmendAction('add')} className={`${optionBase} ${isDarkMode ? 'bg-cyan-950/24 border-cyan-800/70 text-cyan-100 hover:bg-cyan-900/35' : 'bg-cyan-50 border-cyan-200 text-cyan-800 hover:bg-cyan-100'}`}>
+                    <div className="text-2xl mb-2">＋</div>
+                    <div className="font-black">เพิ่มรายการย้อนหลัง</div>
+                    <div className="text-xs font-bold mt-1 opacity-80">ใช้เมื่อจ่ายของจริงไปแล้ว แต่ลืมบันทึกบางชิ้นเข้าเอกสาร</div>
+                  </button>
+                  <button type="button" onClick={() => chooseBorrowDocAmendAction('cancel')} className={`${optionBase} ${isDarkMode ? 'bg-amber-950/24 border-amber-800/70 text-amber-100 hover:bg-amber-900/35' : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'}`}>
+                    <div className="text-2xl mb-2">−</div>
+                    <div className="font-black">ยกเลิกรายการผิด</div>
+                    <div className="text-xs font-bold mt-1 opacity-80">ใช้เมื่อใส่อุปกรณ์ผิดตัว และต้องการถอดออกจากเอกสาร</div>
+                  </button>
+                  <button type="button" onClick={() => chooseBorrowDocAmendAction('swap')} className={`${optionBase} ${isDarkMode ? 'bg-violet-950/24 border-violet-800/70 text-violet-100 hover:bg-violet-900/35' : 'bg-violet-50 border-violet-200 text-violet-800 hover:bg-violet-100'}`}>
+                    <div className="text-2xl mb-2">⇄</div>
+                    <div className="font-black">สลับอุปกรณ์ผิดตัว</div>
+                    <div className="text-xs font-bold mt-1 opacity-80">ใช้เมื่อต้องถอดตัวผิดออก แล้วเพิ่มตัวที่ถูกต้องเข้าแทน</div>
+                  </button>
+                </div>
+
+                <div className={`rounded-2xl border px-4 py-3 text-xs font-bold ${isDarkMode ? 'bg-blue-950/20 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                  ทุกตัวเลือกต้องกรอกเหตุผลก่อนบันทึกจริง และระบบจะตรวจสถานะล่าสุดจากฐานข้อมูลอีกครั้งเพื่อกันข้อมูลเพี้ยน
+                </div>
+              </div>
+              <div className={`p-4 border-t flex justify-end ${theme.divide}`}>
+                <button type="button" onClick={closeBorrowDocAmendActionHub} className={`px-5 py-2.5 rounded-2xl font-black ${theme.btnCancel}`}>ปิด</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
 
       {/* ตรวจความพร้อมแก้รายการอุปกรณ์ในเอกสาร */}
@@ -30006,9 +30076,7 @@ ${auditChangeSummary}` : auditChangeSummary);
               <div className={`p-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${theme.divide}`}>
                 <div className={`text-xs font-bold ${theme.textMuted}`}>{safety.level === 'locked' ? 'สถานะ: ล็อกไว้ก่อน / ใช้งานจริงยังปลอดภัย' : 'สถานะ: อ่านอย่างเดียว ยังไม่เปิดแก้รายการจริง'}</div>
                 <div className="flex flex-wrap justify-end gap-2">
-                  {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => { closeBorrowDocSafetyCheck(); openBorrowDocItemAmendPreview(docSafetyTarget); }} className="px-5 py-2.5 rounded-2xl font-black bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm">เปิด Preview เพิ่มรายการ</button>}
-                  {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => { closeBorrowDocSafetyCheck(); openBorrowDocItemCancelPreview(docSafetyTarget); }} className="px-5 py-2.5 rounded-2xl font-black bg-amber-600 hover:bg-amber-500 text-white shadow-sm">เปิด Preview ยกเลิก</button>}
-                  {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => { closeBorrowDocSafetyCheck(); openBorrowDocItemSwapPreview(docSafetyTarget); }} className="px-5 py-2.5 rounded-2xl font-black bg-violet-600 hover:bg-violet-500 text-white shadow-sm">เปิด Preview สลับ</button>}
+                  {canUseOperationalTools && safety.canAmendSafely && <button type="button" onClick={() => { const target = docSafetyTarget; closeBorrowDocSafetyCheck(); openBorrowDocAmendActionHub(target); }} className="px-5 py-2.5 rounded-2xl font-black bg-violet-600 hover:bg-violet-500 text-white shadow-sm">แก้รายการ</button>}
                   <button type="button" onClick={closeBorrowDocSafetyCheck} className={`px-5 py-2.5 rounded-2xl font-black ${theme.btnCancel}`}>ปิดผลตรวจ</button>
                 </div>
               </div>
