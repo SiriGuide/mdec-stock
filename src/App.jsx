@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.15 Amendment Swap Commit Safe Mode';
+const APP_VERSION = 'v23.4.16.18.27.16 Amendment History Audit Polish';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -16316,6 +16316,37 @@ S.N.: ${item.sn || '-'}
         window.prompt('คัดลอกข้อความนี้', text);
       }
     };
+
+    const getAmendmentActionLabel = (record = {}) => {
+      const type = String(record.type || record.amendmentType || '').toLowerCase();
+      if (type.includes('swap')) return 'สลับรายการ';
+      if (type.includes('cancel') || type.includes('remove')) return 'ยกเลิกรายการ';
+      if (type.includes('add')) return 'เพิ่มรายการ';
+      return 'แก้รายการ';
+    };
+    const getAmendmentSummaryText = (record = {}) => {
+      const type = String(record.type || record.amendmentType || '').toLowerCase();
+      if (type.includes('swap')) {
+        return `สลับ ${record.removeItemName || record.removeItemId || '-'} → ${record.addItemName || record.addItemId || '-'}`;
+      }
+      const names = asArray(record.itemNames).filter(Boolean).slice(0, 3);
+      const count = Number(record.itemCount || asArray(record.itemIds).length || names.length || 0);
+      const suffix = names.length ? `: ${names.join(', ')}${count > names.length ? ` และอีก ${count - names.length} รายการ` : ''}` : '';
+      if (type.includes('cancel') || type.includes('remove')) return `ยกเลิก ${count.toLocaleString('th-TH')} รายการ${suffix}`;
+      if (type.includes('add')) return `เพิ่ม ${count.toLocaleString('th-TH')} รายการ${suffix}`;
+      return `แก้รายการ ${count ? count.toLocaleString('th-TH') + ' รายการ' : ''}${suffix}`;
+    };
+    const getBorrowDocAmendmentAudit = (docData = {}) => {
+      const rows = asArray(docData.itemAmendments)
+        .filter(Boolean)
+        .map((record, index) => ({ ...record, _index: index }))
+        .sort((a, b) => new Date(b.date || b.createdAt || b.updatedAt || 0).getTime() - new Date(a.date || a.createdAt || a.updatedAt || 0).getTime());
+      return {
+        rows,
+        count: Math.max(Number(docData.itemAmendmentCount) || 0, rows.length),
+        latest: rows[0] || null
+      };
+    };
     return (
       <div className="page-workspace-shell records-workspace space-y-4">
         {renderWorkspaceTabs()}
@@ -16377,6 +16408,7 @@ S.N.: ${item.sn || '-'}
                   ) : filteredBorrowเอกสารs.slice(0, 180).map(docData => {
                     const meta = getRecordsDocMeta(docData);
                     const safety = getBorrowDocItemSafety(docData);
+                    const audit = getBorrowDocAmendmentAudit(docData);
                     const previewItems = asArray(docData.items).slice(0, 4);
                     return (
                       <div key={docData.id || docData.ref} className={`p-3 rounded-2xl border transition-all ${isDarkMode ? 'bg-slate-900/80 border-slate-800 hover:border-slate-700' : 'bg-slate-50 border-slate-200 hover:border-slate-300'}`}>
@@ -16387,6 +16419,7 @@ S.N.: ${item.sn || '-'}
                               <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${meta.statusTone}`}>{meta.statusLabel}</span>
                               <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>{meta.itemCount.toLocaleString('th-TH')} รายการ</span>
                               <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${safety.tone}`}>แก้รายการ: {safety.label}</span>
+                              {audit.count > 0 && <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-violet-950/35 border-violet-800 text-violet-100' : 'bg-violet-50 border-violet-200 text-violet-700'}`}>Audit แก้รายการ {audit.count.toLocaleString('th-TH')} ครั้ง</span>}
                               {meta.proofCount > 0 ? <span className="px-2.5 py-1 rounded-xl border text-[11px] font-black bg-pink-500/10 text-pink-500 border-pink-500/20">หลักฐาน {meta.proofCount}</span> : <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-500' : 'bg-white border-slate-200 text-slate-400'}`}>ไม่มีรูปหลักฐาน</span>}
                             </div>
                             <div className={`font-black text-base sm:text-lg truncate ${theme.textTitle}`}>{docData.ref || docData.id || '-'} • {meta.title}</div>
@@ -16411,6 +16444,16 @@ S.N.: ${item.sn || '-'}
                               </div>
                             )}
                             {docData.note && <div className={`mt-2 text-xs font-bold rounded-xl px-3 py-2 ${isDarkMode ? 'bg-amber-950/20 text-amber-200' : 'bg-amber-50 text-amber-700'}`}>หมายเหตุ: {docData.note}</div>}
+                            {audit.latest && (
+                              <div className={`mt-2 rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-violet-950/18 border-violet-800/55 text-violet-100' : 'bg-violet-50 border-violet-200 text-violet-800'}`}>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                                  <div className="text-[11px] font-black uppercase tracking-[0.12em] opacity-80">Amendment Audit ล่าสุด</div>
+                                  <div className="text-[11px] font-black opacity-80">{audit.latest.date ? formatThaiDateTime(audit.latest.date) : '-'}</div>
+                                </div>
+                                <div className="text-xs font-black mt-1">{getAmendmentActionLabel(audit.latest)} • {getAmendmentSummaryText(audit.latest)}</div>
+                                <div className="text-[11px] font-bold mt-1 opacity-80">เหตุผล: {audit.latest.reason || '-'} • ผู้ทำรายการ: {audit.latest.operatorName || audit.latest.operatorId || docData.itemAmendedBy || '-'}</div>
+                              </div>
+                            )}
                             {meta.proofCount === 0 && <div className={`mt-2 text-xs font-bold rounded-xl px-3 py-2 border ${isDarkMode ? 'bg-slate-950/35 border-slate-800/55 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>ไม่มีรูปหลักฐานแนบกับเอกสารนี้ แต่ยังตรวจสอบสถานะได้จากเอกสารและประวัติการยืม/คืน</div>}
                           </div>
                           <div className="grid grid-cols-2 xl:grid-cols-1 gap-1.5 shrink-0 xl:min-w-[142px]">
