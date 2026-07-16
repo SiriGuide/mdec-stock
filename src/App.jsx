@@ -76,7 +76,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.16.2 Amendment Change Notice Polish';
+const APP_VERSION = 'v23.4.16.18.27.16.3 Amendment Detail Readability Polish';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -16592,8 +16592,34 @@ S.N.: ${item.sn || '-'}
                       : amendmentTypeValue === 'swap-add-to-document' ? 'สลับรายการ: เพิ่มรายการใหม่แทน'
                       : String(firstAmendment.historyType || '').includes('amendment') ? 'แก้ไขรายการอุปกรณ์ในเอกสาร'
                       : 'แก้ไขรายการอุปกรณ์ในเอกสาร';
+                    const amendmentFormatItem = (rowOrItem = {}, fallbackId = '') => {
+                      const itemId = String(rowOrItem.itemId || rowOrItem.id || fallbackId || '').trim();
+                      const itemData = rowOrItem.itemName || rowOrItem.name ? rowOrItem : items.find(item => String(item.id) === itemId) || {};
+                      const name = itemData.itemName || itemData.name || itemId || '-';
+                      const sn = itemData.sn || itemData.SN || itemData.serialNumber || '';
+                      return `${name}${sn && sn !== '-' ? ` / S.N. ${sn}` : ''}`;
+                    };
+                    const amendmentTypesInGroup = amendmentRows.map(row => String(row.amendmentType || row.rawHistory?.amendmentType || row.historyType || '').toLowerCase());
+                    const swapRemoveRows = amendmentRows.filter(row => String(row.amendmentType || row.rawHistory?.amendmentType || row.historyType || '').toLowerCase().includes('swap-remove'));
+                    const swapAddRows = amendmentRows.filter(row => String(row.amendmentType || row.rawHistory?.amendmentType || row.historyType || '').toLowerCase().includes('swap-add'));
+                    const cancelRows = amendmentRows.filter(row => String(row.amendmentType || row.rawHistory?.amendmentType || row.historyType || '').toLowerCase().includes('cancel'));
+                    const addRows = amendmentRows.filter(row => {
+                      const value = String(row.amendmentType || row.rawHistory?.amendmentType || row.historyType || '').toLowerCase();
+                      return value.includes('add-item') || value.includes('add-to-document') || value.includes('existing-document');
+                    });
+                    const fallbackAddId = firstAmendment.swappedWithItemId || firstAmendment.rawHistory?.swappedWithItemId || '';
+                    const fallbackRemoveId = firstAmendment.swappedFromItemId || firstAmendment.rawHistory?.swappedFromItemId || '';
+                    const swapRemoveText = swapRemoveRows[0] ? amendmentFormatItem(swapRemoveRows[0]) : fallbackRemoveId ? amendmentFormatItem({}, fallbackRemoveId) : '-';
+                    const swapAddText = swapAddRows[0] ? amendmentFormatItem(swapAddRows[0]) : fallbackAddId ? amendmentFormatItem({}, fallbackAddId) : '-';
+                    const amendmentDetailText = amendmentTypesInGroup.some(type => type.includes('swap'))
+                      ? `สลับจาก: ${swapRemoveText} → ${swapAddText}`
+                      : cancelRows.length > 0
+                        ? `ยกเลิก/ถอดออก: ${cancelRows.map(row => amendmentFormatItem(row)).join(', ')}`
+                        : addRows.length > 0
+                          ? `เพิ่มเข้าเอกสาร: ${addRows.map(row => amendmentFormatItem(row)).join(', ')}`
+                          : `รายการที่แก้ไข: ${amendmentRows.map(row => amendmentFormatItem(row)).join(', ') || '-'}`;
                     const amendmentTone = isDarkMode ? 'bg-fuchsia-950/30 border-fuchsia-500/30 text-fuchsia-100' : 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-800';
-                    const operationLabel = isAmendmentRow ? (isGroup ? `แก้รายการ ${rowsInGroup.length} รายการ` : 'แก้รายการ') : (isGroup ? `${entry.typeLabel || entry.historyType || '-'}กลุ่ม` : (entry.typeLabel || entry.historyType || '-'));
+                    const operationLabel = isAmendmentRow ? (amendmentTypesInGroup.some(type => type.includes('swap')) ? 'สลับรายการ' : cancelRows.length > 0 ? 'ยกเลิกรายการ' : addRows.length > 0 ? 'เพิ่มรายการ' : 'แก้รายการ') : (isGroup ? `${entry.typeLabel || entry.historyType || '-'}กลุ่ม` : (entry.typeLabel || entry.historyType || '-'));
                     const displayTitle = isGroup
                       ? (entry.subject && entry.subject !== '-' ? entry.subject : `${entry.typeLabel || 'ประวัติ'} ${rowsInGroup.length} รายการ`)
                       : (entry.itemName || '-');
@@ -16610,9 +16636,11 @@ S.N.: ${item.sn || '-'}
                       : entry.historyType === 'warehouse-return' ? 'ส่งกลับโกดัง'
                       : String(entry.historyType || '').includes('repair') ? 'งานซ่อม/ตรวจเช็ก'
                       : (entry.typeLabel || 'ประวัติ');
-                    const recordSummaryText = isGroup
-                      ? `${rowsInGroup.length.toLocaleString('th-TH')} อุปกรณ์ในรายการเดียวกัน`
-                      : `${entry.itemName || '-'}${entry.sn ? ` • S.N. ${entry.sn}` : ''}`;
+                    const recordSummaryText = isAmendmentRow
+                      ? amendmentDetailText
+                      : isGroup
+                        ? `${rowsInGroup.length.toLocaleString('th-TH')} อุปกรณ์ในรายการเดียวกัน`
+                        : `${entry.itemName || '-'}${entry.sn ? ` • S.N. ${entry.sn}` : ''}`;
                     return (
                     <div key={entry.groupKey || entry.id} className={`relative rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-900/72 border-slate-800/70 hover:border-slate-800/55' : 'bg-slate-50 border-slate-200 hover:border-slate-300'} transition-colors`}>
                       <div className="grid grid-cols-1 xl:grid-cols-[auto_minmax(0,1fr)_260px] gap-0">
@@ -16671,6 +16699,7 @@ S.N.: ${item.sn || '-'}
                                     <div className="text-[11px] font-black opacity-75">{amendmentRows.length.toLocaleString('th-TH')} บันทึก</div>
                                   </div>
                                   <div className="mt-1 text-xs font-bold leading-relaxed">{amendmentActionText}</div>
+                                  <div className="mt-1 text-sm font-black leading-relaxed">{amendmentDetailText}</div>
                                   {amendmentReasonText && <div className="mt-1 text-[11px] font-bold opacity-80">เหตุผล: {amendmentReasonText}</div>}
                                 </div>
                               )}
