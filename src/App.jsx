@@ -1,4 +1,4 @@
-// v23.4.16.18.27.19 Auto Safety Check Inside Edit Hub Polish - ซ่อนปุ่มตรวจรายการจากหน้าหลัก ให้ตรวจอัตโนมัติในปุ่มแก้ไขข้อมูล
+// v23.4.16.18.27.20 Document Amendment Timeline Polish - เพิ่ม Timeline ประวัติการแก้ไขรายการในเอกสาร
 // v23.1.46.1 Asset Profile Clean Redesign Build Hotfix - เพิ่มปุ่มตรวจพื้นที่ฐานข้อมูลแบบสแกนทุก collection หลัก เพื่อให้แม่นกว่า estimate จาก state หน้าเว็บ
 // v23.1.44 Warehouse Quick Release / No Approver - ปรับโกดัง/คลังสำรองให้เบิกเข้าคลังได้เร็วขึ้น ไม่ต้องกรอกผู้อนุมัติ เหลือแค่เหตุผลและบันทึกประวัติ
 // v23.1.34 Inventory Delete Button Restore - คืนปุ่มลบอุปกรณ์ในหน้าคลัง ทั้งรายชิ้นและแบบเลือกหลายรายการ
@@ -77,7 +77,7 @@ const getBorrowDoc = (id) => IS_CANVAS ? doc(db, 'artifacts', APP_ID, 'public', 
 const ADMIN_PIN = 'mdec8203';
 const INACTIVITY_LOGOUT_MS = 2 * 60 * 60 * 1000; // ออกจากระบบอัตโนมัติเมื่อไม่ใช้งาน 2 ชั่วโมง
 const WEAK_PIN_LIST = ['0000','1111','2222','3333','4444','5555','6666','7777','8888','9999','1234','12345','123456','654321','4321','1122','1212','999999'];
-const APP_VERSION = 'v23.4.16.18.27.18 Unified Document Edit Hub Polish';
+const APP_VERSION = 'v23.4.16.18.27.20 Document Amendment Timeline Polish';
 // v23.4.16.18.25 Event Return Slip Formal Match Polish - ทำมาตรฐานเอกสารใบออกงาน/ใบรับคืน/ใบเตรียมอุปกรณ์ให้ไปทางเดียวกับใบยืมล่าสุด ไม่แตะ flow/Reports/QR Scanner core
 // Direction lock: Reports dashboard was intentionally removed. Do not restore Reports/รายงาน without explicit user approval.
 const APP_UPDATE_NOTE = 'Reports Removed / Direction Lock Hotfix: ยึดทิศทางเดิมของเว็บ ไม่รื้อหน้า Reports / รายงานกลับมา และคง flow ยืม-คืนกับ QR Scanner core ไว้เหมือนเดิม';
@@ -8747,6 +8747,81 @@ function MainApp() {
       tone,
       canAmendSafely: level === 'ready'
     };
+  };
+
+  const getDocumentAmendmentTimelineRows = (docData = {}) => {
+    const itemLookup = new Map((items || []).map(item => [String(item?.id || '').trim(), item]).filter(([id]) => Boolean(id)));
+    const itemLabel = (itemId = '', fallbackName = '') => {
+      const cleanId = String(itemId || '').trim();
+      const liveItem = itemLookup.get(cleanId);
+      const name = String(fallbackName || liveItem?.name || cleanId || '-').trim();
+      const sn = String(liveItem?.sn || liveItem?.serialNumber || '').trim();
+      return `${name}${sn && sn !== '-' ? ` / S.N. ${sn}` : ''}`;
+    };
+    const compactItems = (ids = [], names = [], prefix = '') => {
+      const normalizedIds = asArray(ids).map(id => String(id || '').trim()).filter(Boolean);
+      const normalizedNames = asArray(names);
+      if (normalizedIds.length === 0 && normalizedNames.length === 0) return [`${prefix}-`];
+      const source = normalizedIds.length ? normalizedIds : normalizedNames.map((name, index) => `name_${index}`);
+      const lines = source.slice(0, 5).map((id, index) => {
+        const label = normalizedIds.length ? itemLabel(id, normalizedNames[index]) : itemLabel('', normalizedNames[index]);
+        return `${prefix}${label}`;
+      });
+      const extra = Math.max(source.length - lines.length, 0);
+      if (extra > 0) lines.push(`${prefix}และอีก ${extra.toLocaleString('th-TH')} รายการ`);
+      return lines;
+    };
+
+    return asArray(docData.itemAmendments)
+      .filter(Boolean)
+      .map((record, index) => {
+        const type = String(record.type || record.amendmentType || '').toLowerCase();
+        const isSwap = type.includes('swap');
+        const isCancel = type.includes('cancel') || type.includes('remove');
+        const isAdd = type.includes('add');
+        const dateValue = record.date || record.createdAt || record.updatedAt || record.amendedAt || '';
+        const operatorName = record.operatorName || record.updatedBy || record.amendedBy || record.createdBy || '-';
+        const reason = record.reason || record.amendmentReason || record.note || '';
+        let title = 'แก้รายการอุปกรณ์';
+        let badge = 'แก้ไข';
+        let tone = isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-700';
+        let detailLines = [];
+
+        if (isSwap) {
+          title = 'สลับอุปกรณ์ผิดตัว';
+          badge = 'สลับ';
+          tone = isDarkMode ? 'bg-violet-950/24 border-violet-800/60 text-violet-100' : 'bg-violet-50 border-violet-200 text-violet-800';
+          detailLines = [`สลับจาก: ${itemLabel(record.removeItemId, record.removeItemName)} → ${itemLabel(record.addItemId, record.addItemName)}`];
+        } else if (isCancel) {
+          title = 'ยกเลิกรายการผิด';
+          badge = 'ยกเลิก';
+          tone = isDarkMode ? 'bg-amber-950/24 border-amber-800/60 text-amber-100' : 'bg-amber-50 border-amber-200 text-amber-800';
+          detailLines = compactItems(record.itemIds, record.itemNames, 'ถอดออกจากเอกสาร: ');
+        } else if (isAdd) {
+          title = 'เพิ่มรายการย้อนหลัง';
+          badge = 'เพิ่ม';
+          tone = isDarkMode ? 'bg-cyan-950/24 border-cyan-800/60 text-cyan-100' : 'bg-cyan-50 border-cyan-200 text-cyan-800';
+          detailLines = compactItems(record.itemIds, record.itemNames, 'เพิ่มเข้าเอกสาร: ');
+        } else {
+          detailLines = compactItems(record.itemIds, record.itemNames, 'รายการที่แก้: ');
+        }
+
+        const rawDate = dateValue?.toDate ? dateValue.toDate() : new Date(dateValue || 0);
+        const sortTime = Number.isNaN(rawDate.getTime()) ? 0 : rawDate.getTime();
+        return {
+          id: record.id || `amend_timeline_${index}`,
+          title,
+          badge,
+          tone,
+          detailLines,
+          reason,
+          operatorName,
+          dateText: formatThaiDateTime(dateValue),
+          sortTime,
+          safeMode: Boolean(record.safeMode)
+        };
+      })
+      .sort((a, b) => (b.sortTime || 0) - (a.sortTime || 0));
   };
 
   const openBorrowDocSafetyCheck = (docData = {}) => {
@@ -29932,6 +30007,7 @@ ${auditChangeSummary}` : auditChangeSummary);
         const hubIsEvent = (docUnifiedEditHubTarget.type || docUnifiedEditHubTarget.docType) === 'event';
         const docRefText = docUnifiedEditHubTarget.ref || docUnifiedEditHubTarget.id || '-';
         const ownerText = docUnifiedEditHubTarget.borrower || docUnifiedEditHubTarget.subject || docUnifiedEditHubTarget.eventName || '-';
+        const amendmentTimelineRows = getDocumentAmendmentTimelineRows(docUnifiedEditHubTarget).slice(0, 6);
         const optionBase = 'rounded-3xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg';
         return (
           <div className={`fixed inset-0 ${theme.modalOverlay} flex items-center justify-center p-3 z-[10028]`} onMouseDown={(e) => { if (e.target === e.currentTarget) closeBorrowDocUnifiedEditHub(); }}>
@@ -29991,6 +30067,47 @@ ${auditChangeSummary}` : auditChangeSummary);
                       </div>
                     )}
                   </button>
+                </div>
+
+                <div className={`rounded-3xl border p-4 ${isDarkMode ? 'bg-slate-950/80 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-3">
+                    <div>
+                      <div className={`text-[11px] font-black tracking-[0.14em] uppercase ${isDarkMode ? 'text-violet-300' : 'text-violet-600'}`}>DOCUMENT AMENDMENT TIMELINE</div>
+                      <div className={`text-base font-black mt-0.5 ${theme.textTitle}`}>ประวัติการแก้ไขรายการของเอกสารนี้</div>
+                    </div>
+                    <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black w-fit ${isDarkMode ? 'bg-violet-950/35 border-violet-800 text-violet-100' : 'bg-violet-50 border-violet-200 text-violet-700'}`}>
+                      {amendmentTimelineRows.length.toLocaleString('th-TH')} รายการล่าสุด
+                    </span>
+                  </div>
+                  {amendmentTimelineRows.length === 0 ? (
+                    <div className={`rounded-2xl border px-4 py-3 text-sm font-bold ${isDarkMode ? 'bg-slate-900/70 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                      เอกสารนี้ยังไม่มีประวัติการเพิ่ม / ยกเลิก / สลับรายการอุปกรณ์
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {amendmentTimelineRows.map(row => (
+                        <div key={row.id} className={`rounded-2xl border p-3 ${row.tone}`}>
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="px-2 py-0.5 rounded-lg border border-current/20 text-[10px] font-black">{row.badge}</span>
+                                <div className="text-sm font-black">{row.title}</div>
+                                {row.safeMode && <span className="px-2 py-0.5 rounded-lg border border-current/20 text-[10px] font-black opacity-80">Safe Mode</span>}
+                              </div>
+                              <div className="mt-2 space-y-1">
+                                {row.detailLines.map((line, idx) => <div key={idx} className="text-xs sm:text-sm font-black leading-relaxed">{line}</div>)}
+                              </div>
+                            </div>
+                            <div className="text-[11px] font-bold opacity-80 sm:text-right shrink-0">{row.dateText}</div>
+                          </div>
+                          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-bold opacity-90">
+                            <div className="rounded-xl border border-current/15 px-2.5 py-1.5">เหตุผล: {row.reason || '-'}</div>
+                            <div className="rounded-xl border border-current/15 px-2.5 py-1.5">ผู้แก้ไข: {row.operatorName || '-'}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className={`rounded-2xl border px-4 py-3 text-xs font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
