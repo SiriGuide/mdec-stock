@@ -1,3 +1,4 @@
+// v23.4.16.18.27.19 Auto Safety Check Inside Edit Hub Polish - ซ่อนปุ่มตรวจรายการจากหน้าหลัก ให้ตรวจอัตโนมัติในปุ่มแก้ไขข้อมูล
 // v23.1.46.1 Asset Profile Clean Redesign Build Hotfix - เพิ่มปุ่มตรวจพื้นที่ฐานข้อมูลแบบสแกนทุก collection หลัก เพื่อให้แม่นกว่า estimate จาก state หน้าเว็บ
 // v23.1.44 Warehouse Quick Release / No Approver - ปรับโกดัง/คลังสำรองให้เบิกเข้าคลังได้เร็วขึ้น ไม่ต้องกรอกผู้อนุมัติ เหลือแค่เหตุผลและบันทึกประวัติ
 // v23.1.34 Inventory Delete Button Restore - คืนปุ่มลบอุปกรณ์ในหน้าคลัง ทั้งรายชิ้นและแบบเลือกหลายรายการ
@@ -8707,17 +8708,17 @@ function MainApp() {
     if (statusMismatchItems.length > 0) warnings.push(`มี ${statusMismatchItems.length.toLocaleString('th-TH')} ชิ้นที่สถานะปัจจุบันไม่ตรงกับเอกสาร`);
     if (returnedLinkedItems.length > 0) warnings.push(`มี ${returnedLinkedItems.length.toLocaleString('th-TH')} ชิ้นที่คืนแล้ว ห้ามยกเลิกรายการเหล่านี้ในขั้นแก้รายการ`);
     const level = issues.length > 0 ? 'locked' : warnings.length > 0 ? 'caution' : 'ready';
-    const label = level === 'ready' ? 'พร้อมสำหรับขั้นต่อไป' : level === 'caution' ? 'แก้ได้แบบมีเงื่อนไข' : 'ล็อกไว้ก่อน';
+    const label = level === 'ready' ? 'พร้อมแก้รายการ' : level === 'caution' ? 'ต้องตรวจสอบก่อน' : 'แก้รายการไม่ได้';
     const desc = level === 'ready'
-      ? 'เอกสารนี้มีลิงก์อุปกรณ์หลักครบและยังเปิดอยู่ รอบถัดไปจึงค่อยใช้โหมด Preview ก่อนบันทึกจริง'
+      ? 'ระบบตรวจเอกสารให้อัตโนมัติแล้ว สามารถเข้าเมนูเพิ่ม / ยกเลิก / สลับรายการได้ โดยยังต้องกรอกเหตุผลก่อนบันทึกจริง'
       : level === 'caution'
-        ? 'เอกสารนี้มีลิงก์อุปกรณ์ แต่ต้องใช้โหมดปลอดภัยเท่านั้น เช่น Preview, เหตุผลการแก้, และห้ามแก้รายการที่คืนแล้ว'
-        : 'เอกสารนี้ยังไม่ควรเปิดแก้รายการจริง เพื่อป้องกันข้อมูลจากหลายเว็บทำให้สถานะอุปกรณ์เพี้ยน';
+        ? 'ระบบตรวจพบเงื่อนไขที่ควรระวัง จึงต้องดูรายละเอียดก่อนแก้รายการ และยังใช้ Safe Mode เพื่อป้องกันข้อมูลเพี้ยน'
+        : 'ระบบตรวจพบเงื่อนไขที่ไม่ควรเปิดแก้รายการอุปกรณ์ตอนนี้ เพื่อป้องกันสถานะอุปกรณ์และเอกสารไม่ตรงกัน';
     const nextActionLabel = level === 'ready'
-      ? 'ขั้นต่อไปที่ทำได้: ทดลอง Preview การเพิ่มรายการย้อนหลังเท่านั้น'
+      ? 'เลือกแก้รายการอุปกรณ์ต่อได้ ระบบจะตรวจสถานะล่าสุดอีกครั้งก่อนบันทึกจริง'
       : level === 'caution'
-        ? 'ขั้นต่อไปที่ทำได้: ตรวจมือก่อน และเปิดได้เฉพาะคำสั่งที่ไม่กระทบของคืนแล้ว'
-        : 'ขั้นต่อไปที่แนะนำ: แก้ได้เฉพาะข้อมูลหัวเอกสาร ไม่เปิดแก้รายการอุปกรณ์';
+        ? 'ควรตรวจรายละเอียดก่อน และหลีกเลี่ยงการแก้รายการที่คืนแล้ว'
+        : 'แนะนำให้แก้ได้เฉพาะข้อมูลหัวเอกสาร ไม่เปิดแก้รายการอุปกรณ์';
     const tone = level === 'ready'
       ? (isDarkMode ? 'bg-emerald-950/35 border-emerald-800 text-emerald-100' : 'bg-emerald-50 border-emerald-200 text-emerald-700')
       : level === 'caution'
@@ -16503,7 +16504,7 @@ S.N.: ${item.sn || '-'}
                           <div className="grid grid-cols-2 xl:grid-cols-1 gap-1.5 shrink-0 xl:min-w-[142px]">
                             <button type="button" onClick={() => openBorrowเอกสารพิมพ์(docData)} className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-black shadow-sm">พิมพ์เอกสาร</button>
                             {canUseOperationalTools && <button type="button" onClick={() => openBorrowDocUnifiedEditHub(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${isDarkMode ? 'bg-blue-950/35 border-blue-800 text-blue-100 hover:bg-blue-900/45' : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'}`}>แก้ไขข้อมูล</button>}
-                            <button type="button" onClick={() => openBorrowDocSafetyCheck(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${safety.tone}`}>ตรวจรายการ</button>
+                            {/* ซ่อนปุ่มตรวจรายการจากหน้าหลัก: ระบบตรวจให้อัตโนมัติในเมนูแก้ไขข้อมูล */}
                             <button type="button" onClick={() => openDocHistorySearch(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>ดูประวัติ</button>
                             <button type="button" onClick={() => copyDocSummary(docData)} className={`px-3 py-2 rounded-xl border text-xs sm:text-sm font-black ${theme.btnSecondary}`}>คัดลอกสรุป</button>
                             {meta.status !== 'closed' && <button type="button" onClick={() => { setTrackingSearch(docData.ref || meta.ownerText || ''); openWorkspace('tracking'); }} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black shadow-sm">ติดตามคืน</button>}
@@ -29894,9 +29895,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                               แก้ไขข้อมูล
                             </button>
                           )}
-                          <button type="button" onClick={() => openBorrowDocSafetyCheck(docData)} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${safety.tone}`}>
-                            ตรวจความพร้อมแก้รายการ
-                          </button>
+                          {/* ซ่อนปุ่มตรวจความพร้อมจากหน้าหลัก: เข้าไปที่ แก้ไขข้อมูล → แก้รายการอุปกรณ์ เพื่อให้ระบบตรวจอัตโนมัติ */}
                           <button type="button" onClick={() => { setShowBorrowDocsModal(false); setTrackingTab('today'); setShowTrackingCenterModal(true); }} className={`px-4 py-2.5 rounded-2xl border font-black transition-all ${theme.btnSecondary}`}>
                             ติดตามสถานะคืน
                           </button>
@@ -29941,7 +29940,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                 <div className="min-w-0">
                   <div className="text-xs font-black tracking-[0.18em] uppercase text-blue-400">DOCUMENT EDIT HUB</div>
                   <h3 className={`text-xl font-black mt-1 ${theme.textTitle}`}>แก้ไขข้อมูลเอกสาร</h3>
-                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกว่าจะปรับข้อมูลทั่วไปของเอกสาร หรือแก้รายการอุปกรณ์ ระบบจะแยกขั้นตอนให้เองเพื่อกันแก้ผิดส่วน</p>
+                  <p className={`text-xs sm:text-sm font-bold mt-1 ${theme.textMuted}`}>เลือกสิ่งที่ต้องการแก้ในเอกสารนี้ ถ้าเป็นการแก้รายการอุปกรณ์ ระบบจะตรวจความพร้อมให้อัตโนมัติก่อนเปิดขั้นตอนถัดไป</p>
                 </div>
                 <button type="button" onClick={closeBorrowDocUnifiedEditHub} className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${theme.btnSecondary}`}><Icons.X className="w-4 h-4" /></button>
               </div>
@@ -29954,7 +29953,10 @@ ${auditChangeSummary}` : auditChangeSummary);
                       <div className={`font-black text-lg mt-1 truncate ${theme.textTitle}`}>{docRefText} • {hubIsEvent ? 'ใบออกงาน' : 'ใบยืม'}</div>
                       <div className={`text-sm font-bold mt-1 ${theme.textMuted}`}>{ownerText} • คืนแล้ว {hubReturnedCount.toLocaleString('th-TH')}/{hubItemCount.toLocaleString('th-TH')} รายการ</div>
                     </div>
-                    <div className={`inline-flex px-3 py-1.5 rounded-2xl border text-xs font-black shrink-0 ${safety.tone}`}>แก้รายการ: {safety.label}</div>
+                    <div className="flex flex-col sm:items-end gap-2 shrink-0">
+                      <div className={`inline-flex px-3 py-1.5 rounded-2xl border text-xs font-black ${safety.tone}`}>ตรวจอัตโนมัติ: {safety.label}</div>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setDocUnifiedEditHubTarget({ ...docUnifiedEditHubTarget, __safetyRefreshAt: Date.now() }); }} className={`inline-flex px-3 py-1.5 rounded-2xl border text-[11px] font-black ${theme.btnSecondary}`}>ตรวจอีกครั้ง</button>
+                    </div>
                   </div>
                 </div>
 
@@ -29981,13 +29983,18 @@ ${auditChangeSummary}` : auditChangeSummary);
                       <span className="px-2.5 py-1 rounded-xl border text-[11px] font-black opacity-85">Safe Mode</span>
                     </div>
                     <div className="mt-4 rounded-2xl border border-current/20 px-3 py-2 text-xs font-bold opacity-90">
-                      {safety.canAmendSafely ? 'เอกสารพร้อมแก้รายการ ระบบจะให้เลือกประเภทการแก้และต้องกรอกเหตุผลก่อนบันทึกจริง' : 'เอกสารนี้ยังไม่พร้อมแก้รายการ เมื่อเลือกส่วนนี้ระบบจะพาไปหน้าตรวจความพร้อมก่อน'}
+                      {safety.canAmendSafely ? 'ระบบตรวจให้อัตโนมัติแล้ว: เอกสารพร้อมแก้รายการ กดต่อเพื่อเลือก เพิ่ม / ยกเลิก / สลับ และกรอกเหตุผลก่อนบันทึกจริง' : 'ระบบตรวจให้อัตโนมัติแล้ว: เอกสารนี้ยังไม่พร้อมแก้รายการ กดต่อเพื่อดูรายละเอียดว่าติดเงื่อนไขอะไร'}
                     </div>
+                    {!safety.canAmendSafely && (
+                      <div className="mt-2 rounded-2xl border border-current/20 px-3 py-2 text-xs font-bold opacity-90">
+                        {(safety.issues[0] || safety.warnings[0] || 'มีเงื่อนไขที่ต้องตรวจเพิ่มเติม')}
+                      </div>
+                    )}
                   </button>
                 </div>
 
                 <div className={`rounded-2xl border px-4 py-3 text-xs font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
-                  ปุ่มเดียวนี้รวมเฉพาะทางเข้าใช้งานให้เป็นมิตรขึ้น แต่ระบบด้านในยังแยกความปลอดภัยเหมือนเดิม: แก้ข้อมูลทั่วไปจะไม่แตะสถานะอุปกรณ์ ส่วนแก้รายการอุปกรณ์ยังใช้ Safety Check และบันทึกประวัติ Amendment
+                  ปุ่มเดียวนี้รวมทางเข้าให้ใช้งานง่ายขึ้น: แก้ข้อมูลทั่วไปจะไม่แตะสถานะอุปกรณ์ ส่วนแก้รายการอุปกรณ์ระบบจะตรวจความพร้อมให้อัตโนมัติ และยังบันทึกประวัติ Amendment ทุกครั้ง
                 </div>
               </div>
 
@@ -30153,7 +30160,7 @@ ${auditChangeSummary}` : auditChangeSummary);
                   </div>
                 ) : (
                   <div className={`rounded-2xl border p-4 text-sm font-bold ${isDarkMode ? 'bg-emerald-950/20 border-emerald-800 text-emerald-200' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
-                    เอกสารนี้ผ่าน Safety Check เบื้องต้นแล้ว รอบถัดไปจึงค่อยเปิดขั้น “เพิ่มอุปกรณ์ที่ลืม” แบบมีเหตุผลและประวัติการแก้ไข
+                    เอกสารนี้ผ่านการตรวจความพร้อมแล้ว สามารถกลับไปที่ “แก้ไขข้อมูล → แก้รายการอุปกรณ์” เพื่อเลือกเพิ่ม / ยกเลิก / สลับรายการได้
                   </div>
                 )}
 
