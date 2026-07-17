@@ -29961,16 +29961,16 @@ ${auditChangeSummary}` : auditChangeSummary);
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  <button type="button" onClick={() => chooseBorrowDocUnifiedEditAction('document')} className={`${optionBase} ${isDarkMode ? 'bg-blue-950/26 border-blue-800/70 text-blue-100 hover:bg-blue-900/35' : 'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100'}`}>
+                  <button type="button" onClick={() => chooseBorrowDocUnifiedEditAction('document')} className={`${optionBase} ${isDarkMode ? 'bg-slate-900/72 border-slate-700/80 text-slate-100 hover:bg-slate-800/80 hover:border-blue-500/45' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50 hover:border-blue-300'}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="text-3xl mb-2">✎</div>
-                        <div className="text-lg font-black">แก้ข้อมูลเอกสาร</div>
+                        <div className="text-3xl mb-2 opacity-90">✎</div>
+                        <div className={`text-lg font-black ${isDarkMode ? 'text-slate-50' : 'text-slate-900'}`}>แก้ข้อมูลเอกสาร</div>
                         <div className="text-xs font-bold mt-1 opacity-85">แก้ผู้ยืม / ชื่องาน / วันที่ / กำหนดคืน / เจ้าหน้าที่ / หมายเหตุ</div>
                       </div>
-                      <span className="px-2.5 py-1 rounded-xl border text-[11px] font-black opacity-85">ไม่เปลี่ยนสถานะอุปกรณ์</span>
+                      <span className={`px-2.5 py-1 rounded-xl border text-[11px] font-black ${isDarkMode ? 'bg-slate-950/45 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>ไม่เปลี่ยนสถานะอุปกรณ์</span>
                     </div>
-                    <div className="mt-4 rounded-2xl border border-current/20 px-3 py-2 text-xs font-bold opacity-90">เหมาะกับการแก้ข้อมูลหัวเอกสารหรือรายละเอียดประกอบ โดยไม่เพิ่มหรือลบรายการอุปกรณ์</div>
+                    <div className={`mt-4 rounded-2xl border px-3 py-2 text-xs font-bold ${isDarkMode ? 'bg-slate-950/35 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>เหมาะกับการแก้ข้อมูลหัวเอกสารหรือรายละเอียดประกอบ โดยไม่เพิ่มหรือลบรายการอุปกรณ์</div>
                   </button>
 
                   <button type="button" onClick={() => chooseBorrowDocUnifiedEditAction('items')} className={`${optionBase} ${safety.canAmendSafely ? (isDarkMode ? 'bg-violet-950/26 border-violet-800/70 text-violet-100 hover:bg-violet-900/35' : 'bg-violet-50 border-violet-200 text-violet-800 hover:bg-violet-100') : (isDarkMode ? 'bg-amber-950/24 border-amber-800/70 text-amber-100 hover:bg-amber-900/35' : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100')}`}>
